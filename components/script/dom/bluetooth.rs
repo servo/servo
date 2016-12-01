@@ -78,6 +78,8 @@ impl<Listener: AsyncBluetoothListener + Reflectable> BluetoothResponseListener f
         let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
         match response {
             Ok(response) => self.receiver.root().handle_response(response, promise_cx, &promise),
+            // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
+            // Step 3 - 4.
             Err(error) => promise.reject_error(promise_cx, Error::from(error)),
         }
     }
@@ -134,18 +136,60 @@ impl Bluetooth {
                                  optional_services: &Option<Vec<BluetoothServiceUUID>>) {
         // TODO: Step 1: Triggered by user activation.
 
-        // Step 2.
-        let option = match convert_request_device_options(filters, optional_services) {
-            Ok(o) => o,
-            Err(e) => {
-                p.reject_error(p.global().get_cx(), e);
+        // Step 2.2: There are no requiredServiceUUIDS, we scan for all devices.
+        let mut uuid_filters = vec!();
+
+        if let &Some(ref filters) = filters {
+            // Step 2.1.
+            if filters.is_empty()  {
+                p.reject_error(p.global().get_cx(), Type(FILTER_EMPTY_ERROR.to_owned()));
                 return;
             }
-        };
 
-        // TODO: Step 3-5: Implement the permission API.
+            // Step 2.3: There are no requiredServiceUUIDS, we scan for all devices.
 
-        // Note: Steps 6-8 are implemented in
+            // Step 2.4.
+            for filter in filters {
+                // Step 2.4.1.
+                match canonicalize_filter(&filter) {
+                    // Step 2.4.2.
+                    Ok(f) => uuid_filters.push(f),
+                    Err(e) => {
+                        p.reject_error(p.global().get_cx(), e);
+                        return;
+                    },
+                }
+                // Step 2.4.3: There are no requiredServiceUUIDS, we scan for all devices.
+            }
+        }
+
+        let mut optional_services_uuids = vec!();
+        if let &Some(ref opt_services) = optional_services {
+            for opt_service in opt_services {
+                // Step 2.5 - 2.6.
+                let uuid = match BluetoothUUID::service(opt_service.clone()) {
+                    Ok(u) => u.to_string(),
+                    Err(e) => {
+                        p.reject_error(p.global().get_cx(), e);
+                        return;
+                    },
+                };
+
+                // Step 2.7.
+                // Note: What we are doing here, is adding the not blocklisted UUIDs to the result vector,
+                // instead of removing them from an already filled vector.
+                if !uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
+                    optional_services_uuids.push(uuid);
+                }
+            }
+        }
+
+        let option = RequestDeviceoptions::new(BluetoothScanfilterSequence::new(uuid_filters),
+                                               ServiceUUIDSequence::new(optional_services_uuids));
+
+        // TODO: Step 3 - 5: Implement the permission API.
+
+        // Note: Steps 6 - 8 are implemented in
         // components/net/bluetooth_thread.rs in request_device function.
         let sender = response_async(p, self);
         self.get_bluetooth_thread().send(BluetoothRequest::RequestDevice(option, sender)).unwrap();
@@ -172,50 +216,9 @@ pub fn response_async<T: AsyncBluetoothListener + Reflectable + 'static>(
     action_sender
 }
 
-// https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
-fn convert_request_device_options(filters: &Option<Vec<BluetoothLEScanFilterInit>>,
-                                  optional_services: &Option<Vec<BluetoothServiceUUID>>)
-                                  -> Fallible<RequestDeviceoptions> {
-    // Step 2.2: There is no requiredServiceUUIDS, we scan for all devices.
-    let mut uuid_filters = vec!();
-
-    if let &Some(ref filters) = filters {
-        // Step 2.1.
-        if filters.is_empty()  {
-            return Err(Type(FILTER_EMPTY_ERROR.to_owned()));
-        }
-
-        // Step 2.3: There is no requiredServiceUUIDS, we scan for all devices.
-
-        // Step 2.4.
-        for filter in filters {
-            // Step 2.4.8.
-            uuid_filters.push(try!(canonicalize_filter(&filter)));
-        }
-    }
-
-    let mut optional_services_uuids = vec!();
-    if let &Some(ref opt_services) = optional_services {
-        for opt_service in opt_services {
-            // Step 2.5 - 2.6.
-            let uuid = try!(BluetoothUUID::service(opt_service.clone())).to_string();
-
-            // Step 2.7.
-            // Note: What we are doing here is adding the not blocklisted UUIDs to the result vector,
-            // insted of removing them from an already filled vector.
-            if !uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
-                optional_services_uuids.push(uuid);
-            }
-        }
-    }
-
-    Ok(RequestDeviceoptions::new(BluetoothScanfilterSequence::new(uuid_filters),
-                                 ServiceUUIDSequence::new(optional_services_uuids)))
-}
-
-// https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
+// https://webbluetoothcg.github.io/web-bluetooth/#bluetoothlescanfilterinit-canonicalizing
 fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<BluetoothScanfilter> {
-    // Step 2.4.1.
+    // Step 1.
     if filter.services.is_none() &&
        filter.name.is_none() &&
        filter.namePrefix.is_none() &&
@@ -224,13 +227,13 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
            return Err(Type(FILTER_ERROR.to_owned()));
     }
 
-    // Step 2.4.2: There is no empty canonicalizedFilter member,
+    // Step 2: There is no empty canonicalizedFilter member,
     // we create a BluetoothScanfilter instance at the end of the function.
 
-    // Step 2.4.3.
+    // Step 3.
     let services_vec = match filter.services {
         Some(ref services) => {
-            // Step 2.4.3.1.
+            // Step 3.1.
             if services.is_empty() {
                 return Err(Type(SERVICE_ERROR.to_owned()));
             }
@@ -238,27 +241,26 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
             let mut services_vec = vec!();
 
             for service in services {
-                // Step 2.4.3.2 - 2.4.3.3.
+                // Step 3.2 - 3.3.
                 let uuid = try!(BluetoothUUID::service(service.clone())).to_string();
 
-                // Step 2.4.3.4.
+                // Step 3.4.
                 if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
                     return Err(Security)
                 }
 
                 services_vec.push(uuid);
             }
-            // Step 2.4.3.5.
+            // Step 3.5.
             services_vec
-            // Step 2.4.3.6: There is no requiredServiceUUIDS, we scan for all devices.
         },
         None => vec!(),
     };
 
-    // Step 2.4.4.
+    // Step 4.
     let name = match filter.name {
         Some(ref name) => {
-            // Step 2.4.4.1.
+            // Step 4.1.
             // Note: DOMString::len() gives back the size in bytes.
             if name.len() > MAX_DEVICE_NAME_LENGTH {
                 return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
@@ -267,16 +269,16 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                 return Err(NotFound);
             }
 
-            // Step 2.4.4.2.
+            // Step 4.2.
             Some(name.to_string())
         },
         None => None,
     };
 
-    // Step 2.4.5.
+    // Step 5.
     let name_prefix = match filter.namePrefix {
         Some(ref name_prefix) => {
-            // Step 2.4.5.1.
+            // Step 5.1.
             if name_prefix.is_empty() {
                 return Err(Type(NAME_PREFIX_ERROR.to_owned()));
             }
@@ -287,24 +289,30 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                 return Err(NotFound);
             }
 
-            // Step 2.4.5.2.
+            // Step 5.2.
             name_prefix.to_string()
         },
         None => String::new(),
     };
 
-    // Step 2.4.6 - 2.4.7
+    // Step 6 - 7.
     let manufacturer_data = match filter.manufacturerData {
         Some(ref manufacturer_data_map) => {
+            // Note: If manufacturer_data_map is empty, that means there are no key values in it.
             if manufacturer_data_map.is_empty() {
                 return Err(Type(MANUFACTURER_DATA_ERROR.to_owned()));
             }
             let mut map = HashMap::new();
             for (key, bdfi) in manufacturer_data_map.iter() {
+                // Step 7.1 - 7.2.
                 let manufacturer_id = match u16::from_str(key.as_ref()) {
                     Ok(id) => id,
                     Err(err) => return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err))),
                 };
+
+                // Step 7.3: No need to convert to IDL values since this is only used by native code.
+
+                // Step 7.4 - 7.5.
                 map.insert(manufacturer_id, try!(canonicalize_bluetooth_data_filter_init(bdfi)));
             }
             Some(map)
@@ -312,22 +320,33 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
         None => None,
     };
 
-    // Step 2.4.8 -2.4.9
+    // Step 8 - 9.
     let service_data = match filter.serviceData {
         Some(ref service_data_map) => {
+            // Note: If service_data_map is empty, that means there are no key values in it.
             if service_data_map.is_empty() {
                 return Err(Type(SERVICE_DATA_ERROR.to_owned()));
             }
             let mut map = HashMap::new();
             for (key, bdfi) in service_data_map.iter() {
                 let service_name = match u32::from_str(key.as_ref()) {
+                    // Step 9.1.
                     Ok(number) => StringOrUnsignedLong::UnsignedLong(number),
+                    // Step 9.2.
                     _ => StringOrUnsignedLong::String(key.clone())
                 };
+
+                // Step 9.3 - 9.4.
                 let service = try!(BluetoothUUID::service(service_name)).to_string();
+
+                // Step 9.5.
                 if uuid_is_blocklisted(service.as_ref(), Blocklist::All) {
                     return Err(Security);
                 }
+
+                // Step 9.6: No need to convert to IDL values since this is only used by native code.
+
+                // Step 9.7 - 9.8.
                 map.insert(service, try!(canonicalize_bluetooth_data_filter_init(bdfi)));
             }
             Some(map)
@@ -343,14 +362,17 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
 fn canonicalize_bluetooth_data_filter_init(bdfi: &BluetoothDataFilterInit) -> Fallible<(Vec<u8>, Vec<u8>)> {
     // Step 1.
     let data_prefix = bdfi.dataPrefix.clone().unwrap_or(vec![]);
+
     // Step 2.
     // If no mask present, mask will be a sequence of 0xFF bytes the same length as dataPrefix.
     // Masking dataPrefix with this, leaves dataPrefix untouched.
     let mask = bdfi.mask.clone().unwrap_or(vec![0xFF; data_prefix.len()]);
+
     // Step 3.
     if mask.len() != data_prefix.len() {
         return Err(Type(MASK_LENGTH_ERROR.to_owned()));
     }
+
     // Step 4.
     Ok((data_prefix, mask))
 }
@@ -379,9 +401,10 @@ impl BluetoothMethods for Bluetooth {
             p.reject_error(p.global().get_cx(), Error::Type(OPTIONS_ERROR.to_owned()));
             return p;
         }
+
         // Step 2.
         self.request_bluetooth_devices(&p, &option.filters, &option.optionalServices);
-        // TODO(#4282): Step 3-5: Reject and resolve promise.
+        //Note: Step 3 - 4. in response function, Step 5. in handle_response function.
         return p;
     }
 
@@ -392,6 +415,8 @@ impl BluetoothMethods for Bluetooth {
 impl AsyncBluetoothListener for Bluetooth {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
+            // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
+            // Step 13 - 14.
             BluetoothResponse::RequestDevice(device) => {
                 let mut device_instance_map = self.device_instance_map.borrow_mut();
                 if let Some(existing_device) = device_instance_map.get(&device.id.clone()) {
@@ -407,6 +432,8 @@ impl AsyncBluetoothListener for Bluetooth {
                                                      &ad_data,
                                                      &self);
                 device_instance_map.insert(device.id, MutHeap::new(&bt_device));
+                // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
+                // Step 5.
                 promise.resolve_native(promise_cx, &bt_device);
             },
             _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),

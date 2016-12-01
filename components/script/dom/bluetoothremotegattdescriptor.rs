@@ -90,14 +90,24 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     fn ReadValue(&self) -> Rc<Promise> {
         let p = Promise::new(&self.global());
         let p_cx = p.global().get_cx();
+
+        // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Reads) {
             p.reject_error(p_cx, Security);
             return p;
         }
+
+        // Step 2.
         if !self.Characteristic().Service().Device().Gatt().Connected() {
             p.reject_error(p_cx, Network);
             return p;
         }
+
+        // TODO: Step 3 - 4: Implement representedDescriptor internal slot for BluetoothRemoteGATTDescriptor.
+
+        // TODO: Step 5: Implement the `connection-checking-wrapper` algorithm for BluetoothRemoteGATTServer.
+        // Note: Substeps of Step 5 are implemented in components/bluetooth/lib.rs in readValue function
+        // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::ReadValue(self.get_instance_id(), sender)).unwrap();
@@ -109,18 +119,30 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     fn WriteValue(&self, value: Vec<u8>) -> Rc<Promise> {
         let p = Promise::new(&self.global());
         let p_cx = p.global().get_cx();
+
+        // Step 1.
         if uuid_is_blocklisted(self.uuid.as_ref(), Blocklist::Writes) {
             p.reject_error(p_cx, Security);
             return p;
         }
+
+        // Step 2 - 3.
         if value.len() > MAXIMUM_ATTRIBUTE_LENGTH {
             p.reject_error(p_cx, InvalidModification);
             return p;
         }
+
+        // Step 4.
         if !self.Characteristic().Service().Device().Gatt().Connected() {
             p.reject_error(p_cx, Network);
             return p;
         }
+
+        // TODO: Step 5 - 6: Implement representedCharacteristic internal slot for BluetoothRemoteGATTCharacteristic.
+
+        // TODO: Step 7: Implement the `connection-checking-wrapper` algorithm for BluetoothRemoteGATTServer.
+        // Note: Substeps of Step 7 are implemented in components/bluetooth/lib.rs in writeValue function
+        // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::WriteValue(self.get_instance_id(), value, sender)).unwrap();
@@ -131,13 +153,28 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
 impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
+            // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-readvalue
             BluetoothResponse::ReadValue(result) => {
+                // TODO: Step 5.4.1: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
+
+                // Step 5.4.2.
+                // TODO(#5014): Replace ByteString with ArrayBuffer when it is implemented.
                 let value = ByteString::new(result);
                 *self.value.borrow_mut() = Some(value.clone());
+
+                // Step 5.4.3.
                 promise.resolve_native(promise_cx, &value);
             },
+            // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
             BluetoothResponse::WriteValue(result) => {
+                // TODO: Step 7.4.1: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
+
+                // Step 7.4.2.
+                // TODO(#5014): Replace ByteString with an ArrayBuffer wrapped in a DataView.
                 *self.value.borrow_mut() = Some(ByteString::new(result));
+
+                // Step 7.4.3.
+                // TODO: Resolve promise with undefined instead of a value.
                 promise.resolve_native(promise_cx, &());
             },
             _ => promise.reject_error(promise_cx, Error::Type("Something went wrong...".to_owned())),
