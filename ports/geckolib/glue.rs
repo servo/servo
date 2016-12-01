@@ -43,6 +43,7 @@ use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
+use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
@@ -329,6 +330,31 @@ pub extern "C" fn Servo_CssRules_GetStyleRuleAt(rules: ServoCssRulesBorrowed, in
         _ => {
             unreachable!("GetStyleRuleAt should only be called on a style rule");
         }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed, sheet: RawServoStyleSheetBorrowed,
+                                            rule: *const nsACString, index: u32, nested: bool,
+                                            rule_type: *mut u16) -> nsresult {
+    let rules = RwLock::<CssRules>::as_arc(&rules);
+    let sheet = Stylesheet::as_arc(&sheet);
+    let rule = unsafe { rule.as_ref().unwrap().as_str_unchecked() };
+    match rules.write().insert_rule(rule, sheet, index as usize, nested) {
+        Ok(new_rule) => {
+            *unsafe { rule_type.as_mut().unwrap() } = new_rule.rule_type() as u16;
+            nsresult::NS_OK
+        }
+        Err(err) => err.into()
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CssRules_DeleteRule(rules: ServoCssRulesBorrowed, index: u32) -> nsresult {
+    let rules = RwLock::<CssRules>::as_arc(&rules);
+    match rules.write().remove_rule(index as usize) {
+        Ok(_) => nsresult::NS_OK,
+        Err(err) => err.into()
     }
 }
 

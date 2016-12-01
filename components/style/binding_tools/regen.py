@@ -277,7 +277,6 @@ COMPILATION_TARGETS = {
             "StyleBasicShape",
             "StyleBasicShapeType",
             "StyleClipPath",
-            "nscoord",
             "nsCSSKeyword",
             "nsCSSShadowArray",
             "nsCSSValue",
@@ -331,6 +330,8 @@ COMPILATION_TARGETS = {
             "nsStyleVariables",
             "nsStyleVisibility",
             "nsStyleXUL",
+            "nscoord",
+            "nsresult",
         ],
         "array_types": {
             "uintptr_t": "usize",
