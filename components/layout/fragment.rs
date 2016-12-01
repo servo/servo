@@ -18,7 +18,6 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use gfx_traits::{FragmentType, StackingContextId};
-use html5ever::tree_builder::QuirksMode;
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
 use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT, LineMetrics};
 use ipc_channel::ipc::IpcSender;
@@ -922,34 +921,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: node.get_pseudo_element_type().strip(),
-            flags: FragmentFlags::with_quirks_mode(node.quirks_mode()),
-            debug_id: DebugId::new(),
-            stacking_context_id: StackingContextId::new(0),
-        }
-    }
-
-    /// Constructs a new `Fragment` from a node, overriding its style
-    pub fn from_node_and_style<N: ThreadSafeLayoutNode>(node: &N,
-                                                        style: Arc<ServoComputedValues>,
-                                                        specific: SpecificFragmentInfo)
-                                                        -> Fragment {
-        let writing_mode = style.writing_mode;
-
-        let mut restyle_damage = node.restyle_damage();
-        restyle_damage.remove(RECONSTRUCT_FLOW);
-
-        Fragment {
-            node: node.opaque(),
-            style: style,
-            selected_style: node.selected_style(),
-            restyle_damage: restyle_damage,
-            border_box: LogicalRect::zero(writing_mode),
-            border_padding: LogicalMargin::zero(writing_mode),
-            margin: LogicalMargin::zero(writing_mode),
-            specific: specific,
-            inline_context: None,
-            pseudo: node.get_pseudo_element_type().strip(),
-            flags: FragmentFlags::with_quirks_mode(node.quirks_mode()),
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -961,8 +933,7 @@ impl Fragment {
                                       style: Arc<ServoComputedValues>,
                                       selected_style: Arc<ServoComputedValues>,
                                       mut restyle_damage: RestyleDamage,
-                                      specific: SpecificFragmentInfo,
-                                      quirks_mode: Option<QuirksMode>)
+                                      specific: SpecificFragmentInfo)
                                       -> Fragment {
         let writing_mode = style.writing_mode;
 
@@ -979,7 +950,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: pseudo,
-            flags: FragmentFlags::with_quirks_mode(quirks_mode.unwrap_or(QuirksMode::NoQuirks)),
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -1004,7 +975,7 @@ impl Fragment {
             specific: specific,
             inline_context: None,
             pseudo: self.pseudo,
-            flags: FragmentFlags::with_quirks_mode(self.flags.quirks_mode()),
+            flags: FragmentFlags::empty(),
             debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -1032,7 +1003,7 @@ impl Fragment {
             specific: info,
             inline_context: self.inline_context.clone(),
             pseudo: self.pseudo.clone(),
-            flags: FragmentFlags::with_quirks_mode(self.flags.quirks_mode()),
+            flags: FragmentFlags::empty(),
             debug_id: self.debug_id.clone(),
             stacking_context_id: StackingContextId::new(0),
         }
@@ -2986,11 +2957,6 @@ impl Fragment {
             SpecificFragmentInfo::UnscannedText(_) => true
         }
     }
-
-    #[inline]
-    pub fn quirks_mode(&self) -> QuirksMode {
-        self.flags.quirks_mode()
-    }
 }
 
 impl fmt::Debug for Fragment {
@@ -3163,32 +3129,6 @@ bitflags! {
         const IS_INLINE_FLEX_ITEM = 0b0000_0001,
         /// Whether this fragment represents a child in a column flex container.
         const IS_BLOCK_FLEX_ITEM = 0b0000_0010,
-        /// Whether this fragment is part of a document in quirks mode.
-        const IS_QUIRKS_MODE = 0b0000_0100,
-        /// Which quirks mode we're in: 0 is quirks, 1 is limited quirks
-        const QUIRKS_MODE = 0b0000_1000,
-    }
-}
-
-impl FragmentFlags {
-    pub fn quirks_mode(&self) -> QuirksMode {
-        if !self.contains(IS_QUIRKS_MODE) {
-            QuirksMode::NoQuirks
-        } else if self.contains(QUIRKS_MODE) {
-            QuirksMode::Quirks
-        } else {
-            QuirksMode::LimitedQuirks
-        }
-    }
-
-    pub fn with_quirks_mode(quirks_mode: QuirksMode) -> FragmentFlags {
-        let mut flags = FragmentFlags::empty();
-        match quirks_mode {
-            QuirksMode::LimitedQuirks => flags.insert(IS_QUIRKS_MODE),
-            QuirksMode::Quirks => flags.insert(IS_QUIRKS_MODE | QUIRKS_MODE),
-            _ => {}
-        };
-        flags
     }
 }
 

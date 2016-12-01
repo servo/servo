@@ -28,7 +28,6 @@ extern crate gfx;
 extern crate gfx_traits;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
-extern crate html5ever;
 #[macro_use] extern crate html5ever_atoms;
 extern crate ipc_channel;
 extern crate libc;

@@ -21,7 +21,6 @@ use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
-use html5ever::tree_builder::QuirksMode;
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use range::{Range, RangeIndex};
@@ -863,11 +862,8 @@ pub struct InlineFlow {
 
 impl InlineFlow {
     pub fn from_fragments(fragments: InlineFragments, writing_mode: WritingMode) -> InlineFlow {
-        debug_assert!(!fragments.is_empty());
-
-        let quirks_mode = fragments.get(0).quirks_mode();
         let mut flow = InlineFlow {
-            base: BaseFlow::new(None, writing_mode, ForceNonfloatedFlag::ForceNonfloated, quirks_mode),
+            base: BaseFlow::new(None, writing_mode, ForceNonfloatedFlag::ForceNonfloated),
             fragments: fragments,
             lines: Vec::new(),
             minimum_line_metrics: LineMetrics::new(Au(0), Au(0)),
@@ -1731,7 +1727,6 @@ pub struct InlineFragmentNodeInfo {
     pub selected_style: Arc<ServoComputedValues>,
     pub pseudo: PseudoElementType<()>,
     pub flags: InlineFragmentNodeFlags,
-    pub quirks_mode: QuirksMode,
 }
 
 bitflags! {

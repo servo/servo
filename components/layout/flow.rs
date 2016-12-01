@@ -38,7 +38,6 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::{ClippingRegion, StackingContext};
 use gfx_traits::{ScrollRootId, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
-use html5ever::tree_builder::QuirksMode;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use multicol::MulticolFlow;
@@ -939,9 +938,6 @@ pub struct BaseFlow {
     pub stacking_context_id: StackingContextId,
 
     pub scroll_root_id: ScrollRootId,
-
-    // Mode for the current document.
-    pub quirks_mode: QuirksMode,
 }
 
 impl fmt::Debug for BaseFlow {
@@ -967,7 +963,7 @@ impl fmt::Debug for BaseFlow {
 
         write!(f,
                "sc={:?} pos={:?}, {}{} floatspec-in={:?}, floatspec-out={:?}, \
-                overflow={:?}{}{}{}, quirks={:?}",
+                overflow={:?}{}{}{}",
                self.stacking_context_id,
                self.position,
                if self.flags.contains(FLOATS_LEFT) { "FL" } else { "" },
@@ -977,8 +973,7 @@ impl fmt::Debug for BaseFlow {
                self.overflow,
                child_count_string,
                absolute_descendants_string,
-               damage_string,
-               self.quirks_mode)
+               damage_string)
     }
 }
 
@@ -1010,8 +1005,7 @@ impl BaseFlow {
     #[inline]
     pub fn new(style: Option<&ServoComputedValues>,
                writing_mode: WritingMode,
-               force_nonfloated: ForceNonfloatedFlag,
-               quirks_mode: QuirksMode)
+               force_nonfloated: ForceNonfloatedFlag)
                -> BaseFlow {
         let mut flags = FlowFlags::empty();
         match style {
@@ -1088,7 +1082,6 @@ impl BaseFlow {
             thread_id: 0,
             stacking_context_id: StackingContextId::new(0),
             scroll_root_id: ScrollRootId::root(),
-            quirks_mode: quirks_mode,
         }
     }
 
