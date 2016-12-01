@@ -50,7 +50,6 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use style::computed_values::{clear, float, overflow_x, position, text_align};
 use style::context::SharedStyleContext;
-use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::selector_parser::RestyleDamage;

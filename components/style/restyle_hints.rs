@@ -446,9 +446,6 @@ impl DependencySet {
                            -> RestyleHint
         where E: ElementExt + Clone
     {
-        debug!("About to calculate restyle hint for element. Deps: {}",
-               self.len());
-
         let state_changes = snapshot.state()
                                     .map_or_else(ElementState::empty, |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.has_attrs();
@@ -458,20 +455,24 @@ impl DependencySet {
         }
 
         let mut hint = RestyleHint::empty();
-        let snapshot = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
+        let snapshot_el = ElementWrapper::new_with_snapshot(el.clone(), snapshot);
 
-        Self::compute_partial_hint(&self.common_deps, el, &snapshot,
+        Self::compute_partial_hint(&self.common_deps, el, &snapshot_el,
                                    &state_changes, attrs_changed, &mut hint);
 
         if !state_changes.is_empty() {
-            Self::compute_partial_hint(&self.state_deps, el, &snapshot,
+            Self::compute_partial_hint(&self.state_deps, el, &snapshot_el,
                                        &state_changes, attrs_changed, &mut hint);
         }
 
         if attrs_changed {
-            Self::compute_partial_hint(&self.attr_deps, el, &snapshot,
+            Self::compute_partial_hint(&self.attr_deps, el, &snapshot_el,
                                        &state_changes, attrs_changed, &mut hint);
         }
+
+        debug!("Calculated restyle hint: {:?}. (Element={:?}, State={:?}, Snapshot={:?}, {} Deps)",
+               hint, el, current_state, snapshot, self.len());
+        trace!("Deps: {:?}", self);
 
         hint
     }
