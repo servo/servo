@@ -10,7 +10,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::{Root, RootCollection, RootCollectionPtr, trace_roots};
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
-use dom::bindings::trace::trace_traceables;
+use dom::bindings::trace::{JSTraceable, trace_traceables};
 use dom::bindings::utils::DOM_CALLBACKS;
 use dom::globalscope::GlobalScope;
 use js::glue::CollectServoSizes;
@@ -48,7 +48,7 @@ pub enum CommonScriptMsg {
 }
 
 /// A cloneable interface for communicating with an event loop.
-pub trait ScriptChan {
+pub trait ScriptChan: JSTraceable {
     /// Send a message to the associated event loop.
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
     /// Clone this handle.

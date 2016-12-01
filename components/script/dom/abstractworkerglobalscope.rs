@@ -5,6 +5,7 @@
 use dom::abstractworker::WorkerScriptMsg;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::trace::JSTraceable;
 use script_runtime::{ScriptChan, CommonScriptMsg, ScriptPort};
 use std::sync::mpsc::{Receiver, Sender};
 
@@ -17,7 +18,7 @@ pub struct SendableWorkerScriptChan<T: Reflectable> {
     pub worker: Trusted<T>,
 }
 
-impl<T: Reflectable + 'static> ScriptChan for SendableWorkerScriptChan<T> {
+impl<T: JSTraceable + Reflectable + 'static> ScriptChan for SendableWorkerScriptChan<T> {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         self.sender.send((self.worker.clone(), msg)).map_err(|_| ())
     }
@@ -39,7 +40,7 @@ pub struct WorkerThreadWorkerChan<T: Reflectable> {
     pub worker: Trusted<T>,
 }
 
-impl<T: Reflectable + 'static> ScriptChan for WorkerThreadWorkerChan<T> {
+impl<T: JSTraceable + Reflectable + 'static> ScriptChan for WorkerThreadWorkerChan<T> {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         self.sender
             .send((self.worker.clone(), WorkerScriptMsg::Common(msg)))

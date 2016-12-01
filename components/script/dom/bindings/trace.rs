@@ -75,7 +75,6 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
-use script_runtime::ScriptChan;
 use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
@@ -371,13 +370,6 @@ unsafe_no_jsmanaged_fields!(WebGLRenderbufferId);
 unsafe_no_jsmanaged_fields!(WebGLShaderId);
 unsafe_no_jsmanaged_fields!(WebGLTextureId);
 unsafe_no_jsmanaged_fields!(MediaList);
-
-unsafe impl JSTraceable for Box<ScriptChan + Send> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
 
 unsafe impl JSTraceable for Box<FnBox(f64, )> {
     #[inline]
