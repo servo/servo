@@ -20,12 +20,6 @@ testing = ["style/testing"]
 clippy = ["plugins/clippy"]
 debugmozjs = ["script/debugmozjs"]
 
-[profile.release]
-opt-level = 3
-# Uncomment to profile on Linux:
-# debug = true
-# lto = false
-
 [dependencies]
 backtrace = "0.2"
 bluetooth_traits = {path = "../bluetooth_traits"}
