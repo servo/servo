@@ -7,27 +7,21 @@ Servo Page Load Time Test
 
 # Basic Usage
 
-## Prepare the test runner
+`./mach test-perf` can be used to run a performance test on your servo build. The test result JSON will be saved to `etc/ci/performance/output/`. You can then run `python test_differ.py` to compare these two test results. Run `python test_differ.py -h` for instructions.
 
-* Clone this repo
-* Download [tp5n.zip](http://people.mozilla.org/~jmaher/taloszips/zips/tp5n.zip), extract it to `page_load_test/tp5n`
-* Run `prepare_manifest.sh` to transform the tp5n manifest to our format
-* Install the Python3 `treeherder-client` package. For example, to install it in a virtualenv: `python3 -m virtualenv venv; source venv/bin/activate; pip install "treeherder-client>=3.0.0"`
+# Setup for CI machine
+## CI for Servo
+
 * Setup your Treeherder client ID and secret as environment variables `TREEHERDER_CLIENT_ID` and `TREEHERDER_CLIENT_SECRET`
+* Run `./mach test-perf --submit` to run and submit the result to Perfherder.
 
-## Build Servo
-* Clone the servo repo
-* Compile release build
-* Run `git_log_to_json.sh` in the servo repo, save the output as `revision.json`
-* Put your `servo` binary, `revision.json` and `resources` folder in `etc/ci/performance/servo/`
+## CI for Gecko
 
-## Run
-* Activate the virutalenv: `source venv/bin/activate`
-* Sync your system clock before running, the Perfherder API SSL check will fail if your system clock is not accurate. (e.g. `sudo nptdate tw.pool.ntp.org`)
-* Run `test_all.sh [--servo|--gecko] [--submit]`
-    - choose `servo` or `gecko` as the testing engine
-    - enable `submit`, if you want to submit to perfherder
-* Test results are submitted to https://treeherder.mozilla.org/#/jobs?repo=servo
+* Install Firefox Nightly in your PATH
+* Download [geckodriver](https://github.com/mozilla/geckodriver/releases) and add it to the `PATH`
+* `pip install selenium`
+* Run `python gecko_driver.py` to test
+* Run `test_all.sh --gecko --submit`
 
 # How it works
 
@@ -60,14 +54,6 @@ If you want to test the data submission code in `submit_to_perfherder.py` withou
 * `vagrant ssh`
   * `./manage.py create_credentials <username> <email> "description"`, the email has to match your logged in user. Remember to log-in through the Web UI once before you run this.
   * Setup your Treeherder client ID and secret as environment variables `TREEHERDER_CLIENT_ID` and `TREEHERDER_CLIENT_SECRET`
-
-## For Gecko
-
-* Install Firefox Nightly in your PATH
-* Download [geckodriver](https://github.com/mozilla/geckodriver/releases) and add it to the `PATH`
-* `pip install selenium`
-* Run `python gecko_driver.py` to test
-
 
 # Troubleshooting
 
