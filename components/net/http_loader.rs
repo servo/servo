@@ -42,7 +42,7 @@ use std::collections::HashSet;
 use std::error::Error;
 use std::io::{self, Read, Write};
 use std::iter::FromIterator;
-use std::mem::swap;
+use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
@@ -1101,16 +1101,14 @@ fn http_network_fetch(request: Rc<Request>,
                             }
                         },
                         Ok(Data::Done) | Err(_) => {
-                            let mut empty_vec = Vec::new();
-                            let completed_body = match *res_body.lock().unwrap() {
+                            let mut body = res_body.lock().unwrap();
+                            let completed_body = match *body {
                                 ResponseBody::Receiving(ref mut body) => {
-                                    // avoid cloning the body
-                                    swap(body, &mut empty_vec);
-                                    empty_vec
+                                    mem::replace(body, vec![])
                                 },
-                                _ => empty_vec,
+                                _ => vec![],
                             };
-                            *res_body.lock().unwrap() = ResponseBody::Done(completed_body);
+                            *body = ResponseBody::Done(completed_body);
                             let _ = done_sender.send(Data::Done);
                             break;
                         }
