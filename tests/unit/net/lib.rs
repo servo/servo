@@ -36,7 +36,7 @@ extern crate url;
 
 use devtools_traits::DevtoolsControlMsg;
 use hyper::server::{Handler, Listening, Server};
-use net::fetch::methods::{FetchContext, fetch};
+use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::test::HttpState;
 use net_traits::FetchTaskTarget;
@@ -74,12 +74,12 @@ impl FetchTaskTarget for FetchResponseCollector {
 
 fn fetch_async(request: Request, target: Box<FetchTaskTarget + Send>, dc: Option<Sender<DevtoolsControlMsg>>) {
     thread::spawn(move || {
-        fetch(Rc::new(request), &mut Some(target), &new_fetch_context(dc));
+        methods::fetch(Rc::new(request), &mut Some(target), &new_fetch_context(dc));
     });
 }
 
 fn fetch_sync(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch(Rc::new(request), &mut None, &new_fetch_context(dc))
+    methods::fetch(Rc::new(request), &mut None, &new_fetch_context(dc))
 }
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, ServoUrl) {
