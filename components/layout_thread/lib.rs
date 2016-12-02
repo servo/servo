@@ -774,7 +774,7 @@ impl LayoutThread {
             Some(x) => x,
             None => return None,
         };
-        let result = data.flow_construction_result.swap_out();
+        let result = data.flow_construction_result.get();
 
         let mut flow = match result {
             ConstructionResult::Flow(mut flow, abs_descendants) => {
