@@ -78,22 +78,22 @@ fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
 
 fn fetch_with_context(request: Request, context: &FetchContext) -> Response {
     let (sender, receiver) = channel();
-    let target = Box::new(FetchResponseCollector {
+    let mut target = FetchResponseCollector {
         sender: sender,
-    });
+    };
 
-    methods::fetch(Rc::new(request), &mut Some(target), context);
+    methods::fetch(Rc::new(request), &mut target, context);
 
     receiver.recv().unwrap()
 }
 
 fn fetch_with_cors_cache(request: Rc<Request>, cache: &mut CorsCache) -> Response {
     let (sender, receiver) = channel();
-    let target = Box::new(FetchResponseCollector {
+    let mut target = FetchResponseCollector {
         sender: sender,
-    });
+    };
 
-    methods::fetch_with_cors_cache(request, cache, &mut Some(target), &new_fetch_context(None));
+    methods::fetch_with_cors_cache(request, cache, &mut target, &new_fetch_context(None));
 
     receiver.recv().unwrap()
 }

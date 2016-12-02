@@ -18,7 +18,7 @@ use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use net_traits::{CookieSource, CoreResourceThread};
-use net_traits::{CoreResourceMsg, FetchResponseMsg, FetchTaskTarget};
+use net_traits::{CoreResourceMsg, FetchResponseMsg};
 use net_traits::{CustomResponseMediator, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::request::{Request, RequestInit};
@@ -332,7 +332,7 @@ impl CoreResourceManager {
 
     fn fetch(&self,
              init: RequestInit,
-             sender: IpcSender<FetchResponseMsg>,
+             mut sender: IpcSender<FetchResponseMsg>,
              group: &ResourceGroup) {
         let http_state = HttpState {
             hsts_list: group.hsts_list.clone(),
@@ -349,14 +349,13 @@ impl CoreResourceManager {
             // todo load context / mimesniff in fetch
             // todo referrer policy?
             // todo service worker stuff
-            let mut target = Some(Box::new(sender) as Box<FetchTaskTarget + Send + 'static>);
             let context = FetchContext {
                 state: http_state,
                 user_agent: ua,
                 devtools_chan: dc,
                 filemanager: filemanager,
             };
-            fetch(Rc::new(request), &mut target, &context);
+            fetch(Rc::new(request), &mut sender, &context);
         }).expect("Thread spawning failed");
     }
 

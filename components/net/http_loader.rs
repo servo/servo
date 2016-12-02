@@ -533,7 +533,7 @@ pub fn http_fetch(request: Rc<Request>,
                   cors_flag: bool,
                   cors_preflight_flag: bool,
                   authentication_fetch_flag: bool,
-                  target: &mut Target,
+                  target: Target,
                   done_chan: &mut DoneChannel,
                   context: &FetchContext)
                   -> Response {
@@ -707,7 +707,7 @@ fn http_redirect_fetch(request: Rc<Request>,
                        cache: &mut CorsCache,
                        response: Response,
                        cors_flag: bool,
-                       target: &mut Target,
+                       target: Target,
                        done_chan: &mut DoneChannel,
                        context: &FetchContext)
                        -> Response {
