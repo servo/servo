@@ -8,6 +8,7 @@ use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, NetworkEve
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use fetch_sync;
+use fetch_with_context;
 use flate2::Compression;
 use flate2::write::{DeflateEncoder, GzEncoder};
 use hyper::LanguageTag;
@@ -24,7 +25,6 @@ use make_server;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
-use net::fetch::methods::fetch;
 use net::resource_thread::AuthCacheEntry;
 use net_traits::{CookieSource, NetworkError};
 use net_traits::hosts::replace_host_table;
@@ -34,7 +34,6 @@ use new_fetch_context;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::io::{Read, Write};
-use std::rc::Rc;
 use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
@@ -496,7 +495,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
         .. RequestInit::default()
     });
     let context = new_fetch_context(None);
-    let response = fetch(Rc::new(request), &mut None, &context);
+    let response = fetch_with_context(request, &context);
 
     let _ = server.close();
 
@@ -526,7 +525,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch(Rc::new(request), &mut None, &context);
+    let response = fetch_with_context(request, &context);
 
     let _ = server.close();
 
@@ -566,7 +565,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch(Rc::new(request), &mut None, &context);
+    let response = fetch_with_context(request, &context);
 
     let _ = server.close();
 
@@ -604,7 +603,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch(Rc::new(request), &mut None, &context);
+    let response = fetch_with_context(request, &context);
 
     let _ = server.close();
 
@@ -635,7 +634,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch(Rc::new(request), &mut None, &context);
+    let response = fetch_with_context(request, &context);
 
     let _ = server.close();
 
@@ -670,7 +669,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch(Rc::new(request), &mut None, &context);
+    let response = fetch_with_context(request, &context);
 
     let _ = server.close();
 
@@ -1002,7 +1001,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         credentials_mode: CredentialsMode::Include,
         .. RequestInit::default()
     });
-    let response = fetch(Rc::new(request), &mut None, &context);
+    let response = fetch_with_context(request, &context);
 
     let _ = server.close();
 
@@ -1087,7 +1086,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
     context.state.auth_cache.write().unwrap().entries.insert(url.origin().clone().ascii_serialization(), auth_entry);
 
-    let response = fetch(Rc::new(request), &mut None, &context);
+    let response = fetch_with_context(request, &context);
 
     let _ = server.close();
 
@@ -1145,7 +1144,7 @@ fn test_content_blocked() {
         .. RequestInit::default()
     });
 
-    let response = fetch(Rc::new(request), &mut None, &context);
+    let response = fetch_with_context(request, &context);
 
     let _ = server.close();
 
@@ -1188,7 +1187,7 @@ fn test_cookies_blocked() {
         .. RequestInit::default()
     });
 
-    let response = fetch(Rc::new(request), &mut None, &context);
+    let response = fetch_with_context(request, &context);
 
     let _ = server.close();
 

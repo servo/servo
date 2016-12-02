@@ -79,7 +79,11 @@ fn fetch_async(request: Request, target: Box<FetchTaskTarget + Send>, dc: Option
 }
 
 fn fetch_sync(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    methods::fetch(Rc::new(request), &mut None, &new_fetch_context(dc))
+    fetch_with_context(request, &new_fetch_context(dc))
+}
+
+fn fetch_with_context(request: Request, context: &FetchContext) -> Response {
+    methods::fetch(Rc::new(request), &mut None, context)
 }
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, ServoUrl) {

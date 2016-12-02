@@ -6,6 +6,7 @@ use {DEFAULT_USER_AGENT, FetchResponseCollector, new_fetch_context, fetch_async,
 use devtools_traits::DevtoolsControlMsg;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
+use fetch_with_context;
 use http_loader::{expect_devtools_http_request, expect_devtools_http_response};
 use hyper::LanguageTag;
 use hyper::header::{Accept, AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
@@ -21,7 +22,7 @@ use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::fetch::cors_cache::CorsCache;
-use net::fetch::methods::{fetch, fetch_with_cors_cache};
+use net::fetch::methods::fetch_with_cors_cache;
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
@@ -118,7 +119,7 @@ fn test_fetch_blob() {
 
 
     let request = Request::new(url, Some(Origin::Origin(origin.origin())), false, None);
-    let fetch_response = fetch(Rc::new(request), &mut None, &context);
+    let fetch_response = fetch_with_context(request, &context);
 
     assert!(!fetch_response.is_network_error());
 
