@@ -1145,7 +1145,10 @@ impl ComputedValues {
     #[inline]
     pub fn is_multicol(&self) -> bool {
         let style = self.get_column();
-        style.column_count.0.is_some() || style.column_width.0.is_some()
+        match style.column_width {
+            Either::First(_width) => true,
+            Either::Second(_auto) => style.column_count.0.is_some(),
+        }
     }
 
     /// Resolves the currentColor keyword.

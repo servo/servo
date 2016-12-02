@@ -24,6 +24,7 @@ use std::sync::Arc;
 use style::context::{StyleContext, SharedStyleContext};
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
+use style::values::Either;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
 pub struct MulticolFlow {
@@ -102,7 +103,7 @@ impl Flow for MulticolFlow {
             let column_gap = column_style.column_gap.0.unwrap_or_else(||
                 self.block_flow.fragment.style.get_font().font_size);
             let mut column_count;
-            if let Some(column_width) = column_style.column_width.0 {
+            if let Either::First(column_width) = column_style.column_width {
                 column_count =
                     max(1, (content_inline_size + column_gap).0 / (column_width + column_gap).0);
                 if let Some(specified_column_count) = column_style.column_count.0 {

@@ -493,6 +493,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
+        "length::LengthOrAuto": impl_style_coord,
         "Length": impl_style_coord,
         "LengthOrPercentage": impl_style_coord,
         "LengthOrPercentageOrAuto": impl_style_coord,
@@ -2350,16 +2351,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
-                  skip_longhands="column-width column-count column-gap -moz-column-rule-width">
-
-    pub fn set_column_width(&mut self, v: longhands::column_width::computed_value::T) {
-        match v.0 {
-            Some(au) => self.gecko.mColumnWidth.set(au),
-            None => self.gecko.mColumnWidth.set_value(CoordDataValue::Auto),
-        }
-    }
-
-    ${impl_coord_copy('column_width', 'mColumnWidth')}
+                  skip_longhands="column-count column-gap -moz-column-rule-width">
 
     #[allow(unused_unsafe)]
     pub fn set_column_count(&mut self, v: longhands::column_count::computed_value::T) {
