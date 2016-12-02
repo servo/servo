@@ -27,6 +27,7 @@
 
 use app_units::Au;
 use block::{BlockFlow, FormattingContextType};
+use construct::ConstructionResult;
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use euclid::{Point2D, Size2D};
@@ -42,8 +43,10 @@ use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
+use script_layout_interface::wrapper_traits::LayoutNode;
 use serde::{Serialize, Serializer};
 use std::{fmt, mem, raw};
+use std::collections::HashMap;
 use std::iter::Zip;
 use std::slice::IterMut;
 use std::sync::Arc;
@@ -54,7 +57,8 @@ use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
+use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW};
+use style::servo::restyle_damage::{REPAINT, REPOSITION};
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
@@ -63,6 +67,7 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
+use wrapper::LayoutNodeLayoutData;
 
 /// Virtual methods that make up a float context.
 ///
@@ -499,6 +504,20 @@ pub trait ImmutableFlowUtils {
     fn floats_might_flow_through(self) -> bool;
 
     fn baseline_offset_of_last_line_box_in_flow(self) -> Option<Au>;
+
+    /// Pushes the flows in between this flow and the given ancestor onto the supplied list.
+    ///
+    /// Returns true if there is a path from the ancestor to this flow and false otherwise. If
+    /// false is returned, `path` is unchanged.
+    ///
+    /// The flow itself will not be pushed onto the list, but the supplied ancestor will.
+    ///
+    /// This uses a breadth-first search, so you should try to ensure the flow and the ancestor are
+    /// not too far apart.
+    ///
+    /// FIXME(pcwalton): The breadth-first search is inefficient. Probably we'll want to add parent
+    /// pointers to flows after carefully thinking through the memory management implications.
+    fn find_path_to_ancestor(&self, ancestor: &Flow, path: &mut Vec<OpaqueFlow>) -> bool;
 }
 
 pub trait MutableFlowUtils {
@@ -1303,6 +1322,34 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
         }
         None
     }
+
+    fn find_path_to_ancestor(&self, ancestor: &Flow, path: &mut Vec<OpaqueFlow>) -> bool {
+        let (mut queue, mut index, mut parents) = (vec![ancestor], 0, HashMap::new());
+        loop {
+            let parent = queue[index].clone();
+            index += 1;
+            if OpaqueFlow::from_flow(parent) == OpaqueFlow::from_flow(*self) {
+                break
+            }
+            for kid in base(parent).children.iter() {
+                parents.insert(OpaqueFlow::from_flow(kid), OpaqueFlow::from_flow(parent));
+                queue.push(kid)
+            }
+            if index == queue.len() {
+                return false
+            }
+        }
+
+        let mut flow = OpaqueFlow::from_flow(*self);
+        loop {
+            flow = *parents.get(&flow).expect("Didn't find parent during BFS?!");
+            path.push(flow);
+            if flow == OpaqueFlow::from_flow(ancestor) {
+                break
+            }
+        }
+        true
+    }
 }
 
 impl<'a> MutableFlowUtils for &'a mut Flow {
@@ -1476,7 +1523,7 @@ impl ContainingBlockLink {
 
 /// A wrapper for the pointer address of a flow. These pointer addresses may only be compared for
 /// equality with other such pointer addresses, never dereferenced.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct OpaqueFlow(pub usize);
 
 impl OpaqueFlow {
@@ -1488,3 +1535,36 @@ impl OpaqueFlow {
         }
     }
 }
+
+/// Returns the path from the the root flow to the deepest flow that contains fragments belonging
+/// to the given node.
+///
+/// The returned path goes from bottom to top; thus the last element in it will always be the root.
+/// The path begins with the deepest flow containing fragments for the node.
+pub fn flow_tree_path_for_node<N>(node: N) -> Vec<OpaqueFlow> where N: LayoutNode {
+    let mut result = vec![];
+    trace(node, None, &mut result);
+    return result;
+
+    fn trace<N>(node: N,
+                mut last: Option<FlowRef>,
+                path: &mut Vec<OpaqueFlow>)
+                where N: LayoutNode {
+        if let Some(ref layout_data) = node.borrow_layout_data() {
+            if let ConstructionResult::Flow(ref flow, _) = layout_data.flow_construction_result {
+                match last {
+                    Some(ref descendant) => {
+                        let succeeded = (&**descendant).find_path_to_ancestor(&**flow, path);
+                        debug_assert!(succeeded)
+                    }
+                    None => path.push(OpaqueFlow::from_flow(&**flow)),
+                }
+                last = Some((*flow).clone())
+            }
+        }
+        if let Some(parent) = node.parent_node() {
+            trace(parent, last, path)
+        }
+    }
+}
+
