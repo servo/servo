@@ -921,6 +921,8 @@ impl LayoutThread {
                         build_state.root_stacking_context.bounds = origin;
                         build_state.root_stacking_context.overflow = origin;
                         rw_data.display_list = Some(Arc::new(build_state.to_display_list()));
+
+                        debug_assert!(!flow::base(layout_root).restyle_damage.contains(REPAINT));
                     }
                     (ReflowGoal::ForScriptQuery, false) => {}
                 }
