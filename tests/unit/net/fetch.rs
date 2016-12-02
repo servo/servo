@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use {DEFAULT_USER_AGENT, FetchResponseCollector, new_fetch_context, fetch_async, fetch_sync, make_server};
+use {DEFAULT_USER_AGENT, new_fetch_context, fetch, fetch_sync, make_server};
 use devtools_traits::DevtoolsControlMsg;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
@@ -678,13 +678,8 @@ fn test_fetch_async_returns_complete_response() {
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
 
-    let (tx, rx) = channel();
-    let listener = Box::new(FetchResponseCollector {
-        sender: tx.clone()
-    });
+    let fetch_response = fetch(request, None);
 
-    fetch_async(request, listener, None);
-    let fetch_response = rx.recv().unwrap();
     let _ = server.close();
 
     assert_eq!(response_is_done(&fetch_response), true);
@@ -703,13 +698,8 @@ fn test_opaque_filtered_fetch_async_returns_complete_response() {
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
 
-    let (tx, rx) = channel();
-    let listener = Box::new(FetchResponseCollector {
-        sender: tx.clone()
-    });
+    let fetch_response = fetch(request, None);
 
-    fetch_async(request, listener, None);
-    let fetch_response = rx.recv().unwrap();
     let _ = server.close();
 
     assert_eq!(fetch_response.response_type, ResponseType::Opaque);
@@ -744,13 +734,8 @@ fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     request.redirect_mode.set(RedirectMode::Manual);
 
-    let (tx, rx) = channel();
-    let listener = Box::new(FetchResponseCollector {
-        sender: tx.clone()
-    });
+    let fetch_response = fetch(request, None);
 
-    fetch_async(request, listener, None);
-    let fetch_response = rx.recv().unwrap();
     let _ = server.close();
 
     assert_eq!(fetch_response.response_type, ResponseType::OpaqueRedirect);

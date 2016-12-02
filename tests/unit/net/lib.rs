@@ -44,8 +44,7 @@ use net_traits::request::Request;
 use net_traits::response::Response;
 use servo_url::ServoUrl;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
-use std::thread;
+use std::sync::mpsc::{Sender, channel};
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
 
@@ -72,10 +71,15 @@ impl FetchTaskTarget for FetchResponseCollector {
     }
 }
 
-fn fetch_async(request: Request, target: Box<FetchTaskTarget + Send>, dc: Option<Sender<DevtoolsControlMsg>>) {
-    thread::spawn(move || {
-        methods::fetch(Rc::new(request), &mut Some(target), &new_fetch_context(dc));
+fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
+    let (sender, receiver) = channel();
+    let target = Box::new(FetchResponseCollector {
+        sender: sender,
     });
+
+    methods::fetch(Rc::new(request), &mut Some(target), &new_fetch_context(dc));
+
+    receiver.recv().unwrap()
 }
 
 fn fetch_sync(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
