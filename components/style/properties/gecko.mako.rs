@@ -1089,10 +1089,10 @@ fn static_assert() {
 
     #[allow(non_snake_case)]
     pub fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
-        use properties::longhands::_moz_binding::computed_value::T as BindingValue;
+        use values::Either;
         match v {
-            BindingValue::None => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
-            BindingValue::Url(ref url) => {
+            Either::Second(_none) => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
+            Either::First(ref url) => {
                 let extra_data = url.extra_data();
                 let (ptr, len) = url.as_slice_components();
                 unsafe {
@@ -1617,14 +1617,14 @@ fn static_assert() {
                   skip_additionals="*">
 
     pub fn set_list_style_image(&mut self, image: longhands::list_style_image::computed_value::T) {
-        use values::computed::UrlOrNone;
+        use values::Either;
         match image {
-            UrlOrNone::None => {
+            Either::Second(_none) => {
                 unsafe {
                     Gecko_SetListStyleImageNone(&mut self.gecko);
                 }
             }
-            UrlOrNone::Url(ref url) => {
+            Either::First(ref url) => {
                 let (ptr, len) = url.as_slice_components();
                 let extra_data = url.extra_data();
                 unsafe {

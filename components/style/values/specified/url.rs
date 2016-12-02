@@ -7,7 +7,7 @@
 use cssparser::{CssStringWriter, Parser};
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
-use parser::ParserContext;
+use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use parser::ParserContextExtraData;
 use servo_url::ServoUrl;
@@ -15,6 +15,7 @@ use std::fmt::{self, Write};
 use std::ptr;
 use std::sync::Arc;
 use style_traits::ToCss;
+use values::NoViewportPercentage;
 use values::computed::ComputedValueAsSpecified;
 
 #[derive(PartialEq, Clone, Debug)]
@@ -72,8 +73,8 @@ pub struct SpecifiedUrl {
     extra_data: UrlExtraData,
 }
 
-impl SpecifiedUrl {
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+impl Parse for SpecifiedUrl {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let url = try!(input.expect_url());
 
         let extra_data = match UrlExtraData::make_from(context) {
@@ -95,7 +96,9 @@ impl SpecifiedUrl {
             extra_data: extra_data,
         })
     }
+}
 
+impl SpecifiedUrl {
     pub fn extra_data(&self) -> &UrlExtraData {
         &self.extra_data
     }
@@ -171,3 +174,5 @@ impl ToCss for SpecifiedUrl {
 
 // TODO(emilio): Maybe consider ComputedUrl to save a word in style structs?
 impl ComputedValueAsSpecified for SpecifiedUrl {}
+
+impl NoViewportPercentage for SpecifiedUrl {}

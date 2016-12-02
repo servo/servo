@@ -45,7 +45,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use style::computed_values::{caption_side, display, empty_cells, float, list_style_image, list_style_position};
+use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::content::ContentItem;
 use style::computed_values::position;
 use style::context::SharedStyleContext;
@@ -54,6 +54,7 @@ use style::properties::{self, ServoComputedValues};
 use style::selector_parser::{PseudoElement, RestyleDamage};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, RECONSTRUCT_FLOW};
 use style::stylist::Stylist;
+use style::values::Either;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
@@ -1205,13 +1206,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                 -> ConstructionResult {
         let flotation = FloatKind::from_property(flotation);
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
-            list_style_image::T::Url(ref url_value) => {
+            Either::First(ref url_value) => {
                 let image_info = box ImageFragmentInfo::new(node,
                                                             url_value.url().map(|u| u.clone()),
                                                             &self.layout_context.shared);
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }
-            list_style_image::T::None => {
+            Either::Second(_none) => {
                 match ListStyleTypeContent::from_list_style_type(node.style(self.style_context())
                                                                      .get_list()
                                                                      .list_style_type) {

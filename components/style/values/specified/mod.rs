@@ -5,14 +5,14 @@
 use app_units::Au;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
-use parser::{Parse, ParserContext};
+use parser::{ParserContext, Parse};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
 use style_traits::ToCss;
-use super::{CSSFloat, HasViewportPercentage, NoViewportPercentage};
+use super::{CSSFloat, HasViewportPercentage, NoViewportPercentage, Either, None_};
 use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
@@ -515,31 +515,5 @@ impl ToCss for Opacity {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum UrlOrNone {
-    Url(SpecifiedUrl),
-    None,
-}
+pub type UrlOrNone = Either<SpecifiedUrl, None_>;
 
-impl ComputedValueAsSpecified for UrlOrNone {}
-impl NoViewportPercentage for UrlOrNone {}
-
-impl ToCss for UrlOrNone {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            UrlOrNone::Url(ref url) => url.to_css(dest),
-            UrlOrNone::None => dest.write_str("none"),
-        }
-    }
-}
-
-impl UrlOrNone {
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<UrlOrNone, ()> {
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(UrlOrNone::None);
-        }
-
-        Ok(UrlOrNone::Url(try!(SpecifiedUrl::parse(context, input))))
-    }
-}
