@@ -39677,6 +39677,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "cssom/MediaList.html": [
+          {
+            "path": "cssom/MediaList.html",
+            "url": "/cssom/MediaList.html"
+          }
+        ],
         "cssom/shorthand-serialization.html": [
           {
             "path": "cssom/shorthand-serialization.html",

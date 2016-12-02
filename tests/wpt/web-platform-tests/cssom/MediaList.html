@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSSOM - MediaList interface</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        @media screen and (min-width: 480px), print, projection {}
+    </style>
+
+    <script>
+    test(function () {
+        var media = document.styleSheets[0].cssRules[0].media;
+        assert_equals(media.length, 3, "MediaList length attribute");
+        assert_equals(media.mediaText, "screen and (min-width: 480px), print, projection", "MediaList mediaText attribute");
+        assert_equals(media[0], "screen and (min-width: 480px)", "MediaList indexed getter");
+        assert_equals(media[1], "print", "MediaList indexed getter");
+        assert_equals(media[2], "projection", "MediaList indexed getter");
+        assert_equals(media[3], undefined, "MediaList indexed getter with out of range");
+        assert_equals(media.item(0), "screen and (min-width: 480px)", "MediaList item method");
+        assert_equals(media.item(3), null, "MediaList item method");
+
+        media.deleteMedium("print");
+        assert_equals(media.length, 2, "MediaList length attribute after delete method");
+        assert_equals(media.mediaText, "screen and (min-width: 480px), projection", "MediaList mediaText attribute after delete method");
+        assert_equals(media[1], "projection", "MediaList indexed getter after delete method");
+        assert_equals(media[2], undefined, "MediaList indexed getter with out of range after delete method");
+        assert_equals(media.item(1), "projection", "MediaList indexed getter after delete method");
+        assert_equals(media.item(2), null, "MediaList item method after delete method");
+
+        media.appendMedium("speech");
+        assert_equals(media.length, 3, "MediaList length attribute after append method");
+        assert_equals(media.mediaText, "screen and (min-width: 480px), projection, speech", "MediaList mediaText attribute after append method");
+        assert_equals(media[1], "projection", "MediaList indexed getter after append method");
+        assert_equals(media[2], "speech", "MediaList indexed getter after append method");
+        assert_equals(media[3], undefined, "MediaList indexed getter with out of range after append method");
+        assert_equals(media.item(2), "speech", "MediaList item method after append method");
+        assert_equals(media.item(3), null, "MediaList item method after append method");
+    });
+    </script>
+</head>
+</html>
