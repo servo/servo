@@ -1328,7 +1328,8 @@ impl LayoutThread {
                                                      &mut layout_context);
     }
 
-    fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self,
+                                                 possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut rw_data = possibly_locked_rw_data.lock();
         font_context::invalidate_font_caches();
 
@@ -1397,7 +1398,10 @@ impl LayoutThread {
             profile(time::ProfilerCategory::LayoutGeneratedContent,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
-                    || sequential::resolve_generated_content(FlowRef::deref_mut(&mut root_flow), &layout_context));
+                    || {
+                        sequential::resolve_generated_content(FlowRef::deref_mut(&mut root_flow),
+                                                              &layout_context)
+                    });
 
             // Guess float placement.
             profile(time::ProfilerCategory::LayoutFloatPlacementSpeculation,
@@ -1416,15 +1420,17 @@ impl LayoutThread {
                     match self.parallel_traversal {
                         None => {
                             // Sequential mode.
-                            LayoutThread::solve_constraints(FlowRef::deref_mut(&mut root_flow), &layout_context)
+                            LayoutThread::solve_constraints(FlowRef::deref_mut(&mut root_flow),
+                                                            &layout_context)
                         }
                         Some(ref mut parallel) => {
                             // Parallel mode.
-                            LayoutThread::solve_constraints_parallel(parallel,
-                                                                     FlowRef::deref_mut(&mut root_flow),
-                                                                     profiler_metadata,
-                                                                     self.time_profiler_chan.clone(),
-                                                                     &*layout_context);
+                            LayoutThread::solve_constraints_parallel(
+                                parallel,
+                                FlowRef::deref_mut(&mut root_flow),
+                                profiler_metadata,
+                                self.time_profiler_chan.clone(),
+                                &*layout_context);
                         }
                     }
                 });
