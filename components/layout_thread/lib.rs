@@ -1374,7 +1374,8 @@ impl LayoutThread {
         assert!(layout_context.pending_images.is_none());
     }
 
-    fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self,
+                                                 possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut rw_data = possibly_locked_rw_data.lock();
         font_context::invalidate_font_caches();
 
