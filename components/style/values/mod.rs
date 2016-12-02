@@ -6,8 +6,9 @@
 //!
 //! [values]: https://drafts.csswg.org/css-values/
 
-pub use cssparser::{RGBA, Parser};
+pub use cssparser::{RGBA, Parser, Token};
 use parser::{Parse, ParserContext};
+use std::ascii::AsciiExt;
 use std::fmt::{self, Debug};
 use style_traits::ToCss;
 
@@ -158,6 +159,48 @@ impl<A: ToComputedValue, B: ToComputedValue> ToComputedValue for Either<A, B> {
         match *computed {
             Either::First(ref a) => Either::First(ToComputedValue::from_computed_value(a)),
             Either::Second(ref a) => Either::Second(ToComputedValue::from_computed_value(a)),
+        }
+    }
+}
+
+// A type for possible values for min- and max- flavors of width,
+// height, block-size, and inline-size.
+#[derive(Copy, Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum ExtremumLength {
+    MaxContent,
+    MinContent,
+    FitContent,
+    FillAvailable,
+}
+
+impl ToCss for ExtremumLength {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            ExtremumLength::MaxContent =>
+                dest.write_str("max-content"),
+            ExtremumLength::MinContent =>
+                dest.write_str("min-content"),
+            ExtremumLength::FitContent =>
+                dest.write_str("fit-content"),
+            ExtremumLength::FillAvailable =>
+                dest.write_str("fill-available"),
+        }
+    }
+}
+
+impl Parse for ExtremumLength {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        match try!(input.next()) {
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("max-content") =>
+                Ok(ExtremumLength::MaxContent),
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("min-content") =>
+                Ok(ExtremumLength::MinContent),
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("fit-content") =>
+                Ok(ExtremumLength::FitContent),
+            Token::Ident(ref value) if value.eq_ignore_ascii_case("fill-available") =>
+                Ok(ExtremumLength::FillAvailable),
+            _ => Err(()),
         }
     }
 }

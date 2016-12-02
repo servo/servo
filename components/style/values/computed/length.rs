@@ -8,6 +8,7 @@ use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
 use values::{CSSFloat, Either, None_, specified};
+use values::{ExtremumLength};
 
 pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
@@ -472,5 +473,70 @@ impl ToCss for LengthOrPercentageOrNone {
 pub type LengthOrNone = Either<Length, None_>;
 
 pub type LengthOrNumber = Either<Length, Number>;
+
+#[derive(Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum MinLength {
+    LengthOrPercentage(LengthOrPercentage),
+    Auto,
+    ExtremumLength(ExtremumLength),
+}
+
+impl fmt::Debug for MinLength {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            MinLength::LengthOrPercentage(ref lop) =>
+                lop.fmt(f),
+            MinLength::Auto =>
+                write!(f, "auto"),
+            MinLength::ExtremumLength(ref ext) =>
+                ext.fmt(f),
+        }
+    }
+}
+
+impl ToComputedValue for specified::MinLength {
+    type ComputedValue = MinLength;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> MinLength {
+        match *self {
+            specified::MinLength::LengthOrPercentage(ref lop) => {
+                MinLength::LengthOrPercentage(lop.to_computed_value(context))
+            }
+            specified::MinLength::Auto => {
+                MinLength::Auto
+            }
+            specified::MinLength::ExtremumLength(ref ext) => {
+                MinLength::ExtremumLength(ext.clone())
+            }
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &MinLength) -> Self {
+        match *computed {
+            MinLength::Auto =>
+                specified::MinLength::Auto,
+            MinLength::LengthOrPercentage(ref lop) =>
+                specified::MinLength::LengthOrPercentage(specified::LengthOrPercentage::from_computed_value(&lop)),
+            MinLength::ExtremumLength(ref ext) =>
+                specified::MinLength::ExtremumLength(ext.clone()),
+        }
+    }
+}
+
+impl ToCss for MinLength {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            MinLength::LengthOrPercentage(lop) =>
+                lop.to_css(dest),
+            MinLength::Auto =>
+                dest.write_str("auto"),
+            MinLength::ExtremumLength(ext) =>
+                ext.to_css(dest),
+        }
+    }
+}
 
 pub type Length = Au;

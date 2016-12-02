@@ -26,6 +26,7 @@ use values::Either;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
+use values::computed::{MinLength};
 use values::computed::position::Position;
 use values::computed::ToComputedValue;
 
@@ -506,6 +507,20 @@ impl Interpolate for LengthOrPercentageOrNone {
                 Ok(LengthOrPercentageOrNone::None)
             }
             _ => Err(())
+        }
+    }
+}
+
+/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+impl Interpolate for MinLength {
+    #[inline]
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        match (*self, *other) {
+            (MinLength::LengthOrPercentage(ref this),
+             MinLength::LengthOrPercentage(ref other)) => {
+                this.interpolate(other, progress).map(MinLength::LengthOrPercentage)
+            }
+            _ => Err(()),
         }
     }
 }
