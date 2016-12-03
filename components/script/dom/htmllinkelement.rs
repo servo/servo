@@ -50,8 +50,6 @@ use style::parser::ParserContextExtraData;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::{Stylesheet, Origin};
 
-no_jsmanaged_fields!(Stylesheet);
-
 #[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,

@@ -23,10 +23,8 @@ pub enum TexParameterValue {
     Int(i32),
 }
 
-const MAX_LEVEL_COUNT: usize = 31;
-const MAX_FACE_COUNT: usize = 6;
-
-no_jsmanaged_fields!([ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]);
+pub const MAX_LEVEL_COUNT: usize = 31;
+pub const MAX_FACE_COUNT: usize = 6;
 
 #[dom_struct]
 pub struct WebGLTexture {

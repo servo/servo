@@ -133,8 +133,6 @@ impl<T: WeakReferenceable> PartialEq<T> for WeakRef<T> {
     }
 }
 
-no_jsmanaged_fields!(WeakRef<T: WeakReferenceable>);
-
 impl<T: WeakReferenceable> Drop for WeakRef<T> {
     fn drop(&mut self) {
         unsafe {

@@ -16,9 +16,6 @@ use parking_lot::RwLock;
 use std::sync::Arc;
 use style::stylesheets::{CssRules, KeyframesRule, RulesMutateError};
 
-no_jsmanaged_fields!(RulesSource);
-no_jsmanaged_fields!(CssRules);
-
 impl From<RulesMutateError> for Error {
     fn from(other: RulesMutateError) -> Self {
         match other {

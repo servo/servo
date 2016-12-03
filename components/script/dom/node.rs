@@ -2562,11 +2562,9 @@ impl<'a> UnbindContext<'a> {
 }
 
 /// A node's unique ID, for devtools.
-struct UniqueId {
+pub struct UniqueId {
     cell: UnsafeCell<Option<Box<Uuid>>>,
 }
-
-no_jsmanaged_fields!(UniqueId);
 
 impl HeapSizeOf for UniqueId {
     #[allow(unsafe_code)]
