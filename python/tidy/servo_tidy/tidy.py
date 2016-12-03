@@ -942,6 +942,21 @@ def run_lint_scripts(only_changed_files=False, progress=True):
             yield error
 
 
+def check_commits(path='.'):
+    """Gets all commits since the last merge."""
+    args = ['git', 'log', '-n1', '--merges', '--format=%H']
+    last_merge = subprocess.check_output(args, cwd=path).strip()
+    args = ['git', 'log', '{}..HEAD'.format(last_merge), '--format=%s']
+    commits = subprocess.check_output(args, cwd=path).lower().splitlines()
+
+    for commit in commits:
+        # .split() to only match entire words
+        if 'wip' in commit.split():
+            yield ('.', 0, 'no commits should contain WIP')
+
+    raise StopIteration
+
+
 def scan(only_changed_files=False, progress=True):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
@@ -957,8 +972,11 @@ def scan(only_changed_files=False, progress=True):
     dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
     # other lint checks
     lint_errors = run_lint_scripts(only_changed_files, progress)
+    # check commits for WIP
+    commit_errors = check_commits()
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, lint_errors)
+    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, lint_errors,
+                             commit_errors)
 
     error = None
     for error in errors:
