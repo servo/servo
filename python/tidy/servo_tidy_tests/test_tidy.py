@@ -9,6 +9,8 @@
 
 import os
 import unittest
+import subprocess
+import shutil
 
 from servo_tidy import tidy
 
@@ -220,6 +222,40 @@ class CheckTidiness(unittest.TestCase):
                                   exclude_dirs=[os.path.join(base_path, 'whee', 'foo')])
         lst = list(file_list)
         self.assertEqual([os.path.join(base_path, 'whee', 'test.rs')], lst)
+
+    def test_commit_messages(self):
+        base_path='./python/tidy/servo_tidy_tests/test_commit'
+
+        devnull = open(os.devnull, 'w')
+        def run_proc(*args):
+                subprocess.call(args, cwd=base_path, stdout=devnull, stderr=devnull)
+
+        shutil.rmtree(base_path, ignore_errors=True)
+        os.makedirs(base_path)
+        open(os.path.join(base_path, 'foo.txt'), 'w').close()
+        open(os.path.join(base_path, 'bar.txt'), 'w').close()
+        open(os.path.join(base_path, 'baz.txt'), 'w').close()
+
+        run_proc('git', 'init')
+
+        run_proc('git', 'add', 'bar.txt')
+        run_proc('git', 'commit', '-am', 'testing tidy')
+
+        run_proc('git', 'checkout', '-b', 'mergy')
+        run_proc('git', 'add', 'foo.txt')
+        run_proc('git', 'commit', '-am', 'great commit message')
+        run_proc('git', 'checkout', 'master')
+        run_proc('git', 'merge', 'mergy', '--no-ff', '-m', 'merging')
+
+        run_proc('git', 'add', 'baz.txt')
+        run_proc('git', 'commit', '-am', 'WIP testing tidy')
+
+        errors = tidy.check_commits(base_path)
+
+        self.assertEqual('no commits should contain WIP', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
+        shutil.rmtree(base_path, ignore_errors=True)
 
 def do_tests():
     suite = unittest.TestLoader().loadTestsFromTestCase(CheckTidiness)
