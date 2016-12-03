@@ -203,6 +203,23 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) -> (
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_Element_ShouldTraverse(element: RawGeckoElementBorrowed) -> bool {
+    let element = GeckoElement(element);
+    if let Some(data) = element.get_data() {
+        debug_assert!(!element.has_dirty_descendants(),
+                      "only call Servo_Element_ShouldTraverse if you know the element \
+                       does not have dirty descendants");
+        match *data.borrow() {
+            ElementData::Initial(None) |
+            ElementData::Restyle(..) => true,
+            _ => false,
+        }
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyleSheetStrong {
     let url = ServoUrl::parse("about:blank").unwrap();
     let extra_data = ParserContextExtraData::default();
