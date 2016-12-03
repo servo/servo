@@ -6,7 +6,10 @@
 interface HTMLIFrameElement : HTMLElement {
            attribute DOMString src;
   //         attribute DOMString srcdoc;
-  //         attribute DOMString name;
+
+  // https://github.com/servo/servo/issues/14453
+  // attribute DOMString name;
+
            [SameObject, PutForwards=value]
            readonly attribute DOMTokenList sandbox;
   //         attribute boolean seamless;
