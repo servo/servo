@@ -88,7 +88,7 @@ fn collect_text(element: &Element, value: &mut String) {
         return;
     }
 
-    for child in element.upcast::<Node>().children() {
+    for child in element.upcast::<Node>().children::<Node>() {
         if child.is::<Text>() {
             let characterdata = child.downcast::<CharacterData>().unwrap();
             value.push_str(&characterdata.Data());

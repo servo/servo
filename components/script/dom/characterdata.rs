@@ -230,7 +230,7 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
     fn GetNextElementSibling(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().following_siblings().filter_map(Root::downcast).next()
+        self.upcast::<Node>().following_siblings::<Element>().next()
     }
 }
 

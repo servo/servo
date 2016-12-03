@@ -103,7 +103,7 @@ pub fn handle_get_children(documents: &Documents,
     match find_node_by_unique_id(documents, pipeline, &*node_id) {
         None => return reply.send(None).unwrap(),
         Some(parent) => {
-            let children = parent.children()
+            let children = parent.children::<Node>()
                                  .map(|child| child.summarize())
                                  .collect();
 

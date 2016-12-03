@@ -19,7 +19,7 @@ use dom::globalscope::GlobalScope;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::HTMLScriptElement;
-use dom::node::{Node, NodeSiblingIterator};
+use dom::node::{Node, SiblingIterator};
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
 use html5ever::tokenizer::buffer_queue::BufferQueue;
@@ -347,7 +347,7 @@ impl ServoParser {
 }
 
 pub struct FragmentParsingResult {
-    inner: NodeSiblingIterator,
+    inner: SiblingIterator<Node>,
 }
 
 impl Iterator for FragmentParsingResult {

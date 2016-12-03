@@ -269,7 +269,7 @@ impl<'a> Serializable for &'a Node {
 
                 let children = if let Some(tpl) = node.downcast::<HTMLTemplateElement>() {
                     // https://github.com/w3c/DOM-Parsing/issues/1
-                    tpl.Content().upcast::<Node>().children()
+                    tpl.Content().upcast::<Node>().children::<Node>()
                 } else {
                     node.children()
                 };
@@ -285,7 +285,7 @@ impl<'a> Serializable for &'a Node {
             },
 
             (ChildrenOnly, NodeTypeId::Document(_)) => {
-                for handle in node.children() {
+                for handle in node.children::<Node>() {
                     try!((&*handle).serialize(serializer, IncludeNode));
                 }
                 Ok(())

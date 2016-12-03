@@ -334,7 +334,7 @@ impl<'a> Iterator for QuerySelectorIterator {
 impl Node {
     pub fn teardown(&self) {
         self.style_and_layout_data.get().map(|d| self.dispose(d));
-        for kid in self.children() {
+        for kid in self.children::<Node>() {
             kid.teardown();
         }
     }
@@ -355,7 +355,7 @@ impl Node {
         debug!("{:?}", s);
 
         // FIXME: this should have a pure version?
-        for kid in self.children() {
+        for kid in self.children::<Node>() {
             kid.dump_indent(indent + 1)
         }
     }
@@ -488,9 +488,12 @@ impl Node {
         parent.ancestors().any(|ancestor| &*ancestor == self)
     }
 
-    pub fn following_siblings(&self) -> NodeSiblingIterator {
-        NodeSiblingIterator {
+    pub fn following_siblings<T>(&self) -> SiblingIterator<T>
+        where T: DerivedFrom<Node> + Reflectable
+    {
+        SiblingIterator {
             current: self.GetNextSibling(),
+            phantom: PhantomData,
         }
     }
 
@@ -743,9 +746,12 @@ impl Node {
         self.is_in_doc() && self.owner_doc().browsing_context().is_some()
     }
 
-    pub fn children(&self) -> NodeSiblingIterator {
-        NodeSiblingIterator {
+    pub fn children<T>(&self) -> SiblingIterator<T>
+        where T: DerivedFrom<Node> + Reflectable
+    {
+        SiblingIterator {
             current: self.GetFirstChild(),
+            phantom: PhantomData,
         }
     }
 
@@ -753,10 +759,6 @@ impl Node {
         ReverseSiblingIterator {
             current: self.GetLastChild(),
         }
-    }
-
-    pub fn child_elements(&self) -> impl Iterator<Item=Root<Element>> {
-        self.children().filter_map(Root::downcast as fn(_) -> _).peekable()
     }
 
     pub fn remove_self(&self) {
@@ -1107,6 +1109,34 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     }
 }
 
+use std::marker::PhantomData;
+
+pub struct SiblingIterator<T: DerivedFrom<Node> + Reflectable> {
+    current: Option<Root<Node>>,
+    phantom: PhantomData<T>,
+}
+
+impl<T> Iterator for SiblingIterator<T>
+    where T: DerivedFrom<Node> + Reflectable
+{
+    type Item = Root<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+        while let Some(next_sibling) = current.GetNextSibling() {
+            if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
+                self.current = Some(Root::upcast(next_sibling.clone()));
+                return Some(next_sibling);
+            }
+        }
+        self.current = None;
+        None
+    }
+}
+
 
 //
 // Iteration and traversal
@@ -1450,16 +1480,16 @@ impl Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
-                    if node.children()
+                    if node.children::<Node>()
                            .any(|c| c.is::<Text>())
                     {
                         return Err(Error::HierarchyRequest);
                     }
-                    match node.child_elements().count() {
+                    match node.children::<Element>().count() {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if !parent.child_elements().next().is_none() {
+                            if !parent.children::<Element>().next().is_none() {
                                 return Err(Error::HierarchyRequest);
                             }
                             if let Some(child) = child {
@@ -1475,7 +1505,7 @@ impl Node {
                 },
                 // Step 6.2
                 NodeTypeId::Element(_) => {
-                    if !parent.child_elements().next().is_none() {
+                    if !parent.children::<Element>().next().is_none() {
                         return Err(Error::HierarchyRequest);
                     }
                     if let Some(ref child) = child {
@@ -1487,14 +1517,12 @@ impl Node {
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if parent.children()
-                             .any(|c| c.is_doctype())
-                    {
+                    if parent.children::<DocumentType>().next().is_some() {
                         return Err(Error::HierarchyRequest);
                     }
                     match child {
                         Some(child) => {
-                            if parent.children()
+                            if parent.children::<Node>()
                                      .take_while(|c| &**c != child)
                                      .any(|c| c.is::<Element>())
                             {
@@ -1502,7 +1530,7 @@ impl Node {
                             }
                         },
                         None => {
-                            if !parent.child_elements().next().is_none() {
+                            if !parent.children::<Element>().next().is_none() {
                                 return Err(Error::HierarchyRequest);
                             }
                         },
@@ -2033,20 +2061,18 @@ impl NodeMethods for Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
-                    if node.children()
-                           .any(|c| c.is::<Text>())
-                    {
+                    if node.children::<Text>().next().is_some() {
                         return Err(Error::HierarchyRequest);
                     }
-                    match node.child_elements().count() {
+                    match node.children::<Element>().count() {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if self.child_elements().any(|c| c.upcast::<Node>() != child) {
+                            if self.children::<Element>()
+                                   .any(|c| c.upcast::<Node>() != child) {
                                 return Err(Error::HierarchyRequest);
                             }
-                            if child.following_siblings()
-                                    .any(|child| child.is_doctype()) {
+                            if child.following_siblings::<DocumentType>().next().is_some() {
                                 return Err(Error::HierarchyRequest);
                             }
                         },
@@ -2056,25 +2082,23 @@ impl NodeMethods for Node {
                 },
                 // Step 6.2
                 NodeTypeId::Element(..) => {
-                    if self.child_elements()
+                    if self.children::<Element>()
                            .any(|c| c.upcast::<Node>() != child) {
                         return Err(Error::HierarchyRequest);
                     }
-                    if child.following_siblings()
-                            .any(|child| child.is_doctype())
-                    {
+                    if child.following_siblings::<DocumentType>().next().is_some() {
                         return Err(Error::HierarchyRequest);
                     }
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if self.children()
+                    if self.children::<Node>()
                            .any(|c| c.is_doctype() &&
                                 &*c != child)
                     {
                         return Err(Error::HierarchyRequest);
                     }
-                    if self.children()
+                    if self.children::<Node>()
                            .take_while(|c| &**c != child)
                            .any(|c| c.is::<Element>())
                     {
@@ -2140,7 +2164,7 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-normalize
     fn Normalize(&self) {
-        let mut children = self.children().enumerate().peekable();
+        let mut children = self.children::<Node>().enumerate().peekable();
         while let Some((_, node)) = children.next() {
             if let Some(text) = node.downcast::<Text>() {
                 let cdata = text.upcast::<CharacterData>();
