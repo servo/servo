@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_rs;
+use hyper::header::{Header, SetCookie};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;
@@ -131,4 +132,161 @@ fn test_sort_order() {
     assert!(CookieStorage::cookie_comparator(&a, &a_prime) == Ordering::Less);
     assert!(CookieStorage::cookie_comparator(&a_prime, &a) == Ordering::Greater);
     assert!(CookieStorage::cookie_comparator(&a, &a) == Ordering::Equal);
+}
+
+
+fn run(set_location: &str, set_cookies: &[String], final_location: &str) -> String {
+    let mut storage = CookieStorage::new();
+    let url = ServoUrl::parse(set_location).unwrap();
+    let source = CookieSource::HTTP;
+
+    // Add all cookies to the store
+    for str_cookie in set_cookies {
+        let bytes = str_cookie.to_string().into_bytes();
+        let header = Header::parse_header(&[bytes]);
+        if let Ok(SetCookie(cookies)) = header {
+            for bare_cookie in cookies {
+                if let Some(cookie) = Cookie::new_wrapped(bare_cookie, &url, source) {
+                    storage.push(cookie, source);
+                }
+            }
+        }
+    }
+
+    // Get cookies for the test location
+    let url = ServoUrl::parse(final_location).unwrap();
+    storage.cookies_for_url(&url, source).unwrap_or("".to_string())
+}
+
+
+#[test]
+fn test_cookie_eviction_expired() {
+    let mut vec = Vec::new();
+    for i in 1..47 {
+        let mut st: String = "extra".to_owned();
+        st.push_str(&i.to_string());
+        st.push_str(&"=bar; Secure; expires=Sun, 18-Apr-2000 21:06:29 GMT");
+        vec.push(st);
+    }
+    vec.push("foo=bar; Secure; expires=Sun, 18-Apr-2027 21:06:29 GMT".to_owned());
+    vec.push("foo2=bar; Secure; expires=Sun, 18-Apr-2000 21:06:29 GMT".to_owned());
+    vec.push("foo3=bar; Secure; expires=Sun, 18-Apr-2028 21:06:29 GMT".to_owned());
+    vec.push("foo4=bar; Secure; expires=Sun, 18-Apr-2029 21:06:29 GMT".to_owned());
+    vec.push("foo5=bar; Secure; expires=Sun, 18-Apr-2077 21:06:29 GMT".to_owned());
+
+    let r = run("https://home.example.org:8888/cookie-parser?0001",
+                &vec,
+                "https://home.example.org:8888/cookie-parser-result?0001");
+    assert_eq!(&r, "foo=bar; foo3=bar; foo4=bar; foo5=bar");
+}
+
+
+#[test]
+fn test_cookie_eviction_all_secure_one_nonsecure() {
+    let mut vec = Vec::new();
+    for i in 1..47 {
+        let mut st: String = "extra".to_owned();
+        st.push_str(&i.to_string());
+        st.push_str(&"=bar; Secure; expires=Sun, 18-Apr-2027 21:06:29 GMT");
+        vec.push(st);
+    }
+    vec.push("foo=bar; Secure; expires=Sun, 18-Apr-2027 21:06:29 GMT".to_owned());
+    vec.push("foo2=bar; expires=Sun, 18-Apr-2026 21:06:29 GMT".to_owned());
+    vec.push("foo3=bar; Secure; expires=Sun, 18-Apr-2028 21:06:29 GMT".to_owned());
+    vec.push("foo4=bar; Secure; expires=Sun, 18-Apr-2029 21:06:29 GMT".to_owned());
+    vec.push("foo5=bar; Secure; expires=Sun, 18-Apr-2077 21:06:29 GMT".to_owned());
+    let r = run("https://home.example.org:8888/cookie-parser?0001",
+                &vec,
+                "https://home.example.org:8888/cookie-parser-result?0001");
+    assert_eq!(&r,
+               "extra1=bar; extra2=bar; extra3=bar; extra4=bar; extra5=bar; extra6=bar; \
+                extra7=bar; extra8=bar; extra9=bar; extra10=bar; extra11=bar; extra12=bar; \
+                extra13=bar; extra14=bar; extra15=bar; extra16=bar; extra17=bar; extra18=bar; \
+                extra19=bar; extra20=bar; extra21=bar; extra22=bar; extra23=bar; extra24=bar; \
+                extra25=bar; extra26=bar; extra27=bar; extra28=bar; extra29=bar; extra30=bar; \
+                extra31=bar; extra32=bar; extra33=bar; extra34=bar; extra35=bar; extra36=bar; \
+                extra37=bar; extra38=bar; extra39=bar; extra40=bar; extra41=bar; extra42=bar; \
+                extra43=bar; extra44=bar; extra45=bar; extra46=bar; foo=bar; foo3=bar; foo4=bar; \
+                foo5=bar");
+}
+
+
+#[test]
+fn test_cookie_eviction_all_secure_new_nonsecure() {
+    let mut vec = Vec::new();
+    for i in 1..51 {
+        let mut st: String = "extra".to_owned();
+        st.push_str(&i.to_string());
+        st.push_str(&"=bar; Secure; expires=Sun, 18-Apr-2030 21:06:29 GMT");
+        vec.push(st);
+    }
+    vec.push("foo=bar; expires=Sun, 18-Apr-2077 21:06:29 GMT".to_owned());
+
+    let r = run("https://home.example.org:8888/cookie-parser?0001",
+                &vec,
+                "https://home.example.org:8888/cookie-parser-result?0001");
+    assert_eq!(&r,
+               "extra1=bar; extra2=bar; extra3=bar; extra4=bar; extra5=bar; extra6=bar; \
+                extra7=bar; extra8=bar; extra9=bar; extra10=bar; extra11=bar; extra12=bar; \
+                extra13=bar; extra14=bar; extra15=bar; extra16=bar; extra17=bar; extra18=bar; \
+                extra19=bar; extra20=bar; extra21=bar; extra22=bar; extra23=bar; extra24=bar; \
+                extra25=bar; extra26=bar; extra27=bar; extra28=bar; extra29=bar; extra30=bar; \
+                extra31=bar; extra32=bar; extra33=bar; extra34=bar; extra35=bar; extra36=bar; \
+                extra37=bar; extra38=bar; extra39=bar; extra40=bar; extra41=bar; extra42=bar; \
+                extra43=bar; extra44=bar; extra45=bar; extra46=bar; extra47=bar; extra48=bar; \
+                extra49=bar; extra50=bar");
+}
+
+
+#[test]
+fn test_cookie_eviction_all_nonsecure_new_secure() {
+    let mut vec = Vec::new();
+    for i in 1..51 {
+        let mut st: String = "extra".to_owned();
+        st.push_str(&i.to_string());
+        st.push_str(&"=bar; expires=Sun, 18-Apr-2028 21:06:29 GMT");
+        vec.push(st);
+    }
+    vec.push("foo=bar; Secure; expires=Sun, 18-Apr-2077 21:06:29 GMT".to_owned());
+
+    let r = run("https://home.example.org:8888/cookie-parser?0001",
+                &vec,
+                "https://home.example.org:8888/cookie-parser-result?0001");
+    assert_eq!(&r,
+               "extra2=bar; extra3=bar; extra4=bar; extra5=bar; extra6=bar; extra7=bar; \
+                extra8=bar; extra9=bar; extra10=bar; extra11=bar; extra12=bar; extra13=bar; \
+                extra14=bar; extra15=bar; extra16=bar; extra17=bar; extra18=bar; extra19=bar; \
+                extra20=bar; extra21=bar; extra22=bar; extra23=bar; extra24=bar; extra25=bar; \
+                extra26=bar; extra27=bar; extra28=bar; extra29=bar; extra30=bar; extra31=bar; \
+                extra32=bar; extra33=bar; extra34=bar; extra35=bar; extra36=bar; extra37=bar; \
+                extra38=bar; extra39=bar; extra40=bar; extra41=bar; extra42=bar; extra43=bar; \
+                extra44=bar; extra45=bar; extra46=bar; extra47=bar; extra48=bar; extra49=bar; \
+                extra50=bar; foo=bar");
+}
+
+
+#[test]
+fn test_cookie_eviction_all_nonsecure_new_nonsecure() {
+    let mut vec = Vec::new();
+    for i in 1..51 {
+        let mut st: String = "extra".to_owned();
+        st.push_str(&i.to_string());
+        st.push_str(&"=bar; expires=Sun, 18-Apr-2028 21:06:29 GMT");
+        vec.push(st);
+    }
+    vec.push("foo=bar; expires=Sun, 18-Apr-2077 21:06:29 GMT".to_owned());
+
+    let r = run("https://home.example.org:8888/cookie-parser?0001",
+                &vec,
+                "https://home.example.org:8888/cookie-parser-result?0001");
+    assert_eq!(&r,
+               "extra2=bar; extra3=bar; extra4=bar; extra5=bar; extra6=bar; extra7=bar; \
+                extra8=bar; extra9=bar; extra10=bar; extra11=bar; extra12=bar; extra13=bar; \
+                extra14=bar; extra15=bar; extra16=bar; extra17=bar; extra18=bar; extra19=bar; \
+                extra20=bar; extra21=bar; extra22=bar; extra23=bar; extra24=bar; extra25=bar; \
+                extra26=bar; extra27=bar; extra28=bar; extra29=bar; extra30=bar; extra31=bar; \
+                extra32=bar; extra33=bar; extra34=bar; extra35=bar; extra36=bar; extra37=bar; \
+                extra38=bar; extra39=bar; extra40=bar; extra41=bar; extra42=bar; extra43=bar; \
+                extra44=bar; extra45=bar; extra46=bar; extra47=bar; extra48=bar; extra49=bar; \
+                extra50=bar; foo=bar");
 }
