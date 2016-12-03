@@ -28,7 +28,11 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import BuildNotFound, CommandBase, call, cd, check_call, find_dep_path_newest, host_triple
+from servo.command_base import (
+    BuildNotFound, CommandBase,
+    call, cd, check_call, host_triple, set_osmesa_env,
+)
+
 from wptrunner import wptcommandline
 from update import updatecommandline
 from servo_tidy import tidy
@@ -729,29 +733,13 @@ class MachCommands(CommandBase):
     def set_software_rendering_env(self, use_release):
         # On Linux and mac, find the OSMesa software rendering library and
         # add it to the dynamic linker search path.
-        if sys.platform.startswith('linux'):
-            try:
-                args = [self.get_binary_path(use_release, not use_release)]
-                osmesa_path = path.join(find_dep_path_newest('osmesa-src', args[0]), "out", "lib", "gallium")
-                os.environ["LD_LIBRARY_PATH"] = osmesa_path
-                os.environ["GALLIUM_DRIVER"] = "softpipe"
-            except BuildNotFound:
-                # This can occur when cross compiling (e.g. arm64), in which case
-                # we won't run the tests anyway so can safely ignore this step.
-                pass
-        elif sys.platform.startswith('darwin'):
-            try:
-                args = [self.get_binary_path(use_release, not use_release)]
-                osmesa_path = path.join(find_dep_path_newest('osmesa-src', args[0]),
-                                        "out", "src", "gallium", "targets", "osmesa", ".libs")
-                glapi_path = path.join(find_dep_path_newest('osmesa-src', args[0]),
-                                       "out", "src", "mapi", "shared-glapi", ".libs")
-                os.environ["DYLD_LIBRARY_PATH"] = osmesa_path + ":" + glapi_path
-                os.environ["GALLIUM_DRIVER"] = "softpipe"
-            except BuildNotFound:
-                # This can occur when cross compiling (e.g. arm64), in which case
-                # we won't run the tests anyway so can safely ignore this step.
-                pass
+        try:
+            args = [self.get_binary_path(use_release, not use_release)]
+            set_osmesa_env(args[0], os.environ)
+        except BuildNotFound:
+            # This can occur when cross compiling (e.g. arm64), in which case
+            # we won't run the tests anyway so can safely ignore this step.
+            pass
 
 
 def create_parser_create():
