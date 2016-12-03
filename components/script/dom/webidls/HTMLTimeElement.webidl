@@ -4,5 +4,5 @@
 
 // https://html.spec.whatwg.org/multipage/#htmltimeelement
 interface HTMLTimeElement : HTMLElement {
-  //         attribute DOMString dateTime;
+  attribute DOMString dateTime;
 };
