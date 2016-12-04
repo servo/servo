@@ -971,6 +971,10 @@ extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
 }
 extern "C" {
+    pub fn Servo_Element_ShouldTraverse(node: RawGeckoElementBorrowed)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_StyleSheet_Empty(parsing_mode: SheetParsingMode)
      -> RawServoStyleSheetStrong;
 }
@@ -1102,7 +1106,8 @@ extern "C" {
                                                         RawServoDeclarationBlockBorrowed,
                                                     property: *mut nsIAtom,
                                                     is_custom: bool,
-                                                    buffer: *mut nsAString_internal);
+                                                    buffer:
+                                                        *mut nsAString_internal);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_Count(declarations:

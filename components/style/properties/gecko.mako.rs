@@ -1992,12 +1992,7 @@ fn static_assert() {
         self.gecko.mTextEmphasisStyle = other.gecko.mTextEmphasisStyle;
     }
 
-    #[allow(non_snake_case)]
-    pub fn set__webkit_text_stroke_width(&mut self, v: longhands::_webkit_text_stroke_width::computed_value::T) {
-        self.gecko.mWebkitTextStrokeWidth.set_value(CoordDataValue::Coord(v.0));
-    }
-
-    <%call expr="impl_coord_copy('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth')"></%call>
+    <%call expr="impl_app_units('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth', need_clone=False)"></%call>
 
 </%self:impl_trait>
 

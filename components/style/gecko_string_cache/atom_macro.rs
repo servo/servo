@@ -32,6 +32,8 @@ cfg_if! {
             pub static nsGkAtoms__moz_abspos: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14_moz_activatedE"]
             pub static nsGkAtoms__moz_activated: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms14_moz_anonclassE"]
+            pub static nsGkAtoms__moz_anonclass: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13_moz_resizingE"]
             pub static nsGkAtoms__moz_resizing: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18mozallowfullscreenE"]
@@ -4294,6 +4296,8 @@ cfg_if! {
             pub static nsGkAtoms_Remote: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8RemoteIdE"]
             pub static nsGkAtoms_RemoteId: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms10RemoteTypeE"]
+            pub static nsGkAtoms_RemoteType: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11DisplayPortE"]
             pub static nsGkAtoms_DisplayPort: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18DisplayPortMarginsE"]
@@ -5238,6 +5242,8 @@ cfg_if! {
             pub static nsCSSProps_font_variant_numeric: *mut nsICSSProperty;
             #[link_name = "_ZN10nsCSSProps21font_variant_positionE"]
             pub static nsCSSProps_font_variant_position: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps23font_variation_settingsE"]
+            pub static nsCSSProps_font_variation_settings: *mut nsICSSProperty;
             #[link_name = "_ZN10nsCSSProps11font_weightE"]
             pub static nsCSSProps_font_weight: *mut nsICSSProperty;
             #[link_name = "_ZN10nsCSSProps23force_broken_image_iconE"]
@@ -5472,6 +5478,12 @@ cfg_if! {
             pub static nsCSSProps_perspective: *mut nsICSSProperty;
             #[link_name = "_ZN10nsCSSProps18perspective_originE"]
             pub static nsCSSProps_perspective_origin: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps13place_contentE"]
+            pub static nsCSSProps_place_content: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps11place_itemsE"]
+            pub static nsCSSProps_place_items: *mut nsICSSProperty;
+            #[link_name = "_ZN10nsCSSProps10place_selfE"]
+            pub static nsCSSProps_place_self: *mut nsICSSProperty;
             #[link_name = "_ZN10nsCSSProps14pointer_eventsE"]
             pub static nsCSSProps_pointer_events: *mut nsICSSProperty;
             #[link_name = "_ZN10nsCSSProps8positionE"]
@@ -5665,6 +5677,8 @@ cfg_if! {
             pub static nsGkAtoms__moz_abspos: *mut nsIAtom;
             #[link_name = "?_moz_activated@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms__moz_activated: *mut nsIAtom;
+            #[link_name = "?_moz_anonclass@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms__moz_anonclass: *mut nsIAtom;
             #[link_name = "?_moz_resizing@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms__moz_resizing: *mut nsIAtom;
             #[link_name = "?mozallowfullscreen@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -9927,6 +9941,8 @@ cfg_if! {
             pub static nsGkAtoms_Remote: *mut nsIAtom;
             #[link_name = "?RemoteId@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_RemoteId: *mut nsIAtom;
+            #[link_name = "?RemoteType@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_RemoteType: *mut nsIAtom;
             #[link_name = "?DisplayPort@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_DisplayPort: *mut nsIAtom;
             #[link_name = "?DisplayPortMargins@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -10871,6 +10887,8 @@ cfg_if! {
             pub static nsCSSProps_font_variant_numeric: *mut nsICSSProperty;
             #[link_name = "?font_variant_position@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
             pub static nsCSSProps_font_variant_position: *mut nsICSSProperty;
+            #[link_name = "?font_variation_settings@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_font_variation_settings: *mut nsICSSProperty;
             #[link_name = "?font_weight@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
             pub static nsCSSProps_font_weight: *mut nsICSSProperty;
             #[link_name = "?force_broken_image_icon@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
@@ -11105,6 +11123,12 @@ cfg_if! {
             pub static nsCSSProps_perspective: *mut nsICSSProperty;
             #[link_name = "?perspective_origin@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
             pub static nsCSSProps_perspective_origin: *mut nsICSSProperty;
+            #[link_name = "?place_content@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_place_content: *mut nsICSSProperty;
+            #[link_name = "?place_items@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_place_items: *mut nsICSSProperty;
+            #[link_name = "?place_self@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
+            pub static nsCSSProps_place_self: *mut nsICSSProperty;
             #[link_name = "?pointer_events@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
             pub static nsCSSProps_pointer_events: *mut nsICSSProperty;
             #[link_name = "?position@nsCSSProps@@2PEAVnsICSSProperty@@EA"]
@@ -11298,6 +11322,8 @@ cfg_if! {
             pub static nsGkAtoms__moz_abspos: *mut nsIAtom;
             #[link_name = "\x01?_moz_activated@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms__moz_activated: *mut nsIAtom;
+            #[link_name = "\x01?_moz_anonclass@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms__moz_anonclass: *mut nsIAtom;
             #[link_name = "\x01?_moz_resizing@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms__moz_resizing: *mut nsIAtom;
             #[link_name = "\x01?mozallowfullscreen@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -15560,6 +15586,8 @@ cfg_if! {
             pub static nsGkAtoms_Remote: *mut nsIAtom;
             #[link_name = "\x01?RemoteId@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_RemoteId: *mut nsIAtom;
+            #[link_name = "\x01?RemoteType@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_RemoteType: *mut nsIAtom;
             #[link_name = "\x01?DisplayPort@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_DisplayPort: *mut nsIAtom;
             #[link_name = "\x01?DisplayPortMargins@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -16504,6 +16532,8 @@ cfg_if! {
             pub static nsCSSProps_font_variant_numeric: *mut nsICSSProperty;
             #[link_name = "\x01?font_variant_position@nsCSSProps@@2PAVnsICSSProperty@@A"]
             pub static nsCSSProps_font_variant_position: *mut nsICSSProperty;
+            #[link_name = "\x01?font_variation_settings@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_font_variation_settings: *mut nsICSSProperty;
             #[link_name = "\x01?font_weight@nsCSSProps@@2PAVnsICSSProperty@@A"]
             pub static nsCSSProps_font_weight: *mut nsICSSProperty;
             #[link_name = "\x01?force_broken_image_icon@nsCSSProps@@2PAVnsICSSProperty@@A"]
@@ -16738,6 +16768,12 @@ cfg_if! {
             pub static nsCSSProps_perspective: *mut nsICSSProperty;
             #[link_name = "\x01?perspective_origin@nsCSSProps@@2PAVnsICSSProperty@@A"]
             pub static nsCSSProps_perspective_origin: *mut nsICSSProperty;
+            #[link_name = "\x01?place_content@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_place_content: *mut nsICSSProperty;
+            #[link_name = "\x01?place_items@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_place_items: *mut nsICSSProperty;
+            #[link_name = "\x01?place_self@nsCSSProps@@2PAVnsICSSProperty@@A"]
+            pub static nsCSSProps_place_self: *mut nsICSSProperty;
             #[link_name = "\x01?pointer_events@nsCSSProps@@2PAVnsICSSProperty@@A"]
             pub static nsCSSProps_pointer_events: *mut nsICSSProperty;
             #[link_name = "\x01?position@nsCSSProps@@2PAVnsICSSProperty@@A"]
@@ -16934,6 +16970,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_abspos as *mut _) } };
 ("_moz_activated") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_activated as *mut _) } };
+("_moz_anonclass") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_anonclass as *mut _) } };
 ("_moz_resizing") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms__moz_resizing as *mut _) } };
 ("mozallowfullscreen") =>
@@ -21196,6 +21234,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Remote as *mut _) } };
 ("_remote_id") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_RemoteId as *mut _) } };
+("remoteType") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_RemoteType as *mut _) } };
 ("_displayport") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_DisplayPort as *mut _) } };
 ("_displayportmargins") =>
@@ -22140,6 +22180,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_variant_numeric as *mut _) } };
 ("font-variant-position") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_variant_position as *mut _) } };
+("font-variation-settings") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_variation_settings as *mut _) } };
 ("font-weight") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_font_weight as *mut _) } };
 ("-moz-force-broken-image-icon") =>
@@ -22374,6 +22416,12 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_perspective as *mut _) } };
 ("perspective-origin") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_perspective_origin as *mut _) } };
+("place-content") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_place_content as *mut _) } };
+("place-items") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_place_items as *mut _) } };
+("place-self") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_place_self as *mut _) } };
 ("pointer-events") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSProps_pointer_events as *mut _) } };
 ("position") =>
