@@ -112,6 +112,7 @@ def _activate_virtualenv(topdir):
 
     script_dir = _get_virtualenv_script_dir()
     activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
+    need_pip_upgrade = False
     if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
         virtualenv = _get_exec_path(VIRTUALENV_NAMES)
         if not virtualenv:
@@ -123,6 +124,8 @@ def _activate_virtualenv(topdir):
             out, err = process.communicate()
             print('Python virtualenv failed to execute properly:')
             sys.exit('Output: %s\nError: %s' % (out, err))
+        # We want to upgrade pip when virtualenv created for the first time
+        need_pip_upgrade = True
 
     execfile(activate_path, dict(__file__=activate_path))
 
@@ -142,6 +145,20 @@ def _activate_virtualenv(topdir):
         os.path.join("tests", "wpt", "harness", "requirements_firefox.txt"),
         os.path.join("tests", "wpt", "harness", "requirements_servo.txt"),
     ]
+
+    if need_pip_upgrade:
+        # Upgrade pip when virtualenv is created to fix the issue
+        # https://github.com/servo/servo/issues/11074
+        pip = _get_exec_path(PIP_NAMES, is_valid_path=check_exec_path)
+        if not pip:
+            sys.exit("Python pip is either not installed or not found in virtualenv.")
+
+        process = Popen([pip, "install", "-q", "-U", "pip"], stdout=PIPE, stderr=PIPE)
+        process.wait()
+        if process.returncode:
+            out, err = process.communicate()
+            print('Pip failed to upgrade itself properly:')
+            sys.exit('Output: %s\nError: %s' % (out, err))
 
     for req_rel_path in requirements_paths:
         req_path = os.path.join(topdir, req_rel_path)
