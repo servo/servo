@@ -9,7 +9,10 @@
   [Unforgeable] readonly attribute WindowProxy window;
   [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
   [Unforgeable] readonly attribute Document document;
-  //         attribute DOMString name;
+
+  // https://github.com/servo/servo/issues/14453
+  // attribute DOMString name;
+
   [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
   readonly attribute History history;
   //[Replaceable] readonly attribute BarProp locationbar;
@@ -35,7 +38,9 @@
   //WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank",
   //                 optional DOMString features = "", optional boolean replace = false);
   //getter WindowProxy (unsigned long index);
-  //getter object (DOMString name);
+
+  // https://github.com/servo/servo/issues/14453
+  // getter object (DOMString name);
 
   // the user agent
   readonly attribute Navigator navigator;
