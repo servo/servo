@@ -8,41 +8,51 @@
 use cookie::Cookie;
 use cookie_rs;
 use net_traits::CookieSource;
+use net_traits::pub_domains::reg_suffix;
 use servo_url::ServoUrl;
 use std::cmp::Ordering;
+use std::collections::HashMap;
+use time::Tm;
+
+extern crate time;
 
 #[derive(Clone, Debug, RustcDecodable, RustcEncodable)]
 pub struct CookieStorage {
     version: u32,
-    cookies: Vec<Cookie>
+    cookies_map: HashMap<String, Vec<Cookie>>,
+    max_per_host: usize,
 }
 
 impl CookieStorage {
-    pub fn new() -> CookieStorage {
+    pub fn new(max_cookies: usize) -> CookieStorage {
         CookieStorage {
             version: 1,
-            cookies: Vec::new()
+            cookies_map: HashMap::new(),
+            max_per_host: max_cookies,
         }
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.3
     pub fn remove(&mut self, cookie: &Cookie, source: CookieSource) -> Result<Option<Cookie>, ()> {
+        let domain = reg_host(cookie.cookie.domain.as_ref().unwrap_or(&"".to_string()));
+        let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
+
         // Step 1
-        let position = self.cookies.iter().position(|c| {
+        let position = cookies.iter().position(|c| {
             c.cookie.domain == cookie.cookie.domain &&
             c.cookie.path == cookie.cookie.path &&
             c.cookie.name == cookie.cookie.name
         });
 
         if let Some(ind) = position {
-            let c = self.cookies.remove(ind);
+            let c = cookies.remove(ind);
 
             // http://tools.ietf.org/html/rfc6265#section-5.3 step 11.2
             if !c.cookie.httponly || source == CookieSource::HTTP {
                 Ok(Some(c))
             } else {
                 // Undo the removal.
-                self.cookies.push(c);
+                cookies.push(c);
                 Err(())
             }
         } else {
@@ -65,7 +75,20 @@ impl CookieStorage {
         }
 
         // Step 12
-        self.cookies.push(cookie);
+        let domain = reg_host(&cookie.cookie.domain.as_ref().unwrap_or(&"".to_string()));
+        let mut cookies = self.cookies_map.entry(domain).or_insert(vec![]);
+
+        if cookies.len() == self.max_per_host {
+            let old_len = cookies.len();
+            cookies.retain(|c| !is_cookie_expired(&c));
+            let new_len = cookies.len();
+
+            // https://datatracker.ietf.org/doc/draft-ietf-httpbis-cookie-alone
+            if new_len == old_len && !evict_one_cookie(cookie.cookie.secure, cookies) {
+                return;
+            }
+        }
+        cookies.push(cookie);
     }
 
     pub fn cookie_comparator(a: &Cookie, b: &Cookie) -> Ordering {
@@ -87,14 +110,21 @@ impl CookieStorage {
     pub fn cookies_for_url(&mut self, url: &ServoUrl, source: CookieSource) -> Option<String> {
         let filterer = |c: &&mut Cookie| -> bool {
             info!(" === SENT COOKIE : {} {} {:?} {:?}",
-                  c.cookie.name, c.cookie.value, c.cookie.domain, c.cookie.path);
-            info!(" === SENT COOKIE RESULT {}", c.appropriate_for_url(url, source));
+                  c.cookie.name,
+                  c.cookie.value,
+                  c.cookie.domain,
+                  c.cookie.path);
+            info!(" === SENT COOKIE RESULT {}",
+                  c.appropriate_for_url(url, source));
             // Step 1
             c.appropriate_for_url(url, source)
         };
 
         // Step 2
-        let mut url_cookies: Vec<&mut Cookie> = self.cookies.iter_mut().filter(filterer).collect();
+        let domain = reg_host(url.host_str().unwrap_or(""));
+        let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
+
+        let mut url_cookies: Vec<&mut Cookie> = cookies.iter_mut().filter(filterer).collect();
         url_cookies.sort_by(|a, b| CookieStorage::cookie_comparator(*a, *b));
 
         let reducer = |acc: String, c: &mut &mut Cookie| -> String {
@@ -104,7 +134,7 @@ impl CookieStorage {
             // Step 4
             (match acc.len() {
                 0 => acc,
-                _ => acc + "; "
+                _ => acc + "; ",
             }) + &c.cookie.name + "=" + &c.cookie.value
         };
         let result = url_cookies.iter_mut().fold("".to_owned(), reducer);
@@ -112,15 +142,60 @@ impl CookieStorage {
         info!(" === COOKIES SENT: {}", result);
         match result.len() {
             0 => None,
-            _ => Some(result)
+            _ => Some(result),
         }
     }
 
-    pub fn cookies_data_for_url<'a>(&'a mut self, url: &'a ServoUrl,
-                                    source: CookieSource) -> Box<Iterator<Item=cookie_rs::Cookie> + 'a> {
-        Box::new(self.cookies.iter_mut().filter(move |c| { c.appropriate_for_url(url, source) }).map(|c| {
+    pub fn cookies_data_for_url<'a>(&'a mut self,
+                                    url: &'a ServoUrl,
+                                    source: CookieSource)
+                                    -> Box<Iterator<Item = cookie_rs::Cookie> + 'a> {
+        let domain = reg_host(url.host_str().unwrap_or(""));
+        let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
+
+        Box::new(cookies.iter_mut().filter(move |c| c.appropriate_for_url(url, source)).map(|c| {
             c.touch();
             c.cookie.clone()
         }))
     }
+}
+fn reg_host<'a>(url: &'a str) -> String {
+    reg_suffix(url).to_string()
+}
+
+fn is_cookie_expired(cookie: &Cookie) -> bool {
+    match cookie.expiry_time {
+        Some(t) => t.to_timespec() <= time::get_time(),
+        None => false,
+    }
+}
+
+fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> bool {
+    // Remove non-secure cookie with oldest access time
+    let oldest_accessed: Option<(usize, Tm)> = get_oldest_accessed(false, cookies);
+
+    if let Some((index, _)) = oldest_accessed {
+        cookies.remove(index);
+    } else {
+        // All secure cookies were found
+        if !is_secure_cookie {
+            return false;
+        }
+        let oldest_accessed: Option<(usize, Tm)> = get_oldest_accessed(true, cookies);
+        if let Some((index, _)) = oldest_accessed {
+            cookies.remove(index);
+        }
+    }
+    return true;
+}
+
+fn get_oldest_accessed(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> Option<(usize, Tm)> {
+    let mut oldest_accessed: Option<(usize, Tm)> = None;
+    for (i, c) in cookies.iter().enumerate() {
+        if (c.cookie.secure == is_secure_cookie) &&
+           oldest_accessed.as_ref().map_or(true, |a| c.last_access < a.1) {
+            oldest_accessed = Some((i, c.last_access));
+        }
+    }
+    oldest_accessed
 }
