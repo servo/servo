@@ -272,7 +272,7 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent
     fn GetOffsetParent(&self) -> Option<Root<Element>> {
-        if self.is::<HTMLHtmlElement>() {
+        if self.is::<HTMLHtmlElement>() || self.upcast::<Element>().is_root() {
             return None;
         }
         match self.downcast::<HTMLBodyElement>() {
