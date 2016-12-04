@@ -3124,7 +3124,7 @@ impl Clone for nsIDocument_FrameRequest {
 }
 #[test]
 fn bindgen_test_layout_nsIDocument() {
-    assert_eq!(::std::mem::size_of::<nsIDocument>() , 984usize);
+    assert_eq!(::std::mem::size_of::<nsIDocument>() , 992usize);
     assert_eq!(::std::mem::align_of::<nsIDocument>() , 8usize);
 }
 impl nsIDocument {
