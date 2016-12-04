@@ -23,6 +23,7 @@ COMPILATION_TARGETS = {
     COMMON_BUILD_KEY: {
         "flags": [
             "--no-unstable-rust",
+            "--disable-name-namespacing",
         ],
         "clang_flags": [
             "-x", "c++", "-std=c++14",
@@ -42,8 +43,7 @@ COMPILATION_TARGETS = {
     "structs": {
         "target_dir": "../gecko_bindings",
         "flags": [
-            "--ignore-functions",
-            "--ignore-methods",
+            "--generate", "types,vars",
         ],
         "includes": [
             "{}/dist/include/gfxFontConstants.h",
@@ -51,6 +51,7 @@ COMPILATION_TARGETS = {
             "{}/dist/include/mozilla/dom/AnimationEffectReadOnlyBinding.h",
             "{}/dist/include/mozilla/ServoElementSnapshot.h",
             "{}/dist/include/mozilla/dom/Element.h",
+            "{}/dist/include/mozilla/ServoBindings.h",
         ],
         "files": [
             "{}/dist/include/nsStyleStruct.h",
@@ -70,7 +71,9 @@ COMPILATION_TARGETS = {
             "use data::ElementData;",
             "pub use nsstring::nsStringRepr as nsString;"
         ],
-        "blacklist_types": ["nsString"],
+        "blacklist_types": [
+            "nsString",
+        ],
         "whitelist_vars": [
             "NS_THEME_.*",
             "NODE_.*",
@@ -82,6 +85,13 @@ COMPILATION_TARGETS = {
             "BORDER_STYLE_.*"
         ],
         "whitelist": [
+            "RawGecko.*",
+            "mozilla_ServoElementSnapshot.*",
+            "mozilla_ConsumeStyleBehavior",
+            "mozilla_LazyComputeBehavior",
+            "mozilla_css_SheetParsingMode",
+            "mozilla_SkipRootBehavior",
+            ".*ThreadSafe.*Holder",
             "AnonymousContent",
             "AudioContext",
             "CapturingContentInfo",
@@ -103,8 +113,8 @@ COMPILATION_TARGETS = {
             "nsAttrName",
             "nsAttrValue",
             "nsBorderColors",
-            "nsChangeHint",
             "nscolor",
+            "nsChangeHint",
             "nsCSSKeyword",
             "nsCSSPropertyID",
             "nsCSSRect",
@@ -139,8 +149,6 @@ COMPILATION_TARGETS = {
             "nsStyleContentData",
             "nsStyleContext",
             "nsStyleCoord",
-            "nsStyleCoord",
-            "nsStyleCoord",
             "nsStyleCounterData",
             "nsStyleDisplay",
             "nsStyleEffects",
@@ -150,8 +158,6 @@ COMPILATION_TARGETS = {
             "nsStyleGradientStop",
             "nsStyleImage",
             "nsStyleImageLayers",
-            "nsStyleImageLayers_Layer",
-            "nsStyleImageLayers_LayerType",
             "nsStyleList",
             "nsStyleMargin",
             "nsStyleOutline",
@@ -178,10 +184,9 @@ COMPILATION_TARGETS = {
             "ServoAttrSnapshot",
             "ServoElementSnapshot",
             "SheetParsingMode",
-            "Side",
+            "mozilla_Side",
             "StaticRefPtr",
             "StyleAnimation",
-            "StyleBasicShape",
             "StyleBasicShape",
             "StyleBasicShapeType",
             "StyleClipPath",
@@ -196,13 +201,18 @@ COMPILATION_TARGETS = {
             "nsAString_internal_incompatible_char_type",
             "nsACString_internal_char_traits",
             "nsACString_internal_incompatible_char_type",
-            "RefPtr_Proxy", "nsAutoPtr_Proxy", "Pair_Base",
-            "RefPtr_Proxy_member_function", "nsAutoPtr_Proxy_member_function",
+            "RefPtr_Proxy",
+            "RefPtr_Proxy_member_function",
+            "nsAutoPtr_Proxy",
+            "nsAutoPtr_Proxy_member_function",
+            "mozilla_detail_PointerType",
+            "mozilla_Pair_Base",
+            "mozilla_SupportsWeakPtr",
+            "SupportsWeakPtr",
+            "mozilla_detail_WeakReference",
+            "mozilla_WeakPtr",
             "nsWritingIterator_reference", "nsReadingIterator_reference",
-            "Heap", "TenuredHeap", "Rooted", "WeakPtr",  # <- More template magic than what
-                                                         #    we support.
             "nsTObserverArray",  # <- Inherits from nsAutoTObserverArray<T, 0>
-            "PLArenaPool",  # <- Bindgen bug
             "nsTHashtable",  # <- Inheriting from inner typedefs that clang
                              #    doesn't expose properly.
             "nsRefPtrHashtable", "nsDataHashtable", "nsClassHashtable",  # <- Ditto
@@ -211,11 +221,9 @@ COMPILATION_TARGETS = {
                                         # for clang.
             "nsPIDOMWindow",  # <- Takes the vtable from a template parameter, and we can't
                               #    generate it conditionally.
-            "SupportsWeakPtr",
-            "Maybe",  # <- AlignedStorage, which means templated union, which
-                      #    means impossible to represent in stable rust as of
-                      #    right now.
-            "gfxSize",  # <- Same, union { struct { T width; T height; }; T components[2] };
+            "JS_Rooted",
+            "mozilla_Maybe",
+            "gfxSize",  # <- union { struct { T width; T height; }; T components[2] };
             "gfxSize_Super",  # Ditto.
         ],
         "servo_mapped_generic_types": [
@@ -237,17 +245,13 @@ COMPILATION_TARGETS = {
     # Generation of the ffi bindings.
     "bindings": {
         "target_dir": "../gecko_bindings",
-        "blacklist_types": [
-            "nsACString_internal",
-            "nsAString_internal",
-        ],
         "raw_lines": [
             "pub use nsstring::{nsACString, nsAString};",
             "type nsACString_internal = nsACString;",
             "type nsAString_internal = nsAString;"
         ],
         "flags": [
-            "--ignore-methods",
+            "--generate", "functions",
         ],
         "match_headers": [
             "ServoBindingList.h",
@@ -258,19 +262,16 @@ COMPILATION_TARGETS = {
         "files": [
             "{}/dist/include/mozilla/ServoBindings.h",
         ],
-        "whitelist": [
+        # Types to just use from the `structs` target.
+        "structs_types": [
             "RawGeckoDocument",
             "RawGeckoElement",
             "RawGeckoNode",
-            "ThreadSafe.*Holder",
+            "ThreadSafeURIHolder",
+            "ThreadSafePrincipalHolder",
             "ConsumeStyleBehavior",
             "LazyComputeBehavior",
             "SkipRootBehavior",
-        ],
-
-        # Types to just use from the `structs` target.
-        "structs_types": [
-            "Element",
             "FontFamilyList",
             "FontFamilyType",
             "ServoElementSnapshot",
@@ -286,11 +287,6 @@ COMPILATION_TARGETS = {
             "nsCursorImage",
             "nsFont",
             "nsIAtom",
-            "nsIDocument",
-            "nsINode",
-            "nsIPrincipal",
-            "nsIURI",
-            "nsMainThreadPtrHolder",
             "nsRestyleHint",
             "nsStyleBackground",
             "nsStyleBorder",
@@ -614,7 +610,7 @@ Option<&'a mut {0}>;".format(ty))
     if "servo_mapped_generic_types" in current_target:
         for ty in current_target["servo_mapped_generic_types"]:
             flags.append("--blacklist-type")
-            flags.append("{}".format(ty["gecko"]))
+            flags.append("mozilla_{}".format(ty["gecko"]))
             flags.append("--raw-line")
             flags.append("pub type {0}{2} = {1}{2};".format(ty["gecko"], ty["servo"], "<T>" if ty["generic"] else ""))
 

@@ -20,10 +20,10 @@ use gecko_bindings::bindings::{Gecko_GetServoDeclarationBlock, Gecko_IsHTMLEleme
 use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement};
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko_Namespace};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
-use gecko_bindings::bindings::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::structs;
+use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
 use gecko_bindings::structs::NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
