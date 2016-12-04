@@ -79,7 +79,7 @@ impl HttpState {
     pub fn new() -> HttpState {
         HttpState {
             hsts_list: Arc::new(RwLock::new(HstsList::new())),
-            cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
+            cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
             auth_cache: Arc::new(RwLock::new(AuthCache::new())),
             blocked_content: Arc::new(None),
         }
