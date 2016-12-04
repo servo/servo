@@ -28,20 +28,19 @@ use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
 use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::DUMMY_BASE_URL;
 use style::gecko::wrapper::GeckoElement;
-use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoStyleRuleBorrowed, RawServoStyleRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
-use style::gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
+use style::gecko_bindings::structs::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
@@ -160,10 +159,10 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
 #[no_mangle]
 pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                         raw_data: RawServoStyleSetBorrowed,
-                                        skip_root: bindings::SkipRootBehavior) -> () {
+                                        skip_root: structs::SkipRootBehavior) -> () {
     let element = GeckoElement(root);
     debug!("Servo_TraverseSubtree: {:?}", element);
-    traverse_subtree(element, raw_data, skip_root == bindings::SkipRootBehavior::Skip);
+    traverse_subtree(element, raw_data, skip_root == structs::SkipRootBehavior::Skip);
 }
 
 #[no_mangle]
@@ -812,13 +811,13 @@ pub extern "C" fn Servo_CheckChangeHint(element: RawGeckoElementBorrowed) -> nsC
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
                                      raw_data: RawServoStyleSetBorrowed,
-                                     consume: bindings::ConsumeStyleBehavior,
-                                     compute: bindings::LazyComputeBehavior) -> ServoComputedValuesStrong
+                                     consume: structs::ConsumeStyleBehavior,
+                                     compute: structs::LazyComputeBehavior) -> ServoComputedValuesStrong
 {
     let element = GeckoElement(element);
     debug!("Servo_ResolveStyle: {:?}, consume={:?}, compute={:?}", element, consume, compute);
 
-    if compute == bindings::LazyComputeBehavior::Allow {
+    if compute == structs::LazyComputeBehavior::Allow {
         let should_compute = unsafe { element.ensure_data() }.borrow().get_current_styles().is_none();
         if should_compute {
             debug!("Performing manual style computation");
@@ -856,7 +855,7 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
         }
     };
 
-    if consume == bindings::ConsumeStyleBehavior::Consume {
+    if consume == structs::ConsumeStyleBehavior::Consume {
         // FIXME(bholley): Once we start storing style data on frames, we'll want to
         // drop the data here instead.
         data.unwrap().persist();
