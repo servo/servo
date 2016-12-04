@@ -10,7 +10,7 @@ use servo_url::ServoUrl;
 
 
 fn run(set_location: &str, set_cookies: &[&str], final_location: &str) -> String {
-    let mut storage = CookieStorage::new();
+    let mut storage = CookieStorage::new(150);
     let url = ServoUrl::parse(set_location).unwrap();
     let source = CookieSource::HTTP;
 
