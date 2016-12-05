@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use fetch_sync;
+use fetch;
 use hyper::header::ContentType;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper_serde::Serde;
@@ -21,7 +21,7 @@ fn assert_parse(url:          &'static str,
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false, None);
 
-    let response = fetch_sync(request, None);
+    let response = fetch(request, None);
 
     match data {
         Some(data) => {

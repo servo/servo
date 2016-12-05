@@ -82,10 +82,6 @@ fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
     receiver.recv().unwrap()
 }
 
-fn fetch_sync(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch_with_context(request, &new_fetch_context(dc))
-}
-
 fn fetch_with_context(request: Request, context: &FetchContext) -> Response {
     methods::fetch(Rc::new(request), &mut None, context)
 }
