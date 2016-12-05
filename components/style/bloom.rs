@@ -216,9 +216,11 @@ impl StyleBloom {
         // until we find a common ancestor.
         while *self.elements.last().unwrap() != common_parent.as_node().to_unsafe() {
             parents_to_insert.push(common_parent);
-            common_parent =
-                common_parent.parent_element().expect("We were lied again?");
             self.pop::<E>().unwrap();
+            common_parent = match common_parent.parent_element() {
+                Some(parent) => parent,
+                None => break,
+            }
         }
 
         // Now the parents match, so insert the stack of elements we have been
