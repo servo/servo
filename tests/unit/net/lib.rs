@@ -72,18 +72,18 @@ impl FetchTaskTarget for FetchResponseCollector {
 }
 
 fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
+    fetch_with_context(request, &new_fetch_context(dc))
+}
+
+fn fetch_with_context(request: Request, context: &FetchContext) -> Response {
     let (sender, receiver) = channel();
     let target = Box::new(FetchResponseCollector {
         sender: sender,
     });
 
-    methods::fetch(Rc::new(request), &mut Some(target), &new_fetch_context(dc));
+    methods::fetch(Rc::new(request), &mut Some(target), context);
 
     receiver.recv().unwrap()
-}
-
-fn fetch_with_context(request: Request, context: &FetchContext) -> Response {
-    methods::fetch(Rc::new(request), &mut None, context)
 }
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, ServoUrl) {
