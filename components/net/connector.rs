@@ -32,44 +32,15 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
     let ca_file = &resources_dir_path()
         .expect("Need certificate file to make network requests")
         .join("certs");
-    let mut connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
+    let mut ssl_connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
     {
-        let context_builder = connector_builder.builder_mut();
-        context_builder.set_ca_file(ca_file).expect("could not set CA file");
-        context_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
-        context_builder.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
+        let ssl_context_builder = connector_builder.builder_mut();
+        ssl_context_builder.set_ca_file(ca_file).expect("could not set CA file");
+        ssl_context_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
+        ssl_context_builder.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
     }
-    let connector = connector_builder.build();
-    let client = OpensslClient::from(connector);
-    let https_connector = HttpsConnector::new(client);
+    let ssl_connector = connector_builder.build();
+    let ssl_client = OpensslClient::from(connector);
+    let https_connector = HttpsConnector::new(ssl_client);
     Arc::new(Pool::with_connector(Default::default(), https_connector))
-    /*
-    let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-    context.set_CA_file(;
-    context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
-    context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
-    let connector = HttpsConnector::new(ServoSslClient {
-        context: Arc::new(context)
-    });
-
-    Arc::new(Pool::with_connector(Default::default(), connector))
-    */
 }
-
-/*
-#[derive(Clone)]
-pub struct ServoSslClient {
-    context: Arc<SslContext>,
-}
-
-impl SslClient for ServoSslClient {
-    type Stream = SslStream<HttpStream>;
-
-    fn wrap_client(&self, stream: HttpStream, host: &str) -> Result<Self::Stream, ::hyper::Error> {
-        let mut ssl = try!(Ssl::new(&self.context));
-        try!(ssl.set_hostname(host));
-        let host = host.to_owned();
-        SslStream::connect(ssl, stream).map_err(From::from)
-    }
-}
-*/
