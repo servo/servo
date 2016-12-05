@@ -22,7 +22,11 @@
             none
         """.split()
         if product == "gecko":
-            values += "-moz-box -moz-inline-box".split()
+            values += """inline-flex grid inline-grid ruby ruby-base ruby-base-container
+                ruby-text ruby-text-container contents -webkit-box -webkit-inline-box
+                -moz-box -moz-inline-box -moz-grid -moz-inline-grid -moz-grid-group
+                -moz-grid-line -moz-stack -moz-inline-stack -moz-deck -moz-popup
+                -moz-groupbox""".split()
     %>
     pub use self::computed_value::T as SpecifiedValue;
     use values::computed::ComputedValueAsSpecified;

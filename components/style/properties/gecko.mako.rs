@@ -1028,9 +1028,13 @@ fn static_assert() {
     <% display_keyword = Keyword("display", "inline block inline-block table inline-table table-row-group " +
                                             "table-header-group table-footer-group table-row table-column-group " +
                                             "table-column table-cell table-caption list-item flex none " +
-                                            "-moz-box -moz-inline-box",
+                                            "inline-flex grid inline-grid ruby ruby-base ruby-base-container " +
+                                            "ruby-text ruby-text-container contents -webkit-box -webkit-inline-box " +
+                                            "-moz-box -moz-inline-box -moz-grid -moz-inline-grid -moz-grid-group " +
+                                            "-moz-grid-line -moz-stack -moz-inline-stack -moz-deck -moz-popup " +
+                                            "-moz-groupbox",
                                             gecko_enum_prefix="StyleDisplay",
-                                            gecko_inexhaustive=True) %>
+                                            gecko_strip_moz_prefix=False) %>
     ${impl_keyword('display', 'mDisplay', display_keyword, True)}
 
     // overflow-y is implemented as a newtype of overflow-x, so we need special handling.
