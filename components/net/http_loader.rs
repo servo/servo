@@ -20,7 +20,7 @@ use hyper::header::{AcceptEncoding, AcceptLanguage, AccessControlAllowCredential
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
 use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod};
 use hyper::header::{Authorization, Basic, CacheControl, CacheDirective, ContentEncoding};
-use hyper::header::{ContentLength, CookiePair, Encoding, Header, Headers, Host, IfMatch, IfRange};
+use hyper::header::{ContentLength, Encoding, Header, Headers, Host, IfMatch, IfRange};
 use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, Pragma, Quality};
 use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
 use hyper::method::Method;

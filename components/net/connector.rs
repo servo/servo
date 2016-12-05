@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use hyper::client::Pool;
-use hyper::net::{HttpStream, HttpsConnector, SslClient};
+use hyper::net::HttpsConnector;
 use hyper_openssl::OpensslClient;
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER};
-use openssl::ssl::{Ssl, SslConnectorBuilder, SslContext, SslMethod, SslStream};
+use openssl::ssl::{SslConnectorBuilder, SslMethod};
 use std::sync::Arc;
 use util::resource_files::resources_dir_path;
 
