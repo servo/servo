@@ -214,11 +214,25 @@ impl StyleBloom {
         //
         // Not-so-happy case: Parent's don't match, so we need to keep going up
         // until we find a common ancestor.
+        //
+        // Gecko currently models native anonymous content that conceptually hangs
+        // off the document (such as scrollbars) as a separate subtree from the
+        // document root.  Thus it's possible with Gecko that we do not find any
+        // common ancestor.
         while *self.elements.last().unwrap() != common_parent.as_node().to_unsafe() {
             parents_to_insert.push(common_parent);
-            common_parent =
-                common_parent.parent_element().expect("We were lied again?");
             self.pop::<E>().unwrap();
+            common_parent = match common_parent.parent_element() {
+                Some(parent) => parent,
+                None => {
+                    debug_assert!(self.elements.is_empty());
+                    if cfg!(feature = "gecko") {
+                        break;
+                    } else {
+                        panic!("should have found a common ancestor");
+                    }
+                }
+            }
         }
 
         // Now the parents match, so insert the stack of elements we have been
