@@ -18,7 +18,7 @@ heapsize = "0.3.0"
 heapsize_derive = "0.1"
 hyper = {version = "0.9.9", default-features = false}
 # hyper_serde = {version = "0.1.4"}
-hyper_serde = {path = "../../hyper_serde"}
+hyper_serde = {git = "https://github.com/frewsxcv/hyper_serde.git", branch = "bump-cookie"}
 image = "0.10"
 lazy_static = "0.2"
 log = "0.3.5"
