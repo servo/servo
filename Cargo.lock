@@ -1143,23 +1143,23 @@ dependencies = [
 [[package]]
 name = "hyper_serde"
 version = "0.1.6"
-dependencies = [
- "cookie 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "mime 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 0.8.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_test 0.8.18 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "hyper_serde"
-version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.18 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "hyper_serde"
+version = "0.2.0"
+dependencies = [
+ "cookie 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mime 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.8.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_test 0.8.18 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1699,7 +1699,7 @@ dependencies = [
  "heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper_serde 0.1.6",
+ "hyper_serde 0.2.0",
  "image 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2276,7 +2276,7 @@ dependencies = [
  "heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper_serde 0.1.6",
+ "hyper_serde 0.2.0",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
