@@ -15,7 +15,8 @@ cookie = "0.4"
 devtools_traits = {path = "../../../components/devtools_traits"}
 flate2 = "0.2.0"
 hyper = {version = "0.9.9", default-features = false}
-hyper_serde = {version = "0.1.4", default-features = false}
+# hyper_serde = {version = "0.1.4", default-features = false}
+hyper_serde = {path = "../../../hyper_serde"}
 ipc-channel = "0.5"
 msg = {path = "../../../components/msg"}
 net = {path = "../../../components/net"}

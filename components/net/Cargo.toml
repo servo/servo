@@ -18,7 +18,8 @@ devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
 hyper = {version = "0.9.9", default-features = false}
 hyper-openssl = "0.1"
-hyper_serde = {version = "0.1.4", default-features = false}
+# hyper_serde = {version = "0.1.4", default-features = false}
+hyper_serde = {path = "../../hyper_serde"}
 immeta = "0.3.1"
 ipc-channel = "0.5"
 lazy_static = "0.2"

@@ -40,7 +40,8 @@ heapsize_derive = "0.1"
 html5ever = {version = "0.10.2", features = ["heap_size", "unstable"]}
 html5ever-atoms = {version = "0.1", features = ["heap_size"]}
 hyper = {version = "0.9.9", default-features = false}
-hyper_serde = {version = "0.1.4", default-features = false}
+# hyper_serde = {version = "0.1.4", default-features = false}
+hyper_serde = {path = "../../hyper_serde"}
 image = "0.10"
 ipc-channel = "0.5"
 js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
