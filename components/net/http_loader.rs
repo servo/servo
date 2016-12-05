@@ -6,6 +6,7 @@ use brotli::Decompressor;
 use connector::{Connector, create_http_connector};
 use content_blocker_parser::RuleList;
 use cookie;
+use cookie_rs;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
@@ -13,6 +14,7 @@ use fetch::cors_cache::CorsCache;
 use fetch::methods::{Data, DoneChannel, FetchContext, Target, is_simple_header, is_simple_method, main_fetch};
 use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::HstsList;
+use hyper;
 use hyper::Error as HttpError;
 use hyper::LanguageTag;
 use hyper::client::{Pool, Request as HyperRequest, Response as HyperResponse};
@@ -20,7 +22,7 @@ use hyper::header::{AcceptEncoding, AcceptLanguage, AccessControlAllowCredential
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
 use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod};
 use hyper::header::{Authorization, Basic, CacheControl, CacheDirective, ContentEncoding};
-use hyper::header::{ContentLength, Encoding, Header, Headers, Host, IfMatch, IfRange};
+use hyper::header::{ContentLength, CookiePair, Encoding, Header, Headers, Host, IfMatch, IfRange};
 use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, Pragma, Quality};
 use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
 use hyper::method::Method;
@@ -322,13 +324,25 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
 
     if let Ok(SetCookie(cookies)) = header {
         for bare_cookie in cookies {
-            unimplemented!()
-            /*
-            if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, request, source) {
+            let c = hyper_cookie_to_cookie_rs(bare_cookie);
+            if let Some(cookie) = cookie::Cookie::new_wrapped(c, request, source) {
                 cookie_jar.push(cookie, source);
             }
-            */
         }
+    }
+}
+
+fn hyper_cookie_to_cookie_rs(hyper_cookie: hyper::header::CookiePair) -> cookie_rs::Cookie {
+    cookie_rs::Cookie {
+        name: hyper_cookie.name,
+        value: hyper_cookie.value,
+        expires: hyper_cookie.expires,
+        max_age: hyper_cookie.max_age,
+        domain: hyper_cookie.domain,
+        path: hyper_cookie.path,
+        secure: hyper_cookie.secure,
+        httponly: hyper_cookie.httponly,
+        custom: hyper_cookie.custom,
     }
 }
 
