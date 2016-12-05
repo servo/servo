@@ -545,40 +545,22 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
 // FIXME: This incredibly hacky. Make it more robust, and at least test it.
 fn is_cert_verify_error(error: &OpensslError) -> bool {
-    /*
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "SSL routines" &&
-            function.to_uppercase() == "SSL3_GET_SERVER_CERTIFICATE" &&
-            reason == "certificate verify failed"
-        }
-    }
-    */
-    unimplemented!()
+    error.library() == Some("SSL routines") &&
+        error.function().map(|s| s.to_uppercase()) == Some("SSL3_GET_SERVER_CERTIFICATE".into()) &&
+        error.reason() == Some("certificate verify failed")
 }
 
 fn is_unknown_message_digest_err(error: &OpensslError) -> bool {
-    /*
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "asn1 encoding routines" &&
-            function == "ASN1_item_verify" &&
-            reason == "unknown message digest algorithm"
-        }
-    }
-    */
-    unimplemented!()
+    error.library() == Some("asn1 encoding routines") &&
+        error.function().map(|s| s.to_uppercase()) == Some("ASN1_item_verify".into()) &&
+        error.reason() == Some("unknown message digest algorithm")
 }
 
 fn format_ssl_error(error: &OpensslError) -> String {
-    /*
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            format!("{}: {} - {}", library, function, reason)
-        }
-    }
-    */
-    unimplemented!()
+    format!("{}: {} - {}",
+            error.library().unwrap_or("<unknown library>"),
+            error.function().unwrap_or("<unknown function>"),
+            error.reason().unwrap_or("<unknown reason>"))
 }
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
