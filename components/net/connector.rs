@@ -4,12 +4,13 @@
 
 use hyper::client::Pool;
 use hyper::net::{HttpStream, HttpsConnector, SslClient};
+use hyper_openssl::OpensslClient;
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER};
-use openssl::ssl::{Ssl, SslContext, SslMethod, SslStream};
+use openssl::ssl::{Ssl, SslConnectorBuilder, SslContext, SslMethod, SslStream};
 use std::sync::Arc;
 use util::resource_files::resources_dir_path;
 
-pub type Connector = HttpsConnector<ServoSslClient>;
+pub type Connector = HttpsConnector<OpensslClient>;
 
 // The basic logic here is to prefer ciphers with ECDSA certificates, Forward
 // Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
@@ -28,10 +29,23 @@ const DEFAULT_CIPHERS: &'static str = concat!(
 );
 
 pub fn create_http_connector() -> Arc<Pool<Connector>> {
+    let ca_file = &resources_dir_path()
+        .expect("Need certificate file to make network requests")
+        .join("certs");
+    let mut connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
+    {
+        let context_builder = connector_builder.builder_mut();
+        context_builder.set_ca_file(ca_file).expect("could not set CA file");
+        context_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
+        context_builder.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
+    }
+    let connector = connector_builder.build();
+    let client = OpensslClient::from(connector);
+    let https_connector = HttpsConnector::new(client);
+    Arc::new(Pool::with_connector(Default::default(), https_connector))
+    /*
     let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-    context.set_CA_file(&resources_dir_path()
-                        .expect("Need certificate file to make network requests")
-                        .join("certs")).unwrap();
+    context.set_CA_file(;
     context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
     context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
     let connector = HttpsConnector::new(ServoSslClient {
@@ -39,8 +53,11 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
     });
 
     Arc::new(Pool::with_connector(Default::default(), connector))
+    */
 }
 
+/*
+#[derive(Clone)]
 pub struct ServoSslClient {
     context: Arc<SslContext>,
 }
@@ -55,3 +72,4 @@ impl SslClient for ServoSslClient {
         SslStream::connect(ssl, stream).map_err(From::from)
     }
 }
+*/

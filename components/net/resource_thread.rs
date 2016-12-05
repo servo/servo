@@ -399,10 +399,13 @@ impl CoreResourceManager {
         let header = Header::parse_header(&[cookie_list.into_bytes()]);
         if let Ok(SetCookie(cookies)) = header {
             for bare_cookie in cookies {
+                unimplemented!()
+                /*
                 if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
                     let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
                     cookie_jar.push(cookie, source);
                 }
+                */
             }
         }
     }

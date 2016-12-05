@@ -322,9 +322,12 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
 
     if let Ok(SetCookie(cookies)) = header {
         for bare_cookie in cookies {
+            unimplemented!()
+            /*
             if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, request, source) {
                 cookie_jar.push(cookie, source);
             }
+            */
         }
     }
 }
@@ -545,6 +548,7 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
 // FIXME: This incredibly hacky. Make it more robust, and at least test it.
 fn is_cert_verify_error(error: &OpensslError) -> bool {
+    /*
     match error {
         &OpensslError::UnknownError { ref library, ref function, ref reason } => {
             library == "SSL routines" &&
@@ -552,9 +556,12 @@ fn is_cert_verify_error(error: &OpensslError) -> bool {
             reason == "certificate verify failed"
         }
     }
+    */
+    unimplemented!()
 }
 
 fn is_unknown_message_digest_err(error: &OpensslError) -> bool {
+    /*
     match error {
         &OpensslError::UnknownError { ref library, ref function, ref reason } => {
             library == "asn1 encoding routines" &&
@@ -562,14 +569,19 @@ fn is_unknown_message_digest_err(error: &OpensslError) -> bool {
             reason == "unknown message digest algorithm"
         }
     }
+    */
+    unimplemented!()
 }
 
 fn format_ssl_error(error: &OpensslError) -> String {
+    /*
     match error {
         &OpensslError::UnknownError { ref library, ref function, ref reason } => {
             format!("{}: {} - {}", library, function, reason)
         }
     }
+    */
+    unimplemented!()
 }
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
