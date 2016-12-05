@@ -63,7 +63,14 @@ pub type ServoElementSnapshotOwned = ::gecko_bindings::sugar::ownership::Owned<S
 pub type ServoElementSnapshotBorrowedOrNull<'a> = Option<&'a ServoElementSnapshot>;
 pub type ServoElementSnapshotBorrowedMutOrNull<'a> = Option<&'a mut ServoElementSnapshot>;
 pub type ServoElementSnapshotOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<ServoElementSnapshot>;
-use gecko_bindings::structs::Element;
+use gecko_bindings::structs::RawGeckoDocument;
+use gecko_bindings::structs::RawGeckoElement;
+use gecko_bindings::structs::RawGeckoNode;
+use gecko_bindings::structs::ThreadSafeURIHolder;
+use gecko_bindings::structs::ThreadSafePrincipalHolder;
+use gecko_bindings::structs::ConsumeStyleBehavior;
+use gecko_bindings::structs::LazyComputeBehavior;
+use gecko_bindings::structs::SkipRootBehavior;
 use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
 use gecko_bindings::structs::ServoElementSnapshot;
@@ -79,11 +86,6 @@ use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsCursorImage;
 use gecko_bindings::structs::nsFont;
 use gecko_bindings::structs::nsIAtom;
-use gecko_bindings::structs::nsIDocument;
-use gecko_bindings::structs::nsINode;
-use gecko_bindings::structs::nsIPrincipal;
-use gecko_bindings::structs::nsIURI;
-use gecko_bindings::structs::nsMainThreadPtrHolder;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::nsStyleBackground;
 unsafe impl Send for nsStyleBackground {}
@@ -202,18 +204,6 @@ unsafe impl Sync for nsStyleXUL {}
 use gecko_bindings::structs::nscoord;
 use gecko_bindings::structs::nsresult;
 
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum ConsumeStyleBehavior { Consume = 0, DontConsume = 1, }
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum LazyComputeBehavior { Allow = 0, Assert = 1, }
-#[repr(i32)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum SkipRootBehavior { Skip = 0, DontSkip = 1, }
-pub type RawGeckoNode = nsINode;
-pub type RawGeckoElement = Element;
-pub type RawGeckoDocument = nsIDocument;
 extern "C" {
     pub fn Servo_CssRules_AddRef(ptr: ServoCssRulesBorrowed);
 }
@@ -257,7 +247,6 @@ extern "C" {
     pub fn Gecko_ClearPODTArray(aArray: *mut ::std::os::raw::c_void,
                                 aElementSize: usize, aElementAlign: usize);
 }
-pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
 extern "C" {
     pub fn Gecko_AddRefPrincipalArbitraryThread(aPtr:
                                                     *mut ThreadSafePrincipalHolder);
@@ -266,7 +255,6 @@ extern "C" {
     pub fn Gecko_ReleasePrincipalArbitraryThread(aPtr:
                                                      *mut ThreadSafePrincipalHolder);
 }
-pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
 extern "C" {
     pub fn Gecko_AddRefURIArbitraryThread(aPtr: *mut ThreadSafeURIHolder);
 }
