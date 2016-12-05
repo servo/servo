@@ -34,13 +34,13 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
         .join("certs");
     let mut ssl_connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
     {
-        let ssl_context_builder = connector_builder.builder_mut();
+        let ssl_context_builder = ssl_connector_builder.builder_mut();
         ssl_context_builder.set_ca_file(ca_file).expect("could not set CA file");
         ssl_context_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
         ssl_context_builder.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
     }
-    let ssl_connector = connector_builder.build();
-    let ssl_client = OpensslClient::from(connector);
+    let ssl_connector = ssl_connector_builder.build();
+    let ssl_client = OpensslClient::from(ssl_connector);
     let https_connector = HttpsConnector::new(ssl_client);
     Arc::new(Pool::with_connector(Default::default(), https_connector))
 }
