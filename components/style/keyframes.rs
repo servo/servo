@@ -14,7 +14,7 @@ use std::sync::Arc;
 use style_traits::ToCss;
 use stylesheets::{MemoryHoleReporter, Stylesheet};
 
-/// A number from 1 to 100, indicating the percentage of the animation where
+/// A number from 0 to 1, indicating the percentage of the animation where
 /// this keyframe should run.
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -29,6 +29,12 @@ impl ::std::cmp::Ord for KeyframePercentage {
 }
 
 impl ::std::cmp::Eq for KeyframePercentage { }
+
+impl ToCss for KeyframePercentage {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        write!(dest, "{}%", self.0 * 100.0)
+    }
+}
 
 impl KeyframePercentage {
     #[inline]
@@ -93,10 +99,10 @@ pub struct Keyframe {
 impl ToCss for Keyframe {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         let mut iter = self.selector.percentages().iter();
-        try!(write!(dest, "{}%", iter.next().unwrap().0));
+        try!(iter.next().unwrap().to_css(dest));
         for percentage in iter {
             try!(write!(dest, ", "));
-            try!(write!(dest, "{}%", percentage.0));
+            try!(percentage.to_css(dest));
         }
         try!(dest.write_str(" { "));
         try!(self.block.read().to_css(dest));
