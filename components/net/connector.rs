@@ -52,9 +52,6 @@ impl SslClient for ServoSslClient {
         let mut ssl = try!(Ssl::new(&self.context));
         try!(ssl.set_hostname(host));
         let host = host.to_owned();
-        ssl.set_verify_callback(SSL_VERIFY_PEER, move |p, x| {
-            ::openssl_verify::verify_callback(&host, p, x)
-        });
         SslStream::connect(ssl, stream).map_err(From::from)
     }
 }

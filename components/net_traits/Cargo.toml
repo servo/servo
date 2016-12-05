@@ -16,8 +16,8 @@ msg = {path = "../msg"}
 ipc-channel = "0.5"
 heapsize = "0.3.0"
 heapsize_derive = "0.1"
-hyper = "0.9.9"
-hyper_serde = "0.1.4"
+hyper = {version = "0.9.9", default-features = false}
+hyper_serde = {version = "0.1.4", default-features = false}
 image = "0.10"
 lazy_static = "0.2"
 log = "0.3.5"
@@ -26,7 +26,7 @@ serde = "0.8"
 serde_derive = "0.8"
 servo_url = {path = "../url", features = ["servo"]}
 url = {version = "1.2", features = ["heap_size"]}
-websocket = "0.17"
+websocket = {git = "https://github.com/dten/rust-websocket.git", branch = "openssl_0.9.1" }
 uuid = { version = "0.3.1", features = ["v4", "serde"] }
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
 
