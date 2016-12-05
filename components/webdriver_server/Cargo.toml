@@ -10,7 +10,7 @@ name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
-cookie = "0.4"
+cookie = {version = "0.4", features = ["serialize-serde"]}
 euclid = "0.10.1"
 hyper = {version = "0.9.9", default-features = false}
 image = "0.10"

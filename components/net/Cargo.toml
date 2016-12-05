@@ -28,6 +28,7 @@ mime = "0.2.1"
 mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
+openssl = "0.9"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3"

@@ -35,7 +35,7 @@ use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use openssl;
-use openssl::ssl::error::{OpensslError, SslError};
+use openssl::error::Error as OpensslError;
 use resource_thread::AuthCache;
 use servo_url::ServoUrl;
 use std::collections::HashSet;
@@ -136,7 +136,11 @@ impl NetworkHttpRequestFactory {
 
         if let Err(HttpError::Ssl(ref error)) = connection {
             let error: &(Error + Send + 'static) = &**error;
-            if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
+            if let Some(openssl_error) = error.downcast_ref::<OpensslError>() {
+                if is_cert_verify_error(openssl_error) {
+                    return Err(LoadError::new(url, LoadErrorType::Ssl { reason: "tmp".into() }));
+                }
+                /*
                 if errors.iter().any(is_cert_verify_error) {
                     let mut error_report = vec![format!("ssl error ({}):", openssl::version::version())];
                     let mut suggestion = None;
@@ -154,6 +158,7 @@ impl NetworkHttpRequestFactory {
                     let error_report = error_report.join("<br>\n");
                     return Err(LoadError::new(url, LoadErrorType::Ssl { reason: error_report }));
                 }
+                */
             }
         }
 
