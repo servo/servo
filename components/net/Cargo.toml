@@ -13,7 +13,7 @@ path = "lib.rs"
 bitflags = "0.7"
 brotli = "1.0.6"
 content-blocker = "0.2.1"
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+cookie = {version = "0.4", features = ["serialize-rustc"]}
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
 hyper = {version = "0.9.9", default-features = false}

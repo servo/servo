@@ -28,7 +28,7 @@ bitflags = "0.7"
 bluetooth_traits = {path = "../bluetooth_traits"}
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+cookie = "0.4"
 cssparser = {version = "0.7", features = ["heap_size", "serde-serialization"]}
 devtools_traits = {path = "../devtools_traits"}
 encoding = "0.2"
@@ -83,5 +83,5 @@ xml5ever = {version = "0.2", features = ["unstable"]}
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
-default_features = false
+default-features = false
 features = ["nightly", "serde_derive", "ipc"]

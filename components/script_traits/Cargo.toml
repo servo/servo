@@ -13,14 +13,15 @@ path = "lib.rs"
 app_units = "0.3"
 bluetooth_traits = {path = "../bluetooth_traits"}
 canvas_traits = {path = "../canvas_traits"}
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+cookie = "0.4"
 devtools_traits = {path = "../devtools_traits"}
 euclid = "0.10.1"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.0"
 heapsize_derive = "0.1"
 hyper = {version = "0.9.9", default-features = false}
-hyper_serde = {version = "0.1.4", default-features = false}
+# hyper_serde = {version = "0.1.4", default-features = false}
+hyper_serde = {path = "../../hyper_serde"}
 ipc-channel = "0.5"
 libc = "0.2"
 msg = {path = "../msg"}

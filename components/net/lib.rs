@@ -29,7 +29,6 @@ extern crate mime;
 extern crate mime_guess;
 extern crate msg;
 extern crate net_traits;
-extern crate openssl;
 extern crate profile_traits;
 extern crate rustc_serialize;
 #[macro_use]
