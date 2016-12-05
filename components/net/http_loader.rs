@@ -127,6 +127,9 @@ struct NetworkHttpRequestFactory {
     pub connector: Arc<Pool<Connector>>,
 }
 
+use hyper::net::HttpStream;
+use openssl::ssl::SslStream;
+
 impl NetworkHttpRequestFactory {
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
               -> Result<HyperRequest<Fresh>, LoadError> {
@@ -136,12 +139,19 @@ impl NetworkHttpRequestFactory {
 
         if let Err(HttpError::Ssl(ref error)) = connection {
             let error: &(Error + Send + 'static) = &**error;
-            if let Some(openssl_error) = error.downcast_ref::<OpensslError>() {
+            return Err(LoadError::new(url, LoadErrorType::Ssl { reason: error.description().into() }));
+            /*
+            if let Some(handshake_error) = error.downcast_ref::<openssl::ssl::HandshakeError<SslStream<HttpStream>>>() {
+                let errors = match *handshake_error {
+                    openssl::ssl::HandshakeError::SetupFailure(ref error_stack) => (),
+                    openssl::ssl::HandshakeError::Failure(ref stream) => (),
+                    openssl::ssl::HandshakeError::Interrupted(ref stream) => (),
+                };
+                /*
                 if is_cert_verify_error(openssl_error) {
                     return Err(LoadError::new(url, LoadErrorType::Ssl { reason: "tmp".into() }));
                 }
-                /*
-                if errors.iter().any(is_cert_verify_error) {
+                if openssl_errors.iter().any(is_cert_verify_error) {
                     let mut error_report = vec![format!("ssl error ({}):", openssl::version::version())];
                     let mut suggestion = None;
                     for err in errors {
@@ -159,7 +169,10 @@ impl NetworkHttpRequestFactory {
                     return Err(LoadError::new(url, LoadErrorType::Ssl { reason: error_report }));
                 }
                 */
+            } else {
+                // TODO: do something with this case
             }
+            */
         }
 
         let mut request = match connection {
