@@ -24,8 +24,9 @@ pub fn traverse_dom<N, C>(root: N,
 
             C::traverse_children(el, |kid| doit::<N, C>(context, kid, data));
 
-            // NB: Data is unused now, but we can always decrement the count
-            // here if we need it for the post-order one :)
+            if let Some(ref mut depth) = data.current_dom_depth {
+                *depth -= 1;
+            }
         }
 
         if context.needs_postorder_traversal() {
