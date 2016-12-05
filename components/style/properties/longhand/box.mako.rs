@@ -92,6 +92,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                                   animatable="False"
                                   need_clone="True"
                                   gecko_enum_prefix="StyleFloat"
+                                  gecko_inexhaustive="True"
                                   gecko_ffi_name="mFloat">
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}

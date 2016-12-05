@@ -329,7 +329,7 @@
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix', 'gecko_enum_prefix',
             'extra_gecko_values', 'extra_servo_values',
-            'custom_consts',
+            'custom_consts', 'gecko_inexhaustive',
         ]}
     %>
 

@@ -28,7 +28,9 @@ def to_camel_case(ident):
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
                  gecko_enum_prefix=None, custom_consts=None,
-                 extra_gecko_values=None, extra_servo_values=None):
+                 extra_gecko_values=None, extra_servo_values=None,
+                 gecko_strip_moz_prefix=True,
+                 gecko_inexhaustive=None):
         self.name = name
         self.values = values.split()
         if gecko_constant_prefix and gecko_enum_prefix:
@@ -39,6 +41,8 @@ class Keyword(object):
         self.extra_gecko_values = (extra_gecko_values or "").split()
         self.extra_servo_values = (extra_servo_values or "").split()
         self.consts_map = {} if custom_consts is None else custom_consts
+        self.gecko_strip_moz_prefix = gecko_strip_moz_prefix
+        self.gecko_inexhaustive = gecko_inexhaustive or (gecko_enum_prefix is None)
 
     def gecko_values(self):
         return self.values + self.extra_gecko_values
@@ -55,7 +59,7 @@ class Keyword(object):
             raise Exception("Bad product: " + product)
 
     def gecko_constant(self, value):
-        moz_stripped = value.replace("-moz-", '')
+        moz_stripped = value.replace("-moz-", '') if self.gecko_strip_moz_prefix else value
         parts = moz_stripped.split('-')
         if self.gecko_enum_prefix:
             parts = [p.title() for p in parts]

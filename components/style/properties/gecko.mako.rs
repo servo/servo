@@ -255,7 +255,9 @@ def set_gecko_property(ffi_name, expr):
             % for value in keyword.values_for('gecko'):
             structs::${keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
             % endfor
+            % if keyword.gecko_inexhaustive:
             x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
+            % endif
         }
     }
 </%def>
@@ -1027,7 +1029,8 @@ fn static_assert() {
                                             "table-header-group table-footer-group table-row table-column-group " +
                                             "table-column table-cell table-caption list-item flex none " +
                                             "-moz-box -moz-inline-box",
-                                            gecko_enum_prefix="StyleDisplay") %>
+                                            gecko_enum_prefix="StyleDisplay",
+                                            gecko_inexhaustive=True) %>
     ${impl_keyword('display', 'mDisplay', display_keyword, True)}
 
     // overflow-y is implemented as a newtype of overflow-x, so we need special handling.
