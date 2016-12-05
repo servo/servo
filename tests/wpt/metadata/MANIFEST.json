@@ -39677,10 +39677,40 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "cssom/CSSKeyframesRule.html": [
+          {
+            "path": "cssom/CSSKeyframesRule.html",
+            "url": "/cssom/CSSKeyframesRule.html"
+          }
+        ],
+        "cssom/CSSNamespaceRule.html": [
+          {
+            "path": "cssom/CSSNamespaceRule.html",
+            "url": "/cssom/CSSNamespaceRule.html"
+          }
+        ],
+        "cssom/CSSRuleList.html": [
+          {
+            "path": "cssom/CSSRuleList.html",
+            "url": "/cssom/CSSRuleList.html"
+          }
+        ],
+        "cssom/CSSStyleSheet.html": [
+          {
+            "path": "cssom/CSSStyleSheet.html",
+            "url": "/cssom/CSSStyleSheet.html"
+          }
+        ],
         "cssom/MediaList.html": [
           {
             "path": "cssom/MediaList.html",
             "url": "/cssom/MediaList.html"
+          }
+        ],
+        "cssom/StyleSheetList.html": [
+          {
+            "path": "cssom/StyleSheetList.html",
+            "url": "/cssom/StyleSheetList.html"
           }
         ],
         "cssom/shorthand-serialization.html": [
