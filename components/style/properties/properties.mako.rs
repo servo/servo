@@ -1637,17 +1637,27 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
 
         let specified_display = style.get_box().clone_display();
         let computed_display = match specified_display {
-            T::inline_table => {
-                Some(T::table)
-            }
-            T::inline | T::inline_block |
-            T::table_row_group | T::table_column |
-            T::table_column_group | T::table_header_group |
-            T::table_footer_group | T::table_row | T::table_cell |
-            T::table_caption => {
-                Some(T::block)
-            }
-            _ => None
+            // Values that have a corresponding block-outside version.
+            T::inline_table => Some(T::table),
+            % if product == "gecko":
+            T::inline_flex => Some(T::flex),
+            T::inline_grid => Some(T::grid),
+            T::_webkit_inline_box => Some(T::_webkit_box),
+            % endif
+
+            // Special handling for contents and list-item on the root element for Gecko.
+            % if product == "gecko":
+            T::contents | T::list_item if is_root_element => Some(T::block),
+            % endif
+
+            // Values that are not changed by blockification.
+            T::block | T::flex | T::list_item | T::table => None,
+            % if product == "gecko":
+            T::contents | T::grid | T::_webkit_box => None,
+            % endif
+
+            // Everything becomes block.
+            _ => Some(T::block),
         };
         if let Some(computed_display) = computed_display {
             let box_ = style.mutate_box();
