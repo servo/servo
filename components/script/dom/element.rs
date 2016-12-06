@@ -2182,10 +2182,8 @@ impl VirtualMethods for Element {
         } else {
             if flags.intersects(HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
                 if let Some(next_child) = mutation.next_child() {
-                    for child in next_child.inclusively_following_siblings() {
-                        if child.is::<Element>() {
-                            child.dirty(NodeDamage::OtherNodeDamage);
-                        }
+                    for child in next_child.inclusively_following_siblings::<Element>() {
+                        child.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                     }
                 }
             }

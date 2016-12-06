@@ -469,9 +469,12 @@ impl Node {
         TreeIterator::new(self)
     }
 
-    pub fn inclusively_following_siblings(&self) -> NodeSiblingIterator {
-        NodeSiblingIterator {
+    pub fn inclusively_following_siblings<T>(&self) -> SiblingIterator<T>
+        where T: DerivedFrom<Node> + Reflectable
+    {
+        SiblingIterator {
             current: Some(Root::from_ref(self)),
+            phantom: PhantomData,
         }
     }
 
@@ -1141,23 +1144,6 @@ impl<T> Iterator for SiblingIterator<T>
     }
 }
 
-pub struct NodeSiblingIterator {
-    current: Option<Root<Node>>,
-}
-
-impl Iterator for NodeSiblingIterator {
-    type Item = Root<Node>;
-
-    fn next(&mut self) -> Option<Root<Node>> {
-        let current = match self.current.take() {
-            None => return None,
-            Some(current) => current,
-        };
-        self.current = current.GetNextSibling();
-        Some(current)
-    }
-}
-
 pub struct ReverseSiblingIterator {
     current: Option<Root<Node>>,
 }
@@ -1492,9 +1478,8 @@ impl Node {
                                 return Err(Error::HierarchyRequest);
                             }
                             if let Some(child) = child {
-                                if child.inclusively_following_siblings()
-                                    .any(|child| child.is_doctype()) {
-                                        return Err(Error::HierarchyRequest);
+                                if child.inclusively_following_siblings::<DocumentType>().next().is_some() {
+                                    return Err(Error::HierarchyRequest);
                                 }
                             }
                         },
@@ -1508,9 +1493,8 @@ impl Node {
                         return Err(Error::HierarchyRequest);
                     }
                     if let Some(ref child) = child {
-                        if child.inclusively_following_siblings()
-                            .any(|child| child.is_doctype()) {
-                                return Err(Error::HierarchyRequest);
+                        if child.inclusively_following_siblings::<DocumentType>().next().is_some() {
+                            return Err(Error::HierarchyRequest);
                         }
                     }
                 },
@@ -2091,10 +2075,7 @@ impl NodeMethods for Node {
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if self.children::<Node>()
-                           .any(|c| c.is_doctype() &&
-                                &*c != child)
-                    {
+                    if self.children::<DocumentType>().any(|c| c.upcast::<Node>() != child) {
                         return Err(Error::HierarchyRequest);
                     }
                     if self.children::<Node>()
@@ -2519,7 +2500,7 @@ impl<'a> ChildrenMutation<'a> {
             // Add/remove at start of container: Return the first following element.
             ChildrenMutation::Prepend { next, .. } |
             ChildrenMutation::Replace { prev: None, next: Some(next), .. } => {
-                next.inclusively_following_siblings().filter(|node| node.is::<Element>()).next()
+                next.inclusively_following_siblings::<Element>().next().map(Root::upcast)
             }
             // Add/remove at end of container: Return the last preceding element.
             ChildrenMutation::Append { prev, .. } |
@@ -2531,8 +2512,8 @@ impl<'a> ChildrenMutation<'a> {
             ChildrenMutation::Replace { prev: Some(prev), next: Some(next), .. } => {
                 if prev.inclusively_preceding_siblings().all(|node| !node.is::<Element>()) {
                     // Before the first element: Return the first following element.
-                    next.inclusively_following_siblings().filter(|node| node.is::<Element>()).next()
-                } else if next.inclusively_following_siblings().all(|node| !node.is::<Element>()) {
+                    next.inclusively_following_siblings::<Element>().next().map(Root::upcast)
+                } else if next.inclusively_following_siblings::<Node>().all(|node| !node.is::<Element>()) {
                     // After the last element: Return the last preceding element.
                     prev.inclusively_preceding_siblings().filter(|node| node.is::<Element>()).next()
                 } else {
