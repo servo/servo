@@ -71,7 +71,10 @@ impl VirtualMethods for HTMLHeadElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
     }
-    fn bind_to_tree(&self, _tree_in_doc: bool) {
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
         load_script(self);
     }
 }
