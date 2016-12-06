@@ -11,18 +11,22 @@
 #![deny(unsafe_code)]
 
 extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
+#[macro_use]
+extern crate heapsize_derive;
 #[macro_use]
 extern crate range;
 extern crate rustc_serialize;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate termcolor;
+extern crate webrender_traits;
 
 pub mod print_tree;
 
 use range::RangeIndex;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+use webrender_traits::{FragmentType, ServoScrollRootId, StackingContextId};
 
 /// The next ID that will be used for a special stacking context.
 ///
@@ -69,15 +73,6 @@ pub enum LayerType {
     AfterPseudoContent,
 }
 
-/// The scrolling policy of a layer.
-#[derive(Clone, PartialEq, Eq, Copy, Deserialize, Serialize, Debug, HeapSizeOf)]
-pub enum ScrollPolicy {
-    /// These layers scroll when the parent receives a scrolling message.
-    Scrollable,
-    /// These layers do not scroll when the parent receives a scrolling message.
-    FixedPosition,
-}
-
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord, Deserialize, Serialize)]
 pub struct Epoch(pub u32);
@@ -97,17 +92,20 @@ impl FrameTreeId {
     }
 }
 
-/// A unique ID for every stacking context.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
-pub struct StackingContextId(
-    /// The identifier for this StackingContext, derived from the Flow's memory address
-    /// and fragment type.  As a space optimization, these are combined into a single word.
-    usize
-);
+pub trait StackingContextIdMethods {
+    fn new(id: usize) -> StackingContextId;
+    fn next_special_id() -> usize;
+    fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId;
+    fn new_outer(fragment_type: FragmentType) -> StackingContextId;
+    fn fragment_type(&self) -> FragmentType;
+    fn id(&self) -> usize;
+    fn root() -> StackingContextId;
+    fn is_special(&self) -> bool;
+}
 
-impl StackingContextId {
+impl StackingContextIdMethods for StackingContextId {
     #[inline]
-    pub fn new(id: usize) -> StackingContextId {
+    fn new(id: usize) -> StackingContextId {
         StackingContextId::new_of_type(id, FragmentType::FragmentBody)
     }
 
@@ -119,7 +117,7 @@ impl StackingContextId {
     }
 
     #[inline]
-    pub fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId {
+    fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId {
         debug_assert_eq!(id & (fragment_type as usize), 0);
         if fragment_type == FragmentType::FragmentBody {
             StackingContextId(id)
@@ -131,23 +129,23 @@ impl StackingContextId {
     /// Returns an ID for the stacking context that forms the outer stacking context of an element
     /// with `overflow: scroll`.
     #[inline(always)]
-    pub fn new_outer(fragment_type: FragmentType) -> StackingContextId {
+    fn new_outer(fragment_type: FragmentType) -> StackingContextId {
         StackingContextId(StackingContextId::next_special_id() | (fragment_type as usize))
     }
 
     #[inline]
-    pub fn fragment_type(&self) -> FragmentType {
+    fn fragment_type(&self) -> FragmentType {
         FragmentType::from_usize(self.0 & 3)
     }
 
     #[inline]
-    pub fn id(&self) -> usize {
+    fn id(&self) -> usize {
         self.0 & !3
     }
 
     /// Returns the stacking context ID for the outer document/layout root.
     #[inline]
-    pub fn root() -> StackingContextId {
+    fn root() -> StackingContextId {
         StackingContextId(0)
     }
 
@@ -156,20 +154,23 @@ impl StackingContextId {
     /// A special stacking context is a stacking context that is one of (a) the outer stacking
     /// context of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
     #[inline]
-    pub fn is_special(&self) -> bool {
+    fn is_special(&self) -> bool {
         (self.0 & !SPECIAL_STACKING_CONTEXT_ID_MASK) == 0
     }
 }
 
-/// A unique ID for every scrolling root.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
-pub struct ScrollRootId(
-    /// The identifier for this StackingContext, derived from the Flow's memory address
-    /// and fragment type.  As a space optimization, these are combined into a single word.
-    pub usize
-);
+/// Helper methods for scroll root IDs, which are defined in `webrender_traits`.
+pub trait ScrollRootIdMethods {
+    fn next_special_id() -> usize;
+    fn new_of_type(id: usize, fragment_type: FragmentType) -> Self;
+    fn root() -> Self;
+    fn is_special(&self) -> bool;
+    fn id(&self) -> usize;
+    fn fragment_type(&self) -> FragmentType;
+    fn to_stacking_context_id(&self) -> StackingContextId;
+}
 
-impl ScrollRootId {
+impl ScrollRootIdMethods for ServoScrollRootId {
     /// Returns a new stacking context ID for a special stacking context.
     fn next_special_id() -> usize {
         // We shift this left by 2 to make room for the fragment type ID.
@@ -178,19 +179,19 @@ impl ScrollRootId {
     }
 
     #[inline]
-    pub fn new_of_type(id: usize, fragment_type: FragmentType) -> ScrollRootId {
+    fn new_of_type(id: usize, fragment_type: FragmentType) -> ServoScrollRootId {
         debug_assert_eq!(id & (fragment_type as usize), 0);
         if fragment_type == FragmentType::FragmentBody {
-            ScrollRootId(id)
+            ServoScrollRootId(id)
         } else {
-            ScrollRootId(ScrollRootId::next_special_id() | (fragment_type as usize))
+            ServoScrollRootId(ServoScrollRootId::next_special_id() | (fragment_type as usize))
         }
     }
 
     /// Returns the stacking context ID for the outer document/layout root.
     #[inline]
-    pub fn root() -> ScrollRootId {
-        ScrollRootId(0)
+    fn root() -> ServoScrollRootId {
+        ServoScrollRootId(0)
     }
 
     /// Returns true if this is a special stacking context.
@@ -198,44 +199,33 @@ impl ScrollRootId {
     /// A special stacking context is a stacking context that is one of (a) the outer stacking
     /// context of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
     #[inline]
-    pub fn is_special(&self) -> bool {
+    fn is_special(&self) -> bool {
         (self.0 & !SPECIAL_STACKING_CONTEXT_ID_MASK) == 0
     }
 
     #[inline]
-    pub fn id(&self) -> usize {
+    fn id(&self) -> usize {
         self.0 & !3
     }
 
     #[inline]
-    pub fn fragment_type(&self) -> FragmentType {
+    fn fragment_type(&self) -> FragmentType {
         FragmentType::from_usize(self.0 & 3)
     }
 
     #[inline]
-    pub fn to_stacking_context_id(&self) -> StackingContextId {
+    fn to_stacking_context_id(&self) -> StackingContextId {
         StackingContextId(self.0)
     }
 }
 
-/// The type of fragment that a stacking context represents.
-///
-/// This can only ever grow to maximum 4 entries. That's because we cram the value of this enum
-/// into the lower 2 bits of the `StackingContextId`, which otherwise contains a 32-bit-aligned
-/// heap address.
-#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf)]
-pub enum FragmentType {
-    /// A StackingContext for the fragment body itself.
-    FragmentBody,
-    /// A StackingContext created to contain ::before pseudo-element content.
-    BeforePseudoContent,
-    /// A StackingContext created to contain ::after pseudo-element content.
-    AfterPseudoContent,
+pub trait FragmentTypeMethods {
+    fn from_usize(n: usize) -> FragmentType;
 }
 
-impl FragmentType {
+impl FragmentTypeMethods for FragmentType {
     #[inline]
-    pub fn from_usize(n: usize) -> FragmentType {
+    fn from_usize(n: usize) -> FragmentType {
         debug_assert!(n < 3);
         match n {
             0 => FragmentType::FragmentBody,

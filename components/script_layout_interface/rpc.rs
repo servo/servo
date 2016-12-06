@@ -5,9 +5,10 @@
 use app_units::Au;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
-use gfx_traits::ScrollRootId;
 use script_traits::UntrustedNodeAddress;
-use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left, overflow_x};
+use style::properties::longhands::{margin_top, margin_right, margin_bottom};
+use style::properties::longhands::{margin_left, overflow_x};
+use webrender_traits::ServoScrollRootId;
 
 /// Synchronous messages that script can send to layout.
 ///
@@ -51,7 +52,7 @@ pub struct NodeGeometryResponse {
 
 pub struct NodeOverflowResponse(pub Option<Point2D<overflow_x::computed_value::T>>);
 
-pub struct NodeScrollRootIdResponse(pub ScrollRootId);
+pub struct NodeScrollRootIdResponse(pub ServoScrollRootId);
 
 pub struct HitTestResponse {
     pub node_address: Option<UntrustedNodeAddress>,

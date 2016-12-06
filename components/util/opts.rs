@@ -174,9 +174,6 @@ pub struct Opts {
     /// Dumps the display list after a layout.
     pub dump_display_list: bool,
 
-    /// Dumps the display list in JSON form after a layout.
-    pub dump_display_list_json: bool,
-
     /// Dumps the layer tree when it changes.
     pub dump_layer_tree: bool,
 
@@ -267,9 +264,6 @@ pub struct DebugOptions {
 
     /// Print the display list after each layout.
     pub dump_display_list: bool,
-
-    /// Print the display list in JSON form.
-    pub dump_display_list_json: bool,
 
     /// Print the layer tree whenever it changes.
     pub dump_layer_tree: bool,
@@ -362,7 +356,6 @@ impl DebugOptions {
                 "dump-rule-tree" => self.dump_rule_tree = true,
                 "dump-flow-tree" => self.dump_flow_tree = true,
                 "dump-display-list" => self.dump_display_list = true,
-                "dump-display-list-json" => self.dump_display_list_json = true,
                 "dump-layer-tree" => self.dump_layer_tree = true,
                 "relayout-event" => self.relayout_event = true,
                 "profile-script-events" => self.profile_script_events = true,
@@ -546,7 +539,6 @@ pub fn default_opts() -> Opts {
         dump_rule_tree: false,
         dump_flow_tree: false,
         dump_display_list: false,
-        dump_display_list_json: false,
         dump_layer_tree: false,
         relayout_event: false,
         profile_script_events: false,
@@ -850,7 +842,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         dump_rule_tree: debug_options.dump_rule_tree,
         dump_flow_tree: debug_options.dump_flow_tree,
         dump_display_list: debug_options.dump_display_list,
-        dump_display_list_json: debug_options.dump_display_list_json,
         dump_layer_tree: debug_options.dump_layer_tree,
         relayout_event: debug_options.relayout_event,
         disable_share_style_cache: debug_options.disable_share_style_cache,

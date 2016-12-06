@@ -17,3 +17,10 @@ range = {path = "../range"}
 rustc-serialize = "0.3"
 serde = "0.8"
 serde_derive = "0.8"
+termcolor = "0.1"
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender"
+default_features = false
+features = ["serde_derive", "ipc"]
+

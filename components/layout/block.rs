@@ -44,7 +44,6 @@ use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::{IS_INLINE_FLEX_ITEM, IS_BLOCK_FLEX_ITEM};
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::{ClippingRegion, StackingContext};
-use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
@@ -63,6 +62,8 @@ use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RE
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrAuto;
 use util::clamp;
+use util::geometry;
+use webrender_traits::ServoScrollRootId;
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]
@@ -2037,7 +2038,7 @@ impl Flow for BlockFlow {
             self.base.stacking_relative_position + relative_offset
         };
 
-        let stacking_relative_border_box =
+        let stacking_relative_border_box = geometry::au_rect_to_f32_rect(
             self.fragment
                 .stacking_relative_border_box(&self.base.stacking_relative_position,
                                               &self.base
@@ -2046,7 +2047,7 @@ impl Flow for BlockFlow {
                                               self.base
                                                   .early_absolute_position_info
                                                   .relative_containing_block_mode,
-                                              CoordinateSystem::Own);
+                                              CoordinateSystem::Own));
 
         // Our parent set our `clip` field to the clipping region in its coordinate system. Change
         // it to our coordinate system.
@@ -2151,7 +2152,7 @@ impl Flow for BlockFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
+                                 parent_scroll_root_id: ServoScrollRootId) {
         self.collect_stacking_contexts_for_block(parent, parent_scroll_root_id);
     }
 
@@ -2198,7 +2199,8 @@ impl Flow for BlockFlow {
     }
 
     fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
-        print_tree.add_item(format!("↑↑ Fragment for block: {:?}", self.fragment));
+        let buffer = print_tree.buffer(&format!("↑↑ Fragment for block: {:?}", self.fragment));
+        print_tree.add_item(vec![buffer]);
     }
 }
 

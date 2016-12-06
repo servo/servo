@@ -17,7 +17,6 @@ use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
-use gfx_traits::ScrollRootId;
 use layout_debug;
 use model::{IntrinsicISizes, MaybeAuto, MinMaxConstraint};
 use model::{specified, specified_or_none};
@@ -32,6 +31,7 @@ use style::properties::ServoComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone};
+use webrender_traits::ServoScrollRootId;
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -969,7 +969,7 @@ impl Flow for FlexFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
+                                 parent_scroll_root_id: ServoScrollRootId) {
         self.block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
     }
 

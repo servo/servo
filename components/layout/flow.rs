@@ -36,7 +36,7 @@ use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::{ClippingRegion, StackingContext};
-use gfx_traits::{ScrollRootId, StackingContextId};
+use gfx_traits::{ScrollRootIdMethods, StackingContextIdMethods};
 use gfx_traits::print_tree::PrintTree;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
@@ -44,6 +44,7 @@ use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use serde::{Serialize, Serializer};
 use std::{fmt, mem, raw};
+use std::io::Write;
 use std::iter::Zip;
 use std::slice::IterMut;
 use std::sync::Arc;
@@ -53,7 +54,8 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::selector_parser::RestyleDamage;
-use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION};
+use style::servo::restyle_damage::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW};
+use style::servo::restyle_damage::{REPAINT, REPOSITION};
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
@@ -62,6 +64,8 @@ use table_colgroup::TableColGroupFlow;
 use table_row::TableRowFlow;
 use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
+use termcolor::{BufferWriter, ColorChoice};
+use webrender_traits::{ServoScrollRootId, StackingContextId};
 
 /// Virtual methods that make up a float context.
 ///
@@ -223,7 +227,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
 
     fn collect_stacking_contexts(&mut self,
                                  _parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId);
+                                 parent_scroll_root_id: ServoScrollRootId);
 
     /// If this is a float, places it. The default implementation does nothing.
     fn place_float_if_applicable<'a>(&mut self) {}
@@ -407,7 +411,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// children of this flow.
     fn print_extra_flow_children(&self, _: &mut PrintTree) { }
 
-    fn scroll_root_id(&self) -> ScrollRootId {
+    fn scroll_root_id(&self) -> ServoScrollRootId {
         base(self).scroll_root_id
     }
 }
@@ -491,7 +495,7 @@ pub trait ImmutableFlowUtils {
     fn is_inline_flow(self) -> bool;
 
     /// Dumps the flow tree for debugging.
-    fn print(self, title: String);
+    fn print(self, title: &str);
 
     /// Dumps the flow tree for debugging into the given PrintTree.
     fn print_with_tree(self, print_tree: &mut PrintTree);
@@ -939,7 +943,7 @@ pub struct BaseFlow {
     /// list construction.
     pub stacking_context_id: StackingContextId,
 
-    pub scroll_root_id: ScrollRootId,
+    pub scroll_root_id: ServoScrollRootId,
 }
 
 impl fmt::Debug for BaseFlow {
@@ -1083,7 +1087,7 @@ impl BaseFlow {
             writing_mode: writing_mode,
             thread_id: 0,
             stacking_context_id: StackingContextId::new(0),
-            scroll_root_id: ScrollRootId::root(),
+            scroll_root_id: ServoScrollRootId::root(),
         }
     }
 
@@ -1117,7 +1121,7 @@ impl BaseFlow {
 
     pub fn collect_stacking_contexts_for_children(&mut self,
                                                   parent: &mut StackingContext,
-                                                  parent_scroll_root_id: ScrollRootId) {
+                                                  parent_scroll_root_id: ServoScrollRootId) {
         for kid in self.children.iter_mut() {
             kid.collect_stacking_contexts(parent, parent_scroll_root_id);
         }
@@ -1260,14 +1264,18 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     }
 
     /// Dumps the flow tree for debugging.
-    fn print(self, title: String) {
-        let mut print_tree = PrintTree::new(title);
+    fn print(self, title: &str) {
+        let writer = BufferWriter::stdout(ColorChoice::Auto);
+        let mut buffer = writer.buffer();
+        drop(buffer.write_all(title.as_bytes()));
+        let mut print_tree = PrintTree::new(writer, &[buffer], vec![]);
         self.print_with_tree(&mut print_tree);
     }
 
     /// Dumps the flow tree for debugging into the given PrintTree.
     fn print_with_tree(self, print_tree: &mut PrintTree) {
-        print_tree.new_level(format!("{:?}", self));
+        let buffer = print_tree.buffer(&format!("{:?}", self));
+        print_tree.new_level(&[buffer]);
         self.print_extra_flow_children(print_tree);
         for kid in child_iter(self) {
             kid.print_with_tree(print_tree);

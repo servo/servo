@@ -8,7 +8,6 @@ use SendableFrameTree;
 use compositor::CompositingReason;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
-use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, PipelineId};
 use net_traits::image::base::Image;
@@ -21,7 +20,7 @@ use std::sync::mpsc::{Receiver, Sender};
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use webrender;
-use webrender_traits;
+use webrender_traits::{self, ServoScrollRootId};
 
 /// Sends messages to the compositor. This is a trait supplied by the port because the method used
 /// to communicate with the compositor may have to kick OS event loops awake, communicate cross-
@@ -73,7 +72,7 @@ pub enum Msg {
     ShutdownComplete,
 
     /// Scroll a page in a window
-    ScrollFragmentPoint(PipelineId, ScrollRootId, Point2D<f32>, bool),
+    ScrollFragmentPoint(PipelineId, ServoScrollRootId, Point2D<f32>, bool),
     /// Alerts the compositor that the current page has changed its title.
     ChangePageTitle(PipelineId, Option<String>),
     /// Alerts the compositor that the current page has changed its URL.

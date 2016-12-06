@@ -19,7 +19,6 @@ use fragment::SpecificFragmentInfo;
 use gfx::display_list::{OpaqueNode, StackingContext};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
-use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::IntrinsicISizesContribution;
@@ -35,9 +34,11 @@ use style::computed_values::{vertical_align, white_space};
 use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{longhands, ServoComputedValues};
-use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
+use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
+use style::servo::restyle_damage::{REPOSITION, RESOLVE_GENERATED_CONTENT};
 use text;
 use unicode_bidi;
+use webrender_traits::ServoScrollRootId;
 
 /// `Line`s are represented as offsets into the child list, rather than
 /// as an object that "owns" fragments. Choosing a different set of line
@@ -1626,7 +1627,7 @@ impl Flow for InlineFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
+                                 parent_scroll_root_id: ServoScrollRootId) {
         self.collect_stacking_contexts_for_inline(parent, parent_scroll_root_id);
     }
 
@@ -1705,7 +1706,8 @@ impl Flow for InlineFlow {
 
     fn print_extra_flow_children(&self, print_tree: &mut PrintTree) {
         for fragment in &self.fragments.fragments {
-            print_tree.add_item(format!("{:?}", fragment));
+            let buffer = print_tree.buffer(&format!("{:?}", fragment));
+            print_tree.add_item(vec![buffer])
         }
     }
 }

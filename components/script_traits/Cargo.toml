@@ -35,3 +35,9 @@ servo_url = {path = "../url", features = ["servo"]}
 style_traits = {path = "../style_traits", features = ["servo"]}
 time = "0.1.12"
 url = {version = "1.2", features = ["heap_size"]}
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender"
+default_features = false
+features = ["serde_derive", "ipc"]
+

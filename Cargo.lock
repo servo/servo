@@ -915,6 +915,7 @@ dependencies = [
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
+ "termcolor 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -942,6 +943,8 @@ dependencies = [
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "termcolor 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_traits 0.11.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -1295,6 +1298,7 @@ dependencies = [
  "smallvec 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "style_traits 0.0.1",
+ "termcolor 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-bidi 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -1334,10 +1338,9 @@ dependencies = [
  "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 0.8.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_url 0.0.1",
  "style 0.0.1",
+ "termcolor 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webrender_traits 0.11.0 (git+https://github.com/servo/webrender)",
 ]
@@ -2261,6 +2264,7 @@ dependencies = [
  "servo_atoms 0.0.1",
  "servo_url 0.0.1",
  "style 0.0.1",
+ "webrender_traits 0.11.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -2302,6 +2306,7 @@ dependencies = [
  "style_traits 0.0.1",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_traits 0.11.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
@@ -2800,6 +2805,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "termcolor"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "wincolor 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "thread-id"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3088,6 +3101,11 @@ dependencies = [
 name = "webrender_traits"
 version = "0.11.0"
 source = "git+https://github.com/servo/webrender#c4a0c01f7a249a5786a5f32922574feb56b370b2"
+replace = "webrender_traits 0.11.0"
+
+[[package]]
+name = "webrender_traits"
+version = "0.11.0"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3127,6 +3145,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "winapi-build"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "wincolor"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "ws"
@@ -3414,6 +3441,7 @@ dependencies = [
 "checksum tempfile 2.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "9270837a93bad1b1dac18fe67e786b3c960513af86231f6f4f57fddd594ff0c8"
 "checksum tendril 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cebf864c2d90394a1b66d6fe45963f9a177f2af81a0edea5060f77627f9c4587"
 "checksum term 0.4.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3deff8a2b3b6607d6d7cc32ac25c0b33709453ca9cceac006caac51e963cf94a"
+"checksum termcolor 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4082e9d2118615e520da8b4c9af328b9aade74e489ddd5d4401f8ec1487b5318"
 "checksum thread-id 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a9539db560102d1cef46b8b78ce737ff0bb64e7e18d35b2a5688f7d097d0ff03"
 "checksum thread_local 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)" = "55dd963dbaeadc08aa7266bf7f91c3154a7805e32bb94b820b769d2ef3b4744d"
 "checksum threadpool 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "59f6d3eff89920113dac9db44dde461d71d01e88a5b57b258a0466c32b5d7fe1"
@@ -3447,6 +3475,7 @@ dependencies = [
 "checksum websocket 0.17.1 (registry+https://github.com/rust-lang/crates.io-index)" = "bb4a1a6ea5ed0367f32eb3d94dcc58859ef4294b5f75ba983dbf56ac314af45d"
 "checksum winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)" = "167dc9d6949a9b857f3451275e911c3f44255842c1f7a76f33c55103a909087a"
 "checksum winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2d315eee3b34aca4797b2da6b13ed88266e6d612562a0c46390af8299fc699bc"
+"checksum wincolor 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "4bafe5ec4190889a126d2c3833ee66c2550672ce2528087e8c0cb2be2f77ab2f"
 "checksum ws 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "7c47e9ca2f5c47d27f731b1bb9bb50cc05f9886bb84fbd52afa0ff97f4f61b06"
 "checksum ws2_32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d59cefebd0c892fa2dd6de581e937301d8552cb44489cdff035c6187cb63fa5e"
 "checksum x11 2.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bfc828b6baf54ccdde44e0b5f16e035ab9c54f60a0f0c218fb5ddbc6ab38a2a9"

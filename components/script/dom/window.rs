@@ -47,7 +47,7 @@ use dom::storage::Storage;
 use dom::testrunner::TestRunner;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
-use gfx_traits::ScrollRootId;
+use gfx_traits::ScrollRootIdMethods;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime, SetWindowProxy};
@@ -109,6 +109,7 @@ use util::geometry::{self, max_rect};
 use util::opts;
 use util::prefs::PREFS;
 use webdriver_handlers::jsval_to_webdriver;
+use webrender_traits::ServoScrollRootId;
 
 /// Current state of the window object
 #[derive(JSTraceable, Copy, Clone, Debug, PartialEq, HeapSizeOf)]
@@ -963,7 +964,7 @@ impl Window {
         // Step 12
         self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32),
                               y.to_f32().unwrap_or(0.0f32),
-                              ScrollRootId::root(),
+                              ServoScrollRootId::root(),
                               behavior,
                               None);
     }
@@ -972,7 +973,7 @@ impl Window {
     pub fn perform_a_scroll(&self,
                             x: f32,
                             y: f32,
-                            scroll_root_id: ScrollRootId,
+                            scroll_root_id: ServoScrollRootId,
                             behavior: ScrollBehavior,
                             element: Option<&Element>) {
         //TODO Step 1

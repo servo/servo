@@ -11,8 +11,7 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use flow::{self, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
-use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, ScrollOffsetMap};
-use gfx_traits::ScrollRootId;
+use gfx::display_list::{DisplayItemMetadata, DisplayListHitTesting, OpaqueNode, ScrollOffsetMap};
 use ipc_channel::ipc::IpcSender;
 use opaque_node::OpaqueNodeMethods;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
@@ -20,7 +19,9 @@ use script_layout_interface::rpc::{HitTestResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
 use script_layout_interface::rpc::{NodeOverflowResponse, OffsetParentResponse};
 use script_layout_interface::rpc::{NodeScrollRootIdResponse, ResolvedStyleResponse};
-use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::LayoutNode;
+use script_layout_interface::wrapper_traits::ThreadSafeLayoutElement;
+use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
@@ -38,6 +39,7 @@ use style::selector_parser::PseudoElement;
 use style::stylist::Stylist;
 use style_traits::ToCss;
 use style_traits::cursor::Cursor;
+use webrender_traits::{DisplayListBuilder, ServoScrollRootId};
 use wrapper::{LayoutNodeHelpers, LayoutNodeLayoutData};
 
 /// Mutable data belonging to the LayoutThread.
@@ -48,7 +50,10 @@ pub struct LayoutThreadData {
     pub constellation_chan: IpcSender<ConstellationMsg>,
 
     /// The root stacking context.
-    pub display_list: Option<Arc<DisplayList>>,
+    pub display_list: Option<DisplayListBuilder>,
+
+    /// The display item metadata for this display list.
+    pub display_item_metadata: Vec<DisplayItemMetadata>,
 
     /// Performs CSS selector matching and style resolution.
     pub stylist: Arc<Stylist>,
@@ -66,7 +71,7 @@ pub struct LayoutThreadData {
     pub hit_test_response: (Option<DisplayItemMetadata>, bool),
 
     /// A queued response for the scroll root id for a given node.
-    pub scroll_root_id_response: Option<ScrollRootId>,
+    pub scroll_root_id_response: Option<ServoScrollRootId>,
 
     /// A pair of overflow property in x and y
     pub overflow_response: NodeOverflowResponse,
@@ -149,9 +154,10 @@ impl LayoutRPC for LayoutRPCImpl {
             let result = match rw_data.display_list {
                 None => panic!("Tried to hit test without a DisplayList"),
                 Some(ref display_list) => {
-                    display_list.hit_test(&page_point,
-                                          &client_point,
-                                          &rw_data.stacking_context_scroll_offsets)
+                    display_list.hit_test_display_list(&page_point,
+                                                       &client_point,
+                                                       &rw_data.stacking_context_scroll_offsets,
+                                                       &rw_data.display_item_metadata)
                 }
             };
 
@@ -588,7 +594,7 @@ pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_ro
     iterator.client_rect
 }
 
-pub fn process_node_scroll_root_id_request<N: LayoutNode>(requested_node: N) -> ScrollRootId {
+pub fn process_node_scroll_root_id_request<N: LayoutNode>(requested_node: N) -> ServoScrollRootId {
     let layout_node = requested_node.to_threadsafe();
     layout_node.scroll_root_id()
 }

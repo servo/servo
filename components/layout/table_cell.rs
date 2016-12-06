@@ -15,19 +15,20 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use flow::{self, Flow, FlowClass, IS_ABSOLUTELY_POSITIONED, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
-use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::MaybeAuto;
 use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{border_collapse, border_top_style, vertical_align};
+use style::computed_values::{border_collapse, vertical_align};
 use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
+use webrender_helpers::ToBorderStyle;
+use webrender_traits::{BorderStyle, ServoScrollRootId};
 
 /// A table formatting context.
 #[derive(Serialize)]
@@ -259,7 +260,7 @@ impl Flow for TableCellFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
+                                 parent_scroll_root_id: ServoScrollRootId) {
         self.block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
     }
 
@@ -363,7 +364,7 @@ impl CollapsedBordersForCell {
     }
 
     pub fn adjust_border_bounds_for_painting(&self,
-                                             border_bounds: &mut Rect<Au>,
+                                             border_bounds: &mut Rect<f32>,
                                              writing_mode: WritingMode) {
         let inline_start_divisor = if self.should_paint_inline_start_border() {
             2
@@ -395,21 +396,20 @@ impl CollapsedBordersForCell {
             block_end_divisor;
 
         // FIXME(pcwalton): Get the real container size.
-        let mut logical_bounds =
-            LogicalRect::from_physical(writing_mode, *border_bounds, Size2D::new(Au(0), Au(0)));
-        logical_bounds.start.i = logical_bounds.start.i - inline_start_offset;
-        logical_bounds.start.b = logical_bounds.start.b - block_start_offset;
-        logical_bounds.size.inline = logical_bounds.size.inline + inline_start_offset +
-            inline_end_offset;
-        logical_bounds.size.block = logical_bounds.size.block + block_start_offset +
-            block_end_offset;
-        *border_bounds = logical_bounds.to_physical(writing_mode, Size2D::new(Au(0), Au(0)))
+        let mut logical_bounds = LogicalRect::from_physical(writing_mode,
+                                                            *border_bounds,
+                                                            Size2D::zero());
+        logical_bounds.start.i = logical_bounds.start.i - inline_start_offset.to_f32_px();
+        logical_bounds.start.b = logical_bounds.start.b - block_start_offset.to_f32_px();
+        logical_bounds.size.inline += (inline_start_offset + inline_end_offset).to_f32_px();
+        logical_bounds.size.block += (block_start_offset + block_end_offset).to_f32_px();
+        *border_bounds = logical_bounds.to_physical(writing_mode, Size2D::zero())
     }
 
     pub fn adjust_border_colors_and_styles_for_painting(
             &self,
             border_colors: &mut SideOffsets2D<Color>,
-            border_styles: &mut SideOffsets2D<border_top_style::T>,
+            border_styles: &mut SideOffsets2D<BorderStyle>,
             writing_mode: WritingMode) {
         let logical_border_colors = LogicalMargin::new(writing_mode,
                                                        self.block_start_border.color,
@@ -418,11 +418,12 @@ impl CollapsedBordersForCell {
                                                        self.inline_start_border.color);
         *border_colors = logical_border_colors.to_physical(writing_mode);
 
-        let logical_border_styles = LogicalMargin::new(writing_mode,
-                                                       self.block_start_border.style,
-                                                       self.inline_end_border.style,
-                                                       self.block_end_border.style,
-                                                       self.inline_start_border.style);
+        let logical_border_styles =
+            LogicalMargin::new(writing_mode,
+                               self.block_start_border.style.to_border_style(),
+                               self.inline_end_border.style.to_border_style(),
+                               self.block_end_border.style.to_border_style(),
+                               self.inline_start_border.style.to_border_style());
         *border_styles = logical_border_styles.to_physical(writing_mode);
     }
 }

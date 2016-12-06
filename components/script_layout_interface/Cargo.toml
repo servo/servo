@@ -32,3 +32,8 @@ selectors = "0.15"
 servo_atoms = {path = "../atoms"}
 servo_url = {path = "../url"}
 style = {path = "../style"}
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender"
+default_features = false
+features = ["nightly", "serde_derive", "ipc"]

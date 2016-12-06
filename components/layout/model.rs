@@ -455,10 +455,20 @@ pub fn specified(length: LengthOrPercentage, containing_length: Au) -> Au {
     }
 }
 
-pub fn specified_border_radius(radius: BorderRadiusSize, containing_length: Au) -> Size2D<Au> {
+fn specified_f32(length: LengthOrPercentage, containing_length: f32) -> f32 {
+    match length {
+        LengthOrPercentage::Length(length) => length.to_f32_px(),
+        LengthOrPercentage::Percentage(p) => containing_length * p,
+        LengthOrPercentage::Calc(calc) => {
+            containing_length * calc.percentage() + calc.length().to_f32_px()
+        }
+    }
+}
+
+pub fn specified_border_radius(radius: BorderRadiusSize, containing_length: f32) -> Size2D<f32> {
     let BorderRadiusSize(size) = radius;
-    let w = specified(size.width, containing_length);
-    let h = specified(size.height, containing_length);
+    let w = specified_f32(size.width, containing_length);
+    let h = specified_f32(size.height, containing_length);
     Size2D::new(w, h)
 }
 

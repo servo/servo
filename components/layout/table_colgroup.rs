@@ -13,7 +13,6 @@ use euclid::Point2D;
 use flow::{BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow, SpecificFragmentInfo};
 use gfx::display_list::StackingContext;
-use gfx_traits::ScrollRootId;
 use layout_debug;
 use std::cmp::max;
 use std::fmt;
@@ -22,6 +21,7 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
+use webrender_traits::ServoScrollRootId;
 
 /// A table formatting context.
 pub struct TableColGroupFlow {
@@ -98,7 +98,7 @@ impl Flow for TableColGroupFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  _parent: &mut StackingContext,
-                                 _parent_scroll_root_id: ScrollRootId) {}
+                                 _parent_scroll_root_id: ServoScrollRootId) {}
 
     fn repair_style(&mut self, _: &Arc<ServoComputedValues>) {}
 

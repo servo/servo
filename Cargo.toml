@@ -5,3 +5,7 @@ members = [
     "ports/servo",
     "support/android/build-apk",
 ]
+
+[replace]
+"https://github.com/servo/webrender#webrender_traits:0.11.0" = { path = "/Users/pcwalton/Source/rust-packages/webrender/webrender_traits" }
+
