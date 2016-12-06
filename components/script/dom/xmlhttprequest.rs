@@ -240,14 +240,7 @@ impl XMLHttpRequest {
             }
 
             fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-                let rv = match response {
-                    Ok(()) => {
-                        self.xhr.root().process_response_complete(self.gen_id, Ok(()))
-                    }
-                    Err(e) => {
-                        self.xhr.root().process_response_complete(self.gen_id, Err(e))
-                    }
-                };
+                let rv = self.xhr.root().process_response_complete(self.gen_id, response);
                 *self.sync_status.borrow_mut() = Some(rv);
             }
         }
