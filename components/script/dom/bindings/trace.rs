@@ -29,6 +29,7 @@
 //! The `unsafe_no_jsmanaged_fields!()` macro adds an empty implementation of
 //! `JSTraceable` to a datatype.
 
+use app_units::Au;
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use cssparser::RGBA;
@@ -69,6 +70,7 @@ use net_traits::response::{Response, ResponseBody};
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
 use offscreen_gl_context::GLLimits;
+use parking_lot::RwLock;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::OpaqueStyleAndLayoutData;
@@ -86,16 +88,20 @@ use std::hash::{BuildHasher, Hash};
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::{SystemTime, Instant};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::element_state::*;
+use style::font_face::FontFaceRule;
+use style::keyframes::Keyframe;
 use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
+use style::stylesheets::{CssRules, KeyframesRule, MediaRule, NamespaceRule, StyleRule};
 use style::values::specified::Length;
+use style::viewport::ViewportRule;
 use time::Duration;
 use url::Origin as UrlOrigin;
 use uuid::Uuid;
@@ -152,6 +158,12 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
 }
 
 unsafe impl<T: JSTraceable> JSTraceable for Rc<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        (**self).trace(trc)
+    }
+}
+
+unsafe impl<T: JSTraceable> JSTraceable for Arc<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }
@@ -311,17 +323,10 @@ unsafe impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, 
 unsafe_no_jsmanaged_fields!(bool, f32, f64, String, ServoUrl, AtomicBool, AtomicUsize, UrlOrigin, Uuid, char);
 unsafe_no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 unsafe_no_jsmanaged_fields!(isize, i8, i16, i32, i64);
-unsafe_no_jsmanaged_fields!(Sender<T>);
-unsafe_no_jsmanaged_fields!(Receiver<T>);
-unsafe_no_jsmanaged_fields!(Point2D<T>);
-unsafe_no_jsmanaged_fields!(Rect<T>);
-unsafe_no_jsmanaged_fields!(Size2D<T>);
-unsafe_no_jsmanaged_fields!(Arc<T>);
 unsafe_no_jsmanaged_fields!(Image, ImageMetadata, ImageCacheChan, ImageCacheThread);
 unsafe_no_jsmanaged_fields!(Metadata);
 unsafe_no_jsmanaged_fields!(NetworkError);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
-unsafe_no_jsmanaged_fields!(Trusted<T: Reflectable>);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
 unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
 // These three are interdependent, if you plan to put jsmanaged data
@@ -337,9 +342,6 @@ unsafe_no_jsmanaged_fields!(WindowProxyHandler);
 unsafe_no_jsmanaged_fields!(UntrustedNodeAddress);
 unsafe_no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 unsafe_no_jsmanaged_fields!(RGBA);
-unsafe_no_jsmanaged_fields!(EuclidLength<Unit, T>);
-unsafe_no_jsmanaged_fields!(Matrix2D<T>);
-unsafe_no_jsmanaged_fields!(Matrix4D<T>);
 unsafe_no_jsmanaged_fields!(StorageType);
 unsafe_no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 unsafe_no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
@@ -421,6 +423,148 @@ unsafe impl<T> JSTraceable for IpcReceiver<T> where T: Deserialize + Serialize {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
+    }
+}
+
+unsafe impl<T: Reflectable> JSTraceable for Trusted<T> {
+    #[inline]
+    unsafe fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T: Send> JSTraceable for Receiver<T> {
+    #[inline]
+    unsafe fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T: Send> JSTraceable for Sender<T> {
+    #[inline]
+    unsafe fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl JSTraceable for Matrix2D<f32> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl JSTraceable for Matrix4D<f64> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl JSTraceable for Point2D<f32> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<T> JSTraceable for EuclidLength<u64, T> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl JSTraceable for Rect<Au> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl JSTraceable for Rect<f32> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl JSTraceable for Size2D<i32> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl JSTraceable for Mutex<Option<SharedRt>> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<FontFaceRule> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<CssRules> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<Keyframe> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<KeyframesRule> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<MediaRule> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<NamespaceRule> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<StyleRule> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<ViewportRule> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<PropertyDeclarationBlock> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<SharedRt> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<MediaList> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
     }
 }
 

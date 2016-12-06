@@ -323,24 +323,6 @@ macro_rules! unsafe_no_jsmanaged_fields(
             }
         )+
     );
-    ($ty:ident<$($gen:ident),+>) => (
-        #[allow(unsafe_code)]
-        unsafe impl<$($gen),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
-            #[inline]
-            unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
-                // Do nothing
-            }
-        }
-    );
-    ($ty:ident<$($gen:ident: $bound:ident),+>) => (
-        #[allow(unsafe_code)]
-        unsafe impl<$($gen: $bound),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
-            #[inline]
-            unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
-                // Do nothing
-            }
-        }
-    );
 );
 
 /// These are used to generate a event handler which has no special case.
