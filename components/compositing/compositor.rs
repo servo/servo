@@ -199,10 +199,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Whether a scroll is in progress; i.e. whether the user's fingers are down.
     scroll_in_progress: bool,
 
-    in_scroll_transaction: bool,
-
-    last_scroll_event: Option<Instant>,
-    last_event_in_scroll_transaction: Option<Instant>,
+    in_scroll_transaction: Option<Instant>,
 
     /// The webrender renderer.
     webrender: webrender::Renderer,
@@ -402,9 +399,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             last_composite_time: 0,
             ready_to_save_state: ReadyState::Unknown,
             scroll_in_progress: false,
-            in_scroll_transaction: false,
-            last_scroll_event: None,
-            last_event_in_scroll_transaction: None,
+            in_scroll_transaction: None,
             webrender: state.webrender,
             webrender_api: state.webrender_api_sender.create_api(),
         }
@@ -1077,33 +1072,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_scroll_window_event(&mut self,
                               delta: TypedPoint2D<f32, DevicePixel>,
                               cursor: TypedPoint2D<i32, DevicePixel>) {
-        let event_phase = match (self.scroll_in_progress,
-                                self.in_scroll_transaction,
-                                self.last_scroll_event,
-                                self.last_event_in_scroll_transaction) {
-            (false, false, _, None) => {
-                self.in_scroll_transaction = true;
-                self.last_event_in_scroll_transaction = Some(Instant::now());
-                println!("simulate start");
+        let event_phase = match (self.scroll_in_progress, self.in_scroll_transaction) {
+            (false, None) => {
+                self.in_scroll_transaction = Some(Instant::now());
                 ScrollEventPhase::Start
             },
-            (false, true, _, Some(last_transaction_scroll))
-            if last_transaction_scroll.elapsed() > Duration::from_millis(1500) => {
-                self.in_scroll_transaction = false;
-                self.last_event_in_scroll_transaction = None;
-                println!("ending scroll");
+            (false, Some(last_transaction_scroll))
+            if last_transaction_scroll.elapsed() > Duration::from_millis(80) => {
+                self.in_scroll_transaction = None;
                 ScrollEventPhase::End
             },
-            (false, true, _, Some(_)) => {
-                self.last_event_in_scroll_transaction = Some(Instant::now());
-                println!("scrolling inside transaction");
+            (false, Some(_)) => {
+                self.in_scroll_transaction = Some(Instant::now());
                 ScrollEventPhase::Move(false)
             },
-            (_, _, _, _) => {
-                ScrollEventPhase::Move(self.scroll_in_progress)
+            (true, _) => {
+                ScrollEventPhase::Move(true)
             },
         };
-        self.last_scroll_event = Some(Instant::now());
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
             delta: delta,
@@ -1116,7 +1102,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_scroll_start_window_event(&mut self,
                                     delta: TypedPoint2D<f32, DevicePixel>,
                                     cursor: TypedPoint2D<i32, DevicePixel>) {
-        println!("start");
         self.scroll_in_progress = true;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
@@ -1130,7 +1115,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_scroll_end_window_event(&mut self,
                                   delta: TypedPoint2D<f32, DevicePixel>,
                                   cursor: TypedPoint2D<i32, DevicePixel>) {
-        println!("end");
         self.scroll_in_progress = false;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
