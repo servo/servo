@@ -87,6 +87,7 @@ use dom::window::{ReflowReason, Window};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;
+use gfx_traits::ScrollRootId;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use html5ever_atoms::{LocalName, QualName};
 use ipc_channel::ipc::{self, IpcSender};
@@ -619,7 +620,10 @@ impl Document {
 
         if let Some((x, y)) = point {
             // Step 3
-            self.window.perform_a_scroll(x, y, ScrollBehavior::Instant,
+            self.window.perform_a_scroll(x,
+                                         y,
+                                         ScrollRootId::root(),
+                                         ScrollBehavior::Instant,
                                          target.r());
         }
     }

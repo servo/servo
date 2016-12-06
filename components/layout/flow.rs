@@ -406,7 +406,10 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// Print any extra children (such as fragments) contained in this Flow
     /// for debugging purposes. Any items inserted into the tree will become
     /// children of this flow.
-    fn print_extra_flow_children(&self, _: &mut PrintTree) {
+    fn print_extra_flow_children(&self, _: &mut PrintTree) { }
+
+    fn scroll_root_id(&self) -> ScrollRootId {
+        base(self).scroll_root_id
     }
 }
 

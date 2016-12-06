@@ -8,7 +8,7 @@ use HTMLCanvasData;
 use LayoutNodeType;
 use OpaqueStyleAndLayoutData;
 use SVGSVGData;
-use gfx_traits::ByteIndex;
+use gfx_traits::{ByteIndex, FragmentType, ScrollRootId};
 use html5ever_atoms::{Namespace, LocalName};
 use msg::constellation_msg::PipelineId;
 use range::Range;
@@ -264,6 +264,20 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
     fn iframe_pipeline_id(&self) -> PipelineId;
 
     fn get_colspan(&self) -> u32;
+
+    fn fragment_type(&self) -> FragmentType {
+        match self.get_pseudo_element_type() {
+            PseudoElementType::Normal => FragmentType::FragmentBody,
+            PseudoElementType::Before(_) => FragmentType::BeforePseudoContent,
+            PseudoElementType::After(_) => FragmentType::AfterPseudoContent,
+            PseudoElementType::DetailsSummary(_) => FragmentType::FragmentBody,
+            PseudoElementType::DetailsContent(_) => FragmentType::FragmentBody,
+        }
+    }
+
+    fn scroll_root_id(&self) -> ScrollRootId {
+        ScrollRootId::new_of_type(self.opaque().id() as usize, self.fragment_type())
+    }
 }
 
 // This trait is only public so that it can be implemented by the gecko wrapper.

@@ -72,7 +72,7 @@ use layout::parallel;
 use layout::query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
 use layout::query::{process_margin_style_query, process_node_overflow_request, process_resolved_style_request};
 use layout::query::{process_node_geometry_request, process_node_scroll_area_request};
-use layout::query::process_offset_parent_query;
+use layout::query::{process_node_scroll_root_id_request, process_offset_parent_query};
 use layout::sequential;
 use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
 use layout::webrender_helpers::WebRenderDisplayListConverter;
@@ -460,6 +460,7 @@ impl LayoutThread {
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
                     hit_test_response: (None, false),
+                    scroll_root_id_response: None,
                     scroll_area_response: Rect::zero(),
                     overflow_response: NodeOverflowResponse(None),
                     resolved_style_response: None,
@@ -1003,6 +1004,9 @@ impl LayoutThread {
                     ReflowQueryType::NodeOverflowQuery(_) => {
                         rw_data.overflow_response = NodeOverflowResponse(None);
                     },
+                    ReflowQueryType::NodeScrollRootIdQuery(_) => {
+                        rw_data.scroll_root_id_response = None;
+                    },
                     ReflowQueryType::ResolvedStyleQuery(_, _, _) => {
                         rw_data.resolved_style_response = None;
                     },
@@ -1231,6 +1235,10 @@ impl LayoutThread {
             ReflowQueryType::NodeOverflowQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.overflow_response = process_node_overflow_request(node);
+            },
+            ReflowQueryType::NodeScrollRootIdQuery(node) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                rw_data.scroll_root_id_response = Some(process_node_scroll_root_id_request(node));
             },
             ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
@@ -1556,9 +1564,9 @@ fn reflow_query_type_needs_display_list(query_type: &ReflowQueryType) -> bool {
         ReflowQueryType::HitTestQuery(..) => true,
         ReflowQueryType::ContentBoxQuery(_) | ReflowQueryType::ContentBoxesQuery(_) |
         ReflowQueryType::NodeGeometryQuery(_) | ReflowQueryType::NodeScrollGeometryQuery(_) |
-        ReflowQueryType::NodeOverflowQuery(_) | ReflowQueryType::ResolvedStyleQuery(..) |
-        ReflowQueryType::OffsetParentQuery(_) | ReflowQueryType::MarginStyleQuery(_) |
-        ReflowQueryType::NoQuery => false,
+        ReflowQueryType::NodeOverflowQuery(_) | ReflowQueryType::NodeScrollRootIdQuery(_) |
+        ReflowQueryType::ResolvedStyleQuery(..) | ReflowQueryType::OffsetParentQuery(_) |
+        ReflowQueryType::MarginStyleQuery(_) | ReflowQueryType::NoQuery => false,
     }
 }
 
