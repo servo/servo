@@ -391,7 +391,8 @@ unsafe impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
     }
 }
 
-unsafe impl JSTraceable for Box<LayoutRPC + 'static> {
+// Safe thanks to the Send bound.
+unsafe impl JSTraceable for Box<LayoutRPC + Send + 'static> {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
