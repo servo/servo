@@ -81,7 +81,6 @@ use serde::{Deserialize, Serialize};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
-use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::hash::{BuildHasher, Hash};
@@ -370,13 +369,6 @@ unsafe_no_jsmanaged_fields!(WebGLRenderbufferId);
 unsafe_no_jsmanaged_fields!(WebGLShaderId);
 unsafe_no_jsmanaged_fields!(WebGLTextureId);
 unsafe_no_jsmanaged_fields!(MediaList);
-
-unsafe impl JSTraceable for Box<FnBox(f64, )> {
-    #[inline]
-    unsafe fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
