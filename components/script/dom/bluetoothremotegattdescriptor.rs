@@ -103,11 +103,9 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
             return p;
         }
 
-        // TODO: Step 3 - 4: Implement representedDescriptor internal slot for BluetoothRemoteGATTDescriptor.
-
         // TODO: Step 5: Implement the `connection-checking-wrapper` algorithm for BluetoothRemoteGATTServer.
-        // Note: Substeps of Step 5 are implemented in components/bluetooth/lib.rs in readValue function
-        // and in handle_response function.
+        // Note: Steps 3 - 4 and substeps of Step 5 are implemented in components/bluetooth/lib.rs
+        // in readValue function and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::ReadValue(self.get_instance_id(), sender)).unwrap();
@@ -138,11 +136,9 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
             return p;
         }
 
-        // TODO: Step 5 - 6: Implement representedCharacteristic internal slot for BluetoothRemoteGATTCharacteristic.
-
         // TODO: Step 7: Implement the `connection-checking-wrapper` algorithm for BluetoothRemoteGATTServer.
-        // Note: Substeps of Step 7 are implemented in components/bluetooth/lib.rs in writeValue function
-        // and in handle_response function.
+        // Note: Steps 5 - 6 and substeps of Step 7 are implemented in components/bluetooth/lib.rs
+        // in writeValue function and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::WriteValue(self.get_instance_id(), value, sender)).unwrap();
