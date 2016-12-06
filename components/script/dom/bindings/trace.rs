@@ -32,8 +32,7 @@
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use cssparser::RGBA;
-use devtools_traits::CSSError;
-use devtools_traits::WorkerId;
+use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use dom::abstractworker::SharedRt;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::js::{JS, Root};
@@ -268,6 +267,18 @@ unsafe impl<K, V, S> JSTraceable for HashMap<K, V, S>
     }
 }
 
+unsafe impl<T, S> JSTraceable for HashSet<T, S>
+    where T: Hash + Eq + JSTraceable,
+          S: BuildHasher
+{
+    #[inline]
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        for v in &*self {
+            v.trace(trc);
+        }
+    }
+}
+
 unsafe impl<K: Ord + JSTraceable, V: JSTraceable> JSTraceable for BTreeMap<K, V> {
     #[inline]
     unsafe fn trace(&self, trc: *mut JSTracer) {
@@ -313,11 +324,11 @@ unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
 unsafe_no_jsmanaged_fields!(Trusted<T: Reflectable>);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
 unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
-unsafe_no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 unsafe_no_jsmanaged_fields!(FrameId, FrameType, WindowSizeData, WindowSizeType, PipelineId);
 unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
+unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);
 unsafe_no_jsmanaged_fields!(BufferQueue, QuirksMode);
 unsafe_no_jsmanaged_fields!(Runtime);
