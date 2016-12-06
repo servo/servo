@@ -90,7 +90,10 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     fn Disconnect(&self) -> ErrorResult {
         // TODO: Step 1: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
 
-        // TODO: Step 2: Check if this.connected is false here too.
+        // Step 2.
+        if !self.Connected() {
+            return Ok(());
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothRequest::GATTServerDisconnect(String::from(self.Device().Id()), sender)).unwrap();
