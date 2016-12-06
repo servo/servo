@@ -35,6 +35,7 @@ ${helpers.predefined_type("fill-opacity", "Opacity", "1.0",
 
 ${helpers.single_keyword("fill-rule", "nonzero evenodd",
                          gecko_enum_prefix="StyleFillRule",
+                         gecko_inexhaustive=True,
                          products="gecko", animatable=False)}
 
 ${helpers.single_keyword("shape-rendering",
@@ -60,4 +61,5 @@ ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
 ${helpers.single_keyword("clip-rule", "nonzero evenodd",
                          products="gecko",
                          gecko_enum_prefix="StyleFillRule",
+                         gecko_inexhaustive=True,
                          animatable=False)}

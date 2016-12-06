@@ -151,15 +151,18 @@ ${helpers.single_keyword("pointer-events", "auto none", animatable=False)}
 ${helpers.single_keyword("-moz-user-input", "none enabled disabled",
                          products="gecko", gecko_ffi_name="mUserInput",
                          gecko_enum_prefix="StyleUserInput",
+                         gecko_inexhaustive=True,
                          animatable=False)}
 
 ${helpers.single_keyword("-moz-user-modify", "read-only read-write write-only",
                          products="gecko", gecko_ffi_name="mUserModify",
                          gecko_enum_prefix="StyleUserModify",
+                         gecko_inexhaustive=True,
                          animatable=False)}
 
 ${helpers.single_keyword("-moz-user-focus",
                          "ignore normal select-after select-before select-menu select-same select-all none",
                          products="gecko", gecko_ffi_name="mUserFocus",
                          gecko_enum_prefix="StyleUserFocus",
+                         gecko_inexhaustive=True,
                          animatable=False)}

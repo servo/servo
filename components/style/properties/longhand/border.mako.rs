@@ -58,11 +58,13 @@
 
 ${helpers.single_keyword("box-decoration-break", "slice clone",
                          gecko_enum_prefix="StyleBoxDecorationBreak",
+                         gecko_inexhaustive=True,
                          products="gecko", animatable=False)}
 
 ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          gecko_ffi_name="mFloatEdge",
                          gecko_enum_prefix="StyleFloatEdge",
+                         gecko_inexhaustive=True,
                          products="gecko",
                          animatable=False)}
 
