@@ -75,7 +75,7 @@ fn test_fetch_response_body_matches_const_message() {
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
-    match *fetch_response.body.lock().unwrap() {
+    match *fetch_response.actual_response().body.lock().unwrap() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
         },
@@ -212,6 +212,7 @@ fn test_cors_preflight_fetch() {
     let fetch_response = fetch_sync(request, None);
     let _ = server.close();
 
+    let fetch_response = fetch_response.to_actual();
     assert!(!fetch_response.is_network_error());
 
     match *fetch_response.body.lock().unwrap() {
@@ -264,11 +265,11 @@ fn test_cors_preflight_cache_fetch() {
     assert_eq!(true, cache.match_method(&*wrapped_request0, Method::Get));
     assert_eq!(true, cache.match_method(&*wrapped_request1, Method::Get));
 
-    match *fetch_response0.body.lock().unwrap() {
+    match *fetch_response0.actual_response().body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
         _ => panic!()
     };
-    match *fetch_response1.body.lock().unwrap() {
+    match *fetch_response1.actual_response().body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
         _ => panic!()
     };
@@ -534,7 +535,7 @@ fn test_fetch_redirect_count_ceiling() {
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
 
-    match *fetch_response.body.lock().unwrap() {
+    match *fetch_response.actual_response().body.lock().unwrap() {
         ResponseBody::Done(ref body) => {
             assert_eq!(&**body, MESSAGE);
         },
@@ -686,7 +687,7 @@ fn test_fetch_async_returns_complete_response() {
     let fetch_response = rx.recv().unwrap();
     let _ = server.close();
 
-    assert_eq!(response_is_done(&fetch_response), true);
+    assert_eq!(response_is_done(&fetch_response.to_actual()), true);
 }
 
 #[test]

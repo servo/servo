@@ -407,6 +407,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
 
     let _ = server.close();
 
+    let response = response.to_actual();
     assert!(response.status.unwrap().is_success());
     assert_eq!(*response.body.lock().unwrap(),
                ResponseBody::Done(b"Yay!".to_vec()));
@@ -436,6 +437,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
 
     let _ = server.close();
 
+    let response = response.to_actual();
     assert!(response.status.unwrap().is_success());
     assert_eq!(*response.body.lock().unwrap(),
                ResponseBody::Done(b"Yay!".to_vec()));
@@ -812,6 +814,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
 
     let _ = server.close();
 
+    let response = response.to_actual();
     assert!(response.status.unwrap().is_success());
 }
 
