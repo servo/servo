@@ -296,7 +296,7 @@ impl BluetoothUUID {
         resolve_uuid_name(name, BLUETOOTH_ASSIGNED_SERVICES, SERVICE_PREFIX)
     }
 
-    pub fn characteristic(name: BluetoothServiceUUID) -> Fallible<UUID> {
+    pub fn characteristic(name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
         resolve_uuid_name(name, BLUETOOTH_ASSIGNED_CHARCTERISTICS, CHARACTERISTIC_PREFIX)
     }
 
