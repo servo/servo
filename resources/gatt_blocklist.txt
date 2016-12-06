@@ -56,7 +56,7 @@ bad1c9a2-9a5b-4015-8b60-1579bbbf2135 exclude-reads
 00002903-0000-1000-8000-00805f9b34fb exclude-writes
 
 # Blocklisted descriptor used to test.
-07711111-6104-0970-7011-1107105110aaa
+07711111-6104-0970-7011-1107105110aa
 
 # Blocklisted descriptor used to test.
 aaaaaaaa-aaaa-1181-0510-810819516110 exclude-reads

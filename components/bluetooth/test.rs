@@ -99,7 +99,7 @@ const SERIAL_NUMBER_STRING_UUID: &'static str = "00002a25-0000-1000-8000-00805f9
 
 // Descriptor UUIDs
 const BLOCKLIST_EXCLUDE_READS_DESCRIPTOR_UUID: &'static str = "aaaaaaaa-aaaa-1181-0510-810819516110";
-const BLOCKLIST_DESCRIPTOR_UUID: &'static str = "07711111-6104-0970-7011-1107105110aaa";
+const BLOCKLIST_DESCRIPTOR_UUID: &'static str = "07711111-6104-0970-7011-1107105110aa";
 // https://www.bluetooth.com/specifications/gatt/
 // viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.characteristic_user_description.xml
 const CHARACTERISTIC_USER_DESCRIPTION_UUID: &'static str = "00002901-0000-1000-8000-00805f9b34fb";
