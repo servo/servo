@@ -1073,20 +1073,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                               delta: TypedPoint2D<f32, DevicePixel>,
                               cursor: TypedPoint2D<i32, DevicePixel>) {
         let event_phase = match (self.scroll_in_progress, self.in_scroll_transaction) {
-            (false, None) => {
+            (false, Some(last_scroll)) if last_scroll.elapsed() > Duration::from_millis(80) => {
                 self.in_scroll_transaction = Some(Instant::now());
                 ScrollEventPhase::Start
             },
-            (false, Some(last_transaction_scroll))
-            if last_transaction_scroll.elapsed() > Duration::from_millis(80) => {
-                self.in_scroll_transaction = None;
-                ScrollEventPhase::End
-            },
-            (false, Some(_)) => {
+            (false, Some(_)) | (false, None) => {
                 self.in_scroll_transaction = Some(Instant::now());
                 ScrollEventPhase::Move(false)
             },
             (true, _) => {
+                self.in_scroll_transaction = Some(Instant::now());
                 ScrollEventPhase::Move(true)
             },
         };
