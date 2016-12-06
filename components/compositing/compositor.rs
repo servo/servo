@@ -1077,13 +1077,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.in_scroll_transaction = Some(Instant::now());
                 ScrollEventPhase::Start
             },
-            (false, Some(_)) | (false, None) => {
+            (_, _) => {
                 self.in_scroll_transaction = Some(Instant::now());
-                ScrollEventPhase::Move(false)
-            },
-            (true, _) => {
-                self.in_scroll_transaction = Some(Instant::now());
-                ScrollEventPhase::Move(true)
+                ScrollEventPhase::Move(self.scroll_in_progress)
             },
         };
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
