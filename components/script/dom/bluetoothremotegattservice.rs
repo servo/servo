@@ -14,9 +14,7 @@ use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
-use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothdevice::BluetoothDevice;
-use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUID, BluetoothUUID};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
@@ -62,10 +60,6 @@ impl BluetoothRemoteGATTService {
                                                                          instanceID),
                            global,
                            BluetoothRemoteGATTServiceBinding::Wrap)
-    }
-
-    pub fn get_device(&self) -> Root<BluetoothDevice> {
-        self.device.get()
     }
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -276,33 +270,13 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTService {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+        let device = self.Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetCharacteristic(characteristic) => {
-                let context = self.device.get().get_context();
-                let mut characteristic_map = context.get_characteristic_map().borrow_mut();
-                if let Some(existing_characteristic) = characteristic_map.get(&characteristic.instance_id) {
-                    return promise.resolve_native(promise_cx, &existing_characteristic.get());
-                }
-                let properties =
-                    BluetoothCharacteristicProperties::new(&self.global(),
-                                                           characteristic.broadcast,
-                                                           characteristic.read,
-                                                           characteristic.write_without_response,
-                                                           characteristic.write,
-                                                           characteristic.notify,
-                                                           characteristic.indicate,
-                                                           characteristic.authenticated_signed_writes,
-                                                           characteristic.reliable_write,
-                                                           characteristic.writable_auxiliaries);
-                let bt_characteristic = BluetoothRemoteGATTCharacteristic::new(&self.global(),
-                                                                               self,
-                                                                               DOMString::from(characteristic.uuid),
-                                                                               &properties,
-                                                                               characteristic.instance_id.clone());
-                characteristic_map.insert(characteristic.instance_id, MutHeap::new(&bt_characteristic));
+                let bt_characteristic = device.get_or_create_characteristic(&characteristic, &self);
                 promise.resolve_native(promise_cx, &bt_characteristic);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics
@@ -310,34 +284,8 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
             // Step 7.
             BluetoothResponse::GetCharacteristics(characteristics_vec) => {
                 let mut characteristics = vec!();
-                let context = self.device.get().get_context();
-                let mut characteristic_map = context.get_characteristic_map().borrow_mut();
                 for characteristic in characteristics_vec {
-                    let bt_characteristic = match characteristic_map.get(&characteristic.instance_id) {
-                        Some(existing_characteristic) => existing_characteristic.get(),
-                        None => {
-                            let properties =
-                                BluetoothCharacteristicProperties::new(&self.global(),
-                                                                       characteristic.broadcast,
-                                                                       characteristic.read,
-                                                                       characteristic.write_without_response,
-                                                                       characteristic.write,
-                                                                       characteristic.notify,
-                                                                       characteristic.indicate,
-                                                                       characteristic.authenticated_signed_writes,
-                                                                       characteristic.reliable_write,
-                                                                       characteristic.writable_auxiliaries);
-
-                            BluetoothRemoteGATTCharacteristic::new(&self.global(),
-                                                                   self,
-                                                                   DOMString::from(characteristic.uuid),
-                                                                   &properties,
-                                                                   characteristic.instance_id.clone())
-                        },
-                    };
-                    if !characteristic_map.contains_key(&characteristic.instance_id) {
-                        characteristic_map.insert(characteristic.instance_id, MutHeap::new(&bt_characteristic));
-                    }
+                    let bt_characteristic = device.get_or_create_characteristic(&characteristic, &self);
                     characteristics.push(bt_characteristic);
                 }
                 promise.resolve_native(promise_cx, &characteristics);

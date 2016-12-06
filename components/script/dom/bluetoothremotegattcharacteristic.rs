@@ -21,7 +21,6 @@ use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
-use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
 use dom::eventtarget::EventTarget;
@@ -330,21 +329,13 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+        let device = self.Service().Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetDescriptor(descriptor) => {
-                let context = self.service.get().get_device().get_context();
-                let mut descriptor_map = context.get_descriptor_map().borrow_mut();
-                if let Some(existing_descriptor) = descriptor_map.get(&descriptor.instance_id) {
-                    return promise.resolve_native(promise_cx, &existing_descriptor.get());
-                }
-                let bt_descriptor = BluetoothRemoteGATTDescriptor::new(&self.global(),
-                                                                       self,
-                                                                       DOMString::from(descriptor.uuid),
-                                                                       descriptor.instance_id.clone());
-                descriptor_map.insert(descriptor.instance_id, MutHeap::new(&bt_descriptor));
+                let bt_descriptor = device.get_or_create_descriptor(&descriptor, &self);
                 promise.resolve_native(promise_cx, &bt_descriptor);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptors
@@ -352,21 +343,8 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
             // Step 7.
             BluetoothResponse::GetDescriptors(descriptors_vec) => {
                 let mut descriptors = vec!();
-                let context = self.service.get().get_device().get_context();
-                let mut descriptor_map = context.get_descriptor_map().borrow_mut();
                 for descriptor in descriptors_vec {
-                    let bt_descriptor = match descriptor_map.get(&descriptor.instance_id) {
-                        Some(existing_descriptor) => existing_descriptor.get(),
-                        None => {
-                            BluetoothRemoteGATTDescriptor::new(&self.global(),
-                                                               self,
-                                                               DOMString::from(descriptor.uuid),
-                                                               descriptor.instance_id.clone())
-                        },
-                    };
-                    if !descriptor_map.contains_key(&descriptor.instance_id) {
-                        descriptor_map.insert(descriptor.instance_id, MutHeap::new(&bt_descriptor));
-                    }
+                    let bt_descriptor = device.get_or_create_descriptor(&descriptor, &self);
                     descriptors.push(bt_descriptor);
                 }
                 promise.resolve_native(promise_cx, &descriptors);

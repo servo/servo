@@ -2,17 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use bluetooth_traits::{BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothServiceMsg};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
+use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::js::{JS, Root, MutHeap, MutNullableHeap};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::Bluetooth;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
+use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
+use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
+use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
 use dom::bluetoothremotegattserver::BluetoothRemoteGATTServer;
+use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use std::collections::HashMap;
+
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 #[dom_struct]
@@ -23,6 +32,9 @@ pub struct BluetoothDevice {
     ad_data: MutHeap<JS<BluetoothAdvertisingData>>,
     gatt: MutNullableHeap<JS<BluetoothRemoteGATTServer>>,
     context: MutHeap<JS<Bluetooth>>,
+    attribute_instance_map: (DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTService>>>>,
+                             DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTCharacteristic>>>>,
+                             DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTDescriptor>>>>),
 }
 
 impl BluetoothDevice {
@@ -38,6 +50,9 @@ impl BluetoothDevice {
             ad_data: MutHeap::new(ad_data),
             gatt: Default::default(),
             context: MutHeap::new(context),
+            attribute_instance_map: (DOMRefCell::new(HashMap::new()),
+                                     DOMRefCell::new(HashMap::new()),
+                                     DOMRefCell::new(HashMap::new())),
         }
     }
 
@@ -55,8 +70,68 @@ impl BluetoothDevice {
                            BluetoothDeviceBinding::Wrap)
     }
 
-    pub fn get_context(&self) -> Root<Bluetooth> {
-        self.context.get()
+    pub fn get_or_create_service(&self,
+                                 service: &BluetoothServiceMsg,
+                                 server: &BluetoothRemoteGATTServer)
+                                 -> Root<BluetoothRemoteGATTService> {
+        let (ref service_map_ref, _, _) = self.attribute_instance_map;
+        let mut service_map = service_map_ref.borrow_mut();
+        if let Some(existing_service) = service_map.get(&service.instance_id) {
+            return existing_service.get();
+        }
+        let bt_service = BluetoothRemoteGATTService::new(&server.global(),
+                                                         &server.Device(),
+                                                         DOMString::from(service.uuid.clone()),
+                                                         service.is_primary,
+                                                         service.instance_id.clone());
+        service_map.insert(service.instance_id.clone(), MutHeap::new(&bt_service));
+        return bt_service;
+    }
+
+    pub fn get_or_create_characteristic(&self,
+                                        characteristic: &BluetoothCharacteristicMsg,
+                                        service: &BluetoothRemoteGATTService)
+                                        -> Root<BluetoothRemoteGATTCharacteristic> {
+        let (_, ref characteristic_map_ref, _) = self.attribute_instance_map;
+        let mut characteristic_map = characteristic_map_ref.borrow_mut();
+        if let Some(existing_characteristic) = characteristic_map.get(&characteristic.instance_id) {
+            return existing_characteristic.get();
+        }
+        let properties =
+            BluetoothCharacteristicProperties::new(&service.global(),
+                                                   characteristic.broadcast,
+                                                   characteristic.read,
+                                                   characteristic.write_without_response,
+                                                   characteristic.write,
+                                                   characteristic.notify,
+                                                   characteristic.indicate,
+                                                   characteristic.authenticated_signed_writes,
+                                                   characteristic.reliable_write,
+                                                   characteristic.writable_auxiliaries);
+        let bt_characteristic = BluetoothRemoteGATTCharacteristic::new(&service.global(),
+                                                                       service,
+                                                                       DOMString::from(characteristic.uuid.clone()),
+                                                                       &properties,
+                                                                       characteristic.instance_id.clone());
+        characteristic_map.insert(characteristic.instance_id.clone(), MutHeap::new(&bt_characteristic));
+        return bt_characteristic;
+    }
+
+    pub fn get_or_create_descriptor(&self,
+                                    descriptor: &BluetoothDescriptorMsg,
+                                    characteristic: &BluetoothRemoteGATTCharacteristic)
+                                    -> Root<BluetoothRemoteGATTDescriptor> {
+        let (_, _, ref descriptor_map_ref) = self.attribute_instance_map;
+        let mut descriptor_map = descriptor_map_ref.borrow_mut();
+        if let Some(existing_descriptor) = descriptor_map.get(&descriptor.instance_id) {
+            return existing_descriptor.get();
+        }
+        let bt_descriptor = BluetoothRemoteGATTDescriptor::new(&characteristic.global(),
+                                                               characteristic,
+                                                               DOMString::from(descriptor.uuid.clone()),
+                                                               descriptor.instance_id.clone());
+        descriptor_map.insert(descriptor.instance_id.clone(), MutHeap::new(&bt_descriptor));
+        return bt_descriptor;
     }
 }
 

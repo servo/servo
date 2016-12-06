@@ -11,10 +11,8 @@ use dom::bindings::error::Error::{self, Network, Security};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
 use dom::bluetoothdevice::BluetoothDevice;
-use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
@@ -200,6 +198,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
+        let device = self.Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
             BluetoothResponse::GATTServerConnect(connected) => {
@@ -213,17 +212,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetPrimaryService(service) => {
-                let context = self.device.get().get_context();
-                let mut service_map = context.get_service_map().borrow_mut();
-                if let Some(existing_service) = service_map.get(&service.instance_id) {
-                    promise.resolve_native(promise_cx, &existing_service.get());
-                }
-                let bt_service = BluetoothRemoteGATTService::new(&self.global(),
-                                                                 &self.device.get(),
-                                                                 DOMString::from(service.uuid),
-                                                                 service.is_primary,
-                                                                 service.instance_id.clone());
-                service_map.insert(service.instance_id, MutHeap::new(&bt_service));
+                let bt_service = device.get_or_create_service(&service, &self);
                 promise.resolve_native(promise_cx, &bt_service);
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices
@@ -231,22 +220,8 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
             // Step 7.
             BluetoothResponse::GetPrimaryServices(services_vec) => {
                 let mut services = vec!();
-                let context = self.device.get().get_context();
-                let mut service_map = context.get_service_map().borrow_mut();
                 for service in services_vec {
-                    let bt_service = match service_map.get(&service.instance_id) {
-                        Some(existing_service) => existing_service.get(),
-                        None => {
-                            BluetoothRemoteGATTService::new(&self.global(),
-                                                            &self.device.get(),
-                                                            DOMString::from(service.uuid),
-                                                            service.is_primary,
-                                                            service.instance_id.clone())
-                        },
-                    };
-                    if !service_map.contains_key(&service.instance_id) {
-                        service_map.insert(service.instance_id, MutHeap::new(&bt_service));
-                    }
+                    let bt_service = device.get_or_create_service(&service, &self);
                     services.push(bt_service);
                 }
                 promise.resolve_native(promise_cx, &services);
