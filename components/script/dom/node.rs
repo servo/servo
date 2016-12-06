@@ -75,6 +75,7 @@ use std::cell::{Cell, UnsafeCell};
 use std::cmp::max;
 use std::default::Default;
 use std::iter;
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::Range;
 use std::sync::Arc;
@@ -1109,7 +1110,10 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     }
 }
 
-use std::marker::PhantomData;
+
+//
+// Iteration and traversal
+//
 
 pub struct SiblingIterator<T: DerivedFrom<Node> + Reflectable> {
     current: Option<Root<Node>>,
@@ -1136,11 +1140,6 @@ impl<T> Iterator for SiblingIterator<T>
         None
     }
 }
-
-
-//
-// Iteration and traversal
-//
 
 pub struct NodeSiblingIterator {
     current: Option<Root<Node>>,
