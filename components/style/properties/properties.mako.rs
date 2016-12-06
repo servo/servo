@@ -1630,9 +1630,15 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         longhands::position::SpecifiedValue::absolute |
         longhands::position::SpecifiedValue::fixed);
     let floated = style.get_box().clone_float() != longhands::float::SpecifiedValue::none;
-    let is_flex_item =
-        context.inherited_style.get_box().clone_display() == computed_values::display::T::flex;
-    if positioned || floated || is_root_element || is_flex_item {
+    // FIXME(heycam): We should look past any display:contents ancestors to
+    // determine if we are a flex or grid item, but we don't have access to
+    // grandparent or higher style here.
+    let is_item = matches!(context.inherited_style.get_box().clone_display(),
+        % if product == "gecko":
+        computed_values::display::T::grid |
+        % endif
+        computed_values::display::T::flex);
+    if positioned || floated || is_root_element || is_item {
         use computed_values::display::T;
 
         let specified_display = style.get_box().clone_display();
@@ -1663,7 +1669,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
             let box_ = style.mutate_box();
             box_.set_display(computed_display);
             % if product == "servo":
-                box_.set__servo_display_for_hypothetical_box(if is_root_element || is_flex_item {
+                box_.set__servo_display_for_hypothetical_box(if is_root_element || is_item {
                     computed_display
                 } else {
                     specified_display
