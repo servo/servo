@@ -477,6 +477,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
             })
         }
     }
+
+    fn skip_root_and_item_based_display_fixup(&self) -> bool {
+        false
+    }
 }
 
 impl<'le> PartialEq for ServoLayoutElement<'le> {
