@@ -2771,6 +2771,7 @@ dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "owning_ref 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rayon 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",
