@@ -133,7 +133,11 @@ impl<T: WeakReferenceable> PartialEq<T> for WeakRef<T> {
     }
 }
 
-no_jsmanaged_fields!(WeakRef<T: WeakReferenceable>);
+unsafe impl<T: WeakReferenceable> JSTraceable for WeakRef<T> {
+    unsafe fn trace(&self, _: *mut JSTracer) {
+        // Do nothing.
+    }
+}
 
 impl<T: WeakReferenceable> Drop for WeakRef<T> {
     fn drop(&mut self) {
@@ -188,17 +192,15 @@ impl<T: WeakReferenceable> HeapSizeOf for MutableWeakRef<T> {
     }
 }
 
-impl<T: WeakReferenceable> JSTraceable for MutableWeakRef<T> {
-    fn trace(&self, _: *mut JSTracer) {
+unsafe impl<T: WeakReferenceable> JSTraceable for MutableWeakRef<T> {
+    unsafe fn trace(&self, _: *mut JSTracer) {
         let ptr = self.cell.get();
-        unsafe {
-            let should_drop = match *ptr {
-                Some(ref value) => !value.is_alive(),
-                None => false,
-            };
-            if should_drop {
-                mem::drop((*ptr).take().unwrap());
-            }
+        let should_drop = match *ptr {
+            Some(ref value) => !value.is_alive(),
+            None => false,
+        };
+        if should_drop {
+            mem::drop((*ptr).take().unwrap());
         }
     }
 }

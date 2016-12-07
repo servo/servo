@@ -6,7 +6,6 @@ use app_units::Au;
 use bluetooth_traits::BluetoothRequest;
 use cssparser::Parser;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
-use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -30,7 +29,7 @@ use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
-use dom::document::Document;
+use dom::document::{AnimationFrameCallback, Document};
 use dom::element::Element;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
@@ -199,7 +198,7 @@ pub struct Window {
 
     /// A handle to perform RPC calls into the layout, quickly.
     #[ignore_heap_size_of = "trait objects are hard"]
-    layout_rpc: Box<LayoutRPC + 'static>,
+    layout_rpc: Box<LayoutRPC + Send + 'static>,
 
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
@@ -601,15 +600,8 @@ impl WindowMethods for Window {
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
     fn RequestAnimationFrame(&self, callback: Rc<FrameRequestCallback>) -> u32 {
-        let doc = self.Document();
-
-        let callback = move |now: f64| {
-            // TODO: @jdm The spec says that any exceptions should be suppressed;
-            // https://github.com/servo/servo/issues/6928
-            let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
-        };
-
-        doc.request_animation_frame(Box::new(callback))
+        self.Document()
+            .request_animation_frame(AnimationFrameCallback::FrameRequestCallback { callback })
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
@@ -1568,7 +1560,7 @@ impl Window {
                parent_info: Option<(PipelineId, FrameType)>,
                window_size: Option<WindowSizeData>)
                -> Root<Window> {
-        let layout_rpc: Box<LayoutRPC> = {
+        let layout_rpc: Box<LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = channel();
             layout_chan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()

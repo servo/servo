@@ -41,10 +41,11 @@ fn expand_string(input: &str) -> String {
     }
 
     let tokens = quote! {
-        impl #impl_generics ::dom::bindings::trace::JSTraceable for #name #ty_generics #where_clause {
+        #[allow(unsafe_code)]
+        unsafe impl #impl_generics ::dom::bindings::trace::JSTraceable for #name #ty_generics #where_clause {
             #[inline]
             #[allow(unused_variables, unused_imports)]
-            fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
+            unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
                 use ::dom::bindings::trace::JSTraceable;
                 match *self {
                     #match_body

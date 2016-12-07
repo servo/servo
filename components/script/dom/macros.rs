@@ -302,38 +302,31 @@ macro_rules! make_nonzero_dimension_setter(
 
 /// For use on non-jsmanaged types
 /// Use #[derive(JSTraceable)] on JS managed types
-macro_rules! no_jsmanaged_fields(
-    ([$ty:ident; $count:expr]) => (
-        impl $crate::dom::bindings::trace::JSTraceable for [$ty; $count] {
-            #[inline]
-            fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
-                // Do nothing
-            }
-        }
-    );
+macro_rules! unsafe_no_jsmanaged_fields(
     ($($ty:ident),+) => (
         $(
-            impl $crate::dom::bindings::trace::JSTraceable for $ty {
+            #[allow(unsafe_code)]
+            unsafe impl $crate::dom::bindings::trace::JSTraceable for $ty {
                 #[inline]
-                fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
+                unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
                     // Do nothing
                 }
             }
         )+
     );
-    ($ty:ident<$($gen:ident),+>) => (
-        impl<$($gen),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
+);
+
+macro_rules! jsmanaged_array(
+    ($count:expr) => (
+        #[allow(unsafe_code)]
+        unsafe impl<T> $crate::dom::bindings::trace::JSTraceable for [T; $count]
+            where T: $crate::dom::bindings::trace::JSTraceable
+        {
             #[inline]
-            fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
-                // Do nothing
-            }
-        }
-    );
-    ($ty:ident<$($gen:ident: $bound:ident),+>) => (
-        impl<$($gen: $bound),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
-            #[inline]
-            fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
-                // Do nothing
+            unsafe fn trace(&self, tracer: *mut ::js::jsapi::JSTracer) {
+                for v in self.iter() {
+                    v.trace(tracer);
+                }
             }
         }
     );

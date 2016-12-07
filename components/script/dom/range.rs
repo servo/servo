@@ -1262,8 +1262,8 @@ impl HeapSizeOf for WeakRangeVec {
 }
 
 #[allow(unsafe_code)]
-impl JSTraceable for WeakRangeVec {
-    fn trace(&self, _: *mut JSTracer) {
-        unsafe { (*self.cell.get()).retain_alive() }
+unsafe impl JSTraceable for WeakRangeVec {
+    unsafe fn trace(&self, _: *mut JSTracer) {
+        (*self.cell.get()).retain_alive()
     }
 }

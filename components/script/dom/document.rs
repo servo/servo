@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use core::nonzero::NonZero;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
+use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
@@ -18,7 +20,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, WindowMethods};
+use dom::bindings::codegen::Bindings::WindowBinding::{FrameRequestCallback, ScrollBehavior, WindowMethods};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
@@ -112,7 +114,6 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::boxed::FnBox;
 use std::cell::{Cell, Ref, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -233,8 +234,7 @@ pub struct Document {
     animation_frame_ident: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
-    #[ignore_heap_size_of = "closures are hard"]
-    animation_frame_list: DOMRefCell<Vec<(u32, Option<Box<FnBox(f64)>>)>>,
+    animation_frame_list: DOMRefCell<Vec<(u32, Option<AnimationFrameCallback>)>>,
     /// Whether we're in the process of running animation callbacks.
     ///
     /// Tracking this is not necessary for correctness. Instead, it is an optimization to avoid
@@ -1461,7 +1461,7 @@ impl Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
-    pub fn request_animation_frame(&self, callback: Box<FnBox(f64)>) -> u32 {
+    pub fn request_animation_frame(&self, callback: AnimationFrameCallback) -> u32 {
         let ident = self.animation_frame_ident.get() + 1;
 
         self.animation_frame_ident.set(ident);
@@ -1502,7 +1502,7 @@ impl Document {
 
         for (_, callback) in animation_frame_list.drain(..) {
             if let Some(callback) = callback {
-                callback(*timing);
+                callback.call(self, *timing);
             }
         }
 
@@ -3181,4 +3181,30 @@ pub enum FocusType {
 pub enum FocusEventType {
     Focus,      // Element gained focus. Doesn't bubble.
     Blur,       // Element lost focus. Doesn't bubble.
+}
+
+#[derive(HeapSizeOf, JSTraceable)]
+pub enum AnimationFrameCallback {
+    DevtoolsFramerateTick { actor_name: String },
+    FrameRequestCallback {
+        #[ignore_heap_size_of = "Rc is hard"]
+        callback: Rc<FrameRequestCallback>
+    },
+}
+
+impl AnimationFrameCallback {
+    fn call(&self, document: &Document, now: f64) {
+        match *self {
+            AnimationFrameCallback::DevtoolsFramerateTick { ref actor_name } => {
+                let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name.clone(), now);
+                let devtools_sender = document.window().upcast::<GlobalScope>().devtools_chan().unwrap();
+                devtools_sender.send(msg).unwrap();
+            }
+            AnimationFrameCallback::FrameRequestCallback { ref callback } => {
+                // TODO(jdm): The spec says that any exceptions should be suppressed:
+                // https://github.com/servo/servo/issues/6928
+                let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
+            }
+        }
+    }
 }

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::{AutoMargins, CONSOLE_API, CachedConsoleMessage, CachedConsoleMessageTypes};
-use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError, ScriptToDevtoolsControlMsg};
+use devtools_traits::{ComputedNodeLayout, ConsoleAPI, PageError};
 use devtools_traits::{EvaluateJSReply, Modification, NodeInfo, PAGE_ERROR, TimelineMarker};
 use devtools_traits::TimelineMarkerType;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -17,6 +17,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
+use dom::document::AnimationFrameCallback;
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::node::{Node, window_from_node};
@@ -253,11 +254,7 @@ pub fn handle_request_animation_frame(documents: &Documents,
                                       id: PipelineId,
                                       actor_name: String) {
     if let Some(doc) = documents.find_document(id) {
-        let devtools_sender = doc.window().upcast::<GlobalScope>().devtools_chan().unwrap().clone();
-        doc.request_animation_frame(box move |time| {
-            let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
-            devtools_sender.send(msg).unwrap();
-        });
+        doc.request_animation_frame(AnimationFrameCallback::DevtoolsFramerateTick { actor_name });
     }
 }
 

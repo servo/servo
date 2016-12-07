@@ -105,10 +105,10 @@ impl<T: Reflectable> Deref for JS<T> {
     }
 }
 
-impl<T: Reflectable> JSTraceable for JS<T> {
-    fn trace(&self, trc: *mut JSTracer) {
+unsafe impl<T: Reflectable> JSTraceable for JS<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
         #[cfg(debug_assertions)]
-        let trace_str = format!("for {} on heap", unsafe { type_name::<T>() });
+        let trace_str = format!("for {} on heap", type_name::<T>());
         #[cfg(debug_assertions)]
         let trace_info = &trace_str[..];
         #[cfg(not(debug_assertions))]
@@ -116,7 +116,7 @@ impl<T: Reflectable> JSTraceable for JS<T> {
 
         trace_reflector(trc,
                         trace_info,
-                        unsafe { (**self.ptr).reflector() });
+                        (**self.ptr).reflector());
     }
 }
 
