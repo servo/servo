@@ -71,9 +71,12 @@ impl VirtualMethods for HTMLTitleElement {
         }
     }
 
-    fn bind_to_tree(&self, is_in_doc: bool) {
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
         let node = self.upcast::<Node>();
-        if is_in_doc {
+        if tree_in_doc {
             node.owner_doc().title_changed();
         }
     }

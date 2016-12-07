@@ -1084,6 +1084,7 @@ impl Window {
             window_size: window_size,
             script_join_chan: join_chan,
             query_type: query_type,
+            dom_count: self.Document().dom_count(),
         };
 
         self.layout_chan.send(Msg::Reflow(reflow)).unwrap();
