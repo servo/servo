@@ -617,6 +617,7 @@ impl LayoutThread {
         self.perform_post_style_recalc_layout_passes(&reflow_info,
                                                      None,
                                                      None,
+                                                     FlowTreeDamage::Dirty,
                                                      &mut *rw_data,
                                                      &mut layout_context);
 
@@ -816,7 +817,7 @@ impl LayoutThread {
             Some(x) => x,
             None => return None,
         };
-        let result = data.flow_construction_result.swap_out();
+        let result = data.flow_construction_result.get();
 
         let mut flow = match result {
             ConstructionResult::Flow(mut flow, abs_descendants) => {
@@ -921,6 +922,8 @@ impl LayoutThread {
                         build_state.root_stacking_context.bounds = origin;
                         build_state.root_stacking_context.overflow = origin;
                         rw_data.display_list = Some(Arc::new(build_state.to_display_list()));
+
+                        debug_assert!(!flow::base(layout_root).restyle_damage.contains(REPAINT));
                     }
                     (ReflowGoal::ForScriptQuery, false) => {}
                 }
@@ -947,8 +950,6 @@ impl LayoutThread {
                 println!("{}", serde_json::to_string_pretty(&display_list).unwrap());
             }
 
-            debug!("Layout done!");
-
             // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
             let builder = rw_data.display_list.as_ref().unwrap().convert_to_webrender(self.id);
 
@@ -963,6 +964,8 @@ impl LayoutThread {
                 webrender_traits::Epoch(epoch_number),
                 viewport_size,
                 builder);
+
+            debug!("Layout done!");
         });
     }
 
@@ -1132,8 +1135,14 @@ impl LayoutThread {
                                                                          viewport_size_changed,
                                                                          data.reflow_info.goal);
 
+        let flow_tree_damage = if element.styling_mode() == StylingMode::Stop {
+            FlowTreeDamage::Clean
+        } else {
+            FlowTreeDamage::Dirty
+        };
+
         let dom_depth = Some(0); // This is always the root node.
-        if element.styling_mode() != StylingMode::Stop {
+        if flow_tree_damage == FlowTreeDamage::Dirty {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
@@ -1183,6 +1192,7 @@ impl LayoutThread {
         self.perform_post_style_recalc_layout_passes(&data.reflow_info,
                                                      Some(&data.query_type),
                                                      Some(&document),
+                                                     flow_tree_damage,
                                                      &mut rw_data,
                                                      &mut shared_layout_context);
 
@@ -1321,11 +1331,13 @@ impl LayoutThread {
         self.perform_post_style_recalc_layout_passes(&reflow_info,
                                                      None,
                                                      None,
+                                                     FlowTreeDamage::Dirty,
                                                      &mut *rw_data,
                                                      &mut layout_context);
     }
 
-    fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+    fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self,
+                                                 possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut rw_data = possibly_locked_rw_data.lock();
         font_context::invalidate_font_caches();
 
@@ -1345,6 +1357,7 @@ impl LayoutThread {
         self.perform_post_style_recalc_layout_passes(&reflow_info,
                                                      None,
                                                      None,
+                                                     FlowTreeDamage::Dirty,
                                                      &mut *rw_data,
                                                      &mut layout_context);
     }
@@ -1353,27 +1366,34 @@ impl LayoutThread {
                                                data: &Reflow,
                                                query_type: Option<&ReflowQueryType>,
                                                document: Option<&ServoLayoutDocument>,
+                                               flow_tree_damage: FlowTreeDamage,
                                                rw_data: &mut LayoutThreadData,
                                                layout_context: &mut SharedLayoutContext) {
-        if let Some(mut root_flow) = self.root_flow.clone() {
-            // Kick off animations if any were triggered, expire completed ones.
-            animation::update_animation_state(&self.constellation_chan,
-                                              &self.script_chan,
-                                              &mut *self.running_animations.write(),
-                                              &mut *self.expired_animations.write(),
-                                              &self.new_animations_receiver,
-                                              self.id,
-                                              &self.timer);
+        let mut root_flow = match self.root_flow.clone() {
+            Some(root_flow) => root_flow,
+            None => return,
+        };
 
+        // Kick off animations if any were triggered, expire completed ones.
+        animation::update_animation_state(&self.constellation_chan,
+                                          &self.script_chan,
+                                          &mut *self.running_animations.write(),
+                                          &mut *self.expired_animations.write(),
+                                          &self.new_animations_receiver,
+                                          self.id,
+                                          &self.timer);
+
+        if flow_tree_damage == FlowTreeDamage::Dirty {
             profile(time::ProfilerCategory::LayoutRestyleDamagePropagation,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
-                // Call `compute_layout_damage` even in non-incremental mode, because it sets flags
-                // that are needed in both incremental and non-incremental traversals.
+                // Call `compute_layout_damage` even in non-incremental mode, because it sets
+                // flags that are needed in both incremental and non-incremental traversals.
                 let damage = FlowRef::deref_mut(&mut root_flow).compute_layout_damage();
 
-                if opts::get().nonincremental_layout || damage.contains(REFLOW_ENTIRE_DOCUMENT) {
+                if opts::get().nonincremental_layout ||
+                        damage.contains(REFLOW_ENTIRE_DOCUMENT) {
                     FlowRef::deref_mut(&mut root_flow).reflow_entire_document()
                 }
             });
@@ -1386,7 +1406,10 @@ impl LayoutThread {
             profile(time::ProfilerCategory::LayoutGeneratedContent,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
-                    || sequential::resolve_generated_content(FlowRef::deref_mut(&mut root_flow), &layout_context));
+                    || {
+                        sequential::resolve_generated_content(FlowRef::deref_mut(&mut root_flow),
+                                                              &layout_context)
+                    });
 
             // Guess float placement.
             profile(time::ProfilerCategory::LayoutFloatPlacementSpeculation,
@@ -1405,15 +1428,17 @@ impl LayoutThread {
                     match self.parallel_traversal {
                         None => {
                             // Sequential mode.
-                            LayoutThread::solve_constraints(FlowRef::deref_mut(&mut root_flow), &layout_context)
+                            LayoutThread::solve_constraints(FlowRef::deref_mut(&mut root_flow),
+                                                            &layout_context)
                         }
                         Some(ref mut parallel) => {
                             // Parallel mode.
-                            LayoutThread::solve_constraints_parallel(parallel,
-                                                                     FlowRef::deref_mut(&mut root_flow),
-                                                                     profiler_metadata,
-                                                                     self.time_profiler_chan.clone(),
-                                                                     &*layout_context);
+                            LayoutThread::solve_constraints_parallel(
+                                parallel,
+                                FlowRef::deref_mut(&mut root_flow),
+                                profiler_metadata,
+                                self.time_profiler_chan.clone(),
+                                &*layout_context);
                         }
                     }
                 });
@@ -1427,13 +1452,13 @@ impl LayoutThread {
                 sequential::store_overflow(&layout_context,
                                            FlowRef::deref_mut(&mut root_flow) as &mut Flow);
             });
-
-            self.perform_post_main_layout_passes(data,
-                                                 query_type,
-                                                 document,
-                                                 rw_data,
-                                                 layout_context);
         }
+
+        self.perform_post_main_layout_passes(data,
+                                             query_type,
+                                             document,
+                                             rw_data,
+                                             layout_context);
     }
 
     fn perform_post_main_layout_passes(&mut self,
@@ -1581,3 +1606,14 @@ lazy_static! {
         }
     };
 }
+
+/// Whether the flow tree has been modified *at all* during restyling.
+///
+/// Tracking this allows us to skip running passes entirely if they are trivially proven to be
+/// no-ops.
+#[derive(Clone, Copy, PartialEq)]
+enum FlowTreeDamage {
+    Clean,
+    Dirty,
+}
+

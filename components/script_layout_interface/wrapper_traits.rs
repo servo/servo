@@ -60,7 +60,9 @@ impl<T> PseudoElementType<T> {
 
     pub fn style_pseudo_element(&self) -> PseudoElement {
         match *self {
-            PseudoElementType::Normal => unreachable!("style_pseudo_element called with PseudoElementType::Normal"),
+            PseudoElementType::Normal => {
+                unreachable!("style_pseudo_element called with PseudoElementType::Normal")
+            }
             PseudoElementType::Before(_) => PseudoElement::Before,
             PseudoElementType::After(_) => PseudoElement::After,
             PseudoElementType::DetailsSummary(_) => PseudoElement::DetailsSummary,
@@ -150,7 +152,8 @@ impl<ConcreteNode> Iterator for TreeIterator<ConcreteNode>
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
-pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo + PartialEq + Sized {
+pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo + PartialEq +
+                                Sized {
     type ConcreteThreadSafeLayoutElement:
         ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
         + ::selectors::Element<Impl=SelectorImpl>;

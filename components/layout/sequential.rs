@@ -9,12 +9,13 @@ use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use euclid::point::Point2D;
 use floats::SpeculatedFloatPlacement;
-use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
+use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils, OpaqueFlow};
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::IS_ABSOLUTELY_POSITIONED;
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use gfx_traits::ScrollRootId;
+use script_layout_interface::wrapper_traits::LayoutNode;
 use style::context::StyleContext;
 use style::servo::restyle_damage::{REFLOW, STORE_OVERFLOW};
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
@@ -86,29 +87,73 @@ pub fn build_display_list_for_subtree<'a>(flow_root: &mut Flow,
     build_display_list.state
 }
 
-pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut Flow,
-                                                       iterator: &mut FragmentBorderBoxIterator) {
-    fn doit(flow: &mut Flow,
-            level: i32,
-            iterator: &mut FragmentBorderBoxIterator,
-            stacking_context_position: &Point2D<Au>) {
-        flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
+/// Invokes a callback for each fragment belonging to the given node as well as all fragments
+/// along the path leading to it.
+///
+/// The callback receives the stacking-relative border box of each fragment, for convenience.
+///
+/// FIXME(pcwalton): At some point, this should change to not iterate over fragments unless they
+/// actually belong to the node.
+pub fn for_each_fragment_of_node_and_ancestors<N>(root_flow: &mut Flow,
+                                                  node: N,
+                                                  iterator: &mut FragmentBorderBoxIterator)
+                                                  where N: LayoutNode {
+    // Find the path from the root to the node.
+    //
+    // FIXME(pcwalton): This would be unnecessary if we had parent pointers in the flow tree. I
+    // think they're going to be inevitable.
+    let mut path = flow::flow_tree_path_for_node(node);
 
-        for kid in flow::mut_base(flow).child_iter_mut() {
-            let stacking_context_position =
-                if kid.is_block_flow() && kid.as_block().fragment.establishes_stacking_context() {
-                    let margin = Point2D::new(kid.as_block().fragment.margin.inline_start, Au(0));
-                    *stacking_context_position + flow::base(kid).stacking_relative_position + margin
-                } else {
-                    *stacking_context_position
-                };
-
-            // FIXME(#2795): Get the real container size.
-            doit(kid, level + 1, iterator, &stacking_context_position);
+    // If it's present, remove the root flow from the path, as we start there.
+    loop {
+        if let Some(&target) = path.last() {
+            if OpaqueFlow::from_flow(root_flow) == target {
+                path.pop();
+                continue
+            }
         }
+        break
     }
 
-    doit(root, 0, iterator, &Point2D::zero());
+    iterate(root_flow, 0, iterator, &mut path, &Point2D::zero());
+
+    fn iterate(flow: &mut Flow,
+               level: i32,
+               iterator: &mut FragmentBorderBoxIterator,
+               path: &mut Vec<OpaqueFlow>,
+               stacking_context_position: &Point2D<Au>) {
+        // Iterate through the border boxes of this flow.
+        flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
+
+        // Are we done?
+        if path.is_empty() {
+            return
+        }
+
+        // Find the next child in the path.
+        let target_child = *path.last().expect("Path ended prematurely!");
+        for kid in flow::mut_base(flow).child_iter_mut() {
+            if OpaqueFlow::from_flow(kid) == target_child {
+                path.pop();
+                let stacking_context_position =
+                    stacking_context_position_for_child(kid, stacking_context_position);
+                return iterate(kid, level + 1, iterator, path, &stacking_context_position)
+            }
+        }
+
+        unreachable!("Didn't find next flow in path!")
+    }
+
+    fn stacking_context_position_for_child(child: &Flow, parent_position: &Point2D<Au>)
+                                           -> Point2D<Au> {
+        if child.is_block_flow() && child.as_block().fragment.establishes_stacking_context() {
+            // FIXME(#2795): Get the real container size.
+            let margin = Point2D::new(child.as_block().fragment.margin.inline_start, Au(0));
+            *parent_position + flow::base(child).stacking_relative_position + margin
+        } else {
+            *parent_position
+        }
+    }
 }
 
 pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {

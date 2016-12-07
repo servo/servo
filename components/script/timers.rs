@@ -7,6 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
+use dom::document::FakeRequestAnimationFrameCallback;
 use dom::eventsource::EventSourceTimeoutCallback;
 use dom::globalscope::GlobalScope;
 use dom::testbinding::TestBindingCallback;
@@ -71,6 +72,7 @@ pub enum OneshotTimerCallback {
     EventSourceTimeout(EventSourceTimeoutCallback),
     JsTimer(JsTimerTask),
     TestBindingCallback(TestBindingCallback),
+    FakeRequestAnimationFrame(FakeRequestAnimationFrameCallback),
 }
 
 impl OneshotTimerCallback {
@@ -80,6 +82,7 @@ impl OneshotTimerCallback {
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers),
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
+            OneshotTimerCallback::FakeRequestAnimationFrame(callback) => callback.invoke(),
         }
     }
 }
