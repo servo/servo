@@ -1436,6 +1436,8 @@ bitflags! {
         /// Whether to inherit all styles from the parent. If this flag is not present,
         /// non-inherited styles are reset to their initial values.
         const INHERIT_ALL = 0x02,
+        /// Whether to skip any root element and flex/grid item display style fixup.
+        const SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP = 0x04,
     }
 }
 
@@ -1630,30 +1632,50 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         longhands::position::SpecifiedValue::absolute |
         longhands::position::SpecifiedValue::fixed);
     let floated = style.get_box().clone_float() != longhands::float::SpecifiedValue::none;
-    let is_flex_item =
-        context.inherited_style.get_box().clone_display() == computed_values::display::T::flex;
-    if positioned || floated || is_root_element || is_flex_item {
+    // FIXME(heycam): We should look past any display:contents ancestors to
+    // determine if we are a flex or grid item, but we don't have access to
+    // grandparent or higher style here.
+    let is_item = matches!(context.inherited_style.get_box().clone_display(),
+        % if product == "gecko":
+        computed_values::display::T::grid |
+        % endif
+        computed_values::display::T::flex);
+    let (blockify_root, blockify_item) = match flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
+        false => (is_root_element, is_item),
+        true => (false, false),
+    };
+    if positioned || floated || blockify_root || blockify_item {
         use computed_values::display::T;
 
         let specified_display = style.get_box().clone_display();
         let computed_display = match specified_display {
-            T::inline_table => {
-                Some(T::table)
-            }
-            T::inline | T::inline_block |
-            T::table_row_group | T::table_column |
-            T::table_column_group | T::table_header_group |
-            T::table_footer_group | T::table_row | T::table_cell |
-            T::table_caption => {
-                Some(T::block)
-            }
-            _ => None
+            // Values that have a corresponding block-outside version.
+            T::inline_table => Some(T::table),
+            % if product == "gecko":
+            T::inline_flex => Some(T::flex),
+            T::inline_grid => Some(T::grid),
+            T::_webkit_inline_box => Some(T::_webkit_box),
+            % endif
+
+            // Special handling for contents and list-item on the root element for Gecko.
+            % if product == "gecko":
+            T::contents | T::list_item if blockify_root => Some(T::block),
+            % endif
+
+            // Values that are not changed by blockification.
+            T::block | T::flex | T::list_item | T::table => None,
+            % if product == "gecko":
+            T::contents | T::grid | T::_webkit_box => None,
+            % endif
+
+            // Everything becomes block.
+            _ => Some(T::block),
         };
         if let Some(computed_display) = computed_display {
             let box_ = style.mutate_box();
             box_.set_display(computed_display);
             % if product == "servo":
-                box_.set__servo_display_for_hypothetical_box(if is_root_element || is_flex_item {
+                box_.set__servo_display_for_hypothetical_box(if blockify_root || blockify_item {
                     computed_display
                 } else {
                     specified_display

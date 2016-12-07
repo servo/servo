@@ -269,4 +269,9 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
         self.get_data().map(|x| x.borrow_mut())
     }
+
+    /// Whether we should skip any root- or item-based display property
+    /// blockification on this element.  (This function exists so that Gecko
+    /// native anonymous content can opt out of this style fixup.)
+    fn skip_root_and_item_based_display_fixup(&self) -> bool;
 }

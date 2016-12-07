@@ -14,7 +14,7 @@ use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, PseudoStyles};
 use dom::{TElement, TNode, TRestyleDamage, UnsafeNode};
-use properties::{CascadeFlags, ComputedValues, SHAREABLE, cascade};
+use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
@@ -404,6 +404,9 @@ trait PrivateMatchMethods: TElement {
         let mut cascade_flags = CascadeFlags::empty();
         if booleans.shareable {
             cascade_flags.insert(SHAREABLE)
+        }
+        if self.skip_root_and_item_based_display_fixup() {
+            cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP)
         }
 
         let this_style = match parent_style {
