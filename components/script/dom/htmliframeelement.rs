@@ -109,6 +109,7 @@ impl HTMLIFrameElement {
         let old_pipeline_id = self.pipeline_id.get();
         let new_pipeline_id = PipelineId::new();
         self.pipeline_id.set(Some(new_pipeline_id));
+        debug!("Frame {} created pipeline {}.", self.frame_id, new_pipeline_id);
         (old_pipeline_id, new_pipeline_id)
     }
 
@@ -692,6 +693,7 @@ impl VirtualMethods for HTMLIFrameElement {
         // iframe attributes for the "first time"."
         if self.upcast::<Node>().is_in_doc_with_browsing_context() {
             debug!("iframe {} bound to browsing context.", self.frame_id);
+            debug_assert!(tree_in_doc, "is_in_doc_with_bc, but not tree_in_doc");
             self.create_nested_browsing_context();
             self.process_the_iframe_attributes(ProcessingMode::FirstTime);
         }
@@ -705,6 +707,7 @@ impl VirtualMethods for HTMLIFrameElement {
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         if let Some(pipeline_id) = self.pipeline_id.get() {
+            debug!("Unbinding pipeline {} from frame {}.", pipeline_id, self.frame_id);
             let window = window_from_node(self);
 
             // The only reason we're waiting for the iframe to be totally
