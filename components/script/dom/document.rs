@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use core::nonzero::NonZero;
+use devtools_traits::ScriptToDevtoolsControlMsg;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
+use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
@@ -18,6 +20,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::FrameRequestCallback;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, WindowMethods};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -112,7 +115,6 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
-use std::boxed::FnBox;
 use std::cell::{Cell, Ref, RefMut};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -233,8 +235,7 @@ pub struct Document {
     animation_frame_ident: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
-    #[ignore_heap_size_of = "closures are hard"]
-    animation_frame_list: DOMRefCell<Vec<(u32, Option<Box<FnBox(f64)>>)>>,
+    animation_frame_list: DOMRefCell<Vec<(u32, AnimationFrameCallback)>>,
     /// Whether we're in the process of running animation callbacks.
     ///
     /// Tracking this is not necessary for correctness. Instead, it is an optimization to avoid
@@ -1461,11 +1462,11 @@ impl Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
-    pub fn request_animation_frame(&self, callback: Box<FnBox(f64)>) -> u32 {
+    pub fn request_animation_frame(&self, callback: AnimationFrameCallback) -> u32 {
         let ident = self.animation_frame_ident.get() + 1;
 
         self.animation_frame_ident.set(ident);
-        self.animation_frame_list.borrow_mut().push((ident, Some(callback)));
+        self.animation_frame_list.borrow_mut().push((ident, callback));
 
         // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
         // we're guaranteed to already be in the "animation callbacks present" state.
@@ -1489,7 +1490,7 @@ impl Document {
     pub fn cancel_animation_frame(&self, ident: u32) {
         let mut list = self.animation_frame_list.borrow_mut();
         if let Some(mut pair) = list.iter_mut().find(|pair| pair.0 == ident) {
-            pair.1 = None;
+            pair.1 = AnimationFrameCallback::None
         }
     }
 
@@ -1500,10 +1501,8 @@ impl Document {
         self.running_animation_callbacks.set(true);
         let timing = self.window.Performance().Now();
 
-        for (_, callback) in animation_frame_list.drain(..) {
-            if let Some(callback) = callback {
-                callback(*timing);
-            }
+        for (_, mut callback) in animation_frame_list.drain(..) {
+            callback.call(*timing)
         }
 
         // Only send the animation change state message after running any callbacks.
@@ -3182,3 +3181,41 @@ pub enum FocusEventType {
     Focus,      // Element gained focus. Doesn't bubble.
     Blur,       // Element lost focus. Doesn't bubble.
 }
+
+#[derive(JSTraceable, HeapSizeOf)]
+pub enum AnimationFrameCallback {
+    None,
+    DevtoolsFramerateTick(DevtoolsFramerateTick),
+    FrameRequestCallback(FrameRequestCallbackWrapper),
+}
+
+impl AnimationFrameCallback {
+    pub fn call(&mut self, now: f64) {
+        match *self {
+            AnimationFrameCallback::None => {}
+            AnimationFrameCallback::DevtoolsFramerateTick(ref tick) => {
+                let msg = ScriptToDevtoolsControlMsg::FramerateTick(tick.actor_name.clone(), now);
+                tick.devtools_sender.send(msg).unwrap();
+            }
+            AnimationFrameCallback::FrameRequestCallback(ref callback) => {
+                // TODO(jdm): The spec says that any exceptions should be suppressed:
+                // https://github.com/servo/servo/issues/6928
+                let _ = callback.callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
+            }
+        }
+    }
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct DevtoolsFramerateTick {
+    pub actor_name: String,
+    #[ignore_heap_size_of = "channels are hard"]
+    pub devtools_sender: IpcSender<ScriptToDevtoolsControlMsg>,
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct FrameRequestCallbackWrapper {
+    #[ignore_heap_size_of = "refcounted"]
+    pub callback: Rc<FrameRequestCallback>,
+}
+

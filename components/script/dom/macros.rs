@@ -302,6 +302,7 @@ macro_rules! make_nonzero_dimension_setter(
 
 /// For use on non-jsmanaged types
 /// Use #[derive(JSTraceable)] on JS managed types
+/// Keep use of this scoped to `script/dom/bindings/trace.rs`.
 macro_rules! no_jsmanaged_fields(
     ([$ty:ident; $count:expr]) => (
         impl $crate::dom::bindings::trace::JSTraceable for [$ty; $count] {
@@ -320,22 +321,6 @@ macro_rules! no_jsmanaged_fields(
                 }
             }
         )+
-    );
-    ($ty:ident<$($gen:ident),+>) => (
-        impl<$($gen),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
-            #[inline]
-            fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
-                // Do nothing
-            }
-        }
-    );
-    ($ty:ident<$($gen:ident: $bound:ident),+>) => (
-        impl<$($gen: $bound),+> $crate::dom::bindings::trace::JSTraceable for $ty<$($gen),+> {
-            #[inline]
-            fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
-                // Do nothing
-            }
-        }
     );
 );
 

@@ -29,11 +29,11 @@
 //! The `no_jsmanaged_fields!()` macro adds an empty implementation of `JSTraceable` to
 //! a datatype.
 
+use app_units::Au;
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use cssparser::RGBA;
-use devtools_traits::CSSError;
-use devtools_traits::WorkerId;
+use devtools_traits::{CSSError, TimelineMarkerType, WorkerId};
 use dom::abstractworker::SharedRt;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::js::{JS, Root};
@@ -41,10 +41,13 @@ use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
+use dom::bindings::weakref::{WeakRef, WeakReferenceable};
+use dom::cssrulelist::RulesSource;
 use dom::document::PendingRestyle;
+use dom::node::UniqueId;
+use dom::webgltexture::{ImageInfo, MAX_FACE_COUNT, MAX_LEVEL_COUNT};
 use encoding::types::EncodingRef;
 use euclid::{Matrix2D, Matrix4D, Point2D};
-use euclid::length::Length as EuclidLength;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use html5ever::tokenizer::buffer_queue::BufferQueue;
@@ -60,7 +63,7 @@ use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::Runtime;
 use libc;
-use msg::constellation_msg::{FrameId, FrameType, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, Key, PipelineId};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -70,35 +73,40 @@ use net_traits::response::{Response, ResponseBody};
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
 use offscreen_gl_context::GLLimits;
+use parking_lot::RwLock;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
+use rand::OsRng;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
 use script_runtime::ScriptChan;
-use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase};
+use script_traits::{MsDuration, TimerEventId, TimerSource, TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
-use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::hash::{BuildHasher, Hash};
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::{SystemTime, Instant};
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::element_state::*;
+use style::font_face::FontFaceRule;
+use style::keyframes::Keyframe;
 use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
+use style::stylesheets::{CssRules, KeyframesRule, MediaRule, NamespaceRule, StyleRule, Stylesheet};
 use style::values::specified::Length;
+use style::viewport::ViewportRule;
 use time::Duration;
 use url::Origin as UrlOrigin;
 use uuid::Uuid;
@@ -110,14 +118,6 @@ pub trait JSTraceable {
     /// Trace `self`.
     fn trace(&self, trc: *mut JSTracer);
 }
-
-no_jsmanaged_fields!(CSSError);
-
-no_jsmanaged_fields!(EncodingRef);
-
-no_jsmanaged_fields!(Reflector);
-
-no_jsmanaged_fields!(Duration);
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
@@ -158,6 +158,50 @@ impl<T: JSTraceable> JSTraceable for Rc<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
     }
+}
+
+impl<T: JSTraceable> JSTraceable for Arc<T> {
+    fn trace(&self, trc: *mut JSTracer) {
+        (**self).trace(trc)
+    }
+}
+
+impl JSTraceable for Mutex<Option<SharedRt>> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+
+impl JSTraceable for RwLock<FontFaceRule> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+impl JSTraceable for RwLock<CssRules> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+impl JSTraceable for RwLock<Keyframe> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+impl JSTraceable for RwLock<KeyframesRule> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+impl JSTraceable for RwLock<MediaRule> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+impl JSTraceable for RwLock<NamespaceRule> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+impl JSTraceable for RwLock<StyleRule> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+impl JSTraceable for RwLock<ViewportRule> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+impl JSTraceable for RwLock<PropertyDeclarationBlock> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+impl JSTraceable for RwLock<SharedRt> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
+impl JSTraceable for RwLock<MediaList> {
+    fn trace(&self, _: *mut JSTracer) {}
 }
 
 impl<T: JSTraceable + ?Sized> JSTraceable for Box<T> {
@@ -301,23 +345,30 @@ impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, B, C) {
     }
 }
 
-no_jsmanaged_fields!(bool, f32, f64, String, ServoUrl, AtomicBool, AtomicUsize, UrlOrigin, Uuid, char);
+// The following list lists typed that are not scanned. At all. **That means that if you add
+// JS-managed types to this, then you are creating a potential use-after-free!** Therefore, be very
+// careful about adding types to this list!
+//
+// Do not add any types defined in this crate to this list. Instead, use `#[derive(JSTraceable)]`
+// on them, since this is safer.
+//
+// Do not add any trait objects (except for those with a `Send` bound) to this list, and do not add
+// types that recursively contain them.
+
+no_jsmanaged_fields!(bool, char, f32, f64, String);
+no_jsmanaged_fields!(ServoUrl, AtomicBool, AtomicUsize, UrlOrigin, Uuid);
 no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 no_jsmanaged_fields!(isize, i8, i16, i32, i64);
-no_jsmanaged_fields!(Sender<T>);
-no_jsmanaged_fields!(Receiver<T>);
-no_jsmanaged_fields!(Point2D<T>);
-no_jsmanaged_fields!(Rect<T>);
-no_jsmanaged_fields!(Size2D<T>);
-no_jsmanaged_fields!(Arc<T>);
+no_jsmanaged_fields!(CSSError);
+no_jsmanaged_fields!(EncodingRef);
+no_jsmanaged_fields!(Reflector);
+no_jsmanaged_fields!(Duration);
 no_jsmanaged_fields!(Image, ImageMetadata, ImageCacheChan, ImageCacheThread);
 no_jsmanaged_fields!(Metadata);
 no_jsmanaged_fields!(NetworkError);
 no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
-no_jsmanaged_fields!(Trusted<T: Reflectable>);
 no_jsmanaged_fields!(TrustedPromise);
 no_jsmanaged_fields!(PropertyDeclarationBlock);
-no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 no_jsmanaged_fields!(FrameId, FrameType, WindowSizeData, WindowSizeType, PipelineId);
@@ -330,9 +381,6 @@ no_jsmanaged_fields!(WindowProxyHandler);
 no_jsmanaged_fields!(UntrustedNodeAddress);
 no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 no_jsmanaged_fields!(RGBA);
-no_jsmanaged_fields!(EuclidLength<Unit, T>);
-no_jsmanaged_fields!(Matrix2D<T>);
-no_jsmanaged_fields!(Matrix4D<T>);
 no_jsmanaged_fields!(StorageType);
 no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
@@ -373,7 +421,20 @@ no_jsmanaged_fields!(WebGLRenderbufferId);
 no_jsmanaged_fields!(WebGLShaderId);
 no_jsmanaged_fields!(WebGLTextureId);
 no_jsmanaged_fields!(MediaList);
+no_jsmanaged_fields!(MsDuration);
+no_jsmanaged_fields!(OsRng);
+no_jsmanaged_fields!(Key);
+no_jsmanaged_fields!(UniqueId);
+no_jsmanaged_fields!(Stylesheet);
+no_jsmanaged_fields!(RulesSource);
+no_jsmanaged_fields!(CssRules);
+no_jsmanaged_fields!([ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]);
 
+// More whitelisted types follow. The same warnings and rules above apply, with one crucial extra
+// one: Do not add any implementations for containers that contain generic types. Instead,
+// explicitly trace them in the same manner as `HashMap<K, V, S>`.
+
+// A trait object. This is safe only because of the `Send` bound.
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
     fn trace(&self, _trc: *mut JSTracer) {
@@ -381,9 +442,10 @@ impl JSTraceable for Box<ScriptChan + Send> {
     }
 }
 
-impl JSTraceable for Box<FnBox(f64, )> {
+// A trait object. This is safe only because of the `Send` bound.
+impl JSTraceable for Box<LayoutRPC + Send + 'static> {
     #[inline]
-    fn trace(&self, _trc: *mut JSTracer) {
+    fn trace(&self, _: *mut JSTracer) {
         // Do nothing
     }
 }
@@ -395,6 +457,7 @@ impl<'a> JSTraceable for &'a str {
     }
 }
 
+// Safe because 
 impl<A, B> JSTraceable for fn(A) -> B {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
@@ -409,14 +472,28 @@ impl<T> JSTraceable for IpcSender<T> where T: Deserialize + Serialize {
     }
 }
 
-impl JSTraceable for Box<LayoutRPC + 'static> {
+impl JSTraceable for () {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
     }
 }
 
-impl JSTraceable for () {
+impl<T: Reflectable> JSTraceable for Trusted<T> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<T: Send> JSTraceable for Receiver<T> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<T: Send> JSTraceable for Sender<T> {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -426,6 +503,69 @@ impl JSTraceable for () {
 impl<T> JSTraceable for IpcReceiver<T> where T: Deserialize + Serialize {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Matrix2D<f32> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Matrix4D<f64> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Point2D<f32> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Rect<Au> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Rect<f32> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for Size2D<i32> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for HashSet<PipelineId> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl JSTraceable for HashSet<TimelineMarkerType> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<T: WeakReferenceable> JSTraceable for WeakRef<T> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
     }
 }

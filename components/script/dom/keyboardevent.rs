@@ -19,8 +19,6 @@ use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::Cow;
 use std::cell::Cell;
 
-no_jsmanaged_fields!(Key);
-
 #[dom_struct]
 pub struct KeyboardEvent {
     uievent: UIEvent,
