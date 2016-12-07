@@ -20,7 +20,7 @@ impl LintPass for TransmutePass {
     }
 }
 
-impl LateLintPass for TransmutePass {
+impl<'a, 'tcx> LateLintPass<'a, 'tcx> for TransmutePass {
     fn check_expr(&mut self, cx: &LateContext, ex: &hir::Expr) {
         match ex.node {
             hir::ExprCall(ref expr, ref args) => {
