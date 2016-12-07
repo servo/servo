@@ -76,7 +76,7 @@ impl LintPass for UnrootedPass {
     }
 }
 
-impl LateLintPass for UnrootedPass {
+impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     /// All structs containing #[must_root] types must be #[must_root] themselves
     fn check_struct_def(&mut self,
                         cx: &LateContext,
@@ -119,8 +119,13 @@ impl LateLintPass for UnrootedPass {
         }
     }
     /// Function arguments that are #[must_root] types are not allowed
-    fn check_fn(&mut self, cx: &LateContext, kind: visit::FnKind, decl: &hir::FnDecl,
-                body: &hir::Expr, span: codemap::Span, id: ast::NodeId) {
+    fn check_fn(&mut self,
+                cx: &LateContext<'a, 'tcx>,
+                kind: visit::FnKind,
+                decl: &'tcx hir::FnDecl,
+                body: &'tcx hir::Expr,
+                span: codemap::Span,
+                id: ast::NodeId) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _, _, _, _, _) |
             visit::FnKind::Method(n, _, _, _) => {
@@ -159,8 +164,8 @@ struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a+'b> {
     in_new_function: bool,
 }
 
-impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> {
-    fn visit_expr(&mut self, expr: &'a hir::Expr) {
+impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
+    fn visit_expr(&mut self, expr: &'tcx hir::Expr) {
         let cx = self.cx;
 
         fn require_rooted(cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr) {
@@ -194,7 +199,7 @@ impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> 
         visit::walk_expr(self, expr);
     }
 
-    fn visit_pat(&mut self, pat: &'a hir::Pat) {
+    fn visit_pat(&mut self, pat: &'tcx hir::Pat) {
         let cx = self.cx;
 
         if let hir::PatKind::Binding(hir::BindingMode::BindByValue(_), _, _, _) = pat.node {
@@ -209,13 +214,16 @@ impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> 
         visit::walk_pat(self, pat);
     }
 
-    fn visit_fn(&mut self, kind: visit::FnKind<'a>, decl: &'a hir::FnDecl,
-                body: &'a hir::Expr, span: codemap::Span, id: ast::NodeId) {
+    fn visit_fn(&mut self, kind: visit::FnKind<'tcx>, decl: &'tcx hir::FnDecl,
+                body: hir::ExprId, span: codemap::Span, id: ast::NodeId) {
         if let visit::FnKind::Closure(_) = kind {
             visit::walk_fn(self, kind, decl, body, span, id);
         }
     }
 
-    fn visit_foreign_item(&mut self, _: &'a hir::ForeignItem) {}
-    fn visit_ty(&mut self, _: &'a hir::Ty) { }
+    fn visit_foreign_item(&mut self, _: &'tcx hir::ForeignItem) {}
+    fn visit_ty(&mut self, _: &'tcx hir::Ty) { }
+    fn nested_visit_map<'this>(&'this mut self) -> hir::intravisit::NestedVisitorMap<'this, 'tcx> {
+        hir::intravisit::NestedVisitorMap::OnlyBodies(&self.cx.tcx.map)
+    }
 }
