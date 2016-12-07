@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSSOM - StyleSheetList interface</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        body { width: 50%; }
+    </style>
+    <style>
+        #foo { width: 10%; }
+        #bar { height: 100px; }
+    </style>
+    <script>
+    test(function () {
+        var styleSheets = document.styleSheets;
+        assert_equals(styleSheets.length, 2, "StyleSheetList length attribute");
+        assert_equals(styleSheets[0].cssRules.length, 1, "StyleSheetList indexed getter length attribute");
+        assert_equals(styleSheets[1].cssRules.length, 2, "StyleSheetList indexed getter length attribute");
+        assert_equals(styleSheets[2], undefined, "StyleSheetList indexed getter length attribute");
+        assert_equals(styleSheets.item(0).cssRules.length, 1, "StyleSheetList item function length attribute");
+        assert_equals(styleSheets.item(1).cssRules.length, 2, "StyleSheetList item function length attribute");
+        assert_equals(styleSheets.item(2), null, "StyleSheetList item function length attribute");
+
+        styleSheets[0].randomProperty = 1;
+        var style = document.createElement("style");
+        document.head.appendChild(style);
+        assert_equals(styleSheets[0].randomProperty, 1, "[SameObject] StyleSheetList");
+    });
+    </script>
+</head>
+</html>
