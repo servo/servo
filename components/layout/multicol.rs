@@ -15,8 +15,6 @@ use euclid::Size2D;
 use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow, mut_base, FragmentationContext};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::StackingContext;
-use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use std::cmp::{min, max};
 use std::fmt;
@@ -188,10 +186,8 @@ impl Flow for MulticolFlow {
         self.block_flow.build_display_list(state);
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
-        self.block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
+    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+        self.block_flow.collect_stacking_contexts(state);
     }
 
     fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
@@ -272,10 +268,8 @@ impl Flow for MulticolColumnFlow {
         self.block_flow.build_display_list(state);
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
-        self.block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
+    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+        self.block_flow.collect_stacking_contexts(state);
     }
 
     fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {

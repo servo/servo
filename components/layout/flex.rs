@@ -16,8 +16,6 @@ use flow;
 use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::StackingContext;
-use gfx_traits::ScrollRootId;
 use layout_debug;
 use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use model::{specified, specified_or_none};
@@ -967,10 +965,8 @@ impl Flow for FlexFlow {
         self.build_display_list_for_flex(state);
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
-        self.block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
+    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+        self.block_flow.collect_stacking_contexts(state);
     }
 
     fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {

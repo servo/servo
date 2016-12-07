@@ -35,7 +35,7 @@ use floats::{Floats, SpeculatedFloatPlacement};
 use flow_list::{FlowList, MutFlowListIterator};
 use flow_ref::{FlowRef, WeakFlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::{ClippingRegion, StackingContext};
+use gfx::display_list::ClippingRegion;
 use gfx_traits::{ScrollRootId, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
 use inline::InlineFlow;
@@ -221,9 +221,7 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         None
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 _parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId);
+    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState);
 
     /// If this is a float, places it. The default implementation does nothing.
     fn place_float_if_applicable<'a>(&mut self) {}
@@ -1115,11 +1113,9 @@ impl BaseFlow {
         return self as *const BaseFlow as usize;
     }
 
-    pub fn collect_stacking_contexts_for_children(&mut self,
-                                                  parent: &mut StackingContext,
-                                                  parent_scroll_root_id: ScrollRootId) {
+    pub fn collect_stacking_contexts_for_children(&mut self, state: &mut DisplayListBuildState) {
         for kid in self.children.iter_mut() {
-            kid.collect_stacking_contexts(parent, parent_scroll_root_id);
+            kid.collect_stacking_contexts(state);
         }
     }
 
