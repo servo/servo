@@ -9,7 +9,7 @@ var blocklist_exclude_reads_characteristic_uuid = "bad1c9a2-9a5b-4015-8b60-1579b
 var request_disconnection_characteristic_uuid = "01d7d88a-7451-419f-aeb8-d65e7b9277af";
 // Descriptors:
 var blocklist_exclude_reads_descriptor_uuid = "aaaaaaaa-aaaa-1181-0510-810819516110";
-var blocklist_descriptor_uuid = "07711111-6104-0970-7011-1107105110aaa";
+var blocklist_descriptor_uuid = "07711111-6104-0970-7011-1107105110aa";
 var characteristic_user_description_uuid = "00002901-0000-1000-8000-00805f9b34fb";
 
 // Bluetooth Adapter types:
