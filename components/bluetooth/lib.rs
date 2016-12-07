@@ -424,10 +424,15 @@ impl BluetoothManager {
                                    adapter: &mut BluetoothAdapter,
                                    device_id: &str)
                                    -> Vec<BluetoothGATTService> {
-        let services = match self.get_device(adapter, device_id) {
+        let mut services = match self.get_device(adapter, device_id) {
             Some(d) => d.get_gatt_services().unwrap_or(vec!()),
             None => vec!(),
         };
+
+        services.retain(|s| !uuid_is_blocklisted(&s.get_uuid().unwrap_or(String::new()), Blocklist::All) &&
+                            self.allowed_services
+                                .get(device_id)
+                                .map_or(false, |uuids| uuids.contains(&s.get_uuid().unwrap_or(String::new()))));
         for service in &services {
             self.cached_services.insert(service.get_id(), service.clone());
             self.service_to_device.insert(service.get_id(), device_id.to_owned());
@@ -461,11 +466,12 @@ impl BluetoothManager {
                                           adapter: &mut BluetoothAdapter,
                                           service_id: &str)
                                           -> Vec<BluetoothGATTCharacteristic> {
-        let characteristics = match self.get_gatt_service(adapter, service_id) {
+        let mut characteristics = match self.get_gatt_service(adapter, service_id) {
             Some(s) => s.get_gatt_characteristics().unwrap_or(vec!()),
             None => vec!(),
         };
 
+        characteristics.retain(|c| !uuid_is_blocklisted(&c.get_uuid().unwrap_or(String::new()), Blocklist::All));
         for characteristic in &characteristics {
             self.cached_characteristics.insert(characteristic.get_id(), characteristic.clone());
             self.characteristic_to_service.insert(characteristic.get_id(), service_id.to_owned());
@@ -524,11 +530,12 @@ impl BluetoothManager {
                                       adapter: &mut BluetoothAdapter,
                                       characteristic_id: &str)
                                       -> Vec<BluetoothGATTDescriptor> {
-        let descriptors = match self.get_gatt_characteristic(adapter, characteristic_id) {
+        let mut descriptors = match self.get_gatt_characteristic(adapter, characteristic_id) {
             Some(c) => c.get_gatt_descriptors().unwrap_or(vec!()),
             None => vec!(),
         };
 
+        descriptors.retain(|d| !uuid_is_blocklisted(&d.get_uuid().unwrap_or(String::new()), Blocklist::All));
         for descriptor in &descriptors {
             self.cached_descriptors.insert(descriptor.get_id(), descriptor.clone());
             self.descriptor_to_characteristic.insert(descriptor.get_id(), characteristic_id.to_owned());
@@ -743,10 +750,6 @@ impl BluetoothManager {
                 }
             }
         }
-        services_vec.retain(|s| !uuid_is_blocklisted(&s.uuid, Blocklist::All) &&
-                                self.allowed_services
-                                    .get(&device_id)
-                                    .map_or(false, |uuids| uuids.contains(&s.uuid)));
 
         // Step 7.
         if services_vec.is_empty() {
@@ -919,7 +922,6 @@ impl BluetoothManager {
                 );
             }
         }
-        characteristics_vec.retain(|c| !uuid_is_blocklisted(&c.uuid, Blocklist::All));
 
         // Step 7.
         if characteristics_vec.is_empty() {
@@ -987,7 +989,6 @@ impl BluetoothManager {
                 );
             }
         }
-        descriptors_vec.retain(|d| !uuid_is_blocklisted(&d.uuid, Blocklist::All));
 
         // Step 7.
         if descriptors_vec.is_empty() {
