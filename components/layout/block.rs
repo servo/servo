@@ -42,8 +42,7 @@ use flow::IS_ABSOLUTELY_POSITIONED;
 use flow_list::FlowList;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::{IS_INLINE_FLEX_ITEM, IS_BLOCK_FLEX_ITEM};
-use gfx::display_list::{ClippingRegion, StackingContext};
-use gfx_traits::ScrollRootId;
+use gfx::display_list::ClippingRegion;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
@@ -2195,10 +2194,8 @@ impl Flow for BlockFlow {
         }
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
-        self.collect_stacking_contexts_for_block(parent, parent_scroll_root_id);
+    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+        self.collect_stacking_contexts_for_block(state);
     }
 
     fn build_display_list(&mut self, state: &mut DisplayListBuildState) {

@@ -14,7 +14,6 @@ use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::IS_ABSOLUTELY_POSITIONED;
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
-use gfx_traits::ScrollRootId;
 use servo_config::opts;
 use style::servo::restyle_damage::{REFLOW, STORE_OVERFLOW};
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
@@ -76,9 +75,8 @@ pub fn traverse_flow_tree_preorder(root: &mut Flow,
 pub fn build_display_list_for_subtree<'a>(flow_root: &mut Flow,
                                           shared_layout_context: &'a SharedLayoutContext)
                                           -> DisplayListBuildState<'a> {
-    let mut state = DisplayListBuildState::new(shared_layout_context,
-                                               flow::base(flow_root).stacking_context_id);
-    flow_root.collect_stacking_contexts(&mut state.root_stacking_context, ScrollRootId::root());
+    let mut state = DisplayListBuildState::new(shared_layout_context);
+    flow_root.collect_stacking_contexts(&mut state);
 
     let mut build_display_list = BuildDisplayList { state: state };
     build_display_list.traverse(flow_root);
