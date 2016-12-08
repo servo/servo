@@ -11,6 +11,7 @@ use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
 use parser::ParserContextExtraData;
 use servo_url::ServoUrl;
+use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::ptr;
 use std::sync::Arc;
@@ -76,7 +77,14 @@ pub struct SpecifiedUrl {
 impl Parse for SpecifiedUrl {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let url = try!(input.expect_url());
+        Self::parse_from_string(url, context)
+    }
+}
 
+impl SpecifiedUrl {
+    pub fn parse_from_string<'a>(url: Cow<'a, str>,
+                                 context: &ParserContext)
+                                 -> Result<Self, ()> {
         let extra_data = match UrlExtraData::make_from(context) {
             Some(extra_data) => extra_data,
             None => {
@@ -96,9 +104,7 @@ impl Parse for SpecifiedUrl {
             extra_data: extra_data,
         })
     }
-}
 
-impl SpecifiedUrl {
     pub fn extra_data(&self) -> &UrlExtraData {
         &self.extra_data
     }

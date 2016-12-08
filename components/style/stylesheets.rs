@@ -25,6 +25,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ToCss;
 use stylist::FnvHashMap;
+use values::specified::url::SpecifiedUrl;
 use viewport::ViewportRule;
 
 
@@ -78,7 +79,8 @@ impl CssRules {
     fn only_ns_or_import(&self) -> bool {
         self.0.iter().all(|r| {
             match *r {
-                CssRule::Namespace(..) /* | CssRule::Import(..) */ => true,
+                CssRule::Namespace(..) |
+                CssRule::Import(..) => true,
                 _ => false
             }
         })
@@ -179,6 +181,7 @@ pub enum CssRule {
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
 
     Namespace(Arc<RwLock<NamespaceRule>>),
+    Import(Arc<RwLock<ImportRule>>),
     Style(Arc<RwLock<StyleRule>>),
     Media(Arc<RwLock<MediaRule>>),
     FontFace(Arc<RwLock<FontFaceRule>>),
@@ -234,6 +237,7 @@ impl CssRule {
     pub fn rule_type(&self) -> CssRuleType {
         match *self {
             CssRule::Style(_)     => CssRuleType::Style,
+            CssRule::Import(_)    => CssRuleType::Import,
             CssRule::Media(_)     => CssRuleType::Media,
             CssRule::FontFace(_)  => CssRuleType::FontFace,
             CssRule::Keyframes(_) => CssRuleType::Keyframes,
@@ -245,7 +249,7 @@ impl CssRule {
     fn rule_state(&self) -> State {
         match *self {
             // CssRule::Charset(..) => State::Start,
-            // CssRule::Import(..) => State::Imports,
+            CssRule::Import(..) => State::Imports,
             CssRule::Namespace(..) => State::Namespaces,
             _ => State::Body,
         }
@@ -253,10 +257,17 @@ impl CssRule {
 
     /// Call `f` with the slice of rules directly contained inside this rule.
     ///
-    /// Note that only some types of rules can contain rules. An empty slice is used for others.
+    /// Note that only some types of rules can contain rules. An empty slice is
+    /// used for others.
     pub fn with_nested_rules_and_mq<F, R>(&self, mut f: F) -> R
     where F: FnMut(&[CssRule], Option<&MediaList>) -> R {
         match *self {
+            CssRule::Import(ref lock) => {
+                let rule = lock.read();
+                // FIXME(emilio): Include the nested rules if the stylesheet is
+                // loaded.
+                f(&[], Some(&rule.media))
+            }
             CssRule::Namespace(_) |
             CssRule::Style(_) |
             CssRule::FontFace(_) |
@@ -314,6 +325,7 @@ impl ToCss for CssRule {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             CssRule::Namespace(ref lock) => lock.read().to_css(dest),
+            CssRule::Import(ref lock) => lock.read().to_css(dest),
             CssRule::Style(ref lock) => lock.read().to_css(dest),
             CssRule::FontFace(ref lock) => lock.read().to_css(dest),
             CssRule::Viewport(ref lock) => lock.read().to_css(dest),
@@ -342,6 +354,28 @@ impl ToCss for NamespaceRule {
         try!(dest.write_str("url(\""));
         try!(dest.write_str(&*self.url.to_string()));
         dest.write_str("\");")
+    }
+}
+
+
+/// The [`@import`][import] at-rule.
+///
+/// [import]: https://drafts.csswg.org/css-cascade-3/#at-import
+#[derive(Debug)]
+pub struct ImportRule {
+    pub media: MediaList,
+    pub url: SpecifiedUrl,
+}
+
+impl ToCss for ImportRule {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@import "));
+        try!(self.url.to_css(dest));
+        if !self.media.is_empty() {
+            try!(dest.write_str(" "));
+            try!(self.media.to_css(dest));
+        }
+        Ok(())
     }
 }
 
@@ -611,8 +645,19 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
             "import" => {
                 if self.state.get() <= State::Imports {
                     self.state.set(State::Imports);
-                    // TODO: support @import
-                    return Err(())  // "@import is not supported yet"
+                    let url = try!(input.expect_url_or_string());
+                    let url =
+                        try!(SpecifiedUrl::parse_from_string(url,
+                                                             &self.context));
+
+                    let media = parse_media_query_list(input);
+
+                    return Ok(AtRuleType::WithoutBlock(CssRule::Import(Arc::new(RwLock::new(
+                        ImportRule {
+                            url: url,
+                            media: media,
+                        }
+                    )))))
                 } else {
                     self.state.set(State::Invalid);
                     return Err(())  // "@import must be before any rule but @charset"
