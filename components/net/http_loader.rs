@@ -263,7 +263,7 @@ pub fn determine_request_referrer(headers: &mut Headers,
 
 pub fn set_request_cookies(url: &ServoUrl, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
-    if let Some(cookie_list) = cookie_jar.cookies_for_url(url, CookieSource::HTTP) {
+    if let Some(cookie_list) = cookie_jar.cookies_for_url(url, CookieSource::HTTP(url.clone())) {
         let mut v = Vec::new();
         v.push(cookie_list.into_bytes());
         headers.set_raw("Cookie".to_owned(), v);
@@ -274,13 +274,13 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
                       request: &ServoUrl,
                       cookie_val: String) {
     let mut cookie_jar = cookie_jar.write().unwrap();
-    let source = CookieSource::HTTP;
+    let source = CookieSource::HTTP(request.clone());
     let header = Header::parse_header(&[cookie_val.into_bytes()]);
 
     if let Ok(SetCookie(cookies)) = header {
         for bare_cookie in cookies {
-            if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, request, source) {
-                cookie_jar.push(cookie, source);
+            if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, request, source.clone()) {
+                cookie_jar.push(cookie, source.clone());
             }
         }
     }

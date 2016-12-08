@@ -235,7 +235,7 @@ pub fn handle_add_cookie(documents: &Documents,
     };
     let url = document.url();
     let method = if cookie.httponly {
-        HTTP
+        HTTP(url.clone())
     } else {
         NonHTTP
     };

@@ -399,9 +399,9 @@ impl CoreResourceManager {
         let header = Header::parse_header(&[cookie_list.into_bytes()]);
         if let Ok(SetCookie(cookies)) = header {
             for bare_cookie in cookies {
-                if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
+                if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source.clone()) {
                     let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
-                    cookie_jar.push(cookie, source);
+                    cookie_jar.push(cookie, source.clone());
                 }
             }
         }
@@ -409,9 +409,9 @@ impl CoreResourceManager {
 
     fn set_cookies_for_url_with_data(&mut self, request: ServoUrl, cookie: cookie_rs::Cookie, source: CookieSource,
                                      resource_group: &ResourceGroup) {
-        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
+        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source.clone()) {
             let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
-            cookie_jar.push(cookie, source)
+            cookie_jar.push(cookie, source.clone())
         }
     }
 
