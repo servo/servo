@@ -1201,11 +1201,9 @@ fn cors_preflight_fetch(request: Rc<Request>,
 
     // Step 3, 4
     let mut value = request.headers.borrow().iter()
-                                            .filter_map(|ref view| if is_simple_header(view) {
-                                                None
-                                            } else {
-                                                Some(UniCase(view.name().to_owned()))
-                                            }).collect::<Vec<UniCase<String>>>();
+                                            .filter(|view| !is_simple_header(view))
+                                            .map(|view| UniCase(view.name().to_owned()))
+                                            .collect::<Vec<UniCase<String>>>();
     value.sort();
 
     // Step 5
