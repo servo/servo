@@ -50,6 +50,131 @@ ${helpers.single_keyword("image-rendering",
                          custom_consts=image_rendering_custom_consts,
                          animatable=False)}
 
+// Image Orientation
+// https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation
+<%helpers:longhand name="image-orientation"
+                   experimental="True"
+                   animatable="False">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::specified::Angle;
+
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue {
+        angle: Option<Angle>,
+        flipped: bool
+    }
+    
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if let Some(angle) = self.angle {
+                try!(angle.to_css(dest));
+                if self.flipped {
+                    dest.write_str(" flipped")
+                } else {
+                    Ok(())
+                }
+            } else {
+                if self.flipped {
+                    dest.write_str("flipped")
+                } else {
+                    dest.write_str("from-image")
+                }
+            }
+        }
+    }
+
+    pub mod computed_value {
+        use values::specified::Angle;
+
+        #[derive(Clone, PartialEq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum T {
+            FromImage,
+            AngleWithFlipped(Angle, bool),
+        }
+    }
+
+    const INITIAL_ANGLE: Angle = Angle(0f32);
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::AngleWithFlipped(INITIAL_ANGLE, false)
+    }
+
+    use values::CSSFloat;
+    use std::f32::consts::PI;
+    const TWO_PI: CSSFloat = 2f32*PI;
+
+    #[inline]
+    fn normalize_angle(angle: &Angle) -> Angle {
+        let radians = angle.radians();
+        let normalized_radians = ((radians % TWO_PI) + TWO_PI) % TWO_PI;
+        Angle::from_radians(normalized_radians)
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
+            if let Some(ref angle) = self.angle {
+                let normalized_angle = normalize_angle(angle);
+                computed_value::T::AngleWithFlipped(normalized_angle, self.flipped)
+            } else {
+                if self.flipped {
+                    computed_value::T::AngleWithFlipped(INITIAL_ANGLE, true)
+                } else {
+                    computed_value::T::FromImage
+                }
+            }
+        }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T::FromImage => SpecifiedValue { angle: None, flipped: false },
+                computed_value::T::AngleWithFlipped(angle, flipped) =>
+                    SpecifiedValue { angle: Some(angle), flipped: flipped },
+            }
+        }
+    }
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                computed_value::T::FromImage => dest.write_str("from-image"),
+                computed_value::T::AngleWithFlipped(angle, flipped) => {
+                    try!(angle.to_css(dest));
+                    if flipped {
+                        try!(dest.write_str(" flipped"));
+                    }
+                    Ok(())
+                },
+            }
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("from-image")).is_ok() {
+            // Handle from-image
+            Ok(SpecifiedValue { angle: None, flipped: false })
+        } else if let Ok(angle) = input.try(|i| Angle::parse(_context, i)) {
+            // Handle <angle> and <angle> flip
+            let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();
+            Ok(SpecifiedValue { angle: Some(angle), flipped: flipped })
+        } else {
+            // Handle flip
+            input.expect_ident_matching("flip")
+            .map(|()| SpecifiedValue { angle: Some(Angle::from_radians(0f32)), flipped: true })
+        }
+    }
+</%helpers:longhand>
+
 // Used in the bottom-up flow construction traversal to avoid constructing flows for
 // descendants of nodes with `display: none`.
 <%helpers:longhand name="-servo-under-display-none"

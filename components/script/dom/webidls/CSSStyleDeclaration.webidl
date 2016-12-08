@@ -359,6 +359,8 @@ partial interface CSSStyleDeclaration {
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString imageRendering;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString image-rendering;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString imageOrientation;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString image-orientation;
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString columnCount;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString column-count;
