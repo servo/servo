@@ -7,12 +7,12 @@ use parking_lot::RwLock;
 use rayon;
 use servo_url::ServoUrl;
 use std::sync::Arc;
+use style::error_reporting::ParseErrorReporter;
 use style::media_queries::MediaList;
+use style::parser::ParserContextExtraData;
 use style::properties::{longhands, DeclaredValue, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{RuleTree, StrongRuleNode, StyleSource};
 use style::stylesheets::{Origin, Stylesheet, CssRule};
-use style::parser::ParserContextExtraData;
-use style::error_reporting::ParseErrorReporter;
 use test::{self, Bencher};
 
 struct ErrorringErrorReporter;
@@ -73,10 +73,26 @@ fn bench_insertion_basic(b: &mut Bencher) {
              .bar { height: 500px; } \
              .baz { display: block; }");
 
-        for _ in 0..1000 {
+        for _ in 0..(4000 + 400) {
             test::black_box(test_insertion(&r, rules_matched.clone()));
         }
     })
+}
+
+#[bench]
+fn bench_insertion_basic_per_element(b: &mut Bencher) {
+    let r = RuleTree::new();
+
+    let rules_matched = parse_rules(
+        ".foo { width: 200px; } \
+         .bar { height: 500px; } \
+         .baz { display: block; }");
+
+    b.iter(|| {
+        test::black_box(test_insertion(&r, rules_matched.clone()));
+
+        unsafe { r.gc() };
+    });
 }
 
 #[bench]
@@ -92,10 +108,12 @@ fn bench_expensive_insersion(b: &mut Bencher) {
              .bar { height: 500px; } \
              .baz { display: block; }");
 
-        for _ in 0..1000 {
+        for _ in 0..(4000 + 400) {
             test::black_box(test_insertion_style_attribute(&r, &rules_matched));
         }
-    })
+
+        unsafe { r.gc() };
+    });
 }
 
 #[bench]
@@ -123,8 +141,10 @@ fn bench_insertion_basic_parallel(b: &mut Bencher) {
                     })
                 })
             }
-        })
-    })
+        });
+
+        unsafe { r.gc() };
+    });
 }
 
 #[bench]
@@ -152,6 +172,8 @@ fn bench_expensive_insersion_parallel(b: &mut Bencher) {
                     })
                 })
             }
-        })
-    })
+        });
+
+        unsafe { r.gc() };
+    });
 }

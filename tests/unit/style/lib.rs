@@ -30,12 +30,12 @@ mod media_queries;
 mod owning_handle;
 mod parsing;
 mod properties;
+mod rule_tree;
 mod str;
 mod stylesheets;
 mod stylist;
 mod value;
 mod viewport;
-mod rule_tree;
 
 mod writing_modes {
     use style::logical_geometry::WritingMode;
