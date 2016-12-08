@@ -11,7 +11,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::error::Error;
 use dom::bindings::js::JS;
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::client::Client;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;

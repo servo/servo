@@ -24,7 +24,7 @@ use dom::bindings::inheritance::{SVGElementTypeId, SVGGraphicsElementTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
-use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -800,7 +800,7 @@ impl Node {
     pub fn insert_cell_or_row<F, G, I>(&self, index: i32, get_items: F, new_child: G) -> Fallible<Root<HTMLElement>>
         where F: Fn() -> Root<HTMLCollection>,
               G: Fn() -> Root<I>,
-              I: DerivedFrom<Node> + DerivedFrom<HTMLElement> + Reflectable,
+              I: DerivedFrom<Node> + DerivedFrom<HTMLElement> + DomObject,
     {
         if index < -1 {
             return Err(Error::IndexSize);
@@ -1345,7 +1345,7 @@ impl Node {
             document: &Document,
             wrap_fn: unsafe extern "Rust" fn(*mut JSContext, &GlobalScope, Box<N>) -> Root<N>)
             -> Root<N>
-        where N: DerivedFrom<Node> + Reflectable
+        where N: DerivedFrom<Node> + DomObject
     {
         let window = document.window();
         reflect_dom_object(node, window, wrap_fn)
@@ -2373,11 +2373,11 @@ impl NodeMethods for Node {
     }
 }
 
-pub fn document_from_node<T: DerivedFrom<Node> + Reflectable>(derived: &T) -> Root<Document> {
+pub fn document_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> Root<Document> {
     derived.upcast().owner_doc()
 }
 
-pub fn window_from_node<T: DerivedFrom<Node> + Reflectable>(derived: &T) -> Root<Window> {
+pub fn window_from_node<T: DerivedFrom<Node> + DomObject>(derived: &T) -> Root<Window> {
     let document = document_from_node(derived);
     Root::from_ref(document.window())
 }

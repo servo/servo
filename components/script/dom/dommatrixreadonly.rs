@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use dom::bindings::error;
 use dom::bindings::error::Fallible;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::{reflect_dom_object, Reflectable, Reflector};
+use dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use dom::dommatrix::DOMMatrix;
 use dom::dompoint::DOMPoint;
 use dom::globalscope::GlobalScope;

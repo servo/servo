@@ -17,7 +17,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use dom::blob::{Blob, BlobImpl};
 use dom::document::{Document, IsHTMLDocument};

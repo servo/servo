@@ -18,7 +18,7 @@ pub fn reflect_dom_object<T, U>(
         global: &U,
         wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> Root<T>)
         -> Root<T>
-    where T: Reflectable, U: DerivedFrom<GlobalScope>
+    where T: DomObject, U: DerivedFrom<GlobalScope>
 {
     let global_scope = global.upcast();
     unsafe {
@@ -77,18 +77,18 @@ impl Reflector {
 }
 
 /// A trait to provide access to the `Reflector` for a DOM object.
-pub trait Reflectable {
+pub trait DomObject {
     /// Returns the receiver's reflector.
     fn reflector(&self) -> &Reflector;
 
-    /// Returns the global scope of the realm that the Reflectable was created in.
+    /// Returns the global scope of the realm that the DomObject was created in.
     fn global(&self) -> Root<GlobalScope> where Self: Sized {
         GlobalScope::from_reflector(self)
     }
 }
 
 /// A trait to initialize the `Reflector` for a DOM object.
-pub trait MutReflectable: Reflectable {
+pub trait MutDomObject: DomObject {
     /// Initializes the Reflector
     fn init_reflector(&mut self, obj: *mut JSObject);
 }

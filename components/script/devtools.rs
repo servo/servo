@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::document::AnimationFrameCallback;
 use dom::element::Element;

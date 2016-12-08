@@ -26,7 +26,7 @@
 use core::nonzero::NonZero;
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::trace_reflector;
 use dom::node::Node;
@@ -76,7 +76,7 @@ impl<T> JS<T> {
     }
 }
 
-impl<T: Reflectable> JS<T> {
+impl<T: DomObject> JS<T> {
     /// Create a JS<T> from a &T
     #[allow(unrooted_must_root)]
     pub fn from_ref(obj: &T) -> JS<T> {
@@ -87,14 +87,14 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
-impl<'root, T: Reflectable + 'root> RootedReference<'root> for JS<T> {
+impl<'root, T: DomObject + 'root> RootedReference<'root> for JS<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {
         &self
     }
 }
 
-impl<T: Reflectable> Deref for JS<T> {
+impl<T: DomObject> Deref for JS<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -105,7 +105,7 @@ impl<T: Reflectable> Deref for JS<T> {
     }
 }
 
-unsafe impl<T: Reflectable> JSTraceable for JS<T> {
+unsafe impl<T: DomObject> JSTraceable for JS<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         #[cfg(debug_assertions)]
         let trace_str = format!("for {} on heap", type_name::<T>());
@@ -158,7 +158,7 @@ impl<T: Castable> LayoutJS<T> {
     }
 }
 
-impl<T: Reflectable> LayoutJS<T> {
+impl<T: DomObject> LayoutJS<T> {
     /// Get the reflector.
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
         debug_assert!(thread_state::get().is_layout());
@@ -240,7 +240,7 @@ pub trait HeapGCValue: JSTraceable {
 impl HeapGCValue for Heap<JSVal> {
 }
 
-impl<T: Reflectable> HeapGCValue for JS<T> {
+impl<T: DomObject> HeapGCValue for JS<T> {
 }
 
 /// A holder that provides interior mutability for GC-managed JSVals.
@@ -297,7 +297,7 @@ pub struct MutHeap<T: HeapGCValue> {
     val: UnsafeCell<T>,
 }
 
-impl<T: Reflectable> MutHeap<JS<T>> {
+impl<T: DomObject> MutHeap<JS<T>> {
     /// Create a new `MutHeap`.
     pub fn new(initial: &T) -> MutHeap<JS<T>> {
         debug_assert!(thread_state::get().is_script());
@@ -330,7 +330,7 @@ impl<T: HeapGCValue> HeapSizeOf for MutHeap<T> {
     }
 }
 
-impl<T: Reflectable> PartialEq for MutHeap<JS<T>> {
+impl<T: DomObject> PartialEq for MutHeap<JS<T>> {
    fn eq(&self, other: &Self) -> bool {
         unsafe {
             *self.val.get() == *other.val.get()
@@ -338,7 +338,7 @@ impl<T: Reflectable> PartialEq for MutHeap<JS<T>> {
     }
 }
 
-impl<T: Reflectable + PartialEq> PartialEq<T> for MutHeap<JS<T>> {
+impl<T: DomObject + PartialEq> PartialEq<T> for MutHeap<JS<T>> {
     fn eq(&self, other: &T) -> bool {
         unsafe {
             **self.val.get() == *other
@@ -358,7 +358,7 @@ pub struct MutNullableHeap<T: HeapGCValue> {
     ptr: UnsafeCell<Option<T>>,
 }
 
-impl<T: Reflectable> MutNullableHeap<JS<T>> {
+impl<T: DomObject> MutNullableHeap<JS<T>> {
     /// Create a new `MutNullableHeap`.
     pub fn new(initial: Option<&T>) -> MutNullableHeap<JS<T>> {
         debug_assert!(thread_state::get().is_script());
@@ -416,7 +416,7 @@ impl<T: Reflectable> MutNullableHeap<JS<T>> {
     }
 }
 
-impl<T: Reflectable> PartialEq for MutNullableHeap<JS<T>> {
+impl<T: DomObject> PartialEq for MutNullableHeap<JS<T>> {
     fn eq(&self, other: &Self) -> bool {
         unsafe {
             *self.ptr.get() == *other.ptr.get()
@@ -424,7 +424,7 @@ impl<T: Reflectable> PartialEq for MutNullableHeap<JS<T>> {
     }
 }
 
-impl<'a, T: Reflectable> PartialEq<Option<&'a T>> for MutNullableHeap<JS<T>> {
+impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableHeap<JS<T>> {
     fn eq(&self, other: &Option<&T>) -> bool {
         unsafe {
             *self.ptr.get() == other.map(JS::from_ref)
@@ -449,7 +449,7 @@ impl<T: HeapGCValue> HeapSizeOf for MutNullableHeap<T> {
     }
 }
 
-impl<T: Reflectable> LayoutJS<T> {
+impl<T: DomObject> LayoutJS<T> {
     /// Returns an unsafe pointer to the interior of this JS object. This is
     /// the only method that be safely accessed from layout. (The fact that
     /// this is unsafe is what necessitates the layout wrappers.)
@@ -475,14 +475,14 @@ pub trait RootedReference<'root> {
     fn r(&'root self) -> Self::Ref;
 }
 
-impl<'root, T: JSTraceable + Reflectable + 'root> RootedReference<'root> for [JS<T>] {
+impl<'root, T: JSTraceable + DomObject + 'root> RootedReference<'root> for [JS<T>] {
     type Ref = &'root [&'root T];
     fn r(&'root self) -> &'root [&'root T] {
         unsafe { mem::transmute(self) }
     }
 }
 
-impl<'root, T: Reflectable + 'root> RootedReference<'root> for Rc<T> {
+impl<'root, T: DomObject + 'root> RootedReference<'root> for Rc<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {
         self
@@ -566,7 +566,7 @@ pub unsafe fn trace_roots(tracer: *mut JSTracer) {
 /// for the same JS value. `Root`s cannot outlive the associated
 /// `RootCollection` object.
 #[allow_unrooted_interior]
-pub struct Root<T: Reflectable> {
+pub struct Root<T: DomObject> {
     /// Reference to rooted value that must not outlive this container
     ptr: NonZero<*const T>,
     /// List that ensures correct dynamic root ordering
@@ -594,7 +594,7 @@ impl<T: Castable> Root<T> {
     }
 }
 
-impl<T: Reflectable> Root<T> {
+impl<T: DomObject> Root<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
     /// It cannot outlive its associated `RootCollection`, and it gives
     /// out references which cannot outlive this new `Root`.
@@ -616,14 +616,14 @@ impl<T: Reflectable> Root<T> {
     }
 }
 
-impl<'root, T: Reflectable + 'root> RootedReference<'root> for Root<T> {
+impl<'root, T: DomObject + 'root> RootedReference<'root> for Root<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {
         self
     }
 }
 
-impl<T: Reflectable> Deref for Root<T> {
+impl<T: DomObject> Deref for Root<T> {
     type Target = T;
     fn deref(&self) -> &T {
         debug_assert!(thread_state::get().is_script());
@@ -631,25 +631,25 @@ impl<T: Reflectable> Deref for Root<T> {
     }
 }
 
-impl<T: Reflectable + HeapSizeOf> HeapSizeOf for Root<T> {
+impl<T: DomObject + HeapSizeOf> HeapSizeOf for Root<T> {
     fn heap_size_of_children(&self) -> usize {
         (**self).heap_size_of_children()
     }
 }
 
-impl<T: Reflectable> PartialEq for Root<T> {
+impl<T: DomObject> PartialEq for Root<T> {
     fn eq(&self, other: &Self) -> bool {
         self.ptr == other.ptr
     }
 }
 
-impl<T: Reflectable> Clone for Root<T> {
+impl<T: DomObject> Clone for Root<T> {
     fn clone(&self) -> Root<T> {
         Root::from_ref(&*self)
     }
 }
 
-impl<T: Reflectable> Drop for Root<T> {
+impl<T: DomObject> Drop for Root<T> {
     fn drop(&mut self) {
         unsafe {
             (*self.root_list).unroot(self.reflector());

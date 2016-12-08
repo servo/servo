@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::js::{JS, Root, MutNullableHeap};
-use dom::bindings::reflector::{reflect_dom_object, Reflectable};
+use dom::bindings::reflector::{reflect_dom_object, DomObject};
 use dom::bindings::str::DOMString;
 use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::element::Element;

@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, MutNullableHeap, JS};
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};

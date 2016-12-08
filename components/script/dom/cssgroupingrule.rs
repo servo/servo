@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMet
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssrule::CSSRule;
 use dom::cssrulelist::{CSSRuleList, RulesSource};

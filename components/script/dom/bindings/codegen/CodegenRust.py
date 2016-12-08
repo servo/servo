@@ -5528,8 +5528,8 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::js::RootedReference',
         'dom::bindings::namespace::NamespaceObjectClass',
         'dom::bindings::namespace::create_namespace_object',
-        'dom::bindings::reflector::MutReflectable',
-        'dom::bindings::reflector::Reflectable',
+        'dom::bindings::reflector::MutDomObject',
+        'dom::bindings::reflector::DomObject',
         'dom::bindings::utils::DOMClass',
         'dom::bindings::utils::DOMJSClass',
         'dom::bindings::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT',
@@ -6294,7 +6294,7 @@ class CGCallback(CGClass):
             })
         return [ClassMethod(method.name + '_', method.returnType, args,
                             bodyInHeader=True,
-                            templateArgs=["T: Reflectable"],
+                            templateArgs=["T: DomObject"],
                             body=bodyWithThis,
                             visibility='pub'),
                 ClassMethod(method.name + '__', method.returnType, argsWithoutThis,
@@ -6917,7 +6917,7 @@ class GlobalGenRoots():
                    CGGeneric("use dom::bindings::inheritance::Castable;\n"),
                    CGGeneric("use dom::bindings::js::{JS, LayoutJS, Root};\n"),
                    CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
-                   CGGeneric("use dom::bindings::reflector::Reflectable;\n"),
+                   CGGeneric("use dom::bindings::reflector::DomObject;\n"),
                    CGGeneric("use js::jsapi::JSTracer;\n\n"),
                    CGGeneric("use std::mem;\n\n")]
         allprotos = []

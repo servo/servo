@@ -24,7 +24,7 @@
 
 use core::nonzero::NonZero;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::trace::trace_reflector;
 use dom::promise::Promise;
 use js::jsapi::JSTracer;
@@ -55,7 +55,7 @@ pub struct TrustedReference(*const libc::c_void);
 unsafe impl Send for TrustedReference {}
 
 impl TrustedReference {
-    fn new<T: Reflectable>(ptr: *const T) -> TrustedReference {
+    fn new<T: DomObject>(ptr: *const T) -> TrustedReference {
         TrustedReference(ptr as *const libc::c_void)
     }
 }
@@ -122,7 +122,7 @@ impl TrustedPromise {
 /// DOM object is guaranteed to live at least as long as the last outstanding
 /// `Trusted<T>` instance.
 #[allow_unrooted_interior]
-pub struct Trusted<T: Reflectable> {
+pub struct Trusted<T: DomObject> {
     /// A pointer to the Rust DOM object of type T, but void to allow
     /// sending `Trusted<T>` between threads, regardless of T's sendability.
     refcount: Arc<TrustedReference>,
@@ -130,9 +130,9 @@ pub struct Trusted<T: Reflectable> {
     phantom: PhantomData<T>,
 }
 
-unsafe impl<T: Reflectable> Send for Trusted<T> {}
+unsafe impl<T: DomObject> Send for Trusted<T> {}
 
-impl<T: Reflectable> Trusted<T> {
+impl<T: DomObject> Trusted<T> {
     /// Create a new `Trusted<T>` instance from an existing DOM pointer. The DOM object will
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
@@ -164,7 +164,7 @@ impl<T: Reflectable> Trusted<T> {
     }
 }
 
-impl<T: Reflectable> Clone for Trusted<T> {
+impl<T: DomObject> Clone for Trusted<T> {
     fn clone(&self) -> Trusted<T> {
         Trusted {
             refcount: self.refcount.clone(),
@@ -200,7 +200,7 @@ impl LiveDOMReferences {
         table.entry(&*promise).or_insert(vec![]).push(promise)
     }
 
-    fn addref<T: Reflectable>(&self, ptr: *const T) -> Arc<TrustedReference> {
+    fn addref<T: DomObject>(&self, ptr: *const T) -> Arc<TrustedReference> {
         let mut table = self.reflectable_table.borrow_mut();
         let capacity = table.capacity();
         let len = table.len();

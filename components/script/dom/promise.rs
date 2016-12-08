@@ -16,7 +16,7 @@ use dom::bindings::codegen::Bindings::PromiseBinding::AnyCallback;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::MutHeapJSVal;
-use dom::bindings::reflector::{Reflectable, MutReflectable, Reflector};
+use dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
 use js::conversions::ToJSValConvertible;

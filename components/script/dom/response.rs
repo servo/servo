@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, Respons
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
 use dom::globalscope::GlobalScope;
 use dom::headers::{Headers, Guard};

@@ -9,7 +9,7 @@ use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -124,7 +124,7 @@ impl GlobalScope {
     /// Returns the global scope of the realm that the given DOM object's reflector
     /// was created in.
     #[allow(unsafe_code)]
-    pub fn from_reflector<T: Reflectable>(reflector: &T) -> Root<Self> {
+    pub fn from_reflector<T: DomObject>(reflector: &T) -> Root<Self> {
         unsafe { GlobalScope::from_object(*reflector.reflector().get_jsobject()) }
     }
 

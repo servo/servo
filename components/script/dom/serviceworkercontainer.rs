@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWor
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use dom::bindings::error::Error;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::client::Client;
 use dom::eventtarget::EventTarget;

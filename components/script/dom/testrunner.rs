@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::TestRunnerBinding;
 use dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
 use ipc_channel::ipc::{self, IpcSender};

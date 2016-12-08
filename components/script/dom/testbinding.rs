@@ -25,7 +25,7 @@ use dom::bindings::js::Root;
 use dom::bindings::mozmap::MozMap;
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::TrustedPromise;
-use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
 use dom::blob::{Blob, BlobImpl};

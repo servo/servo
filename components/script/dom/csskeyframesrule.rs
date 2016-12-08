@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::csskeyframerule::CSSKeyframeRule;
 use dom::cssrule::{CSSRule, SpecificCSSRule};

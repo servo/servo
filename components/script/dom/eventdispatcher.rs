@@ -7,7 +7,7 @@ use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::document::Document;
 use dom::event::{Event, EventPhase};
 use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};

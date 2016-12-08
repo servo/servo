@@ -38,7 +38,7 @@ use dom::abstractworker::SharedRt;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
-use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
@@ -426,7 +426,7 @@ unsafe impl<T> JSTraceable for IpcReceiver<T> where T: Deserialize + Serialize {
     }
 }
 
-unsafe impl<T: Reflectable> JSTraceable for Trusted<T> {
+unsafe impl<T: DomObject> JSTraceable for Trusted<T> {
     #[inline]
     unsafe fn trace(&self, _: *mut JSTracer) {
         // Do nothing
@@ -635,9 +635,9 @@ impl RootedTraceableSet {
 
 /// Roots any JSTraceable thing
 ///
-/// If you have a valid Reflectable, use Root.
+/// If you have a valid DomObject, use Root.
 /// If you have GC things like *mut JSObject or JSVal, use rooted!.
-/// If you have an arbitrary number of Reflectables to root, use rooted_vec!.
+/// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
 /// If you know what you're doing, use this.
 #[derive(JSTraceable)]
 pub struct RootedTraceable<'a, T: 'a + JSTraceable> {
@@ -690,7 +690,7 @@ pub struct RootedVec<'a, T: 'a + JSTraceable> {
     root: &'a mut RootableVec<T>,
 }
 
-impl<'a, T: JSTraceable + Reflectable> RootedVec<'a, JS<T>> {
+impl<'a, T: JSTraceable + DomObject> RootedVec<'a, JS<T>> {
     /// Create a vector of items of type T that is rooted for
     /// the lifetime of this struct
     pub fn new<I: Iterator<Item = Root<T>>>(root: &'a mut RootableVec<JS<T>>, iter: I)

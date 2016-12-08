@@ -9,7 +9,7 @@ use dom::bindings::codegen::UnionTypes::FileOrUSVString;
 use dom::bindings::error::Fallible;
 use dom::bindings::iterable::Iterable;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::blob::{Blob, BlobImpl};
 use dom::file::File;
