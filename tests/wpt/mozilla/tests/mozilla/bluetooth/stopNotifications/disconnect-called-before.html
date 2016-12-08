@@ -17,8 +17,8 @@ promise_test(t => {
         .then(characteristic => characteristic.startNotifications())
         .then(characteristic => {
             gattServer.disconnect();
-            return promise_rejects(t, 'NetworkError', characteristic.startNotifications());
+            return promise_rejects(t, 'InvalidStateError', characteristic.stopNotifications());
         });
     });
-}, 'disconnect() called before stopNotifications. Reject with NetworkError.');
+}, 'disconnect() called before stopNotifications. Reject with InvalidStateError.');
 </script>

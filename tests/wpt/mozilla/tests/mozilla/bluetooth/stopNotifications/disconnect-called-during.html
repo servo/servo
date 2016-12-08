@@ -16,10 +16,10 @@ promise_test(t => {
         .then(service => service.getCharacteristic(heart_rate_measurement.name))
         .then(characteristic => characteristic.startNotifications())
         .then(characteristic => {
-            let promise = promise_rejects(t, 'NetworkError', characteristic.startNotifications());
+            let promise = promise_rejects(t, 'InvalidStateError', characteristic.stopNotifications());
             gattServer.disconnect();
             return promise;
         });
     });
-}, 'disconnect() called during stopNotifications. Reject with NetworkError.');
+}, 'disconnect() called during stopNotifications. Reject with InvalidStateError.');
 </script>
