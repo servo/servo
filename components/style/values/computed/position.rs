@@ -26,3 +26,19 @@ impl ToCss for Position {
         Ok(())
     }
 }
+
+pub struct HorizontalPosition(pub LengthOrPercentage);
+
+impl ToCss for HorizontalPosition {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}
+
+pub struct VerticalPosition(pub LengthOrPercentage);
+
+impl ToCss for VerticalPosition {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}

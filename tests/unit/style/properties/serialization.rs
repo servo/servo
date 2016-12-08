@@ -692,7 +692,7 @@ mod shorthand_serialization {
         use style::properties::longhands::background_repeat as repeat;
         use style::properties::longhands::background_size as size;
         use style::values::specified::Image;
-        use style::values::specified::position::Position;
+        use style::values::specified::position::{HorizontalPosition, Position, VerticalPosition};
         use super::*;
         macro_rules! single_vec_value_typedef {
             ($name:ident, $path:expr) => {
@@ -733,10 +733,14 @@ mod shorthand_serialization {
 
             let position = single_vec_value_typedef!(position,
                 Position {
-                    horiz_keyword: None,
-                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
-                    vert_keyword: None,
-                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
+                    horizontal: HorizontalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    },
+                    vertical: VerticalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
+                    },
                 }
             );
 
@@ -787,10 +791,14 @@ mod shorthand_serialization {
 
             let position = single_vec_value_typedef!(position,
                 Position {
-                    horiz_keyword: None,
-                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
-                    vert_keyword: None,
-                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
+                    horizontal: HorizontalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    },
+                    vertical: VerticalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
+                    },
                 }
             );
 
@@ -840,10 +848,14 @@ mod shorthand_serialization {
 
              let position = single_vec_value_typedef!(position,
                 Position {
-                    horiz_keyword: None,
-                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(0f32))),
-                    vert_keyword: None,
-                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(0f32)))
+                    horizontal: HorizontalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(0f32))),
+                    },
+                    vertical: VerticalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(0f32))),
+                    },
                 }
             );
 
@@ -881,7 +893,7 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
         use style::values::specified::Image;
-        use style::values::specified::position::Position;
+        use style::values::specified::position::{HorizontalPosition, Position, VerticalPosition};
         use super::*;
 
         macro_rules! single_vec_value_typedef {
@@ -918,10 +930,14 @@ mod shorthand_serialization {
 
             let position = single_vec_value_typedef!(position,
                 Position {
-                    horiz_keyword: None,
-                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
-                    vert_keyword: None,
-                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
+                    horizontal: HorizontalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    },
+                    vertical: VerticalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
+                    },
                 }
             );
 
@@ -968,10 +984,14 @@ mod shorthand_serialization {
 
             let position = single_vec_value_typedef!(position,
                 Position {
-                    horiz_keyword: None,
-                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
-                    vert_keyword: None,
-                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
+                    horizontal: HorizontalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    },
+                    vertical: VerticalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
+                    },
                 }
             );
 

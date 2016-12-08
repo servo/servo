@@ -15,7 +15,7 @@ use style_traits::ToCss;
 use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::computed::basic_shape as computed_basic_shape;
 use values::specified::{BorderRadiusSize, LengthOrPercentage, Percentage};
-use values::specified::position::{Keyword, Position};
+use values::specified::position::{Keyword, Position, HorizontalPosition, VerticalPosition};
 use values::specified::url::SpecifiedUrl;
 
 /// A shape source, for some reference box
@@ -313,6 +313,7 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
                 },
                 Some(Keyword::Left) | Some(Keyword::Top) | None => pc,
                 Some(Keyword::Right) | Some(Keyword::Bottom) => Percentage(1.0 - pc.0),
+                _ => return None,
             };
             Some(LengthOrPercentage::Percentage(percent))
         }
@@ -336,8 +337,8 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
             replace_with_percent(y).to_css(dest)
         }
 
-        match (position.horiz_keyword, position.horiz_position,
-               position.vert_keyword, position.vert_position) {
+        match (position.horizontal.keyword, position.horizontal.position,
+               position.vertical.keyword, position.vertical.position) {
             (Some(hk), None, Some(vk), None) => {
                 // two keywords: serialize as two lengths
                 serialize_position_pair(hk.to_length_or_percentage(),
@@ -385,10 +386,14 @@ impl Circle {
         } else {
             // Defaults to origin
             Position {
-                horiz_keyword: Some(Keyword::Center),
-                horiz_position: None,
-                vert_keyword: Some(Keyword::Center),
-                vert_position: None,
+                horizontal: HorizontalPosition {
+                    keyword: Some(Keyword::Center),
+                    position: None,
+                },
+                vertical: VerticalPosition {
+                    keyword: Some(Keyword::Center),
+                    position: None,
+                },
             }
         };
         Ok(Circle {
@@ -462,10 +467,14 @@ impl Ellipse {
         } else {
             // Defaults to origin
             Position {
-                horiz_keyword: Some(Keyword::Center),
-                horiz_position: None,
-                vert_keyword: Some(Keyword::Center),
-                vert_position: None,
+                horizontal: HorizontalPosition {
+                    keyword: Some(Keyword::Center),
+                    position: None,
+                },
+                vertical: VerticalPosition {
+                    keyword: Some(Keyword::Center),
+                    position: None,
+                },
             }
         };
         Ok(Ellipse {
