@@ -112,11 +112,16 @@ ${helpers.predefined_type("background-color", "CSSColor",
         #[inline]
         pub fn get_initial_specified_value() -> SpecifiedValue {
             use values::specified::Percentage;
+            use values::specified::position::{HorizontalPosition, VerticalPosition};
             Position {
-                horiz_keyword: None,
-                horiz_position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
-                vert_keyword: None,
-                vert_position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
+                horizontal: HorizontalPosition {
+                    keyword: None,
+                    position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
+                },
+                vertical: VerticalPosition {
+                    keyword: None,
+                    position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
+                },
             }
         }
 
