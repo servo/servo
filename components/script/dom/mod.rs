@@ -242,6 +242,7 @@ pub mod comment;
 pub mod console;
 pub mod crypto;
 pub mod css;
+pub mod cssimportrule;
 pub mod cssfontfacerule;
 pub mod cssgroupingrule;
 pub mod csskeyframerule;

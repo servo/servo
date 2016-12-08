@@ -8,6 +8,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::cssimportrule::CSSImportRule;
 use dom::cssfontfacerule::CSSFontFaceRule;
 use dom::csskeyframerule::CSSKeyframeRule;
 use dom::csskeyframesrule::CSSKeyframesRule;
@@ -75,6 +76,7 @@ impl CSSRule {
                         rule: StyleCssRule) -> Root<CSSRule> {
         // be sure to update the match in as_specific when this is updated
         match rule {
+            StyleCssRule::Import(s) => Root::upcast(CSSImportRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Style(s) => Root::upcast(CSSStyleRule::new(window, parent_stylesheet, s)),
             StyleCssRule::FontFace(s) => Root::upcast(CSSFontFaceRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Keyframes(s) => Root::upcast(CSSKeyframesRule::new(window, parent_stylesheet, s)),
