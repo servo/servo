@@ -106,6 +106,7 @@ COMPILATION_TARGETS = {
             "AnonymousContent",
             "AudioContext",
             "CapturingContentInfo",
+            "ConsumeStyleBehavior",
             "DefaultDelete",
             "DOMIntersectionObserverEntry",
             "Element",
@@ -121,6 +122,7 @@ COMPILATION_TARGETS = {
             "GridNamedArea",
             "Image",
             "ImageURL",
+            "LazyComputeBehavior",
             "nsAttrName",
             "nsAttrValue",
             "nsBorderColors",
@@ -195,7 +197,7 @@ COMPILATION_TARGETS = {
             "ServoAttrSnapshot",
             "ServoElementSnapshot",
             "SheetParsingMode",
-            "mozilla::Side",
+            "Side",
             "StaticRefPtr",
             "StyleAnimation",
             "StyleBasicShape",
@@ -237,6 +239,7 @@ COMPILATION_TARGETS = {
             "mozilla::Maybe",
             "gfxSize",  # <- union { struct { T width; T height; }; T components[2] };
             "gfxSize_Super",  # Ditto.
+            "mozilla::ErrorResult",  # Causes JSWhyMagic to be included & handled incorrectly.
         ],
         "manual_fixups": [
             ["root::nsString", "::nsstring::nsStringRepr"]
