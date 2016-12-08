@@ -15,7 +15,7 @@ use std::sync::{Arc, RwLock};
 
 lazy_static! {
     pub static ref PREFS: Preferences = {
-        let prefs = read_prefs().ok().unwrap_or_else(HashMap::new);
+        let prefs = read_prefs();
         Preferences(Arc::new(RwLock::new(prefs)))
     };
 }
@@ -156,11 +156,16 @@ pub fn read_prefs_from_file<T>(mut file: T)
     let mut prefs = HashMap::new();
     if let Json::Object(obj) = json {
         for (name, value) in obj.into_iter() {
-            match Pref::from_json(value) {
-                Ok(x) => {
-                    prefs.insert(name, x);
-                },
-                Err(_) => println!("Ignoring non-boolean/string/i64 preference value for {:?}", name),
+            if prefs.contains_key(&name) {
+                println!("Ignoring redeclaration for pref {:?}", name);
+                return Err(());
+            } else {
+                match Pref::from_json(value) {
+                    Ok(x) => {
+                        prefs.insert(name, x);
+                    },
+                    Err(_) => println!("Ignoring non-boolean/string/i64 preference value for {:?}", name),
+                }
             }
         }
     }
@@ -185,8 +190,12 @@ pub fn add_user_prefs() {
 fn init_user_prefs(path: &mut PathBuf) {
     path.push("prefs.json");
     if let Ok(file) = File::open(path) {
-        if let Ok(prefs) = read_prefs_from_file(file) {
-            PREFS.extend(prefs);
+        match read_prefs_from_file(file) {
+            Ok(x) => {
+                PREFS.extend(x);
+            },
+            Err(_) => writeln!(&mut stderr(), "Error with the values of the config file")
+                .expect("failed printing to stderr"),
         }
     } else {
     writeln!(&mut stderr(), "Error opening prefs.json from config directory")
@@ -194,17 +203,22 @@ fn init_user_prefs(path: &mut PathBuf) {
     }
 }
 
-fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
-    let mut path = try!(resources_dir_path().map_err(|_| ()));
+fn read_prefs() -> HashMap<String, Pref> {
+    let mut path = match resources_dir_path() {
+        Ok(p)  => { p }
+        Err(e) => { panic!("Error getting resource path: {:?}.", e) }
+    };
     path.push("prefs.json");
 
-    let file = try!(File::open(path).or_else(|e| {
-        writeln!(&mut stderr(), "Error opening preferences: {:?}.", e)
-            .expect("failed printing to stderr");
-        Err(())
-    }));
+    let file = match File::open(path) {
+        Ok(f)  => { f }
+        Err(e) => { panic!("Error opening preferences: {:?}.", e) }
+    };
 
-    read_prefs_from_file(file)
+    match read_prefs_from_file(file) {
+        Ok(p)  => { p }
+        Err(_) => { panic!("Error with the values of the config file") }
+    }
 }
 
 pub struct Preferences(Arc<RwLock<HashMap<String, Pref>>>);
