@@ -871,19 +871,17 @@ fn set_inline_position_of_child_flow(
 
             // Move over past the collapsed border.
             if reverse_column_order {
-                *inline_end_margin_edge = *inline_end_margin_edge +
-                    child_table_cell.collapsed_borders.inline_start_width
+                *inline_end_margin_edge += child_table_cell.collapsed_borders.inline_start_width;
             } else {
-                *inline_start_margin_edge = *inline_start_margin_edge +
-                    child_table_cell.collapsed_borders.inline_start_width
+                *inline_start_margin_edge += child_table_cell.collapsed_borders.inline_start_width;
             }
         }
         None => {
             // Take spacing into account.
             if reverse_column_order {
-                *inline_end_margin_edge = *inline_end_margin_edge + border_spacing.horizontal
+                *inline_end_margin_edge += border_spacing.horizontal;
             } else {
-                *inline_start_margin_edge = *inline_start_margin_edge + border_spacing.horizontal
+                *inline_start_margin_edge += border_spacing.horizontal;
             }
         }
     }
@@ -898,11 +896,11 @@ fn set_inline_position_of_child_flow(
         // Columns begin from the inline-end edge.
         kid_base.position.start.i =
             parent_content_inline_size - *inline_end_margin_edge - column_inline_size;
-        *inline_end_margin_edge = *inline_end_margin_edge + column_inline_size;
+        *inline_end_margin_edge += column_inline_size;
     } else {
         // Columns begin from the inline-start edge.
         kid_base.position.start.i = *inline_start_margin_edge;
-        *inline_start_margin_edge = *inline_start_margin_edge + column_inline_size;
+        *inline_start_margin_edge += column_inline_size;
     }
 }
 
