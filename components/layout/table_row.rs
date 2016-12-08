@@ -751,10 +751,6 @@ pub fn propagate_column_inline_sizes_to_child(
     //
     // FIXME(pcwalton): This seems inefficient. Reference count it instead?
     match child_flow.class() {
-        FlowClass::Table => {
-            let child_table_flow = child_flow.as_mut_table();
-            child_table_flow.column_computed_inline_sizes = column_computed_inline_sizes.to_vec();
-        }
         FlowClass::TableRowGroup => {
             let child_table_rowgroup_flow = child_flow.as_mut_table_rowgroup();
             child_table_rowgroup_flow.spacing = *border_spacing;
