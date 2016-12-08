@@ -491,12 +491,21 @@ impl Metadata {
 }
 
 /// The creator of a given cookie
-#[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
+#[derive(PartialEq, Clone, Deserialize, Serialize)]
 pub enum CookieSource {
     /// An HTTP API
-    HTTP,
+    HTTP(ServoUrl),
     /// A non-HTTP API
     NonHTTP,
+}
+
+impl CookieSource {
+    pub fn is_secure_protocol(&self) -> bool {
+        match *self {
+            CookieSource::HTTP(ref url) => url.scheme() == "https" || url.scheme() == "wss",
+            CookieSource::NonHTTP => false,
+        }
+    }
 }
 
 /// Messages sent in response to a `Load` message
