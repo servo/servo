@@ -223,6 +223,13 @@ version = "0.1.17"
 source = "git+https://github.com/browserhtml/browserhtml?branch=crate#aafbb0996b02d1fadd4713c96e3d22b542f175a1"
 
 [[package]]
+name = "build-apk"
+version = "0.0.1"
+dependencies = [
+ "walkdir 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "byteorder"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
