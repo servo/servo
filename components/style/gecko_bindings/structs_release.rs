@@ -1185,12 +1185,45 @@ pub mod root {
         pub mod gfx {
             #[allow(unused_imports)]
             use self::super::super::super::root;
+            pub type Float = f32;
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct Color {
+                pub r: root::mozilla::gfx::Float,
+                pub g: root::mozilla::gfx::Float,
+                pub b: root::mozilla::gfx::Float,
+                pub a: root::mozilla::gfx::Float,
+            }
+            #[test]
+            fn bindgen_test_layout_Color() {
+                assert_eq!(::std::mem::size_of::<Color>() , 16usize);
+                assert_eq!(::std::mem::align_of::<Color>() , 4usize);
+            }
+            impl Clone for Color {
+                fn clone(&self) -> Self { *self }
+            }
             #[repr(C)]
             #[derive(Debug, Copy)]
             pub struct SourceSurface {
                 pub _address: u8,
             }
             impl Clone for SourceSurface {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct DrawTarget {
+                pub _address: u8,
+            }
+            impl Clone for DrawTarget {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct Path {
+                pub _address: u8,
+            }
+            impl Clone for Path {
                 fn clone(&self) -> Self { *self }
             }
         }
@@ -3092,6 +3125,43 @@ pub mod root {
                        56usize);
             assert_eq!(::std::mem::align_of::<CounterStyleManager>() ,
                        8usize);
+        }
+        /**
+ * An DisplayItemClip represents the intersection of an optional rectangle
+ * with a list of rounded rectangles (which is often empty), all in appunits.
+ * It can represent everything CSS clipping can do to an element (except for
+ * SVG clip-path), including no clipping at all.
+ */
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct DisplayItemClip {
+            pub mClipRect: root::nsRect,
+            pub mRoundedClipRects: root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>,
+            pub mHaveClipRect: bool,
+        }
+        pub type DisplayItemClip_Color = root::mozilla::gfx::Color;
+        pub type DisplayItemClip_DrawTarget = root::mozilla::gfx::DrawTarget;
+        pub type DisplayItemClip_Path = root::mozilla::gfx::Path;
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct DisplayItemClip_RoundedRect {
+            pub mRect: root::nsRect,
+            pub mRadii: [root::nscoord; 8usize],
+        }
+        #[test]
+        fn bindgen_test_layout_DisplayItemClip_RoundedRect() {
+            assert_eq!(::std::mem::size_of::<DisplayItemClip_RoundedRect>() ,
+                       48usize);
+            assert_eq!(::std::mem::align_of::<DisplayItemClip_RoundedRect>() ,
+                       4usize);
+        }
+        impl Clone for DisplayItemClip_RoundedRect {
+            fn clone(&self) -> Self { *self }
+        }
+        #[test]
+        fn bindgen_test_layout_DisplayItemClip() {
+            assert_eq!(::std::mem::size_of::<DisplayItemClip>() , 32usize);
+            assert_eq!(::std::mem::align_of::<DisplayItemClip>() , 8usize);
         }
         /**
  * This struct represents a combined color from a numeric color and

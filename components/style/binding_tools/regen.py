@@ -99,6 +99,9 @@ COMPILATION_TARGETS = {
             "mozilla::LazyComputeBehavior",
             "mozilla::css::SheetParsingMode",
             "mozilla::SkipRootBehavior",
+            "mozilla::DisplayItemClip",  # Needed because bindgen generates
+                                         # specialization tests for this even
+                                         # though it shouldn't.
             ".*ThreadSafe.*Holder",
             "AnonymousContent",
             "AudioContext",
