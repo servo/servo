@@ -37,7 +37,7 @@ impl CookieStorage {
         let domain = reg_host(cookie.cookie.domain.as_ref().unwrap_or(&"".to_string()));
         let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
 
-        // Step 1
+        // Step 11.1
         let position = cookies.iter().position(|c| {
             c.cookie.domain == cookie.cookie.domain &&
             c.cookie.path == cookie.cookie.path &&
@@ -45,15 +45,16 @@ impl CookieStorage {
         });
 
         if let Some(ind) = position {
+            // Step 11.4
             let c = cookies.remove(ind);
 
             // http://tools.ietf.org/html/rfc6265#section-5.3 step 11.2
-            if !c.cookie.httponly || source == CookieSource::HTTP {
-                Ok(Some(c))
-            } else {
+            if c.cookie.httponly && source == CookieSource::NonHTTP {
                 // Undo the removal.
                 cookies.push(c);
                 Err(())
+            } else {
+                Ok(Some(c))
             }
         } else {
             Ok(None)
@@ -83,7 +84,7 @@ impl CookieStorage {
             cookies.retain(|c| !is_cookie_expired(&c));
             let new_len = cookies.len();
 
-            // https://datatracker.ietf.org/doc/draft-ietf-httpbis-cookie-alone
+            // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt
             if new_len == old_len && !evict_one_cookie(cookie.cookie.secure, cookies) {
                 return;
             }
@@ -159,6 +160,7 @@ impl CookieStorage {
         }))
     }
 }
+
 fn reg_host<'a>(url: &'a str) -> String {
     reg_suffix(url).to_string()
 }
