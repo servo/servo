@@ -55,7 +55,6 @@ extern crate fnv;
 #[cfg(feature = "gecko")] #[macro_use] pub mod gecko_string_cache;
 extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
-extern crate html5ever;
 #[cfg(feature = "servo")] #[macro_use] extern crate html5ever_atoms;
 #[allow(unused_extern_crates)]
 #[macro_use]

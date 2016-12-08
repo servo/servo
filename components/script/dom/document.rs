@@ -90,7 +90,6 @@ use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;
 use gfx_traits::ScrollRootId;
-use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use html5ever_atoms::{LocalName, QualName};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
@@ -124,7 +123,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
-use style::context::ReflowGoal;
+use style::context::{QuirksMode, ReflowGoal};
 use style::restyle_hints::RestyleHint;
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::str::{split_html_space_chars, str_join};
@@ -484,7 +483,7 @@ impl Document {
     pub fn set_quirks_mode(&self, mode: QuirksMode) {
         self.quirks_mode.set(mode);
 
-        if mode == Quirks {
+        if mode == QuirksMode::Quirks {
             self.window.layout_chan().send(Msg::SetQuirksMode).unwrap();
         }
     }
@@ -1857,7 +1856,7 @@ impl Document {
             last_modified: last_modified,
             url: DOMRefCell::new(url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
-            quirks_mode: Cell::new(NoQuirks),
+            quirks_mode: Cell::new(QuirksMode::NoQuirks),
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding: Cell::new(UTF_8),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
@@ -2195,8 +2194,8 @@ impl DocumentMethods for Document {
     // https://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(&self) -> DOMString {
         DOMString::from(match self.quirks_mode.get() {
-            LimitedQuirks | NoQuirks => "CSS1Compat",
-            Quirks => "BackCompat",
+            QuirksMode::LimitedQuirks | QuirksMode::NoQuirks => "CSS1Compat",
+            QuirksMode::Quirks => "BackCompat",
         })
     }
 

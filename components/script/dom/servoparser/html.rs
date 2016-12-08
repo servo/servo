@@ -34,6 +34,7 @@ use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::io::{self, Write};
+use style::context::QuirksMode as ServoQuirksMode;
 
 #[derive(HeapSizeOf, JSTraceable)]
 #[must_root]
@@ -187,6 +188,11 @@ impl<'a> TreeSink for Sink {
     }
 
     fn set_quirks_mode(&mut self, mode: QuirksMode) {
+        let mode = match mode {
+            QuirksMode::Quirks => ServoQuirksMode::Quirks,
+            QuirksMode::LimitedQuirks => ServoQuirksMode::LimitedQuirks,
+            QuirksMode::NoQuirks => ServoQuirksMode::NoQuirks,
+        };
         self.document.set_quirks_mode(mode);
     }
 

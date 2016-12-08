@@ -9,7 +9,6 @@ use app_units::Au;
 use dom::OpaqueNode;
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
-use html5ever::tree_builder::QuirksMode;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
 use std::cell::RefCell;
@@ -30,6 +29,14 @@ impl LocalStyleContextCreationInfo {
             new_animations_sender: animations_sender,
         }
     }
+}
+
+#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum QuirksMode {
+    Quirks,
+    LimitedQuirks,
+    NoQuirks,
 }
 
 pub struct SharedStyleContext {

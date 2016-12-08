@@ -40,7 +40,6 @@ use dom::node::{CAN_BE_FRAGMENTED, DIRTY_ON_VIEWPORT_SIZE_CHANGE, HAS_DIRTY_DESC
 use dom::node::{LayoutNodeHelpers, Node};
 use dom::text::Text;
 use gfx_traits::ByteIndex;
-use html5ever::tree_builder::QuirksMode;
 use html5ever_atoms::{LocalName, Namespace};
 use msg::constellation_msg::PipelineId;
 use parking_lot::RwLock;
@@ -62,7 +61,7 @@ use std::sync::atomic::Ordering;
 use style::atomic_refcell::AtomicRefCell;
 use style::attr::AttrValue;
 use style::computed_values::display;
-use style::context::SharedStyleContext;
+use style::context::{QuirksMode, SharedStyleContext};
 use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TElement, TNode};
 use style::dom::UnsafeNode;
