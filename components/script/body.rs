@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::Root;
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::str::USVString;
 use dom::blob::{Blob, BlobImpl};
 use dom::formdata::FormData;
@@ -41,7 +41,7 @@ pub enum FetchedData {
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
-pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: BodyType) -> Rc<Promise> {
+pub fn consume_body<T: BodyOperations + DomObject>(object: &T, body_type: BodyType) -> Rc<Promise> {
     let promise = Promise::new(&object.global());
 
     // Step 1
@@ -63,9 +63,9 @@ pub fn consume_body<T: BodyOperations + Reflectable>(object: &T, body_type: Body
 
 // https://fetch.spec.whatwg.org/#concept-body-consume-body
 #[allow(unrooted_must_root)]
-pub fn consume_body_with_promise<T: BodyOperations + Reflectable>(object: &T,
-                                                                  body_type: BodyType,
-                                                                  promise: &Promise) {
+pub fn consume_body_with_promise<T: BodyOperations + DomObject>(object: &T,
+                                                                body_type: BodyType,
+                                                                promise: &Promise) {
     // Step 5
     let body = match object.take_body() {
         Some(body) => body,
@@ -93,11 +93,11 @@ pub fn consume_body_with_promise<T: BodyOperations + Reflectable>(object: &T,
 
 // https://fetch.spec.whatwg.org/#concept-body-package-data
 #[allow(unsafe_code)]
-fn run_package_data_algorithm<T: BodyOperations + Reflectable>(object: &T,
-                                                               bytes: Vec<u8>,
-                                                               body_type: BodyType,
-                                                               mime_type: Ref<Vec<u8>>)
-                                                               -> Fallible<FetchedData> {
+fn run_package_data_algorithm<T: BodyOperations + DomObject>(object: &T,
+                                                             bytes: Vec<u8>,
+                                                             body_type: BodyType,
+                                                             mime_type: Ref<Vec<u8>>)
+                                                             -> Fallible<FetchedData> {
     let global = object.global();
     let cx = global.get_cx();
     let mime = &*mime_type;

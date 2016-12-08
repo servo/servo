@@ -35,7 +35,7 @@ use syntax::symbol::Symbol;
 /// Handles the auto-deriving for `#[derive(JSTraceable)]`
 pub mod jstraceable;
 pub mod lints;
-/// Autogenerates implementations of Reflectable on DOM structs
+/// Autogenerates implementations of DomObject on DOM structs
 pub mod reflector;
 /// Utilities for writing plugins
 mod utils;

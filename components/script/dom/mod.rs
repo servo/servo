@@ -126,7 +126,7 @@
 //! not allowed. In particular, any mutable fields use `Cell` or `DOMRefCell`
 //! to manage their mutability.
 //!
-//! `Reflector` and `Reflectable`
+//! `Reflector` and `DomObject`
 //! =============================
 //!
 //! Every DOM object has a `Reflector` as its first (transitive) member field.
@@ -136,7 +136,7 @@
 //! the DOM object in the reflector, and initializes the pointer to the reflector
 //! in the `Reflector` field.
 //!
-//! The `Reflectable` trait provides a `reflector()` method that returns the
+//! The `DomObject` trait provides a `reflector()` method that returns the
 //! DOM object's `Reflector`. It is implemented automatically for DOM structs
 //! through the `#[dom_struct]` attribute.
 //!

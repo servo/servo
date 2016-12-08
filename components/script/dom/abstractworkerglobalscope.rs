@@ -4,7 +4,7 @@
 
 use dom::abstractworker::WorkerScriptMsg;
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::trace::JSTraceable;
 use script_runtime::{ScriptChan, CommonScriptMsg, ScriptPort};
 use std::sync::mpsc::{Receiver, Sender};
@@ -13,12 +13,12 @@ use std::sync::mpsc::{Receiver, Sender};
 /// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
 /// Worker object will remain alive.
 #[derive(JSTraceable, Clone)]
-pub struct SendableWorkerScriptChan<T: Reflectable> {
+pub struct SendableWorkerScriptChan<T: DomObject> {
     pub sender: Sender<(Trusted<T>, CommonScriptMsg)>,
     pub worker: Trusted<T>,
 }
 
-impl<T: JSTraceable + Reflectable + 'static> ScriptChan for SendableWorkerScriptChan<T> {
+impl<T: JSTraceable + DomObject + 'static> ScriptChan for SendableWorkerScriptChan<T> {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         self.sender.send((self.worker.clone(), msg)).map_err(|_| ())
     }
@@ -35,12 +35,12 @@ impl<T: JSTraceable + Reflectable + 'static> ScriptChan for SendableWorkerScript
 /// worker event loop messages. While this SendableWorkerScriptChan is alive, the associated
 /// Worker object will remain alive.
 #[derive(JSTraceable, Clone)]
-pub struct WorkerThreadWorkerChan<T: Reflectable> {
+pub struct WorkerThreadWorkerChan<T: DomObject> {
     pub sender: Sender<(Trusted<T>, WorkerScriptMsg)>,
     pub worker: Trusted<T>,
 }
 
-impl<T: JSTraceable + Reflectable + 'static> ScriptChan for WorkerThreadWorkerChan<T> {
+impl<T: JSTraceable + DomObject + 'static> ScriptChan for WorkerThreadWorkerChan<T> {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
         self.sender
             .send((self.worker.clone(), WorkerScriptMsg::Common(msg)))
@@ -55,7 +55,7 @@ impl<T: JSTraceable + Reflectable + 'static> ScriptChan for WorkerThreadWorkerCh
     }
 }
 
-impl<T: Reflectable> ScriptPort for Receiver<(Trusted<T>, WorkerScriptMsg)> {
+impl<T: DomObject> ScriptPort for Receiver<(Trusted<T>, WorkerScriptMsg)> {
     fn recv(&self) -> Result<CommonScriptMsg, ()> {
         match self.recv().map(|(_, msg)| msg) {
             Ok(WorkerScriptMsg::Common(script_msg)) => Ok(script_msg),

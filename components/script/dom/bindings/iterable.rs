@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndVal
 use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, Reflectable, MutReflectable, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, DomObject, MutDomObject, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use js::conversions::ToJSValConvertible;
@@ -52,36 +52,36 @@ pub trait Iterable {
 #[privatize]
 #[derive(JSTraceable)]
 #[derive(HeapSizeOf)]
-pub struct IterableIterator<T: Reflectable + JSTraceable + Iterable> {
+pub struct IterableIterator<T: DomObject + JSTraceable + Iterable> {
     reflector: Reflector,
     iterable: JS<T>,
     type_: IteratorType,
     index: Cell<u32>,
 }
 
-impl<T: Reflectable + JSTraceable + Iterable> Reflectable for IterableIterator<T> {
+impl<T: DomObject + JSTraceable + Iterable> DomObject for IterableIterator<T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         &self.reflector
     }
 }
 
-impl<T: Reflectable + JSTraceable + Iterable> MutReflectable for IterableIterator<T> {
+impl<T: DomObject + JSTraceable + Iterable> MutDomObject for IterableIterator<T> {
     fn init_reflector(&mut self, obj: *mut JSObject) {
         self.reflector.set_jsobject(obj);
     }
 }
 
-impl<T: Reflectable + JSTraceable + Iterable> ToJSValConvertible for IterableIterator<T> {
+impl<T: DomObject + JSTraceable + Iterable> ToJSValConvertible for IterableIterator<T> {
     #[allow(unsafe_code)]
     unsafe fn to_jsval(&self,
                        cx: *mut JSContext,
                        rval: MutableHandleValue) {
-        let object = Reflectable::reflector(self).get_jsobject();
+        let object = DomObject::reflector(self).get_jsobject();
         object.to_jsval(cx, rval)
     }
 }
 
-impl<T: Reflectable + JSTraceable + Iterable> IterableIterator<T> {
+impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     /// Create a new iterator instance for the provided iterable DOM interface.
     pub fn new(iterable: &T,
                type_: IteratorType,

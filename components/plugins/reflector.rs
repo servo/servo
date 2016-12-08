@@ -25,14 +25,14 @@ pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, annotatable:
                 Some(f) => {
                     let field_name = f.ident;
                     let impl_item = quote_item!(cx,
-                        impl ::dom::bindings::reflector::Reflectable for $struct_name {
+                        impl ::dom::bindings::reflector::DomObject for $struct_name {
                             fn reflector<'a>(&'a self) -> &'a ::dom::bindings::reflector::Reflector {
                                 &self.$field_name
                             }
                         }
                     );
                     let impl_item_mut = quote_item!(cx,
-                        impl ::dom::bindings::reflector::MutReflectable for $struct_name {
+                        impl ::dom::bindings::reflector::MutDomObject for $struct_name {
                             fn init_reflector(&mut self, obj: *mut ::js::jsapi::JSObject) {
                                 self.$field_name.set_jsobject(obj);
                             }
@@ -45,14 +45,14 @@ pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, annotatable:
                 None => {
                     let field_name = def.fields()[0].ident;
                     let impl_item = quote_item!(cx,
-                        impl ::dom::bindings::reflector::Reflectable for $struct_name {
+                        impl ::dom::bindings::reflector::DomObject for $struct_name {
                             fn reflector<'a>(&'a self) -> &'a ::dom::bindings::reflector::Reflector {
                                 self.$field_name.reflector()
                             }
                         }
                     );
                     let impl_item_mut = quote_item!(cx,
-                        impl ::dom::bindings::reflector::MutReflectable for $struct_name {
+                        impl ::dom::bindings::reflector::MutDomObject for $struct_name {
                             fn init_reflector(&mut self, obj: *mut ::js::jsapi::JSObject) {
                                 self.$field_name.init_reflector(obj);
                             }
@@ -69,7 +69,7 @@ pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, annotatable:
                     unsafe fn to_jsval(&self,
                                        cx: *mut ::js::jsapi::JSContext,
                                        rval: ::js::jsapi::MutableHandleValue) {
-                        let object = ::dom::bindings::reflector::Reflectable::reflector(self).get_jsobject();
+                        let object = ::dom::bindings::reflector::DomObject::reflector(self).get_jsobject();
                         object.to_jsval(cx, rval)
                     }
                 }

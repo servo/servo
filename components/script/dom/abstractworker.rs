@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::structuredclone::StructuredCloneData;
 use js::jsapi::{JSRuntime, JS_RequestInterruptCallback};
 use js::rust::Runtime;
@@ -17,11 +17,11 @@ pub enum WorkerScriptMsg {
     DOMMessage(StructuredCloneData)
 }
 
-pub struct SimpleWorkerErrorHandler<T: Reflectable> {
+pub struct SimpleWorkerErrorHandler<T: DomObject> {
     pub addr: Trusted<T>,
 }
 
-impl<T: Reflectable> SimpleWorkerErrorHandler<T> {
+impl<T: DomObject> SimpleWorkerErrorHandler<T> {
     pub fn new(addr: Trusted<T>) -> SimpleWorkerErrorHandler<T> {
         SimpleWorkerErrorHandler {
             addr: addr

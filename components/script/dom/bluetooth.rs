@@ -17,7 +17,7 @@ use dom::bindings::error::Error::{self, NotFound, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
-use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothdevice::BluetoothDevice;
@@ -53,7 +53,7 @@ const SERVICE_ERROR: &'static str = "'services', if present, must contain at lea
 const OPTIONS_ERROR: &'static str = "Fields of 'options' conflict with each other.
  Either 'acceptAllDevices' member must be true, or 'filters' member must be set to a value.";
 
-struct BluetoothContext<T: AsyncBluetoothListener + Reflectable> {
+struct BluetoothContext<T: AsyncBluetoothListener + DomObject> {
     promise: Option<TrustedPromise>,
     receiver: Trusted<T>,
 }
@@ -62,9 +62,9 @@ pub trait AsyncBluetoothListener {
     fn handle_response(&self, result: BluetoothResponse, cx: *mut JSContext, promise: &Rc<Promise>);
 }
 
-impl<Listener: AsyncBluetoothListener + Reflectable> PreInvoke for BluetoothContext<Listener> {}
+impl<Listener: AsyncBluetoothListener + DomObject> PreInvoke for BluetoothContext<Listener> {}
 
-impl<Listener: AsyncBluetoothListener + Reflectable> BluetoothResponseListener for BluetoothContext<Listener> {
+impl<Listener: AsyncBluetoothListener + DomObject> BluetoothResponseListener for BluetoothContext<Listener> {
     #[allow(unrooted_must_root)]
     fn response(&mut self, response: BluetoothResponseResult) {
         let promise = self.promise.take().expect("bt promise is missing").root();
@@ -174,7 +174,7 @@ impl Bluetooth {
     }
 }
 
-pub fn response_async<T: AsyncBluetoothListener + Reflectable + 'static>(
+pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
         promise: &Rc<Promise>,
         receiver: &T) -> IpcSender<BluetoothResponseResult> {
     let (action_sender, action_receiver) = ipc::channel().unwrap();

@@ -18,7 +18,7 @@ use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::errorevent::ErrorEvent;
@@ -142,10 +142,10 @@ pub enum CompiledEventListener {
 impl CompiledEventListener {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
-    pub fn call_or_handle_event<T: Reflectable>(&self,
-                                                object: &T,
-                                                event: &Event,
-                                                exception_handle: ExceptionHandling) {
+    pub fn call_or_handle_event<T: DomObject>(&self,
+                                              object: &T,
+                                              event: &Event,
+                                              exception_handle: ExceptionHandling) {
         // Step 3
         match *self {
             CompiledEventListener::Listener(ref listener) => {

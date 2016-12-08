@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMRespon
 use dom::bindings::error::Error;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::globalscope::GlobalScope;
 use dom::headers::Guard;
 use dom::promise::Promise;

@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::Bluetoot
 use dom::bindings::error::Error::{self, Network, Security};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JS, MutHeap, Root};
-use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};

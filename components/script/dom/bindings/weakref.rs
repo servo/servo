@@ -13,7 +13,7 @@
 
 use core::nonzero::NonZero;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::trace::JSTraceable;
 use heapsize::HeapSizeOf;
 use js::jsapi::{JSTracer, JS_GetReservedSlot, JS_SetReservedSlot};
@@ -46,7 +46,7 @@ pub struct WeakBox<T: WeakReferenceable> {
 }
 
 /// Trait implemented by weak-referenceable interfaces.
-pub trait WeakReferenceable: Reflectable + Sized {
+pub trait WeakReferenceable: DomObject + Sized {
     /// Downgrade a DOM object reference to a weak one.
     fn downgrade(&self) -> WeakRef<Self> {
         unsafe {

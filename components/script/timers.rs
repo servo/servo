@@ -5,7 +5,7 @@
 use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::reflector::Reflectable;
+use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::eventsource::EventSourceTimeoutCallback;
 use dom::globalscope::GlobalScope;
@@ -64,7 +64,7 @@ struct OneshotTimer {
 
 // This enum is required to work around the fact that trait objects do not support generic methods.
 // A replacement trait would have a method such as
-//     `invoke<T: Reflectable>(self: Box<Self>, this: &T, js_timers: &JsTimers);`.
+//     `invoke<T: DomObject>(self: Box<Self>, this: &T, js_timers: &JsTimers);`.
 #[derive(JSTraceable, HeapSizeOf)]
 pub enum OneshotTimerCallback {
     XhrTimeout(XHRTimeoutCallback),
@@ -74,7 +74,7 @@ pub enum OneshotTimerCallback {
 }
 
 impl OneshotTimerCallback {
-    fn invoke<T: Reflectable>(self, this: &T, js_timers: &JsTimers) {
+    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers) {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
@@ -482,7 +482,7 @@ fn clamp_duration(nesting_level: u32, unclamped: MsDuration) -> MsDuration {
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     #[allow(unsafe_code)]
-    pub fn invoke<T: Reflectable>(self, this: &T, timers: &JsTimers) {
+    pub fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers) {
         // step 4.1 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 
