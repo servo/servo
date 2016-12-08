@@ -420,7 +420,8 @@ impl Flow for TableWrapperFlow {
                         child_flow,
                         writing_mode,
                         assigned_column_inline_sizes,
-                        &border_spacing);
+                        &border_spacing,
+                        &mut vec![]);
                 })
             }
         }
