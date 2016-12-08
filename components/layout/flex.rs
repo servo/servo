@@ -19,7 +19,7 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
 use gfx_traits::ScrollRootId;
 use layout_debug;
-use model::{IntrinsicISizes, MaybeAuto, MinMaxConstraint};
+use model::{IntrinsicISizes, MaybeAuto, SizeConstraint};
 use model::{specified, specified_or_none};
 use std::cmp::{max, min};
 use std::ops::Range;
@@ -38,7 +38,7 @@ use style::values::computed::{LengthOrPercentageOrAutoOrContent, LengthOrPercent
 #[derive(Debug)]
 enum AxisSize {
     Definite(Au),
-    MinMax(MinMaxConstraint),
+    MinMax(SizeConstraint),
     Infinite,
 }
 
@@ -62,7 +62,7 @@ impl AxisSize {
                 }
             }
             LengthOrPercentageOrAuto::Auto => {
-                AxisSize::MinMax(MinMaxConstraint::new(content_size, min, max))
+                AxisSize::MinMax(SizeConstraint::new(content_size, min, max, None))
             }
         }
     }

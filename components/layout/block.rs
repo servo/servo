@@ -670,16 +670,16 @@ impl BlockFlow {
 
     /// Return true if this has a replaced fragment.
     ///
-    /// Text, Images, Inline Block and Canvas
+    /// Iframe, Images, SVG and Canvas
     /// (https://html.spec.whatwg.org/multipage/#replaced-elements) fragments are considered as
     /// replaced fragments.
     fn is_replaced_content(&self) -> bool {
         match self.fragment.specific {
-            SpecificFragmentInfo::ScannedText(_) |
             SpecificFragmentInfo::Svg(_) |
             SpecificFragmentInfo::Image(_) |
             SpecificFragmentInfo::Canvas(_) |
-            SpecificFragmentInfo::InlineBlock(_) => true,
+            SpecificFragmentInfo::Iframe(_) => true,
+            SpecificFragmentInfo::ScannedText(_) => panic!("A block that is also a text fragment!"),
             _ => false,
         }
     }
@@ -1271,7 +1271,7 @@ impl BlockFlow {
                 // Calculate used value of block-size just like we do for inline replaced elements.
                 // TODO: Pass in the containing block block-size when Fragment's
                 // assign-block-size can handle it correctly.
-                self.fragment.assign_replaced_block_size_if_necessary(Some(containing_block_block_size));
+                self.fragment.assign_replaced_block_size_if_necessary();
                 // TODO: Right now, this content block-size value includes the
                 // margin because of erroneous block-size calculation in fragment.
                 // Check this when that has been fixed.
@@ -1901,9 +1901,7 @@ impl Flow for BlockFlow {
                                              self.base.debug_id());
 
             // Assign block-size for fragment if it is an image fragment.
-            let containing_block_block_size =
-                self.base.block_container_explicit_block_size;
-            self.fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
+            self.fragment.assign_replaced_block_size_if_necessary();
             if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 self.base.position.size.block = self.fragment.border_box.size.block;
                 self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
@@ -2870,7 +2868,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size, container_block_size);
         // For replaced absolute flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        MaybeAuto::Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_box().size.inline)
     }
 
     fn containing_block_inline_size(&self,
@@ -2929,7 +2927,7 @@ impl ISizeAndMarginsComputer for BlockReplaced {
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        MaybeAuto::Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_box().size.inline)
     }
 
 }
@@ -2987,7 +2985,7 @@ impl ISizeAndMarginsComputer for FloatReplaced {
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        MaybeAuto::Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_box().size.inline)
     }
 }
 
@@ -3075,7 +3073,7 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        MaybeAuto::Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_box().size.inline)
     }
 }
 
