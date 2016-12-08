@@ -50,6 +50,139 @@ ${helpers.single_keyword("image-rendering",
                          custom_consts=image_rendering_custom_consts,
                          animatable=False)}
 
+// Image Orientation
+// https://drafts.csswg.org/css-images/#the-image-orientation
+<%helpers:longhand name="image-orientation"
+                   products="None"
+                   animatable="False">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::specified::Angle;
+
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    use std::f32::consts::PI;
+    use values::CSSFloat;
+    const TWO_PI: CSSFloat = 2.0*PI;
+
+    #[derive(Clone, PartialEq, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue {
+        pub angle: Option<Angle>,
+        pub flipped: bool
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if let Some(angle) = self.angle {
+                try!(angle.to_css(dest));
+                if self.flipped {
+                    dest.write_str(" flipped")
+                } else {
+                    Ok(())
+                }
+            } else {
+                if self.flipped {
+                    dest.write_str("flipped")
+                } else {
+                    dest.write_str("from-image")
+                }
+            }
+        }
+    }
+
+    pub mod computed_value {
+        use values::specified::Angle;
+
+        #[derive(Clone, PartialEq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum T {
+            FromImage,
+            AngleWithFlipped(Angle, bool),
+        }
+    }
+
+    const INITIAL_ANGLE: Angle = Angle(0.0);
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::AngleWithFlipped(INITIAL_ANGLE, false)
+    }
+
+    // According to CSS Content Module Level 3:
+    // The computed value of the property is calculated by rounding the specified angle
+    // to the nearest quarter-turn, rounding away from 0, then moduloing the value by 1 turn.
+    #[inline]
+    fn normalize_angle(angle: &Angle) -> Angle {
+        let radians = angle.radians();
+        let rounded_quarter_turns = (4.0 * radians / TWO_PI).round();
+        let normalized_quarter_turns = (rounded_quarter_turns % 4.0 + 4.0) % 4.0;
+        let normalized_radians = normalized_quarter_turns/4.0 * TWO_PI;
+        Angle::from_radians(normalized_radians)
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
+            if let Some(ref angle) = self.angle {
+                let normalized_angle = normalize_angle(angle);
+                computed_value::T::AngleWithFlipped(normalized_angle, self.flipped)
+            } else {
+                if self.flipped {
+                    computed_value::T::AngleWithFlipped(INITIAL_ANGLE, true)
+                } else {
+                    computed_value::T::FromImage
+                }
+            }
+        }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T::FromImage => SpecifiedValue { angle: None, flipped: false },
+                computed_value::T::AngleWithFlipped(angle, flipped) =>
+                    SpecifiedValue { angle: Some(angle), flipped: flipped },
+            }
+        }
+    }
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                computed_value::T::FromImage => dest.write_str("from-image"),
+                computed_value::T::AngleWithFlipped(angle, flipped) => {
+                    try!(angle.to_css(dest));
+                    if flipped {
+                        try!(dest.write_str(" flipped"));
+                    }
+                    Ok(())
+                },
+            }
+        }
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("from-image")).is_ok() {
+            // Handle from-image
+            Ok(SpecifiedValue { angle: None, flipped: false })
+        } else {
+            // Handle <angle> | <angle>? flip
+            let angle = input.try(|input| Angle::parse(context, input)).ok();
+            let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();
+            let explicit_angle = if angle.is_none() && !flipped {
+                Some(INITIAL_ANGLE)
+            } else {
+                angle
+            };
+
+            Ok(SpecifiedValue { angle: explicit_angle, flipped: flipped })
+        }
+    }
+</%helpers:longhand>
+
 // Used in the bottom-up flow construction traversal to avoid constructing flows for
 // descendants of nodes with `display: none`.
 <%helpers:longhand name="-servo-under-display-none"

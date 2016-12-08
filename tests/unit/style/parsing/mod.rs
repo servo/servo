@@ -52,6 +52,7 @@ mod basic_shape;
 mod border;
 mod font;
 mod image;
+mod inherited_box;
 mod inherited_text;
 mod mask;
 mod position;
