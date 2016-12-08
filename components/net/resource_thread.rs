@@ -312,7 +312,7 @@ impl CoreResourceManager {
                           resource_group: &ResourceGroup) {
         if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
             let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
-            cookie_jar.push(cookie, source)
+            cookie_jar.push(cookie, request, source)
         }
     }
 

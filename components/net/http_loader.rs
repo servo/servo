@@ -281,7 +281,7 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
     if let Ok(SetCookie(cookies)) = header {
         for bare_cookie in cookies {
             if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, request, source) {
-                cookie_jar.push(cookie, source);
+                cookie_jar.push(cookie, request, source);
             }
         }
     }
