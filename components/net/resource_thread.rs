@@ -14,7 +14,6 @@ use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
 use http_loader::HttpState;
 use hyper::client::pool::Pool;
-use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use net_traits::{CookieSource, CoreResourceThread};
@@ -159,10 +158,13 @@ impl ResourceChannelManager {
                 self.resource_manager.fetch(init, sender, group),
             CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                 self.resource_manager.websocket_connect(connect, connect_data, group),
-            CoreResourceMsg::SetCookiesForUrl(request, cookie_list, source) =>
-                self.resource_manager.set_cookies_for_url(request, cookie_list, source, group),
-            CoreResourceMsg::SetCookiesForUrlWithData(request, cookie, source) =>
-                self.resource_manager.set_cookies_for_url_with_data(request, cookie, source, group),
+            CoreResourceMsg::SetCookieForUrl(request, cookie, source) =>
+                self.resource_manager.set_cookie_for_url(&request, cookie, source, group),
+            CoreResourceMsg::SetCookiesForUrl(request, cookies, source) => {
+                for cookie in cookies {
+                    self.resource_manager.set_cookie_for_url(&request, cookie.0, source, group);
+                }
+            }
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                 let mut cookie_jar = group.cookie_jar.write().unwrap();
                 consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
@@ -306,24 +308,8 @@ impl CoreResourceManager {
         }
     }
 
-    fn set_cookies_for_url(&mut self,
-                           request: ServoUrl,
-                           cookie_list: String,
-                           source: CookieSource,
-                           resource_group: &ResourceGroup) {
-        let header = Header::parse_header(&[cookie_list.into_bytes()]);
-        if let Ok(SetCookie(cookies)) = header {
-            for bare_cookie in cookies {
-                if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
-                    let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
-                    cookie_jar.push(cookie, source);
-                }
-            }
-        }
-    }
-
-    fn set_cookies_for_url_with_data(&mut self, request: ServoUrl, cookie: cookie_rs::Cookie, source: CookieSource,
-                                     resource_group: &ResourceGroup) {
+    fn set_cookie_for_url(&mut self, request: &ServoUrl, cookie: cookie_rs::Cookie, source: CookieSource,
+                          resource_group: &ResourceGroup) {
         if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
             let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
             cookie_jar.push(cookie, source)

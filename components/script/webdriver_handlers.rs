@@ -31,7 +31,7 @@ use js::jsapi::{HandleValue, JSContext};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use net_traits::CookieSource::{HTTP, NonHTTP};
-use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookiesForUrlWithData};
+use net_traits::CoreResourceMsg::{GetCookiesDataForUrl, SetCookieForUrl};
 use net_traits::IpcSend;
 use script_thread::Documents;
 use script_traits::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
@@ -243,14 +243,14 @@ pub fn handle_add_cookie(documents: &Documents,
         (true, _) => Err(WebDriverCookieError::InvalidDomain),
         (false, Some(ref domain)) if url.host_str().map(|x| { x == &**domain }).unwrap_or(false) => {
             let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
-                SetCookiesForUrlWithData(url, cookie, method)
-                );
+                SetCookieForUrl(url, cookie, method)
+            );
             Ok(())
         },
         (false, None) => {
             let _ = document.window().upcast::<GlobalScope>().resource_threads().send(
-                SetCookiesForUrlWithData(url, cookie, method)
-                );
+                SetCookieForUrl(url, cookie, method)
+            );
             Ok(())
         },
         (_, _) => {

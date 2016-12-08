@@ -93,6 +93,8 @@ use euclid::point::Point2D;
 use gfx_traits::ScrollRootId;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use html5ever_atoms::{LocalName, QualName};
+use hyper::header::{Header, SetCookie};
+use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
@@ -2960,11 +2962,15 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
 
-        let url = self.url();
-        let _ = self.window
-                    .upcast::<GlobalScope>()
-                    .resource_threads()
-                    .send(SetCookiesForUrl(url, String::from(cookie), NonHTTP));
+        let header = Header::parse_header(&[cookie.into()]);
+        if let Ok(SetCookie(cookies)) = header {
+            let cookies = cookies.into_iter().map(Serde).collect();
+            let _ = self.window
+                        .upcast::<GlobalScope>()
+                        .resource_threads()
+                        .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
+        }
+
         Ok(())
     }
 
