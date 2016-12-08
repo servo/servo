@@ -21,6 +21,7 @@ use net_traits::response::{Response, ResponseBody, ResponseType};
 use std::borrow::Cow;
 use std::fs::File;
 use std::io::Read;
+use std::mem;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, Receiver};
 
@@ -154,15 +155,27 @@ pub fn main_fetch(request: Rc<Request>,
     request.referrer_policy.set(Some(referrer_policy));
 
     // Step 8
-    if *request.referrer.borrow() != Referrer::NoReferrer {
-        // remove Referrer headers set in past redirects/preflights
-        // this stops the assertion in determine_request_referrer from failing
-        request.headers.borrow_mut().remove::<RefererHeader>();
-        let referrer_url = determine_request_referrer(&mut *request.headers.borrow_mut(),
-                                                      referrer_policy,
-                                                      request.referrer.borrow_mut().take(),
-                                                      request.current_url().clone());
-        *request.referrer.borrow_mut() = Referrer::from_url(referrer_url);
+    {
+        let mut referrer = request.referrer.borrow_mut();
+        let referrer_url = match mem::replace(&mut *referrer, Referrer::NoReferrer) {
+            Referrer::NoReferrer => None,
+            Referrer::Client => {
+                // FIXME(#14507): We should never get this value here; it should
+                //                already have been handled in the script thread.
+                request.headers.borrow_mut().remove::<RefererHeader>();
+                None
+            },
+            Referrer::ReferrerUrl(url) => {
+                request.headers.borrow_mut().remove::<RefererHeader>();
+                determine_request_referrer(&mut *request.headers.borrow_mut(),
+                                           referrer_policy,
+                                           url,
+                                           request.current_url().clone())
+            }
+        };
+        if let Some(referrer_url) = referrer_url {
+            *referrer = Referrer::ReferrerUrl(referrer_url);
+        }
     }
 
     // Step 9
