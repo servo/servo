@@ -190,3 +190,15 @@ partial interface Document {
 partial interface Document {
   [SameObject] readonly attribute StyleSheetList styleSheets;
 };
+
+// https://fullscreen.spec.whatwg.org/#api
+partial interface Document {
+  [LenientSetter] readonly attribute boolean fullscreenEnabled;
+  [LenientSetter] readonly attribute Element? fullscreenElement;
+  [LenientSetter] readonly attribute boolean fullscreen; // historical
+
+  Promise<void> exitFullscreen();
+
+  attribute EventHandler onfullscreenchange;
+  attribute EventHandler onfullscreenerror;
+};
