@@ -5,12 +5,15 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from __future__ import print_function
+
+import re
 import os
 import sys
 import argparse
 import platform
 import copy
 import subprocess
+import fileinput
 
 import regen_atoms
 
@@ -23,7 +26,6 @@ COMPILATION_TARGETS = {
     COMMON_BUILD_KEY: {
         "flags": [
             "--no-unstable-rust",
-            "--disable-name-namespacing",
         ],
         "clang_flags": [
             "-x", "c++", "-std=c++14",
@@ -43,6 +45,13 @@ COMPILATION_TARGETS = {
     "structs": {
         "target_dir": "../gecko_bindings",
         "flags": [
+            "--enable-cxx-namespaces",
+            # FIXME(emilio): Incrementally remove these. Probably mozilla::css
+            # and mozilla::dom are easier.
+            "--raw-line", "pub use self::root::*;",
+            "--raw-line", "pub use self::root::mozilla::*;",
+            "--raw-line", "pub use self::root::mozilla::css::*;",
+            "--raw-line", "pub use self::root::mozilla::dom::*;",
             "--generate", "types,vars",
         ],
         "includes": [
@@ -69,7 +78,6 @@ COMPILATION_TARGETS = {
         "raw_lines": [
             "use atomic_refcell::AtomicRefCell;",
             "use data::ElementData;",
-            "pub use nsstring::nsStringRepr as nsString;"
         ],
         "blacklist_types": [
             "nsString",
@@ -86,15 +94,19 @@ COMPILATION_TARGETS = {
         ],
         "whitelist": [
             "RawGecko.*",
-            "mozilla_ServoElementSnapshot.*",
-            "mozilla_ConsumeStyleBehavior",
-            "mozilla_LazyComputeBehavior",
-            "mozilla_css_SheetParsingMode",
-            "mozilla_SkipRootBehavior",
+            "mozilla::ServoElementSnapshot.*",
+            "mozilla::ConsumeStyleBehavior",
+            "mozilla::LazyComputeBehavior",
+            "mozilla::css::SheetParsingMode",
+            "mozilla::SkipRootBehavior",
+            "mozilla::DisplayItemClip",  # Needed because bindgen generates
+                                         # specialization tests for this even
+                                         # though it shouldn't.
             ".*ThreadSafe.*Holder",
             "AnonymousContent",
             "AudioContext",
             "CapturingContentInfo",
+            "ConsumeStyleBehavior",
             "DefaultDelete",
             "DOMIntersectionObserverEntry",
             "Element",
@@ -110,6 +122,7 @@ COMPILATION_TARGETS = {
             "GridNamedArea",
             "Image",
             "ImageURL",
+            "LazyComputeBehavior",
             "nsAttrName",
             "nsAttrValue",
             "nsBorderColors",
@@ -184,7 +197,7 @@ COMPILATION_TARGETS = {
             "ServoAttrSnapshot",
             "ServoElementSnapshot",
             "SheetParsingMode",
-            "mozilla_Side",
+            "Side",
             "StaticRefPtr",
             "StyleAnimation",
             "StyleBasicShape",
@@ -192,7 +205,8 @@ COMPILATION_TARGETS = {
             "StyleClipPath",
             "StyleClipPathGeometryBox",
             "StyleTransition",
-            "UniquePtr",
+            "mozilla::UniquePtr",
+            "mozilla::DefaultDelete",
         ],
         "bitfield_enum_types": ["nsChangeHint", "nsRestyleHint"],
         "opaque_types": [
@@ -205,12 +219,12 @@ COMPILATION_TARGETS = {
             "RefPtr_Proxy_member_function",
             "nsAutoPtr_Proxy",
             "nsAutoPtr_Proxy_member_function",
-            "mozilla_detail_PointerType",
-            "mozilla_Pair_Base",
-            "mozilla_SupportsWeakPtr",
+            "mozilla::detail::PointerType",
+            "mozilla::Pair_Base",
+            "mozilla::SupportsWeakPtr",
             "SupportsWeakPtr",
-            "mozilla_detail_WeakReference",
-            "mozilla_WeakPtr",
+            "mozilla::detail::WeakReference",
+            "mozilla::WeakPtr",
             "nsWritingIterator_reference", "nsReadingIterator_reference",
             "nsTObserverArray",  # <- Inherits from nsAutoTObserverArray<T, 0>
             "nsTHashtable",  # <- Inheriting from inner typedefs that clang
@@ -221,19 +235,23 @@ COMPILATION_TARGETS = {
                                         # for clang.
             "nsPIDOMWindow",  # <- Takes the vtable from a template parameter, and we can't
                               #    generate it conditionally.
-            "JS_Rooted",
-            "mozilla_Maybe",
+            "JS::Rooted",
+            "mozilla::Maybe",
             "gfxSize",  # <- union { struct { T width; T height; }; T components[2] };
             "gfxSize_Super",  # Ditto.
+            "mozilla::ErrorResult",  # Causes JSWhyMagic to be included & handled incorrectly.
+        ],
+        "manual_fixups": [
+            ["root::nsString", "::nsstring::nsStringRepr"]
         ],
         "servo_mapped_generic_types": [
             {
                 "generic": True,
-                "gecko": "ServoUnsafeCell",
+                "gecko": "mozilla::ServoUnsafeCell",
                 "servo": "::std::cell::UnsafeCell"
             }, {
                 "generic": True,
-                "gecko": "ServoCell",
+                "gecko": "mozilla::ServoCell",
                 "servo": "::std::cell::Cell"
             }, {
                 "generic": False,
@@ -252,6 +270,7 @@ COMPILATION_TARGETS = {
         ],
         "flags": [
             "--generate", "functions",
+            "--disable-name-namespacing",
         ],
         "match_headers": [
             "ServoBindingList.h",
@@ -481,6 +500,16 @@ def build(objdir, target_name, debug, debugger, kind_name=None,
 
     flags = []
 
+    # Types we have to fixup since we insert them manually.
+    #
+    # Bindgen only allows us to add stuff outside of the root module. This
+    # wasn't intended to add new types, but we do so, so we postprocess the
+    # bindgen output to fixup the path to these types.
+    fixups = []
+
+    if "manual_fixups" in current_target:
+        fixups = current_target["manual_fixups"]
+
     # This makes an FFI-safe void type that can't be matched on
     # &VoidType is UB to have, because you can match on it
     # to produce a reachable unreachable. If it's wrapped in
@@ -610,9 +639,12 @@ Option<&'a mut {0}>;".format(ty))
     if "servo_mapped_generic_types" in current_target:
         for ty in current_target["servo_mapped_generic_types"]:
             flags.append("--blacklist-type")
-            flags.append("mozilla_{}".format(ty["gecko"]))
+            flags.append(ty["gecko"])
+
+            gecko_name = ty["gecko"].split("::")[-1]
             flags.append("--raw-line")
-            flags.append("pub type {0}{2} = {1}{2};".format(ty["gecko"], ty["servo"], "<T>" if ty["generic"] else ""))
+            flags.append("pub type {0}{2} = {1}{2};".format(gecko_name, ty["servo"], "<T>" if ty["generic"] else ""))
+            fixups.append(["root::{}".format(ty["gecko"]), "::gecko_bindings::structs::{}".format(gecko_name)])
 
     if "servo_owned_types" in current_target:
         for entry in current_target["servo_owned_types"]:
@@ -685,6 +717,13 @@ Option<&'a mut {0}>;".format(ty))
     except subprocess.CalledProcessError as e:
         print("FAIL\n", e.output)
         return 1
+
+    generated = fileinput.input(output_filename, inplace=True)
+    for line in generated:
+        for fixup in fixups:
+            line = re.sub("\\b{}\\b".format(fixup[0]), fixup[1], line)
+        print(line, end='')
+    generated.close()
 
     print("OK")
     print("(please test with ./mach test-stylo)")
