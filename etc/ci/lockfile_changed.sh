@@ -8,6 +8,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-diff="$(git diff -- */*/Cargo.lock)"
+diff="$(find . -name 'Cargo.lock' -print0 | xargs -0 git diff)"
 echo "${diff}"
 [[ -z "${diff}" ]]
