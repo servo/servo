@@ -384,7 +384,7 @@ pub enum CoreResourceMsg {
     /// Message forwarded to file manager's handler
     ToFileManager(FileManagerThreadMsg),
     /// Break the load handler loop, send a reply when done cleaning up local resources
-    //  and exit
+    /// and exit
     Exit(IpcSender<()>),
 }
 
