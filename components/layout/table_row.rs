@@ -726,10 +726,13 @@ pub fn propagate_column_inline_sizes_to_child(
         }
         FlowClass::TableRowGroup => {
             let child_table_rowgroup_flow = child_flow.as_mut_table_rowgroup();
-            child_table_rowgroup_flow.column_computed_inline_sizes =
-                column_computed_inline_sizes.to_vec();
             child_table_rowgroup_flow.spacing = *border_spacing;
-            child_table_rowgroup_flow.table_writing_mode = table_writing_mode;
+            for kid in child_table_rowgroup_flow.block_flow.base.child_iter_mut() {
+                propagate_column_inline_sizes_to_child(kid,
+                                                       table_writing_mode,
+                                                       column_computed_inline_sizes,
+                                                       border_spacing);
+            }
         }
         FlowClass::TableRow => {
             let child_table_row_flow = child_flow.as_mut_table_row();
