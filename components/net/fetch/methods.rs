@@ -150,9 +150,8 @@ pub fn main_fetch(request: Rc<Request>,
     // currently the clients themselves set referrer policy in RequestInit
 
     // Step 7
-    if request.referrer_policy.get().is_none() {
-        request.referrer_policy.set(Some(ReferrerPolicy::NoReferrerWhenDowngrade));
-    }
+    let referrer_policy = request.referrer_policy.get().unwrap_or(ReferrerPolicy::NoReferrerWhenDowngrade);
+    request.referrer_policy.set(Some(referrer_policy));
 
     // Step 8
     if *request.referrer.borrow() != Referrer::NoReferrer {
@@ -160,7 +159,7 @@ pub fn main_fetch(request: Rc<Request>,
         // this stops the assertion in determine_request_referrer from failing
         request.headers.borrow_mut().remove::<RefererHeader>();
         let referrer_url = determine_request_referrer(&mut *request.headers.borrow_mut(),
-                                                      request.referrer_policy.get(),
+                                                      referrer_policy,
                                                       request.referrer.borrow_mut().take(),
                                                       request.current_url().clone());
         *request.referrer.borrow_mut() = Referrer::from_url(referrer_url);
