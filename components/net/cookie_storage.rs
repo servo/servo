@@ -5,7 +5,7 @@
 //! Implementation of cookie storage as specified in
 //! http://tools.ietf.org/html/rfc6265
 
-use cookie::Cookie;
+use cookie::{Cookie, domain_match, path_match};
 use cookie_rs;
 use net_traits::CookieSource;
 use net_traits::pub_domains::reg_suffix;
@@ -37,6 +37,17 @@ impl CookieStorage {
         let domain = reg_host(cookie.cookie.domain.as_ref().unwrap_or(&"".to_string()));
         let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
 
+        // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt Step 2
+        if !cookie.cookie.secure && source == CookieSource::HTTP &&
+           cookies.iter().filter(|c| {
+                c.cookie.name == cookie.cookie.name &&
+                c.cookie.secure &&
+                domain_match(c.cookie.domain, cookie.cookie.domain) &&
+                path_match(cookie.cookie.path, c.cookie.path)
+           }).next().is_some() {
+            return Err(());
+        }
+
         // Step 11.1
         let position = cookies.iter().position(|c| {
             c.cookie.domain == cookie.cookie.domain &&
@@ -63,6 +74,12 @@ impl CookieStorage {
 
     // http://tools.ietf.org/html/rfc6265#section-5.3
     pub fn push(&mut self, mut cookie: Cookie, source: CookieSource) {
+        // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt Step 1
+        if cookie.cookie.secure && source == CookieSource::HTTP {
+            // New cookie is not from a "secure" protocol, ignore.
+            return;
+        }
+
         let old_cookie = self.remove(&cookie, source);
         if old_cookie.is_err() {
             // This new cookie is not allowed to overwrite an existing one.
