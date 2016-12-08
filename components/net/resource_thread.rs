@@ -162,7 +162,7 @@ impl ResourceChannelManager {
                 self.resource_manager.set_cookie_for_url(&request, cookie, source, group),
             CoreResourceMsg::SetCookiesForUrl(request, cookies, source) => {
                 for cookie in cookies {
-                    self.resource_manager.set_cookie_for_url(&request, cookie.0, source, group);
+                    self.resource_manager.set_cookie_for_url(&request, cookie.0, source.clone(), group);
                 }
             }
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
@@ -310,9 +310,9 @@ impl CoreResourceManager {
 
     fn set_cookie_for_url(&mut self, request: &ServoUrl, cookie: cookie_rs::Cookie, source: CookieSource,
                           resource_group: &ResourceGroup) {
-        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
+        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source.clone()) {
             let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
-            cookie_jar.push(cookie, source)
+            cookie_jar.push(cookie, source.clone())
         }
     }
 

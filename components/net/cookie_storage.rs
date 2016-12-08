@@ -37,6 +37,27 @@ impl CookieStorage {
         let domain = reg_host(cookie.cookie.domain.as_ref().unwrap_or(&"".to_string()));
         let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
 
+        // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt Step 2
+        if !cookie.cookie.secure && !source.is_secure_protocol() {
+            let new_domain = cookie.cookie.domain.as_ref().unwrap();
+            let new_path = cookie.cookie.path.as_ref().unwrap();
+
+            let any_overlapping = cookies.iter().any(|c| {
+                let existing_domain = c.cookie.domain.as_ref().unwrap();
+                let existing_path = c.cookie.path.as_ref().unwrap();
+
+                c.cookie.name == cookie.cookie.name &&
+                c.cookie.secure &&
+                (Cookie::domain_match(new_domain, existing_domain) ||
+                 Cookie::domain_match(existing_domain, new_domain)) &&
+                Cookie::path_match(new_path, existing_path)
+            });
+
+            if any_overlapping {
+                return Err(());
+            }
+        }
+
         // Step 11.1
         let position = cookies.iter().position(|c| {
             c.cookie.domain == cookie.cookie.domain &&
@@ -63,6 +84,11 @@ impl CookieStorage {
 
     // http://tools.ietf.org/html/rfc6265#section-5.3
     pub fn push(&mut self, mut cookie: Cookie, source: CookieSource) {
+        // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt Step 1
+        if cookie.cookie.secure && !source.is_secure_protocol() {
+            return;
+        }
+
         let old_cookie = self.remove(&cookie, source);
         if old_cookie.is_err() {
             // This new cookie is not allowed to overwrite an existing one.
@@ -116,11 +142,10 @@ impl CookieStorage {
                   c.cookie.domain,
                   c.cookie.path);
             info!(" === SENT COOKIE RESULT {}",
-                  c.appropriate_for_url(url, source));
+                  c.appropriate_for_url(url, source.clone()));
             // Step 1
-            c.appropriate_for_url(url, source)
+            c.appropriate_for_url(url, source.clone())
         };
-
         // Step 2
         let domain = reg_host(url.host_str().unwrap_or(""));
         let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
@@ -154,7 +179,7 @@ impl CookieStorage {
         let domain = reg_host(url.host_str().unwrap_or(""));
         let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
 
-        Box::new(cookies.iter_mut().filter(move |c| c.appropriate_for_url(url, source)).map(|c| {
+        Box::new(cookies.iter_mut().filter(move |c| c.appropriate_for_url(url, source.clone())).map(|c| {
             c.touch();
             c.cookie.clone()
         }))

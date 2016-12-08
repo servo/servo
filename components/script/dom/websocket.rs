@@ -501,7 +501,7 @@ impl Runnable for ConnectionEstablishedTask {
         if let Some(cookies) = self.headers.get::<hyper::header::SetCookie>() {
             let cookies = cookies.iter().map(|c| Serde(c.clone())).collect();
             let _ = ws.global().core_resource_thread().send(
-                SetCookiesForUrl(ws.url.clone(), cookies, HTTP));
+                SetCookiesForUrl(ws.url.clone(), cookies, HTTP(ws.url.clone())));
         }
 
         // Step 6.
