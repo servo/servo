@@ -94,7 +94,16 @@ impl TableFlow {
             preferred_inline_size: surrounding_size,
         };
         let mut column_index = 0;
+        let mut incoming_rowspan = vec![];
+
         for child_cell_inline_size in child_cell_inline_sizes {
+            // Skip any column occupied by a cell from a previous row.
+            while column_index < incoming_rowspan.len() && incoming_rowspan[column_index] != 1 {
+                if incoming_rowspan[column_index] > 1 {
+                    incoming_rowspan[column_index] -= 1;
+                }
+                column_index += 1;
+            }
             for _ in 0..child_cell_inline_size.column_span {
                 if column_index < parent_inline_sizes.len() {
                     // We already have some intrinsic size information for this column. Merge it in
@@ -129,6 +138,14 @@ impl TableFlow {
                     parent_inline_sizes[column_index].minimum_length;
                 total_inline_sizes.preferred_inline_size +=
                     parent_inline_sizes[column_index].preferred;
+
+                // If this cell spans later rows, record its rowspan.
+                if child_cell_inline_size.row_span > 1 {
+                    if incoming_rowspan.len() < column_index + 1 {
+                        incoming_rowspan.resize(column_index + 1, 0);
+                    }
+                    incoming_rowspan[column_index] = child_cell_inline_size.row_span;
+                }
 
                 column_index += 1
             }
@@ -418,6 +435,7 @@ impl Flow for TableFlow {
             &self.collapsed_inline_direction_border_widths_for_table;
         let mut collapsed_block_direction_border_widths_for_table =
             self.collapsed_block_direction_border_widths_for_table.iter().peekable();
+        let mut incoming_rowspan = vec![];
         self.block_flow.propagate_assigned_inline_size_to_children(shared_context,
                                                                    inline_start_content_edge,
                                                                    inline_end_content_edge,
@@ -432,7 +450,8 @@ impl Flow for TableFlow {
                 child_flow,
                 writing_mode,
                 column_computed_inline_sizes,
-                &spacing_per_cell);
+                &spacing_per_cell,
+                &mut incoming_rowspan);
             if child_flow.is_table_row() {
                 let child_table_row = child_flow.as_mut_table_row();
                 child_table_row.populate_collapsed_border_spacing(
@@ -647,6 +666,7 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
                                    next_block_borders: NextBlockCollapsedBorders,
                                    inline_spacing: &mut Vec<Au>,
                                    block_spacing: &mut Vec<Au>) {
+    // TODO mbrubeck: Take rowspan and colspan into account.
     let number_of_borders_inline_direction = child_table_row.preliminary_collapsed_borders.inline.len();
     // Compute interior inline borders.
     for (i, this_inline_border) in child_table_row.preliminary_collapsed_borders
