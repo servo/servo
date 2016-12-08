@@ -247,22 +247,24 @@ impl MediaQuery {
 
 pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
     if input.is_exhausted() {
-        Default::default()
-    } else {
-        let mut media_queries = vec![];
-        loop {
-            media_queries.push(
-                input.parse_until_before(Delimiter::Comma, MediaQuery::parse)
-                     .unwrap_or(MediaQuery::new(Some(Qualifier::Not),
-                                                MediaQueryType::All,
-                                                vec!())));
-            match input.next() {
-                Ok(Token::Comma) => continue,
-                Ok(_) => unreachable!(),
-                Err(()) => break,
-            }
+        return Default::default()
+    }
+
+    let mut media_queries = vec![];
+    loop {
+        media_queries.push(
+            input.parse_until_before(Delimiter::Comma, MediaQuery::parse)
+                 .unwrap_or(MediaQuery::new(Some(Qualifier::Not),
+                                            MediaQueryType::All,
+                                            vec!())));
+        match input.next() {
+            Ok(Token::Comma) => {},
+            Ok(_) => unreachable!(),
+            Err(()) => break,
         }
-        MediaList { media_queries: media_queries }
+    }
+    MediaList {
+        media_queries: media_queries,
     }
 }
 
