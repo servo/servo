@@ -13,7 +13,7 @@ interface HTMLIFrameElement : HTMLElement {
            [SameObject, PutForwards=value]
            readonly attribute DOMTokenList sandbox;
   //         attribute boolean seamless;
-  //         attribute boolean allowFullscreen;
+           attribute boolean allowFullscreen;
            attribute DOMString width;
            attribute DOMString height;
   readonly attribute Document? contentDocument;

@@ -841,6 +841,15 @@ impl WindowMethods for Window {
         }
     }
 
+    fn set_fullscreen_state(&self, _state: bool) {
+        match self.kind {
+            WindowKind::Window(..) => {
+                warn!("Fullscreen is not implemented!")
+            },
+            WindowKind::Headless(..) => {}
+        }
+    }
+
     fn present(&self) {
         match self.kind {
             WindowKind::Window(ref window) => {

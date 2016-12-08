@@ -145,6 +145,8 @@ pub enum ScriptMsg {
     ForwardDOMMessage(DOMMessage, ServoUrl),
     /// Store the data required to activate a service worker for the given scope
     RegisterServiceWorker(ScopeThings, ServoUrl),
+    /// Enter or exit fullscreen
+    SetFullscreenState(bool),
     /// Requests that the compositor shut down.
     Exit
 }

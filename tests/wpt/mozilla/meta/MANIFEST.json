@@ -8132,6 +8132,12 @@
             "url": "/_mozilla/mozilla/form_tab_keyevent.html"
           }
         ],
+        "mozilla/fullscreen-remove-single.html": [
+          {
+            "path": "mozilla/fullscreen-remove-single.html",
+            "url": "/_mozilla/mozilla/fullscreen-remove-single.html"
+          }
+        ],
         "mozilla/getBoundingClientRect.html": [
           {
             "path": "mozilla/getBoundingClientRect.html",

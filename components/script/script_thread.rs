@@ -946,7 +946,9 @@ impl ScriptThread {
                 ScriptThreadEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
                 ScriptThreadEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
                 ScriptThreadEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
-                ScriptThreadEventCategory::ServiceWorkerEvent => ProfilerCategory::ScriptServiceWorkerEvent
+                ScriptThreadEventCategory::ServiceWorkerEvent => ProfilerCategory::ScriptServiceWorkerEvent,
+                ScriptThreadEventCategory::EnterFullscreen => ProfilerCategory::ScriptEnterFullscreen,
+                ScriptThreadEventCategory::ExitFullscreen => ProfilerCategory::ScriptExitFullscreen,
             };
             profile(profiler_cat, None, self.time_profiler_chan.clone(), f)
         } else {
