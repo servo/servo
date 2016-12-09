@@ -533,6 +533,11 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
                                       principal: *mut ThreadSafePrincipalHolder)
                                       -> RawServoDeclarationBlockStrong {
     let name = unsafe { property.as_ref().unwrap().as_str_unchecked() };
+    let id = if let Ok(id) = PropertyId::parse(name.into()) {
+        id
+    } else {
+        return RawServoDeclarationBlockStrong::null()
+    };
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
     let base_str = unsafe { base_url.as_ref().unwrap().as_str_unchecked() };
     let base_url = ServoUrl::parse(base_str).unwrap();
@@ -547,7 +552,7 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
                                                      extra_data);
 
     let mut results = vec![];
-    match PropertyDeclaration::parse(name, &context, &mut Parser::new(value),
+    match PropertyDeclaration::parse(id, &context, &mut Parser::new(value),
                                      &mut results, false) {
         PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {},
         _ => return RawServoDeclarationBlockStrong::null(),
@@ -674,7 +679,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDecla
     // FIXME Needs real URL and ParserContextExtraData.
     let base_url = &*DUMMY_BASE_URL;
     let extra_data = ParserContextExtraData::default();
-    if let Ok(decls) = parse_one_declaration(&property.to_css_string(), value, &base_url,
+    if let Ok(decls) = parse_one_declaration(property, value, &base_url,
                                              Box::new(StdoutErrorReporter), extra_data) {
         let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
         let importance = if is_important { Importance::Important } else { Importance::Normal };
@@ -698,12 +703,17 @@ pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDe
 #[no_mangle]
 pub extern "C" fn Servo_CSSSupports(property: *const nsACString, value: *const nsACString) -> bool {
     let property = unsafe { property.as_ref().unwrap().as_str_unchecked() };
+    let id =  if let Ok(id) = PropertyId::parse(property.into()) {
+        id
+    } else {
+        return false
+    };
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
 
     let base_url = &*DUMMY_BASE_URL;
     let extra_data = ParserContextExtraData::default();
 
-    match parse_one_declaration(&property, &value, &base_url, Box::new(StdoutErrorReporter), extra_data) {
+    match parse_one_declaration(id, &value, &base_url, Box::new(StdoutErrorReporter), extra_data) {
         Ok(decls) => !decls.is_empty(),
         Err(()) => false,
     }

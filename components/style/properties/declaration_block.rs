@@ -446,7 +446,7 @@ pub fn parse_style_attribute(input: &str,
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
-pub fn parse_one_declaration(name: &str,
+pub fn parse_one_declaration(id: PropertyId,
                              input: &str,
                              base_url: &ServoUrl,
                              error_reporter: StdBox<ParseErrorReporter + Send>,
@@ -454,7 +454,7 @@ pub fn parse_one_declaration(name: &str,
                              -> Result<Vec<PropertyDeclaration>, ()> {
     let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     let mut results = vec![];
-    match PropertyDeclaration::parse(name, &context, &mut Parser::new(input), &mut results, false) {
+    match PropertyDeclaration::parse(id, &context, &mut Parser::new(input), &mut results, false) {
         PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
         _ => Err(())
     }
@@ -477,9 +477,10 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 
     fn parse_value(&mut self, name: &str, input: &mut Parser)
                    -> Result<(Vec<PropertyDeclaration>, Importance), ()> {
+        let id = try!(PropertyId::parse(name.into()));
         let mut results = vec![];
         try!(input.parse_until_before(Delimiter::Bang, |input| {
-            match PropertyDeclaration::parse(name, self.context, input, &mut results, false) {
+            match PropertyDeclaration::parse(id, self.context, input, &mut results, false) {
                 PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(()),
                 _ => Err(())
             }
