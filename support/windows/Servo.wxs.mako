@@ -153,7 +153,10 @@ import re
 import uuid
 
 def make_id(s):
-    return "Id{}".format(s.replace("-", "_").replace("/", "_"))
+    s = s.replace(os.getcwd(), "").replace("-", "_").replace("/", "_").replace("\\", "_")
+    if "browserhtml" in s:
+        s = "browserhtml_" + s[s.index("out") + 4:]
+    return "Id{}".format(s)
 
 def listfiles(directory):
     return [f for f in os.listdir(directory)
