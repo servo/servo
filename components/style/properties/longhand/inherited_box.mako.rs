@@ -64,7 +64,7 @@ ${helpers.single_keyword("image-rendering",
 
     use std::f32::consts::PI;
     use values::CSSFloat;
-    const TWO_PI: CSSFloat = 2f32*PI;
+    const TWO_PI: CSSFloat = 2.0*PI;
 
     #[derive(Clone, PartialEq, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -103,7 +103,7 @@ ${helpers.single_keyword("image-rendering",
         }
     }
 
-    const INITIAL_ANGLE: Angle = Angle(0f32);
+    const INITIAL_ANGLE: Angle = Angle(0.0);
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
