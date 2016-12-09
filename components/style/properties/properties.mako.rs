@@ -599,6 +599,12 @@ pub enum PropertyId {
     Custom(::custom_properties::Name),
 }
 
+impl fmt::Debug for PropertyId {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        self.to_css(formatter)
+    }
+}
+
 impl ToCss for PropertyId {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
@@ -1347,18 +1353,21 @@ impl ComputedValues {
         false
     }
 
-    pub fn computed_value_to_string(&self, name: &str) -> Result<String, ()> {
-        match name {
+    pub fn computed_value_to_string(&self, property: PropertyDeclarationId) -> String {
+        match property {
             % for style_struct in data.active_style_structs():
                 % for longhand in style_struct.longhands:
-                "${longhand.name}" => Ok(self.${style_struct.ident}.${longhand.ident}.to_css_string()),
+                    PropertyDeclarationId::Longhand(LonghandId::${longhand.camel_case}) => {
+                        self.${style_struct.ident}.${longhand.ident}.to_css_string()
+                    }
                 % endfor
             % endfor
-            _ => {
-                let name = try!(::custom_properties::parse_name(name));
-                let map = try!(self.custom_properties.as_ref().ok_or(()));
-                let value = try!(map.get(&Atom::from(name)).ok_or(()));
-                Ok(value.to_css_string())
+            PropertyDeclarationId::Custom(name) => {
+                self.custom_properties
+                    .as_ref()
+                    .and_then(|map| map.get(name))
+                    .map(|value| value.to_css_string())
+                    .unwrap_or(String::new())
             }
         }
     }

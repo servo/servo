@@ -14,11 +14,11 @@ use profile_traits::mem::ReportsChan;
 use rpc::LayoutRPC;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{LayoutMsg as ConstellationMsg, StackingContextScrollState, WindowSizeData};
-use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use style::context::ReflowGoal;
+use style::properties::PropertyId;
 use style::selector_parser::PseudoElement;
 use style::stylesheets::Stylesheet;
 
@@ -97,7 +97,7 @@ pub enum ReflowQueryType {
     NodeScrollRootIdQuery(TrustedNodeAddress),
     NodeGeometryQuery(TrustedNodeAddress),
     NodeScrollGeometryQuery(TrustedNodeAddress),
-    ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
+    ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
     OffsetParentQuery(TrustedNodeAddress),
     MarginStyleQuery(TrustedNodeAddress),
 }

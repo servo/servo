@@ -101,7 +101,7 @@ fn test_insert() {
     let rules_list = get_mock_rules(&[".intro.foo", "#top"]);
     let mut selector_map = SelectorMap::new();
     selector_map.insert(rules_list[1][0].clone());
-    assert_eq!(1, selector_map.id_hash.get(&atom!("top")).unwrap()[0].source_order);
+    assert_eq!(1, selector_map.id_hash.get(&Atom::from("top")).unwrap()[0].source_order);
     selector_map.insert(rules_list[0][0].clone());
     assert_eq!(0, selector_map.class_hash.get(&Atom::from("intro")).unwrap()[0].source_order);
     assert!(selector_map.class_hash.get(&Atom::from("foo")).is_none());
