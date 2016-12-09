@@ -54,6 +54,7 @@ ${helpers.single_keyword("image-rendering",
 // https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation
 <%helpers:longhand name="image-orientation"
                    experimental="True"
+                   products="None"
                    animatable="False">
     use std::fmt;
     use style_traits::ToCss;
@@ -65,10 +66,10 @@ ${helpers.single_keyword("image-rendering",
     #[derive(Clone, PartialEq, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
-        angle: Option<Angle>,
-        flipped: bool
+        pub angle: Option<Angle>,
+        pub flipped: bool
     }
-    
+
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if let Some(angle) = self.angle {
@@ -113,7 +114,7 @@ ${helpers.single_keyword("image-rendering",
     #[inline]
     fn normalize_angle(angle: &Angle) -> Angle {
         let radians = angle.radians();
-        let normalized_radians = ((radians % TWO_PI) + TWO_PI) % TWO_PI;
+        let normalized_radians = ((radians + PI/2f32 % TWO_PI) + TWO_PI) % TWO_PI;
         Angle::from_radians(normalized_radians)
     }
 
@@ -159,18 +160,18 @@ ${helpers.single_keyword("image-rendering",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("from-image")).is_ok() {
             // Handle from-image
             Ok(SpecifiedValue { angle: None, flipped: false })
-        } else if let Ok(angle) = input.try(|i| Angle::parse(_context, i)) {
+        } else if let Ok(angle) = input.try(|i| Angle::parse(context, i)) {
             // Handle <angle> and <angle> flip
             let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();
             Ok(SpecifiedValue { angle: Some(angle), flipped: flipped })
         } else {
             // Handle flip
             input.expect_ident_matching("flip")
-            .map(|()| SpecifiedValue { angle: Some(Angle::from_radians(0f32)), flipped: true })
+            .map(|()| SpecifiedValue { angle: Some(INITIAL_ANGLE), flipped: true })
         }
     }
 </%helpers:longhand>
