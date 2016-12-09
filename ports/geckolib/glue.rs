@@ -49,8 +49,7 @@ use style::gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
-use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock};
-use style::properties::{PropertyId, LonghandId, ShorthandId};
+use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock, PropertyId};
 use style::properties::{apply_declarations, parse_one_declaration};
 use style::restyle_hints::RestyleHint;
 use style::selector_parser::PseudoElementCascadeType;
@@ -643,14 +642,7 @@ fn get_property_id_from_atom(atom: *mut nsIAtom, is_custom: bool) -> PropertyId 
     if !is_custom {
         // FIXME: can we do this mapping without going through a UTF-8 string?
         // Maybe even from nsCSSPropertyID directly?
-        let s = atom.to_string();
-        if let Ok(id) = LonghandId::from_ascii_lowercase_name(&s) {
-            PropertyId::Longhand(id)
-        } else if let Ok(id) = ShorthandId::from_ascii_lowercase_name(&s) {
-            PropertyId::Shorthand(id)
-        } else {
-            panic!("got unknown property name {:?} from Gecko", s)
-        }
+        PropertyId::parse(atom.to_string().into()).expect("got unknown property name from Gecko")
     } else {
         PropertyId::Custom(atom)
     }

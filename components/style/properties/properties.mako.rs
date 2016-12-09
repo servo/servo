@@ -391,16 +391,6 @@ pub enum LonghandId {
 }
 
 impl LonghandId {
-    pub fn from_ascii_lowercase_name(name: &str) -> Result<Self, ()> {
-        // FIXME: use rust-phf?
-        match name {
-            % for property in data.longhands:
-                "${property.name}" => Ok(LonghandId::${property.camel_case}),
-            % endfor
-            _ => Err(())
-        }
-    }
-
     pub fn name(&self) -> &'static str {
         match *self {
             % for property in data.longhands:
@@ -425,16 +415,6 @@ impl ToCss for ShorthandId {
 }
 
 impl ShorthandId {
-    pub fn from_ascii_lowercase_name(name: &str) -> Result<Self, ()> {
-        // FIXME: use rust-phf?
-        match name {
-            % for property in data.shorthands:
-                "${property.name}" => Ok(ShorthandId::${property.camel_case}),
-            % endfor
-            _ => Err(())
-        }
-    }
-
     pub fn name(&self) -> &'static str {
         match *self {
             % for property in data.shorthands:
@@ -629,19 +609,26 @@ impl ToCss for PropertyId {
     }
 }
 
+// FIXME(https://github.com/rust-lang/rust/issues/33156): remove this enum and use PropertyId
+// when stable Rust allows destructors in statics.
+enum StaticId {
+    Longhand(LonghandId),
+    Shorthand(ShorthandId),
+}
+include!(concat!(env!("OUT_DIR"), "/static_ids.rs"));
+
 impl PropertyId {
     /// Returns Err(()) for unknown non-custom properties
     pub fn parse(s: Cow<str>) -> Result<Self, ()> {
         if let Ok(name) = ::custom_properties::parse_name(&s) {
             return Ok(PropertyId::Custom(::custom_properties::Name::from(name)))
         }
+
         let lower_case = ::str::cow_into_ascii_lowercase(s);
-        if let Ok(id) = LonghandId::from_ascii_lowercase_name(&lower_case) {
-            Ok(PropertyId::Longhand(id))
-        } else if let Ok(id) = ShorthandId::from_ascii_lowercase_name(&lower_case) {
-            Ok(PropertyId::Shorthand(id))
-        } else {
-            Err(())
+        match STATIC_IDS.get(&*lower_case) {
+            Some(&StaticId::Longhand(id)) => Ok(PropertyId::Longhand(id)),
+            Some(&StaticId::Shorthand(id)) => Ok(PropertyId::Shorthand(id)),
+            None => Err(()),
         }
     }
 

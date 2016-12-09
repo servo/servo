@@ -3,8 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate walkdir;
+extern crate phf_codegen;
 
 use std::env;
+use std::fs::File;
+use std::io::{BufWriter, BufReader, BufRead, Write};
 use std::path::Path;
 use std::process::{Command, exit};
 use walkdir::WalkDir;
@@ -61,4 +64,21 @@ fn main() {
     if !status.success() {
         exit(1)
     }
+
+    let path = Path::new(&env::var("OUT_DIR").unwrap()).join("static_ids.rs");
+    let static_ids = Path::new(&env::var("OUT_DIR").unwrap()).join("static_ids.txt");
+    let mut file = BufWriter::new(File::create(&path).unwrap());
+    let static_ids = BufReader::new(File::open(&static_ids).unwrap());
+
+    write!(&mut file, "static STATIC_IDS: ::phf::Map<&'static str, StaticId> = ").unwrap();
+    let mut map = phf_codegen::Map::new();
+    for result in static_ids.lines() {
+        let line = result.unwrap();
+        let mut split = line.split('\t');
+        let key = split.next().unwrap().to_owned();
+        let value = split.next().unwrap();
+        map.entry(key, value);
+    }
+    map.build(&mut file).unwrap();
+    write!(&mut file, ";\n").unwrap();
 }

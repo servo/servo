@@ -33,6 +33,7 @@ def main():
     rust = render(template, product=product, data=properties, __file__=template)
     if output == "style-crate":
         write(os.environ["OUT_DIR"], "properties.rs", rust)
+        write(os.environ["OUT_DIR"], "static_ids.txt", static_ids(properties))
         if product == "gecko":
             template = os.path.join(BASE, "gecko.mako.rs")
             rust = render(template, data=properties)
@@ -67,6 +68,15 @@ def write(directory, filename, content):
     if not os.path.exists(directory):
         os.makedirs(directory)
     open(os.path.join(directory, filename), "wb").write(content)
+
+
+def static_ids(properties):
+    return '\n'.join(
+        "%s\tStaticId::%s(%sId::%s)" % (p.name, kind, kind, p.camel_case)
+        for kind, props in [("Longhand", properties.longhands),
+                            ("Shorthand", properties.shorthands)]
+        for p in props
+    )
 
 
 def write_html(properties):
