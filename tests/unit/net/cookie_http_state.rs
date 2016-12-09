@@ -21,7 +21,7 @@ fn run(set_location: &str, set_cookies: &[&str], final_location: &str) -> String
         if let Ok(SetCookie(cookies)) = header {
             for bare_cookie in cookies {
                 if let Some(cookie) = Cookie::new_wrapped(bare_cookie, &url, source) {
-                    storage.push(cookie, source);
+                    storage.push(cookie, &url, source);
                 }
             }
         }
