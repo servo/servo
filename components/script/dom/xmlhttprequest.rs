@@ -14,8 +14,7 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestRespo
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap};
-use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
@@ -758,13 +757,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             },
             // Step 2
             XMLHttpRequestResponseType::Document => {
-                let op_doc = self.document_response();
-                if let Some(doc) = op_doc {
-                    doc.to_jsval(cx, rval.handle_mut());
-                } else {
-                // Substep 1
-                    return NullValue();
-                }
+                self.document_response().to_jsval(cx, rval.handle_mut());
             },
             XMLHttpRequestResponseType::Json => {
                 self.json_response(cx).to_jsval(cx, rval.handle_mut());
@@ -808,11 +801,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
                 // Step 3
                 if let XMLHttpRequestState::Done = self.ready_state.get() {
-                    Ok(self.response_xml.get().or_else(|| {
-                        let response = self.document_response();
-                        self.response_xml.set(response.r());
-                        response
-                    }))
+                    Ok(self.document_response())
                 } else {
                 // Step 2
                     Ok(None)
