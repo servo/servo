@@ -25,6 +25,7 @@ use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, P
 use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
 use hyper::method::Method;
 use hyper::net::Fresh;
+use hyper::net::HttpStream;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use log;
@@ -36,6 +37,7 @@ use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, Response
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use openssl;
 use openssl::error::Error as OpensslError;
+use openssl::ssl::SslStream;
 use resource_thread::AuthCache;
 use servo_url::ServoUrl;
 use std::collections::HashSet;
@@ -126,9 +128,6 @@ impl WrappedHttpResponse {
 struct NetworkHttpRequestFactory {
     pub connector: Arc<Pool<Connector>>,
 }
-
-use hyper::net::HttpStream;
-use openssl::ssl::SslStream;
 
 impl NetworkHttpRequestFactory {
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
