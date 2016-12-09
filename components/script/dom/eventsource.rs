@@ -286,7 +286,7 @@ impl FetchResponseListener for EventSourceContext {
                 }
             }
             Err(_) => {
-                self.reestablish_the_connection();
+                self.fail_the_connection();
             }
         }
     }
