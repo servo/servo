@@ -51,9 +51,8 @@ ${helpers.single_keyword("image-rendering",
                          animatable=False)}
 
 // Image Orientation
-// https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation
+// https://drafts.csswg.org/css-images/#the-image-orientation
 <%helpers:longhand name="image-orientation"
-                   experimental="True"
                    products="None"
                    animatable="False">
     use std::fmt;
@@ -62,6 +61,10 @@ ${helpers.single_keyword("image-rendering",
 
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
+
+    use std::f32::consts::PI;
+    use values::CSSFloat;
+    const TWO_PI: CSSFloat = 2f32*PI;
 
     #[derive(Clone, PartialEq, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -106,10 +109,6 @@ ${helpers.single_keyword("image-rendering",
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T::AngleWithFlipped(INITIAL_ANGLE, false)
     }
-
-    use values::CSSFloat;
-    use std::f32::consts::PI;
-    const TWO_PI: CSSFloat = 2f32*PI;
 
     #[inline]
     fn normalize_angle(angle: &Angle) -> Angle {
@@ -164,14 +163,12 @@ ${helpers.single_keyword("image-rendering",
         if input.try(|input| input.expect_ident_matching("from-image")).is_ok() {
             // Handle from-image
             Ok(SpecifiedValue { angle: None, flipped: false })
-        } else if let Ok(angle) = input.try(|i| Angle::parse(context, i)) {
-            // Handle <angle> and <angle> flip
-            let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();
-            Ok(SpecifiedValue { angle: Some(angle), flipped: flipped })
         } else {
-            // Handle flip
-            input.expect_ident_matching("flip")
-            .map(|()| SpecifiedValue { angle: Some(INITIAL_ANGLE), flipped: true })
+            // Handle <angle> | <angle>? flip
+            let angle = input.try(|input| Angle::parse(context, input)).ok();
+            let flipped = input.try(|input| input.expect_ident_matching("flip")).is_ok();
+
+            Ok(SpecifiedValue { angle: angle, flipped: flipped })
         }
     }
 </%helpers:longhand>
