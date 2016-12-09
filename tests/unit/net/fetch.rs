@@ -87,11 +87,27 @@ fn test_fetch_response_body_matches_const_message() {
 fn test_fetch_aboutblank() {
     let url = ServoUrl::parse("about:blank").unwrap();
     let origin = Origin::Origin(url.origin());
-    let request = Request::new(url, Some(origin), false, None);
+    let mut request = Request::new(url, Some(origin), false, None);
+    request.mode = RequestMode::Navigate;
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     let fetch_response = fetch_sync(request, None);
     assert!(!fetch_response.is_network_error());
     assert!(*fetch_response.body.lock().unwrap() == ResponseBody::Done(vec![]));
+}
+
+#[test]
+fn test_fetch_aboutblank_nocors() {
+    let url = ServoUrl::parse("about:blank").unwrap();
+    let origin = Origin::Origin(url.origin());
+    let request = Request::new(url, Some(origin), false, None);
+    *request.referrer.borrow_mut() = Referrer::NoReferrer;
+
+    let fetch_response = fetch_sync(request, None);
+    assert!(!fetch_response.is_network_error());
+    assert_eq!(fetch_response.response_type, ResponseType::Opaque);
+    assert_eq!(*fetch_response.body.lock().unwrap(), ResponseBody::Empty);
+    assert_eq!(*fetch_response.actual_response().body.lock().unwrap(),
+               ResponseBody::Done(vec![]));
 }
 
 #[test]
@@ -141,7 +157,8 @@ fn test_fetch_file() {
 
     let url = ServoUrl::from_file_path(path.clone()).unwrap();
     let origin = Origin::Origin(url.origin());
-    let request = Request::new(url, Some(origin), false, None);
+    let mut request = Request::new(url, Some(origin), false, None);
+    request.mode = RequestMode::Navigate;
 
     let fetch_response = fetch_sync(request, None);
     assert!(!fetch_response.is_network_error());
@@ -160,6 +177,27 @@ fn test_fetch_file() {
         },
         _ => panic!()
     }
+}
+
+#[test]
+fn test_fetch_file_nocors() {
+    let mut path = resources_dir_path().expect("Cannot find resource dir");
+    path.push("servo.css");
+
+    let mut file = File::open(&path).unwrap();
+    let mut bytes = vec![];
+    let _ = file.read_to_end(&mut bytes);
+
+    let url = ServoUrl::from_file_path(&path).unwrap();
+    let origin = Origin::Origin(url.origin());
+    let request = Request::new(url, Some(origin), false, None);
+
+    let fetch_response = fetch_sync(request, None);
+    assert!(!fetch_response.is_network_error());
+    assert_eq!(fetch_response.response_type, ResponseType::Opaque);
+    assert_eq!(*fetch_response.body.lock().unwrap(), ResponseBody::Empty);
+    assert_eq!(*fetch_response.actual_response().body.lock().unwrap(),
+               ResponseBody::Done(bytes));
 }
 
 #[test]

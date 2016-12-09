@@ -182,11 +182,9 @@ pub fn main_fetch(request: Rc<Request>,
                 false
             };
 
-            if (same_origin && !cors_flag ) ||
-                current_url.scheme() == "data" ||
-                current_url.scheme() == "file" ||
-                current_url.scheme() == "about" ||
-                request.mode == RequestMode::Navigate {
+            if (same_origin && !cors_flag) ||
+               current_url.scheme() == "data" ||
+               request.mode == RequestMode::Navigate {
                 basic_fetch(request.clone(), cache, target, done_chan, context)
 
             } else if request.mode == RequestMode::SameOrigin {
