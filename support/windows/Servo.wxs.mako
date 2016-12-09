@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Name="Servo Tech Demo"
+  <Product Id="*"
+           Name="Servo Tech Demo"
            Manufacturer="Mozilla Research"
-           Id="5807391a-3a17-476b-a5d2-5f1912569762"
            UpgradeCode="060cd15d-eab1-4614-b438-3988e3efdcf1"
            Language="1033"
            Codepage="1252"
@@ -16,6 +16,7 @@
              Languages="1033"
              SummaryCodepage="1252"
              Compressed="yes"/>
+    <MajorUpgrade AllowDowngrades="yes"/>
     <Media Id="1"
            Cabinet="Servo.cab"
            EmbedCab="yes"/>
