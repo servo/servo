@@ -165,8 +165,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         }
 
         // Step 3
-        // FIXME: give ownership on `property` here when parse_one_declaration can take &PropertyId
-        let id = if let Ok(id) = PropertyId::parse((&*property).into()) {
+        let id = if let Ok(id) = PropertyId::parse(property.into()) {
             id
         } else {
             // Unkwown property
@@ -203,7 +202,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             // Step 6
             let window = window_from_node(&*self.owner);
             let declarations =
-                parse_one_declaration(&property, &value, &window.get_url(), window.css_error_reporter(),
+                parse_one_declaration(id, &value, &window.get_url(), window.css_error_reporter(),
                                       ParserContextExtraData::default());
 
             // Step 7

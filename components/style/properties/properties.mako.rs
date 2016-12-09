@@ -16,7 +16,6 @@ use std::collections::HashSet;
 use std::fmt::{self, Write};
 use std::sync::Arc;
 
-use Atom;
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::{Color as CSSParserColor, RGBA};
 use cssparser::{Parser, TokenSerializationType};
@@ -781,27 +780,28 @@ impl PropertyDeclaration {
     /// > The <declaration-list> inside of <keyframe-block> accepts any CSS property
     /// > except those defined in this specification,
     /// > but does accept the `animation-play-state` property and interprets it specially.
-    pub fn parse(name: &str, context: &ParserContext, input: &mut Parser,
+    pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser,
                  result_list: &mut Vec<PropertyDeclaration>,
                  in_keyframe_block: bool)
                  -> PropertyDeclarationParseResult {
-        if let Ok(name) = ::custom_properties::parse_name(name) {
-            let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
-                Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
-                Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
-                Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
-                    Ok(value) => DeclaredValue::Value(value),
-                    Err(()) => return PropertyDeclarationParseResult::InvalidValue,
-                }
-            };
-            result_list.push(PropertyDeclaration::Custom(Atom::from(name), value));
-            return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
-        }
-        match_ignore_ascii_case! { name,
+        match id {
+            PropertyId::Custom(name) => {
+                let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
+                    Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
+                    Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
+                    Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
+                    Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
+                        Ok(value) => DeclaredValue::Value(value),
+                        Err(()) => return PropertyDeclarationParseResult::InvalidValue,
+                    }
+                };
+                result_list.push(PropertyDeclaration::Custom(name, value));
+                return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
+            }
+            PropertyId::Longhand(id) => match id {
             % for property in data.longhands:
-                % if not property.derived_from:
-                    "${property.name}" => {
+                LonghandId::${property.camel_case} => {
+                    % if not property.derived_from:
                         % if not property.allowed_in_keyframe_block:
                             if in_keyframe_block {
                                 return PropertyDeclarationParseResult::AnimationPropertyInKeyframeBlock
@@ -825,13 +825,15 @@ impl PropertyDeclaration {
                             },
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
                         }
-                    },
-                % else:
-                    "${property.name}" => PropertyDeclarationParseResult::UnknownProperty,
-                % endif
+                    % else:
+                        PropertyDeclarationParseResult::UnknownProperty
+                    % endif
+                }
             % endfor
+            },
+            PropertyId::Shorthand(id) => match id {
             % for shorthand in data.shorthands:
-                "${shorthand.name}" => {
+                ShorthandId::${shorthand.camel_case} => {
                     % if not shorthand.allowed_in_keyframe_block:
                         if in_keyframe_block {
                             return PropertyDeclarationParseResult::AnimationPropertyInKeyframeBlock
@@ -878,14 +880,8 @@ impl PropertyDeclaration {
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
                         }
                     }
-                },
-            % endfor
-
-            _ => {
-                if cfg!(all(debug_assertions, feature = "gecko")) && !name.starts_with('-') {
-                    println!("stylo: Unimplemented property setter: {}", name);
                 }
-                PropertyDeclarationParseResult::UnknownProperty
+            % endfor
             }
         }
     }
