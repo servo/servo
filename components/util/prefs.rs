@@ -218,6 +218,10 @@ impl Preferences {
         self.0.read().unwrap().clone()
     }
 
+    pub fn is_touch_events_enabled(&self) -> bool {
+        self.get("dom.w3c_touch_events.enabled").as_boolean().unwrap_or(false)
+    }
+
     pub fn is_mozbrowser_enabled(&self) -> bool {
         self.get("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
     }

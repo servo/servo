@@ -2552,7 +2552,7 @@ impl DocumentMethods for Document {
                 Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>
                 Ok(Root::upcast(MessageEvent::new_uninitialized(self.window.upcast()))),
-            "touchevent" =>
+            "touchevent" if PREFS.is_touch_events_enabled() =>
                 Ok(Root::upcast(
                     TouchEvent::new_uninitialized(&self.window,
                         &TouchList::new(&self.window, &[]),
