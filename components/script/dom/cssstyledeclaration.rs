@@ -15,7 +15,7 @@ use parking_lot::RwLock;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
 use style::parser::ParserContextExtraData;
-use style::properties::{Importance, PropertyDeclarationBlock, PropertyId};
+use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration, parse_style_attribute};
 use style::selector_parser::PseudoElement;
 use style_traits::ToCss;
@@ -36,13 +36,13 @@ pub enum CSSModificationAccess {
 }
 
 macro_rules! css_properties(
-    ( $([$getter:ident, $setter:ident, $cssprop:expr]),* ) => (
+    ( $([$getter:ident, $setter:ident, $id:expr],)* ) => (
         $(
             fn $getter(&self) -> DOMString {
-                self.GetPropertyValue(DOMString::from($cssprop))
+                self.get_property_value($id)
             }
             fn $setter(&self, value: DOMString) -> ErrorResult {
-                self.SetPropertyValue(DOMString::from($cssprop), value)
+                self.set_property($id, value, DOMString::new())
             }
         )*
     );
@@ -83,33 +83,8 @@ impl CSSStyleDeclaration {
         let addr = node.to_trusted_node_address();
         window_from_node(&*self.owner).resolved_style_query(addr, self.pseudo.clone(), property)
     }
-}
 
-impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
-    fn Length(&self) -> u32 {
-        let elem = self.owner.upcast::<Element>();
-        let len = match *elem.style_attribute().borrow() {
-            Some(ref lock) => lock.read().declarations.len(),
-            None => 0,
-        };
-        len as u32
-    }
-
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
-    fn Item(&self, index: u32) -> DOMString {
-        self.IndexedGetter(index).unwrap_or_default()
-    }
-
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
-    fn GetPropertyValue(&self, property: DOMString) -> DOMString {
-        let id = if let Ok(id) = PropertyId::parse(property.into()) {
-            id
-        } else {
-            // Unkwown property
-            return DOMString::new()
-        };
-
+    fn get_property_value(&self, id: PropertyId) -> DOMString {
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
             return self.get_computed_style(id);
@@ -128,49 +103,11 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         DOMString::from(string)
     }
 
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
-    fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
-        let id = if let Ok(id) = PropertyId::parse(property.into()) {
-            id
-        } else {
-            // Unkwown property
-            return DOMString::new()
-        };
-
-        let style_attribute = self.owner.style_attribute().borrow();
-        let style_attribute = if let Some(ref lock) = *style_attribute {
-            lock.read()
-        } else {
-            // No style attribute is like an empty style attribute: no matching declaration.
-            return DOMString::new()
-        };
-
-        if style_attribute.property_priority(&id).important() {
-            DOMString::from("important")
-        } else {
-            // Step 4
-            DOMString::new()
-        }
-    }
-
-    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
-    fn SetProperty(&self,
-                   property: DOMString,
-                   value: DOMString,
-                   priority: DOMString)
-                   -> ErrorResult {
+    fn set_property(&self, id: PropertyId, value: DOMString, priority: DOMString) -> ErrorResult {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed);
         }
-
-        // Step 3
-        let id = if let Ok(id) = PropertyId::parse(property.into()) {
-            id
-        } else {
-            // Unkwown property
-            return Ok(())
-        };
 
         let mut style_attribute = self.owner.style_attribute().borrow_mut();
 
@@ -241,6 +178,75 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let node = self.owner.upcast::<Node>();
         node.dirty(NodeDamage::NodeStyleDamaged);
         Ok(())
+    }
+}
+
+impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
+    fn Length(&self) -> u32 {
+        let elem = self.owner.upcast::<Element>();
+        let len = match *elem.style_attribute().borrow() {
+            Some(ref lock) => lock.read().declarations.len(),
+            None => 0,
+        };
+        len as u32
+    }
+
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item
+    fn Item(&self, index: u32) -> DOMString {
+        self.IndexedGetter(index).unwrap_or_default()
+    }
+
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
+    fn GetPropertyValue(&self, property: DOMString) -> DOMString {
+        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+            id
+        } else {
+            // Unkwown property
+            return DOMString::new()
+        };
+        self.get_property_value(id)
+    }
+
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
+    fn GetPropertyPriority(&self, property: DOMString) -> DOMString {
+        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+            id
+        } else {
+            // Unkwown property
+            return DOMString::new()
+        };
+
+        let style_attribute = self.owner.style_attribute().borrow();
+        let style_attribute = if let Some(ref lock) = *style_attribute {
+            lock.read()
+        } else {
+            // No style attribute is like an empty style attribute: no matching declaration.
+            return DOMString::new()
+        };
+
+        if style_attribute.property_priority(&id).important() {
+            DOMString::from("important")
+        } else {
+            // Step 4
+            DOMString::new()
+        }
+    }
+
+    // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
+    fn SetProperty(&self,
+                   property: DOMString,
+                   value: DOMString,
+                   priority: DOMString)
+                   -> ErrorResult {
+        // Step 3
+        let id = if let Ok(id) = PropertyId::parse(property.into()) {
+            id
+        } else {
+            // Unkwown property
+            return Ok(())
+        };
+        self.set_property(id, value, priority)
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertypriority

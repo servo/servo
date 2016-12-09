@@ -1985,17 +1985,17 @@ pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<Co
 macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
         $macro_name! {
-            % for property in data.shorthands + data.longhands:
-                % if not property.derived_from and not property.internal:
-                    % if '-' in property.name:
-                        [${property.ident.capitalize()}, Set${property.ident.capitalize()}, "${property.name}"],
+            % for kind, props in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
+                % for property in props:
+                    % if not property.derived_from and not property.internal:
+                        % if '-' in property.name:
+                            [${property.ident.capitalize()}, Set${property.ident.capitalize()},
+                             PropertyId::${kind}(${kind}Id::${property.camel_case})],
+                        % endif
+                        [${property.camel_case}, Set${property.camel_case},
+                         PropertyId::${kind}(${kind}Id::${property.camel_case})],
                     % endif
-                    % if property != data.longhands[-1]:
-                        [${property.camel_case}, Set${property.camel_case}, "${property.name}"],
-                    % else:
-                        [${property.camel_case}, Set${property.camel_case}, "${property.name}"]
-                    % endif
-                % endif
+                % endfor
             % endfor
         }
     }
