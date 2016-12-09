@@ -2540,18 +2540,34 @@ impl DocumentMethods for Document {
     fn CreateEvent(&self, mut interface: DOMString) -> Fallible<Root<Event>> {
         interface.make_ascii_lowercase();
         match &*interface {
-            "uievents" | "uievent" =>
-                Ok(Root::upcast(UIEvent::new_uninitialized(&self.window))),
-            "mouseevents" | "mouseevent" =>
-                Ok(Root::upcast(MouseEvent::new_uninitialized(&self.window))),
+            "closeevent" =>
+                Ok(Root::upcast(CloseEvent::new_uninitialized(self.window.upcast()))),
             "customevent" =>
                 Ok(Root::upcast(CustomEvent::new_uninitialized(self.window.upcast()))),
-            "htmlevents" | "events" | "event" | "svgevents" =>
+            "errorevent" =>
+                Ok(Root::upcast(ErrorEvent::new_uninitialized(self.window.upcast()))),
+            "events" | "event" | "htmlevents" | "svgevents" =>
                 Ok(Event::new_uninitialized(&self.window.upcast())),
+            "focusevent" =>
+                Ok(Root::upcast(FocusEvent::new_uninitialized(self.window.upcast()))),
+            "hashchangeevent" =>
+                Ok(Root::upcast(HashChangeEvent::new_uninitialized(&self.window.upcast()))),
             "keyboardevent" =>
                 Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>
                 Ok(Root::upcast(MessageEvent::new_uninitialized(self.window.upcast()))),
+            "mouseevent" | "mouseevents" =>
+                Ok(Root::upcast(MouseEvent::new_uninitialized(&self.window))),
+            "pagetransitionevent" =>
+                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(self.window.upcast()))),
+            "popstateevent" =>
+                Ok(Root::upcast(PopStateEvent::new_uninitialized(self.window.upcast()))),
+            "progressevent" =>
+                Ok(Root::upcast(ProgressEvent::new_uninitialized(self.window.upcast()))),
+            "storageevent" => {
+                let USVString(url) = self.URL();
+                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))
+            },
             "touchevent" =>
                 Ok(Root::upcast(
                     TouchEvent::new_uninitialized(&self.window,
@@ -2560,26 +2576,10 @@ impl DocumentMethods for Document {
                         &TouchList::new(&self.window, &[]),
                     )
                 )),
+            "uievent" | "uievents" =>
+                Ok(Root::upcast(UIEvent::new_uninitialized(&self.window))),
             "webglcontextevent" =>
                 Ok(Root::upcast(WebGLContextEvent::new_uninitialized(&self.window))),
-            "storageevent" => {
-                let USVString(url) = self.URL();
-                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))
-            },
-            "progressevent" =>
-                Ok(Root::upcast(ProgressEvent::new_uninitialized(self.window.upcast()))),
-            "focusevent" =>
-                Ok(Root::upcast(FocusEvent::new_uninitialized(self.window.upcast()))),
-            "errorevent" =>
-                Ok(Root::upcast(ErrorEvent::new_uninitialized(self.window.upcast()))),
-            "closeevent" =>
-                Ok(Root::upcast(CloseEvent::new_uninitialized(self.window.upcast()))),
-            "popstateevent" =>
-                Ok(Root::upcast(PopStateEvent::new_uninitialized(self.window.upcast()))),
-            "hashchangeevent" =>
-                Ok(Root::upcast(HashChangeEvent::new_uninitialized(&self.window.upcast()))),
-            "pagetransitionevent" =>
-                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(self.window.upcast()))),
             _ =>
                 Err(Error::NotSupported),
         }
