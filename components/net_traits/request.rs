@@ -208,7 +208,6 @@ pub struct Request {
     pub url_list: RefCell<Vec<ServoUrl>>,
     pub redirect_count: Cell<u32>,
     pub response_tainting: Cell<ResponseTainting>,
-    pub done: Cell<bool>,
 }
 
 impl Request {
@@ -246,7 +245,6 @@ impl Request {
             url_list: RefCell::new(vec![url]),
             redirect_count: Cell::new(0),
             response_tainting: Cell::new(ResponseTainting::Basic),
-            done: Cell::new(false)
         }
     }
 

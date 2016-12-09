@@ -378,9 +378,6 @@ pub fn main_fetch(request: Rc<Request>,
         }
     }
 
-    // Step 23
-    request.done.set(true);
-
     // Step 24
     if let Some(ref mut target) = *target {
         target.process_response_eof(&response);
