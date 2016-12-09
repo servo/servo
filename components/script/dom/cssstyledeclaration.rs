@@ -12,7 +12,6 @@ use dom::element::Element;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
 use parking_lot::RwLock;
-use servo_atoms::Atom;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
 use style::parser::ParserContextExtraData;
@@ -74,12 +73,12 @@ impl CSSStyleDeclaration {
                            CSSStyleDeclarationBinding::Wrap)
     }
 
-    fn get_computed_style(&self, property: &Atom) -> Option<DOMString> {
+    fn get_computed_style(&self, property: PropertyId) -> DOMString {
         let node = self.owner.upcast::<Node>();
         if !node.is_in_doc() {
             // TODO: Node should be matched against the style rules of this window.
             // Firefox is currently the only browser to implement this.
-            return None;
+            return DOMString::new();
         }
         let addr = node.to_trusted_node_address();
         window_from_node(&*self.owner).resolved_style_query(addr, self.pseudo.clone(), property)
@@ -103,20 +102,18 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     }
 
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
-    fn GetPropertyValue(&self, mut property: DOMString) -> DOMString {
-        if self.readonly {
-            // Readonly style declarations are used for getComputedStyle.
-            property.make_ascii_lowercase();
-            let property = Atom::from(property);
-            return self.get_computed_style(&property).unwrap_or(DOMString::new());
-        }
-
+    fn GetPropertyValue(&self, property: DOMString) -> DOMString {
         let id = if let Ok(id) = PropertyId::parse(property.into()) {
             id
         } else {
             // Unkwown property
             return DOMString::new()
         };
+
+        if self.readonly {
+            // Readonly style declarations are used for getComputedStyle.
+            return self.get_computed_style(id);
+        }
 
         let style_attribute = self.owner.style_attribute().borrow();
         let style_attribute = if let Some(ref lock) = *style_attribute {
