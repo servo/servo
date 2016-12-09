@@ -82,7 +82,7 @@ use serde::{Deserialize, Serialize};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
-use std::cell::{Cell, UnsafeCell};
+use std::cell::{Cell, RefCell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::hash::{BuildHasher, Hash};
 use std::ops::{Deref, DerefMut};
@@ -579,16 +579,11 @@ pub struct RootedTraceableSet {
     set: Vec<TraceableInfo>,
 }
 
-#[allow(missing_docs)]  // FIXME
-mod dummy {  // Attributes don’t apply through the macro.
-    use std::cell::RefCell;
-    use std::rc::Rc;
-    use super::RootedTraceableSet;
+thread_local!(
     /// TLV Holds a set of JSTraceables that need to be rooted
-    thread_local!(pub static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =
-                  Rc::new(RefCell::new(RootedTraceableSet::new())));
-}
-pub use self::dummy::ROOTED_TRACEABLES;
+    static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =
+        Rc::new(RefCell::new(RootedTraceableSet::new()));
+);
 
 impl RootedTraceableSet {
     fn new() -> RootedTraceableSet {
