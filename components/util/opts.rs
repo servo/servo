@@ -396,7 +396,7 @@ impl DebugOptions {
 }
 
 
-pub fn print_debug_usage(app: &str) -> ! {
+fn print_debug_usage(app: &str) -> ! {
     fn print_option(name: &str, description: &str) {
         println!("\t{:<35} {}", name, description);
     }
