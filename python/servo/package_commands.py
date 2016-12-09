@@ -156,7 +156,7 @@ class PackageCommands(CommandBase):
             dir_to_root = self.get_top_dir()
 
             print("Creating Servo.app")
-            dir_to_dmg = path.join(path.dirname(dir_to_build), 'dmg')
+            dir_to_dmg = path.join(dir_to_build, 'dmg')
             dir_to_app = path.join(dir_to_dmg, 'Servo.app')
             dir_to_resources = path.join(dir_to_app, 'Contents', 'Resources')
             if path.exists(dir_to_dmg):
@@ -217,7 +217,7 @@ class PackageCommands(CommandBase):
 
             print("Creating dmg")
             os.symlink('/Applications', path.join(dir_to_dmg, 'Applications'))
-            dmg_path = path.join(path.dirname(dir_to_build), "servo-tech-demo.dmg")
+            dmg_path = path.join(dir_to_build, "servo-tech-demo.dmg")
 
             try:
                 subprocess.check_call(['hdiutil', 'create', '-volname', 'Servo', dmg_path, '-srcfolder', dir_to_dmg])
@@ -229,8 +229,8 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + dmg_path)
 
             print("Creating brew package")
-            dir_to_brew = path.join(path.dirname(dir_to_build), 'brew_tmp')
-            dir_to_tar = path.join(path.dirname(dir_to_build), 'brew')
+            dir_to_brew = path.join(dir_to_build, 'brew_tmp')
+            dir_to_tar = path.join(dir_to_build, 'brew')
             if not path.exists(dir_to_tar):
                 os.makedirs(dir_to_tar)
             tar_path = path.join(dir_to_tar, "servo.tar.gz")
@@ -320,7 +320,7 @@ class PackageCommands(CommandBase):
             os.close(runservo)
 
             print("Creating tarball")
-            tar_path = path.join(self.get_target_dir(), 'servo-tech-demo.tar.gz')
+            tar_path = path.join(path.dirname(binary_path), 'servo-tech-demo.tar.gz')
 
             archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 
