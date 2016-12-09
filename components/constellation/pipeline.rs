@@ -134,15 +134,14 @@ pub struct InitialPipelineState {
 impl Pipeline {
     /// Starts a paint thread, layout thread, and possibly a script thread, in
     /// a new process if requested.
-    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState)
-                                    -> Result<(Pipeline, Option<ChildProcess>), IOError>
+    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, IOError>
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
         let (pipeline_chan, pipeline_port) = ipc::channel()
-            .expect("Pipeline main chan");;
+            .expect("Pipeline main chan");
 
         let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
             ipc::channel().expect("Pipeline layout content shutdown chan");
@@ -180,7 +179,6 @@ impl Pipeline {
             }
         };
 
-        let mut child_process = None;
         if let Some((script_port, pipeline_port)) = content_ports {
             // Route messages coming from content to devtools as appropriate.
             let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
@@ -236,24 +234,22 @@ impl Pipeline {
             //
             // Yes, that's all there is to it!
             if opts::multiprocess() {
-                child_process = Some(try!(unprivileged_pipeline_content.spawn_multiprocess()));
+                let _ = try!(unprivileged_pipeline_content.spawn_multiprocess());
             } else {
                 unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
             }
         }
 
-        let pipeline = Pipeline::new(state.id,
-                                     state.frame_id,
-                                     state.parent_info,
-                                     script_chan,
-                                     pipeline_chan,
-                                     state.compositor_proxy,
-                                     state.is_private,
-                                     state.load_data.url,
-                                     state.window_size,
-                                     state.prev_visibility.unwrap_or(true));
-
-        Ok((pipeline, child_process))
+        Ok(Pipeline::new(state.id,
+                         state.frame_id,
+                         state.parent_info,
+                         script_chan,
+                         pipeline_chan,
+                         state.compositor_proxy,
+                         state.is_private,
+                         state.load_data.url,
+                         state.window_size,
+                         state.prev_visibility.unwrap_or(true)))
     }
 
     /// Creates a new `Pipeline`, after the script and layout threads have been

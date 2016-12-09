@@ -35,7 +35,7 @@ use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
-use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
+use pipeline::{InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{Rng, SeedableRng, StdRng, random};
@@ -174,10 +174,6 @@ pub struct Constellation<Message, LTF, STF> {
     webdriver: WebDriverData,
 
     scheduler_chan: IpcSender<TimerEventRequest>,
-
-    /// A list of child content processes.
-    #[cfg_attr(target_os = "windows", allow(dead_code))]
-    child_processes: Vec<ChildProcess>,
 
     /// Document states for loaded pipelines (used only when writing screenshots).
     document_states: HashMap<PipelineId, DocumentState>,
@@ -558,7 +554,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 phantom: PhantomData,
                 webdriver: WebDriverData::new(),
                 scheduler_chan: TimerScheduler::start(),
-                child_processes: Vec::new(),
                 document_states: HashMap::new(),
                 webrender_api_sender: state.webrender_api_sender,
                 shutting_down: false,
@@ -679,14 +674,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             is_private: is_private,
         });
 
-        let (pipeline, child_process) = match result {
+        let pipeline = match result {
             Ok(result) => result,
             Err(e) => return self.handle_send_error(pipeline_id, e),
         };
-
-        if let Some(child_process) = child_process {
-            self.child_processes.push(child_process);
-        }
 
         if let Some(host) = host {
             self.script_channels.entry(top_level_frame_id)
