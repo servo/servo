@@ -37,7 +37,6 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
         let ssl_context_builder = ssl_connector_builder.builder_mut();
         ssl_context_builder.set_ca_file(ca_file).expect("could not set CA file");
         ssl_context_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
-        ssl_context_builder.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
     }
     let ssl_connector = ssl_connector_builder.build();
     let ssl_client = OpensslClient::from(ssl_connector);
