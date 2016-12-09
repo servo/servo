@@ -550,7 +550,7 @@ dependencies = [
  "devtools_traits 0.0.1",
  "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper_serde 0.2.0 (git+https://github.com/frewsxcv/hyper_serde.git?branch=bump-cookie)",
+ "hyper_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -570,7 +570,7 @@ dependencies = [
  "heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper_serde 0.2.0 (git+https://github.com/frewsxcv/hyper_serde.git?branch=bump-cookie)",
+ "hyper_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "serde 0.8.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1143,7 +1143,7 @@ dependencies = [
 [[package]]
 name = "hyper_serde"
 version = "0.2.0"
-source = "git+https://github.com/frewsxcv/hyper_serde.git?branch=bump-cookie#e5223ca3363fcc4098d24a50075a3fe6c37e31bd"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cookie 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1617,7 +1617,7 @@ dependencies = [
  "flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper-openssl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper_serde 0.2.0 (git+https://github.com/frewsxcv/hyper_serde.git?branch=bump-cookie)",
+ "hyper_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "immeta 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1666,7 +1666,7 @@ dependencies = [
  "devtools_traits 0.0.1",
  "flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper_serde 0.2.0 (git+https://github.com/frewsxcv/hyper_serde.git?branch=bump-cookie)",
+ "hyper_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net 0.0.1",
@@ -1689,7 +1689,7 @@ dependencies = [
  "heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper_serde 0.2.0 (git+https://github.com/frewsxcv/hyper_serde.git?branch=bump-cookie)",
+ "hyper_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2170,7 +2170,7 @@ dependencies = [
  "html5ever 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever-atoms 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper_serde 0.2.0 (git+https://github.com/frewsxcv/hyper_serde.git?branch=bump-cookie)",
+ "hyper_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "js 0.1.3 (git+https://github.com/servo/rust-mozjs)",
@@ -2266,7 +2266,7 @@ dependencies = [
  "heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
- "hyper_serde 0.2.0 (git+https://github.com/frewsxcv/hyper_serde.git?branch=bump-cookie)",
+ "hyper_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
@@ -3267,7 +3267,7 @@ dependencies = [
 "checksum httparse 1.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "46534074dbb80b070d60a5cb8ecadd8963a00a438ae1a95268850a7ef73b67ae"
 "checksum hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)" = "86ea0c0ff7e6ef09eff72234800ddb48b6263277936e7ecd6ecd3250345d705f"
 "checksum hyper-openssl 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f65182c46bc87621207a0b7238c18f350f325b7e970910aa4944165452b5b02e"
-"checksum hyper_serde 0.2.0 (git+https://github.com/frewsxcv/hyper_serde.git?branch=bump-cookie)" = "<none>"
+"checksum hyper_serde 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9aed306c437dec2690f0ebf7414e5c881005890768658884c2000cd97981e325"
 "checksum idna 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1053236e00ce4f668aeca4a769a09b3bf5a682d802abd6f3cb39374f6b162c11"
 "checksum image 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)" = "559d5ebbe9ec73111799e49c07717944b244f8accf5de33a8a8128bc3ecd2e00"
 "checksum immeta 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3e76ecb1d64979a91c7fc5b7c0495ef1467e3cbff759044f2b88878a5a845ef7"
