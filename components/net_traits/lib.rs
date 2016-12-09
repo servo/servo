@@ -364,13 +364,7 @@ pub enum CoreResourceMsg {
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(ServoUrl, String, CookieSource),
     /// Store a set of cookies for a given originating URL
-    SetCookiesForUrlWithData(
-        ServoUrl,
-        #[serde(deserialize_with = "::hyper_serde::deserialize",
-                serialize_with = "::hyper_serde::serialize")]
-        Cookie,
-        CookieSource
-    ),
+    SetCookiesForUrlWithData(ServoUrl, Cookie, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL

@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use hyper::client::Pool;
-use hyper::net::{HttpStream, HttpsConnector, SslClient};
+use hyper::net::HttpsConnector;
+use hyper_openssl::OpensslClient;
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER};
-use openssl::ssl::{Ssl, SslContext, SslMethod, SslStream};
+use openssl::ssl::{SslConnectorBuilder, SslMethod};
 use std::sync::Arc;
 use util::resource_files::resources_dir_path;
 
-pub type Connector = HttpsConnector<ServoSslClient>;
+pub type Connector = HttpsConnector<OpensslClient>;
 
 // The basic logic here is to prefer ciphers with ECDSA certificates, Forward
 // Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
@@ -28,33 +29,17 @@ const DEFAULT_CIPHERS: &'static str = concat!(
 );
 
 pub fn create_http_connector() -> Arc<Pool<Connector>> {
-    let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-    context.set_CA_file(&resources_dir_path()
-                        .expect("Need certificate file to make network requests")
-                        .join("certs")).unwrap();
-    context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
-    context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
-    let connector = HttpsConnector::new(ServoSslClient {
-        context: Arc::new(context)
-    });
-
-    Arc::new(Pool::with_connector(Default::default(), connector))
-}
-
-pub struct ServoSslClient {
-    context: Arc<SslContext>,
-}
-
-impl SslClient for ServoSslClient {
-    type Stream = SslStream<HttpStream>;
-
-    fn wrap_client(&self, stream: HttpStream, host: &str) -> Result<Self::Stream, ::hyper::Error> {
-        let mut ssl = try!(Ssl::new(&self.context));
-        try!(ssl.set_hostname(host));
-        let host = host.to_owned();
-        ssl.set_verify_callback(SSL_VERIFY_PEER, move |p, x| {
-            ::openssl_verify::verify_callback(&host, p, x)
-        });
-        SslStream::connect(ssl, stream).map_err(From::from)
+    let ca_file = &resources_dir_path()
+        .expect("Need certificate file to make network requests")
+        .join("certs");
+    let mut ssl_connector_builder = SslConnectorBuilder::new(SslMethod::tls()).unwrap();
+    {
+        let ssl_context_builder = ssl_connector_builder.builder_mut();
+        ssl_context_builder.set_ca_file(ca_file).expect("could not set CA file");
+        ssl_context_builder.set_cipher_list(DEFAULT_CIPHERS).expect("could not set ciphers");
     }
+    let ssl_connector = ssl_connector_builder.build();
+    let ssl_client = OpensslClient::from(ssl_connector);
+    let https_connector = HttpsConnector::new(ssl_client);
+    Arc::new(Pool::with_connector(Default::default(), https_connector))
 }

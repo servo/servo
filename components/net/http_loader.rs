@@ -25,6 +25,7 @@ use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, P
 use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
 use hyper::method::Method;
 use hyper::net::Fresh;
+use hyper::net::HttpStream;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use log;
@@ -35,7 +36,8 @@ use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use openssl;
-use openssl::ssl::error::{OpensslError, SslError};
+use openssl::error::Error as OpensslError;
+use openssl::ssl::SslStream;
 use resource_thread::AuthCache;
 use servo_url::ServoUrl;
 use std::collections::HashSet;
@@ -135,8 +137,19 @@ impl NetworkHttpRequestFactory {
 
         if let Err(HttpError::Ssl(ref error)) = connection {
             let error: &(Error + Send + 'static) = &**error;
-            if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
-                if errors.iter().any(is_cert_verify_error) {
+            return Err(LoadError::new(url, LoadErrorType::Ssl { reason: error.description().into() }));
+            /*
+            if let Some(handshake_error) = error.downcast_ref::<openssl::ssl::HandshakeError<SslStream<HttpStream>>>() {
+                let errors = match *handshake_error {
+                    openssl::ssl::HandshakeError::SetupFailure(ref error_stack) => (),
+                    openssl::ssl::HandshakeError::Failure(ref stream) => (),
+                    openssl::ssl::HandshakeError::Interrupted(ref stream) => (),
+                };
+                /*
+                if is_cert_verify_error(openssl_error) {
+                    return Err(LoadError::new(url, LoadErrorType::Ssl { reason: "tmp".into() }));
+                }
+                if openssl_errors.iter().any(is_cert_verify_error) {
                     let mut error_report = vec![format!("ssl error ({}):", openssl::version::version())];
                     let mut suggestion = None;
                     for err in errors {
@@ -153,7 +166,11 @@ impl NetworkHttpRequestFactory {
                     let error_report = error_report.join("<br>\n");
                     return Err(NetworkError::SslValidation(url, error_report));
                 }
+                */
+            } else {
+                // TODO: do something with this case
             }
+            */
         }
 
         let mut request = match connection {
@@ -278,8 +295,8 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
     let header = Header::parse_header(&[cookie_val.into_bytes()]);
 
     if let Ok(SetCookie(cookies)) = header {
-        for bare_cookie in cookies {
-            if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, request, source) {
+        for cookie in cookies {
+            if let Some(cookie) = cookie::Cookie::new_wrapped_hyper(cookie, request, source) {
                 cookie_jar.push(cookie, source);
             }
         }
@@ -499,31 +516,22 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
 // FIXME: This incredibly hacky. Make it more robust, and at least test it.
 fn is_cert_verify_error(error: &OpensslError) -> bool {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "SSL routines" &&
-            function.to_uppercase() == "SSL3_GET_SERVER_CERTIFICATE" &&
-            reason == "certificate verify failed"
-        }
-    }
+    error.library() == Some("SSL routines") &&
+        error.function().map(|s| s.to_uppercase()) == Some("SSL3_GET_SERVER_CERTIFICATE".into()) &&
+        error.reason() == Some("certificate verify failed")
 }
 
 fn is_unknown_message_digest_err(error: &OpensslError) -> bool {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "asn1 encoding routines" &&
-            function == "ASN1_item_verify" &&
-            reason == "unknown message digest algorithm"
-        }
-    }
+    error.library() == Some("asn1 encoding routines") &&
+        error.function().map(|s| s.to_uppercase()) == Some("ASN1_item_verify".into()) &&
+        error.reason() == Some("unknown message digest algorithm")
 }
 
 fn format_ssl_error(error: &OpensslError) -> String {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            format!("{}: {} - {}", library, function, reason)
-        }
-    }
+    format!("{}: {} - {}",
+            error.library().unwrap_or("<unknown library>"),
+            error.function().unwrap_or("<unknown function>"),
+            error.reason().unwrap_or("<unknown reason>"))
 }
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
