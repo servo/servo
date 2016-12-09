@@ -9,6 +9,9 @@ name = "geckoservo"
 path = "lib.rs"
 crate-type = ["staticlib", "rlib"]
 
+[features]
+bindgen = ["style/bindgen"]
+
 [dependencies]
 app_units = "0.3"
 cssparser = {version = "0.7"}
