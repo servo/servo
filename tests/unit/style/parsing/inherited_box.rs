@@ -9,10 +9,10 @@ use style::stylesheets::Origin;
 
 #[test]
 fn image_orientation_longhand_should_parse_properly() {
-    use style::properties::longhands::image_orientation;
-    use style::properties::longhands::image_orientation::{SpecifiedValue};
-    use style::values::specified::Angle;
     use std::f32::consts::PI;
+    use style::properties::longhands::image_orientation;
+    use style::properties::longhands::image_orientation::SpecifiedValue;
+    use style::values::specified::Angle;
 
     let from_image = parse_longhand!(image_orientation, "from-image");
     assert_eq!(from_image, SpecifiedValue { angle: None, flipped: false });
