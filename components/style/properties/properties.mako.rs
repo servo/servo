@@ -24,6 +24,7 @@ use error_reporting::ParseErrorReporter;
 use euclid::size::Size2D;
 use computed_values;
 use font_metrics::FontMetricsProvider;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{Parse, ParserContext, ParserContextExtraData};
@@ -634,6 +635,38 @@ impl PropertyId {
             Some(&StaticId::Longhand(id)) => Ok(PropertyId::Longhand(id)),
             Some(&StaticId::Shorthand(id)) => Ok(PropertyId::Shorthand(id)),
             None => Err(()),
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    #[allow(non_upper_case_globals)]
+    pub fn from_nscsspropertyid(id: nsCSSPropertyID) -> Result<Self, ()> {
+        use gecko_bindings::structs::*;
+        <%
+            def to_nscsspropertyid(ident):
+                if ident == "word_wrap":
+                    return "nsCSSPropertyID_eCSSPropertyAlias_WordWrap"
+
+                if ident == "float":
+                    ident = "float_"
+                elif "outline_radius" in ident:
+                    ident = ident.replace("right", "Right").replace("left", "Left")
+                elif ident.startswith("_moz_"):
+                    ident = ident[len("_moz_"):]
+                return "nsCSSPropertyID::eCSSProperty_" + ident
+        %>
+        match id {
+            % for property in data.longhands:
+                ${to_nscsspropertyid(property.ident)} => {
+                    Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
+                }
+            % endfor
+            % for property in data.shorthands:
+                ${to_nscsspropertyid(property.ident)} => {
+                    Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
+                }
+            % endfor
+            _ => Err(())
         }
     }
 
