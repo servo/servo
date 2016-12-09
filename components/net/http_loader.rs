@@ -238,27 +238,28 @@ fn strip_url(mut referrer_url: ServoUrl, origin_only: bool) -> Option<ServoUrl> 
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
+/// Steps 4-6.
 pub fn determine_request_referrer(headers: &mut Headers,
                                   referrer_policy: ReferrerPolicy,
-                                  referrer_url: Option<ServoUrl>,
-                                  url: ServoUrl) -> Option<ServoUrl> {
-    //TODO - algorithm step 2 not addressed
+                                  referrer_source: ServoUrl,
+                                  current_url: ServoUrl)
+                                  -> Option<ServoUrl> {
     assert!(!headers.has::<Referer>());
-    if let Some(ref_url) = referrer_url {
-        let cross_origin = ref_url.origin() != url.origin();
-        return match referrer_policy {
-            ReferrerPolicy::NoReferrer => None,
-            ReferrerPolicy::Origin => strip_url(ref_url, true),
-            ReferrerPolicy::SameOrigin => if cross_origin { None } else { strip_url(ref_url, false) },
-            ReferrerPolicy::UnsafeUrl => strip_url(ref_url, false),
-            ReferrerPolicy::OriginWhenCrossOrigin => strip_url(ref_url, cross_origin),
-            ReferrerPolicy::StrictOrigin => strict_origin(ref_url, url),
-            ReferrerPolicy::StrictOriginWhenCrossOrigin => strict_origin_when_cross_origin(ref_url, url),
-            ReferrerPolicy::NoReferrerWhenDowngrade =>
-                no_referrer_when_downgrade_header(ref_url, url),
-        };
+    // FIXME(#14505): this does not seem to be the correct way of checking for
+    //                same-origin requests.
+    let cross_origin = referrer_source.origin() != current_url.origin();
+    // FIXME(#14506): some of these cases are expected to consider whether the
+    //                request's client is "TLS-protected", whatever that means.
+    match referrer_policy {
+        ReferrerPolicy::NoReferrer => None,
+        ReferrerPolicy::Origin => strip_url(referrer_source, true),
+        ReferrerPolicy::SameOrigin => if cross_origin { None } else { strip_url(referrer_source, false) },
+        ReferrerPolicy::UnsafeUrl => strip_url(referrer_source, false),
+        ReferrerPolicy::OriginWhenCrossOrigin => strip_url(referrer_source, cross_origin),
+        ReferrerPolicy::StrictOrigin => strict_origin(referrer_source, current_url),
+        ReferrerPolicy::StrictOriginWhenCrossOrigin => strict_origin_when_cross_origin(referrer_source, current_url),
+        ReferrerPolicy::NoReferrerWhenDowngrade => no_referrer_when_downgrade_header(referrer_source, current_url),
     }
-    return None;
 }
 
 pub fn set_request_cookies(url: &ServoUrl, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {

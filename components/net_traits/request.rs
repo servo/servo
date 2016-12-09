@@ -9,7 +9,6 @@ use msg::constellation_msg::PipelineId;
 use servo_url::ServoUrl;
 use std::cell::{Cell, RefCell};
 use std::default::Default;
-use std::mem::swap;
 use url::{Origin as UrlOrigin};
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
@@ -306,21 +305,6 @@ impl Referrer {
         match *self {
             Referrer::NoReferrer | Referrer::Client => None,
             Referrer::ReferrerUrl(ref url) => Some(url)
-        }
-    }
-    pub fn from_url(url: Option<ServoUrl>) -> Self {
-        if let Some(url) = url {
-            Referrer::ReferrerUrl(url)
-        } else {
-            Referrer::NoReferrer
-        }
-    }
-    pub fn take(&mut self) -> Option<ServoUrl> {
-        let mut new = Referrer::Client;
-        swap(self, &mut new);
-        match new {
-            Referrer::NoReferrer | Referrer::Client => None,
-            Referrer::ReferrerUrl(url) => Some(url)
         }
     }
 }
