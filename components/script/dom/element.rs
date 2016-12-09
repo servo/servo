@@ -24,6 +24,8 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
+use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
@@ -35,6 +37,7 @@ use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
 use dom::htmlbuttonelement::HTMLButtonElement;
@@ -62,18 +65,23 @@ use dom::node::{CLICK_IN_PROGRESS, ChildrenMutation, LayoutNodeHelpers, Node};
 use dom::node::{NodeDamage, SEQUENTIALLY_FOCUSABLE, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::promise::Promise;
 use dom::servoparser::ServoParser;
 use dom::text::Text;
 use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
+use dom::window::ReflowReason;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks};
 use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
+use js::jsapi::{HandleValue, JSAutoCompartment};
 use parking_lot::RwLock;
 use ref_filter_map::ref_filter_map;
+use script_layout_interface::message::ReflowQueryType;
+use script_thread::Runnable;
 use selectors::matching::{ElementFlags, MatchingReason, matches};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -84,9 +92,11 @@ use std::cell::{Cell, Ref};
 use std::convert::TryFrom;
 use std::default::Default;
 use std::fmt;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::context::ReflowGoal;
 use style::dom::TRestyleDamage;
 use style::element_state::*;
 use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
@@ -1300,6 +1310,15 @@ impl Element {
             }
         }
     }
+
+    // https://fullscreen.spec.whatwg.org/#fullscreen-element-ready-check
+    pub fn fullscreen_element_ready_check(&self) -> bool {
+        if !self.is_connected() {
+            return false
+        }
+        let document = document_from_node(self);
+        document.get_allow_fullscreen()
+    }
 }
 
 impl ElementMethods for Element {
@@ -2056,6 +2075,13 @@ impl ElementMethods for Element {
             None => return Err(Error::NotSupported)
         }
     }
+
+    // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
+    #[allow(unrooted_must_root)]
+    fn RequestFullscreen(&self) -> Rc<Promise> {
+        let doc = document_from_node(self);
+        doc.enter_fullscreen(self)
+    }
 }
 
 pub fn fragment_affecting_attributes() -> [LocalName; 3] {
@@ -2167,6 +2193,10 @@ impl VirtualMethods for Element {
         }
 
         let doc = document_from_node(self);
+        let fullscreen = doc.GetFullscreenElement();
+        if fullscreen.r() == Some(self) {
+            doc.exit_fullscreen();
+        }
         if let Some(ref value) = *self.id_attribute.borrow() {
             doc.unregister_named_element(self, value.clone());
         }
@@ -2307,6 +2337,7 @@ impl<'a> ::selectors::Element for Root<Element> {
 
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
+            NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
@@ -2582,7 +2613,22 @@ impl Element {
     }
 
     pub fn set_target_state(&self, value: bool) {
-       self.set_state(IN_TARGET_STATE, value)
+        self.set_state(IN_TARGET_STATE, value)
+    }
+
+    pub fn fullscreen_state(&self) -> bool {
+        self.state.get().contains(IN_FULLSCREEN_STATE)
+    }
+
+    pub fn set_fullscreen_state(&self, value: bool) {
+        self.set_state(IN_FULLSCREEN_STATE, value)
+    }
+
+    /// https://dom.spec.whatwg.org/#connected
+    pub fn is_connected(&self) -> bool {
+        let node = self.upcast::<Node>();
+        let root = node.GetRootNode();
+        root.is::<Document>()
     }
 }
 
@@ -2711,5 +2757,106 @@ impl TagName {
     /// next time that `or_init()` is called.
     fn clear(&self) {
         *self.ptr.borrow_mut() = None;
+    }
+}
+
+pub struct ElementPerformFullscreenEnter {
+    element: Trusted<Element>,
+    promise: TrustedPromise,
+    error: bool,
+}
+
+impl ElementPerformFullscreenEnter {
+    pub fn new(element: Trusted<Element>, promise: TrustedPromise, error: bool) -> Box<ElementPerformFullscreenEnter> {
+        box ElementPerformFullscreenEnter {
+            element: element,
+            promise: promise,
+            error: error,
+        }
+    }
+}
+
+impl Runnable for ElementPerformFullscreenEnter {
+    fn name(&self) -> &'static str { "ElementPerformFullscreenEnter" }
+
+    #[allow(unrooted_must_root)]
+    fn handler(self: Box<ElementPerformFullscreenEnter>) {
+        let element = self.element.root();
+        let document = document_from_node(element.r());
+
+        // Step 7.1
+        if self.error || !element.fullscreen_element_ready_check() {
+            // JSAutoCompartment needs to be manually made.
+            // Otherwise, Servo will crash.
+            let promise = self.promise.root();
+            let promise_cx = promise.global().get_cx();
+            let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
+            document.upcast::<EventTarget>().fire_event(atom!("fullscreenerror"));
+            promise.reject_error(promise.global().get_cx(), Error::Type(String::from("fullscreen is not connected")));
+            return
+        }
+
+        // TODO Step 7.2-4
+        // Step 7.5
+        element.set_fullscreen_state(true);
+        document.set_fullscreen_element(Some(&element));
+        document.window().reflow(ReflowGoal::ForDisplay,
+                                 ReflowQueryType::NoQuery,
+                                 ReflowReason::ElementStateChanged);
+
+        // Step 7.6
+        document.upcast::<EventTarget>().fire_event(atom!("fullscreenchange"));
+
+        // Step 7.7
+        // JSAutoCompartment needs to be manually made.
+        // Otherwise, Servo will crash.
+        let promise = self.promise.root();
+        let promise_cx = promise.global().get_cx();
+        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
+        promise.resolve(promise.global().get_cx(), HandleValue::undefined());
+    }
+}
+
+pub struct ElementPerformFullscreenExit {
+    element: Trusted<Element>,
+    promise: TrustedPromise,
+}
+
+impl ElementPerformFullscreenExit {
+    pub fn new(element: Trusted<Element>, promise: TrustedPromise) -> Box<ElementPerformFullscreenExit> {
+        box ElementPerformFullscreenExit {
+            element: element,
+            promise: promise,
+        }
+    }
+}
+
+impl Runnable for ElementPerformFullscreenExit {
+    fn name(&self) -> &'static str { "ElementPerformFullscreenExit" }
+
+    #[allow(unrooted_must_root)]
+    fn handler(self: Box<ElementPerformFullscreenExit>) {
+        let element = self.element.root();
+        let document = document_from_node(element.r());
+        // TODO Step 9.1-5
+        // Step 9.6
+        element.set_fullscreen_state(false);
+
+        document.window().reflow(ReflowGoal::ForDisplay,
+                                 ReflowQueryType::NoQuery,
+                                 ReflowReason::ElementStateChanged);
+
+        document.set_fullscreen_element(None);
+
+        // Step 9.8
+        document.upcast::<EventTarget>().fire_event(atom!("fullscreenchange"));
+
+        // Step 9.10
+        let promise = self.promise.root();
+        // JSAutoCompartment needs to be manually made.
+        // Otherwise, Servo will crash.
+        let promise_cx = promise.global().get_cx();
+        let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
+        promise.resolve(promise.global().get_cx(), HandleValue::undefined());
     }
 }

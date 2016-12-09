@@ -238,6 +238,9 @@ impl WindowMethods for Window {
 
     }
 
+    fn set_fullscreen_state(&self, _state: bool) {
+    }
+
     fn present(&self) {
         let browser = self.cef_browser.borrow();
         match *browser {
