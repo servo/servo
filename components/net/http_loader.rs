@@ -806,22 +806,23 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     let content_length_value = match *http_request.body.borrow() {
         None =>
             match *http_request.method.borrow() {
-                // Step 3
+                // Step 4
+                // FIXME: not HEAD?
                 Method::Head | Method::Post | Method::Put =>
                     Some(0),
-                // Step 2
+                // Step 3
                 _ => None
             },
-        // Step 4
+        // Step 5
         Some(ref http_request_body) => Some(http_request_body.len() as u64)
     };
 
-    // Step 5
+    // Step 6
     if let Some(content_length_value) = content_length_value {
         http_request.headers.borrow_mut().set(ContentLength(content_length_value));
     }
 
-    // Step 6
+    // Step 8
     match *http_request.referrer.borrow() {
         Referrer::NoReferrer => (),
         Referrer::ReferrerUrl(ref http_request_referrer) =>
@@ -832,30 +833,25 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             unreachable!()
     };
 
-    // Step 7
-    if http_request.omit_origin_header.get() == false {
-        // TODO update this when https://github.com/hyperium/hyper/pull/691 is finished
-        // http_request.headers.borrow_mut().set_raw("origin", origin);
-    }
-
-    // Step 8
+    // Step 10
     if !http_request.headers.borrow().has::<UserAgent>() {
         let user_agent = context.user_agent.clone().into_owned();
         http_request.headers.borrow_mut().set(UserAgent(user_agent));
     }
 
     match http_request.cache_mode.get() {
-        // Step 9
+        // Step 11
         CacheMode::Default if is_no_store_cache(&http_request.headers.borrow()) => {
             http_request.cache_mode.set(CacheMode::NoStore);
         },
 
-        // Step 10
+        // Step 12
         CacheMode::NoCache if !http_request.headers.borrow().has::<CacheControl>() => {
             http_request.headers.borrow_mut().set(CacheControl(vec![CacheDirective::MaxAge(0)]));
         },
 
-        // Step 11
+        // Step 13
+        // FIXME Add no-store
         CacheMode::Reload => {
             // Substep 1
             if !http_request.headers.borrow().has::<Pragma>() {
@@ -872,12 +868,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     }
 
     let current_url = http_request.current_url();
-    // Step 12
-    // todo: pass referrer url and policy
-    // this can only be uncommented when the referrer header is set, else it crashes
-    // in the meantime, we manually set the headers in the block below
-    // modify_request_headers(&mut http_request.headers.borrow_mut(), &current_url,
-    //                        None, None, None);
+    // Step 14
     {
         let headers = &mut *http_request.headers.borrow_mut();
         let host = Host {
@@ -885,17 +876,11 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             port: current_url.port_or_known_default()
         };
         headers.set(host);
-        // unlike http_loader, we should not set the accept header
-        // here, according to the fetch spec
         set_default_accept_encoding(headers);
     }
 
-    // Step 13
-    // TODO some of this step can't be implemented yet
+    // Step 15
     if credentials_flag {
-        // Substep 1
-        // TODO http://mxr.mozilla.org/servo/source/components/net/http_loader.rs#504
-        // XXXManishearth http_loader has block_cookies: support content blocking here too
         set_request_cookies(&current_url,
                             &mut *http_request.headers.borrow_mut(),
                             &context.state.cookie_jar);
@@ -928,82 +913,11 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         }
     }
 
-    // Step 14
-    // TODO this step can't be implemented yet
-
-    // Step 15
-    let mut response: Option<Response> = None;
-
-    // Step 16
-    // TODO have a HTTP cache to check for a completed response
-    let complete_http_response_from_cache: Option<Response> = None;
-    if http_request.cache_mode.get() != CacheMode::NoStore &&
-        http_request.cache_mode.get() != CacheMode::Reload &&
-        complete_http_response_from_cache.is_some() {
-        // Substep 1
-        if http_request.cache_mode.get() == CacheMode::ForceCache {
-            // TODO pull response from HTTP cache
-            // response = http_request
-        }
-
-        let revalidation_needed = match response {
-            Some(ref response) => response_needs_revalidation(&response),
-            _ => false
-        };
-
-        // Substep 2
-        if !revalidation_needed && http_request.cache_mode.get() == CacheMode::Default {
-            // TODO pull response from HTTP cache
-            // response = http_request
-            // response.cache_state = CacheState::Local;
-        }
-
-        // Substep 3
-        if revalidation_needed && http_request.cache_mode.get() == CacheMode::Default ||
-            http_request.cache_mode.get() == CacheMode::NoCache {
-            // TODO this substep
-        }
-
-    // Step 17
-    // TODO have a HTTP cache to check for a partial response
-    } else if http_request.cache_mode.get() == CacheMode::Default ||
-        http_request.cache_mode.get() == CacheMode::ForceCache {
-        // TODO this substep
-    }
-
-    // Step 18
-    if response.is_none() {
-        response = Some(http_network_fetch(http_request.clone(), credentials_flag,
-                                           done_chan, context));
-    }
-    let response = response.unwrap();
-
-    // Step 19
-    if let Some(status) = response.status {
-        if status == StatusCode::NotModified &&
-            (http_request.cache_mode.get() == CacheMode::Default ||
-            http_request.cache_mode.get() == CacheMode::NoCache) {
-            // Substep 1
-            // TODO this substep
-            // let cached_response: Option<Response> = None;
-
-            // Substep 2
-            // if cached_response.is_none() {
-            //     return Response::network_error();
-            // }
-
-            // Substep 3
-
-            // Substep 4
-            // response = cached_response;
-
-            // Substep 5
-            // TODO cache_state is immutable?
-            // response.cache_state = CacheState::Validated;
-        }
-    }
-
     // Step 20
+    let response = http_network_fetch(http_request.clone(), credentials_flag,
+                                      done_chan, context);
+
+    // Step 25
     response
 }
 
