@@ -152,13 +152,13 @@ class PackageCommands(CommandBase):
                 return e.returncode
         elif is_macosx():
 
-            dir_to_build = '/'.join(binary_path.split('/')[:-1])
-            dir_to_root = '/'.join(binary_path.split('/')[:-3])
+            dir_to_build = path.dirname(binary_path)
+            dir_to_root = self.get_top_dir()
 
             print("Creating Servo.app")
-            dir_to_dmg = '/'.join(binary_path.split('/')[:-2]) + '/dmg'
-            dir_to_app = dir_to_dmg + '/Servo.app'
-            dir_to_resources = dir_to_app + '/Contents/Resources/'
+            dir_to_dmg = path.join(dir_to_build, 'dmg')
+            dir_to_app = path.join(dir_to_dmg, 'Servo.app')
+            dir_to_resources = path.join(dir_to_app, 'Contents', 'Resources')
             if path.exists(dir_to_dmg):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_dmg)
@@ -168,19 +168,23 @@ class PackageCommands(CommandBase):
                 return 1
 
             print("Copying files")
-            shutil.copytree(dir_to_root + '/resources', dir_to_resources)
-            shutil.copytree(browserhtml_path, dir_to_resources + browserhtml_path.split('/')[-1])
-            shutil.copy2(dir_to_root + '/Info.plist', dir_to_app + '/Contents/Info.plist')
-            os.makedirs(dir_to_app + '/Contents/MacOS/')
-            shutil.copy2(dir_to_build + '/servo', dir_to_app + '/Contents/MacOS/')
+            shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
+            shutil.copytree(browserhtml_path, path.join(dir_to_resources, path.basename(browserhtml_path)))
+            shutil.copy2(path.join(dir_to_root, 'Info.plist'), path.join(dir_to_app, 'Contents', 'Info.plist'))
+
+            content_dir = path.join(dir_to_app, 'Contents', 'MacOS')
+            os.makedirs(content_dir)
+            shutil.copy2(binary_path, content_dir)
 
             print("Swapping prefs")
-            delete(dir_to_resources + '/prefs.json')
-            shutil.copy2(dir_to_resources + 'package-prefs.json', dir_to_resources + 'prefs.json')
-            delete(dir_to_resources + '/package-prefs.json')
+            package_prefs_path = path.join(dir_to_resources, 'package-prefs.json')
+            prefs_path = path.join(dir_to_resources, 'prefs.json')
+            delete(prefs_path)
+            shutil.copy2(package_prefs_path, prefs_path)
+            delete(package_prefs_path)
 
             print("Finding dylibs and relinking")
-            copy_dependencies(dir_to_app + '/Contents/MacOS/servo', dir_to_app + '/Contents/MacOS/')
+            copy_dependencies(path.join(content_dir, 'servo'), content_dir)
 
             print("Adding version to Credits.rtf")
             version_command = [binary_path, '--version']
@@ -193,8 +197,8 @@ class PackageCommands(CommandBase):
                 raise Exception("Error occurred when getting Servo version: " + stderr)
             version = "Nightly version: " + version
 
-            template_path = os.path.join(dir_to_resources, 'Credits.rtf.mako')
-            credits_path = os.path.join(dir_to_resources, 'Credits.rtf')
+            template_path = path.join(dir_to_resources, 'Credits.rtf.mako')
+            credits_path = path.join(dir_to_resources, 'Credits.rtf')
             with open(template_path) as template_file:
                 template = mako.template.Template(template_file.read())
                 with open(credits_path, "w") as credits_file:
@@ -202,15 +206,19 @@ class PackageCommands(CommandBase):
             delete(template_path)
 
             print("Writing run-servo")
-            bhtml_path = path.join('${0%/*}/../Resources', browserhtml_path.split('/')[-1], 'out', 'index.html')
-            runservo = os.open(dir_to_app + '/Contents/MacOS/run-servo', os.O_WRONLY | os.O_CREAT, int("0755", 8))
+            bhtml_path = path.join('${0%/*}', '..', 'Resources', path.basename(browserhtml_path), 'out', 'index.html')
+            runservo = os.open(
+                path.join(content_dir, 'run-servo'),
+                os.O_WRONLY | os.O_CREAT,
+                int("0755", 8)
+            )
             os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + bhtml_path)
             os.close(runservo)
 
             print("Creating dmg")
-            os.symlink('/Applications', dir_to_dmg + '/Applications')
-            dmg_path = '/'.join(dir_to_build.split('/')[:-1]) + '/'
-            dmg_path += "servo-tech-demo.dmg"
+            os.symlink('/Applications', path.join(dir_to_dmg, 'Applications'))
+            dmg_path = path.join(dir_to_build, "servo-tech-demo.dmg")
+
             try:
                 subprocess.check_call(['hdiutil', 'create', '-volname', 'Servo', dmg_path, '-srcfolder', dir_to_dmg])
             except subprocess.CalledProcessError as e:
@@ -221,24 +229,24 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + dmg_path)
 
             print("Creating brew package")
-            dir_to_brew = '/'.join(binary_path.split('/')[:-2]) + '/brew_tmp/'
-            dir_to_tar = '/'.join(dir_to_build.split('/')[:-1]) + '/brew/'
+            dir_to_brew = path.join(dir_to_build, 'brew_tmp')
+            dir_to_tar = path.join(dir_to_build, 'brew')
             if not path.exists(dir_to_tar):
                 os.makedirs(dir_to_tar)
-            tar_path = dir_to_tar + "servo.tar.gz"
+            tar_path = path.join(dir_to_tar, "servo.tar.gz")
             if path.exists(dir_to_brew):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_brew)
             if path.exists(tar_path):
                 print("Deleting existing package")
                 os.remove(tar_path)
-            shutil.copytree(dir_to_root + '/resources', dir_to_brew + "/resources/")
-            os.makedirs(dir_to_brew + '/bin/')
-            shutil.copy2(dir_to_build + '/servo', dir_to_brew + '/bin/servo')
+            shutil.copytree(path.join(dir_to_root, 'resources'), path.join(dir_to_brew, 'resources'))
+            os.makedirs(path.join(dir_to_brew, 'bin'))
+            shutil.copy2(binary_path, path.join(dir_to_brew, 'bin', 'servo'))
             # Note that in the context of Homebrew, libexec is reserved for private use by the formula
             # and therefore is not symlinked into HOMEBREW_PREFIX.
-            os.makedirs(dir_to_brew + '/libexec/')
-            copy_dependencies(dir_to_brew + '/bin/servo', dir_to_brew + '/libexec/')
+            os.makedirs(path.join(dir_to_brew, 'libexec'))
+            copy_dependencies(path.join(dir_to_brew, 'bin', 'servo'), path.join(dir_to_brew, 'libexec'))
             archive_deterministically(dir_to_brew, tar_path, prepend_path='servo/')
             delete(dir_to_brew)
             print("Packaged Servo into " + tar_path)
@@ -283,7 +291,7 @@ class PackageCommands(CommandBase):
             msi_path = path.join(dir_to_msi, "Servo.msi")
             print("Packaged Servo into {}".format(msi_path))
         else:
-            dir_to_temp = path.join(os.path.dirname(binary_path), 'packaging-temp')
+            dir_to_temp = path.join(path.dirname(binary_path), 'packaging-temp')
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
@@ -307,12 +315,12 @@ class PackageCommands(CommandBase):
                           '--pref', 'shell.builtin-key-shortcuts.enabled=false',
                           path.join('./browserhtml', 'out', 'index.html')]
 
-            runservo = os.open(dir_to_temp + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
+            runservo = os.open(path.join(dir_to_temp, 'runservo.sh'), os.O_WRONLY | os.O_CREAT, int("0755", 8))
             os.write(runservo, "#!/usr/bin/env sh\n./servo " + ' '.join(servo_args))
             os.close(runservo)
 
             print("Creating tarball")
-            tar_path = path.join(self.get_target_dir(), 'servo-tech-demo.tar.gz')
+            tar_path = path.join(path.dirname(binary_path), 'servo-tech-demo.tar.gz')
 
             archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 
