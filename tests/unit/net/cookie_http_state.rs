@@ -12,7 +12,7 @@ use servo_url::ServoUrl;
 fn run(set_location: &str, set_cookies: &[&str], final_location: &str) -> String {
     let mut storage = CookieStorage::new(150);
     let url = ServoUrl::parse(set_location).unwrap();
-    let source = CookieSource::HTTP;
+    let source = CookieSource::HTTP(url.clone());
 
     // Add all cookies to the store
     for str_cookie in set_cookies {
@@ -20,8 +20,8 @@ fn run(set_location: &str, set_cookies: &[&str], final_location: &str) -> String
         let header = Header::parse_header(&[bytes]);
         if let Ok(SetCookie(cookies)) = header {
             for bare_cookie in cookies {
-                if let Some(cookie) = Cookie::new_wrapped(bare_cookie, &url, source) {
-                    storage.push(cookie, source);
+                if let Some(cookie) = Cookie::new_wrapped(bare_cookie, &url, source.clone()) {
+                    storage.push(cookie, source.clone());
                 }
             }
         }

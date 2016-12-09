@@ -67,27 +67,27 @@ fn fn_cookie_constructor() {
 
     // cookie domains test
     let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  ").unwrap();
-    assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP).is_some());
-    let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
+    assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP(url.clone())).is_some());
+    let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP(url.clone())).unwrap();
     assert!(&**cookie.cookie.domain.as_ref().unwrap() == "example.com");
 
     // cookie public domains test
     let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  gov.ac").unwrap();
-    assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP).is_none());
-    assert!(Cookie::new_wrapped(cookie, gov_url, CookieSource::HTTP).is_some());
+    assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP(url.clone())).is_none());
+    assert!(Cookie::new_wrapped(cookie, gov_url, CookieSource::HTTP(gov_url.clone())).is_some());
 
     // cookie domain matching test
     let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Domain = bazample.com").unwrap();
-    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP(url.clone())).is_none());
 
     let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Path = /foo/bar/").unwrap();
-    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_some());
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP(url.clone())).is_some());
 
     let cookie = cookie_rs::Cookie::parse(" baz = bar ; HttpOnly").unwrap();
     assert!(Cookie::new_wrapped(cookie, url, CookieSource::NonHTTP).is_none());
 
     let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Path = /foo/bar/").unwrap();
-    let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
+    let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP(url.clone())).unwrap();
     assert!(cookie.cookie.value == "bar");
     assert!(cookie.cookie.name == "baz");
     assert!(cookie.cookie.secure);
@@ -97,7 +97,7 @@ fn fn_cookie_constructor() {
 
     let u = &ServoUrl::parse("http://example.com/foobar").unwrap();
     let cookie = cookie_rs::Cookie::parse("foobar=value;path=/").unwrap();
-    assert!(Cookie::new_wrapped(cookie, u, CookieSource::HTTP).is_some());
+    assert!(Cookie::new_wrapped(cookie, u, CookieSource::HTTP(u.clone())).is_some());
 }
 
 #[cfg(target_os = "windows")]
@@ -119,11 +119,11 @@ fn test_sort_order() {
 
     let url = &ServoUrl::parse("http://example.com/foo").unwrap();
     let a_wrapped = cookie_rs::Cookie::parse("baz=bar; Path=/foo/bar/").unwrap();
-    let a = Cookie::new_wrapped(a_wrapped.clone(), url, CookieSource::HTTP).unwrap();
+    let a = Cookie::new_wrapped(a_wrapped.clone(), url, CookieSource::HTTP(url.clone())).unwrap();
     delay_to_ensure_different_timestamp();
-    let a_prime = Cookie::new_wrapped(a_wrapped, url, CookieSource::HTTP).unwrap();
+    let a_prime = Cookie::new_wrapped(a_wrapped, url, CookieSource::HTTP(url.clone())).unwrap();
     let b = cookie_rs::Cookie::parse("baz=bar;Path=/foo/bar/baz/").unwrap();
-    let b = Cookie::new_wrapped(b, url, CookieSource::HTTP).unwrap();
+    let b = Cookie::new_wrapped(b, url, CookieSource::HTTP(url.clone())).unwrap();
 
     assert!(b.cookie.path.as_ref().unwrap().len() > a.cookie.path.as_ref().unwrap().len());
     assert!(CookieStorage::cookie_comparator(&a, &b) == Ordering::Greater);
@@ -133,6 +133,50 @@ fn test_sort_order() {
     assert!(CookieStorage::cookie_comparator(&a, &a) == Ordering::Equal);
 }
 
+fn add_cookie_to_storage(storage: &mut CookieStorage, url: &ServoUrl, cookie_str: &str)
+{
+    let source = CookieSource::HTTP(url.clone());
+    let cookie = Cookie::new_wrapped(cookie_rs::Cookie::parse(cookie_str).unwrap(), url, source.clone()).unwrap();
+    storage.push(cookie, source.clone());
+}
+
+#[test]
+fn test_insecure_cookies_cannot_evict_secure_cookie() {
+    let mut storage = CookieStorage::new(5);
+    let url = ServoUrl::parse("https://home.example.org:8888/cookie-parser?0001").unwrap();
+    let source = CookieSource::HTTP(url.clone());
+    let mut cookies = Vec::new();
+
+    cookies.push(cookie_rs::Cookie::parse("foo=bar; Secure; Domain=home.example.org").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo2=bar; Secure; Domain=.example.org").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo3=bar; Secure; Path=/foo").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo4=bar; Secure; Path=/foo/bar").unwrap());
+
+    for bare_cookie in cookies {
+        let cookie = Cookie::new_wrapped(bare_cookie, &url, source.clone()).unwrap();
+        storage.push(cookie, source.clone());
+    }
+
+    let url = ServoUrl::parse("http://home.example.org:8888/cookie-parser?0001").unwrap();
+
+    add_cookie_to_storage(&mut storage, &url, "foo=value; Domain=home.example.org");
+    add_cookie_to_storage(&mut storage, &url, "foo2=value; Domain=.example.org");
+    add_cookie_to_storage(&mut storage, &url, "foo3=value; Path=/foo/bar");
+    add_cookie_to_storage(&mut storage, &url, "foo4=value; Path=/foo");
+
+    let url = ServoUrl::parse("https://home.example.org:8888/cookie-parser-result?0001").unwrap();
+    let source = CookieSource::HTTP(url.clone());
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(), "foo=bar; foo2=bar");
+
+    let url = ServoUrl::parse("https://home.example.org:8888/foo/cookie-parser-result?0001").unwrap();
+    let source = CookieSource::HTTP(url.clone());
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(), "foo3=bar; foo4=value; foo=bar; foo2=bar");
+
+    let url = ServoUrl::parse("https://home.example.org:8888/foo/bar/cookie-parser-result?0001").unwrap();
+    let source = CookieSource::HTTP(url.clone());
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(), "foo4=bar; foo3=bar; foo4=value; foo=bar; foo2=bar");
+}
+
 
 fn add_retrieve_cookies(set_location: &str,
                         set_cookies: &[String],
@@ -140,7 +184,7 @@ fn add_retrieve_cookies(set_location: &str,
                         -> String {
     let mut storage = CookieStorage::new(5);
     let url = ServoUrl::parse(set_location).unwrap();
-    let source = CookieSource::HTTP;
+    let source = CookieSource::HTTP(url.clone());
 
     // Add all cookies to the store
     for str_cookie in set_cookies {
@@ -148,8 +192,8 @@ fn add_retrieve_cookies(set_location: &str,
         let header = Header::parse_header(&[bytes]).unwrap();
         let SetCookie(cookies) = header;
         for bare_cookie in cookies {
-            let cookie = Cookie::new_wrapped(bare_cookie, &url, source).unwrap();
-            storage.push(cookie, source);
+            let cookie = Cookie::new_wrapped(bare_cookie, &url, source.clone()).unwrap();
+            storage.push(cookie, source.clone());
         }
     }
 

@@ -53,7 +53,7 @@ fn read_response(reader: &mut Read) -> String {
 fn assert_cookie_for_domain(cookie_jar: Arc<RwLock<CookieStorage>>, domain: &str, cookie: Option<&str>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     let url = ServoUrl::parse(&*domain).unwrap();
-    let cookies = cookie_jar.cookies_for_url(&url, CookieSource::HTTP);
+    let cookies = cookie_jar.cookies_for_url(&url, CookieSource::HTTP(url.clone()));
     assert_eq!(cookies.as_ref().map(|c| &**c), cookie);
 }
 
@@ -550,9 +550,9 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
         let cookie = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url,
-            CookieSource::HTTP
+            CookieSource::HTTP(url.clone())
         ).unwrap();
-        cookie_jar.push(cookie, CookieSource::HTTP);
+        cookie_jar.push(cookie, CookieSource::HTTP(url.clone()));
     }
 
     let request = Request::from_init(RequestInit {
@@ -590,7 +590,7 @@ fn test_load_sends_cookie_if_nonhttp() {
             &url,
             CookieSource::NonHTTP
         ).unwrap();
-        cookie_jar.push(cookie, CookieSource::HTTP);
+        cookie_jar.push(cookie, CookieSource::HTTP(url.clone()));
     }
 
     let request = Request::from_init(RequestInit {
@@ -979,17 +979,17 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         let cookie_x = Cookie::new_wrapped(
             CookiePair::new("mozillaIsNot".to_owned(), "dotOrg".to_owned()),
             &url_x,
-            CookieSource::HTTP
+            CookieSource::HTTP(url_x.clone())
         ).unwrap();
 
-        cookie_jar.push(cookie_x, CookieSource::HTTP);
+        cookie_jar.push(cookie_x, CookieSource::HTTP(url_x.clone()));
 
         let cookie_y = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url_y,
-            CookieSource::HTTP
+            CookieSource::HTTP(url_y.clone())
         ).unwrap();
-        cookie_jar.push(cookie_y, CookieSource::HTTP);
+        cookie_jar.push(cookie_y, CookieSource::HTTP(url_y.clone()));
     }
 
     let request = Request::from_init(RequestInit {
@@ -1173,9 +1173,9 @@ fn test_cookies_blocked() {
         let cookie = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url,
-            CookieSource::HTTP
+            CookieSource::HTTP(url.clone())
         ).unwrap();
-        cookie_jar.push(cookie, CookieSource::HTTP);
+        cookie_jar.push(cookie, CookieSource::HTTP(url.clone()));
     }
 
     let request = Request::from_init(RequestInit {
