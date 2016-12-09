@@ -110,10 +110,19 @@ ${helpers.single_keyword("image-rendering",
         computed_value::T::AngleWithFlipped(INITIAL_ANGLE, false)
     }
 
+    // According to CSS Content Module Level 3:
+    // The computed value of the property is calculated by rounding the specified angle
+    // to the nearest quarter-turn, rounding away from 0, then moduloing the value by 1 turn.
     #[inline]
     fn normalize_angle(angle: &Angle) -> Angle {
         let radians = angle.radians();
-        let normalized_radians = ((radians + PI/2f32 % TWO_PI) + TWO_PI) % TWO_PI;
+        let rounded_quarter_turns = (4.0 * radians / TWO_PI).round();
+        let normalized_quarter_turns = if rounded_quarter_turns.is_sign_negative() {
+            (rounded_quarter_turns + 4.0) % 4.0
+        } else {
+            rounded_quarter_turns % 4.0
+        };
+        let normalized_radians = normalized_quarter_turns/4.0 * TWO_PI;
         Angle::from_radians(normalized_radians)
     }
 
