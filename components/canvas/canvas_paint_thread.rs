@@ -864,3 +864,180 @@ impl ToAzFloat for Rect<f64> {
                   Size2D::new(self.size.width as AzFloat, self.size.height as AzFloat))
     }
 }
+
+
+pub trait ToAzureStyle {
+    type Target;
+    fn to_azure_style(self) -> Self::Target;
+}
+
+impl ToAzureStyle for FillOrStrokeStyle {
+    type Target = Option<Pattern>
+    fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Self::Target {
+        match *self {
+            FillOrStrokeStyle::Color(ref color) => {
+                Some(Pattern::Color(ColorPattern::new(color.to_azcolor())))
+            },
+            FillOrStrokeStyle::LinearGradient(ref linear_gradient_style) => {
+                let gradient_stops: Vec<GradientStop> = linear_gradient_style.stops.iter().map(|s| {
+                    GradientStop {
+                        offset: s.offset as AzFloat,
+                        color: s.color.to_azcolor()
+                    }
+                }).collect();
+
+                Some(Pattern::LinearGradient(LinearGradientPattern::new(
+                    &Point2D::new(linear_gradient_style.x0 as AzFloat, linear_gradient_style.y0 as AzFloat),
+                    &Point2D::new(linear_gradient_style.x1 as AzFloat, linear_gradient_style.y1 as AzFloat),
+                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
+                    &Matrix2D::identity())))
+            },
+            FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
+                let gradient_stops: Vec<GradientStop> = radial_gradient_style.stops.iter().map(|s| {
+                    GradientStop {
+                        offset: s.offset as AzFloat,
+                        color: s.color.to_azcolor()
+                    }
+                }).collect();
+
+                Some(Pattern::RadialGradient(RadialGradientPattern::new(
+                    &Point2D::new(radial_gradient_style.x0 as AzFloat, radial_gradient_style.y0 as AzFloat),
+                    &Point2D::new(radial_gradient_style.x1 as AzFloat, radial_gradient_style.y1 as AzFloat),
+                    radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
+                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
+                    &Matrix2D::identity())))
+            },
+            FillOrStrokeStyle::Surface(ref surface_style) => {
+                drawtarget.create_source_surface_from_data(&surface_style.surface_data,
+                                                           surface_style.surface_size,
+                                                           surface_style.surface_size.width * 4,
+                                                           SurfaceFormat::B8G8R8A8)
+                          .map(|source_surface| {
+                    Pattern::Surface(SurfacePattern::new(
+                        source_surface.azure_source_surface,
+                        surface_style.repeat_x,
+                        surface_style.repeat_y,
+                        &Matrix2D::identity()))
+                    })
+            }
+        }
+    }
+}
+
+impl ToAzureStyle for LineCapStyle {
+    type Target = CapStyle;
+    fn to_azure_style(self) -> Self::Target {
+        match self {
+            LineCapStyle::Butt => CapStyle::Butt,
+            LineCapStyle::Round => CapStyle::Round,
+            LineCapStyle::Square => CapStyle::Square,
+        }
+    }
+}
+
+impl ToAzureStyle for LineJoinStyle {
+    type Target = JoinStyle;
+    fn to_azure_style(&self) -> Self::Target {
+        match *self {
+            LineJoinStyle::Round => JoinStyle::Round,
+            LineJoinStyle::Bevel => JoinStyle::Bevel,
+            LineJoinStyle::Miter => JoinStyle::Miter,
+        }
+    }
+}
+
+impl ToAzureStyle for CompositionStyle {
+    type Target = CompositionOp;
+    fn to_azure_style(&self) -> CompositionOp {
+        match *self {
+            CompositionStyle::SrcIn    => CompositionOp::In,
+            CompositionStyle::SrcOut   => CompositionOp::Out,
+            CompositionStyle::SrcOver  => CompositionOp::Over,
+            CompositionStyle::SrcAtop  => CompositionOp::Atop,
+            CompositionStyle::DestIn   => CompositionOp::DestIn,
+            CompositionStyle::DestOut  => CompositionOp::DestOut,
+            CompositionStyle::DestOver => CompositionOp::DestOver,
+            CompositionStyle::DestAtop => CompositionOp::DestAtop,
+            CompositionStyle::Copy     => CompositionOp::Source,
+            CompositionStyle::Lighter  => CompositionOp::Add,
+            CompositionStyle::Xor      => CompositionOp::Xor,
+        }
+    }
+}
+
+impl ToAzureStyle for BlendingStyle {
+    type Target = CompositionOp;
+    fn to_azure_style(&self) -> CompositionOp {
+        match *self {
+            BlendingStyle::Multiply   => CompositionOp::Multiply,
+            BlendingStyle::Screen     => CompositionOp::Screen,
+            BlendingStyle::Overlay    => CompositionOp::Overlay,
+            BlendingStyle::Darken     => CompositionOp::Darken,
+            BlendingStyle::Lighten    => CompositionOp::Lighten,
+            BlendingStyle::ColorDodge => CompositionOp::ColorDodge,
+            BlendingStyle::ColorBurn  => CompositionOp::ColorBurn,
+            BlendingStyle::HardLight  => CompositionOp::HardLight,
+            BlendingStyle::SoftLight  => CompositionOp::SoftLight,
+            BlendingStyle::Difference => CompositionOp::Difference,
+            BlendingStyle::Exclusion  => CompositionOp::Exclusion,
+            BlendingStyle::Hue        => CompositionOp::Hue,
+            BlendingStyle::Saturation => CompositionOp::Saturation,
+            BlendingStyle::Color      => CompositionOp::Color,
+            BlendingStyle::Luminosity => CompositionOp::Luminosity,
+        }
+    }
+}
+
+impl ToAzureStyle for CompositionOrBlending {
+    type Target = CompositionOp;
+    fn to_azure_style(&self) -> CompositionOp {
+        match *self {
+            CompositionOrBlending::Composition(op) => op.to_azure_style(),
+            CompositionOrBlending::Blending(op) => op.to_azure_style(),
+        }
+    }
+}
+
+pub trait ToString {
+	fn to_string(self) -> &str;
+}
+
+impl ToString for CompositionStyle {
+	fn to_str(&self) -> &str {
+        match *self {
+            CompositionStyle::SrcIn    => "source-in",
+            CompositionStyle::SrcOut   => "source-out",
+            CompositionStyle::SrcOver  => "source-over",
+            CompositionStyle::SrcAtop  => "source-atop",
+            CompositionStyle::DestIn   => "destination-in",
+            CompositionStyle::DestOut  => "destination-out",
+            CompositionStyle::DestOver => "destination-over",
+            CompositionStyle::DestAtop => "destination-atop",
+            CompositionStyle::Copy     => "copy",
+            CompositionStyle::Lighter  => "lighter",
+            CompositionStyle::Xor      => "xor",
+        }
+    }
+}
+
+impl ToString for BlendingStyle {
+	fn to_str(&self) -> &str {
+        match *self {
+            BlendingStyle::Multiply   => "multiply",
+            BlendingStyle::Screen     => "screen",
+            BlendingStyle::Overlay    => "overlay",
+            BlendingStyle::Darken     => "darken",
+            BlendingStyle::Lighten    => "lighten",
+            BlendingStyle::ColorDodge => "color-dodge",
+            BlendingStyle::ColorBurn  => "color-burn",
+            BlendingStyle::HardLight  => "hard-light",
+            BlendingStyle::SoftLight  => "soft-light",
+            BlendingStyle::Difference => "difference",
+            BlendingStyle::Exclusion  => "exclusion",
+            BlendingStyle::Hue        => "hue",
+            BlendingStyle::Saturation => "saturation",
+            BlendingStyle::Color      => "color",
+            BlendingStyle::Luminosity => "luminosity",
+        }
+    }
+}
