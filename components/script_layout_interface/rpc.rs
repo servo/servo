@@ -57,7 +57,7 @@ pub struct HitTestResponse {
     pub node_address: Option<UntrustedNodeAddress>,
 }
 
-pub struct ResolvedStyleResponse(pub Option<String>);
+pub struct ResolvedStyleResponse(pub String);
 
 #[derive(Clone)]
 pub struct OffsetParentResponse {

@@ -24,7 +24,6 @@ use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElemen
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;
-use servo_atoms::Atom;
 use std::cmp::{min, max};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
@@ -32,8 +31,8 @@ use style::computed_values;
 use style::context::StyleContext;
 use style::dom::TElement;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
+use style::properties::{style_structs, PropertyId, PropertyDeclarationId, LonghandId};
 use style::properties::longhands::{display, position};
-use style::properties::style_structs;
 use style::selector_parser::PseudoElement;
 use style::stylist::Stylist;
 use style_traits::ToCss;
@@ -75,7 +74,7 @@ pub struct LayoutThreadData {
     pub scroll_area_response: Rect<i32>,
 
     /// A queued response for the resolved style property of an element.
-    pub resolved_style_response: Option<String>,
+    pub resolved_style_response: String,
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
@@ -628,8 +627,8 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
 pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
                                                 style_context: &'a C,
                                                 pseudo: &Option<PseudoElement>,
-                                                property: &Atom,
-                                                layout_root: &mut Flow) -> Option<String>
+                                                property: &PropertyId,
+                                                layout_root: &mut Flow) -> String
     where N: LayoutNode,
           C: StyleContext<'a>
 {
@@ -667,12 +666,24 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
             // The pseudo doesn't exist, return nothing.  Chrome seems to query
             // the element itself in this case, Firefox uses the resolved value.
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
-            return None;
+            return String::new();
         }
         Some(layout_el) => layout_el
     };
 
     let style = &*layout_el.resolved_style();
+
+    let longhand_id = match *property {
+        PropertyId::Longhand(id) => id,
+
+        // Firefox returns blank strings for the computed value of shorthands,
+        // so this should be web-compatible.
+        PropertyId::Shorthand(_) => return String::new(),
+
+        PropertyId::Custom(ref name) => {
+            return style.computed_value_to_string(PropertyDeclarationId::Custom(name))
+        }
+    };
 
     // Clear any temporarily-resolved data to maintain our invariants. See the comment
     // at the top of this function.
@@ -697,7 +708,7 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
             layout_el: <N::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteThreadSafeLayoutElement,
             layout_root: &mut Flow,
             requested_node: N,
-            property: &Atom) -> Option<String> {
+            longhand_id: LonghandId) -> String {
         let maybe_data = layout_el.borrow_layout_data();
         let position = maybe_data.map_or(Point2D::zero(), |data| {
             match (*data).flow_construction_result {
@@ -708,13 +719,13 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
                 _ => Point2D::zero()
             }
         });
-        let property = match *property {
-            atom!("bottom") => PositionProperty::Bottom,
-            atom!("top") => PositionProperty::Top,
-            atom!("left") => PositionProperty::Left,
-            atom!("right") => PositionProperty::Right,
-            atom!("width") => PositionProperty::Width,
-            atom!("height") => PositionProperty::Height,
+        let property = match longhand_id {
+            LonghandId::Bottom => PositionProperty::Bottom,
+            LonghandId::Top => PositionProperty::Top,
+            LonghandId::Left => PositionProperty::Left,
+            LonghandId::Right => PositionProperty::Right,
+            LonghandId::Width => PositionProperty::Width,
+            LonghandId::Height => PositionProperty::Height,
             _ => unreachable!()
         };
         let mut iterator =
@@ -723,27 +734,25 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
                                                              position);
         sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
                                                                     &mut iterator);
-        iterator.result.map(|r| r.to_css_string())
+        iterator.result.map(|r| r.to_css_string()).unwrap_or(String::new())
     }
 
     // TODO: we will return neither the computed nor used value for margin and padding.
-    // Firefox returns blank strings for the computed value of shorthands,
-    // so this should be web-compatible.
-    match *property {
-        atom!("margin-bottom") | atom!("margin-top") |
-        atom!("margin-left") | atom!("margin-right") |
-        atom!("padding-bottom") | atom!("padding-top") |
-        atom!("padding-left") | atom!("padding-right")
+    match longhand_id {
+        LonghandId::MarginBottom | LonghandId::MarginTop |
+        LonghandId::MarginLeft | LonghandId::MarginRight |
+        LonghandId::PaddingBottom | LonghandId::PaddingTop |
+        LonghandId::PaddingLeft | LonghandId::PaddingRight
         if applies && style.get_box().display != display::computed_value::T::none => {
-            let (margin_padding, side) = match *property {
-                atom!("margin-bottom") => (MarginPadding::Margin, Side::Bottom),
-                atom!("margin-top") => (MarginPadding::Margin, Side::Top),
-                atom!("margin-left") => (MarginPadding::Margin, Side::Left),
-                atom!("margin-right") => (MarginPadding::Margin, Side::Right),
-                atom!("padding-bottom") => (MarginPadding::Padding, Side::Bottom),
-                atom!("padding-top") => (MarginPadding::Padding, Side::Top),
-                atom!("padding-left") => (MarginPadding::Padding, Side::Left),
-                atom!("padding-right") => (MarginPadding::Padding, Side::Right),
+            let (margin_padding, side) = match longhand_id {
+                LonghandId::MarginBottom => (MarginPadding::Margin, Side::Bottom),
+                LonghandId::MarginTop => (MarginPadding::Margin, Side::Top),
+                LonghandId::MarginLeft => (MarginPadding::Margin, Side::Left),
+                LonghandId::MarginRight => (MarginPadding::Margin, Side::Right),
+                LonghandId::PaddingBottom => (MarginPadding::Padding, Side::Bottom),
+                LonghandId::PaddingTop => (MarginPadding::Padding, Side::Top),
+                LonghandId::PaddingLeft => (MarginPadding::Padding, Side::Left),
+                LonghandId::PaddingRight => (MarginPadding::Padding, Side::Right),
                 _ => unreachable!()
             };
             let mut iterator =
@@ -753,23 +762,22 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
                                                                style.writing_mode);
             sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root,
                                                                         &mut iterator);
-            iterator.result.map(|r| r.to_css_string())
+            iterator.result.map(|r| r.to_css_string()).unwrap_or(String::new())
         },
 
-        atom!("bottom") | atom!("top") | atom!("right") |
-        atom!("left")
+        LonghandId::Bottom | LonghandId::Top | LonghandId::Right | LonghandId::Left
         if applies && positioned && style.get_box().display !=
                 display::computed_value::T::none => {
-            used_value_for_position_property(layout_el, layout_root, requested_node, property)
+            used_value_for_position_property(layout_el, layout_root, requested_node, longhand_id)
         }
-        atom!("width") | atom!("height")
+        LonghandId::Width | LonghandId::Height
         if applies && style.get_box().display !=
                 display::computed_value::T::none => {
-            used_value_for_position_property(layout_el, layout_root, requested_node, property)
+            used_value_for_position_property(layout_el, layout_root, requested_node, longhand_id)
         }
         // FIXME: implement used value computation for line-height
-        ref property => {
-            style.computed_value_to_string(&*property).ok()
+        _ => {
+            style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id))
         }
     }
 }

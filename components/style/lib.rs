@@ -38,7 +38,7 @@
 //#![deny(unsafe_code)]
 #![allow(unused_unsafe)]
 
-#![recursion_limit = "500"]  // For match_ignore_ascii_case in PropertyDeclaration::parse
+#![recursion_limit = "500"]  // For define_css_keyword_enum! in -moz-appearance
 
 extern crate app_units;
 #[allow(unused_extern_crates)]
@@ -71,6 +71,7 @@ extern crate num_traits;
 extern crate ordered_float;
 extern crate owning_ref;
 extern crate parking_lot;
+extern crate phf;
 extern crate quickersort;
 extern crate rayon;
 extern crate rustc_serialize;

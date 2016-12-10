@@ -466,7 +466,7 @@ impl LayoutThread {
                     scroll_root_id_response: None,
                     scroll_area_response: Rect::zero(),
                     overflow_response: NodeOverflowResponse(None),
-                    resolved_style_response: None,
+                    resolved_style_response: String::new(),
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
                     stacking_context_scroll_offsets: HashMap::new(),
@@ -1018,7 +1018,7 @@ impl LayoutThread {
                         rw_data.scroll_root_id_response = None;
                     },
                     ReflowQueryType::ResolvedStyleQuery(_, _, _) => {
-                        rw_data.resolved_style_response = None;
+                        rw_data.resolved_style_response = String::new();
                     },
                     ReflowQueryType::OffsetParentQuery(_) => {
                         rw_data.offset_parent_response = OffsetParentResponse::empty();

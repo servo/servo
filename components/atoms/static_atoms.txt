@@ -32,21 +32,6 @@ number
 
 dir
 
-bottom
-top
-left
-right
-width
-height
-margin-bottom
-margin-top
-margin-left
-margin-right
-padding-bottom
-padding-top
-padding-left
-padding-right
-
 DOMContentLoaded
 select
 input

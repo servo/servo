@@ -10,13 +10,12 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-use std::ascii::AsciiExt;
+use std::borrow::Cow;
 use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt::{self, Write};
 use std::sync::Arc;
 
-use Atom;
 use app_units::Au;
 #[cfg(feature = "servo")] use cssparser::{Color as CSSParserColor, RGBA};
 use cssparser::{Parser, TokenSerializationType};
@@ -25,6 +24,7 @@ use error_reporting::ParseErrorReporter;
 use euclid::size::Size2D;
 use computed_values;
 use font_metrics::FontMetricsProvider;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{Parse, ParserContext, ParserContextExtraData};
@@ -39,6 +39,12 @@ use rule_tree::StrongRuleNode;
 
 use self::property_bit_field::PropertyBitField;
 pub use self::declaration_block::*;
+
+#[cfg(feature = "gecko")]
+#[macro_export]
+macro_rules! property_name {
+    ($s: tt) => { atom!($s) }
+}
 
 <%!
     from data import Method, Keyword, to_rust_ident
@@ -242,7 +248,7 @@ mod property_bit_field {
                 css: &String,
                 first_token_type: TokenSerializationType,
                 base_url: &ServoUrl,
-                from_shorthand: Option<Shorthand>,
+                from_shorthand: Option<ShorthandId>,
                 custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
                 f: F,
                 error_reporter: &mut StdBox<ParseErrorReporter + Send>,
@@ -265,7 +271,7 @@ mod property_bit_field {
                             }
                             % for shorthand in data.shorthands:
                                 % if property in shorthand.sub_properties:
-                                    Some(Shorthand::${shorthand.camel_case}) => {
+                                    Some(ShorthandId::${shorthand.camel_case}) => {
                                         shorthands::${shorthand.ident}::parse_value(&context, input)
                                         .map(|result| match result.${property.ident} {
                                             Some(value) => DeclaredValue::Value(value),
@@ -378,41 +384,56 @@ impl Parse for CSSWideKeyword {
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Shorthand {
+pub enum LonghandId {
+    % for i, property in enumerate(data.longhands):
+        ${property.camel_case} = ${i},
+    % endfor
+}
+
+impl LonghandId {
+    pub fn name(&self) -> &'static str {
+        match *self {
+            % for property in data.longhands:
+                LonghandId::${property.camel_case} => "${property.name}",
+            % endfor
+        }
+    }
+}
+
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum ShorthandId {
     % for property in data.shorthands:
         ${property.camel_case},
     % endfor
 }
 
-impl Shorthand {
-    pub fn from_name(name: &str) -> Option<Shorthand> {
-        match_ignore_ascii_case! { name,
-            % for property in data.shorthands:
-                "${property.name}" => Some(Shorthand::${property.camel_case}),
-            % endfor
-            _ => None
-        }
+impl ToCss for ShorthandId {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str(self.name())
     }
+}
 
+impl ShorthandId {
     pub fn name(&self) -> &'static str {
         match *self {
             % for property in data.shorthands:
-                Shorthand::${property.camel_case} => "${property.name}",
+                ShorthandId::${property.camel_case} => "${property.name}",
             % endfor
         }
     }
 
-    pub fn longhands(&self) -> &'static [&'static str] {
+    pub fn longhands(&self) -> &'static [LonghandId] {
         % for property in data.shorthands:
-            static ${property.ident.upper()}: &'static [&'static str] = &[
+            static ${property.ident.upper()}: &'static [LonghandId] = &[
                 % for sub in property.sub_properties:
-                    "${sub.name}",
+                    LonghandId::${sub.camel_case},
                 % endfor
             ];
         % endfor
         match *self {
             % for property in data.shorthands:
-                Shorthand::${property.camel_case} => ${property.ident.upper()},
+                ShorthandId::${property.camel_case} => ${property.ident.upper()},
             % endfor
         }
     }
@@ -421,7 +442,7 @@ impl Shorthand {
         where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
         match *self {
             % for property in data.shorthands:
-                Shorthand::${property.camel_case} => {
+                ShorthandId::${property.camel_case} => {
                     match shorthands::${property.ident}::LonghandsToSerialize::from_iter(declarations) {
                         Ok(longhands) => longhands.to_css(dest),
                         Err(_) => Err(fmt::Error)
@@ -443,11 +464,9 @@ impl Shorthand {
         match self.get_shorthand_appendable_value(declarations) {
             None => Ok(false),
             Some(appendable_value) => {
-                let property_name = self.name();
-
                 append_serialization(
                     dest,
-                    property_name,
+                    &self,
                     appendable_value,
                     importance,
                     is_first_serialization
@@ -496,7 +515,7 @@ pub enum DeclaredValue<T> {
         css: String,
         first_token_type: TokenSerializationType,
         base_url: ServoUrl,
-        from_shorthand: Option<Shorthand>,
+        from_shorthand: Option<ShorthandId>,
     },
     Initial,
     Inherit,
@@ -535,6 +554,133 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
 
 #[derive(PartialEq, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum PropertyDeclarationId<'a> {
+    Longhand(LonghandId),
+    Custom(&'a ::custom_properties::Name),
+}
+
+impl<'a> ToCss for PropertyDeclarationId<'a> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            PropertyDeclarationId::Longhand(id) => dest.write_str(id.name()),
+            PropertyDeclarationId::Custom(name) => write!(dest, "--{}", name),
+        }
+    }
+}
+
+impl<'a> PropertyDeclarationId<'a> {
+    pub fn is_or_is_longhand_of(&self, other: &PropertyId) -> bool {
+        match *self {
+            PropertyDeclarationId::Longhand(id) => {
+                match *other {
+                    PropertyId::Longhand(other_id) => id == other_id,
+                    PropertyId::Shorthand(shorthand) => shorthand.longhands().contains(&id),
+                    PropertyId::Custom(_) => false,
+                }
+            }
+            PropertyDeclarationId::Custom(name) => {
+                matches!(*other, PropertyId::Custom(ref other_name) if name == other_name)
+            }
+        }
+    }
+
+    pub fn is_longhand_of(&self, shorthand: ShorthandId) -> bool {
+        match *self {
+            PropertyDeclarationId::Longhand(ref id) => shorthand.longhands().contains(id),
+            _ => false,
+        }
+    }
+}
+
+#[derive(Eq, PartialEq, Clone)]
+pub enum PropertyId {
+    Longhand(LonghandId),
+    Shorthand(ShorthandId),
+    Custom(::custom_properties::Name),
+}
+
+impl fmt::Debug for PropertyId {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        self.to_css(formatter)
+    }
+}
+
+impl ToCss for PropertyId {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            PropertyId::Longhand(id) => dest.write_str(id.name()),
+            PropertyId::Shorthand(id) => dest.write_str(id.name()),
+            PropertyId::Custom(ref name) => write!(dest, "--{}", name),
+        }
+    }
+}
+
+// FIXME(https://github.com/rust-lang/rust/issues/33156): remove this enum and use PropertyId
+// when stable Rust allows destructors in statics.
+enum StaticId {
+    Longhand(LonghandId),
+    Shorthand(ShorthandId),
+}
+include!(concat!(env!("OUT_DIR"), "/static_ids.rs"));
+
+impl PropertyId {
+    /// Returns Err(()) for unknown non-custom properties
+    pub fn parse(s: Cow<str>) -> Result<Self, ()> {
+        if let Ok(name) = ::custom_properties::parse_name(&s) {
+            return Ok(PropertyId::Custom(::custom_properties::Name::from(name)))
+        }
+
+        let lower_case = ::str::cow_into_ascii_lowercase(s);
+        match STATIC_IDS.get(&*lower_case) {
+            Some(&StaticId::Longhand(id)) => Ok(PropertyId::Longhand(id)),
+            Some(&StaticId::Shorthand(id)) => Ok(PropertyId::Shorthand(id)),
+            None => Err(()),
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    #[allow(non_upper_case_globals)]
+    pub fn from_nscsspropertyid(id: nsCSSPropertyID) -> Result<Self, ()> {
+        use gecko_bindings::structs::*;
+        <%
+            def to_nscsspropertyid(ident):
+                if ident == "word_wrap":
+                    return "nsCSSPropertyID_eCSSPropertyAlias_WordWrap"
+
+                if ident == "float":
+                    ident = "float_"
+                elif "outline_radius" in ident:
+                    ident = ident.replace("right", "Right").replace("left", "Left")
+                elif ident.startswith("_moz_"):
+                    ident = ident[len("_moz_"):]
+                return "nsCSSPropertyID::eCSSProperty_" + ident
+        %>
+        match id {
+            % for property in data.longhands:
+                ${to_nscsspropertyid(property.ident)} => {
+                    Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
+                }
+            % endfor
+            % for property in data.shorthands:
+                ${to_nscsspropertyid(property.ident)} => {
+                    Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
+                }
+            % endfor
+            _ => Err(())
+        }
+    }
+
+    pub fn as_shorthand(&self) -> Result<ShorthandId, PropertyDeclarationId> {
+        match *self {
+            PropertyId::Shorthand(id) => Ok(id),
+            PropertyId::Longhand(id) => Err(PropertyDeclarationId::Longhand(id)),
+            PropertyId::Custom(ref name) => Err(PropertyDeclarationId::Custom(name)),
+        }
+    }
+}
+
+#[derive(PartialEq, Clone)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum PropertyDeclaration {
     % for property in data.longhands:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
@@ -566,51 +712,10 @@ pub enum PropertyDeclarationParseResult {
     ValidOrIgnoredDeclaration,
 }
 
-#[derive(Eq, PartialEq, Clone)]
-pub enum PropertyDeclarationName {
-    Longhand(&'static str),
-    Custom(::custom_properties::Name),
-    Internal
-}
-
-impl PropertyDeclarationName {
-    pub fn eq_str_ignore_ascii_case(&self, other: &str) -> bool {
-        match *self {
-            PropertyDeclarationName::Longhand(s) => s.eq_ignore_ascii_case(other),
-            PropertyDeclarationName::Custom(ref n) => n.eq_str_ignore_ascii_case(other),
-            PropertyDeclarationName::Internal => false
-        }
-    }
-}
-
-impl PartialEq<str> for PropertyDeclarationName {
-    fn eq(&self, other: &str) -> bool {
-        match *self {
-            PropertyDeclarationName::Longhand(n) => n == other,
-            PropertyDeclarationName::Custom(ref n) => {
-                n.with_str(|s| ::custom_properties::parse_name(other) == Ok(s))
-            }
-            PropertyDeclarationName::Internal => false,
-        }
-    }
-}
-
-impl fmt::Display for PropertyDeclarationName {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            PropertyDeclarationName::Longhand(n) => f.write_str(n),
-            PropertyDeclarationName::Custom(ref n) => {
-                try!(f.write_str("--"));
-                n.with_str(|s| f.write_str(s))
-            }
-            PropertyDeclarationName::Internal => Ok(()),
-        }
-    }
-}
-
 impl fmt::Debug for PropertyDeclaration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "{}: ", self.name()));
+        try!(self.id().to_css(f));
+        try!(f.write_str(": "));
         match *self {
             % for property in data.longhands:
                 % if not property.derived_from:
@@ -643,45 +748,20 @@ impl ToCss for PropertyDeclaration {
 }
 
 impl PropertyDeclaration {
-    pub fn name(&self) -> PropertyDeclarationName {
+    pub fn id(&self) -> PropertyDeclarationId {
         match *self {
             % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}(..) =>
-                % if not property.derived_from:
-                    PropertyDeclarationName::Longhand("${property.name}"),
-                % else:
-                    PropertyDeclarationName::Internal,
-                % endif
+                PropertyDeclaration::${property.camel_case}(..) => {
+                    PropertyDeclarationId::Longhand(LonghandId::${property.camel_case})
+                }
             % endfor
             PropertyDeclaration::Custom(ref name, _) => {
-                PropertyDeclarationName::Custom(name.clone())
+                PropertyDeclarationId::Custom(name)
             }
         }
     }
 
-    #[inline]
-    pub fn discriminant_value(&self) -> usize {
-        match *self {
-            % for i, property in enumerate(data.longhands):
-                PropertyDeclaration::${property.camel_case}(..) => ${i},
-            % endfor
-            PropertyDeclaration::Custom(..) => ${len(data.longhands)}
-        }
-    }
-
-    pub fn value(&self) -> String {
-        let mut value = String::new();
-        if let Err(_) = self.to_css(&mut value) {
-            panic!("unsupported property declaration: {}", self.name());
-        }
-
-        value
-    }
-
-    /// If this is a pending-substitution value from the given shorthand, return that value
-    // Extra space here because < seems to be removed by Mako when immediately followed by &.
-    //                                                                          ↓
-    pub fn with_variables_from_shorthand(&self, shorthand: Shorthand) -> Option< &str> {
+    pub fn with_variables_from_shorthand(&self, shorthand: ShorthandId) -> Option< &str> {
         match *self {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(ref value) => match *value {
@@ -727,49 +807,34 @@ impl PropertyDeclaration {
       }
     }
 
-    pub fn matches(&self, name: &str) -> bool {
-        match *self {
-            % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}(..) =>
-                % if not property.derived_from:
-                    name.eq_ignore_ascii_case("${property.name}"),
-                % else:
-                    false,
-                % endif
-            % endfor
-            PropertyDeclaration::Custom(ref declaration_name, _) => {
-                declaration_name.with_str(|s| ::custom_properties::parse_name(name) == Ok(s))
-            }
-        }
-    }
-
     /// The `in_keyframe_block` parameter controls this:
     ///
     /// https://drafts.csswg.org/css-animations/#keyframes
     /// > The <declaration-list> inside of <keyframe-block> accepts any CSS property
     /// > except those defined in this specification,
     /// > but does accept the `animation-play-state` property and interprets it specially.
-    pub fn parse(name: &str, context: &ParserContext, input: &mut Parser,
+    pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser,
                  result_list: &mut Vec<PropertyDeclaration>,
                  in_keyframe_block: bool)
                  -> PropertyDeclarationParseResult {
-        if let Ok(name) = ::custom_properties::parse_name(name) {
-            let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
-                Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
-                Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
-                Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
-                    Ok(value) => DeclaredValue::Value(value),
-                    Err(()) => return PropertyDeclarationParseResult::InvalidValue,
-                }
-            };
-            result_list.push(PropertyDeclaration::Custom(Atom::from(name), value));
-            return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
-        }
-        match_ignore_ascii_case! { name,
+        match id {
+            PropertyId::Custom(name) => {
+                let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
+                    Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
+                    Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
+                    Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
+                    Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
+                        Ok(value) => DeclaredValue::Value(value),
+                        Err(()) => return PropertyDeclarationParseResult::InvalidValue,
+                    }
+                };
+                result_list.push(PropertyDeclaration::Custom(name, value));
+                return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
+            }
+            PropertyId::Longhand(id) => match id {
             % for property in data.longhands:
-                % if not property.derived_from:
-                    "${property.name}" => {
+                LonghandId::${property.camel_case} => {
+                    % if not property.derived_from:
                         % if not property.allowed_in_keyframe_block:
                             if in_keyframe_block {
                                 return PropertyDeclarationParseResult::AnimationPropertyInKeyframeBlock
@@ -793,13 +858,15 @@ impl PropertyDeclaration {
                             },
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
                         }
-                    },
-                % else:
-                    "${property.name}" => PropertyDeclarationParseResult::UnknownProperty,
-                % endif
+                    % else:
+                        PropertyDeclarationParseResult::UnknownProperty
+                    % endif
+                }
             % endfor
+            },
+            PropertyId::Shorthand(id) => match id {
             % for shorthand in data.shorthands:
-                "${shorthand.name}" => {
+                ShorthandId::${shorthand.camel_case} => {
                     % if not shorthand.allowed_in_keyframe_block:
                         if in_keyframe_block {
                             return PropertyDeclarationParseResult::AnimationPropertyInKeyframeBlock
@@ -846,19 +913,13 @@ impl PropertyDeclaration {
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
                         }
                     }
-                },
-            % endfor
-
-            _ => {
-                if cfg!(all(debug_assertions, feature = "gecko")) && !name.starts_with('-') {
-                    println!("stylo: Unimplemented property setter: {}", name);
                 }
-                PropertyDeclarationParseResult::UnknownProperty
+            % endfor
             }
         }
     }
 
-    pub fn shorthands(&self) -> &'static [Shorthand] {
+    pub fn shorthands(&self) -> &'static [ShorthandId] {
         // first generate longhand to shorthands lookup map
         <%
             longhand_to_shorthand_map = {}
@@ -875,9 +936,9 @@ impl PropertyDeclaration {
 
         // based on lookup results for each longhand, create result arrays
         % for property in data.longhands:
-            static ${property.ident.upper()}: &'static [Shorthand] = &[
+            static ${property.ident.upper()}: &'static [ShorthandId] = &[
                 % for shorthand in longhand_to_shorthand_map.get(property.ident, []):
-                    Shorthand::${shorthand},
+                    ShorthandId::${shorthand},
                 % endfor
             ];
         % endfor
@@ -1321,18 +1382,21 @@ impl ComputedValues {
         false
     }
 
-    pub fn computed_value_to_string(&self, name: &str) -> Result<String, ()> {
-        match name {
+    pub fn computed_value_to_string(&self, property: PropertyDeclarationId) -> String {
+        match property {
             % for style_struct in data.active_style_structs():
                 % for longhand in style_struct.longhands:
-                "${longhand.name}" => Ok(self.${style_struct.ident}.${longhand.ident}.to_css_string()),
+                    PropertyDeclarationId::Longhand(LonghandId::${longhand.camel_case}) => {
+                        self.${style_struct.ident}.${longhand.ident}.to_css_string()
+                    }
                 % endfor
             % endfor
-            _ => {
-                let name = try!(::custom_properties::parse_name(name));
-                let map = try!(self.custom_properties.as_ref().ok_or(()));
-                let value = try!(map.get(&Atom::from(name)).ok_or(()));
-                Ok(value.to_css_string())
+            PropertyDeclarationId::Custom(name) => {
+                self.custom_properties
+                    .as_ref()
+                    .and_then(|map| map.get(name))
+                    .map(|value| value.to_css_string())
+                    .unwrap_or(String::new())
             }
         }
     }
@@ -1576,9 +1640,11 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
     ComputedValues::do_cascade_property(|cascade_property| {
         % for category_to_cascade_now in ["early", "other"]:
             for declaration in iter_declarations() {
-                if let PropertyDeclaration::Custom(..) = *declaration {
-                    continue
-                }
+                let longhand_id = match declaration.id() {
+                    PropertyDeclarationId::Longhand(id) => id,
+                    PropertyDeclarationId::Custom(..) => continue,
+                };
+
                 // The computed value of some properties depends on the
                 // (sometimes computed) value of *other* properties.
                 //
@@ -1610,7 +1676,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                     continue
                 }
 
-                let discriminant = declaration.discriminant_value();
+                let discriminant = longhand_id as usize;
                 (cascade_property[discriminant])(declaration,
                                                  inherited_style,
                                                  &mut context,
@@ -1948,31 +2014,21 @@ pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<Co
     }
 }
 
-// FIXME: https://github.com/w3c/csswg-drafts/issues/580
-pub fn is_supported_property(property: &str) -> bool {
-    match_ignore_ascii_case! { property,
-        % for property in data.shorthands + data.longhands:
-            "${property.name}" => true,
-        % endfor
-        _ => property.starts_with("--")
-    }
-}
-
 #[macro_export]
 macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
         $macro_name! {
-            % for property in data.shorthands + data.longhands:
-                % if not property.derived_from and not property.internal:
-                    % if '-' in property.name:
-                        [${property.ident.capitalize()}, Set${property.ident.capitalize()}, "${property.name}"],
+            % for kind, props in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
+                % for property in props:
+                    % if not property.derived_from and not property.internal:
+                        % if '-' in property.name:
+                            [${property.ident.capitalize()}, Set${property.ident.capitalize()},
+                             PropertyId::${kind}(${kind}Id::${property.camel_case})],
+                        % endif
+                        [${property.camel_case}, Set${property.camel_case},
+                         PropertyId::${kind}(${kind}Id::${property.camel_case})],
                     % endif
-                    % if property != data.longhands[-1]:
-                        [${property.camel_case}, Set${property.camel_case}, "${property.name}"],
-                    % else:
-                        [${property.camel_case}, Set${property.camel_case}, "${property.name}"]
-                    % endif
-                % endif
+                % endfor
             % endfor
         }
     }

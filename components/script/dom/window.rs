@@ -92,6 +92,7 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries;
+use style::properties::PropertyId;
 use style::properties::longhands::overflow_x;
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
@@ -1295,16 +1296,16 @@ impl Window {
     }
 
     pub fn resolved_style_query(&self,
-                            element: TrustedNodeAddress,
-                            pseudo: Option<PseudoElement>,
-                            property: &Atom) -> Option<DOMString> {
+                                element: TrustedNodeAddress,
+                                pseudo: Option<PseudoElement>,
+                                property: PropertyId) -> DOMString {
         if !self.reflow(ReflowGoal::ForScriptQuery,
-                        ReflowQueryType::ResolvedStyleQuery(element, pseudo, property.clone()),
+                        ReflowQueryType::ResolvedStyleQuery(element, pseudo, property),
                         ReflowReason::Query) {
-            return None;
+            return DOMString::new();
         }
         let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
-        resolved.map(DOMString::from)
+        DOMString::from(resolved)
     }
 
     pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {

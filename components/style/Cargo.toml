@@ -40,6 +40,7 @@ num-traits = "0.1.32"
 ordered-float = "0.2.2"
 owning_ref = "0.2.2"
 parking_lot = "0.3.3"
+phf = "0.7.20"
 quickersort = "2.0.0"
 rand = "0.3"
 rayon = "0.5"
@@ -64,4 +65,5 @@ version = "1.0"
 kernel32-sys = "0.2"
 
 [build-dependencies]
+phf_codegen = "0.7.20"
 walkdir = "0.1"

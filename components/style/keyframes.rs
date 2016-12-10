@@ -6,7 +6,7 @@ use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
 use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
-use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
 use std::fmt;
@@ -343,8 +343,9 @@ impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
     type Declaration = Vec<PropertyDeclaration>;
 
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<Vec<PropertyDeclaration>, ()> {
+        let id = try!(PropertyId::parse(name.into()));
         let mut results = Vec::new();
-        match PropertyDeclaration::parse(name, self.context, input, &mut results, true) {
+        match PropertyDeclaration::parse(id, self.context, input, &mut results, true) {
             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
             _ => return Err(())
         }
