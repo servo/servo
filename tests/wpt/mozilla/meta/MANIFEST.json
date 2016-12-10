@@ -6498,6 +6498,18 @@
             "url": "/_mozilla/mozilla/table_valign_uneven_height.html"
           }
         ],
+        "mozilla/textarea_placeholder.html": [
+          {
+            "path": "mozilla/textarea_placeholder.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/textarea_placeholder_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/textarea_placeholder.html"
+          }
+        ],
         "mozilla/webgl/clearcolor.html": [
           {
             "path": "mozilla/webgl/clearcolor.html",
@@ -21544,6 +21556,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/table_valign_uneven_height.html"
+        }
+      ],
+      "mozilla/textarea_placeholder.html": [
+        {
+          "path": "mozilla/textarea_placeholder.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/textarea_placeholder_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/textarea_placeholder.html"
         }
       ],
       "mozilla/webgl/clearcolor.html": [
