@@ -346,14 +346,12 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 SpecificFragmentInfo::Iframe(IframeFragmentInfo::new(node))
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) => {
-                let image_info = box ImageFragmentInfo::new(node,
-                                                            node.image_url(),
+                let image_info = box ImageFragmentInfo::new(node.image_url(),
                                                             &self.layout_context.shared);
                 SpecificFragmentInfo::Image(image_info)
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
-                let image_info = box ImageFragmentInfo::new(node,
-                                                            node.object_data(),
+                let image_info = box ImageFragmentInfo::new(node.object_data(),
                                                             &self.layout_context.shared);
                 SpecificFragmentInfo::Image(image_info)
             }
@@ -372,11 +370,11 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLCanvasElement)) => {
                 let data = node.canvas_data().unwrap();
-                SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(node, data, self.style_context()))
+                SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(data))
             }
             Some(LayoutNodeType::Element(LayoutElementType::SVGSVGElement)) => {
                 let data = node.svg_data().unwrap();
-                SpecificFragmentInfo::Svg(box SvgFragmentInfo::new(node, data, self.style_context()))
+                SpecificFragmentInfo::Svg(box SvgFragmentInfo::new(data))
             }
             _ => {
                 // This includes pseudo-elements.
@@ -1207,8 +1205,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let flotation = FloatKind::from_property(flotation);
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
             Either::First(ref url_value) => {
-                let image_info = box ImageFragmentInfo::new(node,
-                                                            url_value.url().map(|u| u.clone()),
+                let image_info = box ImageFragmentInfo::new(url_value.url().map(|u| u.clone()),
                                                             &self.layout_context.shared);
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }

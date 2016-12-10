@@ -1271,7 +1271,7 @@ impl BlockFlow {
                 // Calculate used value of block-size just like we do for inline replaced elements.
                 // TODO: Pass in the containing block block-size when Fragment's
                 // assign-block-size can handle it correctly.
-                self.fragment.assign_replaced_block_size_if_necessary(Some(containing_block_block_size));
+                self.fragment.assign_replaced_block_size_if_necessary();
                 // TODO: Right now, this content block-size value includes the
                 // margin because of erroneous block-size calculation in fragment.
                 // Check this when that has been fixed.
@@ -1901,9 +1901,7 @@ impl Flow for BlockFlow {
                                              self.base.debug_id());
 
             // Assign block-size for fragment if it is an image fragment.
-            let containing_block_block_size =
-                self.base.block_container_explicit_block_size;
-            self.fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
+            self.fragment.assign_replaced_block_size_if_necessary();
             if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 self.base.position.size.block = self.fragment.border_box.size.block;
                 self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
