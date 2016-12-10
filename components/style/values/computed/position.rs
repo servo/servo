@@ -27,6 +27,8 @@ impl ToCss for Position {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Copy)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct HorizontalPosition(pub LengthOrPercentage);
 
 impl ToCss for HorizontalPosition {
@@ -35,6 +37,8 @@ impl ToCss for HorizontalPosition {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Copy)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct VerticalPosition(pub LengthOrPercentage);
 
 impl ToCss for VerticalPosition {
