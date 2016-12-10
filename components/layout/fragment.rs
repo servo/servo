@@ -250,21 +250,6 @@ impl fmt::Debug for SpecificFragmentInfo {
     }
 }
 
-/// Clamp a value obtained from style_length, based on min / max lengths.
-fn clamp_size(size: Au,
-              min_size: LengthOrPercentage,
-              max_size: LengthOrPercentageOrNone,
-              container_size: Au)
-              -> Au {
-    let min_size = model::specified(min_size, container_size);
-    let max_size = model::specified_or_none(max_size, container_size);
-
-    max(min_size, match max_size {
-        None => size,
-        Some(max_size) => min(size, max_size),
-    })
-}
-
 /// Information for generated content.
 #[derive(Clone)]
 pub enum GeneratedContentInfo {
@@ -1577,45 +1562,6 @@ impl Fragment {
                 text.run.minimum_splittable_inline_size(&text.range)
             }
             _ => Au(0),
-        }
-    }
-
-    /// TODO: What exactly does this function return? Why is it Au(0) for
-    /// `SpecificFragmentInfo::Generic`?
-    pub fn content_inline_size(&self) -> Au {
-        match self.specific {
-            SpecificFragmentInfo::Generic |
-            SpecificFragmentInfo::GeneratedContent(_) |
-            SpecificFragmentInfo::Iframe(_) |
-            SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow |
-            SpecificFragmentInfo::TableWrapper |
-            SpecificFragmentInfo::Multicol |
-            SpecificFragmentInfo::MulticolColumn |
-            SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
-            SpecificFragmentInfo::InlineAbsolute(_) => Au(0),
-            SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
-                canvas_fragment_info.replaced_image_fragment_info.computed_inline_size()
-            }
-            SpecificFragmentInfo::Svg(ref svg_fragment_info) => {
-                svg_fragment_info.replaced_image_fragment_info.computed_inline_size()
-            }
-            SpecificFragmentInfo::Image(ref image_fragment_info) => {
-                image_fragment_info.replaced_image_fragment_info.computed_inline_size()
-            }
-            SpecificFragmentInfo::ScannedText(ref text_fragment_info) => {
-                let (range, run) = (&text_fragment_info.range, &text_fragment_info.run);
-                let text_bounds = run.metrics_for_range(range).bounding_box;
-                text_bounds.size.width
-            }
-            SpecificFragmentInfo::TableColumn(_) => {
-                panic!("Table column fragments do not have inline_size")
-            }
-            SpecificFragmentInfo::UnscannedText(_) => {
-                panic!("Unscanned text fragments should have been scanned by now!")
-            }
         }
     }
 
