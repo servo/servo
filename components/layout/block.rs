@@ -42,7 +42,6 @@ use flow::IS_ABSOLUTELY_POSITIONED;
 use flow_list::FlowList;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
 use fragment::{IS_INLINE_FLEX_ITEM, IS_BLOCK_FLEX_ITEM};
-use fragment::SpecificFragmentInfo;
 use gfx::display_list::{ClippingRegion, StackingContext};
 use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
@@ -555,7 +554,7 @@ impl BlockFlow {
     /// relevant margins for this Block.
     pub fn block_type(&self) -> BlockType {
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            if self.is_replaced_content() {
+            if self.fragment.is_replaced() {
                 BlockType::AbsoluteReplaced
             } else {
                 BlockType::AbsoluteNonReplaced
@@ -563,19 +562,19 @@ impl BlockFlow {
         } else if self.is_inline_flex_item() {
             BlockType::InlineFlexItem
         } else if self.base.flags.is_float() {
-            if self.is_replaced_content() {
+            if self.fragment.is_replaced() {
                 BlockType::FloatReplaced
             } else {
                 BlockType::FloatNonReplaced
             }
         } else if self.is_inline_block() {
-            if self.is_replaced_content() {
+            if self.fragment.is_replaced() {
                 BlockType::InlineBlockReplaced
             } else {
                 BlockType::InlineBlockNonReplaced
             }
         } else {
-            if self.is_replaced_content() {
+            if self.fragment.is_replaced() {
                 BlockType::Replaced
             } else {
                 BlockType::NonReplaced
@@ -665,22 +664,6 @@ impl BlockFlow {
             LogicalSize::from_physical(self.base.writing_mode, *viewport_size)
         } else {
             self.base.absolute_cb.generated_containing_block_size(descendant)
-        }
-    }
-
-    /// Return true if this has a replaced fragment.
-    ///
-    /// Text, Images, Inline Block and Canvas
-    /// (https://html.spec.whatwg.org/multipage/#replaced-elements) fragments are considered as
-    /// replaced fragments.
-    fn is_replaced_content(&self) -> bool {
-        match self.fragment.specific {
-            SpecificFragmentInfo::ScannedText(_) |
-            SpecificFragmentInfo::Svg(_) |
-            SpecificFragmentInfo::Image(_) |
-            SpecificFragmentInfo::Canvas(_) |
-            SpecificFragmentInfo::InlineBlock(_) => true,
-            _ => false,
         }
     }
 
@@ -1267,7 +1250,7 @@ impl BlockFlow {
 
             let available_block_size = containing_block_block_size -
                 self.fragment.border_padding.block_start_end();
-            if self.is_replaced_content() {
+            if self.fragment.is_replaced() {
                 // Calculate used value of block-size just like we do for inline replaced elements.
                 // TODO: Pass in the containing block block-size when Fragment's
                 // assign-block-size can handle it correctly.
@@ -1896,7 +1879,7 @@ impl Flow for BlockFlow {
     fn fragment(&mut self, layout_context: &LayoutContext,
                 fragmentation_context: Option<FragmentationContext>)
                 -> Option<Arc<Flow>> {
-        if self.is_replaced_content() {
+        if self.fragment.is_replaced() {
             let _scope = layout_debug_scope!("assign_replaced_block_size_if_necessary {:x}",
                                              self.base.debug_id());
 
@@ -2868,7 +2851,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size, container_block_size);
         // For replaced absolute flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        MaybeAuto::Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_box().size.inline)
     }
 
     fn containing_block_inline_size(&self,
@@ -2927,7 +2910,7 @@ impl ISizeAndMarginsComputer for BlockReplaced {
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        MaybeAuto::Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_box().size.inline)
     }
 
 }
@@ -2985,7 +2968,7 @@ impl ISizeAndMarginsComputer for FloatReplaced {
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        MaybeAuto::Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_box().size.inline)
     }
 }
 
@@ -3073,7 +3056,7 @@ impl ISizeAndMarginsComputer for InlineBlockReplaced {
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size, container_block_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        MaybeAuto::Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_box().size.inline)
     }
 }
 
