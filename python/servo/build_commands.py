@@ -394,6 +394,7 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Build in release mode')
     def build_geckolib(self, jobs=None, verbose=False, release=False):
+        self.set_use_system_rust_by_default()
         self.set_use_stable_rust()
         self.ensure_bootstrapped()
 

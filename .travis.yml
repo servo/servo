@@ -11,6 +11,7 @@ matrix:
     - sudo: 9000
       dist: trusty
       script:
+         - cp servobuild.example .servobuild
          - ./mach build -d --verbose
          - ./mach test-compiletest
          - ./mach test-unit
