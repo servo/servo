@@ -6,6 +6,7 @@
 
 import re
 import os
+import sys
 
 
 PRELUDE = """
@@ -231,8 +232,10 @@ def write_pseudo_element_helper(atoms, target_filename):
         f.write("}\n")
 
 
-def build(objdir, verbose=False):
-    atoms = collect_atoms(objdir)
-    write_atom_macro(atoms, "../gecko_string_cache/atom_macro.rs")
-    write_pseudo_element_helper(atoms, "../gecko/generated/gecko_pseudo_element_helper.rs")
-    return 0
+if len(sys.argv) != 2:
+    print("Usage: {} objdir".format(sys.argv[0]))
+    exit(2)
+
+atoms = collect_atoms(sys.argv[1])
+write_atom_macro(atoms, "../gecko_string_cache/atom_macro.rs")
+write_pseudo_element_helper(atoms, "../gecko/generated/gecko_pseudo_element_helper.rs")

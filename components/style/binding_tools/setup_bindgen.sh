@@ -28,11 +28,3 @@ fi
 
 export LD_LIBRARY_PATH="${LIBCLANG_PATH}"
 export DYLD_LIBRARY_PATH="${LIBCLANG_PATH}"
-
-# Don't try to clone twice.
-if [[ ! -d rust-bindgen ]]; then
-  git clone https://github.com/servo/rust-bindgen.git
-fi
-
-cd rust-bindgen
-cargo build --features llvm_stable --release

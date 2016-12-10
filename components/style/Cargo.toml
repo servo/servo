@@ -14,6 +14,7 @@ doctest = false
 
 [features]
 gecko = ["nsstring_vendor", "num_cpus", "rayon/unstable"]
+bindgen = ["libbindgen", "regex"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_derive",
          "style_traits/servo", "app_units/plugins", "servo_atoms", "html5ever-atoms",
          "cssparser/heap_size", "cssparser/serde-serialization",
@@ -65,5 +66,8 @@ version = "1.0"
 kernel32-sys = "0.2"
 
 [build-dependencies]
+lazy_static = "0.2"
+libbindgen = {version = "0.1.1", optional = true}
 phf_codegen = "0.7.20"
+regex = {version = "0.1", optional = true}
 walkdir = "0.1"

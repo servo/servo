@@ -384,6 +384,9 @@ class MachCommands(CommandBase):
     @Command('build-geckolib',
              description='Build a static library of components used by Gecko',
              category='build')
+    @CommandArgument('--with-gecko',
+                     default=None,
+                     help='Build with Gecko dist directory')
     @CommandArgument('--jobs', '-j',
                      default=None,
                      help='Number of jobs to run in parallel')
@@ -393,21 +396,24 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', '-r',
                      action='store_true',
                      help='Build in release mode')
-    def build_geckolib(self, jobs=None, verbose=False, release=False):
+    def build_geckolib(self, with_gecko=None, jobs=None, verbose=False, release=False):
         self.set_use_stable_rust()
         self.ensure_bootstrapped()
 
+        env = self.build_env(is_build=True)
+        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
+
         ret = None
         opts = []
+        if with_gecko is not None:
+            opts += ["--features", "bindgen"]
+            env["MOZ_DIST"] = path.abspath(with_gecko)
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
         if release:
             opts += ["--release"]
-
-        env = self.build_env(is_build=True)
-        env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target", "geckolib").encode("UTF-8")
 
         build_start = time()
         with cd(path.join("ports", "geckolib")):
