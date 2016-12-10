@@ -436,6 +436,21 @@ impl MaybeAuto {
     }
 }
 
+/// Receive an optional container size and return used value for width or height.
+///
+/// `style_length`: content size as given in the CSS.
+pub fn style_length(style_length: LengthOrPercentageOrAuto,
+                    container_size: Option<Au>) -> MaybeAuto {
+    match container_size {
+        Some(length) => MaybeAuto::from_style(style_length, length),
+        None => if let LengthOrPercentageOrAuto::Length(length) = style_length {
+            MaybeAuto::Specified(length)
+        } else {
+            MaybeAuto::Auto
+        }
+    }
+}
+
 pub fn specified_or_none(length: LengthOrPercentageOrNone, containing_length: Au) -> Option<Au> {
     match length {
         LengthOrPercentageOrNone::None => None,

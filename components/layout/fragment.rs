@@ -24,6 +24,7 @@ use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
+use model::style_length;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -34,7 +35,7 @@ use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayou
 use serde::{Serialize, Serializer};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
-use std::cmp::{max, min};
+use std::cmp::{Ordering, max, min};
 use std::collections::LinkedList;
 use std::fmt;
 use std::sync::{Arc, Mutex};
@@ -58,6 +59,10 @@ use text::TextRunScanner;
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
 static FONT_SUPERSCRIPT_OFFSET_RATIO: f32 = 0.34;
+
+// https://drafts.csswg.org/css-images/#default-object-size
+static DEFAULT_REPLACED_WIDTH: i32 = 300;
+static DEFAULT_REPLACED_HEIGHT: i32 = 150;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the
@@ -1202,6 +1207,177 @@ impl Fragment {
         }
     }
 
+    /// intrinsic width of this replaced element.
+    #[inline]
+    pub fn intrinsic_width(&self) -> Au {
+        match self.specific {
+            SpecificFragmentInfo::Image(ref info) => {
+                if let Some(ref data) = info.metadata {
+                    Au::from_px(data.width as i32)
+                } else {
+                    Au(0)
+                }
+            }
+            SpecificFragmentInfo::Canvas(ref info) => info.dom_width,
+            SpecificFragmentInfo::Svg(ref info) => info.dom_width,
+            // Note: Currently for replaced element with no intrinsic size,
+            // this function simply returns the default object size. As long as
+            // these elements do not have intrinsic aspect ratio this should be
+            // sufficient, but we may need to investigate if this is enough for
+            // use cases like SVG.
+            SpecificFragmentInfo::Iframe(_) => Au::from_px(DEFAULT_REPLACED_WIDTH),
+            _ => panic!("Trying to get intrinsic width on non-replaced element!")
+        }
+    }
+
+    /// intrinsic width of this replaced element.
+    #[inline]
+    pub fn intrinsic_height(&self) -> Au {
+        match self.specific {
+            SpecificFragmentInfo::Image(ref info) => {
+                if let Some(ref data) = info.metadata {
+                    Au::from_px(data.height as i32)
+                } else {
+                    Au(0)
+                }
+            }
+            SpecificFragmentInfo::Canvas(ref info) => info.dom_height,
+            SpecificFragmentInfo::Svg(ref info) => info.dom_height,
+            SpecificFragmentInfo::Iframe(_) => Au::from_px(DEFAULT_REPLACED_HEIGHT),
+            _ => panic!("Trying to get intrinsic height on non-replaced element!")
+        }
+    }
+
+    /// Whether this replace element has intrinsic aspect ratio.
+    pub fn has_intrinsic_ratio(&self) -> bool {
+        match self.specific {
+            SpecificFragmentInfo::Image(_)  |
+            SpecificFragmentInfo::Canvas(_) |
+            // TODO(stshine): According to the SVG spec, whether a SVG element has intrinsic
+            // aspect ratio is determined by the `preserveAspectRatio` attribute. Since for
+            // now SVG is far from implemented, we simply choose the default behavior that
+            // the intrinsic aspect ratio is preserved.
+            // https://svgwg.org/svg2-draft/coords.html#PreserveAspectRatioAttribute
+            SpecificFragmentInfo::Svg(_) =>
+                self.intrinsic_width() != Au(0) && self.intrinsic_height() != Au(0),
+            _ => false
+        }
+    }
+
+    /// CSS 2.1 § 10.3.2 & 10.6.2 Calculate the used width and height of a replaced element.
+    /// When a parameter is `None` it means the specified size in certain direction
+    /// is unconstrained. The inline containing size can also be `None` since this
+    /// method is also used for calculating intrinsic inline size contribution.
+    pub fn calculate_replaced_sizes(&self,
+                                    containing_inline_size: Option<Au>,
+                                    containing_block_size: Option<Au>)
+                                    -> (Au, Au) {
+        let (intrinsic_inline_size, intrinsic_block_size) = if self.style.writing_mode.is_vertical() {
+            (self.intrinsic_height(), self.intrinsic_width())
+        } else {
+            (self.intrinsic_width(), self.intrinsic_height())
+        };
+
+        // Make sure the size we used here is for content box since they may be
+        // transferred by the intrinsic aspect ratio.
+        let inline_size = style_length(self.style.content_inline_size(), containing_inline_size)
+                                     .map(|x| x - self.box_sizing_boundary(Direction::Inline));
+        let block_size = style_length(self.style.content_block_size(), containing_block_size)
+                                     .map(|x| x - self.box_sizing_boundary(Direction::Block));
+        let inline_constraint = self.size_constraint(containing_inline_size, Direction::Inline);
+        let block_constraint = self.size_constraint(containing_block_size, Direction::Block);
+
+        // https://drafts.csswg.org/css-images-3/#default-sizing
+        match (inline_size, block_size) {
+            // If the specified size is a definite width and height, the concrete
+            // object size is given that width and height.
+            (MaybeAuto::Specified(inline_size), MaybeAuto::Specified(block_size)) =>
+                (inline_constraint.clamp(inline_size), block_constraint.clamp(block_size)),
+
+            // If the specified size is only a width or height (but not both)
+            // then the concrete object size is given that specified width or
+            // height. The other dimension is calculated as follows:
+            //
+            // If the object has an intrinsic aspect ratio, the missing dimension
+            // of the concrete object size is calculated using the intrinsic
+            // aspect ratio and the present dimension.
+            //
+            // Otherwise, if the missing dimension is present in the object’s intrinsic
+            // dimensions, the missing dimension is taken from the object’s intrinsic
+            // dimensions. Otherwise it is taken from the default object size.
+            (MaybeAuto::Specified(inline_size), MaybeAuto::Auto) => {
+                let inline_size = inline_constraint.clamp(inline_size);
+                let block_size = if self.has_intrinsic_ratio() {
+                    // Note: We can not precompute the ratio and store it as a float, because
+                    // doing so may result one pixel difference in calculation for certain
+                    // images, thus make some tests fail.
+                    inline_size * intrinsic_block_size.0 / intrinsic_inline_size.0
+                } else {
+                    intrinsic_block_size
+                };
+                (inline_size, block_constraint.clamp(block_size))
+            }
+            (MaybeAuto::Auto, MaybeAuto::Specified(block_size)) => {
+                let block_size = block_constraint.clamp(block_size);
+                let inline_size = if self.has_intrinsic_ratio() {
+                    block_size * intrinsic_inline_size.0 / intrinsic_block_size.0
+                } else {
+                    intrinsic_inline_size
+                };
+                (inline_constraint.clamp(inline_size), block_size)
+            }
+            // https://drafts.csswg.org/css2/visudet.html#min-max-widths
+            (MaybeAuto::Auto, MaybeAuto::Auto) => {
+                if self.has_intrinsic_ratio() {
+                    // This approch follows the spirit of cover and contain constraint.
+                    // https://drafts.csswg.org/css-images-3/#cover-contain
+
+                    // First, create two rectangles that keep aspect ratio while may be clamped
+                    // by the contraints;
+                    let first_isize = inline_constraint.clamp(intrinsic_inline_size);
+                    let first_bsize = first_isize * intrinsic_block_size.0 / intrinsic_inline_size.0;
+                    let second_bsize = block_constraint.clamp(intrinsic_block_size);
+                    let second_isize = second_bsize * intrinsic_inline_size.0 / intrinsic_block_size.0;
+
+                    let (inline_size, block_size) = match (first_isize.cmp(&intrinsic_inline_size) ,
+                                                           second_isize.cmp(&intrinsic_inline_size)) {
+                        (Ordering::Equal, Ordering::Equal) =>
+                            (first_isize, first_bsize),
+                        // When only one rectangle is clamped, use it;
+                        (Ordering::Equal, _) =>
+                            (second_isize, second_bsize),
+                        (_, Ordering::Equal) =>
+                            (first_isize, first_bsize),
+                        // When both rectangles grow (smaller than min sizes),
+                        // Choose the larger one;
+                        (Ordering::Greater, Ordering::Greater) =>
+                            if first_isize > second_isize {
+                                (first_isize, first_bsize)
+                            } else {
+                                (second_isize, second_bsize)
+                            },
+                        // When both rectangles shrink (larger than max sizes),
+                        // Choose the smaller one;
+                        (Ordering::Less, Ordering::Less) =>
+                            if first_isize > second_isize {
+                                (second_isize, second_bsize)
+                            } else {
+                                (first_isize, first_bsize)
+                            },
+                        // It does not matter which we choose here, because both sizes
+                        // will be clamped to constraint;
+                        (Ordering::Less, Ordering::Greater) | (Ordering::Greater, Ordering::Less) =>
+                            (first_isize, first_bsize)
+                    };
+                    // Clamp the result and we are done :-)
+                    (inline_constraint.clamp(inline_size), block_constraint.clamp(block_size))
+                } else {
+                    (inline_constraint.clamp(intrinsic_inline_size),
+                    block_constraint.clamp(intrinsic_block_size))
+                }
+            }
+        }
+    }
 
     /// Return a size constraint that can be used the clamp size in given direction.
     /// To take `box-sizing: border-box` into account, the `border_padding` field
@@ -1275,7 +1451,7 @@ impl Fragment {
     }
 
     /// Returns the border width in given direction if this fragment has property
-    /// 'box-sizing: border-box'. The `border_padding` field should have been initialized.
+    /// 'box-sizing: border-box'. The `border_padding` field must have been initialized.
     pub fn box_sizing_boundary(&self, direction: Direction) -> Au {
         match (self.style().get_position().box_sizing, direction) {
             (box_sizing::T::border_box, Direction::Inline) => {
