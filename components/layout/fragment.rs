@@ -1990,10 +1990,10 @@ impl Fragment {
             SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::Svg(_) |
             SpecificFragmentInfo::Generic | SpecificFragmentInfo::GeneratedContent(_) => {
-                let ascent = self.border_box.size.block + self.margin.block_start;
+                let ascent = self.border_box.size.block + self.margin.block_end;
                 InlineMetrics {
-                    space_above_baseline: ascent,
-                    space_below_baseline: self.margin.block_end,
+                    space_above_baseline: ascent + self.margin.block_start,
+                    space_below_baseline: Au(0),
                     ascent: ascent,
                 }
             }

@@ -1489,57 +1489,51 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
-                let width = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_inline_size.map_or(0, |w| w.to_px() as usize);
-                let height = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_block_size.map_or(0, |h| h.to_px() as usize);
-                if width > 0 && height > 0 {
-                    let computed_width = canvas_fragment_info.canvas_inline_size().to_px();
-                    let computed_height = canvas_fragment_info.canvas_block_size().to_px();
+                let computed_width = canvas_fragment_info.dom_width.to_px();
+                let computed_height = canvas_fragment_info.dom_height.to_px();
 
-                    let canvas_data = match canvas_fragment_info.ipc_renderer {
-                        Some(ref ipc_renderer) => {
-                            let ipc_renderer = ipc_renderer.lock().unwrap();
-                            let (sender, receiver) = ipc::channel().unwrap();
-                            ipc_renderer.send(CanvasMsg::FromLayout(
-                                FromLayoutMsg::SendData(sender))).unwrap();
-                            receiver.recv().unwrap()
-                        },
-                        None => return,
-                    };
+                let canvas_data = match canvas_fragment_info.ipc_renderer {
+                    Some(ref ipc_renderer) => {
+                        let ipc_renderer = ipc_renderer.lock().unwrap();
+                        let (sender, receiver) = ipc::channel().unwrap();
+                        ipc_renderer.send(CanvasMsg::FromLayout(
+                            FromLayoutMsg::SendData(sender))).unwrap();
+                        receiver.recv().unwrap()
+                    },
+                    None => return,
+                };
 
-                    let base = state.create_base_display_item(
-                        &stacking_relative_content_box,
-                        clip,
-                        self.node,
-                        self.style.get_cursor(Cursor::Default),
-                        DisplayListSection::Content);
-                    let display_item = match canvas_data {
-                        CanvasData::Image(canvas_data) => {
-                            DisplayItem::Image(box ImageDisplayItem {
-                                base: base,
-                                webrender_image: WebRenderImageInfo {
-                                    width: computed_width as u32,
-                                    height: computed_height as u32,
-                                    format: PixelFormat::RGBA8,
-                                    key: Some(canvas_data.image_key),
-                                },
-                                image_data: None,
-                                stretch_size: stacking_relative_content_box.size,
-                                tile_spacing: Size2D::zero(),
-                                image_rendering: image_rendering::T::auto,
-                            })
-                        }
-                        CanvasData::WebGL(context_id) => {
-                            DisplayItem::WebGL(box WebGLDisplayItem {
-                                base: base,
-                                context_id: context_id,
-                            })
-                        }
-                    };
+                let base = state.create_base_display_item(
+                    &stacking_relative_content_box,
+                    clip,
+                    self.node,
+                    self.style.get_cursor(Cursor::Default),
+                    DisplayListSection::Content);
+                let display_item = match canvas_data {
+                    CanvasData::Image(canvas_data) => {
+                        DisplayItem::Image(box ImageDisplayItem {
+                            base: base,
+                            webrender_image: WebRenderImageInfo {
+                                width: computed_width as u32,
+                                height: computed_height as u32,
+                                format: PixelFormat::RGBA8,
+                                key: Some(canvas_data.image_key),
+                            },
+                            image_data: None,
+                            stretch_size: stacking_relative_content_box.size,
+                            tile_spacing: Size2D::zero(),
+                            image_rendering: image_rendering::T::auto,
+                        })
+                    }
+                    CanvasData::WebGL(context_id) => {
+                        DisplayItem::WebGL(box WebGLDisplayItem {
+                            base: base,
+                            context_id: context_id,
+                        })
+                    }
+                };
 
-                    state.add_display_item(display_item);
-                }
+                state.add_display_item(display_item);
             }
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Shouldn't see unscanned fragments here.")

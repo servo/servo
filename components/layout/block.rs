@@ -46,7 +46,7 @@ use gfx::display_list::{ClippingRegion, StackingContext};
 use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
-use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
+use model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
 use model::{specified, specified_or_none};
 use sequential;
 use serde::{Serialize, Serializer};
@@ -1887,6 +1887,14 @@ impl Flow for BlockFlow {
             self.fragment.assign_replaced_block_size_if_necessary();
             if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 self.base.position.size.block = self.fragment.border_box.size.block;
+                let mut block_start = AdjoiningMargins::from_margin(self.fragment.margin.block_start);
+                let block_end = AdjoiningMargins::from_margin(self.fragment.margin.block_end);
+                if self.fragment.border_box.size.block == Au(0) {
+                    block_start.union(block_end);
+                    self.base.collapsible_margins = CollapsibleMargins::CollapseThrough(block_start);
+                } else {
+                    self.base.collapsible_margins = CollapsibleMargins::Collapse(block_start, block_end);
+                }
                 self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
                 self.fragment.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
             }
