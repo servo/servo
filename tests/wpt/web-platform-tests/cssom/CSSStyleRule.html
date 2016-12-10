@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style type="text/css" id="styleElement">
+  div { margin: 10px; padding: 0px; }
+</style>
+<script>
+  var styleSheet = document.getElementById("styleElement").sheet;
+  var rule = styleSheet.cssRules[0];
+
+  test(function() {
+    assert_equals(typeof rule.style, "object");
+    assert_equals(rule.style.margin, "10px");
+    assert_equals(rule.style.padding, "0px");
+
+    rule.style.padding = "5px";
+    rule.style.border = "1px solid";
+
+    assert_equals(rule.style.padding, "5px");
+    assert_equals(rule.style.border, "1px solid");
+  }, "CSSStyleRule: style property");
+</script>
