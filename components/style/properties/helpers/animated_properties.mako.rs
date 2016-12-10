@@ -26,7 +26,7 @@ use values::Either;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
-use values::computed::position::Position;
+use values::computed::position::{HorizontalPosition, Position, VerticalPosition};
 use values::computed::ToComputedValue;
 
 
@@ -580,6 +580,45 @@ impl Interpolate for BackgroundPosition {
         Ok(BackgroundPosition(try!(self.0.interpolate(&other.0, progress))))
     }
 }
+
+/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
+impl Interpolate for HorizontalPosition {
+    #[inline]
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(HorizontalPosition(try!(self.0.interpolate(&other.0, progress))))
+    }
+}
+
+impl RepeatableListInterpolate for HorizontalPosition {}
+
+/// https://drafts.csswg.org/css-transitions/#animtype-simple-list
+impl Interpolate for VerticalPosition {
+    #[inline]
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(VerticalPosition(try!(self.0.interpolate(&other.0, progress))))
+    }
+}
+
+impl RepeatableListInterpolate for VerticalPosition {}
+
+% if product == "gecko":
+    use properties::longhands::background_position_x::computed_value::T as BackgroundPositionX;
+    use properties::longhands::background_position_y::computed_value::T as BackgroundPositionY;
+
+    impl Interpolate for BackgroundPositionX {
+        #[inline]
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+            Ok(BackgroundPositionX(try!(self.0.interpolate(&other.0, progress))))
+        }
+    }
+
+    impl Interpolate for BackgroundPositionY {
+        #[inline]
+        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+            Ok(BackgroundPositionY(try!(self.0.interpolate(&other.0, progress))))
+        }
+    }
+% endif
 
 /// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 impl Interpolate for TextShadow {
