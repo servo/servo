@@ -98,6 +98,87 @@ pub struct Stylist {
     non_common_style_affecting_attributes_selectors: Vec<Selector<SelectorImpl>>,
 }
 
+// I know...
+fn add_stylesheet_internal(
+    stylesheet: &Stylesheet,
+    device: &Device,
+    element_map: &mut PerPseudoElementSelectorMap,
+    pseudos_map: &mut FnvHashMap<PseudoElement, PerPseudoElementSelectorMap>,
+    animations: &mut FnvHashMap<Atom, KeyframesAnimation>,
+    precomputed_pseudo_element_decls: &mut FnvHashMap<PseudoElement, Vec<ApplicableDeclarationBlock>>,
+    rules_source_order: &mut usize,
+    state_deps: &mut DependencySet,
+    sibling_affecting_selectors: &mut Vec<Selector<SelectorImpl>>,
+    non_common_style_affecting_attributes_selectors: &mut Vec<Selector<SelectorImpl>>)
+{
+    stylesheet.effective_rules(device, |rule| {
+        match *rule {
+            CssRule::Style(ref style_rule) => {
+                let guard = style_rule.read();
+                for selector in &guard.selectors.0 {
+                    let map = if let Some(ref pseudo) = selector.pseudo_element {
+                        pseudos_map
+                            .entry(pseudo.clone())
+                            .or_insert_with(PerPseudoElementSelectorMap::new)
+                            .borrow_for_origin(&stylesheet.origin)
+                    } else {
+                        element_map.borrow_for_origin(&stylesheet.origin)
+                    };
+
+                    map.insert(Rule {
+                        selector: selector.complex_selector.clone(),
+                        style_rule: style_rule.clone(),
+                        specificity: selector.specificity,
+                        source_order: *rules_source_order,
+                    });
+                }
+                *rules_source_order += 1;
+
+                for selector in &guard.selectors.0 {
+                    state_deps.note_selector(&selector.complex_selector);
+                    if selector.affects_siblings() {
+                        sibling_affecting_selectors.push(selector.clone());
+                    }
+
+                    if selector.matches_non_common_style_affecting_attribute() {
+                        non_common_style_affecting_attributes_selectors.push(selector.clone());
+                    }
+                }
+            }
+            CssRule::Import(ref import) => {
+                let import = import.read();
+                add_stylesheet_internal(
+                    &import.stylesheet,
+                    device,
+                    element_map,
+                    pseudos_map,
+                    animations,
+                    precomputed_pseudo_element_decls,
+                    rules_source_order,
+                    state_deps,
+                    sibling_affecting_selectors,
+                    non_common_style_affecting_attributes_selectors)
+            }
+            CssRule::Keyframes(ref keyframes_rule) => {
+                let keyframes_rule = keyframes_rule.read();
+                debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
+                if let Some(animation) = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
+                    debug!("Found valid keyframe animation: {:?}", animation);
+                    animations.insert(keyframes_rule.name.clone(),
+                                           animation);
+                } else {
+                    // If there's a valid keyframes rule, even if it doesn't
+                    // produce an animation, should shadow other animations
+                    // with the same name.
+                    animations.remove(&keyframes_rule.name);
+                }
+            }
+            // We don't care about any other rule.
+            _ => {}
+        }
+    });
+}
+
 impl Stylist {
     #[inline]
     pub fn new(device: Device) -> Self {
@@ -174,92 +255,38 @@ impl Stylist {
             return;
         }
 
-        // Work around borrowing all of `self` if `self.something` is used in it
-        // instead of just `self.something`
-        macro_rules! borrow_self_field {
-            ($($x: ident),+) => {
-                $(
-                    let $x = &mut self.$x;
-                )+
-            }
-        }
-        borrow_self_field!(pseudos_map, element_map, state_deps, sibling_affecting_selectors,
-                           non_common_style_affecting_attributes_selectors, rules_source_order,
-                           animations, precomputed_pseudo_element_decls);
-        stylesheet.effective_rules(&self.device, |rule| {
-            match *rule {
-                CssRule::Style(ref style_rule) => {
-                    let guard = style_rule.read();
-                    for selector in &guard.selectors.0 {
-                        let map = if let Some(ref pseudo) = selector.pseudo_element {
-                            pseudos_map
-                                .entry(pseudo.clone())
-                                .or_insert_with(PerPseudoElementSelectorMap::new)
-                                .borrow_for_origin(&stylesheet.origin)
-                        } else {
-                            element_map.borrow_for_origin(&stylesheet.origin)
-                        };
-
-                        map.insert(Rule {
-                            selector: selector.complex_selector.clone(),
-                            style_rule: style_rule.clone(),
-                            specificity: selector.specificity,
-                            source_order: *rules_source_order,
-                        });
-                    }
-                    *rules_source_order += 1;
-
-                    for selector in &guard.selectors.0 {
-                        state_deps.note_selector(&selector.complex_selector);
-                        if selector.affects_siblings() {
-                            sibling_affecting_selectors.push(selector.clone());
-                        }
-
-                        if selector.matches_non_common_style_affecting_attribute() {
-                            non_common_style_affecting_attributes_selectors.push(selector.clone());
-                        }
-                    }
-                }
-                CssRule::Keyframes(ref keyframes_rule) => {
-                    let keyframes_rule = keyframes_rule.read();
-                    debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
-                    if let Some(animation) = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
-                        debug!("Found valid keyframe animation: {:?}", animation);
-                        animations.insert(keyframes_rule.name.clone(),
-                                               animation);
-                    } else {
-                        // If there's a valid keyframes rule, even if it doesn't
-                        // produce an animation, should shadow other animations
-                        // with the same name.
-                        animations.remove(&keyframes_rule.name);
-                    }
-                }
-                // We don't care about any other rule.
-                _ => {}
-            }
-        });
+        add_stylesheet_internal(
+            stylesheet,
+            &self.device,
+            &mut self.element_map,
+            &mut self.pseudos_map,
+            &mut self.animations,
+            &mut self.precomputed_pseudo_element_decls,
+            &mut self.rules_source_order,
+            &mut self.state_deps,
+            &mut self.sibling_affecting_selectors,
+            &mut self.non_common_style_affecting_attributes_selectors);
 
         debug!("Stylist stats:");
         debug!(" - Got {} sibling-affecting selectors",
-               sibling_affecting_selectors.len());
+               self.sibling_affecting_selectors.len());
         debug!(" - Got {} non-common-style-attribute-affecting selectors",
-               non_common_style_affecting_attributes_selectors.len());
+               self.non_common_style_affecting_attributes_selectors.len());
         debug!(" - Got {} deps for style-hint calculation",
-               state_deps.len());
+               self.state_deps.len());
 
         SelectorImpl::each_precomputed_pseudo_element(|pseudo| {
             // TODO: Consider not doing this and just getting the rules on the
             // fly. It should be a bit slower, but we'd take rid of the
             // extra field, and avoid this precomputation entirely.
-            if let Some(map) = pseudos_map.remove(&pseudo) {
+            if let Some(map) = self.pseudos_map.remove(&pseudo) {
                 let mut declarations = vec![];
-
                 map.user_agent.get_universal_rules(&mut declarations);
-
-                precomputed_pseudo_element_decls.insert(pseudo, declarations);
+                self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
             }
         })
     }
+
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
     /// universal rules and applying them.

@@ -8,8 +8,8 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::cssimportrule::CSSImportRule;
 use dom::cssfontfacerule::CSSFontFaceRule;
+use dom::cssimportrule::CSSImportRule;
 use dom::csskeyframerule::CSSKeyframeRule;
 use dom::csskeyframesrule::CSSKeyframesRule;
 use dom::cssmediarule::CSSMediaRule;
@@ -64,6 +64,8 @@ impl CSSRule {
         } else if let Some(rule) = self.downcast::<CSSViewportRule>() {
             rule as &SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSKeyframeRule>() {
+            rule as &SpecificCSSRule
+        } else if let Some(rule) = self.downcast::<CSSImportRule>() {
             rule as &SpecificCSSRule
         } else {
             unreachable!()
