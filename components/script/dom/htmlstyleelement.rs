@@ -12,17 +12,19 @@ use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
-use dom::element::Element;
+use dom::element::{Element, ElementCreator};
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use script_layout_interface::message::Msg;
+use std::cell::Cell;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContextExtraData;
 use style::stylesheets::{Stylesheet, Origin};
+use stylesheet_loader::StylesheetLoader;
 
 #[dom_struct]
 pub struct HTMLStyleElement {
@@ -30,24 +32,29 @@ pub struct HTMLStyleElement {
     #[ignore_heap_size_of = "Arc"]
     stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
+    /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
+    parser_inserted: Cell<bool>,
 }
 
 impl HTMLStyleElement {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
-                     document: &Document) -> HTMLStyleElement {
+                     document: &Document,
+                     creator: ElementCreator) -> HTMLStyleElement {
         HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
+            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLStyleElement> {
-        Node::reflect_node(box HTMLStyleElement::new_inherited(local_name, prefix, document),
+               document: &Document,
+               creator: ElementCreator) -> Root<HTMLStyleElement> {
+        Node::reflect_node(box HTMLStyleElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLStyleElementBinding::Wrap)
     }
@@ -68,8 +75,12 @@ impl HTMLStyleElement {
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
         let mq = parse_media_query_list(&mut CssParser::new(&mq_str));
-        let sheet = Stylesheet::from_str(&data, url, Origin::Author, mq, win.css_error_reporter(),
+        let loader = StylesheetLoader::for_element(self.upcast());
+        let sheet = Stylesheet::from_str(&data, url, Origin::Author, mq,
+                                         Some(&loader),
+                                         win.css_error_reporter(),
                                          ParserContextExtraData::default());
+
         let sheet = Arc::new(sheet);
 
         win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
@@ -93,6 +104,10 @@ impl HTMLStyleElement {
                                    sheet)
             })
         })
+    }
+
+    pub fn parser_inserted(&self) -> bool {
+        self.parser_inserted.get()
     }
 }
 
