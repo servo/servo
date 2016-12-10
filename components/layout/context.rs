@@ -18,6 +18,7 @@ use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResp
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use parking_lot::RwLock;
 use servo_url::ServoUrl;
+use std::borrow::Borrow;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -86,6 +87,12 @@ pub struct SharedLayoutContext {
     pub webrender_image_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder),
                                                   WebRenderImageInfo,
                                                   BuildHasherDefault<FnvHasher>>>>,
+}
+
+impl Borrow<SharedStyleContext> for SharedLayoutContext {
+    fn borrow(&self) -> &SharedStyleContext {
+        &self.style_context
+    }
 }
 
 pub struct LayoutContext<'a> {

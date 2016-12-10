@@ -15,7 +15,7 @@ use std::mem;
 use style::atomic_refcell::AtomicRefCell;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
 use style::data::ElementData;
-use style::dom::{StylingMode, TElement, TNode};
+use style::dom::{TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
 use style::traversal::{DomTraversalContext, recalc_style_at, remove_from_bloom_filter};
@@ -73,14 +73,15 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         }
     }
 
-    fn process_preorder(&self, node: N, data: &mut PerLevelTraversalData) {
+    fn process_preorder(&self, node: N, traversal_data: &mut PerLevelTraversalData) {
         // FIXME(pcwalton): Stop allocating here. Ideally this should just be
         // done by the HTML parser.
         node.initialize_data();
 
         if !node.is_text_node() {
             let el = node.as_element().unwrap();
-            recalc_style_at::<_, _, Self>(&self.context, data, el);
+            let mut data = el.mutate_data().unwrap();
+            recalc_style_at::<_, _, Self>(&self.context, traversal_data, el, &mut data);
         }
     }
 
@@ -88,19 +89,13 @@ impl<'lc, N> DomTraversalContext<N> for RecalcStyleAndConstructFlows<'lc>
         construct_flows_at(&self.context, self.root, node);
     }
 
-    fn should_traverse_child(child: N) -> bool {
-        match child.as_element() {
-            // Elements should be traversed if they need styling or flow construction.
-            Some(el) => el.styling_mode() != StylingMode::Stop ||
-                        el.as_node().to_threadsafe().restyle_damage() != RestyleDamage::empty(),
-
-            // Text nodes never need styling. However, there are two cases they may need
-            // flow construction:
-            // (1) They child doesn't yet have layout data (preorder traversal initializes it).
-            // (2) The parent element has restyle damage (so the text flow also needs fixup).
-            None => child.get_raw_data().is_none() ||
-                    child.parent_node().unwrap().to_threadsafe().restyle_damage() != RestyleDamage::empty(),
-        }
+    fn text_node_needs_traversal(node: N) -> bool {
+        // Text nodes never need styling. However, there are two cases they may need
+        // flow construction:
+        // (1) They child doesn't yet have layout data (preorder traversal initializes it).
+        // (2) The parent element has restyle damage (so the text flow also needs fixup).
+        node.get_raw_data().is_none() ||
+        node.parent_node().unwrap().to_threadsafe().restyle_damage() != RestyleDamage::empty()
     }
 
     unsafe fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData> {

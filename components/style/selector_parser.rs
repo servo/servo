@@ -8,6 +8,7 @@ use cssparser::Parser as CssParser;
 use matching::{common_style_affecting_attributes, CommonStyleAffectingAttributeMode};
 use selectors::Element;
 use selectors::parser::{AttrSelector, SelectorList};
+use std::fmt::Debug;
 use stylesheets::{Origin, Namespaces};
 
 pub type AttrValue = <SelectorImpl as ::selectors::SelectorImpl>::AttrValue;
@@ -29,6 +30,12 @@ pub use servo::restyle_damage::ServoRestyleDamage as RestyleDamage;
 
 #[cfg(feature = "gecko")]
 pub use gecko::restyle_damage::GeckoRestyleDamage as RestyleDamage;
+
+#[cfg(feature = "servo")]
+pub type PreExistingComputedValues = ::std::sync::Arc<::properties::ServoComputedValues>;
+
+#[cfg(feature = "gecko")]
+pub type PreExistingComputedValues = ::gecko_bindings::structs::nsStyleContext;
 
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SelectorParser<'a> {
@@ -99,7 +106,7 @@ impl PseudoElementCascadeType {
     }
 }
 
-pub trait ElementExt: Element<Impl=SelectorImpl> {
+pub trait ElementExt: Element<Impl=SelectorImpl> + Debug {
     fn is_link(&self) -> bool;
 
     fn matches_user_and_author_rules(&self) -> bool;

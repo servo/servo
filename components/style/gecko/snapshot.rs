@@ -17,6 +17,10 @@ use string_cache::Atom;
 #[derive(Debug)]
 pub struct GeckoElementSnapshot(bindings::ServoElementSnapshotOwned);
 
+// FIXME(bholley): Add support for *OwnedConst type, and then we get Sync
+// automatically.
+unsafe impl Sync for GeckoElementSnapshot {}
+
 impl Drop for GeckoElementSnapshot {
     fn drop(&mut self) {
         unsafe {

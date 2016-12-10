@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::TRestyleDamage;
 use gecko_bindings::bindings;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{nsChangeHint, nsStyleContext};
@@ -22,17 +21,17 @@ impl GeckoRestyleDamage {
     pub fn as_change_hint(&self) -> nsChangeHint {
         self.0
     }
-}
 
-impl TRestyleDamage for GeckoRestyleDamage {
-    type PreExistingComputedValues = nsStyleContext;
-
-    fn empty() -> Self {
+    pub fn empty() -> Self {
         GeckoRestyleDamage(nsChangeHint(0))
     }
 
-    fn compute(source: &nsStyleContext,
-               new_style: &Arc<ComputedValues>) -> Self {
+    pub fn is_empty(&self) -> bool {
+        self.0 == nsChangeHint(0)
+    }
+
+    pub fn compute(source: &nsStyleContext,
+                   new_style: &Arc<ComputedValues>) -> Self {
         let context = source as *const nsStyleContext as *mut nsStyleContext;
         let hint = unsafe {
             bindings::Gecko_CalcStyleDifference(context,
@@ -41,7 +40,7 @@ impl TRestyleDamage for GeckoRestyleDamage {
         GeckoRestyleDamage(hint)
     }
 
-    fn rebuild_and_reflow() -> Self {
+    pub fn rebuild_and_reflow() -> Self {
         GeckoRestyleDamage(structs::nsChangeHint_nsChangeHint_ReconstructFrame)
     }
 }
