@@ -23,7 +23,7 @@ use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT, LineMetrics};
 use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
 use layout_debug;
-use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};
+use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -1200,6 +1200,27 @@ impl Fragment {
             },
             surrounding_size: border_padding + margin,
         }
+    }
+
+
+    /// Return a size constraint that can be used the clamp size in given direction.
+    /// To take `box-sizing: border-box` into account, the `border_padding` field
+    /// must be initialized first.
+    ///
+    /// TODO(stshine): Maybe there is a more convenient way.
+    pub fn size_constraint(&self, containing_size: Option<Au>, direction: Direction) -> SizeConstraint {
+        let (style_min_size, style_max_size) = match direction {
+            Direction::Inline => (self.style.min_inline_size(), self.style.max_inline_size()),
+            Direction::Block => (self.style.min_block_size(), self.style.max_block_size())
+        };
+
+        let border = if self.style().get_position().box_sizing == box_sizing::T::border_box {
+            Some(self.border_padding.start_end(direction))
+        } else {
+            None
+        };
+
+        SizeConstraint::new(containing_size, style_min_size, style_max_size, border)
     }
 
     /// Returns a guess as to the distances from the margin edge of this fragment to its content
