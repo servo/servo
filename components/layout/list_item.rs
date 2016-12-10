@@ -111,9 +111,7 @@ impl Flow for ListItemFlow {
                                                            &mut layout_context.font_context(),
                                                            &*self.block_flow.fragment.style);
         for marker in &mut self.marker_fragments {
-            let containing_block_block_size =
-                self.block_flow.base.block_container_explicit_block_size;
-            marker.assign_replaced_block_size_if_necessary(containing_block_block_size);
+            marker.assign_replaced_block_size_if_necessary();
             let marker_inline_metrics = marker.aligned_inline_metrics(layout_context,
                                                                       &marker_line_metrics,
                                                                       Some(&marker_line_metrics));

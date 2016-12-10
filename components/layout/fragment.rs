@@ -44,7 +44,6 @@ use style::computed_values::{border_collapse, box_sizing, clear, color, display,
 use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration};
 use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
 use style::computed_values::content::ContentItem;
-use style::context::SharedStyleContext;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::selector_parser::RestyleDamage;
@@ -52,7 +51,6 @@ use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
 use style::values::Either;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use style::values::computed::LengthOrPercentageOrNone;
 use text;
 use text::TextRunScanner;
 
@@ -331,79 +329,33 @@ impl InlineAbsoluteFragmentInfo {
 
 #[derive(Clone)]
 pub struct CanvasFragmentInfo {
-    pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
     pub ipc_renderer: Option<Arc<Mutex<IpcSender<CanvasMsg>>>>,
     pub dom_width: Au,
     pub dom_height: Au,
 }
 
 impl CanvasFragmentInfo {
-    pub fn new<N: ThreadSafeLayoutNode>(node: &N,
-                                        data: HTMLCanvasData,
-                                        ctx: &SharedStyleContext)
-                                        -> CanvasFragmentInfo {
+    pub fn new(data: HTMLCanvasData) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, ctx),
             ipc_renderer: data.ipc_renderer
                               .map(|renderer| Arc::new(Mutex::new(renderer))),
             dom_width: Au::from_px(data.width as i32),
             dom_height: Au::from_px(data.height as i32),
         }
     }
-
-    /// Returns the original inline-size of the canvas.
-    pub fn canvas_inline_size(&self) -> Au {
-        if self.replaced_image_fragment_info.writing_mode_is_vertical {
-            self.dom_height
-        } else {
-            self.dom_width
-        }
-    }
-
-    /// Returns the original block-size of the canvas.
-    pub fn canvas_block_size(&self) -> Au {
-        if self.replaced_image_fragment_info.writing_mode_is_vertical {
-            self.dom_width
-        } else {
-            self.dom_height
-        }
-    }
 }
 
 #[derive(Clone)]
 pub struct SvgFragmentInfo {
-    pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
     pub dom_width: Au,
     pub dom_height: Au,
 }
 
 impl SvgFragmentInfo {
-    pub fn new<N: ThreadSafeLayoutNode>(node: &N,
-                                        data: SVGSVGData,
-                                        ctx: &SharedStyleContext)
-                                        -> SvgFragmentInfo {
+    pub fn new(data: SVGSVGData) -> SvgFragmentInfo {
         SvgFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, ctx),
             dom_width: Au::from_px(data.width as i32),
             dom_height: Au::from_px(data.height as i32),
-        }
-    }
-
-    /// Returns the original inline-size of the SVG element.
-    pub fn svg_inline_size(&self) -> Au {
-        if self.replaced_image_fragment_info.writing_mode_is_vertical {
-            self.dom_height
-        } else {
-            self.dom_width
-        }
-    }
-
-    /// Returns the original block-size of the SVG element.
-    pub fn svg_block_size(&self) -> Au {
-        if self.replaced_image_fragment_info.writing_mode_is_vertical {
-            self.dom_width
-        } else {
-            self.dom_height
         }
     }
 }
@@ -412,8 +364,6 @@ impl SvgFragmentInfo {
 /// A fragment that represents a replaced content image and its accompanying borders, shadows, etc.
 #[derive(Clone)]
 pub struct ImageFragmentInfo {
-    /// The image held within this fragment.
-    pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
     pub image: Option<Arc<Image>>,
     pub metadata: Option<ImageMetadata>,
 }
@@ -423,9 +373,9 @@ impl ImageFragmentInfo {
     ///
     /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
     /// sense to me.
-    pub fn new<N: ThreadSafeLayoutNode>(node: &N, url: Option<ServoUrl>,
-                                        shared_layout_context: &SharedLayoutContext)
-                                        -> ImageFragmentInfo {
+    pub fn new(url: Option<ServoUrl>,
+               shared_layout_context: &SharedLayoutContext)
+               -> ImageFragmentInfo {
         let image_or_metadata = url.and_then(|url| {
             shared_layout_context.get_or_request_image_or_meta(url, UsePlaceholder::Yes)
         });
@@ -443,37 +393,8 @@ impl ImageFragmentInfo {
         };
 
         ImageFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, &shared_layout_context.style_context),
             image: image,
             metadata: metadata,
-        }
-    }
-
-    /// Returns the original inline-size of the image.
-    pub fn image_inline_size(&mut self) -> Au {
-        match self.metadata {
-            Some(ref metadata) => {
-                Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
-                    metadata.height
-                } else {
-                    metadata.width
-                } as i32)
-            }
-            None => Au(0)
-        }
-    }
-
-    /// Returns the original block-size of the image.
-    pub fn image_block_size(&mut self) -> Au {
-        match self.metadata {
-            Some(ref metadata) => {
-                Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical {
-                    metadata.width
-                } else {
-                    metadata.height
-                } as i32)
-            }
-            None => Au(0)
         }
     }
 
@@ -549,149 +470,6 @@ impl ImageFragmentInfo {
     }
 }
 
-#[derive(Clone)]
-pub struct ReplacedImageFragmentInfo {
-    pub computed_inline_size: Option<Au>,
-    pub computed_block_size: Option<Au>,
-    pub writing_mode_is_vertical: bool,
-}
-
-impl ReplacedImageFragmentInfo {
-    pub fn new<N>(node: &N, ctx: &SharedStyleContext) -> ReplacedImageFragmentInfo
-            where N: ThreadSafeLayoutNode {
-        let is_vertical = node.style(ctx).writing_mode.is_vertical();
-        ReplacedImageFragmentInfo {
-            computed_inline_size: None,
-            computed_block_size: None,
-            writing_mode_is_vertical: is_vertical,
-        }
-    }
-
-    /// Returns the calculated inline-size of the image, accounting for the inline-size attribute.
-    pub fn computed_inline_size(&self) -> Au {
-        self.computed_inline_size.expect("image inline_size is not computed yet!")
-    }
-
-    /// Returns the calculated block-size of the image, accounting for the block-size attribute.
-    pub fn computed_block_size(&self) -> Au {
-        self.computed_block_size.expect("image block_size is not computed yet!")
-    }
-
-    // Return used value for inline-size or block-size.
-    //
-    // `dom_length`: inline-size or block-size as specified in the `img` tag.
-    // `style_length`: inline-size as given in the CSS
-    pub fn style_length(style_length: LengthOrPercentageOrAuto,
-                        container_size: Option<Au>) -> MaybeAuto {
-        match (style_length, container_size) {
-            (LengthOrPercentageOrAuto::Length(length), _) => MaybeAuto::Specified(length),
-            (LengthOrPercentageOrAuto::Percentage(pc), Some(container_size)) => {
-                MaybeAuto::Specified(container_size.scale_by(pc))
-            }
-            (LengthOrPercentageOrAuto::Percentage(_), None) => MaybeAuto::Auto,
-            (LengthOrPercentageOrAuto::Calc(calc), Some(container_size)) => {
-                MaybeAuto::Specified(calc.length() + container_size.scale_by(calc.percentage()))
-            }
-            (LengthOrPercentageOrAuto::Calc(_), None) => MaybeAuto::Auto,
-            (LengthOrPercentageOrAuto::Auto, _) => MaybeAuto::Auto,
-        }
-    }
-
-    pub fn calculate_replaced_inline_size(&mut self,
-                                          style: &ServoComputedValues,
-                                          noncontent_inline_size: Au,
-                                          container_inline_size: Au,
-                                          container_block_size: Option<Au>,
-                                          fragment_inline_size: Au,
-                                          fragment_block_size: Au)
-                                          -> Au {
-        let style_inline_size = style.content_inline_size();
-        let style_block_size = style.content_block_size();
-        let style_min_inline_size = style.min_inline_size();
-        let style_max_inline_size = style.max_inline_size();
-        let style_min_block_size = style.min_block_size();
-        let style_max_block_size = style.max_block_size();
-
-        // TODO(ksh8281): compute border,margin
-        let inline_size = ReplacedImageFragmentInfo::style_length(
-            style_inline_size,
-            Some(container_inline_size));
-
-        let inline_size = match inline_size {
-            MaybeAuto::Auto => {
-                let intrinsic_width = fragment_inline_size;
-                let intrinsic_height = fragment_block_size;
-                if intrinsic_height == Au(0) {
-                    intrinsic_width
-                } else {
-                    let ratio = intrinsic_width.to_f32_px() /
-                                intrinsic_height.to_f32_px();
-
-                    let specified_height = ReplacedImageFragmentInfo::style_length(
-                        style_block_size,
-                        container_block_size);
-                    let specified_height = match specified_height {
-                        MaybeAuto::Auto => intrinsic_height,
-                        MaybeAuto::Specified(h) => h,
-                    };
-                    let specified_height = clamp_size(specified_height,
-                                                      style_min_block_size,
-                                                      style_max_block_size,
-                                                      Au(0));
-                    Au::from_f32_px(specified_height.to_f32_px() * ratio)
-                }
-            },
-            MaybeAuto::Specified(w) => w,
-        };
-
-        let inline_size = clamp_size(inline_size,
-                                     style_min_inline_size,
-                                     style_max_inline_size,
-                                     container_inline_size);
-
-        self.computed_inline_size = Some(inline_size);
-        inline_size + noncontent_inline_size
-    }
-
-    /// Here, `noncontent_block_size` represents the sum of border and padding, but not margin.
-    pub fn calculate_replaced_block_size(&mut self,
-                                         style: &ServoComputedValues,
-                                         noncontent_block_size: Au,
-                                         containing_block_block_size: Option<Au>,
-                                         fragment_inline_size: Au,
-                                         fragment_block_size: Au)
-                                         -> Au {
-        let style_block_size = style.content_block_size();
-        let style_min_block_size = style.min_block_size();
-        let style_max_block_size = style.max_block_size();
-
-        let inline_size = self.computed_inline_size();
-        let block_size = ReplacedImageFragmentInfo::style_length(
-            style_block_size,
-            containing_block_block_size);
-
-        let block_size = match block_size {
-            MaybeAuto::Auto => {
-                let intrinsic_width = fragment_inline_size;
-                let intrinsic_height = fragment_block_size;
-                let scale = intrinsic_width.to_f32_px() / inline_size.to_f32_px();
-                Au::from_f32_px(intrinsic_height.to_f32_px() / scale)
-            },
-            MaybeAuto::Specified(h) => {
-                h
-            }
-        };
-
-        let block_size = clamp_size(block_size,
-                                    style_min_block_size,
-                                    style_max_block_size,
-                                    Au(0));
-
-        self.computed_block_size = Some(block_size);
-        block_size + noncontent_block_size
-    }
-}
-
 /// A fragment that represents an inline frame (iframe). This stores the pipeline ID so that the
 /// size of this iframe can be communicated via the constellation to the iframe's own layout thread.
 #[derive(Clone)]
@@ -707,52 +485,6 @@ impl IframeFragmentInfo {
         IframeFragmentInfo {
             pipeline_id: pipeline_id,
         }
-    }
-
-    #[inline]
-    pub fn calculate_replaced_inline_size(&self, style: &ServoComputedValues, containing_size: Au)
-                                          -> Au {
-        // Calculate the replaced inline size (or default) as per CSS 2.1 § 10.3.2
-        IframeFragmentInfo::calculate_replaced_size(style.content_inline_size(),
-                                                    style.min_inline_size(),
-                                                    style.max_inline_size(),
-                                                    Some(containing_size),
-                                                    Au::from_px(300))
-    }
-
-    #[inline]
-    pub fn calculate_replaced_block_size(&self, style: &ServoComputedValues, containing_size: Option<Au>)
-                                         -> Au {
-        // Calculate the replaced block size (or default) as per CSS 2.1 § 10.3.2
-        IframeFragmentInfo::calculate_replaced_size(style.content_block_size(),
-                                                    style.min_block_size(),
-                                                    style.max_block_size(),
-                                                    containing_size,
-                                                    Au::from_px(150))
-
-    }
-
-    fn calculate_replaced_size(content_size: LengthOrPercentageOrAuto,
-                               style_min_size: LengthOrPercentage,
-                               style_max_size: LengthOrPercentageOrNone,
-                               containing_size: Option<Au>,
-                               default_size: Au) -> Au {
-        let computed_size = match (content_size, containing_size) {
-            (LengthOrPercentageOrAuto::Length(length), _) => length,
-            (LengthOrPercentageOrAuto::Percentage(pc), Some(container_size)) => container_size.scale_by(pc),
-            (LengthOrPercentageOrAuto::Calc(calc), Some(container_size)) => {
-                container_size.scale_by(calc.percentage()) + calc.length()
-            },
-            (LengthOrPercentageOrAuto::Calc(calc), None) => calc.length(),
-            (LengthOrPercentageOrAuto::Percentage(_), None) => default_size,
-            (LengthOrPercentageOrAuto::Auto, _) => default_size,
-        };
-
-        let containing_size = containing_size.unwrap_or(Au(0));
-        clamp_size(computed_size,
-                   style_min_size,
-                   style_max_size,
-                   containing_size)
     }
 }
 
@@ -1728,7 +1460,6 @@ impl Fragment {
         match self.specific {
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
-            SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Table |
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableColumn(_) |
@@ -2215,7 +1946,7 @@ impl Fragment {
     /// been assigned first.
     ///
     /// Ideally, this should follow CSS 2.1 § 10.6.2.
-    pub fn assign_replaced_block_size_if_necessary(&mut self, containing_block_block_size: Option<Au>) {
+    pub fn assign_replaced_block_size_if_necessary(&mut self) {
         match self.specific {
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
