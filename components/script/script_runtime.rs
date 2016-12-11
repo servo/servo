@@ -79,6 +79,7 @@ pub enum ScriptThreadEventCategory {
     ImageCacheMsg,
     InputEvent,
     NetworkEvent,
+    PortMessage,
     Resize,
     ScriptEvent,
     SetScrollState,

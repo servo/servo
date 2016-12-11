@@ -45,6 +45,7 @@ use task::TaskCanceller;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::port_message::PortMessageQueue;
 use time::precise_time_ns;
 use timers::{IsInterval, TimerCallback};
 
@@ -373,6 +374,10 @@ impl WorkerGlobalScope {
 
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         NetworkingTaskSource(self.script_chan(), self.pipeline_id())
+    }
+
+    pub fn port_message_queue(&self) -> PortMessageQueue {
+        PortMessageQueue(self.script_chan(), self.pipeline_id())
     }
 
     pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
