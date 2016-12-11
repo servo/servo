@@ -2387,9 +2387,11 @@ clip-path
     ${impl_simple_copy('column_count', 'mColumnCount')}
 
     pub fn set_column_gap(&mut self, v: longhands::column_gap::computed_value::T) {
-        match v.0 {
-            Some(len) => self.gecko.mColumnGap.set(len),
-            None => self.gecko.mColumnGap.set_value(CoordDataValue::Normal),
+        use values::Either;
+
+        match v {
+            Either::First(len) => self.gecko.mColumnGap.set(len),
+            Either::Second(_normal) => self.gecko.mColumnGap.set_value(CoordDataValue::Normal),
         }
     }
 

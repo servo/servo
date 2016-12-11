@@ -14,7 +14,7 @@ use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
-use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_};
+use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
 use values::computed::Context;
 
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
@@ -951,6 +951,8 @@ impl Parse for LengthOrPercentageOrNone {
 }
 
 pub type LengthOrNone = Either<Length, None_>;
+
+pub type LengthOrNormal = Either<Length, Normal>;
 
 pub type LengthOrAuto = Either<Length, Auto>;
 
