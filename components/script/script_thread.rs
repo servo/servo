@@ -121,6 +121,7 @@ use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::port_message::PortMessageQueue;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time::{get_time, precise_time_ns, Tm};
 use url::Position;
@@ -429,6 +430,8 @@ pub struct ScriptThread {
     user_interaction_task_sender: Sender<MainThreadScriptMsg>,
 
     networking_task_sender: Box<ScriptChan>,
+
+    port_message_sender: Box<ScriptChan>,
 
     history_traversal_task_source: HistoryTraversalTaskSource,
 
@@ -848,6 +851,7 @@ impl ScriptThread {
             dom_manipulation_task_sender: chan.clone(),
             user_interaction_task_sender: chan.clone(),
             networking_task_sender: boxed_script_sender.clone(),
+            port_message_sender: boxed_script_sender.clone(),
             file_reading_task_sender: boxed_script_sender.clone(),
             performance_timeline_task_sender: boxed_script_sender.clone(),
 
@@ -1231,6 +1235,7 @@ impl ScriptThread {
                 ScriptThreadEventCategory::ImageCacheMsg => ProfilerCategory::ScriptImageCacheMsg,
                 ScriptThreadEventCategory::InputEvent => ProfilerCategory::ScriptInputEvent,
                 ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
+                ScriptThreadEventCategory::PortMessage => ProfilerCategory::ScriptPortMessage,
                 ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
                 ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
                 ScriptThreadEventCategory::SetScrollState => {
@@ -1801,6 +1806,10 @@ impl ScriptThread {
         NetworkingTaskSource(self.networking_task_sender.clone(), pipeline_id)
     }
 
+    pub fn port_message_queue(&self, pipeline_id: PipelineId) -> PortMessageQueue {
+        PortMessageQueue(self.port_message_sender.clone(), pipeline_id)
+    }
+
     pub fn file_reading_task_source(&self, pipeline_id: PipelineId) -> FileReadingTaskSource {
         FileReadingTaskSource(self.file_reading_task_sender.clone(), pipeline_id)
     }
@@ -2110,6 +2119,7 @@ impl ScriptThread {
             self.dom_manipulation_task_source(incomplete.pipeline_id),
             self.user_interaction_task_source(incomplete.pipeline_id),
             self.networking_task_source(incomplete.pipeline_id),
+            self.port_message_queue(incomplete.pipeline_id),
             HistoryTraversalTaskSource(history_sender.clone()),
             self.file_reading_task_source(incomplete.pipeline_id),
             self.performance_timeline_task_source(incomplete.pipeline_id).clone(),
