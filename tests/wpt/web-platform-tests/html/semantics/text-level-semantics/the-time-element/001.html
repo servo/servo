@@ -64,6 +64,9 @@ test(function () {
 test(function () {
   assert_equals( makeTime(false,'2000-02-01T03:04:05Z').dateTime, '2000-02-01T03:04:05Z' );
 }, 'the datetime content attribute should reflect the textContent when datetime attribute is absent.');
+test(function () {
+  assert_equals( makeTime(false,'2000-02-01<p>foo</p>T03:04:05Z').dateTime, '2000-02-01T03:04:05Z' );
+}, 'the datetime content attribute should return "child text content of the time element" when datetime attribute is absent.');
     </script>
 
   </body>
