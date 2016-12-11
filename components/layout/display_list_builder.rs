@@ -755,11 +755,12 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             };
 
-            let position = *get_cyclic(&background.background_position.0, index);
+            let horiz_position = *get_cyclic(&background.background_position_x.0, index);
+            let vert_position = *get_cyclic(&background.background_position_y.0, index);
             // Use `background-position` to get the offset.
-            let horizontal_position = model::specified(position.horizontal,
+            let horizontal_position = model::specified(horiz_position.0,
                                                        bounds.size.width - image_size.width);
-            let vertical_position = model::specified(position.vertical,
+            let vertical_position = model::specified(vert_position.0,
                                                      bounds.size.height - image_size.height);
 
             // The anchor position for this background, based on both the background-attachment

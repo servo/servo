@@ -38,6 +38,10 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString background-color;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundPosition;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString background-position;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundPositionX;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString background-position-x;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundPositionY;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString background-position-y;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundRepeat;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString background-repeat;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString backgroundImage;

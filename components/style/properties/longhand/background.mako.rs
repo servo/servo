@@ -86,52 +86,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position" animatable="True">
-        use std::fmt;
-        use style_traits::ToCss;
-        use values::HasViewportPercentage;
-        use values::specified::position::Position;
-
-        pub mod computed_value {
-            use values::computed::position::Position;
-            use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
-
-            pub type T = Position;
-        }
-
-        pub type SpecifiedValue = Position;
-
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T {
-            use values::computed::position::Position;
-            Position {
-                horizontal: computed::LengthOrPercentage::Percentage(0.0),
-                vertical: computed::LengthOrPercentage::Percentage(0.0),
-            }
-        }
-        #[inline]
-        pub fn get_initial_specified_value() -> SpecifiedValue {
-            use values::specified::Percentage;
-            use values::specified::position::{HorizontalPosition, VerticalPosition};
-            Position {
-                horizontal: HorizontalPosition {
-                    keyword: None,
-                    position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
-                },
-                vertical: VerticalPosition {
-                    keyword: None,
-                    position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
-                },
-            }
-        }
-
-        pub fn parse(context: &ParserContext, input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
-            Ok(try!(Position::parse(context, input)))
-        }
-</%helpers:vector_longhand>
-
-<%helpers:vector_longhand name="background-position-x" products="gecko" animatable="True">
+<%helpers:vector_longhand name="background-position-x" animatable="True">
         use std::fmt;
         use style_traits::ToCss;
         use values::HasViewportPercentage;
@@ -174,7 +129,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
         }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position-y" products="gecko" animatable="True">
+<%helpers:vector_longhand name="background-position-y" animatable="True">
         use std::fmt;
         use style_traits::ToCss;
         use values::HasViewportPercentage;
