@@ -115,6 +115,7 @@ use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSour
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
+use task_source::port_message::PortMessageQueue;
 use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
 use time::Tm;
 use url::Position;
@@ -429,6 +430,8 @@ pub struct ScriptThread {
 
     networking_task_source: NetworkingTaskSource,
 
+    port_message_queue: PortMessageQueue,
+
     history_traversal_task_source: HistoryTraversalTaskSource,
 
     file_reading_task_source: FileReadingTaskSource,
@@ -710,6 +713,7 @@ impl ScriptThread {
             dom_manipulation_task_source: DOMManipulationTaskSource(chan.clone()),
             user_interaction_task_source: UserInteractionTaskSource(chan.clone()),
             networking_task_source: NetworkingTaskSource(boxed_script_sender.clone()),
+            port_message_queue: PortMessageQueue(boxed_script_sender.clone()),
             history_traversal_task_source: HistoryTraversalTaskSource(chan),
             file_reading_task_source: FileReadingTaskSource(boxed_script_sender),
 
@@ -993,6 +997,7 @@ impl ScriptThread {
                 ScriptThreadEventCategory::ImageCacheMsg => ProfilerCategory::ScriptImageCacheMsg,
                 ScriptThreadEventCategory::InputEvent => ProfilerCategory::ScriptInputEvent,
                 ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
+                ScriptThreadEventCategory::PortMessage => ProfilerCategory::ScriptPortMessage,
                 ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
                 ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
                 ScriptThreadEventCategory::SetScrollState => {
@@ -1767,6 +1772,7 @@ impl ScriptThread {
                                  DOMManipulationTaskSource(dom_sender.clone()),
                                  UserInteractionTaskSource(user_sender.clone()),
                                  self.networking_task_source.clone(),
+                                 self.port_message_queue.clone(),
                                  HistoryTraversalTaskSource(history_sender.clone()),
                                  self.file_reading_task_source.clone(),
                                  self.image_cache_channel.clone(),

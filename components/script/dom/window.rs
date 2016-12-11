@@ -114,6 +114,7 @@ use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
+use task_source::port_message::PortMessageQueue;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
 use timers::{IsInterval, TimerCallback};
@@ -166,6 +167,8 @@ pub struct Window {
     user_interaction_task_source: UserInteractionTaskSource,
     #[ignore_heap_size_of = "task sources are hard"]
     networking_task_source: NetworkingTaskSource,
+    #[ignore_heap_size_of = "task sources are hard"]
+    port_message_queue: PortMessageQueue,
     #[ignore_heap_size_of = "task sources are hard"]
     history_traversal_task_source: HistoryTraversalTaskSource,
     #[ignore_heap_size_of = "task sources are hard"]
@@ -304,6 +307,10 @@ impl Window {
 
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         self.networking_task_source.clone()
+    }
+
+    pub fn port_message_queue(&self) -> PortMessageQueue {
+        self.port_message_queue.clone()
     }
 
     pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
@@ -1738,6 +1745,7 @@ impl Window {
                dom_task_source: DOMManipulationTaskSource,
                user_task_source: UserInteractionTaskSource,
                network_task_source: NetworkingTaskSource,
+               port_message_queue: PortMessageQueue,
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
                image_cache_chan: Sender<ImageCacheMsg>,
@@ -1784,6 +1792,7 @@ impl Window {
             dom_manipulation_task_source: dom_task_source,
             user_interaction_task_source: user_task_source,
             networking_task_source: network_task_source,
+            port_message_queue: port_message_queue,
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,

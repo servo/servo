@@ -45,6 +45,7 @@ use std::collections::hash_map::Entry;
 use std::ffi::CString;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
+use task_source::port_message::PortMessageQueue;
 use time::{Timespec, get_time};
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use timers::{OneshotTimers, TimerCallback};
@@ -335,14 +336,26 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// `ScriptChan` to send messages to the networking task source of
-    /// this of this global scope.
+    /// `TaskSource` to send messages to the networking task source of
+    /// this global scope.
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         if let Some(window) = self.downcast::<Window>() {
             return window.networking_task_source();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.networking_task_source();
+        }
+        unreachable!();
+    }
+
+    /// `TaskSource` to send messages to the port message queue of
+    /// this global scope.
+    pub fn port_message_queue(&self) -> PortMessageQueue {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.port_message_queue();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.port_message_queue();
         }
         unreachable!();
     }

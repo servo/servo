@@ -45,6 +45,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
+use task_source::port_message::PortMessageQueue;
 use timers::{IsInterval, TimerCallback};
 
 pub fn prepare_workerscope_init(global: &GlobalScope,
@@ -367,6 +368,10 @@ impl WorkerGlobalScope {
 
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         NetworkingTaskSource(self.script_chan())
+    }
+
+    pub fn port_message_queue(&self) -> PortMessageQueue {
+        PortMessageQueue(self.script_chan())
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {

@@ -6,6 +6,7 @@ pub mod dom_manipulation;
 pub mod file_reading;
 pub mod history_traversal;
 pub mod networking;
+pub mod port_message;
 pub mod user_interaction;
 
 use dom::globalscope::GlobalScope;
