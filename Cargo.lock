@@ -3154,6 +3154,7 @@ dependencies = [
  "malloc_size_of_derive",
  "parking_lot",
  "serde",
+ "servo_url",
  "size_of_test",
  "webrender_api",
 ]
@@ -4134,6 +4135,7 @@ dependencies = [
  "app_units",
  "backtrace",
  "base64",
+ "bincode",
  "bitflags",
  "bluetooth_traits",
  "canvas_traits",

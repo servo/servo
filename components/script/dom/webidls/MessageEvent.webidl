@@ -12,7 +12,7 @@ interface MessageEvent : Event {
   // FIXME(#22617): WindowProxy is not exposed in Worker globals
   readonly attribute object? source;
   //readonly attribute (WindowProxy or MessagePort)? source;
-  //readonly attribute MessagePort[]? ports;
+  readonly attribute /*FrozenArray<MessagePort>*/any ports;
 };
 
 dictionary MessageEventInit : EventInit {
@@ -22,5 +22,7 @@ dictionary MessageEventInit : EventInit {
   //DOMString channel;
   Window? source;
   //(WindowProxy or MessagePort)? source;
-  //sequence<MessagePort> ports;
+  sequence<MessagePort> ports;
 };
+
+typedef (/*WindowProxy or */MessagePort or ServiceWorker) MessageEventSource;
