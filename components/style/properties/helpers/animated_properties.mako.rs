@@ -7,7 +7,8 @@ use cssparser::{Color as CSSParserColor, Parser, RGBA};
 use euclid::{Point2D, Size2D};
 use properties::PropertyDeclaration;
 use properties::longhands;
-use properties::longhands::background_position::computed_value::T as BackgroundPosition;
+use properties::longhands::background_position_x::computed_value::T as BackgroundPositionX;
+use properties::longhands::background_position_y::computed_value::T as BackgroundPositionY;
 use properties::longhands::background_size::computed_value::T as BackgroundSize;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::line_height::computed_value::T as LineHeight;
@@ -574,13 +575,6 @@ impl Interpolate for Position {
 
 impl RepeatableListInterpolate for Position {}
 
-impl Interpolate for BackgroundPosition {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        Ok(BackgroundPosition(try!(self.0.interpolate(&other.0, progress))))
-    }
-}
-
 /// https://drafts.csswg.org/css-transitions/#animtype-simple-list
 impl Interpolate for HorizontalPosition {
     #[inline]
@@ -601,24 +595,19 @@ impl Interpolate for VerticalPosition {
 
 impl RepeatableListInterpolate for VerticalPosition {}
 
-% if product == "gecko":
-    use properties::longhands::background_position_x::computed_value::T as BackgroundPositionX;
-    use properties::longhands::background_position_y::computed_value::T as BackgroundPositionY;
-
-    impl Interpolate for BackgroundPositionX {
-        #[inline]
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(BackgroundPositionX(try!(self.0.interpolate(&other.0, progress))))
-        }
+impl Interpolate for BackgroundPositionX {
+    #[inline]
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(BackgroundPositionX(try!(self.0.interpolate(&other.0, progress))))
     }
+}
 
-    impl Interpolate for BackgroundPositionY {
-        #[inline]
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(BackgroundPositionY(try!(self.0.interpolate(&other.0, progress))))
-        }
+impl Interpolate for BackgroundPositionY {
+    #[inline]
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(BackgroundPositionY(try!(self.0.interpolate(&other.0, progress))))
     }
-% endif
+}
 
 /// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 impl Interpolate for TextShadow {
