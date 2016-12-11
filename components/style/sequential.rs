@@ -42,8 +42,12 @@ pub fn traverse_dom<N, C>(root: N::ConcreteElement,
     };
     let context = C::new(shared, root.as_node().opaque());
 
-    if token.should_skip_root() {
-        C::traverse_children(root, |kid| doit::<N, C>(&context, kid, &mut data));
+    if token.traverse_unstyled_children_only() {
+        for kid in root.as_node().children() {
+            if kid.as_element().map_or(false, |el| el.get_data().is_none()) {
+                doit::<N, C>(&context, kid, &mut data);
+            }
+        }
     } else {
         doit::<N, C>(&context, root.as_node(), &mut data);
     }

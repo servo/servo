@@ -220,7 +220,7 @@ mod bindings {
             "mozilla::ConsumeStyleBehavior",
             "mozilla::LazyComputeBehavior",
             "mozilla::css::SheetParsingMode",
-            "mozilla::SkipRootBehavior",
+            "mozilla::TraversalRootBehavior",
             "mozilla::DisplayItemClip",  // Needed because bindgen generates
                                          // specialization tests for this even
                                          // though it shouldn't.
@@ -444,7 +444,7 @@ mod bindings {
             "ThreadSafePrincipalHolder",
             "ConsumeStyleBehavior",
             "LazyComputeBehavior",
-            "SkipRootBehavior",
+            "TraversalRootBehavior",
             "FontFamilyList",
             "FontFamilyType",
             "ServoElementSnapshot",

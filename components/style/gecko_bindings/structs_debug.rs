@@ -2493,7 +2493,7 @@ pub mod root {
         }
         #[repr(i32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum SkipRootBehavior { Skip = 0, DontSkip = 1, }
+        pub enum TraversalRootBehavior { Normal = 0, UnstyledChildrenOnly = 1, }
         pub mod a11y {
             #[allow(unused_imports)]
             use self::super::super::super::root;

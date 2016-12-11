@@ -70,7 +70,7 @@ use gecko_bindings::structs::ThreadSafeURIHolder;
 use gecko_bindings::structs::ThreadSafePrincipalHolder;
 use gecko_bindings::structs::ConsumeStyleBehavior;
 use gecko_bindings::structs::LazyComputeBehavior;
-use gecko_bindings::structs::SkipRootBehavior;
+use gecko_bindings::structs::TraversalRootBehavior;
 use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
 use gecko_bindings::structs::ServoElementSnapshot;
@@ -1197,7 +1197,7 @@ extern "C" {
 extern "C" {
     pub fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                  set: RawServoStyleSetBorrowed,
-                                 skip_root: SkipRootBehavior);
+                                 behavior: TraversalRootBehavior);
 }
 extern "C" {
     pub fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed);

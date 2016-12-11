@@ -104,7 +104,7 @@ pub struct PerLevelTraversalData {
 /// to pass information from the pre-traversal into the primary traversal.
 pub struct PreTraverseToken {
     traverse: bool,
-    skip_root: bool,
+    unstyled_children_only: bool,
 }
 
 impl PreTraverseToken {
@@ -112,8 +112,8 @@ impl PreTraverseToken {
         self.traverse
     }
 
-    pub fn should_skip_root(&self) -> bool {
-        self.skip_root
+    pub fn traverse_unstyled_children_only(&self) -> bool {
+        self.unstyled_children_only
     }
 }
 
@@ -140,16 +140,16 @@ pub trait DomTraversalContext<N: TNode> {
     /// a traversal is needed. Returns a token that allows the caller to prove
     /// that the call happened.
     ///
-    /// The skip_root parameter is used in Gecko to style newly-appended children
-    /// without restyling the parent.
-    fn pre_traverse(root: N::ConcreteElement, stylist: &Stylist, skip_root: bool)
+    /// The unstyled_children_only parameter is used in Gecko to style newly-
+    /// appended children without restyling the parent.
+    fn pre_traverse(root: N::ConcreteElement, stylist: &Stylist,
+                    unstyled_children_only: bool)
                     -> PreTraverseToken
     {
-        // If we should skip the root, traverse unconditionally.
-        if skip_root {
+        if unstyled_children_only {
             return PreTraverseToken {
                 traverse: true,
-                skip_root: true,
+                unstyled_children_only: true,
             };
         }
 
@@ -168,7 +168,7 @@ pub trait DomTraversalContext<N: TNode> {
 
         PreTraverseToken {
             traverse: Self::node_needs_traversal(root.as_node()),
-            skip_root: false,
+            unstyled_children_only: false,
         }
     }
 
