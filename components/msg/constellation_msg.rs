@@ -337,6 +337,7 @@ pub enum ScriptHangAnnotation {
     ExitFullscreen,
     WebVREvent,
     PerformanceTimelineTask,
+    PortMessage,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
