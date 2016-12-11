@@ -96,6 +96,7 @@ servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry" }
 servo-media = {git = "https://github.com/servo/media"}
 servo_rand = {path = "../rand"}
+servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url"}
 sparkle = "0.1"
 smallvec = { version = "0.6", features = ["std", "union"] }

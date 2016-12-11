@@ -10,6 +10,7 @@ use crate::task_source::history_traversal::HistoryTraversalTaskSource;
 use crate::task_source::media_element::MediaElementTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
+use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
@@ -47,6 +48,8 @@ pub struct TaskManager {
     #[ignore_malloc_size_of = "task sources are hard"]
     performance_timeline_task_source: PerformanceTimelineTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
+    port_message_queue: PortMessageQueue,
+    #[ignore_malloc_size_of = "task sources are hard"]
     user_interaction_task_source: UserInteractionTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     remote_event_task_source: RemoteEventTaskSource,
@@ -62,6 +65,7 @@ impl TaskManager {
         media_element_task_source: MediaElementTaskSource,
         networking_task_source: NetworkingTaskSource,
         performance_timeline_task_source: PerformanceTimelineTaskSource,
+        port_message_queue: PortMessageQueue,
         user_interaction_task_source: UserInteractionTaskSource,
         remote_event_task_source: RemoteEventTaskSource,
         websocket_task_source: WebsocketTaskSource,
@@ -73,6 +77,7 @@ impl TaskManager {
             media_element_task_source,
             networking_task_source,
             performance_timeline_task_source,
+            port_message_queue,
             user_interaction_task_source,
             remote_event_task_source,
             websocket_task_source,
@@ -134,6 +139,14 @@ impl TaskManager {
         performance_timeline_task_source,
         PerformanceTimelineTaskSource,
         PerformanceTimeline
+    );
+
+    task_source_functions!(
+        self,
+        port_message_queue_with_canceller,
+        port_message_queue,
+        PortMessageQueue,
+        PortMessage
     );
 
     task_source_functions!(
