@@ -89,6 +89,7 @@ pub enum ProfilerCategory {
     ScriptEnterFullscreen = 0x77,
     ScriptExitFullscreen = 0x78,
     ScriptWebVREvent = 0x79,
+    ScriptPortMessage = 0x80,
     ApplicationHeartbeat = 0x90,
 }
 
