@@ -77,6 +77,7 @@ use crate::task_source::history_traversal::HistoryTraversalTaskSource;
 use crate::task_source::media_element::MediaElementTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
+use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::user_interaction::UserInteractionTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
@@ -520,6 +521,8 @@ pub struct ScriptThread {
     user_interaction_task_sender: Sender<MainThreadScriptMsg>,
 
     networking_task_sender: Box<dyn ScriptChan>,
+
+    port_message_sender: Box<ScriptChan>,
 
     history_traversal_task_source: HistoryTraversalTaskSource,
 
@@ -1038,6 +1041,7 @@ impl ScriptThread {
             media_element_task_sender: chan.clone(),
             user_interaction_task_sender: chan.clone(),
             networking_task_sender: boxed_script_sender.clone(),
+            port_message_sender: boxed_script_sender.clone(),
             file_reading_task_sender: boxed_script_sender.clone(),
             performance_timeline_task_sender: boxed_script_sender.clone(),
             remote_event_task_sender: boxed_script_sender.clone(),
@@ -1412,6 +1416,7 @@ impl ScriptThread {
                 ScriptThreadEventCategory::ImageCacheMsg => ProfilerCategory::ScriptImageCacheMsg,
                 ScriptThreadEventCategory::InputEvent => ProfilerCategory::ScriptInputEvent,
                 ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
+                ScriptThreadEventCategory::PortMessage => ProfilerCategory::ScriptPortMessage,
                 ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
                 ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
                 ScriptThreadEventCategory::SetScrollState => ProfilerCategory::ScriptSetScrollState,
@@ -2191,6 +2196,10 @@ impl ScriptThread {
         NetworkingTaskSource(self.networking_task_sender.clone(), pipeline_id)
     }
 
+    pub fn port_message_queue(&self, pipeline_id: PipelineId) -> PortMessageQueue {
+        PortMessageQueue(self.port_message_sender.clone(), pipeline_id)
+    }
+
     pub fn file_reading_task_source(&self, pipeline_id: PipelineId) -> FileReadingTaskSource {
         FileReadingTaskSource(self.file_reading_task_sender.clone(), pipeline_id)
     }
@@ -2584,6 +2593,7 @@ impl ScriptThread {
             self.media_element_task_source(incomplete.pipeline_id),
             self.user_interaction_task_source(incomplete.pipeline_id),
             self.networking_task_source(incomplete.pipeline_id),
+            self.port_message_queue(incomplete.pipeline_id),
             HistoryTraversalTaskSource(history_sender.clone()),
             self.file_reading_task_source(incomplete.pipeline_id),
             self.performance_timeline_task_source(incomplete.pipeline_id)

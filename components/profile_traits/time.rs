@@ -103,6 +103,7 @@ pub enum ProfilerCategory {
     ScriptWebVREvent = 0x79,
     ScriptWorkletEvent = 0x7a,
     ScriptPerformanceEvent = 0x7b,
+    ScriptPortMessage = 0x7c,
     TimeToFirstPaint = 0x80,
     TimeToFirstContentfulPaint = 0x81,
     TimeToInteractive = 0x82,

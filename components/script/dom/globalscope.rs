@@ -32,6 +32,7 @@ use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
+use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::task_source::TaskSourceName;
@@ -52,13 +53,13 @@ use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, IpcSend, ResourceThreads};
+use std::collections::hash_map::Entry;
+
 use profile_traits::{mem as profile_mem, time as profile_time};
 use script_traits::{MsDuration, ScriptToConstellationChan, TimerEvent};
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
-use std::cell::Cell;
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use std::cell::Cell;use std::collections::HashMap;
 use std::ffi::CString;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -472,7 +473,7 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// `ScriptChan` to send messages to the networking task source of
+    /// `TaskSource` to send messages to the networking task source of
     /// this global scope.
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         if let Some(window) = self.downcast::<Window>() {
@@ -484,7 +485,19 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// `ScriptChan` to send messages to the remote-event task source of
+    /// `TaskSource` to send messages to the port message queue of
+    /// this global scope.
+    pub fn port_message_queue(&self) -> PortMessageQueue {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.port_message_queue();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.port_message_queue();
+        }
+        unreachable!();
+    }
+
+    /// `TaskSource` to send messages to the remote-event task source of
     /// this global scope.
     pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
         if let Some(window) = self.downcast::<Window>() {
@@ -496,7 +509,7 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// `ScriptChan` to send messages to the websocket task source of
+    /// `TaskSource` to send messages to the websocket task source of
     /// this global scope.
     pub fn websocket_task_source(&self) -> WebsocketTaskSource {
         if let Some(window) = self.downcast::<Window>() {
@@ -505,7 +518,7 @@ impl GlobalScope {
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.websocket_task_source();
         }
-        unreachable!();
+        unreachable!()
     }
 
     /// Evaluate JS code on this global scope.

@@ -29,6 +29,7 @@ use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::file_reading::FileReadingTaskSource;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::performance_timeline::PerformanceTimelineTaskSource;
+use crate::task_source::port_message::PortMessageQueue;
 use crate::task_source::remote_event::RemoteEventTaskSource;
 use crate::task_source::websocket::WebsocketTaskSource;
 use crate::timers::{IsInterval, TimerCallback};
@@ -430,6 +431,10 @@ impl WorkerGlobalScope {
 
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         NetworkingTaskSource(self.script_chan(), self.pipeline_id())
+    }
+
+    pub fn port_message_queue(&self) -> PortMessageQueue {
+        PortMessageQueue(self.script_chan(), self.pipeline_id())
     }
 
     pub fn performance_timeline_task_source(&self) -> PerformanceTimelineTaskSource {
