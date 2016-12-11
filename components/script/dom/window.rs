@@ -126,6 +126,7 @@ use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::port_message::PortMessageQueue;
 use task_source::remote_event::RemoteEventTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use task_source::websocket::WebsocketTaskSource;
@@ -179,6 +180,8 @@ pub struct Window {
     user_interaction_task_source: UserInteractionTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
     networking_task_source: NetworkingTaskSource,
+    #[ignore_malloc_size_of = "task sources are hard"]
+    port_message_queue: PortMessageQueue,
     #[ignore_malloc_size_of = "task sources are hard"]
     history_traversal_task_source: HistoryTraversalTaskSource,
     #[ignore_malloc_size_of = "task sources are hard"]
@@ -361,6 +364,10 @@ impl Window {
 
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         self.networking_task_source.clone()
+    }
+
+    pub fn port_message_queue(&self) -> PortMessageQueue {
+        self.port_message_queue.clone()
     }
 
     pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
@@ -1907,6 +1914,7 @@ impl Window {
         dom_manipulation_task_source: DOMManipulationTaskSource,
         user_interaction_task_source: UserInteractionTaskSource,
         networking_task_source: NetworkingTaskSource,
+        port_message_queue: PortMessageQueue,
         history_traversal_task_source: HistoryTraversalTaskSource,
         file_reading_task_source: FileReadingTaskSource,
         performance_timeline_task_source: PerformanceTimelineTaskSource,
@@ -1961,6 +1969,7 @@ impl Window {
             dom_manipulation_task_source,
             user_interaction_task_source,
             networking_task_source,
+            port_message_queue,
             history_traversal_task_source,
             file_reading_task_source,
             performance_timeline_task_source,

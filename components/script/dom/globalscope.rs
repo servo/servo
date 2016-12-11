@@ -58,6 +58,7 @@ use task_source::TaskSourceName;
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::performance_timeline::PerformanceTimelineTaskSource;
+use task_source::port_message::PortMessageQueue;
 use task_source::remote_event::RemoteEventTaskSource;
 use task_source::websocket::WebsocketTaskSource;
 use time::{Timespec, get_time};
@@ -407,7 +408,7 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// `ScriptChan` to send messages to the networking task source of
+    /// `TaskSource` to send messages to the networking task source of
     /// this global scope.
     pub fn networking_task_source(&self) -> NetworkingTaskSource {
         if let Some(window) = self.downcast::<Window>() {
@@ -419,7 +420,19 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// `ScriptChan` to send messages to the remote-event task source of
+    /// `TaskSource` to send messages to the port message queue of
+    /// this global scope.
+    pub fn port_message_queue(&self) -> PortMessageQueue {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.port_message_queue();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.port_message_queue();
+        }
+        unreachable!();
+    }
+
+    /// `TaskSource` to send messages to the remote-event task source of
     /// this global scope.
     pub fn remote_event_task_source(&self) -> RemoteEventTaskSource {
         if let Some(window) = self.downcast::<Window>() {
@@ -431,7 +444,7 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// `ScriptChan` to send messages to the websocket task source of
+    /// `TaskSource` to send messages to the websocket task source of
     /// this global scope.
     pub fn websocket_task_source(&self) -> WebsocketTaskSource {
         if let Some(window) = self.downcast::<Window>() {
@@ -440,7 +453,7 @@ impl GlobalScope {
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.websocket_task_source();
         }
-        unreachable!();
+        unreachable!()
     }
 
     /// Evaluate JS code on this global scope.
