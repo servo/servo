@@ -13,7 +13,7 @@ use dom::bindings::conversions::{array_buffer_to_vec, array_buffer_view_data, ar
 use dom::bindings::conversions::{array_buffer_view_to_vec, array_buffer_view_to_vec_checked};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
+use dom::bindings::js::{JS, LayoutJS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -124,13 +124,13 @@ pub struct WebGLRenderingContext {
     #[ignore_heap_size_of = "Defined in webrender_traits"]
     last_error: Cell<Option<WebGLError>>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
-    bound_framebuffer: MutNullableHeap<JS<WebGLFramebuffer>>,
-    bound_renderbuffer: MutNullableHeap<JS<WebGLRenderbuffer>>,
-    bound_texture_2d: MutNullableHeap<JS<WebGLTexture>>,
-    bound_texture_cube_map: MutNullableHeap<JS<WebGLTexture>>,
-    bound_buffer_array: MutNullableHeap<JS<WebGLBuffer>>,
-    bound_buffer_element_array: MutNullableHeap<JS<WebGLBuffer>>,
-    current_program: MutNullableHeap<JS<WebGLProgram>>,
+    bound_framebuffer: MutNullableJS<WebGLFramebuffer>,
+    bound_renderbuffer: MutNullableJS<WebGLRenderbuffer>,
+    bound_texture_2d: MutNullableJS<WebGLTexture>,
+    bound_texture_cube_map: MutNullableJS<WebGLTexture>,
+    bound_buffer_array: MutNullableJS<WebGLBuffer>,
+    bound_buffer_element_array: MutNullableJS<WebGLBuffer>,
+    current_program: MutNullableJS<WebGLProgram>,
     #[ignore_heap_size_of = "Because it's small"]
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
     #[ignore_heap_size_of = "Because it's small"]
@@ -159,13 +159,13 @@ impl WebGLRenderingContext {
                 canvas: JS::from_ref(canvas),
                 last_error: Cell::new(None),
                 texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
-                bound_framebuffer: MutNullableHeap::new(None),
-                bound_texture_2d: MutNullableHeap::new(None),
-                bound_texture_cube_map: MutNullableHeap::new(None),
-                bound_buffer_array: MutNullableHeap::new(None),
-                bound_buffer_element_array: MutNullableHeap::new(None),
-                bound_renderbuffer: MutNullableHeap::new(None),
-                current_program: MutNullableHeap::new(None),
+                bound_framebuffer: MutNullableJS::new(None),
+                bound_texture_2d: MutNullableJS::new(None),
+                bound_texture_cube_map: MutNullableJS::new(None),
+                bound_buffer_array: MutNullableJS::new(None),
+                bound_buffer_element_array: MutNullableJS::new(None),
+                bound_renderbuffer: MutNullableJS::new(None),
+                current_program: MutNullableJS::new(None),
                 current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0))

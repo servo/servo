@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
+use dom::bindings::js::{JS, MutJS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
@@ -934,7 +934,7 @@ impl RangeMethods for Range {
 #[privatize]
 #[derive(HeapSizeOf)]
 pub struct BoundaryPoint {
-    node: MutHeap<JS<Node>>,
+    node: MutJS<Node>,
     offset: Cell<u32>,
 }
 
@@ -943,7 +943,7 @@ impl BoundaryPoint {
         debug_assert!(!node.is_doctype());
         debug_assert!(offset <= node.len());
         BoundaryPoint {
-            node: MutHeap::new(node),
+            node: MutJS::new(node),
             offset: Cell::new(offset),
         }
     }

@@ -4,7 +4,7 @@
 
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::js::{JS, MutNullableJS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 use dom::bindings::trace::JSTraceable;
@@ -43,7 +43,7 @@ pub struct BrowsingContext {
     /// The current active document.
     /// Note that the session history is stored in the constellation,
     /// in the script thread we just track the current active document.
-    active_document: MutNullableHeap<JS<Document>>,
+    active_document: MutNullableJS<Document>,
 
     /// The containing iframe element, if this is a same-origin iframe
     frame_element: Option<JS<Element>>,

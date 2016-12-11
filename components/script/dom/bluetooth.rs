@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::error::Error::{self, NotFound, Security, Type};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{MutJS, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -86,7 +86,7 @@ impl<Listener: AsyncBluetoothListener + DomObject> BluetoothResponseListener for
 #[dom_struct]
 pub struct Bluetooth {
     eventtarget: EventTarget,
-    device_instance_map: DOMRefCell<HashMap<String, MutHeap<JS<BluetoothDevice>>>>,
+    device_instance_map: DOMRefCell<HashMap<String, MutJS<BluetoothDevice>>>,
 }
 
 impl Bluetooth {
@@ -409,7 +409,7 @@ impl AsyncBluetoothListener for Bluetooth {
                                                      device.name.map(DOMString::from),
                                                      &ad_data,
                                                      &self);
-                device_instance_map.insert(device.id, MutHeap::new(&bt_device));
+                device_instance_map.insert(device.id, MutJS::new(&bt_device));
                 // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
                 // Step 5.
                 promise.resolve_native(promise_cx, &bt_device);

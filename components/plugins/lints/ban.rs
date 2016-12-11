@@ -29,19 +29,19 @@ impl EarlyLintPass for BanPass {
             .and_then(|t| t.get(0))
             .and_then(|t| match_ty_unwrap(&**t, &["dom", "bindings", "js", "JS"]))
             .is_some() {
-            cx.span_lint(BANNED_TYPE, ty.span, "Banned type Cell<JS<T>> detected. Use MutHeap<JS<T>> instead")
+            cx.span_lint(BANNED_TYPE, ty.span, "Banned type Cell<JS<T>> detected. Use MutJS<JS<T>> instead")
         }
         if match_ty_unwrap(ty, &["std", "cell", "Cell"])
             .and_then(|t| t.get(0))
             .and_then(|t| match_ty_unwrap(&**t, &["js", "jsval", "JSVal"]))
             .is_some() {
-            cx.span_lint(BANNED_TYPE, ty.span, "Banned type Cell<JSVal> detected. Use MutHeap<JSVal> instead")
+            cx.span_lint(BANNED_TYPE, ty.span, "Banned type Cell<JSVal> detected. Use MutJS<JSVal> instead")
         }
         if match_ty_unwrap(ty, &["dom", "bindings", "cell", "DOMRefCell"])
             .and_then(|t| t.get(0))
             .and_then(|t| match_ty_unwrap(&**t, &["dom", "bindings", "js", "JS"]))
             .is_some() {
-            cx.span_lint(BANNED_TYPE, ty.span, "Banned type DOMRefCell<JS<T>> detected. Use MutHeap<JS<T>> instead")
+            cx.span_lint(BANNED_TYPE, ty.span, "Banned type DOMRefCell<JS<T>> detected. Use MutJS<JS<T>> instead")
         }
     }
 }

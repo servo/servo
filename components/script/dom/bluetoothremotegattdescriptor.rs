@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::Blue
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::Error::{self, InvalidModification, Network, Security};
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{MutJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
@@ -28,7 +28,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct BluetoothRemoteGATTDescriptor {
     reflector_: Reflector,
-    characteristic: MutHeap<JS<BluetoothRemoteGATTCharacteristic>>,
+    characteristic: MutJS<BluetoothRemoteGATTCharacteristic>,
     uuid: DOMString,
     value: DOMRefCell<Option<ByteString>>,
     instance_id: String,
@@ -41,7 +41,7 @@ impl BluetoothRemoteGATTDescriptor {
                          -> BluetoothRemoteGATTDescriptor {
         BluetoothRemoteGATTDescriptor {
             reflector_: Reflector::new(),
-            characteristic: MutHeap::new(characteristic),
+            characteristic: MutJS::new(characteristic),
             uuid: uuid,
             value: DOMRefCell::new(None),
             instance_id: instance_id,

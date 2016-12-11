@@ -14,7 +14,7 @@ use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 //use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -58,7 +58,7 @@ impl CollectionFilter for OptionsFilter {
 #[dom_struct]
 pub struct HTMLSelectElement {
     htmlelement: HTMLElement,
-    options: MutNullableHeap<JS<HTMLOptionsCollection>>,
+    options: MutNullableJS<HTMLOptionsCollection>,
 }
 
 static DEFAULT_SELECT_SIZE: u32 = 0;

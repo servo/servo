@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElemen
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::{DOMString, USVString};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
@@ -36,7 +36,7 @@ use util::prefs::PREFS;
 #[dom_struct]
 pub struct HTMLAnchorElement {
     htmlelement: HTMLElement,
-    rel_list: MutNullableHeap<JS<DOMTokenList>>,
+    rel_list: MutNullableJS<DOMTokenList>,
     url: DOMRefCell<Option<ServoUrl>>,
 }
 

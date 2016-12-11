@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::{ServiceWorkerContainerMethods, Wrap};
 use dom::bindings::codegen::Bindings::ServiceWorkerContainerBinding::RegistrationOptions;
 use dom::bindings::error::Error;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::client::Client;
@@ -22,7 +22,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct ServiceWorkerContainer {
     eventtarget: EventTarget,
-    controller: MutNullableHeap<JS<ServiceWorker>>,
+    controller: MutNullableJS<ServiceWorker>,
     client: JS<Client>
 }
 

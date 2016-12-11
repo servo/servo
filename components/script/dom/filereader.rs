@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::FileReaderBinding::{self, FileReaderConsta
 use dom::bindings::codegen::UnionTypes::StringOrObject;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -86,7 +86,7 @@ pub enum FileReaderResult {
 pub struct FileReader {
     eventtarget: EventTarget,
     ready_state: Cell<FileReaderReadyState>,
-    error: MutNullableHeap<JS<DOMException>>,
+    error: MutNullableJS<DOMException>,
     result: DOMRefCell<Option<FileReaderResult>>,
     generation_id: Cell<GenerationId>,
 }
@@ -96,7 +96,7 @@ impl FileReader {
         FileReader {
             eventtarget: EventTarget::new_inherited(),
             ready_state: Cell::new(FileReaderReadyState::Empty),
-            error: MutNullableHeap::new(None),
+            error: MutNullableJS::new(None),
             result: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0)),
         }

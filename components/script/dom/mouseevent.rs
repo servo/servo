@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::js::{MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -30,7 +30,7 @@ pub struct MouseEvent {
     alt_key: Cell<bool>,
     meta_key: Cell<bool>,
     button: Cell<i16>,
-    related_target: MutNullableHeap<JS<EventTarget>>,
+    related_target: MutNullableJS<EventTarget>,
 }
 
 impl MouseEvent {

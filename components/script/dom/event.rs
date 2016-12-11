@@ -6,7 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -80,8 +80,8 @@ impl From<bool> for EventCancelable {
 #[dom_struct]
 pub struct Event {
     reflector_: Reflector,
-    current_target: MutNullableHeap<JS<EventTarget>>,
-    target: MutNullableHeap<JS<EventTarget>>,
+    current_target: MutNullableJS<EventTarget>,
+    target: MutNullableJS<EventTarget>,
     type_: DOMRefCell<Atom>,
     phase: Cell<EventPhase>,
     canceled: Cell<bool>,

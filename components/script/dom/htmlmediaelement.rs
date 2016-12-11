@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementM
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, MutNullableHeap, JS};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
@@ -218,7 +218,7 @@ pub struct HTMLMediaElement {
     current_src: DOMRefCell<String>,
     generation_id: Cell<u32>,
     first_data_load: Cell<bool>,
-    error: MutNullableHeap<JS<MediaError>>,
+    error: MutNullableJS<MediaError>,
     paused: Cell<bool>,
     autoplaying: Cell<bool>,
     video: DOMRefCell<Option<VideoMedia>>,

@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::js::{JS, LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -94,7 +94,7 @@ pub struct HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
 
-    filelist: MutNullableHeap<JS<FileList>>,
+    filelist: MutNullableJS<FileList>,
 }
 
 #[derive(JSTraceable)]
@@ -150,7 +150,7 @@ impl HTMLInputElement {
                                                       SelectionDirection::None)),
             activation_state: DOMRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
-            filelist: MutNullableHeap::new(None),
+            filelist: MutNullableJS::new(None),
         }
     }
 

@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestRespo
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap, Root};
+use dom::bindings::js::{JS, MutHeapJSVal, MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
@@ -122,8 +122,8 @@ pub struct XMLHttpRequest {
     status_text: DOMRefCell<ByteString>,
     response: DOMRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
-    response_xml: MutNullableHeap<JS<Document>>,
-    response_blob: MutNullableHeap<JS<Blob>>,
+    response_xml: MutNullableJS<Document>,
+    response_blob: MutNullableJS<Blob>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     response_json: MutHeapJSVal,
     #[ignore_heap_size_of = "Defined in hyper"]

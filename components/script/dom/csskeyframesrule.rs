@@ -6,7 +6,7 @@ use cssparser::Parser;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::csskeyframerule::CSSKeyframeRule;
@@ -26,7 +26,7 @@ pub struct CSSKeyframesRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
     keyframesrule: Arc<RwLock<KeyframesRule>>,
-    rulelist: MutNullableHeap<JS<CSSRuleList>>,
+    rulelist: MutNullableJS<CSSRuleList>,
 }
 
 impl CSSKeyframesRule {
@@ -35,7 +35,7 @@ impl CSSKeyframesRule {
         CSSKeyframesRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             keyframesrule: keyframesrule,
-            rulelist: MutNullableHeap::new(None),
+            rulelist: MutNullableJS::new(None),
         }
     }
 
