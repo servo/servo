@@ -1384,6 +1384,7 @@ fn static_assert() {
         }
     </%self:simple_image_array_property>
 
+    % if shorthand != "background":
     pub fn copy_${shorthand}_position_from(&mut self, other: &Self) {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
 
@@ -1419,7 +1420,7 @@ fn static_assert() {
     pub fn clone_${shorthand}_position(&self)
         -> longhands::${shorthand}_position::computed_value::T {
         use values::computed::position::Position;
-        longhands::background_position::computed_value::T(
+        longhands::${shorthand}_position::computed_value::T(
             self.gecko.${image_layers_field}.mLayers.iter()
                 .take(self.gecko.${image_layers_field}.mPositionXCount as usize)
                 .take(self.gecko.${image_layers_field}.mPositionYCount as usize)
@@ -1448,6 +1449,7 @@ fn static_assert() {
             geckolayer.mPosition.mYPosition = servo.vertical.into();
         }
     }
+    % endif
 
     <%self:simple_image_array_property name="size" shorthand="${shorthand}" field_name="mSize">
         use gecko_bindings::structs::nsStyleImageLayers_Size_Dimension;
