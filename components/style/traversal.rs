@@ -157,11 +157,11 @@ pub trait DomTraversalContext<N: TNode> {
         // we need a special case for the root.
         //
         // Expanding snapshots here may create a LATER_SIBLINGS restyle hint, which
-        // we will drop on the floor. This is fine, because we don't traverse roots
-        // with siblings.
-        debug_assert!(root.next_sibling_element().is_none());
+        // we will drop on the floor. To prevent missed restyles, we assert against
+        // restyling a root with later siblings.
         if let Some(mut data) = root.mutate_data() {
             if let Some(r) = data.as_restyle_mut() {
+                debug_assert!(root.next_sibling_element().is_none());
                 let _later_siblings = r.expand_snapshot(root, stylist);
             }
         }
