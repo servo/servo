@@ -1788,6 +1788,11 @@ impl Node {
         copy
     }
 
+    /// https://html.spec.whatwg.org/multipage/#child-text-content
+    pub fn child_text_content(&self) -> DOMString {
+        Node::collect_text_contents(self.children())
+    }
+
     pub fn collect_text_contents<T: Iterator<Item=Root<Node>>>(iterator: T) -> DOMString {
         let mut content = String::new();
         for node in iterator {
