@@ -18,7 +18,7 @@ use style::arc_ptr_eq;
 use style::atomic_refcell::AtomicRefMut;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::data::{ElementData, RestyleData};
-use style::dom::{TElement, TNode};
+use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko::context::StandaloneStyleContext;
 use style::gecko::context::clear_local_context;
@@ -144,6 +144,9 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
         error!("Unnecessary call to traverse_subtree");
         return;
     }
+
+    debug!("Traversing subtree:");
+    debug!("{:?}", ShowSubtreeData(element.as_node()));
 
     let shared_style_context = create_shared_context(&mut per_doc_data);
     let known_depth = None;
