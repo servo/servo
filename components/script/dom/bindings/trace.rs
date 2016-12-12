@@ -668,11 +668,25 @@ pub struct RootedVec<'a, T: 'static + JSTraceable> {
     root: &'a mut RootableVec<T>,
 }
 
-impl<'a, T: 'static + JSTraceable + DomObject> RootedVec<'a, JS<T>> {
+impl<'a, T: 'static + JSTraceable> RootedVec<'a, T> {
     /// Create a vector of items of type T that is rooted for
     /// the lifetime of this struct
-    pub fn new<I: Iterator<Item = Root<T>>>(root: &'a mut RootableVec<JS<T>>, iter: I)
-                                            -> RootedVec<'a, JS<T>> {
+    pub fn new(root: &'a mut RootableVec<T>) -> Self {
+        unsafe {
+            RootedTraceableSet::add(root);
+        }
+        RootedVec {
+            root: root,
+        }
+    }
+}
+
+impl<'a, T: 'static + JSTraceable + DomObject> RootedVec<'a, JS<T>> {
+    /// Create a vector of items of type JS<T> that is rooted for
+    /// the lifetime of this struct
+    pub fn from_iter<I>(root: &'a mut RootableVec<JS<T>>, iter: I) -> Self
+        where I: Iterator<Item = Root<T>>
+    {
         unsafe {
             RootedTraceableSet::add(root);
         }

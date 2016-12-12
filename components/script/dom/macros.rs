@@ -537,14 +537,15 @@ macro_rules! document_and_element_event_handlers(
 #[macro_export]
 macro_rules! rooted_vec {
     (let mut $name:ident) => {
-        rooted_vec!(let mut $name <- ::std::iter::empty())
+        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
+        let mut $name = $crate::dom::bindings::trace::RootedVec::new(&mut root);
     };
     (let $name:ident <- $iter:expr) => {
-        let mut __root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let $name = $crate::dom::bindings::trace::RootedVec::new(&mut __root, $iter);
+        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
+        let $name = $crate::dom::bindings::trace::RootedVec::from_iter(&mut root, $iter);
     };
     (let mut $name:ident <- $iter:expr) => {
-        let mut __root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
-        let mut $name = $crate::dom::bindings::trace::RootedVec::new(&mut __root, $iter);
+        let mut root = $crate::dom::bindings::trace::RootableVec::new_unrooted();
+        let mut $name = $crate::dom::bindings::trace::RootedVec::from_iter(&mut root, $iter);
     }
 }

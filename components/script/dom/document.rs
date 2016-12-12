@@ -1521,8 +1521,11 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
     pub fn run_the_animation_frame_callbacks(&self) {
-        let mut animation_frame_list =
-            mem::replace(&mut *self.animation_frame_list.borrow_mut(), vec![]);
+        rooted_vec!(let mut animation_frame_list);
+        mem::swap(
+            &mut *animation_frame_list,
+            &mut *self.animation_frame_list.borrow_mut());
+
         self.running_animation_callbacks.set(true);
         let timing = self.window.Performance().Now();
 
@@ -1538,7 +1541,7 @@ impl Document {
         // message quickly followed by an AnimationCallbacksPresent message.
         if self.animation_frame_list.borrow().is_empty() {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
-                      &mut animation_frame_list);
+                      &mut *animation_frame_list);
             let global_scope = self.window.upcast::<GlobalScope>();
             let event = ConstellationMsg::ChangeRunningAnimationsState(global_scope.pipeline_id(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
