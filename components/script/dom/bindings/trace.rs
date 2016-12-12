@@ -46,6 +46,7 @@ use dom::bindings::root::{Dom, DomRoot};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
+use dom::messageport::MessagePortInternal;
 use encoding_rs::Encoding;
 use euclid::{Transform2D, Transform3D, Point2D, Vector2D, Rect, TypedSize2D, ScaleFactor};
 use euclid::Length as EuclidLength;
@@ -574,6 +575,12 @@ unsafe impl<U> JSTraceable for TypedSize2D<f32, U> {
 }
 
 unsafe impl JSTraceable for Mutex<Option<SharedRt>> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for Mutex<MessagePortInternal> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
