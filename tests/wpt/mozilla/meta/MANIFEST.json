@@ -6734,6 +6734,12 @@
             "url": "/_mozilla/mozilla/binding_keyword.html"
           }
         ],
+        "mozilla/bluetooth/advertisingEvent/watchAdvertisements-succeeds.html": [
+          {
+            "path": "mozilla/bluetooth/advertisingEvent/watchAdvertisements-succeeds.html",
+            "url": "/_mozilla/mozilla/bluetooth/advertisingEvent/watchAdvertisements-succeeds.html"
+          }
+        ],
         "mozilla/bluetooth/connect/connection-succeeds.html": [
           {
             "path": "mozilla/bluetooth/connect/connection-succeeds.html",

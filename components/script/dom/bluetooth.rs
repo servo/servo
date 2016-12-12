@@ -19,7 +19,6 @@ use dom::bindings::js::{MutJS, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use dom::eventtarget::EventTarget;
@@ -400,14 +399,9 @@ impl AsyncBluetoothListener for Bluetooth {
                 if let Some(existing_device) = device_instance_map.get(&device.id.clone()) {
                     return promise.resolve_native(promise_cx, &existing_device.get());
                 }
-                let ad_data = BluetoothAdvertisingData::new(&self.global(),
-                                                            device.appearance,
-                                                            device.tx_power,
-                                                            device.rssi);
                 let bt_device = BluetoothDevice::new(&self.global(),
                                                      DOMString::from(device.id.clone()),
                                                      device.name.map(DOMString::from),
-                                                     &ad_data,
                                                      &self);
                 device_instance_map.insert(device.id, MutJS::new(&bt_device));
                 // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice

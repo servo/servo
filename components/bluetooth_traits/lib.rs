@@ -31,10 +31,6 @@ pub struct BluetoothDeviceMsg {
     // Bluetooth Device properties
     pub id: String,
     pub name: Option<String>,
-    // Advertising Data properties
-    pub appearance: Option<u16>,
-    pub tx_power: Option<i8>,
-    pub rssi: Option<i8>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -93,6 +89,7 @@ pub enum BluetoothRequest {
     ReadValue(String, IpcSender<BluetoothResponseResult>),
     WriteValue(String, Vec<u8>, IpcSender<BluetoothResponseResult>),
     EnableNotification(String, bool, IpcSender<BluetoothResponseResult>),
+    WatchAdvertisements(String, IpcSender<BluetoothResponseResult>),
     Test(String, IpcSender<BluetoothResult<()>>),
     Exit,
 }
@@ -112,6 +109,7 @@ pub enum BluetoothResponse {
     ReadValue(Vec<u8>),
     WriteValue(Vec<u8>),
     EnableNotification(()),
+    WatchAdvertisements(()),
 }
 
 pub trait BluetoothResponseListener {

@@ -223,7 +223,7 @@ mod create;
 pub mod bindings;
 pub mod blob;
 pub mod bluetooth;
-pub mod bluetoothadvertisingdata;
+pub mod bluetoothadvertisingevent;
 pub mod bluetoothcharacteristicproperties;
 pub mod bluetoothdevice;
 pub mod bluetoothremotegattcharacteristic;
