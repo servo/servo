@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var func = function() {
+    var iframeTest = async_test("Media queries within stylesheets");
+    var testElement = document.getElementById("myframe").contentWindow.document.getElementById("testelement");
+    var before = getComputedStyle(testElement).getPropertyValue("background-color");
+    window.requestAnimationFrame(iframeTest.step_func(function() {
+        document.getElementById("myframe").width = "300";
+    }));
+    setTimeout(iframeTest.step_func_done(function () {
+        var after = getComputedStyle(testElement).getPropertyValue("background-color");
+        assert_true(before != after, "Recomputed values");
+    }), 100);
+}
+</script>
+<iframe id="myframe" src="iframe_for_media_queries.html" height="500px" width="500px" onLoad="func();">
+</iframe>
