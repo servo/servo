@@ -329,33 +329,44 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + tar_path)
 
     @Command('install',
-             description='Install Servo (currently, Android only)',
+             description='Install Servo (currently, Android and Windows only)',
              category='package')
     @CommandArgument('--release', '-r', action='store_true',
                      help='Install the release build')
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Install the dev build')
-    def install(self, release=False, dev=False):
+    @CommandArgument('--android',
+                     action='store_true',
+                     help='Install on Android')
+    def install(self, release=False, dev=False, android=False):
         try:
-            binary_path = self.get_binary_path(release, dev, android=True)
+            binary_path = self.get_binary_path(release, dev, android=android)
         except BuildNotFound:
             print("Servo build not found. Building servo...")
             result = Registrar.dispatch(
-                "build", context=self.context, release=release, dev=dev
+                "build", context=self.context, release=release, dev=dev, android=android
             )
             if result:
                 return result
             try:
-                binary_path = self.get_binary_path(release, dev, android=True)
+                binary_path = self.get_binary_path(release, dev, android=android)
             except BuildNotFound:
                 print("Rebuilding Servo did not solve the missing build problem.")
                 return 1
 
-        apk_path = binary_path + ".apk"
-        if not path.exists(apk_path):
-            result = Registrar.dispatch("package", context=self.context, release=release, dev=dev)
+        if android:
+            pkg_path = binary_path + ".apk"
+            exec_command = ["adb", "install", "-r", pkg_path]
+        elif is_windows():
+            pkg_path = path.join(path.dirname(binary_path), 'msi', 'Servo.msi')
+            exec_command = ["msiexec", "/i", pkg_path]
+
+        if not path.exists(pkg_path):
+            result = Registrar.dispatch(
+                "package", context=self.context, release=release, dev=dev, android=android
+            )
             if result != 0:
                 return result
 
-        print(["adb", "install", "-r", apk_path])
-        return subprocess.call(["adb", "install", "-r", apk_path], env=self.build_env())
+        print(" ".join(exec_command))
+        return subprocess.call(exec_command, env=self.build_env())
