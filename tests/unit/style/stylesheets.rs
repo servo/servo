@@ -190,9 +190,14 @@ fn test_parse_stylesheet() {
                             }
                          )),
                          Importance::Normal),
-                        (PropertyDeclaration::BackgroundPosition(DeclaredValue::Value(
-                            longhands::background_position::SpecifiedValue(
-                            vec![longhands::background_position::single_value
+                        (PropertyDeclaration::BackgroundPositionX(DeclaredValue::Value(
+                            longhands::background_position_x::SpecifiedValue(
+                            vec![longhands::background_position_x::single_value
+                                                       ::get_initial_specified_value()]))),
+                        Importance::Normal),
+                        (PropertyDeclaration::BackgroundPositionY(DeclaredValue::Value(
+                            longhands::background_position_y::SpecifiedValue(
+                            vec![longhands::background_position_y::single_value
                                                        ::get_initial_specified_value()]))),
                          Importance::Normal),
                         (PropertyDeclaration::BackgroundRepeat(DeclaredValue::Value(
