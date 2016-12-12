@@ -392,6 +392,7 @@ pub mod medialist;
 pub mod mediaquerylist;
 pub mod mediaquerylistevent;
 pub mod messageevent;
+pub mod messageport;
 pub mod mimetype;
 pub mod mimetypearray;
 pub mod mouseevent;
