@@ -1394,11 +1394,9 @@ impl Flow for InlineFlow {
         debug!("assign_block_size_inline: floats in: {:?}", self.base.floats);
 
         // Assign the block-size and late-computed inline-sizes for the inline fragments.
-        let containing_block_block_size =
-            self.base.block_container_explicit_block_size;
         for fragment in &mut self.fragments.fragments {
             fragment.update_late_computed_replaced_inline_size_if_necessary();
-            fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
+            fragment.assign_replaced_block_size_if_necessary();
         }
 
         // Reset our state, so that we handle incremental reflow correctly.

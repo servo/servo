@@ -436,6 +436,21 @@ impl MaybeAuto {
     }
 }
 
+/// Receive an optional container size and return used value for width or height.
+///
+/// `style_length`: content size as given in the CSS.
+pub fn style_length(style_length: LengthOrPercentageOrAuto,
+                    container_size: Option<Au>) -> MaybeAuto {
+    match container_size {
+        Some(length) => MaybeAuto::from_style(style_length, length),
+        None => if let LengthOrPercentageOrAuto::Length(length) = style_length {
+            MaybeAuto::Specified(length)
+        } else {
+            MaybeAuto::Auto
+        }
+    }
+}
+
 pub fn specified_or_none(length: LengthOrPercentageOrNone, containing_length: Au) -> Option<Au> {
     match length {
         LengthOrPercentageOrNone::None => None,
@@ -504,64 +519,60 @@ impl ToGfxMatrix for ComputedMatrix {
     }
 }
 
-// https://drafts.csswg.org/css2/visudet.html#min-max-widths
-// https://drafts.csswg.org/css2/visudet.html#min-max-heights
-/// A min or max constraint
-///
-/// A `max` of `None` is equivalent to no limmit for the size in the given
-/// dimension. The `min` is >= 0, as negative values are illegal and by
-/// default `min` is 0.
-#[derive(Debug)]
-pub struct MinMaxConstraint {
-    min: Au,
-    max: Option<Au>
+/// A min-size and max-size constraint. The constructor has a optional `border`
+/// parameter, and when it is present the constraint will be subtracted. This is
+/// used to adjust the constraint for `box-sizing: border-box`, and when you do so
+/// make sure the size you want to clamp is intended to be used for content box.
+#[derive(Clone, Copy, Debug)]
+pub struct SizeConstraint {
+    min_size: Au,
+    max_size: Option<Au>,
 }
 
-impl MinMaxConstraint {
-    /// Create a `MinMaxConstraint` for a dimension given the min, max, and content box size for
-    /// an axis
-    pub fn new(content_size: Option<Au>, min: LengthOrPercentage,
-               max: LengthOrPercentageOrNone) -> MinMaxConstraint {
-        let min = match min {
-            LengthOrPercentage::Length(length) => length,
-            LengthOrPercentage::Percentage(percent) => {
-                match content_size {
-                    Some(size) => size.scale_by(percent),
-                    None => Au(0),
-                }
-            },
-            LengthOrPercentage::Calc(calc) => {
-                match content_size {
-                    Some(size) => size.scale_by(calc.percentage()),
-                    None => Au(0),
-                }
+impl SizeConstraint {
+    /// Create a `SizeConstraint` for an axis.
+    pub fn new(container_size: Option<Au>,
+               min_size: LengthOrPercentage,
+               max_size: LengthOrPercentageOrNone,
+               border: Option<Au>) -> SizeConstraint {
+        let mut min_size = match container_size {
+            Some(container_size) => specified(min_size, container_size),
+            None => if let LengthOrPercentage::Length(length) = min_size {
+                length
+            } else {
+                Au(0)
             }
         };
 
-        let max = match max {
-            LengthOrPercentageOrNone::Length(length) => Some(length),
-            LengthOrPercentageOrNone::Percentage(percent) => {
-                content_size.map(|size| size.scale_by(percent))
-            },
-            LengthOrPercentageOrNone::Calc(calc) => {
-                content_size.map(|size| size.scale_by(calc.percentage()))
+        let mut max_size = match container_size {
+            Some(container_size) => specified_or_none(max_size, container_size),
+            None => if let LengthOrPercentageOrNone::Length(length) = max_size {
+                Some(length)
+            } else {
+                None
             }
-            LengthOrPercentageOrNone::None => None,
         };
+        // Make sure max size is not smaller than min size.
+        max_size = max_size.map(|x| max(x, min_size));
 
-        MinMaxConstraint {
-            min: min,
-            max: max
+        if let Some(border) = border {
+            min_size = max((min_size - border), Au(0));
+            max_size = max_size.map(|x| max(x - border, Au(0)));
+        }
+
+        SizeConstraint {
+            min_size: min_size,
+            max_size: max_size
         }
     }
 
-    /// Clamp the given size by the given `min` and `max` constraints.
+    /// Clamp the given size by the given min size and max size constraint.
     pub fn clamp(&self, other: Au) -> Au {
-        if other < self.min {
-            self.min
+        if other < self.min_size {
+            self.min_size
         } else {
-            match self.max {
-                Some(max) if max < other => max,
+            match self.max_size {
+                Some(max_size) if max_size < other => max_size,
                 _ => other
             }
         }
