@@ -403,6 +403,7 @@ pub mod mediaquerylistevent;
 pub mod mediastream;
 pub mod mediastreamtrack;
 pub mod messageevent;
+pub mod messageport;
 pub mod mimetype;
 pub mod mimetypearray;
 pub mod mouseevent;
