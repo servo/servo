@@ -163,10 +163,10 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// traversal. Returns the number of children left to process.
     fn did_process_child(&self) -> isize;
 
-    /// Returns true if this element's style is display:none.
+    /// Returns true if this element's style is display:none. Panics if
+    /// the element has no style.
     fn is_display_none(&self) -> bool {
         let data = self.borrow_data().unwrap();
-        debug_assert!(data.has_current_styles());
         data.styles().is_display_none()
     }
 
