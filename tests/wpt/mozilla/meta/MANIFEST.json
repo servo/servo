@@ -6644,6 +6644,12 @@
             "url": "/_mozilla/css/meta_viewport_resize.html"
           }
         ],
+        "css/stylesheet_media_queries.html": [
+          {
+            "path": "css/stylesheet_media_queries.html",
+            "url": "/_mozilla/css/stylesheet_media_queries.html"
+          }
+        ],
         "css/test_variable_legal_values.html": [
           {
             "path": "css/test_variable_legal_values.html",
