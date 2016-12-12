@@ -157,8 +157,8 @@ ${helpers.predefined_type("flex-basis",
 
     // min-width, min-height, min-block-size, min-inline-size
     ${helpers.predefined_type("min-%s" % size,
-                              "LengthOrPercentage",
-                              "computed::LengthOrPercentage::Length(Au(0))",
+                              "LengthOrPercentageOrAuto",
+                              "computed::LengthOrPercentageOrAuto::Auto",
                               "parse_non_negative",
                               needs_context=False,
                               animatable=True, logical = logical)}

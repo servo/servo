@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html><head><title>non-flexbox | computed style | min-width: auto</title>
+<link href="http://www.w3.org/TR/css-flexbox-1/#min-size-auto" rel="help">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta content="dom" name="flags">
+<meta name="assert" content="Even with the new flexbox 'auto' keyword, non-flexitem elements should still return '0px' for their min-width/height" />
+<style>
+body {
+  min-width: auto;
+  min-height: auto;
+}
+</style>
+</head><body><div id="log"></div>
+<script>
+test(function() {
+  var body = document.body;
+
+  assert_equals(getComputedStyle(body).getPropertyValue("min-width"), "0px");
+  assert_equals(getComputedStyle(body).getPropertyValue("min-height"), "0px");
+});
+</script>
+</body></html>

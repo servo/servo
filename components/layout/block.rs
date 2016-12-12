@@ -48,7 +48,7 @@ use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
-use model::{specified, specified_or_none};
+use model::{specified, specified_or_auto, specified_or_none};
 use sequential;
 use serde::{Serialize, Serializer};
 use std::cmp::{max, min};
@@ -60,8 +60,7 @@ use style::context::{SharedStyleContext, StyleContext};
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION};
-use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentageOrAuto};
 use util::clamp;
 
 /// Information specific to floated blocks.
@@ -348,15 +347,16 @@ impl CandidateBSizeIterator {
             (LengthOrPercentageOrNone::Length(length), _) => Some(length),
         };
         let min_block_size = match (fragment.style.min_block_size(), block_container_block_size) {
-            (LengthOrPercentage::Percentage(percent), Some(block_container_block_size)) => {
+            (LengthOrPercentageOrAuto::Percentage(percent), Some(block_container_block_size)) => {
                 block_container_block_size.scale_by(percent)
             }
-            (LengthOrPercentage::Calc(calc), Some(block_container_block_size)) => {
+            (LengthOrPercentageOrAuto::Calc(calc), Some(block_container_block_size)) => {
                 calc.length() + block_container_block_size.scale_by(calc.percentage())
             }
-            (LengthOrPercentage::Calc(calc), None) => calc.length(),
-            (LengthOrPercentage::Percentage(_), None) => Au(0),
-            (LengthOrPercentage::Length(length), _) => length,
+            (LengthOrPercentageOrAuto::Calc(calc), None) => calc.length(),
+            (LengthOrPercentageOrAuto::Percentage(_), None) => Au(0),
+            (LengthOrPercentageOrAuto::Length(length), _) => length,
+            (LengthOrPercentageOrAuto::Auto, _) => Au(0),
         };
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
@@ -1536,7 +1536,7 @@ impl BlockFlow {
             self.fragment.style().max_inline_size(),
             self.base.block_container_inline_size
         ).unwrap_or(MAX_AU);
-        let min_inline_size = specified(
+        let min_inline_size = specified_or_auto(
             self.fragment.style().min_inline_size(),
             self.base.block_container_inline_size
         );
@@ -2449,7 +2449,7 @@ pub trait ISizeAndMarginsComputer {
         // If the resulting inline-size is smaller than 'min-inline-size', inline-size should be
         // recalculated, but this time using the value of 'min-inline-size' as the computed value
         // for 'inline-size'.
-        let computed_min_inline_size = specified(block.fragment().style().min_inline_size(),
+        let computed_min_inline_size = specified_or_auto(block.fragment().style().min_inline_size(),
                                                  containing_block_inline_size);
         if computed_min_inline_size > solution.inline_size {
             input.computed_inline_size = MaybeAuto::Specified(computed_min_inline_size);

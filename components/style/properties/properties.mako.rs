@@ -1243,13 +1243,13 @@ impl ComputedValues {
     }
 
     #[inline]
-    pub fn min_inline_size(&self) -> computed::LengthOrPercentage {
+    pub fn min_inline_size(&self) -> computed::LengthOrPercentageOrAuto {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.min_height } else { position_style.min_width }
     }
 
     #[inline]
-    pub fn min_block_size(&self) -> computed::LengthOrPercentage {
+    pub fn min_block_size(&self) -> computed::LengthOrPercentageOrAuto {
         let position_style = self.get_position();
         if self.writing_mode.is_vertical() { position_style.min_width } else { position_style.min_height }
     }
@@ -1796,6 +1796,16 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         }
     % endfor
 
+    % for direction in ["width", "height"]:
+        // Like calling to_computed_value, which wouldn't type check.
+        if let (false, computed::LengthOrPercentageOrAuto::Auto) = (
+            is_flex_item, style.get_position().clone_min_${direction}()
+        ){
+            style.mutate_position().set_min_${direction}(
+                computed::LengthOrPercentageOrAuto::Length(Au(0))
+            );
+        }
+    % endfor
 
     % if product == "gecko":
         style.mutate_background().fill_arrays();
