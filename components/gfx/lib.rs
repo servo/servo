@@ -59,7 +59,6 @@ extern crate net_traits;
 extern crate ordered_float;
 #[macro_use]
 extern crate range;
-extern crate rustc_serialize;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -70,6 +69,7 @@ extern crate simd;
 extern crate smallvec;
 extern crate style;
 extern crate style_traits;
+extern crate termcolor;
 extern crate time;
 extern crate unicode_script;
 extern crate util;

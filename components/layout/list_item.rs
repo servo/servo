@@ -18,7 +18,6 @@ use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, GeneratedC
 use fragment::Overflow;
 use generated_content;
 use gfx::display_list::StackingContext;
-use gfx_traits::ScrollRootId;
 use inline::InlineFlow;
 use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
@@ -26,6 +25,7 @@ use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
+use webrender_traits::ServoScrollRootId;
 
 /// A block with the CSS `display` property equal to `list-item`.
 #[derive(Debug)]
@@ -148,7 +148,7 @@ impl Flow for ListItemFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
+                                 parent_scroll_root_id: ServoScrollRootId) {
         self.block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
     }
 

@@ -90,7 +90,7 @@ use dom::window::{ReflowReason, Window};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;
-use gfx_traits::ScrollRootId;
+use gfx_traits::ScrollRootIdMethods;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use html5ever_atoms::{LocalName, QualName};
 use ipc_channel::ipc::{self, IpcSender};
@@ -134,6 +134,7 @@ use style::stylesheets::Stylesheet;
 use time;
 use url::percent_encoding::percent_decode;
 use util::prefs::PREFS;
+use webrender_traits::ServoScrollRootId;
 
 pub enum TouchEventResult {
     Processed(bool),
@@ -648,7 +649,7 @@ impl Document {
             // Step 3
             self.window.perform_a_scroll(x,
                                          y,
-                                         ScrollRootId::root(),
+                                         ServoScrollRootId::root(),
                                          ScrollBehavior::Instant,
                                          target.r());
         }

@@ -16,7 +16,6 @@ use floats::FloatKind;
 use flow::{Flow, FlowClass, OpaqueFlow, mut_base, FragmentationContext};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
-use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use std::cmp::{min, max};
 use std::fmt;
@@ -26,6 +25,7 @@ use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 use style::values::Either;
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use webrender_traits::ServoScrollRootId;
 
 pub struct MulticolFlow {
     pub block_flow: BlockFlow,
@@ -190,7 +190,7 @@ impl Flow for MulticolFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
+                                 parent_scroll_root_id: ServoScrollRootId) {
         self.block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
     }
 
@@ -274,7 +274,7 @@ impl Flow for MulticolColumnFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
+                                 parent_scroll_root_id: ServoScrollRootId) {
         self.block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
     }
 

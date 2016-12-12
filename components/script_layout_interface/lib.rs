@@ -38,6 +38,7 @@ extern crate selectors;
 #[macro_use] extern crate servo_atoms;
 extern crate servo_url;
 extern crate style;
+extern crate webrender_traits;
 
 pub mod message;
 pub mod reporter;

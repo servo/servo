@@ -23,7 +23,6 @@ use floats::FloatKind;
 use flow::{Flow, FlowClass, ImmutableFlowUtils, INLINE_POSITION_IS_STATIC, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::StackingContext;
-use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use model::MaybeAuto;
 use std::cmp::{max, min};
@@ -38,6 +37,7 @@ use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use table_row;
+use webrender_traits::ServoScrollRootId;
 
 #[derive(Copy, Clone, Serialize, Debug)]
 pub enum TableLayout {
@@ -472,7 +472,7 @@ impl Flow for TableWrapperFlow {
 
     fn collect_stacking_contexts(&mut self,
                                  parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
+                                 parent_scroll_root_id: ServoScrollRootId) {
         self.block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
     }
 

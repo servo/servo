@@ -53,6 +53,7 @@ extern crate servo_url;
 extern crate smallvec;
 extern crate style;
 extern crate style_traits;
+extern crate termcolor;
 extern crate unicode_bidi;
 extern crate unicode_script;
 extern crate util;

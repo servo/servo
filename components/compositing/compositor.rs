@@ -11,8 +11,7 @@ use euclid::{Point2D, Size2D};
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use gfx_traits::{DevicePixel, LayerPixel, ScrollRootId};
-use gfx_traits::{Epoch, FrameTreeId, FragmentType};
+use gfx_traits::{DevicePixel, Epoch, FrameTreeId, LayerPixel};
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -39,7 +38,7 @@ use util::geometry::ScreenPx;
 use util::opts;
 use util::prefs::PREFS;
 use webrender;
-use webrender_traits::{self, ScrollEventPhase, ServoScrollRootId};
+use webrender_traits::{self, FragmentType, ScrollEventPhase, ServoScrollRootId};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -69,16 +68,6 @@ impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
             namespace_id: PipelineNamespaceId(self.0),
             index: PipelineIndex(self.1),
         }
-    }
-}
-
-trait ConvertScrollRootIdFromWebRender {
-    fn from_webrender(&self) -> ScrollRootId;
-}
-
-impl ConvertScrollRootIdFromWebRender for webrender_traits::ServoScrollRootId {
-    fn from_webrender(&self) -> ScrollRootId {
-        ScrollRootId(self.0)
     }
 }
 
@@ -766,7 +755,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn scroll_fragment_to_point(&mut self,
                                 pipeline_id: PipelineId,
-                                scroll_root_id: ScrollRootId,
+                                scroll_root_id: ServoScrollRootId,
                                 point: Point2D<f32>) {
         self.webrender_api.scroll_layers_with_scroll_root_id(
             point,
@@ -1305,7 +1294,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut stacking_context_scroll_states_per_pipeline = HashMap::new();
         for scroll_layer_state in self.webrender_api.get_scroll_layer_state() {
             let stacking_context_scroll_state = StackingContextScrollState {
-                scroll_root_id: scroll_layer_state.scroll_root_id.from_webrender(),
+                scroll_root_id: scroll_layer_state.scroll_root_id,
                 scroll_offset: scroll_layer_state.scroll_offset,
             };
             let pipeline_id = scroll_layer_state.pipeline_id;

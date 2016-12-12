@@ -13,11 +13,11 @@ use euclid::{Point2D, Rect, Size2D};
 use floats::ClearType;
 use flow::{self, ImmutableFlowUtils};
 use flow_ref::FlowRef;
-use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
-use gfx_traits::{FragmentType, StackingContextId};
+use gfx;
+use gfx_traits::StackingContextIdMethods;
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
 use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT, LineMetrics};
 use ipc_channel::ipc::IpcSender;
@@ -30,7 +30,9 @@ use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use range::*;
 use script_layout_interface::HTMLCanvasData;
 use script_layout_interface::SVGSVGData;
-use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::PseudoElementType;
+use script_layout_interface::wrapper_traits::ThreadSafeLayoutElement;
+use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use serde::{Serialize, Serializer};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
@@ -54,6 +56,7 @@ use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::LengthOrPercentageOrNone;
 use text;
 use text::TextRunScanner;
+use webrender_traits::{FragmentType, StackingContextId};
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;
@@ -2666,8 +2669,8 @@ impl Fragment {
         // Box shadows cause us to draw outside our border box.
         for box_shadow in &self.style().get_effects().box_shadow.0 {
             let offset = Point2D::new(box_shadow.offset_x, box_shadow.offset_y);
-            let inflation = box_shadow.spread_radius + box_shadow.blur_radius *
-                BLUR_INFLATION_FACTOR;
+            let inflation = box_shadow.spread_radius +
+                Au::from_f32_px(box_shadow.blur_radius.to_f32_px() * BLUR_INFLATION_FACTOR);
             overflow.paint = overflow.paint.union(&border_box.translate(&offset)
                                                              .inflate(inflation, inflation))
         }
@@ -2901,9 +2904,8 @@ impl Fragment {
         }
     }
 
-
     pub fn fragment_id(&self) -> usize {
-        return self as *const Fragment as usize;
+        return self as *const _ as usize;
     }
 
     pub fn fragment_type(&self) -> FragmentType {

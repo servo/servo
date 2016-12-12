@@ -43,6 +43,7 @@ servo_url = {path = "../url"}
 smallvec = "0.1"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
+termcolor = "0.1"
 unicode-bidi = "0.2"
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
 util = {path = "../util"}

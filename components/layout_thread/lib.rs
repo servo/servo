@@ -39,9 +39,9 @@ extern crate script;
 extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
-extern crate serde_json;
 extern crate servo_url;
 extern crate style;
+extern crate termcolor;
 extern crate util;
 extern crate webrender_traits;
 
@@ -51,12 +51,13 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, OpaqueNode};
-use gfx::display_list::WebRenderImageInfo;
+use gfx::display_list::{ClippingRegion, DisplayListHitTesting, DisplayListPrinting};
+use gfx::display_list::{OpaqueNode, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
-use gfx_traits::{Epoch, FragmentType, ScrollRootId};
+use gfx_traits::print_tree::PrintTree;
+use gfx_traits::{Epoch, ScrollRootIdMethods};
 use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -75,7 +76,6 @@ use layout::query::{process_node_geometry_request, process_node_scroll_area_requ
 use layout::query::{process_node_scroll_root_id_request, process_offset_parent_query};
 use layout::sequential;
 use layout::traversal::{ComputeAbsolutePositions, RecalcStyleAndConstructFlows};
-use layout::webrender_helpers::WebRenderDisplayListConverter;
 use layout::wrapper::LayoutNodeLayoutData;
 use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
@@ -95,9 +95,9 @@ use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as Cons
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
 use selectors::Element;
 use servo_url::ServoUrl;
-use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
+use std::io::Write;
 use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -117,11 +117,13 @@ use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::DomTraversalContext;
-use util::geometry::max_rect;
+use termcolor::{BufferWriter, ColorChoice, ColorSpec, WriteColor};
+use util::geometry::{self, max_rect};
 use util::opts;
 use util::prefs::PREFS;
 use util::resource_files::read_resource_file;
 use util::thread;
+use webrender_traits::{FragmentType, ServoScrollRootId};
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -470,6 +472,7 @@ impl LayoutThread {
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
                     stacking_context_scroll_offsets: HashMap::new(),
+                    display_item_metadata: vec![],
                 })),
             error_reporter: CSSErrorReporter {
                 pipelineid: id,
@@ -891,7 +894,7 @@ impl LayoutThread {
                                                              self.viewport_size);
 
             flow::mut_base(layout_root).clip =
-                ClippingRegion::from_rect(&data.page_clip_rect);
+                ClippingRegion::from_rect(&geometry::au_rect_to_f32_rect(data.page_clip_rect));
 
             if flow::base(layout_root).restyle_damage.contains(REPOSITION) {
                 layout_root.traverse_preorder(&ComputeAbsolutePositions {
@@ -907,7 +910,8 @@ impl LayoutThread {
                     (ReflowGoal::ForDisplay, _) | (ReflowGoal::ForScriptQuery, true) => {
                         let mut build_state =
                             sequential::build_display_list_for_subtree(layout_root,
-                                                                       shared_layout_context);
+                                                                       shared_layout_context,
+                                                                       self.id);
 
                         debug!("Done building display list.");
 
@@ -920,10 +924,13 @@ impl LayoutThread {
                             }
                         };
 
-                        let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
+                        let origin = Rect::new(Point2D::new(0.0, 0.0),
+                                               geometry::au_size_to_f32_size(&root_size));
                         build_state.root_stacking_context.bounds = origin;
                         build_state.root_stacking_context.overflow = origin;
-                        rw_data.display_list = Some(Arc::new(build_state.to_display_list()));
+                        let (display_item_metadata, display_list) = build_state.to_display_list();
+                        rw_data.display_item_metadata = display_item_metadata;
+                        rw_data.display_list = Some(display_list);
                     }
                     (ReflowGoal::ForScriptQuery, false) => {}
                 }
@@ -941,19 +948,31 @@ impl LayoutThread {
             if let Some(document) = document {
                 document.will_paint();
             }
-            let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
 
+            let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
             if opts::get().dump_display_list {
-                display_list.print();
-            }
-            if opts::get().dump_display_list_json {
-                println!("{}", serde_json::to_string_pretty(&display_list).unwrap());
+                let writer = BufferWriter::stdout(ColorChoice::Auto);
+                let mut buffers = [
+                    writer.buffer(),
+                    writer.buffer(),
+                    writer.buffer(),
+                    writer.buffer(),
+                ];
+                for buffer in &mut buffers {
+                    drop(buffer.set_color(ColorSpec::new().set_bold(true)));
+                }
+                drop(buffers[0].write_all(b"Display Item"));
+                drop(buffers[1].write_all(b"Origin"));
+                drop(buffers[2].write_all(b"Size"));
+                drop(buffers[3].write_all(b"Details"));
+                for buffer in &mut buffers {
+                    drop(buffer.reset());
+                }
+                let mut print_tree = PrintTree::new(writer, &buffers, vec![36, 60, 84]);
+                display_list.print(&mut print_tree);
             }
 
             debug!("Layout done!");
-
-            // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
-            let builder = rw_data.display_list.as_ref().unwrap().convert_to_webrender(self.id);
 
             let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
                                             self.viewport_size.height.to_f32_px());
@@ -961,11 +980,14 @@ impl LayoutThread {
             self.epoch.next();
             let Epoch(epoch_number) = self.epoch;
 
-            self.webrender_api.set_root_display_list(
-                get_root_flow_background_color(layout_root),
-                webrender_traits::Epoch(epoch_number),
-                viewport_size,
-                builder);
+            if let Some(ref display_list) = rw_data.display_list {
+                // FIXME(pcwalton): Remove this clone!
+                self.webrender_api.set_root_display_list(
+                    get_root_flow_background_color(layout_root),
+                    webrender_traits::Epoch(epoch_number),
+                    viewport_size,
+                    (*display_list).clone());
+            }
         });
     }
 
@@ -1228,12 +1250,14 @@ impl LayoutThread {
                 let client_point = Point2D::new(Au::from_f32_px(client_point.x),
                                                 Au::from_f32_px(client_point.y));
 
-                let result = rw_data.display_list
-                                    .as_ref()
-                                    .expect("Tried to hit test with no display list")
-                                    .hit_test(&translated_point,
-                                              &client_point,
-                                              &rw_data.stacking_context_scroll_offsets);
+                let result =
+                    rw_data.display_list
+                           .as_ref()
+                           .expect("Tried to hit test with no display list")
+                           .hit_test_display_list(&translated_point,
+                                                  &client_point,
+                                                  &rw_data.stacking_context_scroll_offsets,
+                                                  &rw_data.display_item_metadata);
                 rw_data.hit_test_response = (result.last().cloned(), update_cursor);
             },
             ReflowQueryType::NodeGeometryQuery(node) => {
@@ -1285,7 +1309,7 @@ impl LayoutThread {
             let offset = new_scroll_state.scroll_offset;
             layout_scroll_states.insert(new_scroll_state.scroll_root_id, offset);
 
-            if new_scroll_state.scroll_root_id == ScrollRootId::root() {
+            if new_scroll_state.scroll_root_id == ServoScrollRootId::root() {
                 script_scroll_states.push((UntrustedNodeAddress::from_id(0), offset))
             } else if !new_scroll_state.scroll_root_id.is_special() &&
                     new_scroll_state.scroll_root_id.fragment_type() == FragmentType::FragmentBody {
@@ -1467,7 +1491,7 @@ impl LayoutThread {
             }
 
             if opts::get().dump_flow_tree {
-                root_flow.print("Post layout flow tree".to_owned());
+                root_flow.print("Post layout flow tree");
             }
 
             self.generation += 1;

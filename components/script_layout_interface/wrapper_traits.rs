@@ -8,7 +8,7 @@ use HTMLCanvasData;
 use LayoutNodeType;
 use OpaqueStyleAndLayoutData;
 use SVGSVGData;
-use gfx_traits::{ByteIndex, FragmentType, ScrollRootId};
+use gfx_traits::{ByteIndex, ScrollRootIdMethods};
 use html5ever_atoms::{Namespace, LocalName};
 use msg::constellation_msg::PipelineId;
 use range::Range;
@@ -23,6 +23,7 @@ use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode
 use style::dom::OpaqueNode;
 use style::properties::ServoComputedValues;
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, RestyleDamage, SelectorImpl};
+use webrender_traits::{FragmentType, ServoScrollRootId};
 
 #[derive(Copy, PartialEq, Clone, Debug)]
 pub enum PseudoElementType<T> {
@@ -275,8 +276,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
         }
     }
 
-    fn scroll_root_id(&self) -> ScrollRootId {
-        ScrollRootId::new_of_type(self.opaque().id() as usize, self.fragment_type())
+    fn scroll_root_id(&self) -> ServoScrollRootId {
+        ServoScrollRootId::new_of_type(self.opaque().id() as usize, self.fragment_type())
     }
 }
 
