@@ -7,7 +7,8 @@ use media_queries::CSSErrorReporterTest;
 use servo_url::ServoUrl;
 use style::parser::ParserContext;
 use style::properties::longhands::{background_attachment, background_clip, background_color, background_image};
-use style::properties::longhands::{background_origin, background_position, background_repeat, background_size};
+use style::properties::longhands::{background_origin, background_position_x, background_position_y, background_repeat};
+use style::properties::longhands::background_size;
 use style::properties::shorthands::background;
 use style::stylesheets::Origin;
 
@@ -20,7 +21,8 @@ fn background_shorthand_should_parse_all_available_properties_when_specified() {
     let result = background::parse_value(&context, &mut parser).unwrap();
 
     assert_eq!(result.background_image.unwrap(), parse_longhand!(background_image, "url(\"http://servo/test.png\")"));
-    assert_eq!(result.background_position.unwrap(), parse_longhand!(background_position, "top center"));
+    assert_eq!(result.background_position_x.unwrap(), parse_longhand!(background_position_x, "center"));
+    assert_eq!(result.background_position_y.unwrap(), parse_longhand!(background_position_y, "top"));
     assert_eq!(result.background_size.unwrap(), parse_longhand!(background_size, "200px 200px"));
     assert_eq!(result.background_repeat.unwrap(), parse_longhand!(background_repeat, "repeat-x"));
     assert_eq!(result.background_attachment.unwrap(), parse_longhand!(background_attachment, "fixed"));
@@ -36,7 +38,8 @@ fn background_shorthand_should_parse_when_some_fields_set() {
     let mut parser = Parser::new("14px 40px repeat-y");
     let result = background::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.background_position.unwrap(), parse_longhand!(background_position, "14px 40px"));
+    assert_eq!(result.background_position_x.unwrap(), parse_longhand!(background_position_x, "14px"));
+    assert_eq!(result.background_position_y.unwrap(), parse_longhand!(background_position_y, "40px"));
     assert_eq!(result.background_repeat.unwrap(), parse_longhand!(background_repeat, "repeat-y"));
 
     let mut parser = Parser::new("url(\"http://servo/test.png\") repeat blue");
@@ -68,8 +71,8 @@ fn background_shorthand_should_parse_comma_separated_declarations() {
 
     assert_eq!(result.background_image.unwrap(), parse_longhand!(background_image, "url(\"http://servo/test.png\"), \
         url(\"http://servo/test.png\"), none"));
-    assert_eq!(result.background_position.unwrap(), parse_longhand!(background_position, "left top, center center, \
-        0% 0%"));
+    assert_eq!(result.background_position_x.unwrap(), parse_longhand!(background_position_x, "left, center, 0%"));
+    assert_eq!(result.background_position_y.unwrap(), parse_longhand!(background_position_y, "top, center, 0%"));
     assert_eq!(result.background_repeat.unwrap(), parse_longhand!(background_repeat, "no-repeat, no-repeat, repeat"));
     assert_eq!(result.background_clip.unwrap(), parse_longhand!(background_clip, "border-box, border-box, border-box"));
     assert_eq!(result.background_origin.unwrap(), parse_longhand!(background_origin, "padding-box, padding-box, \
@@ -86,12 +89,14 @@ fn background_shorthand_should_parse_position_and_size_correctly() {
     let mut parser = Parser::new("7px 4px");
     let result = background::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.background_position.unwrap(), parse_longhand!(background_position, "7px 4px"));
+    assert_eq!(result.background_position_x.unwrap(), parse_longhand!(background_position_x, "7px"));
+    assert_eq!(result.background_position_y.unwrap(), parse_longhand!(background_position_y, "4px"));
 
     let mut parser = Parser::new("7px 4px / 30px 20px");
     let result = background::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.background_position.unwrap(), parse_longhand!(background_position, "7px 4px"));
+    assert_eq!(result.background_position_x.unwrap(), parse_longhand!(background_position_x, "7px"));
+    assert_eq!(result.background_position_y.unwrap(), parse_longhand!(background_position_y, "4px"));
     assert_eq!(result.background_size.unwrap(), parse_longhand!(background_size, "30px 20px"));
 
     let mut parser = Parser::new("/ 30px 20px");
