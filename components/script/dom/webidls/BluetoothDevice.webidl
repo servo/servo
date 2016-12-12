@@ -8,13 +8,11 @@
 interface BluetoothDevice : EventTarget {
     readonly attribute DOMString id;
     readonly attribute DOMString? name;
-    // TODO: remove this after BluetoothAdvertisingEvent implemented.
-    readonly attribute BluetoothAdvertisingData adData;
     readonly attribute BluetoothRemoteGATTServer gatt;
 
-    // Promise<void> watchAdvertisements();
-    // void unwatchAdvertisements();
-    // readonly attribute boolean watchingAdvertisements;
+    Promise<void> watchAdvertisements();
+    void unwatchAdvertisements();
+    readonly attribute boolean watchingAdvertisements;
 };
 
 [NoInterfaceObject]
