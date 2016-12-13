@@ -244,16 +244,6 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// traversal. Returns the number of children left to process.
     fn did_process_child(&self) -> isize;
 
-    /// Returns true if this element's style is display:none. Panics if
-    /// the element has no style.
-    fn is_display_none(&self) -> bool {
-        let data = self.borrow_data().unwrap();
-        // See the comment on `cascade_node` about getting the up-to-date parent
-        // style for why we allow this on Gecko.
-        debug_assert!(cfg!(feature = "gecko") || data.has_current_styles());
-        data.styles().is_display_none()
-    }
-
     /// Gets a reference to the ElementData container.
     fn get_data(&self) -> Option<&AtomicRefCell<ElementData>>;
 

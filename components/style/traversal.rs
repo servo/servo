@@ -117,6 +117,16 @@ impl PreTraverseToken {
     }
 }
 
+/// Enum to prevent duplicate logging.
+pub enum LogBehavior {
+    MayLog,
+    DontLog,
+}
+use self::LogBehavior::*;
+impl LogBehavior {
+    fn allow(&self) -> bool { match *self { MayLog => true, DontLog => false, } }
+}
+
 pub trait DomTraversalContext<N: TNode> {
     type SharedContext: Sync + 'static + Borrow<SharedStyleContext>;
 
@@ -227,11 +237,60 @@ pub trait DomTraversalContext<N: TNode> {
         }
     }
 
+    /// Returns true if traversal of this element's children is allowed. We use
+    /// this to cull traversal of various subtrees.
+    ///
+    /// This may be called multiple times when processing an element, so we pass
+    /// a parameter to keep the logs tidy.
+    fn should_traverse_children(parent: N::ConcreteElement, parent_data: &ElementData,
+                                log: LogBehavior) -> bool
+    {
+        // See the comment on `cascade_node` for why we allow this on Gecko.
+        debug_assert!(cfg!(feature = "gecko") || parent_data.has_current_styles());
+
+        // If the parent computed display:none, we don't style the subtree.
+        if parent_data.styles().is_display_none() {
+            if log.allow() { debug!("Parent {:?} is display:none, culling traversal", parent); }
+            return false;
+        }
+
+        // Gecko-only XBL handling.
+        //
+        // If we're computing initial styles and the parent has a Gecko XBL
+        // binding, that binding may inject anonymous children and remap the
+        // explicit children to an insertion point (or hide them entirely). It
+        // may also specify a scoped stylesheet, which changes the rules that
+        // apply within the subtree. These two effects can invalidate the result
+        // of property inheritance and selector matching (respectively) within the
+        // subtree.
+        //
+        // To avoid wasting work, we defer initial styling of XBL subtrees
+        // until frame construction, which does an explicit traversal of the
+        // unstyled children after shuffling the subtree. That explicit
+        // traversal may in turn find other bound elements, which get handled
+        // in the same way.
+        //
+        // We explicitly avoid handling restyles here (explicitly removing or
+        // changing bindings), since that adds complexity and is rarer. If it
+        // happens, we may just end up doing wasted work, since Gecko
+        // recursively drops Servo ElementData when the XBL insertion parent of
+        // an Element is changed.
+        if cfg!(feature = "gecko") && parent_data.is_styled_initial() &&
+           parent_data.styles().primary.values.has_moz_binding() {
+            if log.allow() { debug!("Parent {:?} has XBL binding, deferring traversal", parent); }
+            return false;
+        }
+
+        return true;
+
+    }
+
     /// Helper for the traversal implementations to select the children that
     /// should be enqueued for processing.
     fn traverse_children<F: FnMut(N)>(parent: N::ConcreteElement, mut f: F)
     {
-        if parent.is_display_none() {
+        // Check if we're allowed to traverse past this element.
+        if !Self::should_traverse_children(parent, &parent.borrow_data().unwrap(), MayLog) {
             return;
         }
 
@@ -287,7 +346,9 @@ pub fn style_element_in_display_none_subtree<'a, E, C, F>(element: E,
 {
     // Check the base case.
     if element.get_data().is_some() {
-        debug_assert!(element.is_display_none());
+        // See the comment on `cascade_node` for why we allow this on Gecko.
+        debug_assert!(cfg!(feature = "gecko") || element.borrow_data().unwrap().has_current_styles());
+        debug_assert!(element.borrow_data().unwrap().styles().is_display_none());
         return element;
     }
 
@@ -351,7 +412,7 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
     trace!("propagated_hint={:?}, inherited_style_changed={:?}", propagated_hint, inherited_style_changed);
 
     // Preprocess children, propagating restyle hints and handling sibling relationships.
-    if !data.styles().is_display_none() &&
+    if D::should_traverse_children(element, &data, DontLog) &&
        (element.has_dirty_descendants() || !propagated_hint.is_empty() || inherited_style_changed) {
         preprocess_children::<_, _, D>(context, element, propagated_hint, inherited_style_changed);
     }
