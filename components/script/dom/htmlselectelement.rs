@@ -31,6 +31,7 @@ use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
+use std::iter;
 use style::attr::AttrValue;
 use style::element_state::*;
 
@@ -84,10 +85,25 @@ impl HTMLSelectElement {
                            HTMLSelectElementBinding::Wrap)
     }
 
+    // https://html.spec.whatwg.org/multipage/#concept-select-option-list
+    fn list_of_options(&self) -> impl Iterator<Item=Root<HTMLOptionElement>> {
+        self.upcast::<Node>()
+            .children()
+            .flat_map(|node| {
+                if node.is::<HTMLOptionElement>() {
+                    let node = Root::downcast::<HTMLOptionElement>(node).unwrap();
+                    Choice3::First(iter::once(node))
+                } else if node.is::<HTMLOptGroupElement>() {
+                    Choice3::Second(node.children().filter_map(Root::downcast))
+                } else {
+                    Choice3::Third(iter::empty())
+                }
+            })
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-select-element:concept-form-reset-control
     pub fn reset(&self) {
-        let node = self.upcast::<Node>();
-        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+        for opt in self.list_of_options() {
             opt.set_selectedness(opt.DefaultSelected());
             opt.set_dirtiness(false);
         }
@@ -103,8 +119,7 @@ impl HTMLSelectElement {
         let mut first_enabled: Option<Root<HTMLOptionElement>> = None;
         let mut last_selected: Option<Root<HTMLOptionElement>> = None;
 
-        let node = self.upcast::<Node>();
-        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+        for opt in self.list_of_options() {
             if opt.Selected() {
                 opt.set_selectedness(false);
                 last_selected = Some(Root::from_ref(&opt));
@@ -127,11 +142,10 @@ impl HTMLSelectElement {
     }
 
     pub fn push_form_data(&self, data_set: &mut Vec<FormDatum>) {
-        let node = self.upcast::<Node>();
         if self.Name().is_empty() {
             return;
         }
-        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+        for opt in self.list_of_options() {
             let element = opt.upcast::<Element>();
             if opt.Selected() && element.enabled_state() {
                 data_set.push(FormDatum {
@@ -146,9 +160,8 @@ impl HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#concept-select-pick
     pub fn pick_option(&self, picked: &HTMLOptionElement) {
         if !self.Multiple() {
-            let node = self.upcast::<Node>();
             let picked = picked.upcast();
-            for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+            for opt in self.list_of_options() {
                 if opt.upcast::<HTMLElement>() != picked {
                     opt.set_selectedness(false);
                 }
@@ -271,9 +284,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-value
     fn Value(&self) -> DOMString {
-        self.upcast::<Node>()
-            .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLOptionElement>)
+        self.list_of_options()
             .filter(|opt_elem| opt_elem.Selected())
             .map(|opt_elem| opt_elem.Value())
             .next()
@@ -282,9 +293,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-value
     fn SetValue(&self, value: DOMString) {
-        let mut opt_iter = self.upcast::<Node>()
-                               .traverse_preorder()
-                               .filter_map(Root::downcast::<HTMLOptionElement>);
+        let mut opt_iter = self.list_of_options();
         // Reset until we find an <option> with a matching value
         for opt in opt_iter.by_ref() {
             if opt.Value() == value {
@@ -302,9 +311,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-selectedindex
     fn SelectedIndex(&self) -> i32 {
-        self.upcast::<Node>()
-            .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLOptionElement>)
+        self.list_of_options()
             .enumerate()
             .filter(|&(_, ref opt_elem)| opt_elem.Selected())
             .map(|(i, _)| i as i32)
@@ -314,9 +321,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-select-selectedindex
     fn SetSelectedIndex(&self, index: i32) {
-        let mut opt_iter = self.upcast::<Node>()
-                               .traverse_preorder()
-                               .filter_map(Root::downcast::<HTMLOptionElement>);
+        let mut opt_iter = self.list_of_options();
         for opt in opt_iter.by_ref().take(index as usize) {
             opt.set_selectedness(false);
         }
@@ -392,5 +397,25 @@ impl Validatable for HTMLSelectElement {
         if validate_flags.is_empty() {}
         // Need more flag check for different validation types later
         true
+    }
+}
+
+enum Choice3<I, J, K> {
+    First(I),
+    Second(J),
+    Third(K),
+}
+
+impl<I, J, K, T> Iterator for Choice3<I, J, K>
+    where I: Iterator<Item=T>, J: Iterator<Item=T>, K: Iterator<Item=T>
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<T> {
+        match *self {
+            Choice3::First(ref mut i) => i.next(),
+            Choice3::Second(ref mut j) => j.next(),
+            Choice3::Third(ref mut k) => k.next(),
+        }
     }
 }
