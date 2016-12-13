@@ -574,8 +574,8 @@ pub struct RootedTraceableSet {
 
 thread_local!(
     /// TLV Holds a set of JSTraceables that need to be rooted
-    static ROOTED_TRACEABLES: Rc<RefCell<RootedTraceableSet>> =
-        Rc::new(RefCell::new(RootedTraceableSet::new()));
+    static ROOTED_TRACEABLES: RefCell<RootedTraceableSet> =
+        RefCell::new(RootedTraceableSet::new());
 );
 
 impl RootedTraceableSet {
