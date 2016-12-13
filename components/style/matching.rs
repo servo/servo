@@ -733,6 +733,13 @@ pub trait MatchMethods : TElement {
         // Get our parent's style.
         let parent_data = parent.as_ref().map(|x| x.borrow_data().unwrap());
         let parent_style = parent_data.as_ref().map(|d| {
+            // Sometimes Gecko eagerly styles things without processing pending
+            // restyles first. In general we'd like to avoid this, but there can
+            // be good reasons (for example, needing to construct a frame for
+            // some small piece of newly-added content in order to do something
+            // specific with that frame, but not wanting to flush all of
+            // layout).
+            debug_assert!(cfg!(gecko) || d.has_current_styles());
             &d.styles().primary.values
         });
 
