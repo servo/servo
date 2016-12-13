@@ -116,7 +116,8 @@ impl WebGLPaintThread {
            webrender_api_sender: webrender_traits::RenderApiSender)
         -> Result<(WebGLPaintThread, GLLimits), String> {
         let wr_api = webrender_api_sender.create_api();
-        match wr_api.request_webgl_context(&size, attrs) {
+        let device_size = webrender_traits::DeviceIntSize::from_untyped(&size);
+        match wr_api.request_webgl_context(&device_size, attrs) {
             Ok((id, limits)) => {
                 let painter = WebGLPaintThread {
                     data: WebGLPaintTaskData::WebRender(wr_api, id),
@@ -252,7 +253,8 @@ impl WebGLPaintThread {
                 }
             }
             WebGLPaintTaskData::WebRender(ref api, id) => {
-                api.resize_webgl_context(id, &size);
+                let device_size = webrender_traits::DeviceIntSize::from_untyped(&size);
+                api.resize_webgl_context(id, &device_size);
             }
         }
 

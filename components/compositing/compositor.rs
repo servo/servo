@@ -7,7 +7,7 @@ use SendableFrameTree;
 use compositor_thread::{CompositorProxy, CompositorReceiver};
 use compositor_thread::{InitialCompositorState, Msg, RenderListener};
 use delayed_composition::DelayedCompositionTimerProxy;
-use euclid::{Point2D, Size2D};
+use euclid::Point2D;
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
@@ -40,7 +40,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_traits::{self, ScrollEventPhase, ServoScrollRootId};
+use webrender_traits::{self, ScrollEventPhase, ServoScrollRootId, LayoutPoint};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -336,11 +336,11 @@ impl webrender_traits::RenderNotifier for RenderNotifier {
 
     fn pipeline_size_changed(&mut self,
                              pipeline_id: webrender_traits::PipelineId,
-                             size: Option<Size2D<f32>>) {
+                             size: Option<webrender_traits::LayoutSize>) {
         let pipeline_id = pipeline_id.from_webrender();
 
         if let Some(size) = size {
-            let msg = ConstellationMsg::FrameSize(pipeline_id, size);
+            let msg = ConstellationMsg::FrameSize(pipeline_id, size.to_untyped());
             if let Err(e) = self.constellation_chan.send(msg) {
                 warn!("Compositor resize to constellation failed ({}).", e);
             }
@@ -773,7 +773,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                 scroll_root_id: ScrollRootId,
                                 point: Point2D<f32>) {
         self.webrender_api.scroll_layers_with_scroll_root_id(
-            point,
+            LayoutPoint::from_untyped(&point),
             pipeline_id.to_webrender(),
             ServoScrollRootId(scroll_root_id.0));
     }
@@ -1134,7 +1134,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     let delta = (combined_event.delta / self.scale).to_untyped();
                     let cursor =
                         (combined_event.cursor.to_f32() / self.scale).to_untyped();
-                    self.webrender_api.scroll(delta, cursor, combined_event.phase);
+                    let delta = webrender_traits::LayerPoint::from_untyped(&delta);
+                    let location = webrender_traits::ScrollLocation::Delta(delta);
+                    let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
+                    self.webrender_api.scroll(location, cursor, combined_event.phase);
                     last_combined_event = None
                 }
             }
@@ -1174,8 +1177,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // TODO(gw): Support zoom (WR issue #28).
         if let Some(combined_event) = last_combined_event {
             let delta = (combined_event.delta / self.scale).to_untyped();
+            let delta = webrender_traits::LayoutPoint::from_untyped(&delta);
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
-            self.webrender_api.scroll(delta, cursor, combined_event.phase);
+            let location = webrender_traits::ScrollLocation::Delta(delta);
+            let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
+            self.webrender_api.scroll(location, cursor, combined_event.phase);
             self.waiting_for_results_of_scroll = true
         }
 
@@ -1316,7 +1322,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for scroll_layer_state in self.webrender_api.get_scroll_layer_state() {
             let stacking_context_scroll_state = StackingContextScrollState {
                 scroll_root_id: scroll_layer_state.scroll_root_id.from_webrender(),
-                scroll_offset: scroll_layer_state.scroll_offset,
+                scroll_offset: scroll_layer_state.scroll_offset.to_untyped(),
             };
             let pipeline_id = scroll_layer_state.pipeline_id;
             stacking_context_scroll_states_per_pipeline
@@ -1464,7 +1470,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             debug!("compositor: compositing");
 
             // Paint the scene.
-            self.webrender.render(self.window_size.to_untyped());
+            let size = webrender_traits::DeviceUintSize::from_untyped(&self.window_size.to_untyped());
+            self.webrender.render(size);
         });
 
         let rv = match target {
