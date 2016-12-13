@@ -17,7 +17,7 @@ use hyper::client::pool::Pool;
 use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
-use net_traits::{CookieSource, CoreResourceThread, ProgressMsg};
+use net_traits::{CookieSource, CoreResourceThread};
 use net_traits::{CoreResourceMsg, FetchResponseMsg, FetchTaskTarget};
 use net_traits::{CustomResponseMediator, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
@@ -43,25 +43,12 @@ use websocket_loader;
 
 const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
 
-pub enum ProgressSender {
-    Channel(IpcSender<ProgressMsg>),
-}
-
 #[derive(Clone)]
 pub struct ResourceGroup {
     cookie_jar: Arc<RwLock<CookieStorage>>,
     auth_cache: Arc<RwLock<AuthCache>>,
     hsts_list: Arc<RwLock<HstsList>>,
     connector: Arc<Pool<Connector>>,
-}
-
-impl ProgressSender {
-    //XXXjdm return actual error
-    pub fn send(&self, msg: ProgressMsg) -> Result<(), ()> {
-        match *self {
-            ProgressSender::Channel(ref c) => c.send(msg).map_err(|_| ()),
-        }
-    }
 }
 
 /// Returns a tuple of (public, private) senders to the new threads.
