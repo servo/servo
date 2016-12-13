@@ -319,6 +319,7 @@ mod bindings {
             "ServoAttrSnapshot",
             "ServoElementSnapshot",
             "SheetParsingMode",
+            "Side",  // must be a rust-bindgen bug that requires both of these
             "mozilla::Side",
             "StaticRefPtr",
             "StyleAnimation",
