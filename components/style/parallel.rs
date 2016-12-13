@@ -28,13 +28,17 @@ pub fn traverse_dom<N, C>(root: N::ConcreteElement,
         STYLE_SHARING_CACHE_MISSES.store(0, Ordering::SeqCst);
     }
 
-    // Handle root skipping. We don't currently support it in conjunction with
-    // bottom-up traversal. If we did, we'd need to put it on the context to make
-    // it available to the bottom-up phase.
-    debug_assert!(!token.should_skip_root() || !C::needs_postorder_traversal());
-    let (nodes, depth) = if token.should_skip_root() {
+    // Handle Gecko's eager initial styling. We don't currently support it
+    // in conjunction with bottom-up traversal. If we did, we'd need to put
+    // it on the context to make it available to the bottom-up phase.
+    let (nodes, depth) = if token.traverse_unstyled_children_only() {
+        debug_assert!(!C::needs_postorder_traversal());
         let mut children = vec![];
-        C::traverse_children(root, |kid| children.push(kid.to_unsafe()));
+        for kid in root.as_node().children() {
+            if kid.as_element().map_or(false, |el| el.get_data().is_none()) {
+                children.push(kid.to_unsafe());
+            }
+        }
         (children, known_root_dom_depth.map(|x| x + 1))
     } else {
         (vec![root.as_node().to_unsafe()], known_root_dom_depth)

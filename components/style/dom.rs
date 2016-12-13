@@ -14,6 +14,7 @@ use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
 use sink::Push;
+use std::fmt;
 use std::fmt::Debug;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
@@ -67,16 +68,12 @@ impl<T, I> Iterator for LayoutIterator<T> where T: Iterator<Item=I>, I: NodeInfo
     }
 }
 
-pub trait TNode : Sized + Copy + Clone + NodeInfo {
+pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     type ConcreteElement: TElement<ConcreteNode = Self>;
     type ConcreteChildrenIterator: Iterator<Item = Self>;
 
     fn to_unsafe(&self) -> UnsafeNode;
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self;
-
-    fn dump(self);
-
-    fn dump_style(self);
 
     /// Returns an iterator over this node's children.
     fn children(self) -> LayoutIterator<Self::ConcreteChildrenIterator>;
@@ -101,6 +98,90 @@ pub trait TNode : Sized + Copy + Clone + NodeInfo {
     unsafe fn set_can_be_fragmented(&self, value: bool);
 
     fn parent_node(&self) -> Option<Self>;
+}
+
+/// Wrapper to output the ElementData along with the node when formatting for
+/// Debug.
+pub struct ShowData<N: TNode>(pub N);
+impl<N: TNode> Debug for ShowData<N> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt_with_data(f, self.0)
+    }
+}
+
+/// Wrapper to output the primary computed values along with the node when
+/// formatting for Debug. This is very verbose.
+pub struct ShowDataAndPrimaryValues<N: TNode>(pub N);
+impl<N: TNode> Debug for ShowDataAndPrimaryValues<N> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt_with_data_and_primary_values(f, self.0)
+    }
+}
+
+/// Wrapper to output the subtree rather than the single node when formatting
+/// for Debug.
+pub struct ShowSubtree<N: TNode>(pub N);
+impl<N: TNode> Debug for ShowSubtree<N> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(writeln!(f, "DOM Subtree:"));
+        fmt_subtree(f, &|f, n| write!(f, "{:?}", n), self.0, 1)
+    }
+}
+
+/// Wrapper to output the subtree along with the ElementData when formatting
+/// for Debug.
+pub struct ShowSubtreeData<N: TNode>(pub N);
+impl<N: TNode> Debug for ShowSubtreeData<N> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(writeln!(f, "DOM Subtree:"));
+        fmt_subtree(f, &|f, n| fmt_with_data(f, n), self.0, 1)
+    }
+}
+
+/// Wrapper to output the subtree along with the ElementData and primary
+/// ComputedValues when formatting for Debug. This is extremely verbose.
+pub struct ShowSubtreeDataAndPrimaryValues<N: TNode>(pub N);
+impl<N: TNode> Debug for ShowSubtreeDataAndPrimaryValues<N> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(writeln!(f, "DOM Subtree:"));
+        fmt_subtree(f, &|f, n| fmt_with_data_and_primary_values(f, n), self.0, 1)
+    }
+}
+
+fn fmt_with_data<N: TNode>(f: &mut fmt::Formatter, n: N) -> fmt::Result {
+    if let Some(el) = n.as_element() {
+        write!(f, "{:?} dd={} data={:?}", el, el.has_dirty_descendants(), el.borrow_data())
+    } else {
+        write!(f, "{:?}", n)
+    }
+}
+
+fn fmt_with_data_and_primary_values<N: TNode>(f: &mut fmt::Formatter, n: N) -> fmt::Result {
+    if let Some(el) = n.as_element() {
+        let dd = el.has_dirty_descendants();
+        let data = el.borrow_data();
+        let styles = data.as_ref().and_then(|d| d.get_styles());
+        let values = styles.map(|s| &s.primary.values);
+        write!(f, "{:?} dd={} data={:?} values={:?}", el, dd, &data, values)
+    } else {
+        write!(f, "{:?}", n)
+    }
+}
+
+fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent: u32)
+                            -> fmt::Result
+    where F: Fn(&mut fmt::Formatter, N) -> fmt::Result
+{
+    for _ in 0..indent {
+        try!(write!(f, "  "));
+    }
+    try!(stringify(f, n));
+    for kid in n.children() {
+        try!(writeln!(f, ""));
+        try!(fmt_subtree(f, stringify, kid, indent + 1));
+    }
+
+    Ok(())
 }
 
 pub trait PresentationalHintsSynthetizer {
@@ -163,10 +244,10 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// traversal. Returns the number of children left to process.
     fn did_process_child(&self) -> isize;
 
-    /// Returns true if this element's style is display:none.
+    /// Returns true if this element's style is display:none. Panics if
+    /// the element has no style.
     fn is_display_none(&self) -> bool {
         let data = self.borrow_data().unwrap();
-        debug_assert!(data.has_current_styles());
         data.styles().is_display_none()
     }
 

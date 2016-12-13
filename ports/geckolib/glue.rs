@@ -18,7 +18,7 @@ use style::arc_ptr_eq;
 use style::atomic_refcell::AtomicRefMut;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::data::{ElementData, RestyleData};
-use style::dom::{TElement, TNode};
+use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko::context::StandaloneStyleContext;
 use style::gecko::context::clear_local_context;
@@ -118,7 +118,7 @@ fn create_shared_context(mut per_doc_data: &mut AtomicRefMut<PerDocumentStyleDat
 }
 
 fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
-                    skip_root: bool) {
+                    unstyled_children_only: bool) {
     // Force the creation of our lazily-constructed initial computed values on
     // the main thread, since it's not safe to call elsewhere.
     //
@@ -139,11 +139,14 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
 
     let mut per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
 
-    let token = RecalcStyleOnly::pre_traverse(element, &per_doc_data.stylist, skip_root);
+    let token = RecalcStyleOnly::pre_traverse(element, &per_doc_data.stylist, unstyled_children_only);
     if !token.should_traverse() {
         error!("Unnecessary call to traverse_subtree");
         return;
     }
+
+    debug!("Traversing subtree:");
+    debug!("{:?}", ShowSubtreeData(element.as_node()));
 
     let shared_style_context = create_shared_context(&mut per_doc_data);
     let known_depth = None;
@@ -160,10 +163,11 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
 #[no_mangle]
 pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                         raw_data: RawServoStyleSetBorrowed,
-                                        skip_root: structs::SkipRootBehavior) -> () {
+                                        behavior: structs::TraversalRootBehavior) -> () {
     let element = GeckoElement(root);
     debug!("Servo_TraverseSubtree: {:?}", element);
-    traverse_subtree(element, raw_data, skip_root == structs::SkipRootBehavior::Skip);
+    traverse_subtree(element, raw_data,
+                     behavior == structs::TraversalRootBehavior::UnstyledChildrenOnly);
 }
 
 #[no_mangle]

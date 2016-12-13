@@ -86,7 +86,11 @@ impl<'ln> Debug for ServoLayoutNode<'ln> {
         if let Some(el) = self.as_element() {
             el.fmt(f)
         } else {
-            write!(f, "{:?} ({:#x})", self.type_id(), self.opaque().0)
+            if self.is_text_node() {
+                write!(f, "<text node> ({:#x})", self.opaque().0)
+            } else {
+                write!(f, "<non-text node> ({:#x})", self.opaque().0)
+            }
         }
     }
 }
@@ -154,15 +158,6 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self {
         let (node, _) = *n;
         transmute(node)
-    }
-
-    fn dump(self) {
-        self.dump_indent(0);
-    }
-
-    fn dump_style(self) {
-        println!("\nDOM with computed styles:");
-        self.dump_style_indent(0);
     }
 
     fn children(self) -> LayoutIterator<ServoChildrenIterator<'ln>> {
@@ -290,54 +285,6 @@ impl<'le> GetLayoutData for ServoThreadSafeLayoutElement<'le> {
 }
 
 impl<'ln> ServoLayoutNode<'ln> {
-    fn dump_indent(self, indent: u32) {
-        let mut s = String::new();
-        for _ in 0..indent {
-            s.push_str("  ");
-        }
-
-        s.push_str(&self.debug_str());
-        println!("{}", s);
-
-        for kid in self.children() {
-            kid.dump_indent(indent + 1);
-        }
-    }
-
-    fn dump_style_indent(self, indent: u32) {
-        if self.is_element() {
-            let mut s = String::new();
-            for _ in 0..indent {
-                s.push_str("  ");
-            }
-            s.push_str(&self.debug_style_str());
-            println!("{}", s);
-        }
-
-        for kid in self.children() {
-            kid.dump_style_indent(indent + 1);
-        }
-    }
-
-    fn debug_str(self) -> String {
-        format!("{:?}: dirty_descendants={}",
-                self.script_type_id(),
-                self.as_element().map_or(false, |el| el.has_dirty_descendants()))
-    }
-
-    fn debug_style_str(self) -> String {
-        let maybe_element = self.as_element();
-        let maybe_data = match maybe_element {
-            Some(ref el) => el.borrow_data(),
-            None => None,
-        };
-        if let Some(data) = maybe_data {
-            format!("{:?}: {:?}", self.script_type_id(), &*data)
-        } else {
-            format!("{:?}: style_data=None", self.script_type_id())
-        }
-    }
-
     /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
     pub unsafe fn get_jsmanaged(&self) -> &LayoutJS<Node> {

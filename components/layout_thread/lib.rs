@@ -106,7 +106,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use style::animation::Animation;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::data::StoredRestyleHint;
-use style::dom::{TElement, TNode};
+use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
@@ -1035,9 +1035,7 @@ impl LayoutThread {
 
         debug!("layout: processing reflow request for: {:?} ({}) (query={:?})",
                element, self.url, data.query_type);
-        if log_enabled!(log::LogLevel::Debug) {
-            element.as_node().dump();
-        }
+        debug!("{:?}", ShowSubtree(element.as_node()));
 
         let initial_viewport = data.window_size.initial_viewport;
         let old_viewport_size = self.viewport_size;
@@ -1181,7 +1179,7 @@ impl LayoutThread {
         }
 
         if opts::get().dump_style_tree {
-            element.as_node().dump_style();
+            println!("{:?}", ShowSubtreeDataAndPrimaryValues(element.as_node()));
         }
 
         if opts::get().dump_rule_tree {

@@ -50,6 +50,20 @@ use stylist::ApplicableDeclarationBlock;
 #[derive(Clone, Copy)]
 pub struct GeckoNode<'ln>(pub &'ln RawGeckoNode);
 
+impl<'ln> fmt::Debug for GeckoNode<'ln> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(el) = self.as_element() {
+            el.fmt(f)
+        } else {
+            if self.is_text_node() {
+                write!(f, "<text node> ({:#x})", self.opaque().0)
+            } else {
+                write!(f, "<non-text node> ({:#x})", self.opaque().0)
+            }
+        }
+    }
+}
+
 impl<'ln> GeckoNode<'ln> {
     fn from_content(content: &'ln nsIContent) -> Self {
         GeckoNode(&content._base)
@@ -100,19 +114,6 @@ impl<'ln> TNode for GeckoNode<'ln> {
 
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self {
         GeckoNode(&*(n.0 as *mut RawGeckoNode))
-    }
-
-    fn dump(self) {
-        if self.is_text_node() {
-            println!("Text ({:?})", &self.0 as *const _);
-        } else {
-            let el = self.as_element().unwrap();
-            println!("Element {} ({:?})", el.get_local_name(), &el.0 as *const _);
-        }
-    }
-
-    fn dump_style(self) {
-        unimplemented!()
     }
 
     fn children(self) -> LayoutIterator<GeckoChildrenIterator<'ln>> {
@@ -211,7 +212,7 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
         if let Some(id) = self.get_id() {
             try!(write!(f, " id={}", id));
         }
-        write!(f, "> ({:?})", self.0 as *const _)
+        write!(f, "> ({:#x})", self.as_node().opaque().0)
     }
 }
 

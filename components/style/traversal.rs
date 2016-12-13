@@ -104,7 +104,7 @@ pub struct PerLevelTraversalData {
 /// to pass information from the pre-traversal into the primary traversal.
 pub struct PreTraverseToken {
     traverse: bool,
-    skip_root: bool,
+    unstyled_children_only: bool,
 }
 
 impl PreTraverseToken {
@@ -112,8 +112,8 @@ impl PreTraverseToken {
         self.traverse
     }
 
-    pub fn should_skip_root(&self) -> bool {
-        self.skip_root
+    pub fn traverse_unstyled_children_only(&self) -> bool {
+        self.unstyled_children_only
     }
 }
 
@@ -140,16 +140,16 @@ pub trait DomTraversalContext<N: TNode> {
     /// a traversal is needed. Returns a token that allows the caller to prove
     /// that the call happened.
     ///
-    /// The skip_root parameter is used in Gecko to style newly-appended children
-    /// without restyling the parent.
-    fn pre_traverse(root: N::ConcreteElement, stylist: &Stylist, skip_root: bool)
+    /// The unstyled_children_only parameter is used in Gecko to style newly-
+    /// appended children without restyling the parent.
+    fn pre_traverse(root: N::ConcreteElement, stylist: &Stylist,
+                    unstyled_children_only: bool)
                     -> PreTraverseToken
     {
-        // If we should skip the root, traverse unconditionally.
-        if skip_root {
+        if unstyled_children_only {
             return PreTraverseToken {
                 traverse: true,
-                skip_root: true,
+                unstyled_children_only: true,
             };
         }
 
@@ -157,18 +157,18 @@ pub trait DomTraversalContext<N: TNode> {
         // we need a special case for the root.
         //
         // Expanding snapshots here may create a LATER_SIBLINGS restyle hint, which
-        // we will drop on the floor. This is fine, because we don't traverse roots
-        // with siblings.
-        debug_assert!(root.next_sibling_element().is_none());
+        // we will drop on the floor. To prevent missed restyles, we assert against
+        // restyling a root with later siblings.
         if let Some(mut data) = root.mutate_data() {
             if let Some(r) = data.as_restyle_mut() {
+                debug_assert!(root.next_sibling_element().is_none());
                 let _later_siblings = r.expand_snapshot(root, stylist);
             }
         }
 
         PreTraverseToken {
             traverse: Self::node_needs_traversal(root.as_node()),
-            skip_root: false,
+            unstyled_children_only: false,
         }
     }
 
