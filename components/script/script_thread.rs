@@ -1423,7 +1423,7 @@ impl ScriptThread {
         if let Some(state) = self.documents.borrow_mut().get_mut(id) {
             // For testing purposes, we have an option to agressively
             // discard all inactive documents.
-            if opts::get().discard_inactive_documents {
+            if opts::get().unsafe_discard_documents {
                 debug!("Discarding pipeline {}.", id);
                 *state = DocumentState::Discarded(state.url());
             } else {

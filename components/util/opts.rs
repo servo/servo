@@ -79,7 +79,7 @@ pub struct Opts {
     /// only be discarded when they can be garbage collected, not when they are made
     /// inactive. It is useful for testing document discarding and reloading.
     /// https://html.spec.whatwg.org/multipage/#garbage-collection-and-browsing-contexts:discard-a-document
-    pub discard_inactive_documents: bool,
+    pub unsafe_discard_documents: bool,
 
     /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
     pub load_webfonts_synchronously: bool,
@@ -324,7 +324,7 @@ pub struct DebugOptions {
     pub gc_profile: bool,
 
     /// Discard all inactive documents.
-    pub discard_inactive_documents: bool,
+    pub unsafe_discard_documents: bool,
 
     /// Load web fonts synchronously to avoid non-deterministic network-driven reflows.
     pub load_webfonts_synchronously: bool,
@@ -387,7 +387,7 @@ impl DebugOptions {
                 "convert-mouse-to-touch" => self.convert_mouse_to_touch = true,
                 "replace-surrogates" => self.replace_surrogates = true,
                 "gc-profile" => self.gc_profile = true,
-                "discard-inactive-documents" => self.discard_inactive_documents = true,
+                "unsafe-discard-documents" => self.unsafe_discard_documents = true,
                 "load-webfonts-synchronously" => self.load_webfonts_synchronously = true,
                 "disable-vsync" => self.disable_vsync = true,
                 "wr-stats" => self.webrender_stats = true,
@@ -437,7 +437,7 @@ fn print_debug_usage(app: &str) -> ! {
     print_option("replace-surrogates", "Replace unpaires surrogates in DOM strings with U+FFFD. \
                                         See https://github.com/servo/servo/issues/6564");
     print_option("gc-profile", "Log GC passes and their durations.");
-    print_option("discard-inactive-documents", "Discard all inactive documents.");
+    print_option("unsafe-discard-documents", "Unsafely discard all inactive documents.");
     print_option("load-webfonts-synchronously",
                  "Load web fonts synchronously to avoid non-deterministic network-driven reflows");
     print_option("disable-vsync",
@@ -531,7 +531,7 @@ pub fn default_opts() -> Opts {
         output_file: None,
         replace_surrogates: false,
         gc_profile: false,
-        discard_inactive_documents: false,
+        unsafe_discard_documents: false,
         load_webfonts_synchronously: false,
         headless: true,
         hard_fail: true,
@@ -834,7 +834,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         output_file: opt_match.opt_str("o"),
         replace_surrogates: debug_options.replace_surrogates,
         gc_profile: debug_options.gc_profile,
-        discard_inactive_documents: debug_options.discard_inactive_documents,
+        unsafe_discard_documents: debug_options.unsafe_discard_documents,
         load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
