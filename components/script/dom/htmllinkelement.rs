@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::js::{MutNullableJS, Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
@@ -55,10 +55,10 @@ unsafe_no_jsmanaged_fields!(Stylesheet);
 #[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
-    rel_list: MutNullableHeap<JS<DOMTokenList>>,
+    rel_list: MutNullableJS<DOMTokenList>,
     #[ignore_heap_size_of = "Arc"]
     stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
-    cssom_stylesheet: MutNullableHeap<JS<CSSStyleSheet>>,
+    cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
 
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
@@ -72,7 +72,7 @@ impl HTMLLinkElement {
             rel_list: Default::default(),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             stylesheet: DOMRefCell::new(None),
-            cssom_stylesheet: MutNullableHeap::new(None),
+            cssom_stylesheet: MutNullableJS::new(None),
         }
     }
 

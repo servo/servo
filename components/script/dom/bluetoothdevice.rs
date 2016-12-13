@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::js::{JS, Root, MutHeap, MutNullableHeap};
+use dom::bindings::js::{MutJS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::Bluetooth;
@@ -29,12 +29,12 @@ pub struct BluetoothDevice {
     eventtarget: EventTarget,
     id: DOMString,
     name: Option<DOMString>,
-    ad_data: MutHeap<JS<BluetoothAdvertisingData>>,
-    gatt: MutNullableHeap<JS<BluetoothRemoteGATTServer>>,
-    context: MutHeap<JS<Bluetooth>>,
-    attribute_instance_map: (DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTService>>>>,
-                             DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTCharacteristic>>>>,
-                             DOMRefCell<HashMap<String, MutHeap<JS<BluetoothRemoteGATTDescriptor>>>>),
+    ad_data: MutJS<BluetoothAdvertisingData>,
+    gatt: MutNullableJS<BluetoothRemoteGATTServer>,
+    context: MutJS<Bluetooth>,
+    attribute_instance_map: (DOMRefCell<HashMap<String, MutJS<BluetoothRemoteGATTService>>>,
+                             DOMRefCell<HashMap<String, MutJS<BluetoothRemoteGATTCharacteristic>>>,
+                             DOMRefCell<HashMap<String, MutJS<BluetoothRemoteGATTDescriptor>>>),
 }
 
 impl BluetoothDevice {
@@ -47,9 +47,9 @@ impl BluetoothDevice {
             eventtarget: EventTarget::new_inherited(),
             id: id,
             name: name,
-            ad_data: MutHeap::new(ad_data),
+            ad_data: MutJS::new(ad_data),
             gatt: Default::default(),
-            context: MutHeap::new(context),
+            context: MutJS::new(context),
             attribute_instance_map: (DOMRefCell::new(HashMap::new()),
                                      DOMRefCell::new(HashMap::new()),
                                      DOMRefCell::new(HashMap::new())),
@@ -84,7 +84,7 @@ impl BluetoothDevice {
                                                          DOMString::from(service.uuid.clone()),
                                                          service.is_primary,
                                                          service.instance_id.clone());
-        service_map.insert(service.instance_id.clone(), MutHeap::new(&bt_service));
+        service_map.insert(service.instance_id.clone(), MutJS::new(&bt_service));
         return bt_service;
     }
 
@@ -113,7 +113,7 @@ impl BluetoothDevice {
                                                                        DOMString::from(characteristic.uuid.clone()),
                                                                        &properties,
                                                                        characteristic.instance_id.clone());
-        characteristic_map.insert(characteristic.instance_id.clone(), MutHeap::new(&bt_characteristic));
+        characteristic_map.insert(characteristic.instance_id.clone(), MutJS::new(&bt_characteristic));
         return bt_characteristic;
     }
 
@@ -130,7 +130,7 @@ impl BluetoothDevice {
                                                                characteristic,
                                                                DOMString::from(descriptor.uuid.clone()),
                                                                descriptor.instance_id.clone());
-        descriptor_map.insert(descriptor.instance_id.clone(), MutHeap::new(&bt_descriptor));
+        descriptor_map.insert(descriptor.instance_id.clone(), MutJS::new(&bt_descriptor));
         return bt_descriptor;
     }
 }

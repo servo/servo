@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::js::{MutNullableJS, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::{Document, FocusType};
@@ -40,8 +40,8 @@ use style::element_state::*;
 #[dom_struct]
 pub struct HTMLElement {
     element: Element,
-    style_decl: MutNullableHeap<JS<CSSStyleDeclaration>>,
-    dataset: MutNullableHeap<JS<DOMStringMap>>,
+    style_decl: MutNullableJS<CSSStyleDeclaration>,
+    dataset: MutNullableJS<DOMStringMap>,
 }
 
 impl HTMLElement {

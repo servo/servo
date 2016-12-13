@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::TouchEventBinding;
 use dom::bindings::codegen::Bindings::TouchEventBinding::TouchEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{MutJS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{EventBubbles, EventCancelable};
@@ -18,9 +18,9 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct TouchEvent {
     uievent: UIEvent,
-    touches: MutHeap<JS<TouchList>>,
-    target_touches: MutHeap<JS<TouchList>>,
-    changed_touches: MutHeap<JS<TouchList>>,
+    touches: MutJS<TouchList>,
+    target_touches: MutJS<TouchList>,
+    changed_touches: MutJS<TouchList>,
     alt_key: Cell<bool>,
     meta_key: Cell<bool>,
     ctrl_key: Cell<bool>,
@@ -33,9 +33,9 @@ impl TouchEvent {
                      target_touches: &TouchList) -> TouchEvent {
         TouchEvent {
             uievent: UIEvent::new_inherited(),
-            touches: MutHeap::new(touches),
-            target_touches: MutHeap::new(target_touches),
-            changed_touches: MutHeap::new(changed_touches),
+            touches: MutJS::new(touches),
+            target_touches: MutJS::new(target_touches),
+            changed_touches: MutJS::new(changed_touches),
             ctrl_key: Cell::new(false),
             shift_key: Cell::new(false),
             alt_key: Cell::new(false),

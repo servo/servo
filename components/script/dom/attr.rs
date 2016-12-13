@@ -6,8 +6,7 @@ use devtools_traits::AttrInfo;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::{self, AttrMethods};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap};
-use dom::bindings::js::{LayoutJS, Root, RootedReference};
+use dom::bindings::js::{LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
@@ -28,7 +27,7 @@ pub struct Attr {
     value: DOMRefCell<AttrValue>,
 
     /// the element that owns this attribute.
-    owner: MutNullableHeap<JS<Element>>,
+    owner: MutNullableJS<Element>,
 }
 
 impl Attr {
@@ -48,7 +47,7 @@ impl Attr {
                 prefix: prefix,
             },
             value: DOMRefCell::new(value),
-            owner: MutNullableHeap::new(owner),
+            owner: MutNullableJS::new(owner),
         }
     }
 

@@ -32,8 +32,8 @@
 //! * rooting pointers on the stack:
 //!   the [`Root`](bindings/js/struct.Root.html) smart pointer;
 //! * tracing pointers in member fields: the [`JS`](bindings/js/struct.JS.html),
-//!   [`MutNullableHeap`](bindings/js/struct.MutNullableHeap.html) and
-//!   [`MutHeap`](bindings/js/struct.MutHeap.html) smart pointers and
+//!   [`MutNullableJS`](bindings/js/struct.MutNullableJS.html) and
+//!   [`MutJS`](bindings/js/struct.MutJS.html) smart pointers and
 //!   [the tracing implementation](bindings/trace/index.html);
 //! * rooting pointers from across thread boundaries or in channels: the
 //!   [`Trusted`](bindings/refcounted/struct.Trusted.html) smart pointer;

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::NavigatorBinding;
 use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{Reflector, DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::Bluetooth;
@@ -17,10 +17,10 @@ use dom::window::Window;
 #[dom_struct]
 pub struct Navigator {
     reflector_: Reflector,
-    bluetooth: MutNullableHeap<JS<Bluetooth>>,
-    plugins: MutNullableHeap<JS<PluginArray>>,
-    mime_types: MutNullableHeap<JS<MimeTypeArray>>,
-    service_worker: MutNullableHeap<JS<ServiceWorkerContainer>>,
+    bluetooth: MutNullableJS<Bluetooth>,
+    plugins: MutNullableJS<PluginArray>,
+    mime_types: MutNullableJS<MimeTypeArray>,
+    service_worker: MutNullableJS<ServiceWorkerContainer>,
 }
 
 impl Navigator {

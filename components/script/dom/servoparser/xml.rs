@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::comment::Comment;
@@ -97,7 +97,7 @@ unsafe impl JSTraceable for XmlTokenizer<XmlTreeBuilder<JS<Node>, Sink>> {
 struct Sink {
     base_url: ServoUrl,
     document: JS<Document>,
-    script: MutNullableHeap<JS<HTMLScriptElement>>,
+    script: MutNullableJS<HTMLScriptElement>,
 }
 
 impl<'a> TreeSink for Sink {

@@ -16,7 +16,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::Bluetoo
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::Error::{self, InvalidModification, Network, NotSupported, Security};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{MutJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
@@ -38,9 +38,9 @@ pub const MAXIMUM_ATTRIBUTE_LENGTH: usize = 512;
 #[dom_struct]
 pub struct BluetoothRemoteGATTCharacteristic {
     eventtarget: EventTarget,
-    service: MutHeap<JS<BluetoothRemoteGATTService>>,
+    service: MutJS<BluetoothRemoteGATTService>,
     uuid: DOMString,
-    properties: MutHeap<JS<BluetoothCharacteristicProperties>>,
+    properties: MutJS<BluetoothCharacteristicProperties>,
     value: DOMRefCell<Option<ByteString>>,
     instance_id: String,
 }
@@ -53,9 +53,9 @@ impl BluetoothRemoteGATTCharacteristic {
                          -> BluetoothRemoteGATTCharacteristic {
         BluetoothRemoteGATTCharacteristic {
             eventtarget: EventTarget::new_inherited(),
-            service: MutHeap::new(service),
+            service: MutJS::new(service),
             uuid: uuid,
-            properties: MutHeap::new(properties),
+            properties: MutJS::new(properties),
             value: DOMRefCell::new(None),
             instance_id: instance_id,
         }

@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableS
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::js::{LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
@@ -36,7 +36,7 @@ impl CollectionFilter for CellsFilter {
 #[dom_struct]
 pub struct HTMLTableRowElement {
     htmlelement: HTMLElement,
-    cells: MutNullableHeap<JS<HTMLCollection>>,
+    cells: MutNullableJS<HTMLCollection>,
 }
 
 impl HTMLTableRowElement {

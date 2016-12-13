@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::ResponseBinding;
 use dom::bindings::codegen::Bindings::ResponseBinding::{ResponseMethods, ResponseType as DOMResponseType};
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString};
 use dom::globalscope::GlobalScope;
@@ -32,7 +32,7 @@ use url::Position;
 #[dom_struct]
 pub struct Response {
     reflector_: Reflector,
-    headers_reflector: MutNullableHeap<JS<Headers>>,
+    headers_reflector: MutNullableJS<Headers>,
     mime_type: DOMRefCell<Vec<u8>>,
     body_used: Cell<bool>,
     /// `None` can be considered a StatusCode of `0`.

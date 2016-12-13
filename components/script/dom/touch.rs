@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::TouchBinding;
 use dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{MutJS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
@@ -14,7 +14,7 @@ use dom::window::Window;
 pub struct Touch {
     reflector_: Reflector,
     identifier: i32,
-    target: MutHeap<JS<EventTarget>>,
+    target: MutJS<EventTarget>,
     screen_x: f64,
     screen_y: f64,
     client_x: f64,
@@ -31,7 +31,7 @@ impl Touch {
         Touch {
             reflector_: Reflector::new(),
             identifier: identifier,
-            target: MutHeap::new(target),
+            target: MutJS::new(target),
             screen_x: *screen_x,
             screen_y: *screen_y,
             client_x: *client_x,

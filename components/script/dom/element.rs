@@ -22,7 +22,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
+use dom::bindings::js::{JS, LayoutJS, MutNullableJS};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
@@ -125,8 +125,8 @@ pub struct Element {
     id_attribute: DOMRefCell<Option<Atom>>,
     #[ignore_heap_size_of = "Arc"]
     style_attribute: DOMRefCell<Option<Arc<RwLock<PropertyDeclarationBlock>>>>,
-    attr_list: MutNullableHeap<JS<NamedNodeMap>>,
-    class_list: MutNullableHeap<JS<DOMTokenList>>,
+    attr_list: MutNullableJS<NamedNodeMap>,
+    class_list: MutNullableJS<DOMTokenList>,
     state: Cell<ElementState>,
     atomic_flags: AtomicElementFlags,
 }

@@ -7,7 +7,7 @@ use canvas_traits::CanvasMsg;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
-use dom::bindings::js::{HeapGCValue, JS, Root};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderbuffer::WebGLRenderbuffer;
@@ -24,8 +24,6 @@ enum WebGLFramebufferAttachment {
     Renderbuffer(JS<WebGLRenderbuffer>),
     Texture { texture: JS<WebGLTexture>, level: i32 },
 }
-
-impl HeapGCValue for WebGLFramebufferAttachment {}
 
 #[dom_struct]
 pub struct WebGLFramebuffer {

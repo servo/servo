@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::Error::{self, Network, Security};
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{MutJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
@@ -27,7 +27,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct BluetoothRemoteGATTService {
     eventtarget: EventTarget,
-    device: MutHeap<JS<BluetoothDevice>>,
+    device: MutJS<BluetoothDevice>,
     uuid: DOMString,
     is_primary: bool,
     instance_id: String,
@@ -41,7 +41,7 @@ impl BluetoothRemoteGATTService {
                          -> BluetoothRemoteGATTService {
         BluetoothRemoteGATTService {
             eventtarget: EventTarget::new_inherited(),
-            device: MutHeap::new(device),
+            device: MutJS::new(device),
             uuid: uuid,
             is_primary: is_primary,
             instance_id: instance_id,

@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementM
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::js::{JS, LayoutJS, MutNullableJS, Root, RootedReference};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -31,7 +31,7 @@ pub struct HTMLTableElement {
     htmlelement: HTMLElement,
     border: Cell<Option<u32>>,
     cellspacing: Cell<Option<u32>>,
-    tbodies: MutNullableHeap<JS<HTMLCollection>>,
+    tbodies: MutNullableJS<HTMLCollection>,
 }
 
 #[allow(unrooted_must_root)]

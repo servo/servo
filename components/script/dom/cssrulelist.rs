@@ -6,7 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::csskeyframerule::CSSKeyframeRule;
 use dom::cssrule::CSSRule;
@@ -38,7 +38,7 @@ pub struct CSSRuleList {
     parent_stylesheet: JS<CSSStyleSheet>,
     #[ignore_heap_size_of = "Arc"]
     rules: RulesSource,
-    dom_rules: DOMRefCell<Vec<MutNullableHeap<JS<CSSRule>>>>
+    dom_rules: DOMRefCell<Vec<MutNullableJS<CSSRule>>>
 }
 
 pub enum RulesSource {
@@ -51,10 +51,10 @@ impl CSSRuleList {
     pub fn new_inherited(parent_stylesheet: &CSSStyleSheet, rules: RulesSource) -> CSSRuleList {
         let dom_rules = match rules {
             RulesSource::Rules(ref rules) => {
-                rules.read().0.iter().map(|_| MutNullableHeap::new(None)).collect()
+                rules.read().0.iter().map(|_| MutNullableJS::new(None)).collect()
             }
             RulesSource::Keyframes(ref rules) => {
-                rules.read().keyframes.iter().map(|_| MutNullableHeap::new(None)).collect()
+                rules.read().keyframes.iter().map(|_| MutNullableJS::new(None)).collect()
             }
         };
 
@@ -92,7 +92,7 @@ impl CSSRuleList {
 
         let parent_stylesheet = &*self.parent_stylesheet;
         let dom_rule = CSSRule::new_specific(&window, parent_stylesheet, new_rule);
-        self.dom_rules.borrow_mut().insert(index, MutNullableHeap::new(Some(&*dom_rule)));
+        self.dom_rules.borrow_mut().insert(index, MutNullableJS::new(Some(&*dom_rule)));
         Ok((idx))
     }
 
@@ -158,7 +158,7 @@ impl CSSRuleList {
         if let RulesSource::Rules(..) = self.rules {
             panic!("Can only call append_lazy_rule with keyframes-backed CSSRules");
         }
-        self.dom_rules.borrow_mut().push(MutNullableHeap::new(None));
+        self.dom_rules.borrow_mut().push(MutNullableJS::new(None));
     }
 }
 

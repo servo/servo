@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::error::Error::{self, Network, Security};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{MutJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
 use dom::bluetoothdevice::BluetoothDevice;
@@ -25,7 +25,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct BluetoothRemoteGATTServer {
     reflector_: Reflector,
-    device: MutHeap<JS<BluetoothDevice>>,
+    device: MutJS<BluetoothDevice>,
     connected: Cell<bool>,
 }
 
@@ -33,7 +33,7 @@ impl BluetoothRemoteGATTServer {
     pub fn new_inherited(device: &BluetoothDevice) -> BluetoothRemoteGATTServer {
         BluetoothRemoteGATTServer {
             reflector_: Reflector::new(),
-            device: MutHeap::new(device),
+            device: MutJS::new(device),
             connected: Cell::new(false),
         }
     }

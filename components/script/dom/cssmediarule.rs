@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::CSSMediaRuleBinding;
 use dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssgroupingrule::CSSGroupingRule;
@@ -22,7 +22,7 @@ pub struct CSSMediaRule {
     cssrule: CSSGroupingRule,
     #[ignore_heap_size_of = "Arc"]
     mediarule: Arc<RwLock<MediaRule>>,
-    medialist: MutNullableHeap<JS<MediaList>>,
+    medialist: MutNullableJS<MediaList>,
 }
 
 impl CSSMediaRule {
@@ -32,7 +32,7 @@ impl CSSMediaRule {
         CSSMediaRule {
             cssrule: CSSGroupingRule::new_inherited(parent_stylesheet, list),
             mediarule: mediarule,
-            medialist: MutNullableHeap::new(None),
+            medialist: MutNullableJS::new(None),
         }
     }
 

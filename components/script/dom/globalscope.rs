@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
 use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
@@ -50,7 +50,7 @@ use timers::{OneshotTimers, TimerCallback};
 #[dom_struct]
 pub struct GlobalScope {
     eventtarget: EventTarget,
-    crypto: MutNullableHeap<JS<Crypto>>,
+    crypto: MutNullableJS<Crypto>,
     next_worker_id: Cell<WorkerId>,
 
     /// Pipeline id associated with this global.

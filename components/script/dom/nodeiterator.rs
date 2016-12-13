@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
 use dom::bindings::codegen::Bindings::NodeIteratorBinding;
 use dom::bindings::codegen::Bindings::NodeIteratorBinding::NodeIteratorMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{JS, MutJS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::node::Node;
@@ -21,7 +21,7 @@ pub struct NodeIterator {
     reflector_: Reflector,
     root_node: JS<Node>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    reference_node: MutHeap<JS<Node>>,
+    reference_node: MutJS<Node>,
     pointer_before_reference_node: Cell<bool>,
     what_to_show: u32,
     #[ignore_heap_size_of = "Can't measure due to #6870"]
@@ -35,7 +35,7 @@ impl NodeIterator {
         NodeIterator {
             reflector_: Reflector::new(),
             root_node: JS::from_ref(root_node),
-            reference_node: MutHeap::new(root_node),
+            reference_node: MutJS::new(root_node),
             pointer_before_reference_node: Cell::new(true),
             what_to_show: what_to_show,
             filter: filter

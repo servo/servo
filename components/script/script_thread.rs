@@ -32,7 +32,7 @@ use dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventIni
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
+use dom::bindings::js::{JS, MutNullableJS, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
@@ -461,7 +461,7 @@ pub struct ScriptThread {
     js_runtime: Rc<Runtime>,
 
     /// The topmost element over the mouse.
-    topmost_mouse_over_target: MutNullableHeap<JS<Element>>,
+    topmost_mouse_over_target: MutNullableJS<Element>,
 
     /// List of pipelines that have been owned and closed by this script thread.
     closed_pipelines: DOMRefCell<HashSet<PipelineId>>,
@@ -686,7 +686,7 @@ impl ScriptThread {
             devtools_sender: ipc_devtools_sender,
 
             js_runtime: Rc::new(runtime),
-            topmost_mouse_over_target: MutNullableHeap::new(Default::default()),
+            topmost_mouse_over_target: MutNullableJS::new(Default::default()),
             closed_pipelines: DOMRefCell::new(HashSet::new()),
 
             scheduler_chan: state.scheduler_chan,

@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding;
 use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssrule::CSSRule;
@@ -22,7 +22,7 @@ pub struct CSSGroupingRule {
     cssrule: CSSRule,
     #[ignore_heap_size_of = "Arc"]
     rules: Arc<RwLock<StyleCssRules>>,
-    rulelist: MutNullableHeap<JS<CSSRuleList>>,
+    rulelist: MutNullableJS<CSSRuleList>,
 }
 
 impl CSSGroupingRule {
@@ -31,7 +31,7 @@ impl CSSGroupingRule {
         CSSGroupingRule {
             cssrule: CSSRule::new_inherited(parent_stylesheet),
             rules: rules,
-            rulelist: MutNullableHeap::new(None),
+            rulelist: MutNullableJS::new(None),
         }
     }
 

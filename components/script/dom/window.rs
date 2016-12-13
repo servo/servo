@@ -19,7 +19,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOp
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
@@ -159,19 +159,19 @@ pub struct Window {
     history_traversal_task_source: HistoryTraversalTaskSource,
     #[ignore_heap_size_of = "task sources are hard"]
     file_reading_task_source: FileReadingTaskSource,
-    navigator: MutNullableHeap<JS<Navigator>>,
+    navigator: MutNullableJS<Navigator>,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
-    browsing_context: MutNullableHeap<JS<BrowsingContext>>,
-    history: MutNullableHeap<JS<History>>,
-    performance: MutNullableHeap<JS<Performance>>,
+    browsing_context: MutNullableJS<BrowsingContext>,
+    history: MutNullableJS<History>,
+    performance: MutNullableJS<Performance>,
     navigation_start: u64,
     navigation_start_precise: f64,
-    screen: MutNullableHeap<JS<Screen>>,
-    session_storage: MutNullableHeap<JS<Storage>>,
-    local_storage: MutNullableHeap<JS<Storage>>,
+    screen: MutNullableJS<Screen>,
+    session_storage: MutNullableJS<Storage>,
+    local_storage: MutNullableJS<Storage>,
     status: DOMRefCell<DOMString>,
 
     /// For sending timeline markers. Will be ignored if
@@ -241,7 +241,7 @@ pub struct Window {
     /// All the MediaQueryLists we need to update
     media_query_lists: WeakMediaQueryListVec,
 
-    test_runner: MutNullableHeap<JS<TestRunner>>,
+    test_runner: MutNullableJS<TestRunner>,
 }
 
 impl Window {
