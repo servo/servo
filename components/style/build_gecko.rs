@@ -36,16 +36,18 @@ mod bindings {
     use std::env;
     use std::fs::File;
     use std::io::{BufWriter, Read, Write};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::sync::Mutex;
     use super::common::*;
 
     lazy_static! {
         static ref INCLUDE_RE: Regex = Regex::new(r#"#include\s*"(.+?)""#).unwrap();
         static ref DISTDIR_PATH: PathBuf = PathBuf::from(env::var("MOZ_DIST").unwrap());
-        static ref SEARCH_PATHS: Vec<PathBuf> = vec![
+        static ref SEARCH_PATHS: [PathBuf; 4] = [
+            DISTDIR_PATH.clone(),
+            DISTDIR_PATH.join("dist").join("include"),
             DISTDIR_PATH.join("include"),
-            DISTDIR_PATH.join("include/nspr"),
+            DISTDIR_PATH.join("include").join("nspr"),
         ];
         static ref ADDED_PATHS: Mutex<HashSet<PathBuf>> = Mutex::new(HashSet::new());
     }
@@ -79,7 +81,14 @@ mod bindings {
 
     fn add_include(name: &str) -> String {
         let mut added_paths = ADDED_PATHS.lock().unwrap();
-        let file = search_include(name).unwrap();
+        let file = match search_include(name) {
+            Some(file) => file,
+            None => panic!("Couldn't find {:?}, paths: {:?}", name,
+                           SEARCH_PATHS.iter()
+                                       .map(PathBuf::as_path)
+                                       .map(Path::to_str)
+                                       .collect::<Vec<_>>()),
+        };
         let result = String::from(file.to_str().unwrap());
         add_headers_recursively(file, &mut *added_paths);
         result
