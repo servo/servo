@@ -15,18 +15,19 @@
     <script>
     test(function () {
         var keyframe = document.styleSheets[0].cssRules[0];
+        assert_equals(keyframe.name, "foo", "CSSKeyframesRule name attribute");
         assert_equals(keyframe.cssRules.length, 2, "CSSKeyframesRule cssRule length attribute");
         assert_equals(keyframe.cssRules[0].cssText, "0% { top: 0px; }", "CSSKeyframesRule cssRule cssText attribute");
         assert_equals(keyframe.cssRules[1].cssText, "100% { top: 200px; }", "CSSKeyframesRule cssRule cssText attribute");
 
         keyframe.appendRule("50% { top: 100px; }");
-        assert_equals(keyframe.cssRules.length, 3, "CSSKeyframesRule prefix attribute after appendRule function");
+        assert_equals(keyframe.cssRules.length, 3, "CSSKeyframesRule cssRule length attribute after appendRule function");
         assert_equals(keyframe.cssRules[0].cssText, "0% { top: 0px; }", "CSSKeyframesRule cssRule cssText attribute after appendRule function");
         assert_equals(keyframe.cssRules[1].cssText, "100% { top: 200px; }", "CSSKeyframesRule cssRule cssText attribute after appendRule function");
         assert_equals(keyframe.cssRules[2].cssText, "50% { top: 100px; }", "CSSKeyframesRule cssRule cssText attribute after appendRule function");
 
         keyframe.appendRule("0% { top: 50px; }");
-        assert_equals(keyframe.cssRules.length, 4, "CSSKeyframesRule prefix attribute after appendRule function");
+        assert_equals(keyframe.cssRules.length, 4, "CSSKeyframesRule cssRule length attribute after appendRule function");
         assert_equals(keyframe.cssRules[0].cssText, "0% { top: 0px; }", "CSSKeyframesRule cssRule cssText attribute after appendRule function");
         assert_equals(keyframe.cssRules[1].cssText, "100% { top: 200px; }", "CSSKeyframesRule cssRule cssText attribute after appendRule function");
         assert_equals(keyframe.cssRules[2].cssText, "50% { top: 100px; }", "CSSKeyframesRule cssRule cssText attribute after appendRule function");
@@ -40,18 +41,26 @@
         assert_equals(find3, null, "CSSKeyframesRule findRule function");
 
         keyframe.deleteRule("100%");
-        assert_equals(keyframe.cssRules.length, 3, "CSSKeyframesRule prefix attribute after deleteRule function");
+        assert_equals(keyframe.cssRules.length, 3, "CSSKeyframesRule cssRule length attribute after deleteRule function");
         assert_equals(keyframe.cssRules[0].cssText, "0% { top: 0px; }", "CSSKeyframesRule cssRule cssText attribute after deleteRule function");
         assert_equals(keyframe.cssRules[1].cssText, "50% { top: 100px; }", "CSSKeyframesRule cssRule cssText attribute after deleteRule function");
         assert_equals(keyframe.cssRules[2].cssText, "0% { top: 50px; }", "CSSKeyframesRule cssRule cssText attribute after deleteRule function");
         assert_equals(keyframe.cssRules[3], undefined, "CSSKeyframesRule cssRule cssText attribute after deleteRule function");
 
         keyframe.deleteRule("80%");
-        assert_equals(keyframe.cssRules.length, 3, "CSSKeyframesRule prefix attribute after deleteRule function");
+        assert_equals(keyframe.cssRules.length, 3, "CSSKeyframesRule cssRule length attribute after deleteRule function");
         assert_equals(keyframe.cssRules[0].cssText, "0% { top: 0px; }", "CSSKeyframesRule cssRule cssText attribute after deleteRule function");
         assert_equals(keyframe.cssRules[1].cssText, "50% { top: 100px; }", "CSSKeyframesRule cssRule cssText attribute after deleteRule function");
         assert_equals(keyframe.cssRules[2].cssText, "0% { top: 50px; }", "CSSKeyframesRule cssRule cssText attribute after deleteRule function");
         assert_equals(keyframe.cssRules[3], undefined, "CSSKeyframesRule cssRule cssText attribute after deleteRule function");
+
+        keyframe.name = "bar";
+        assert_equals(keyframe.name, "bar", "CSSKeyframesRule name setter");
+
+        keyframe.name = "initial";
+        assert_equals(keyframe.name, "bar", "CSSKeyframesRule name setter on not allowed keyword");
+        keyframe.name = "none";
+        assert_equals(keyframe.name, "bar", "CSSKeyframesRule name setter on not allowed keyword");
     });
     </script>
 </head>
