@@ -31,6 +31,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use std::time::{Duration, Instant};
 use style_traits::{PagePx, ViewportPx};
 use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
@@ -197,6 +198,8 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// Whether a scroll is in progress; i.e. whether the user's fingers are down.
     scroll_in_progress: bool,
+
+    in_scroll_transaction: Option<Instant>,
 
     /// The webrender renderer.
     webrender: webrender::Renderer,
@@ -396,6 +399,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             last_composite_time: 0,
             ready_to_save_state: ReadyState::Unknown,
             scroll_in_progress: false,
+            in_scroll_transaction: None,
             webrender: state.webrender,
             webrender_api: state.webrender_api_sender.create_api(),
         }
@@ -1076,11 +1080,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_scroll_window_event(&mut self,
                               delta: TypedPoint2D<f32, DevicePixel>,
                               cursor: TypedPoint2D<i32, DevicePixel>) {
+        let event_phase = match (self.scroll_in_progress, self.in_scroll_transaction) {
+            (false, Some(last_scroll)) if last_scroll.elapsed() > Duration::from_millis(80) =>
+                ScrollEventPhase::Start,
+            (_, _) => ScrollEventPhase::Move(self.scroll_in_progress),
+        };
+        self.in_scroll_transaction = Some(Instant::now());
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
             delta: delta,
             cursor: cursor,
-            phase: ScrollEventPhase::Move(self.scroll_in_progress),
+            phase: event_phase,
             event_count: 1,
         });
     }
