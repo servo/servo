@@ -17,7 +17,7 @@ fn main() {
     let (args, passthrough) = parse_arguments();
 
     // Find all the native shared libraries that exist in the target directory.
-    let native_shared_libs = find_native_libs(&args);
+    let mut native_shared_libs = find_native_libs(&args);
 
     // Get the SDK path from the ANDROID_HOME env.
     let sdk_path = env::var("ANDROID_HOME").ok().expect("Please set the ANDROID_HOME environment variable");
@@ -31,6 +31,14 @@ fn main() {
     let android_platform = env::var("ANDROID_PLATFORM")
         .ok()
         .expect("Please set the ANDROID_PLATFORM environment variable");
+
+    // Add the C++ runtime .so
+    {
+        let libcpp_base_path = ndk_path.join("sources").join("cxx-stl").join("llvm-libc++").join("libs");
+        let libcpp_filename = "libc++_shared.so";
+        let libcpp_path = libcpp_base_path.join("armeabi").join(libcpp_filename);
+        native_shared_libs.insert(libcpp_filename.to_string(), libcpp_path);
+    }
 
     // Get the standalone NDK path from NDK_STANDALONE env.
     //  let standalone_path = env::var("NDK_STANDALONE").ok().unwrap_or("/opt/ndk_standalone".to_string());
