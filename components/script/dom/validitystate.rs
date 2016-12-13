@@ -8,6 +8,8 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
+use num_traits::ToPrimitive;
+use regex::Regex;
 
 // https://html.spec.whatwg.org/multipage/#validity-states
 #[derive(JSTraceable)]
@@ -69,11 +71,36 @@ impl ValidityState {
 impl ValidityStateMethods for ValidityState {
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valuemissing
     fn ValueMissing(&self) -> bool {
+        if self.element.has_attribute(&local_name!("required")) {
+            let v = self.element.get_string_attribute(&local_name!("value"));
+            let n = self.element.get_string_attribute(&local_name!("name"));
+            if v.is_empty() {
+                println!("{} Value missing!", n);
+                return true;
+            }
+        }
         false
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-typemismatch
     fn TypeMismatch(&self) -> bool {
+        if self.element.has_attribute(&local_name!("type")) {
+            let content_type = self.element.get_string_attribute(&local_name!("type"));
+            let content_value = self.element.get_string_attribute(&local_name!("value"));
+            let re = match content_type.to_string().as_ref() {
+                    "email" => Regex::new(r"^\w+@[a-zA-Z_]+?\.[a-zA-Z]{2,3}$").unwrap(),
+                    "url" => Regex::new(r"^[a-zA-Z0-9\-\.]+\.(com|org|net|mil|edu|COM|ORG|NET|MIL|EDU)$").unwrap(),
+                    "date" => Regex::new(r"^\d{1,2}\/\d{1,2}\/\d{4}$").unwrap(),
+                    "tel" => Regex::new(r"^\d{3}-\d{2}-\d{4}$").unwrap(),
+                    _ => Regex::new(r".*?").unwrap()
+            };
+            if re.is_match(&(content_value.to_string())) {
+                println!("Syntax wrong for {}", content_value);
+                return false;
+            } else {
+                return true;
+            }
+        }
         false
     }
 
@@ -84,11 +111,33 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-toolong
     fn TooLong(&self) -> bool {
+        if self.element.has_attribute(&local_name!("maxlength")) {
+            let Max = self.element.get_string_attribute(&local_name!("maxlength")).to_string();
+            let v = self.element.get_string_attribute(&local_name!("value")).to_string();
+            let n = self.element.get_string_attribute(&local_name!("name"));
+            let l = v.len().to_i32().unwrap();
+            if l > Max.parse::<i32>().unwrap() {
+                println!("{} is too long for {}, maxlength is {} characters.", v, n, Max);
+                return true;
+            }
+        }
+
         false
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-tooshort
     fn TooShort(&self) -> bool {
+        if self.element.has_attribute(&local_name!("minlength")) {
+            let Min = self.element.get_string_attribute(&local_name!("minlength")).to_string();
+            let v = self.element.get_string_attribute(&local_name!("value")).to_string();
+            let n = self.element.get_string_attribute(&local_name!("name"));
+            let l = v.len().to_i32().unwrap();
+            if l < Min.parse::<i32>().unwrap() {
+                println!("{} is too short for {}, minlength is {} characters.", v, n, Min);
+                return true;
+            }
+        }
+
         false
     }
 

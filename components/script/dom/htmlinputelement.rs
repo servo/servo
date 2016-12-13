@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS, Root, RootedReference};
@@ -32,6 +33,7 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::ValidationFlags;
+use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use ipc_channel::ipc::{self, IpcSender};
@@ -1139,6 +1141,21 @@ impl Validatable for HTMLInputElement {
     }
     fn validate(&self, _validate_flags: ValidationFlags) -> bool {
         // call stub methods defined in validityState.rs file here according to the flags set in validate_flags
+        let window = window_from_node(self);
+        let el = self.upcast::<Element>();
+        let vs = ValidityState::new(&window, el);
+        if vs.ValueMissing() {
+            return false;
+        }
+        if vs.TooLong() {
+            return false;
+        }
+        if vs.TooShort() {
+            return false;
+        }
+        if vs.TypeMismatch() {
+            return false;
+        }
         true
     }
 }
