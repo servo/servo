@@ -1510,7 +1510,10 @@ pub mod root {
      * Web components custom element data.
      */
                 pub mCustomElementData: root::RefPtr<root::mozilla::dom::CustomElementData>,
-                pub mRegisteredIntersectionObservers: root::nsTArray<root::mozilla::dom::FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration>,
+                /**
+     * Registered Intersection Observers on the element.
+     */
+                pub mRegisteredIntersectionObservers: [u64; 6usize],
             }
             #[repr(C)]
             #[derive(Debug, Copy)]
@@ -1536,30 +1539,10 @@ pub mod root {
             impl Clone for FragmentOrElement_nsDOMSlots__bindgen_ty_1 {
                 fn clone(&self) -> Self { *self }
             }
-            /**
-     * Registered Intersection Observers on the element.
-     */
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration {
-                pub observer: *mut root::mozilla::dom::DOMIntersectionObserver,
-                pub previousThreshold: i32,
-            }
-            #[test]
-            fn bindgen_test_layout_FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration() {
-                assert_eq!(::std::mem::size_of::<FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration>()
-                           , 16usize);
-                assert_eq!(::std::mem::align_of::<FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration>()
-                           , 8usize);
-            }
-            impl Clone for
-             FragmentOrElement_nsDOMSlots_IntersectionObserverRegistration {
-                fn clone(&self) -> Self { *self }
-            }
             #[test]
             fn bindgen_test_layout_FragmentOrElement_nsDOMSlots() {
                 assert_eq!(::std::mem::size_of::<FragmentOrElement_nsDOMSlots>()
-                           , 168usize);
+                           , 208usize);
                 assert_eq!(::std::mem::align_of::<FragmentOrElement_nsDOMSlots>()
                            , 8usize);
             }
@@ -1937,59 +1920,6 @@ pub mod root {
                 assert_eq!(::std::mem::align_of::<Attr>() , 8usize);
             }
             #[repr(C)]
-            #[derive(Debug)]
-            pub struct DOMIntersectionObserver {
-                pub _base: root::nsISupports,
-                pub _base_1: root::nsWrapperCache,
-                pub mRefCnt: root::nsCycleCollectingAutoRefCnt,
-                pub _mOwningThread: root::nsAutoOwningThread,
-                pub mOwner: root::nsCOMPtr<root::nsPIDOMWindowInner>,
-                pub mCallback: root::RefPtr<root::mozilla::dom::IntersectionCallback>,
-                pub mRoot: root::RefPtr<root::mozilla::dom::Element>,
-                pub mRootMargin: root::nsCSSRect,
-                pub mThresholds: root::nsTArray<f64>,
-                pub mObservationTargets: [u64; 6usize],
-                pub mQueuedEntries: root::nsTArray<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>,
-                pub mConnected: bool,
-            }
-            pub type DOMIntersectionObserver_HasThreadSafeRefCnt =
-                root::mozilla::FalseType;
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct DOMIntersectionObserver_cycleCollection {
-                pub _base: root::nsXPCOMCycleCollectionParticipant,
-            }
-            #[test]
-            fn bindgen_test_layout_DOMIntersectionObserver_cycleCollection() {
-                assert_eq!(::std::mem::size_of::<DOMIntersectionObserver_cycleCollection>()
-                           , 16usize);
-                assert_eq!(::std::mem::align_of::<DOMIntersectionObserver_cycleCollection>()
-                           , 8usize);
-            }
-            impl Clone for DOMIntersectionObserver_cycleCollection {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct DOMIntersectionObserver_COMTypeInfo<T, U> {
-                pub _address: u8,
-                pub _phantom_0: ::std::marker::PhantomData<T>,
-                pub _phantom_1: ::std::marker::PhantomData<U>,
-            }
-            extern "C" {
-                #[link_name =
-                      "_ZN7mozilla3dom23DOMIntersectionObserver21_cycleCollectorGlobalE"]
-                pub static mut DOMIntersectionObserver__cycleCollectorGlobal:
-                           root::mozilla::dom::DOMIntersectionObserver_cycleCollection;
-            }
-            #[test]
-            fn bindgen_test_layout_DOMIntersectionObserver() {
-                assert_eq!(::std::mem::size_of::<DOMIntersectionObserver>() ,
-                           208usize);
-                assert_eq!(::std::mem::align_of::<DOMIntersectionObserver>() ,
-                           8usize);
-            }
-            #[repr(C)]
             #[derive(Debug, Copy)]
             pub struct FontFaceSet {
                 pub _address: u8,
@@ -2128,18 +2058,6 @@ pub mod root {
                            , 104usize);
                 assert_eq!(::std::mem::align_of::<DOMIntersectionObserverEntry>()
                            , 8usize);
-            }
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct IntersectionCallback {
-                pub _base: root::mozilla::dom::CallbackFunction,
-            }
-            #[test]
-            fn bindgen_test_layout_IntersectionCallback() {
-                assert_eq!(::std::mem::size_of::<IntersectionCallback>() ,
-                           56usize);
-                assert_eq!(::std::mem::align_of::<IntersectionCallback>() ,
-                           8usize);
             }
             #[repr(C)]
             #[derive(Debug, Copy)]
@@ -2493,7 +2411,10 @@ pub mod root {
         }
         #[repr(i32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum TraversalRootBehavior { Normal = 0, UnstyledChildrenOnly = 1, }
+        pub enum TraversalRootBehavior {
+            Normal = 0,
+            UnstyledChildrenOnly = 1,
+        }
         pub mod a11y {
             #[allow(unused_imports)]
             use self::super::super::super::root;
@@ -8748,63 +8669,63 @@ pub mod root {
     impl Clone for nsDOMMutationObserver {
         fn clone(&self) -> Self { *self }
     }
-    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_HAS_LISTENERMANAGER;
-    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_HAS_PROPERTIES;
-    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_IS_ANONYMOUS_ROOT;
-    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_FORCE_XBL_BINDINGS;
-    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_MAY_BE_IN_BINDING_MNGR;
-    pub const NODE_IS_EDITABLE: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_IS_EDITABLE;
-    pub const NODE_MAY_HAVE_CLASS: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_MAY_HAVE_CLASS;
-    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_IS_IN_SHADOW_TREE;
-    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_HAS_EMPTY_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_HAS_SLOW_SELECTOR;
-    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_HAS_EDGE_CHILD_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
-    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_ALL_SELECTOR_FLAGS;
-    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_NEEDS_FRAME;
-    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_DESCENDANTS_NEED_FRAMES;
-    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_HAS_ACCESSKEY;
-    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_HAS_DIRECTION_RTL;
-    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_HAS_DIRECTION_LTR;
-    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_ALL_DIRECTION_FLAGS;
-    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_CHROME_ONLY_ACCESS;
-    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
-    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_SHARED_RESTYLE_BIT_2;
-    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_68 =
-        _bindgen_ty_68::NODE_TYPE_SPECIFIC_BITS_OFFSET;
+    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_HAS_LISTENERMANAGER;
+    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_HAS_PROPERTIES;
+    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_IS_ANONYMOUS_ROOT;
+    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_FORCE_XBL_BINDINGS;
+    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_MAY_BE_IN_BINDING_MNGR;
+    pub const NODE_IS_EDITABLE: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_IS_EDITABLE;
+    pub const NODE_MAY_HAVE_CLASS: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_MAY_HAVE_CLASS;
+    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_IS_IN_SHADOW_TREE;
+    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_HAS_EMPTY_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_HAS_SLOW_SELECTOR;
+    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_HAS_EDGE_CHILD_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
+    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_ALL_SELECTOR_FLAGS;
+    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_NEEDS_FRAME;
+    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_DESCENDANTS_NEED_FRAMES;
+    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_HAS_ACCESSKEY;
+    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_HAS_DIRECTION_RTL;
+    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_HAS_DIRECTION_LTR;
+    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_ALL_DIRECTION_FLAGS;
+    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_CHROME_ONLY_ACCESS;
+    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
+    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_SHARED_RESTYLE_BIT_2;
+    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_69 =
+        _bindgen_ty_69::NODE_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum _bindgen_ty_68 {
+    pub enum _bindgen_ty_69 {
         NODE_HAS_LISTENERMANAGER = 4,
         NODE_HAS_PROPERTIES = 8,
         NODE_IS_ANONYMOUS_ROOT = 16,
