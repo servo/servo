@@ -42,7 +42,12 @@ mod bindings {
 
     lazy_static! {
         static ref INCLUDE_RE: Regex = Regex::new(r#"#include\s*"(.+?)""#).unwrap();
-        static ref DISTDIR_PATH: PathBuf = PathBuf::from(env::var("MOZ_DIST").unwrap());
+        static ref DISTDIR_PATH: PathBuf = {
+            let path = PathBuf::from(env::var("MOZ_DIST").unwrap());
+            assert!(path.is_absolute(), "MOZ_DIST must be absolute path");
+            assert!(path.is_dir(), "MOZ_DIST must point at a directory");
+            path
+        };
         static ref SEARCH_PATHS: Vec<PathBuf> = vec![
             DISTDIR_PATH.join("include"),
             DISTDIR_PATH.join("include/nspr"),
