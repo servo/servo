@@ -18,6 +18,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::fmt;
 use std::mem;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
@@ -246,7 +247,7 @@ impl FontCache {
                                 Err(_) => {
                                     // FIXME(servo/fontsan#1): get an error message
                                     debug!("Sanitiser rejected web font: \
-                                            family={:?} url={:?}", family_name, url);
+                                            family={} url={:?}", family_name, url);
                                     let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
                                     channel_to_self.send(msg).unwrap();
                                     return;
@@ -486,5 +487,11 @@ impl Deref for LowercaseString {
     #[inline]
     fn deref(&self) -> &str {
         &*self.inner
+    }
+}
+
+impl fmt::Display for LowercaseString {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.inner.fmt(f)
     }
 }
