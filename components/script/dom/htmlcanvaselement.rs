@@ -338,18 +338,18 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
 pub mod utils {
     use dom::window::Window;
     use ipc_channel::ipc;
-    use net_traits::image_cache_thread::ImageResponse;
+    use net_traits::image_cache_thread::{ImageResponse, UsePlaceholder, ImageOrMetadataAvailable};
     use servo_url::ServoUrl;
 
     pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {
-        panic!()
-        /*let image_cache = window.image_cache_thread();
-        let (response_chan, response_port) = ipc::channel().unwrap();
-        image_cache.request_image(url.into(), ImageCacheChan(response_chan), None);
-        let result = response_port.recv().unwrap();
-        match result {
-            ImageCacheResult::InitiateRequest(..) => panic!("unexpected image request initiator"),
-            ImageCacheResult::Response(result) => result.image_response,
-        }*/
+        let image_cache = window.image_cache_thread();
+        //XXXjdm add a image cache mode that doesn't store anything for NotRequested?
+        let response =
+            image_cache.find_image_or_metadata(url.into(), UsePlaceholder::Yes);
+        match response {
+            Ok(ImageOrMetadataAvailable::ImageAvailable(image)) =>
+                ImageResponse::Loaded(image),
+            _ => ImageResponse::None,
+        }
     }
 }
