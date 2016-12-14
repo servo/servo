@@ -167,5 +167,16 @@ impl ToCss for BorderRadiusSize {
     }
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Shadow {
+    pub offset_x: Au,
+    pub offset_y: Au,
+    pub blur_radius: Au,
+    pub spread_radius: Au,
+    pub color: CSSColor,
+    pub inset: bool,
+}
+
 pub type Number = CSSFloat;
 pub type Opacity = CSSFloat;

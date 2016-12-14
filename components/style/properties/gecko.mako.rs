@@ -1809,7 +1809,7 @@ fn static_assert() {
                 Sepia(factor)      => fill_filter(NS_STYLE_FILTER_SEPIA,
                                                   CoordDataValue::Factor(factor),
                                                   gecko_filter),
-                DropShadow(offset_x, offset_y, blur_radius, ref color) => {
+                DropShadow(shadow) => {
                     gecko_filter.mType = NS_STYLE_FILTER_DROP_SHADOW;
 
                     fn init_shadow(filter: &mut nsStyleFilter) -> &mut nsCSSShadowArray {
@@ -1823,13 +1823,13 @@ fn static_assert() {
                     }
 
                     let mut gecko_shadow = init_shadow(gecko_filter);
-                    gecko_shadow.mArray[0].mXOffset = offset_x.0;
-                    gecko_shadow.mArray[0].mYOffset = offset_y.0;
-                    gecko_shadow.mArray[0].mRadius = blur_radius.0;
+                    gecko_shadow.mArray[0].mXOffset = shadow.offset_x.0;
+                    gecko_shadow.mArray[0].mYOffset = shadow.offset_y.0;
+                    gecko_shadow.mArray[0].mRadius = shadow.blur_radius.0;
                     // mSpread is not supported in the spec, so we leave it as 0
                     gecko_shadow.mArray[0].mInset = false; // Not supported in spec level 1
 
-                    gecko_shadow.mArray[0].mColor = match *color {
+                    gecko_shadow.mArray[0].mColor = match shadow.color {
                         Color::RGBA(rgba) => {
                             gecko_shadow.mArray[0].mHasColor = true;
                             convert_rgba_to_nscolor(&rgba)

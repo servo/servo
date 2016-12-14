@@ -14,6 +14,7 @@ use std::ops::Mul;
 use style_traits::ToCss;
 use super::{CSSFloat, HasViewportPercentage, NoViewportPercentage, Either, None_};
 use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
+use super::computed::Shadow as ComputedShadow;
 
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -517,3 +518,117 @@ impl ToCss for Opacity {
 
 pub type UrlOrNone = Either<SpecifiedUrl, None_>;
 
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Shadow {
+    pub offset_x: Length,
+    pub offset_y: Length,
+    pub blur_radius: Length,
+    pub spread_radius: Length,
+    pub color: Option<CSSColor>,
+    pub inset: bool,
+}
+
+impl HasViewportPercentage for Shadow {
+    fn has_viewport_percentage(&self) -> bool {
+        self.offset_x.has_viewport_percentage() ||
+        self.offset_y.has_viewport_percentage() ||
+        self.blur_radius.has_viewport_percentage() ||
+        self.spread_radius.has_viewport_percentage()
+    }
+}
+
+impl ToComputedValue for Shadow {
+    type ComputedValue = ComputedShadow;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        ComputedShadow {
+            offset_x: self.offset_x.to_computed_value(context),
+            offset_y: self.offset_y.to_computed_value(context),
+            blur_radius: self.blur_radius.to_computed_value(context),
+            spread_radius: self.spread_radius.to_computed_value(context),
+            color: self.color
+                        .as_ref()
+                        .map(|color| color.parsed)
+                        .unwrap_or(cssparser::Color::CurrentColor),
+            inset: self.inset,
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &ComputedShadow) -> Self {
+        Shadow {
+            offset_x: ToComputedValue::from_computed_value(&computed.offset_x),
+            offset_y: ToComputedValue::from_computed_value(&computed.offset_y),
+            blur_radius: ToComputedValue::from_computed_value(&computed.blur_radius),
+            spread_radius: ToComputedValue::from_computed_value(&computed.spread_radius),
+            color: Some(ToComputedValue::from_computed_value(&computed.color)),
+            inset: computed.inset,
+        }
+    }
+}
+
+impl Shadow {
+    // disable_spread_and_inset is for filter: drop-shadow(...)
+    pub fn parse(context:  &ParserContext, input: &mut Parser, disable_spread_and_inset: bool) -> Result<Shadow, ()> {
+        use app_units::Au;
+        let length_count = if disable_spread_and_inset { 3 } else { 4 };
+        let mut lengths = [Length::Absolute(Au(0)); 4];
+        let mut lengths_parsed = false;
+        let mut color = None;
+        let mut inset = false;
+
+        loop {
+            if !inset && !disable_spread_and_inset {
+                if input.try(|input| input.expect_ident_matching("inset")).is_ok() {
+                    inset = true;
+                    continue
+                }
+            }
+            if !lengths_parsed {
+                if let Ok(value) = input.try(|i| Length::parse(context, i)) {
+                    lengths[0] = value;
+                    let mut length_parsed_count = 1;
+                    while length_parsed_count < length_count {
+                        if let Ok(value) = input.try(|i| Length::parse(context, i)) {
+                            lengths[length_parsed_count] = value
+                        } else {
+                            break
+                        }
+                        length_parsed_count += 1;
+                    }
+
+                    // The first two lengths must be specified.
+                    if length_parsed_count < 2 {
+                        return Err(())
+                    }
+
+                    lengths_parsed = true;
+                    continue
+                }
+            }
+            if color.is_none() {
+                if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
+                    color = Some(value);
+                    continue
+                }
+            }
+            break
+        }
+
+        // Lengths must be specified.
+        if !lengths_parsed {
+            return Err(())
+        }
+
+        Ok(Shadow {
+            offset_x: lengths[0],
+            offset_y: lengths[1],
+            blur_radius: lengths[2],
+            spread_radius: if disable_spread_and_inset { Length::Absolute(Au(0)) } else { lengths[3] },
+            color: color,
+            inset: inset,
+        })
+    }
+}
