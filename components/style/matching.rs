@@ -364,6 +364,10 @@ impl StyleSharingCandidateCache {
     pub fn clear(&mut self) {
         self.cache.evict_all()
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.cache.is_empty()
+    }
 }
 
 /// The results of attempting to share a style.

@@ -41,6 +41,7 @@ pub fn traverse_dom<N, C>(root: N::ConcreteElement,
         current_dom_depth: None,
     };
     let context = C::new(shared, root.as_node().opaque());
+    assert!(context.local_context().style_sharing_candidate_cache.borrow().is_empty());
 
     if token.traverse_unstyled_children_only() {
         for kid in root.as_node().children() {
