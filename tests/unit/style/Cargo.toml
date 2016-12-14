@@ -26,4 +26,3 @@ servo_atoms = {path = "../../../components/atoms"}
 style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}
 servo_url = {path = "../../../components/url"}
-util = {path = "../../../components/util"}

@@ -9,6 +9,7 @@ use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::energy::{energy_interval_ms, read_energy_uj};
 use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
+use servo_config::opts::OutputOptions;
 use std::{f64, thread, u32, u64};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
@@ -22,7 +23,6 @@ use std::path::Path;
 use std::time::Duration;
 use std_time::precise_time_ns;
 use trace_dump::TraceDump;
-use util::opts::OutputOptions;
 
 pub trait Formattable {
     fn format(&self, output: &Option<OutputOptions>) -> String;

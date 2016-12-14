@@ -11,6 +11,7 @@ use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCac
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
 use net_traits::image_cache_thread::ImageResponder;
 use net_traits::request::{Destination, RequestInit, Type as RequestType};
+use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -22,7 +23,6 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use threadpool::ThreadPool;
-use util::resource_files::resources_dir_path;
 use webrender_traits;
 
 ///

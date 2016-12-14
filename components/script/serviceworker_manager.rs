@@ -16,11 +16,11 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CustomResponseMediator, CoreResourceMsg};
 use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
+use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver, RecvError};
 use std::thread;
-use util::prefs::PREFS;
 
 enum Message {
     FromResource(CustomResponseMediator),

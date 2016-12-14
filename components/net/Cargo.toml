@@ -34,12 +34,12 @@ profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3"
 serde = "0.8"
 serde_derive = "0.8"
+servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
 url = {version = "1.2", features = ["heap_size", "rustc-serialize"]}
-util = {path = "../util"}
 uuid = {version = "0.3.1", features = ["v4"]}
 websocket = "0.17"
 

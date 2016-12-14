@@ -35,6 +35,7 @@ use model::{self, MaybeAuto, ToGfxMatrix};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::UsePlaceholder;
 use range::Range;
+use servo_config::opts;
 use servo_url::ServoUrl;
 use std::{cmp, f32};
 use std::collections::HashMap;
@@ -57,7 +58,6 @@ use style::values::computed::{Gradient, GradientKind, LengthOrPercentage, Length
 use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
-use util::opts;
 use webrender_traits::{ColorF, GradientStop};
 
 trait RgbColor {

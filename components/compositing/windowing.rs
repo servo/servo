@@ -13,10 +13,10 @@ use gfx_traits::DevicePixel;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
 use script_traits::{MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
+use servo_geometry::ScreenPx;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::cursor::Cursor;
-use util::geometry::ScreenPx;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {

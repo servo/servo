@@ -26,6 +26,7 @@ use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::{Decodable, Encodable};
 use rustc_serialize::json;
+use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
@@ -39,7 +40,6 @@ use std::sync::{Arc, RwLock};
 use std::sync::mpsc::Sender;
 use std::thread;
 use storage_thread::StorageThreadFactory;
-use util::prefs::PREFS;
 use websocket_loader;
 
 const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;

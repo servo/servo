@@ -9,10 +9,10 @@ use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use offscreen_gl_context::{ColorAttachmentType, GLContext, GLLimits};
 use offscreen_gl_context::{GLContextAttributes, NativeGLContext, OSMesaContext};
+use servo_config::opts;
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 use std::thread;
-use util::opts;
 use webrender_traits;
 
 enum GLContextWrapper {

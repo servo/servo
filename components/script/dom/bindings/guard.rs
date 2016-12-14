@@ -5,7 +5,7 @@
 //! Machinery to conditionally expose things.
 
 use js::jsapi::{HandleObject, JSContext};
-use util::prefs::PREFS;
+use servo_config::prefs::PREFS;
 
 /// A container with a condition.
 pub struct Guard<T: Clone + Copy> {

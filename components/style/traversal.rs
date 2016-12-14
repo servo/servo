@@ -14,12 +14,12 @@ use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
 use selectors::Element;
 use selectors::matching::StyleRelations;
+use servo_config::opts;
 use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::mem;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use stylist::Stylist;
-use util::opts;
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.

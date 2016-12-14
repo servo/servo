@@ -77,6 +77,9 @@ use script_traits::{DocumentState, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData, WindowSizeType};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use servo_atoms::Atom;
+use servo_config::opts;
+use servo_config::prefs::PREFS;
+use servo_geometry::{f32_rect_to_au_rect, max_rect};
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -106,9 +109,6 @@ use timers::{IsInterval, TimerCallback};
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Position;
-use util::geometry::{self, max_rect};
-use util::opts;
-use util::prefs::PREFS;
 use webdriver_handlers::jsval_to_webdriver;
 
 /// Current state of the window object
@@ -1413,13 +1413,13 @@ impl Window {
     }
 
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: Rect<f32>) -> bool {
-        let rect = geometry::f32_rect_to_au_rect(viewport.clone());
+        let rect = f32_rect_to_au_rect(viewport.clone());
         self.current_viewport.set(rect);
         // We use a clipping rectangle that is five times the size of the of the viewport,
         // so that we don't collect display list items for areas too far outside the viewport,
         // but also don't trigger reflows every time the viewport changes.
         static VIEWPORT_EXPANSION: f32 = 2.0; // 2 lengths on each side plus original length is 5 total.
-        let proposed_clip_rect = geometry::f32_rect_to_au_rect(
+        let proposed_clip_rect = f32_rect_to_au_rect(
             viewport.inflate(viewport.size.width * VIEWPORT_EXPANSION,
             viewport.size.height * VIEWPORT_EXPANSION));
         let clip_rect = self.page_clip_rect.get();

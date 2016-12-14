@@ -15,10 +15,10 @@ use flow::IS_ABSOLUTELY_POSITIONED;
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use gfx_traits::ScrollRootId;
+use servo_config::opts;
 use style::context::StyleContext;
 use style::servo::restyle_damage::{REFLOW, STORE_OVERFLOW};
 use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
-use util::opts;
 
 pub use style::sequential::traverse_dom;
 

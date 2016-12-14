@@ -37,11 +37,11 @@ use js::jsapi::{HandleObject, HandleValue, JSContext, JSObject, JSAutoCompartmen
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
 use script_traits::MsDuration;
+use servo_config::prefs::PREFS;
 use std::borrow::ToOwned;
 use std::ptr;
 use std::rc::Rc;
 use timers::OneshotTimerCallback;
-use util::prefs::PREFS;
 
 #[dom_struct]
 pub struct TestBinding {

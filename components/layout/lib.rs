@@ -49,13 +49,13 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 #[macro_use] extern crate servo_atoms;
+extern crate servo_config;
 extern crate servo_url;
 extern crate smallvec;
 extern crate style;
 extern crate style_traits;
 extern crate unicode_bidi;
 extern crate unicode_script;
-extern crate util;
 extern crate webrender_traits;
 
 #[macro_use]

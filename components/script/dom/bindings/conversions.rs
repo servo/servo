@@ -56,8 +56,8 @@ use js::jsval::{ObjectValue, StringValue};
 use js::rust::{ToString, get_object_class, is_dom_class, is_dom_object, maybe_wrap_value};
 use libc;
 use num_traits::Float;
+use servo_config::opts;
 use std::{char, mem, ptr, slice};
-use util::opts;
 
 /// A trait to check whether a given `JSObject` implements an IDL interface.
 pub trait IDLInterface {

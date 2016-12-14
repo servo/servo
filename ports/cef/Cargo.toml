@@ -33,7 +33,6 @@ plugins = {path = "../../components/plugins"}
 script_traits = {path = "../../components/script_traits"}
 servo_url = {path = "../../components/url"}
 style_traits = {path = "../../components/style_traits"}
-util = {path = "../../components/util"}
 
 [target.'cfg(target_os="macos")'.dependencies]
 objc = "0.2"

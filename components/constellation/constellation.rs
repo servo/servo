@@ -47,6 +47,9 @@ use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, Scri
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
 use script_traits::{SWManagerMsg, ScopeThings, WindowSizeType};
+use servo_config::opts;
+use servo_config::prefs::PREFS;
+use servo_remutex::ReentrantMutex;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::{HashMap, VecDeque};
@@ -64,9 +67,6 @@ use style_traits::PagePx;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
-use util::opts;
-use util::prefs::PREFS;
-use util::remutex::ReentrantMutex;
 use webrender_traits;
 
 #[derive(Debug, PartialEq)]

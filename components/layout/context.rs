@@ -17,6 +17,7 @@ use net_traits::image::base::Image;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use parking_lot::RwLock;
+use servo_config::opts;
 use servo_url::ServoUrl;
 use std::borrow::Borrow;
 use std::cell::{RefCell, RefMut};
@@ -25,7 +26,6 @@ use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use style::context::{LocalStyleContext, StyleContext, SharedStyleContext};
-use util::opts;
 
 struct LocalLayoutContext {
     style_context: LocalStyleContext,

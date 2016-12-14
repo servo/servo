@@ -28,12 +28,12 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as Req
 use rand::random;
 use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx, ScriptChan};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
+use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, IN_WORKER, SCRIPT};
-use util::prefs::PREFS;
 
 /// Messages used to control service worker event loop
 pub enum ServiceWorkerScriptMsg {

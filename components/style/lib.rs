@@ -80,6 +80,7 @@ extern crate selectors;
 extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
+extern crate servo_config;
 extern crate servo_url;
 extern crate smallvec;
 #[macro_use]
@@ -87,7 +88,6 @@ extern crate style_traits;
 extern crate time;
 #[allow(unused_extern_crates)]
 extern crate unicode_segmentation;
-extern crate util;
 
 pub mod animation;
 pub mod atomic_refcell;

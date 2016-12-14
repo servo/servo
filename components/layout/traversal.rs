@@ -11,6 +11,7 @@ use flow::{self, PreorderFlowTraversal};
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
 use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
+use servo_config::opts;
 use std::mem;
 use style::atomic_refcell::AtomicRefCell;
 use style::context::{LocalStyleContext, SharedStyleContext, StyleContext};
@@ -20,7 +21,6 @@ use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
 use style::traversal::{DomTraversalContext, recalc_style_at, remove_from_bloom_filter};
 use style::traversal::PerLevelTraversalData;
-use util::opts;
 use wrapper::{GetRawData, LayoutNodeHelpers, LayoutNodeLayoutData};
 
 pub struct RecalcStyleAndConstructFlows<'lc> {

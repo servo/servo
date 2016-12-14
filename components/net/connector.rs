@@ -6,8 +6,8 @@ use hyper::client::Pool;
 use hyper::net::{HttpStream, HttpsConnector, SslClient};
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER};
 use openssl::ssl::{Ssl, SslContext, SslMethod, SslStream};
+use servo_config::resource_files::resources_dir_path;
 use std::sync::Arc;
-use util::resource_files::resources_dir_path;
 
 pub type Connector = HttpsConnector<ServoSslClient>;
 

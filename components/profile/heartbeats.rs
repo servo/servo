@@ -6,13 +6,13 @@
 use heartbeats_simple::HeartbeatPow as Heartbeat;
 use heartbeats_simple::HeartbeatPowContext as HeartbeatContext;
 use profile_traits::time::ProfilerCategory;
+use servo_config::opts;
 use std::collections::HashMap;
 use std::env::var_os;
 use std::error::Error;
 use std::fs::File;
 use std::mem;
 use std::path::Path;
-use util::opts;
 
 
 static mut HBS: Option<*mut HashMap<ProfilerCategory, Heartbeat>> = None;

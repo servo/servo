@@ -5603,7 +5603,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::globalscope::GlobalScope',
         'mem::heap_size_of_raw_self_and_children',
         'libc',
-        'util::prefs::PREFS',
+        'servo_config::prefs::PREFS',
         'std::borrow::ToOwned',
         'std::cmp',
         'std::mem',

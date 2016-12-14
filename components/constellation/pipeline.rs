@@ -24,6 +24,8 @@ use script_traits::{ConstellationControlMsg, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders, ScriptMsg};
 use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
+use servo_config::opts::{self, Opts};
+use servo_config::prefs::{PREFS, Pref};
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::env;
@@ -33,8 +35,6 @@ use std::process;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use style_traits::{PagePx, ViewportPx};
-use util::opts::{self, Opts};
-use util::prefs::{PREFS, Pref};
 use webrender_traits;
 
 /// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
