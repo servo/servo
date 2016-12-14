@@ -14,17 +14,13 @@ use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
 use http_loader::HttpState;
 use hyper::client::pool::Pool;
-use hyper::header::{ContentType, Header, SetCookie};
-use hyper::mime::{Mime, SubLevel, TopLevel};
+use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
-use mime_classifier::{ApacheBugFlag, MimeClassifier, NoSniffFlag};
-use net_traits::{CookieSource, CoreResourceThread, Metadata, ProgressMsg};
-use net_traits::{CoreResourceMsg, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
-use net_traits::{CustomResponseMediator, LoadResponse, NetworkError, ResourceId};
+use net_traits::{CookieSource, CoreResourceThread};
+use net_traits::{CoreResourceMsg, FetchResponseMsg, FetchTaskTarget};
+use net_traits::{CustomResponseMediator, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
-use net_traits::LoadContext;
-use net_traits::ProgressMsg::Done;
 use net_traits::request::{Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::time::ProfilerChan;
@@ -42,15 +38,10 @@ use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::Sender;
 use storage_thread::StorageThreadFactory;
-use util::prefs::PREFS;
 use util::thread::spawn_named;
 use websocket_loader;
 
 const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
-
-pub enum ProgressSender {
-    Channel(IpcSender<ProgressMsg>),
-}
 
 #[derive(Clone)]
 pub struct ResourceGroup {
@@ -58,82 +49,6 @@ pub struct ResourceGroup {
     auth_cache: Arc<RwLock<AuthCache>>,
     hsts_list: Arc<RwLock<HstsList>>,
     connector: Arc<Pool<Connector>>,
-}
-
-impl ProgressSender {
-    //XXXjdm return actual error
-    pub fn send(&self, msg: ProgressMsg) -> Result<(), ()> {
-        match *self {
-            ProgressSender::Channel(ref c) => c.send(msg).map_err(|_| ()),
-        }
-    }
-}
-
-pub fn send_error(url: ServoUrl, err: NetworkError, start_chan: LoadConsumer) {
-    let mut metadata: Metadata = Metadata::default(url);
-    metadata.status = None;
-
-    if let Ok(p) = start_sending_opt(start_chan, metadata) {
-        p.send(Done(Err(err))).unwrap();
-    }
-}
-
-/// For use by loaders in responding to a Load message that allows content sniffing.
-pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadata,
-                                 classifier: Arc<MimeClassifier>, partial_body: &[u8],
-                                 context: LoadContext)
-                                 -> Result<ProgressSender, ()> {
-    if PREFS.get("network.mime.sniff").as_boolean().unwrap_or(false) {
-        // TODO: should be calculated in the resource loader, from pull requeset #4094
-        let mut no_sniff = NoSniffFlag::Off;
-        let mut check_for_apache_bug = ApacheBugFlag::Off;
-
-        if let Some(ref headers) = metadata.headers {
-            if let Some(ref content_type) = headers.get_raw("content-type").and_then(|c| c.last()) {
-                check_for_apache_bug = ApacheBugFlag::from_content_type(content_type)
-            }
-            if let Some(ref raw_content_type_options) = headers.get_raw("X-content-type-options") {
-                if raw_content_type_options.iter().any(|ref opt| *opt == b"nosniff") {
-                    no_sniff = NoSniffFlag::On
-                }
-            }
-        }
-
-        let supplied_type =
-            metadata.content_type.as_ref().map(|&Serde(ContentType(Mime(ref toplevel, ref sublevel, _)))| {
-            (toplevel.to_owned(), format!("{}", sublevel))
-        });
-        let (toplevel, sublevel) = classifier.classify(context,
-                                                       no_sniff,
-                                                       check_for_apache_bug,
-                                                       &supplied_type,
-                                                       &partial_body);
-        let mime_tp: TopLevel = toplevel.into();
-        let mime_sb: SubLevel = sublevel.parse().unwrap();
-        metadata.content_type =
-            Some(Serde(ContentType(Mime(mime_tp, mime_sb, vec![]))));
-    }
-
-    start_sending_opt(start_chan, metadata)
-}
-
-/// For use by loaders in responding to a Load message.
-/// It takes an optional NetworkError, so that we can extract the SSL Validation errors
-/// and take it to the HTML parser
-fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
-    match start_chan {
-        LoadConsumer::Channel(start_chan) => {
-            let (progress_chan, progress_port) = ipc::channel().unwrap();
-            let result = start_chan.send(LoadResponse {
-                metadata: metadata,
-                progress_port: progress_port,
-            });
-            match result {
-                Ok(_) => Ok(ProgressSender::Channel(progress_chan)),
-                Err(_) => Err(())
-            }
-        }
-    }
 }
 
 /// Returns a tuple of (public, private) senders to the new threads.
