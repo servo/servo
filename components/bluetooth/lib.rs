@@ -421,6 +421,10 @@ impl BluetoothManager {
         }
     }
 
+    fn device_is_cached(&self, device_id: &str) -> bool {
+        self.cached_devices.contains_key(device_id) && self.address_to_id.values().any(|v| v == device_id)
+    }
+
     // Service
 
     fn get_and_cache_gatt_services(&mut self,
@@ -461,6 +465,10 @@ impl BluetoothManager {
                                  -> Vec<BluetoothGATTService> {
         let services = self.get_and_cache_gatt_services(adapter, device_id);
         services.into_iter().filter(|s| s.get_uuid().ok() == Some(service_uuid.to_string())).collect()
+    }
+
+    fn service_is_cached(&self, service_id: &str) -> bool {
+        self.cached_services.contains_key(service_id) && self.service_to_device.contains_key(service_id)
     }
 
     // Characteristic
@@ -525,6 +533,11 @@ impl BluetoothManager {
             }
         }
         props
+    }
+
+    fn characteristic_is_cached(&self, characteristic_id: &str) -> bool {
+        self.cached_characteristics.contains_key(characteristic_id) &&
+        self.characteristic_to_service.contains_key(characteristic_id)
     }
 
     // Descriptor
@@ -627,6 +640,10 @@ impl BluetoothManager {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
     fn gatt_server_connect(&mut self, device_id: String, sender: IpcSender<BluetoothResponseResult>) {
+        // Step 2.
+        if !self.device_is_cached(&device_id) {
+            return drop(sender.send(Err(BluetoothError::Network)));
+        }
         let mut adapter = get_adapter_or_return_error!(self, sender);
 
         // Step 5.1.1.
@@ -685,7 +702,7 @@ impl BluetoothManager {
                            uuid: String,
                            sender: IpcSender<BluetoothResponseResult>) {
         // Step 5.
-        if !self.cached_devices.contains_key(&device_id) {
+        if !self.device_is_cached(&device_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
         let mut adapter = get_adapter_or_return_error!(self, sender);
@@ -721,7 +738,7 @@ impl BluetoothManager {
                             uuid: Option<String>,
                             sender: IpcSender<BluetoothResponseResult>) {
         // Step 5.
-        if !self.cached_devices.contains_key(&device_id) {
+        if !self.device_is_cached(&device_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
         let mut adapter = get_adapter_or_return_error!(self, sender);
@@ -766,7 +783,7 @@ impl BluetoothManager {
                             uuid: String,
                             sender: IpcSender<BluetoothResponseResult>) {
         // Step 5.
-        if !self.cached_services.contains_key(&service_id) {
+        if !self.service_is_cached(&service_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
         let mut adapter = get_adapter_or_return_error!(self, sender);
@@ -807,7 +824,7 @@ impl BluetoothManager {
                              uuid: Option<String>,
                              sender: IpcSender<BluetoothResponseResult>) {
         // Step 5.
-        if !self.cached_services.contains_key(&service_id) {
+        if !self.service_is_cached(&service_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
         let mut adapter = get_adapter_or_return_error!(self, sender);
@@ -854,7 +871,7 @@ impl BluetoothManager {
                           uuid: String,
                           sender: IpcSender<BluetoothResponseResult>) {
         // Step 5.
-        if !self.cached_services.contains_key(&service_id) {
+        if !self.service_is_cached(&service_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
         let mut adapter = get_adapter_or_return_error!(self, sender);
@@ -891,7 +908,7 @@ impl BluetoothManager {
                            uuid: Option<String>,
                            sender: IpcSender<BluetoothResponseResult>) {
         // Step 5.
-        if !self.cached_services.contains_key(&service_id) {
+        if !self.service_is_cached(&service_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
         let mut adapter = get_adapter_or_return_error!(self, sender);
@@ -938,7 +955,7 @@ impl BluetoothManager {
                       uuid: String,
                       sender: IpcSender<BluetoothResponseResult>) {
         // Step 5.
-        if !self.cached_characteristics.contains_key(&characteristic_id) {
+        if !self.characteristic_is_cached(&characteristic_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
         let mut adapter = get_adapter_or_return_error!(self, sender);
@@ -968,7 +985,7 @@ impl BluetoothManager {
                        uuid: Option<String>,
                        sender: IpcSender<BluetoothResponseResult>) {
         // Step 5.
-        if !self.cached_characteristics.contains_key(&characteristic_id) {
+        if !self.characteristic_is_cached(&characteristic_id) {
             return drop(sender.send(Err(BluetoothError::InvalidState)));
         }
         let mut adapter = get_adapter_or_return_error!(self, sender);
@@ -1069,6 +1086,11 @@ impl BluetoothManager {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-stopnotifications
     fn enable_notification(&mut self, id: String, enable: bool, sender: IpcSender<BluetoothResponseResult>) {
+        // (StartNotifications) Step 2 - 3.
+        // (StopNotifications) Step 1 - 2.
+        if !self.characteristic_is_cached(&id) {
+            return drop(sender.send(Err(BluetoothError::InvalidState)));
+        }
         // (StartNotification) TODO: Step 7: Missing because it is optional.
         let mut adapter = get_adapter_or_return_error!(self, sender);
         match self.get_gatt_characteristic(&mut adapter, &id) {

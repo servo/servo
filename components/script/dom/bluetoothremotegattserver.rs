@@ -67,17 +67,14 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
         let p = Promise::new(&self.global());
         let sender = response_async(&p, self);
 
-        // TODO: Step 2: Implement representedDevice internal slot for BluetoothDevice.
-
         // TODO: Step 3: Check if the UA is currently using the Bluetooth system.
 
         // TODO: Step 4: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
 
-        // TODO: Step 5.1 - 5.2: Implement activeAlgorithms, representedDevice internal slots
-        // and the` garbage-collect the connection` algorithm.
+        // TODO: Step 5.1 - 5.2: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
 
-        // Note: Steps 5.1.1 and 5.1.3 are in components/bluetooth/lib.rs in the gatt_server_connect function.
-        // Steps 5.2.4 - 5.2.5  are in response function.
+        // Note: Steps 2, 5.1.1 and 5.1.3 are in components/bluetooth/lib.rs in the gatt_server_connect function.
+        // Steps 5.2.3 - 5.2.5  are in response function.
         self.get_bluetooth_thread().send(
             BluetoothRequest::GATTServerConnect(String::from(self.Device().Id()), sender)).unwrap();
         // Step 5: return promise.
@@ -142,9 +139,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
             return p;
         }
 
-        // TODO: Step 5: Implement representedDevice internal slot for BluetoothDevice.
-
-        // Note: Steps 6 - 7 are implemented in components/bluetooth/lib.rs in get_primary_service function
+        // Note: Steps 5 - 7 are implemented in components/bluetooth/lib.rs in get_primary_service function
         // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
@@ -185,9 +180,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
             return p;
         }
 
-        // TODO: Step 5: Implement representedDevice internal slot for BluetoothDevice.
-
-        // Note: Steps 6 - 7 are implemented in components/bluetooth/lib.rs in get_primary_services function
+        // Note: Steps 5 - 7 are implemented in components/bluetooth/lib.rs in get_primary_services function
         // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(

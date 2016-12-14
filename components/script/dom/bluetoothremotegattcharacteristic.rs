@@ -128,9 +128,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             return p;
         }
 
-        // TODO: Step 5: Implement representedService internal slot for BluetoothRemoteGATTService.
-
-        // Note: Steps 6 - 7 are implemented in components/bluetooth/lib.rs in get_descriptor function
+        // Note: Steps 5 - 7 are implemented in components/bluetooth/lib.rs in get_descriptor function
         // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
@@ -171,9 +169,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             return p;
         }
 
-        // TODO: Step 5: Implement representedService internal slot for BluetoothRemoteGATTService.
-
-        // Note: Steps 6 - 7 are implemented in components/bluetooth/lib.rs in get_descriptors function
+        // Note: Steps 5 - 7 are implemented in components/bluetooth/lib.rs in get_descriptors function
         // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
@@ -204,8 +200,6 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             return p;
         }
 
-        // TODO: Step 3 - 4: Implement representedCharacteristic internal slot for BluetoothRemoteGATTCharacteristic.
-
         // TODO: Step 5: Implement the `connection-checking-wrapper` algorithm for BluetoothRemoteGATTServer.
 
         // Step 5.1.
@@ -214,8 +208,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             return p;
         }
 
-        // Note: Remaining substeps of Step 5 are implemented in components/bluetooth/lib.rs in readValue function
-        // and in handle_response function.
+        // Note: Steps 3 - 4 and the remaining substeps of Step 5 are implemented in components/bluetooth/lib.rs
+        // in readValue function and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::ReadValue(self.get_instance_id(), sender)).unwrap();
@@ -246,8 +240,6 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             return p;
         }
 
-        // TODO: Step 5 - 6: Implement representedCharacteristic internal slot for BluetoothRemoteGATTCharacteristic.
-
         // TODO: Step 7: Implement the `connection-checking-wrapper` algorithm for BluetoothRemoteGATTServer.
 
         // Step 7.1.
@@ -258,8 +250,8 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             return p;
         }
 
-        // Note: Remaining substeps of Step 7 are implemented in components/bluetooth/lib.rs in writeValue function
-        // and in handle_response function.
+        // Note: Steps 5 - 6 and the remaining substeps of Step 7 are implemented in components/bluetooth/lib.rs
+        // in writeValue function and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
             BluetoothRequest::WriteValue(self.get_instance_id(), value, sender)).unwrap();
@@ -278,8 +270,6 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             return p;
         }
 
-        // TODO: Step 2 - 3: Implement representedCharacteristic internal slot for BluetoothRemoteGATTCharacteristic.
-
         // Step 4.
         if !(self.Properties().Notify() ||
              self.Properties().Indicate()) {
@@ -295,7 +285,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             return p;
         }
 
-        // Note: Steps 7 - 11 are implemented in components/bluetooth/lib.rs in enable_notification function
+        // Note: Steps 2 - 3, 7 - 11 are implemented in components/bluetooth/lib.rs in enable_notification function
         // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
@@ -311,11 +301,10 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         let p = Promise::new(&self.global());
         let sender = response_async(&p, self);
 
-        // TODO: Step 1 - 4: Implement representedCharacteristic internal slot and
-        // `active notification context set` for BluetoothRemoteGATTCharacteristic,
+        // TODO: Step 3 - 4: Implement `active notification context set` for BluetoothRemoteGATTCharacteristic,
 
-        // Note: Part of Step 4 and Step 5 are implemented in components/bluetooth/lib.rs in enable_notification
-        // function and in handle_response function.
+        // Note: Steps 1 - 2, and part of Step 4 and Step 5 are implemented in components/bluetooth/lib.rs
+        // in enable_notification function and in handle_response function.
         self.get_bluetooth_thread().send(
             BluetoothRequest::EnableNotification(self.get_instance_id(),
                                                  false,
