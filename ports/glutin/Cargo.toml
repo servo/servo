@@ -39,7 +39,7 @@ user32-sys = "0.2"
 gdi32-sys = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-osmesa-src = {git = "https://github.com/servo/osmesa-src"}
+osmesa-src = {git = "https://github.com/emilio/osmesa-src", branch = "osmesaup"}
 
 [target.x86_64-unknown-linux-gnu.dependencies]
-osmesa-src = {git = "https://github.com/servo/osmesa-src"}
+osmesa-src = {git = "https://github.com/emilio/osmesa-src", branch = "osmesaup"}
