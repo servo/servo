@@ -739,7 +739,7 @@ pub trait MatchMethods : TElement {
             // some small piece of newly-added content in order to do something
             // specific with that frame, but not wanting to flush all of
             // layout).
-            debug_assert!(cfg!(gecko) || d.has_current_styles());
+            debug_assert!(cfg!(feature = "gecko") || d.has_current_styles());
             &d.styles().primary.values
         });
 
