@@ -140,6 +140,21 @@ ${helpers.single_keyword("font-variant",
                          "normal small-caps",
                          animatable=False)}
 
+
+<% font_variant_caps_custom_consts= { "small-caps": "SMALLCAPS",
+                                      "all-small": "ALLSMALL",
+                                      "petite-caps": "PETITECAPS",
+                                      "all-petite": "ALLPETITE",
+                                      "titling-caps": "TITLING" } %>
+
+${helpers.single_keyword("font-variant-caps",
+                         "normal small-caps all-small petite-caps unicase titling-caps",
+                         gecko_constant_prefix="NS_FONT_VARIANT_CAPS",
+                         gecko_ffi_name="mFont.variantCaps",
+                         products="gecko",
+                         custom_consts=font_variant_caps_custom_consts,
+                         animatable=False)}
+
 <%helpers:longhand name="font-weight" need_clone="True" animatable="True">
     use std::fmt;
     use style_traits::ToCss;
