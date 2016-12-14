@@ -1,0 +1,13 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    let device_name = '\u2764'.repeat(9);
+    window.testRunner.setBluetoothMockDataSet(adapter_type.unicode_device);
+    return window.navigator.bluetooth.requestDevice({acceptAllDevices: true})
+    .then(device => assert_equals(device.name, device_name));
+}, 'Device with name and no UUIDs nearby. Should be found if acceptAllDevices is true.');
+</script>

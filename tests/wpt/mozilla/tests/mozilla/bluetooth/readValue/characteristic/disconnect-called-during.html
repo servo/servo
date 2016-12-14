@@ -1,0 +1,25 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}],
+        optionalServices: [generic_access.name]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => {
+        return gattServer.getPrimaryService(heart_rate.name)
+        .then(service => service.getCharacteristic(heart_rate_measurement.name))
+        .then(characteristic => characteristic.startNotifications())
+        .then(characteristic => {
+            let promise = promise_rejects(t, 'NetworkError', characteristic.readValue());
+            gattServer.disconnect();
+            return promise;
+        });
+    });
+}, 'disconnect() called during readValue. Reject with NetworkError.');
+</script>

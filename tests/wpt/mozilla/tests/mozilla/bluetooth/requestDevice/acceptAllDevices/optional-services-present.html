@@ -1,0 +1,22 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(() => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.two_heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ['heart_rate']
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => gattServer.getPrimaryServices())
+    .then(services => {
+        assert_equals(services.length, 2);
+        services.forEach(service => {
+            assert_equals(service.uuid, BluetoothUUID.getService('heart_rate'));
+        });
+    })
+}, 'requestDevice called with acceptAllDevices: true and with optionalServices. Should get access to services.');
+</script>
