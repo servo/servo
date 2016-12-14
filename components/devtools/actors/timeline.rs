@@ -163,7 +163,7 @@ impl TimelineActor {
 
                 thread::sleep(Duration::from_millis(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT));
             }
-        });
+        }).expect("Thread spawning failed");
     }
 }
 
