@@ -10,8 +10,6 @@ use constellation::ScriptChan;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-#[cfg(not(target_os = "windows"))]
-use gaol;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::DevicePixel;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -38,13 +36,6 @@ use style_traits::{PagePx, ViewportPx};
 use util::opts::{self, Opts};
 use util::prefs::{PREFS, Pref};
 use webrender_traits;
-
-pub enum ChildProcess {
-    #[cfg(not(target_os = "windows"))]
-    Sandboxed(gaol::platform::process::Process),
-    #[cfg(not(target_os = "windows"))]
-    Unsandboxed(process::Child),
-}
 
 /// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
 pub struct Pipeline {
@@ -134,15 +125,14 @@ pub struct InitialPipelineState {
 impl Pipeline {
     /// Starts a paint thread, layout thread, and possibly a script thread, in
     /// a new process if requested.
-    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState)
-                                    -> Result<(Pipeline, Option<ChildProcess>), IOError>
+    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, IOError>
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
         let (pipeline_chan, pipeline_port) = ipc::channel()
-            .expect("Pipeline main chan");;
+            .expect("Pipeline main chan");
 
         let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
             ipc::channel().expect("Pipeline layout content shutdown chan");
@@ -180,7 +170,6 @@ impl Pipeline {
             }
         };
 
-        let mut child_process = None;
         if let Some((script_port, pipeline_port)) = content_ports {
             // Route messages coming from content to devtools as appropriate.
             let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
@@ -236,24 +225,22 @@ impl Pipeline {
             //
             // Yes, that's all there is to it!
             if opts::multiprocess() {
-                child_process = Some(try!(unprivileged_pipeline_content.spawn_multiprocess()));
+                let _ = try!(unprivileged_pipeline_content.spawn_multiprocess());
             } else {
                 unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
             }
         }
 
-        let pipeline = Pipeline::new(state.id,
-                                     state.frame_id,
-                                     state.parent_info,
-                                     script_chan,
-                                     pipeline_chan,
-                                     state.compositor_proxy,
-                                     state.is_private,
-                                     state.load_data.url,
-                                     state.window_size,
-                                     state.prev_visibility.unwrap_or(true));
-
-        Ok((pipeline, child_process))
+        Ok(Pipeline::new(state.id,
+                         state.frame_id,
+                         state.parent_info,
+                         script_chan,
+                         pipeline_chan,
+                         state.compositor_proxy,
+                         state.is_private,
+                         state.load_data.url,
+                         state.window_size,
+                         state.prev_visibility.unwrap_or(true)))
     }
 
     /// Creates a new `Pipeline`, after the script and layout threads have been
@@ -464,7 +451,7 @@ impl UnprivilegedPipelineContent {
     }
 
     #[cfg(not(target_os = "windows"))]
-    pub fn spawn_multiprocess(self) -> Result<ChildProcess, IOError> {
+    pub fn spawn_multiprocess(self) -> Result<(), IOError> {
         use gaol::sandbox::{self, Sandbox, SandboxMethods};
         use ipc_channel::ipc::IpcOneShotServer;
         use sandboxing::content_process_sandbox_profile;
@@ -489,31 +476,30 @@ impl UnprivilegedPipelineContent {
             .expect("Failed to create IPC one-shot server.");
 
         // If there is a sandbox, use the `gaol` API to create the child process.
-        let child_process = if opts::get().sandbox {
+        if opts::get().sandbox {
             let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
             self.setup_common(&mut command, token);
 
             let profile = content_process_sandbox_profile();
-            ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
-                                    .expect("Failed to start sandboxed child process!"))
+            let _ = Sandbox::new(profile)
+                .start(&mut command)
+                .expect("Failed to start sandboxed child process!");
         } else {
             let path_to_self = env::current_exe()
                 .expect("Failed to get current executor.");
             let mut child_process = process::Command::new(path_to_self);
             self.setup_common(&mut child_process, token);
-
-            ChildProcess::Unsandboxed(child_process.spawn()
-                                      .expect("Failed to start unsandboxed child process!"))
-        };
+            let _ = child_process.spawn().expect("Failed to start unsandboxed child process!");
+        }
 
         let (_receiver, sender) = server.accept().expect("Server failed to accept.");
         try!(sender.send(self));
 
-        Ok(child_process)
+        Ok(())
     }
 
     #[cfg(target_os = "windows")]
-    pub fn spawn_multiprocess(self) -> Result<ChildProcess, IOError> {
+    pub fn spawn_multiprocess(self) -> Result<(), IOError> {
         error!("Multiprocess is not supported on Windows.");
         process::exit(1);
     }
