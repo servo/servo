@@ -39,6 +39,7 @@ pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "#7193"]
     textinput: DOMRefCell<TextInput<IpcSender<ConstellationMsg>>>,
+    placeholder: DOMRefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
 }
@@ -58,7 +59,12 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String {
-        String::from((*self.unsafe_get()).textinput.borrow_for_layout().get_content())
+        let text = (*self.unsafe_get()).textinput.borrow_for_layout().get_content();
+        String::from(if text.is_empty() {
+            (*self.unsafe_get()).placeholder.borrow_for_layout().clone()
+        } else {
+            text
+        })
     }
 
     #[allow(unrooted_must_root)]
@@ -105,6 +111,7 @@ impl HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
                                                       local_name, prefix, document),
+            placeholder: DOMRefCell::new(DOMString::new()),
             textinput: DOMRefCell::new(TextInput::new(
                     Lines::Multiple, DOMString::new(), chan, None, None, SelectionDirection::None)),
             value_changed: Cell::new(false),
@@ -118,6 +125,14 @@ impl HTMLTextAreaElement {
         Node::reflect_node(box HTMLTextAreaElement::new_inherited(local_name, prefix, document),
                            document,
                            HTMLTextAreaElementBinding::Wrap)
+    }
+
+    fn update_placeholder_shown_state(&self) {
+        let has_placeholder = !self.placeholder.borrow().is_empty();
+        let has_value = !self.textinput.borrow().is_empty();
+        let el = self.upcast::<Element>();
+        el.set_placeholder_shown_state(has_placeholder && !has_value);
+        el.set_placeholder_shown_state(has_placeholder);
     }
 }
 
@@ -311,6 +326,16 @@ impl VirtualMethods for HTMLTextAreaElement {
                     }
                 }
             },
+            local_name!("placeholder") => {
+                {
+                    let mut placeholder = self.placeholder.borrow_mut();
+                    placeholder.clear();
+                    if let AttributeMutation::Set(_) = mutation {
+                        placeholder.push_str(&attr.value());
+                    }
+                }
+                self.update_placeholder_shown_state();
+            },
             local_name!("readonly") => {
                 let el = self.upcast::<Element>();
                 match mutation {
@@ -375,10 +400,14 @@ impl VirtualMethods for HTMLTextAreaElement {
             document_from_node(self).request_focus(self.upcast());
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(kevent) = event.downcast::<KeyboardEvent>() {
-                match self.textinput.borrow_mut().handle_keydown(kevent) {
+                // This can't be inlined, as holding on to textinput.borrow_mut()
+                // during self.implicit_submission will cause a panic.
+                let action = self.textinput.borrow_mut().handle_keydown(kevent);
+                match action {
                     KeyReaction::TriggerDefaultAction => (),
                     KeyReaction::DispatchInput => {
                         self.value_changed.set(true);
+                        self.update_placeholder_shown_state();
 
                         if event.IsTrusted() {
                             let window = window_from_node(self);
