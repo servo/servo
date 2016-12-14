@@ -250,7 +250,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
         let data = self.borrow_data().unwrap();
         // See the comment on `cascade_node` about getting the up-to-date parent
         // style for why we allow this on Gecko.
-        debug_assert!(cfg!(gecko) || data.has_current_styles());
+        debug_assert!(cfg!(feature = "gecko") || data.has_current_styles());
         data.styles().is_display_none()
     }
 
