@@ -1143,7 +1143,8 @@ impl ScriptThread {
     }
 
     fn handle_resize(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
-        if let Some(ref window) = self.documents.borrow().find_window(id) {
+        let window = self.documents.borrow().find_window(id);
+        if let Some(ref window) = window {
             window.set_resize_event(size, size_type);
             return;
         }
@@ -1156,7 +1157,8 @@ impl ScriptThread {
     }
 
     fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
-        if let Some(document) = self.documents.borrow().find_document(id) {
+        let document = self.documents.borrow().find_document(id);
+        if let Some(document) = document {
             if document.window().set_page_clip_rect_with_new_viewport(rect) {
                 self.rebuild_and_force_reflow(&document, ReflowReason::Viewport);
             }
@@ -1296,7 +1298,8 @@ impl ScriptThread {
     /// To slow/speed up timers and manage any other script thread resource based on visibility.
     /// Returns true if successful.
     fn alter_resource_utilization(&self, id: PipelineId, visible: bool) -> bool {
-        if let Some(window) = self.documents.borrow().find_window(id) {
+        let window = self.documents.borrow().find_window(id);
+        if let Some(window) = window {
             if visible {
                 window.upcast::<GlobalScope>().speed_up_timers();
             } else {
@@ -1309,7 +1312,8 @@ impl ScriptThread {
 
     /// Updates iframe element after a change in visibility
     fn handle_visibility_change_complete_msg(&self, parent_pipeline_id: PipelineId, id: FrameId, visible: bool) {
-        if let Some(iframe) = self.documents.borrow().find_iframe(parent_pipeline_id, id) {
+        let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, id);
+        if let Some(iframe) = iframe {
             iframe.change_visibility_status(visible);
         }
     }
@@ -1337,7 +1341,8 @@ impl ScriptThread {
 
     /// Handles freeze message
     fn handle_freeze_msg(&self, id: PipelineId) {
-        if let Some(window) = self.documents.borrow().find_window(id) {
+        let window = self.documents.borrow().find_window(id);
+        if let Some(window) = window {
             window.upcast::<GlobalScope>().suspend();
             return;
         }
@@ -1351,7 +1356,8 @@ impl ScriptThread {
 
     /// Handles thaw message
     fn handle_thaw_msg(&self, id: PipelineId) {
-        if let Some(document) = self.documents.borrow().find_document(id) {
+        let document = self.documents.borrow().find_document(id);
+        if let Some(document) = document {
             if let Some(context) = document.browsing_context() {
                 let needed_reflow = context.set_reflow_status(false);
                 if needed_reflow {
@@ -1402,14 +1408,16 @@ impl ScriptThread {
                                    parent_pipeline_id: PipelineId,
                                    frame_id: Option<FrameId>,
                                    event: MozBrowserEvent) {
-        match self.documents.borrow().find_document(parent_pipeline_id) {
-            None => warn!("Mozbrowser event after pipeline {:?} closed.", parent_pipeline_id),
-            Some(doc) => match frame_id {
-                None => doc.window().dispatch_mozbrowser_event(event),
-                Some(frame_id) => match doc.find_iframe(frame_id) {
-                    None => warn!("Mozbrowser event after iframe {:?}/{:?} closed.", parent_pipeline_id, frame_id),
-                    Some(frame_element) => frame_element.dispatch_mozbrowser_event(event),
-                },
+        let doc = match self.documents.borrow().find_document(parent_pipeline_id) {
+            None => return warn!("Mozbrowser event after pipeline {:?} closed.", parent_pipeline_id),
+            Some(doc) => doc,
+        };
+
+        match frame_id {
+            None => doc.window().dispatch_mozbrowser_event(event),
+            Some(frame_id) => match doc.find_iframe(frame_id) {
+                None => warn!("Mozbrowser event after iframe {:?}/{:?} closed.", parent_pipeline_id, frame_id),
+                Some(frame_element) => frame_element.dispatch_mozbrowser_event(event),
             },
         }
     }
@@ -1418,7 +1426,8 @@ impl ScriptThread {
                                  parent_pipeline_id: PipelineId,
                                  frame_id: FrameId,
                                  new_pipeline_id: PipelineId) {
-        if let Some(frame_element) = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id) {
+        let frame_element = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id);
+        if let Some(frame_element) = frame_element {
             frame_element.update_pipeline_id(new_pipeline_id);
         }
     }
@@ -1487,13 +1496,14 @@ impl ScriptThread {
             Some(r) => r,
             None => return
         };
-        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
-            let script_url = maybe_registration.get_installed().get_script_url();
-            let scope_things = ServiceWorkerRegistration::create_scope_things(window.upcast(), script_url);
-            let _ = self.constellation_chan.send(ConstellationMsg::RegisterServiceWorker(scope_things, scope.clone()));
-        } else {
-            warn!("Registration failed for {}", scope);
-        }
+        let window = match self.documents.borrow().find_window(pipeline_id) {
+            Some(window) => window,
+            None => return warn!("Registration failed for {}", scope),
+        };
+
+        let script_url = maybe_registration.get_installed().get_script_url();
+        let scope_things = ServiceWorkerRegistration::create_scope_things(window.upcast(), script_url);
+        let _ = self.constellation_chan.send(ConstellationMsg::RegisterServiceWorker(scope_things, scope.clone()));
     }
 
     pub fn dispatch_job_queue(&self, job_handler: Box<AsyncJobHandler>) {
@@ -1642,7 +1652,8 @@ impl ScriptThread {
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
     fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
-        if let Some(document) = self.documents.borrow().find_document(pipeline_id)  {
+        let document = self.documents.borrow().find_document(pipeline_id);
+        if let Some(document) = document {
             self.rebuild_and_force_reflow(&document, ReflowReason::WebFontLoaded);
         }
     }
@@ -1650,12 +1661,14 @@ impl ScriptThread {
     /// Notify a window of a storage event
     fn handle_storage_event(&self, pipeline_id: PipelineId, storage_type: StorageType, url: ServoUrl,
                             key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
-        let storage = match self.documents.borrow().find_window(pipeline_id) {
+        let window = match self.documents.borrow().find_window(pipeline_id) {
             None => return warn!("Storage event sent to closed pipeline {}.", pipeline_id),
-            Some(window) => match storage_type {
-                StorageType::Local => window.LocalStorage(),
-                StorageType::Session => window.SessionStorage(),
-            },
+            Some(window) => window,
+        };
+
+        let storage = match storage_type {
+            StorageType::Local => window.LocalStorage(),
+            StorageType::Session => window.SessionStorage(),
         };
 
         storage.queue_storage_event(url, key, old_value, new_value);
@@ -1980,17 +1993,19 @@ impl ScriptThread {
             }
 
             TouchpadPressureEvent(point, pressure, phase) => {
-                match self.documents.borrow().find_document(pipeline_id) {
-                    Some(doc) => doc.handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase),
-                    None => warn!("Message sent to closed pipeline {}.", pipeline_id),
-                }
+                let doc = match self.documents.borrow().find_document(pipeline_id) {
+                    Some(doc) => doc,
+                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                };
+                doc.handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase);
             }
 
             KeyEvent(ch, key, state, modifiers) => {
-                match self.documents.borrow().find_document(pipeline_id) {
-                    Some(document) => document.dispatch_key_event(ch, key, state, modifiers, &self.constellation_chan),
-                    None => warn!("Message sent to closed pipeline {}.", pipeline_id),
-                }
+                let document = match self.documents.borrow().find_document(pipeline_id) {
+                    Some(document) => document,
+                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                };
+                document.dispatch_key_event(ch, key, state, modifiers, &self.constellation_chan);
             }
         }
     }
@@ -2000,10 +2015,11 @@ impl ScriptThread {
                           mouse_event_type: MouseEventType,
                           button: MouseButton,
                           point: Point2D<f32>) {
-        match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document.handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type),
-            None => warn!("Message sent to closed pipeline {}.", pipeline_id),
-        }
+        let document = match self.documents.borrow().find_document(pipeline_id) {
+            Some(document) => document,
+            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+        };
+        document.handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
     }
 
     fn handle_touch_event(&self,
@@ -2012,13 +2028,14 @@ impl ScriptThread {
                           identifier: TouchId,
                           point: Point2D<f32>)
                           -> TouchEventResult {
-        match self.documents.borrow().find_document(pipeline_id) {
-            Some(document) => document.handle_touch_event(self.js_runtime.rt(), event_type, identifier, point),
+        let document = match self.documents.borrow().find_document(pipeline_id) {
+            Some(document) => document,
             None => {
                 warn!("Message sent to closed pipeline {}.", pipeline_id);
-                TouchEventResult::Processed(true)
+                return TouchEventResult::Processed(true);
             },
-        }
+        };
+        document.handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
     }
 
     /// https://html.spec.whatwg.org/multipage/#navigating-across-documents
@@ -2175,7 +2192,8 @@ impl ScriptThread {
     }
 
     fn handle_reload(&self, pipeline_id: PipelineId) {
-        if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        if let Some(window) = window {
             window.Location().Reload();
         }
     }
