@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => gattServer.getPrimaryService(heart_rate.name))
+    .then(service => service.getCharacteristic(heart_rate_measurement.name))
+    .then(characteristic => {
+        window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
+        return promise_rejects(t, 'InvalidStateError', characteristic.startNotifications());
+    });
+}, 'Device goes out of range. Reject with InvalidStateError.');
+</script>

@@ -1,0 +1,16 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.glucose_heart_rate);
+    return promise_rejects(t, new TypeError(), window.navigator.bluetooth.requestDevice({
+        filters: [{services: [battery_service.name]},
+                  {services: [heart_rate.name]},
+                  {acceptAllDevices: true},
+                  {acceptAllDevices: true, optionalServices: ['heart_rate']}]
+    }));
+}, 'RequestDeviceOptions should have exactly one of \'filters\' or \'acceptAllDevices:true\'. Reject with TypeError if not.');
+</script>
