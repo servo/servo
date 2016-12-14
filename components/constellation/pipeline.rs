@@ -42,7 +42,6 @@ use webrender_traits;
 pub enum ChildProcess {
     #[cfg(not(target_os = "windows"))]
     Sandboxed(gaol::platform::process::Process),
-    #[cfg(not(target_os = "windows"))]
     Unsandboxed(process::Child),
 }
 
@@ -512,13 +511,40 @@ impl UnprivilegedPipelineContent {
         Ok(child_process)
     }
 
+    // gaol is not supported on Windows yet, so this is just multiprocess
+    // without sandboxing
     #[cfg(target_os = "windows")]
     pub fn spawn_multiprocess(self) -> Result<ChildProcess, IOError> {
-        error!("Multiprocess is not supported on Windows.");
-        process::exit(1);
+        use ipc_channel::ipc::IpcOneShotServer;
+
+        if opts::get().sandbox {
+            error!("Windows can't create sandboxed child processes yet");
+            process::exit(1);
+        }
+
+        // Note that this function can panic, due to process creation,
+        // avoiding this panic would require a mechanism for dealing
+        // with low-resource scenarios.
+        let (server, token) =
+            IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
+            .expect("Failed to create IPC one-shot server.");
+
+        let child_process = {
+            let path_to_self = env::current_exe()
+                .expect("Failed to get current executor.");
+            let mut child_process = process::Command::new(path_to_self);
+            self.setup_common(&mut child_process, token);
+
+            ChildProcess::Unsandboxed(child_process.spawn()
+                                      .expect("Failed to start unsandboxed child process!"))
+        };
+
+        let (_receiver, sender) = server.accept().expect("Server failed to accept.");
+        try!(sender.send(self));
+
+        Ok(child_process)
     }
 
-    #[cfg(not(windows))]
     fn setup_common<C: CommandMethods>(&self, command: &mut C, token: String) {
         C::arg(command, "--content-process");
         C::arg(command, token);
