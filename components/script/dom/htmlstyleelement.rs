@@ -34,6 +34,8 @@ pub struct HTMLStyleElement {
     cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
+    // NB: We don't need to track the pending load count because we don't need
+    // to trigger an onload event for this element.
 }
 
 impl HTMLStyleElement {

@@ -56,12 +56,9 @@ impl HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
-            pending_loads: Cell::new(0),
-            // FIXME(emilio): CSSOM probably requires to expose a stylesheet
-            // here, create an empty one and fill it in StylesheetLoader
-            // instead.
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
+            pending_loads: Cell::new(0),
         }
     }
 
@@ -257,9 +254,8 @@ impl HTMLLinkElement {
         let mut css_parser = CssParser::new(&mq_str);
         let media = parse_media_query_list(&mut css_parser);
 
-        // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
-        // emilio: Can we? We need to expose that stuff through CSSOM. Probably
-        // we can async-load it when we're requested the stylesheet?
+        // TODO: #8085 - Don't load external stylesheets if the node's mq
+        // doesn't match.
         let loader = StylesheetLoader::for_element(self.upcast());
         loader.load(StylesheetContextSource::LinkElement {
             url: url,

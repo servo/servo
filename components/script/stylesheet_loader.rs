@@ -63,12 +63,6 @@ impl FetchResponseListener for StylesheetContext {
                 FetchMetadata::Filtered { unsafe_, .. } => unsafe_
             }
         });
-        if let Some(ref meta) = self.metadata {
-            if let Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Css, _)))) = meta.content_type {
-            } else if let StylesheetContextSource::LinkElement { .. } = self.source {
-                self.elem.root().upcast::<EventTarget>().fire_event(atom!("error"));
-            }
-        }
     }
 
     fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
@@ -130,8 +124,10 @@ impl FetchResponseListener for StylesheetContext {
 
             document.invalidate_stylesheets();
 
-            // FIXME: Revisit once consensus is reached at: https://github.com/whatwg/html/issues/1142
-            successful = metadata.status.map_or(false, |(code, _)| code == 200);
+            // FIXME: Revisit once consensus is reached at:
+            // https://github.com/whatwg/html/issues/1142
+            successful = is_css &&
+                metadata.status.map_or(false, |(code, _)| code == 200);
         }
 
         if let Some(ref link) = elem.downcast::<HTMLLinkElement>() {
@@ -156,6 +152,13 @@ impl FetchResponseListener for StylesheetContext {
 
         if let Some(ref link) = elem.downcast::<HTMLLinkElement>() {
             if link.decrement_pending_loads_count() {
+                // FIXME(emilio): This is buggy, we're firing the load or error
+                // event depending on whether the _last_ load was successful or
+                // not.
+                //
+                // This is kind of buggy, but there doesn't seem to be a
+                // consensus. This is also the same behavior as Gecko, see bz's
+                // comments in https://github.com/whatwg/html/issues/1142
                 let event = if successful { atom!("load") } else { atom!("error") };
                 link.upcast::<EventTarget>().fire_event(event);
             }
