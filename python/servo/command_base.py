@@ -297,6 +297,7 @@ class CommandBase(object):
         self.config["build"].setdefault("mode", "")
         self.config["build"].setdefault("debug-mozjs", False)
         self.config["build"].setdefault("ccache", "")
+        self.config["build"].setdefault("rustflags", "")
 
         self.config.setdefault("android", {})
         self.config["android"].setdefault("sdk", "")
@@ -485,6 +486,9 @@ class CommandBase(object):
             env['HOST_FILE'] = hosts_file_path
 
         env['RUSTDOC'] = path.join(self.context.topdir, 'etc', 'rustdoc-with-private')
+
+        if self.config["build"]["rustflags"]:
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " " + self.config["build"]["rustflags"]
 
         # Don't run the gold linker if on Windows https://github.com/servo/servo/issues/9499
         if self.config["tools"]["rustc-with-gold"] and sys.platform not in ("win32", "msys"):

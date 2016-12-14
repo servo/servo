@@ -38,6 +38,8 @@ android = false
 debug-mozjs = false
 # Set to the path to your ccache binary to enable caching of compiler outputs
 #ccache = "/usr/local/bin/ccache"
+# Any optional flags that will be added to $RUSTFLAGS
+#rustflags = ""
 
 # Android information
 [android]
