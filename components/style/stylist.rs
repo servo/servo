@@ -111,6 +111,10 @@ fn add_stylesheet_internal(
     sibling_affecting_selectors: &mut Vec<Selector<SelectorImpl>>,
     non_common_style_affecting_attributes_selectors: &mut Vec<Selector<SelectorImpl>>)
 {
+    if stylesheet.disabled() || !stylesheet.is_effective_for_device(device) {
+        return;
+    }
+
     stylesheet.effective_rules(device, |rule| {
         match *rule {
             CssRule::Style(ref style_rule) => {
@@ -251,10 +255,6 @@ impl Stylist {
     }
 
     fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
-        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device) {
-            return;
-        }
-
         add_stylesheet_internal(
             stylesheet,
             &self.device,
