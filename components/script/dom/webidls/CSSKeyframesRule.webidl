@@ -5,7 +5,8 @@
 // https://drafts.csswg.org/css-animations/#interface-csskeyframesrule
 [Exposed=Window]
 interface CSSKeyframesRule : CSSRule {
-  //          attribute DOMString   name;
+  [SetterThrows]
+           attribute DOMString   name;
   readonly attribute CSSRuleList cssRules;
 
   void            appendRule(DOMString rule);

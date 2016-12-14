@@ -5,6 +5,7 @@
 use cssparser::Parser;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding;
 use dom::bindings::codegen::Bindings::CSSKeyframesRuleBinding::CSSKeyframesRuleMethods;
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
@@ -15,6 +16,7 @@ use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use parking_lot::RwLock;
+use servo_atoms::Atom;
 use std::sync::Arc;
 use style::keyframes::{Keyframe, KeyframeSelector};
 use style::parser::ParserContextExtraData;
@@ -100,6 +102,27 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
         self.find_rule(&selector).and_then(|idx| {
             self.rulelist().item(idx as u32)
         }).and_then(Root::downcast)
+    }
+
+    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
+    fn Name(&self) -> DOMString {
+        DOMString::from(&*self.keyframesrule.read().name)
+    }
+
+    // https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name
+    fn SetName(&self, value: DOMString) -> ErrorResult {
+        // https://github.com/w3c/csswg-drafts/issues/801
+        // Setting this property to a CSS-wide keyword or `none` will
+        // throw a Syntax Error.
+        match_ignore_ascii_case! { value,
+            "initial" => return Err(Error::Syntax),
+            "inherit" => return Err(Error::Syntax),
+            "unset" => return Err(Error::Syntax),
+            "none" => return Err(Error::Syntax),
+            _ => ()
+        }
+        self.keyframesrule.write().name = Atom::from(value);
+        Ok(())
     }
 }
 
