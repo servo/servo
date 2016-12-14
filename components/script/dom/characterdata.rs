@@ -19,8 +19,8 @@ use dom::element::Element;
 use dom::node::{Node, NodeDamage};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
+use servo_config::opts;
 use std::cell::Ref;
-use util::opts;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]

@@ -17,7 +17,7 @@ extern crate ipc_channel;
 extern crate log;
 extern crate num_traits;
 extern crate offscreen_gl_context;
-extern crate util;
+extern crate servo_config;
 extern crate webrender_traits;
 
 pub mod canvas_paint_thread;

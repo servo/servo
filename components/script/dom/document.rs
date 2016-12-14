@@ -113,6 +113,7 @@ use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
 use script_traits::UntrustedNodeAddress;
 use servo_atoms::Atom;
+use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -133,7 +134,6 @@ use style::str::{split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use time;
 use url::percent_encoding::percent_decode;
-use util::prefs::PREFS;
 
 pub enum TouchEventResult {
     Processed(bool),

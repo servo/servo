@@ -37,8 +37,8 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::Sender;
+use std::thread;
 use storage_thread::StorageThreadFactory;
-use util::thread::spawn_named;
 use websocket_loader;
 
 const TFD_PROVIDER: &'static TFDProvider = &TFDProvider;
@@ -76,7 +76,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
                                 -> (CoreResourceThread, CoreResourceThread) {
     let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
     let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
-    spawn_named("ResourceManager".to_owned(), move || {
+    thread::Builder::new().name("ResourceManager".to_owned()).spawn(move || {
         let resource_manager = CoreResourceManager::new(
             user_agent, devtools_chan, profiler_chan
         );
@@ -87,7 +87,7 @@ pub fn new_core_resource_thread(user_agent: Cow<'static, str>,
         };
         channel_manager.start(public_setup_port,
                               private_setup_port);
-    });
+    }).expect("Thread spawning failed");
     (public_setup_chan, private_setup_chan)
 }
 
@@ -343,7 +343,7 @@ impl CoreResourceManager {
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
-        spawn_named(format!("fetch thread for {}", init.url), move || {
+        thread::Builder::new().name(format!("fetch thread for {}", init.url)).spawn(move || {
             let request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
@@ -357,7 +357,7 @@ impl CoreResourceManager {
                 filemanager: filemanager,
             };
             fetch(Rc::new(request), &mut target, &context);
-        })
+        }).expect("Thread spawning failed");
     }
 
     fn websocket_connect(&self,

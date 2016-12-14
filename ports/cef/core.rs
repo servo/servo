@@ -9,9 +9,9 @@ use window::init_window;
 
 use browser;
 use libc::{c_char, c_int, c_void};
+use servo_config::opts;
 use std::ffi;
 use std::str;
-use util::opts;
 
 const MAX_RENDERING_THREADS: usize = 128;
 

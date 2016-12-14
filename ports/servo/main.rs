@@ -38,8 +38,8 @@ extern crate sig;
 use backtrace::Backtrace;
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
-use servo::util::opts::{self, ArgumentParsingResult};
-use servo::util::servo_version;
+use servo::config::opts::{self, ArgumentParsingResult};
+use servo::config::servo_version;
 use std::env;
 use std::panic;
 use std::process;
@@ -286,10 +286,10 @@ mod android {
         use self::libc::{pipe, dup2};
         use self::libc::fdopen;
         use self::libc::fgets;
-        use servo::util::thread::spawn_named;
         use std::ffi::CStr;
         use std::ffi::CString;
         use std::str::from_utf8;
+        use std::thread;
 
         unsafe {
             let mut pipes: [c_int; 2] = [ 0, 0 ];
@@ -297,7 +297,7 @@ mod android {
             dup2(pipes[1], file_no);
             let mode = CString::new("r").unwrap();
             let input_file = FilePtr(fdopen(pipes[0], mode.as_ptr()));
-            spawn_named("android-logger".to_owned(), move || {
+            thread::Builder::new().name("android-logger".to_owned()).spawn(move || {
                 static READ_SIZE: usize = 1024;
                 let mut read_buffer = vec![0; READ_SIZE];
                 let FilePtr(input_file) = input_file;

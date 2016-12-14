@@ -14,9 +14,9 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
+use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::default::Default;
-use util::prefs::PREFS;
 
 #[dom_struct]
 pub struct MouseEvent {

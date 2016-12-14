@@ -34,9 +34,9 @@ use servo_atoms::Atom;
 use std::cell::Cell;
 use std::ptr;
 use std::sync::Arc;
+use std::thread;
 use task_source::TaskSource;
 use task_source::file_reading::{FileReadingTaskSource, FileReadingRunnable, FileReadingTask};
-use util::thread::spawn_named;
 
 #[derive(PartialEq, Clone, Copy, JSTraceable, HeapSizeOf)]
 pub enum FileReaderFunction {
@@ -401,9 +401,10 @@ impl FileReader {
         let wrapper = global.get_runnable_wrapper();
         let task_source = global.file_reading_task_source();
 
-        spawn_named("file reader async operation".to_owned(), move || {
+        thread::Builder::new().name("file reader async operation".to_owned()).spawn(move || {
             perform_annotated_read_operation(gen_id, load_data, blob_contents, fr, task_source, wrapper)
-        });
+        }).expect("Thread spawning failed");
+
         Ok(())
     }
 

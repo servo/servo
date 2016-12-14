@@ -19,6 +19,7 @@ use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use parking_lot::RwLock;
+use servo_config::prefs::PREFS;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -89,7 +90,7 @@ impl HTMLMetaElement {
     }
 
     fn apply_viewport(&self) {
-        if !::util::prefs::PREFS.get("layout.viewport.enabled").as_boolean().unwrap_or(false) {
+        if !PREFS.get("layout.viewport.enabled").as_boolean().unwrap_or(false) {
             return;
         }
         let element = self.upcast::<Element>();

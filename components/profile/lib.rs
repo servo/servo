@@ -27,10 +27,10 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate servo_config;
 #[cfg(target_os = "macos")]
 extern crate task_info;
 extern crate time as std_time;
-extern crate util;
 
 #[allow(unsafe_code)]
 mod heartbeats;

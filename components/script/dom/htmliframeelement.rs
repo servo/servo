@@ -48,13 +48,13 @@ use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_atoms::Atom;
+use servo_config::prefs::PREFS;
+use servo_config::servo_version;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::ReflowGoal;
 use task_source::TaskSource;
-use util::prefs::PREFS;
-use util::servo_version;
 
 bitflags! {
     #[derive(JSTraceable, HeapSizeOf)]

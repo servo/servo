@@ -28,13 +28,12 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as Req
 use rand::random;
 use script_runtime::{CommonScriptMsg, StackRootTLS, get_reports, new_rt_and_cx, ScriptChan};
 use script_traits::{TimerEvent, WorkerGlobalScopeInit, ScopeThings, ServiceWorkerMsg, WorkerScriptLoadOrigin};
+use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::thread;
 use std::time::Duration;
 use style::thread_state::{self, IN_WORKER, SCRIPT};
-use util::prefs::PREFS;
-use util::thread::spawn_named;
 
 /// Messages used to control service worker event loop
 pub enum ServiceWorkerScriptMsg {
@@ -151,7 +150,7 @@ impl ServiceWorkerGlobalScope {
                           .. } = scope_things;
 
         let serialized_worker_url = script_url.to_string();
-        spawn_named(format!("ServiceWorker for {}", serialized_worker_url), move || {
+        thread::Builder::new().name(format!("ServiceWorker for {}", serialized_worker_url)).spawn(move || {
             thread_state::initialize(SCRIPT | IN_WORKER);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
@@ -202,11 +201,11 @@ impl ServiceWorkerGlobalScope {
 
             scope.execute_script(DOMString::from(source));
             // Service workers are time limited
-            spawn_named("SWTimeoutThread".to_owned(), move || {
+            thread::Builder::new().name("SWTimeoutThread".to_owned()).spawn(move || {
                 let sw_lifetime_timeout = PREFS.get("dom.serviceworker.timeout_seconds").as_u64().unwrap();
                 thread::sleep(Duration::new(sw_lifetime_timeout, 0));
                 let _ = timer_chan.send(());
-            });
+            }).expect("Thread spawning failed");
 
             global.dispatch_activate();
             let reporter_name = format!("service-worker-reporter-{}", random::<u64>());
@@ -217,7 +216,7 @@ impl ServiceWorkerGlobalScope {
                     }
                 }
             }, reporter_name, scope.script_chan(), CommonScriptMsg::CollectReports);
-        });
+        }).expect("Thread spawning failed");
     }
 
     fn handle_event(&self, event: MixedMessage) -> bool {

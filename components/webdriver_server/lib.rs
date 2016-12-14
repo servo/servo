@@ -22,8 +22,8 @@ extern crate net_traits;
 extern crate regex;
 extern crate rustc_serialize;
 extern crate script_traits;
+extern crate servo_config;
 extern crate servo_url;
-extern crate util;
 extern crate uuid;
 extern crate webdriver;
 
@@ -42,6 +42,7 @@ use rustc_serialize::json::{Json, ToJson};
 use script_traits::{ConstellationMsg, LoadData, WebDriverCommandMsg};
 use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
 use script_traits::webdriver_msg::{WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
+use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
@@ -49,8 +50,6 @@ use std::net::{SocketAddr, SocketAddrV4};
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
-use util::prefs::{PREFS, PrefValue};
-use util::thread::spawn_named;
 use uuid::Uuid;
 use webdriver::command::{AddCookieParameters, GetParameters, JavascriptCommandParameters};
 use webdriver::command::{LocatorParameters, Parameters};
@@ -88,13 +87,13 @@ fn cookie_msg_to_cookie(cookie: cookie_rs::Cookie) -> Cookie {
 
 pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
     let handler = Handler::new(constellation_chan);
-    spawn_named("WebdriverHttpServer".to_owned(), move || {
+    thread::Builder::new().name("WebdriverHttpServer".to_owned()).spawn(move || {
         let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
         match server::start(SocketAddr::V4(address), handler, extension_routes()) {
             Ok(listening) => info!("WebDriver server listening on {}", listening.socket),
             Err(_) => panic!("Unable to start WebDriver HTTPD server"),
          }
-    });
+    }).expect("Thread spawning failed");
 }
 
 struct WebDriverSession {

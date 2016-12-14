@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use regex::Regex;
+use servo_config::resource_files::read_resource_file;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::io::BufRead;
 use std::string::String;
-use util::resource_files::read_resource_file;
 
 const BLOCKLIST_FILE: &'static str = "gatt_blocklist.txt";
 const BLOCKLIST_FILE_NOT_FOUND: &'static str = "Could not find gatt_blocklist.txt file";

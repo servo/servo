@@ -61,7 +61,6 @@ use style::properties::ServoComputedValues;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION};
 use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
 use style::values::computed::LengthOrPercentageOrAuto;
-use util::clamp;
 
 /// Information specific to floated blocks.
 #[derive(Clone, Serialize)]
@@ -1534,7 +1533,7 @@ impl BlockFlow {
                         size + self.fragment.border_padding.inline_start_end(),
                 }
             } else {
-                clamp(min_inline_size, available_inline_size, max_inline_size)
+                max(min_inline_size, min(available_inline_size, max_inline_size))
             };
         self.base.position.size.inline = inline_size + self.fragment.margin.inline_start_end();
 

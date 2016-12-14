@@ -25,6 +25,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
 use range::Range;
+use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, max_rect};
 use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::fmt;
@@ -33,7 +34,6 @@ use style::computed_values::{border_style, filter, image_rendering, mix_blend_mo
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use util::geometry::{self, max_rect};
 use webrender_traits::{self, ColorF, GradientStop, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
@@ -397,9 +397,9 @@ impl StackingContext {
                                             .pre_mul(&self.transform);
         let transform_2d = transform.to_2d();
 
-        let overflow = geometry::au_rect_to_f32_rect(self.overflow);
+        let overflow = au_rect_to_f32_rect(self.overflow);
         let overflow = transform_2d.transform_rect(&overflow);
-        geometry::f32_rect_to_au_rect(overflow)
+        f32_rect_to_au_rect(overflow)
     }
 
     pub fn print_with_tree(&self, print_tree: &mut PrintTree) {

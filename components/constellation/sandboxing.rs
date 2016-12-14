@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use gaol::profile::{Operation, PathPattern, Profile};
+use servo_config::resource_files;
 use std::path::PathBuf;
-use util::resource_files;
 
 /// Our content process sandbox profile on Mac. As restrictive as possible.
 #[cfg(target_os = "macos")]

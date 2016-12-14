@@ -91,6 +91,7 @@ use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent,
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue, AsyncJobHandler, FinishJobHandler, InvokeType, SettleType};
+use servo_config::opts;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
@@ -101,6 +102,7 @@ use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
+use std::thread;
 use style::context::ReflowGoal;
 use style::dom::{TNode, UnsafeNode};
 use style::thread_state;
@@ -112,8 +114,6 @@ use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
 use time::Tm;
 use url::Position;
-use util::opts;
-use util::thread;
 use webdriver_handlers;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
@@ -519,8 +519,7 @@ impl ScriptThreadFactory for ScriptThread {
 
         let (sender, receiver) = channel();
         let layout_chan = sender.clone();
-        thread::spawn_named(format!("ScriptThread {:?}", state.id),
-                            move || {
+        thread::Builder::new().name(format!("ScriptThread {:?}", state.id)).spawn(move || {
             thread_state::initialize(thread_state::SCRIPT);
             PipelineNamespace::install(state.pipeline_namespace_id);
             FrameId::install(state.top_level_frame_id);
@@ -553,7 +552,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
-        });
+        }).expect("Thread spawning failed");
 
         (sender, receiver)
     }

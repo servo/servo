@@ -16,11 +16,11 @@ extern crate msg;
 extern crate net;
 extern crate net_traits;
 extern crate profile_traits;
+extern crate servo_config;
 extern crate servo_url;
 extern crate time;
 extern crate unicase;
 extern crate url;
-extern crate util;
 
 #[cfg(test)] mod chrome_loader;
 #[cfg(test)] mod cookie;

@@ -78,7 +78,7 @@ use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
 use dom::svgsvgelement::SVGSVGElement;
 use html5ever_atoms::{Prefix, QualName};
-use util::prefs::PREFS;
+use servo_config::prefs::PREFS;
 
 fn create_svg_element(name: QualName,
                       prefix: Option<DOMString>,
