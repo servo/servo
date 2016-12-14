@@ -50,7 +50,6 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::Duration;
 use util::prefs::{PREFS, PrefValue};
-use util::thread::spawn_named;
 use uuid::Uuid;
 use webdriver::command::{AddCookieParameters, GetParameters, JavascriptCommandParameters};
 use webdriver::command::{LocatorParameters, Parameters};
@@ -88,7 +87,7 @@ fn cookie_msg_to_cookie(cookie: cookie_rs::Cookie) -> Cookie {
 
 pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
     let handler = Handler::new(constellation_chan);
-    spawn_named("WebdriverHttpServer".to_owned(), move || {
+    thread::Builder::new().name("WebdriverHttpServer".to_owned()).spawn(move || {
         let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
         match server::start(SocketAddr::V4(address), handler, extension_routes()) {
             Ok(listening) => info!("WebDriver server listening on {}", listening.socket),

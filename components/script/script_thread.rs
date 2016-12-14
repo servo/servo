@@ -101,6 +101,7 @@ use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
+use std::thread;
 use style::context::ReflowGoal;
 use style::dom::{TNode, UnsafeNode};
 use style::thread_state;
@@ -113,7 +114,6 @@ use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSour
 use time::Tm;
 use url::Position;
 use util::opts;
-use util::thread;
 use webdriver_handlers;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
@@ -519,8 +519,7 @@ impl ScriptThreadFactory for ScriptThread {
 
         let (sender, receiver) = channel();
         let layout_chan = sender.clone();
-        thread::spawn_named(format!("ScriptThread {:?}", state.id),
-                            move || {
+        thread::Builder::new().name(format!("ScriptThread {:?}", state.id)).spawn(move || {
             thread_state::initialize(thread_state::SCRIPT);
             PipelineNamespace::install(state.pipeline_namespace_id);
             FrameId::install(state.top_level_frame_id);
@@ -553,7 +552,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
-        });
+        }).expect("Thread spawning failed");
 
         (sender, receiver)
     }

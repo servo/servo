@@ -38,8 +38,8 @@ use std::mem::replace;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
+use std::thread;
 use style::thread_state;
-use util::thread::spawn_named;
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -160,7 +160,7 @@ impl DedicatedWorkerGlobalScope {
         let name = format!("WebWorker for {}", serialized_worker_url);
         let top_level_frame_id = FrameId::installed();
 
-        spawn_named(name, move || {
+        thread::Builder::new().name(name).spawn(move || {
             thread_state::initialize(thread_state::SCRIPT | thread_state::IN_WORKER);
 
             if let Some(top_level_frame_id) = top_level_frame_id {
@@ -243,7 +243,7 @@ impl DedicatedWorkerGlobalScope {
                     global.handle_event(event);
                 }
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
-        });
+        }).expect("Thread spawning failed");
     }
 
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {

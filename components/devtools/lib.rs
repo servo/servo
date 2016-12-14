@@ -30,7 +30,6 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate time;
-extern crate util;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
@@ -57,8 +56,8 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
+use std::thread;
 use time::precise_time_ns;
-use util::thread::spawn_named;
 
 mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/
@@ -137,9 +136,9 @@ pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
     let (sender, receiver) = channel();
     {
         let sender = sender.clone();
-        spawn_named("Devtools".to_owned(), move || {
+        thread::Builder::new().name("Devtools".to_owned()).spawn(move || {
             run_server(sender, receiver, port)
-        });
+        }).expect("Thread spawning failed");
     }
     sender
 }
@@ -485,23 +484,23 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
     }
 
     let sender_clone = sender.clone();
-    spawn_named("DevtoolsClientAcceptor".to_owned(), move || {
+    thread::Builder::new().name("DevtoolsClientAcceptor".to_owned()).spawn(move || {
         // accept connections and process them, spawning a new thread for each one
         for stream in listener.incoming() {
             // connection succeeded
             sender_clone.send(DevtoolsControlMsg::FromChrome(
                     ChromeToDevtoolsControlMsg::AddClient(stream.unwrap()))).unwrap();
         }
-    });
+    }).expect("Thread spawning failed");
 
     while let Ok(msg) = receiver.recv() {
         match msg {
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();
                 accepted_connections.push(stream.try_clone().unwrap());
-                spawn_named("DevtoolsClientHandler".to_owned(), move || {
+                thread::Builder::new().name("DevtoolsClientHandler".to_owned()).spawn(move || {
                     handle_client(actors, stream.try_clone().unwrap())
-                })
+                }).expect("Thread spawning failed");
             }
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::FramerateTick(
                         actor_name, tick)) =>

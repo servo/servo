@@ -19,7 +19,6 @@ use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use util::thread::spawn_named;
 
 pub struct TimelineActor {
     name: String,
@@ -150,7 +149,7 @@ impl TimelineActor {
             return;
         }
 
-        spawn_named("PullTimelineMarkers".to_owned(), move || {
+        thread::Builder::new().name("PullTimelineMarkers".to_owned()).spawn(move || {
             loop {
                 if !*is_recording.lock().unwrap() {
                     break;

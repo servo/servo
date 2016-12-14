@@ -15,7 +15,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use num_traits::ToPrimitive;
 use std::borrow::ToOwned;
 use std::mem;
-use util::thread::spawn_named;
+use std::thread;
 use webrender_traits;
 
 impl<'a> CanvasPaintThread<'a> {
@@ -121,7 +121,7 @@ impl<'a> CanvasPaintThread<'a> {
                  antialias: bool)
                  -> IpcSender<CanvasMsg> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
-        spawn_named("CanvasThread".to_owned(), move || {
+        thread::Builder::new().name("CanvasThread".to_owned()).spawn(move || {
             let mut painter = CanvasPaintThread::new(size, webrender_api_sender, antialias);
             loop {
                 let msg = receiver.recv();
@@ -211,7 +211,7 @@ impl<'a> CanvasPaintThread<'a> {
                     CanvasMsg::WebGL(_) => panic!("Wrong message sent to Canvas2D thread"),
                 }
             }
-        });
+        }).expect("Thread spawning failed");
 
         sender
     }

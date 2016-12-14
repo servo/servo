@@ -67,7 +67,6 @@ use timer_scheduler::TimerScheduler;
 use util::opts;
 use util::prefs::PREFS;
 use util::remutex::ReentrantMutex;
-use util::thread::spawn_named;
 use webrender_traits;
 
 #[derive(Debug, PartialEq)]
@@ -505,7 +504,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let (swmanager_sender, swmanager_receiver) = ipc::channel().expect("ipc channel failure");
         let sw_mgr_clone = swmanager_sender.clone();
 
-        spawn_named("Constellation".to_owned(), move || {
+        thread::Builder::new().name("Constellation".to_owned()).spawn(move || {
             let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
             let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
 
@@ -568,7 +567,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             };
 
             constellation.run();
-        });
+        }).expect("Thread spawning failed");
+
         (compositor_sender, swmanager_sender)
     }
 

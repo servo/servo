@@ -13,7 +13,6 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::thread;
 use time::duration_from_seconds;
-use util::thread::spawn_named;
 
 pub struct Profiler {
     /// The port through which messages are received.
@@ -33,22 +32,22 @@ impl Profiler {
         // Create the timer thread if a period was provided.
         if let Some(period) = period {
             let chan = chan.clone();
-            spawn_named("Memory profiler timer".to_owned(), move || {
+            thread::Builder::new().name("Memory profiler timer".to_owned()).spawn(move || {
                 loop {
                     thread::sleep(duration_from_seconds(period));
                     if chan.send(ProfilerMsg::Print).is_err() {
                         break;
                     }
                 }
-            });
+            }).expect("Thread spawning failed");
         }
 
         // Always spawn the memory profiler. If there is no timer thread it won't receive regular
         // `Print` events, but it will still receive the other events.
-        spawn_named("Memory profiler".to_owned(), move || {
+        thread::Builder::new().name("Memory profiler".to_owned()).spawn(move || {
             let mut mem_profiler = Profiler::new(port);
             mem_profiler.start();
-        });
+        }).expect("Thread spawning failed");
 
         let mem_profiler_chan = ProfilerChan(chan);
 

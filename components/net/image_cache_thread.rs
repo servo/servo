@@ -20,9 +20,9 @@ use std::io::{self, Read};
 use std::mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
+use std::thread;
 use threadpool::ThreadPool;
 use util::resource_files::resources_dir_path;
-use util::thread::spawn_named;
 use webrender_traits;
 
 ///
@@ -648,9 +648,9 @@ pub fn new_image_cache_thread(core_resource_thread: CoreResourceThread,
                               webrender_api: webrender_traits::RenderApi) -> ImageCacheThread {
     let (ipc_command_sender, ipc_command_receiver) = ipc::channel().unwrap();
 
-    spawn_named("ImageCacheThread".to_owned(), move || {
+    thread::Builder::new().name("ImageCacheThread".to_owned()).spawn(move || {
         ImageCache::run(core_resource_thread, webrender_api, ipc_command_receiver)
-    });
+    }).expect("Thread spawning failed");
 
     ImageCacheThread::new(ipc_command_sender)
 }

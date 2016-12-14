@@ -32,7 +32,6 @@ pub mod geometry;
 pub mod prefs;
 #[cfg(feature = "servo")] pub mod remutex;
 pub mod resource_files;
-pub mod thread;
 
 pub fn servo_version() -> String {
     let cargo_version = env!("CARGO_PKG_VERSION");

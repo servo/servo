@@ -47,11 +47,11 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::sync::mpsc::{channel, Sender};
+use std::thread;
 use time;
 use time::Tm;
 use unicase::UniCase;
 use url::Origin as UrlOrigin;
-use util::thread::spawn_named;
 use uuid;
 
 fn read_block<R: Read>(reader: &mut R) -> Result<Data, ()> {
@@ -1071,7 +1071,7 @@ fn http_network_fetch(request: Rc<Request>,
     let devtools_sender = context.devtools_chan.clone();
     let meta_status = meta.status.clone();
     let meta_headers = meta.headers.clone();
-    spawn_named(format!("fetch worker thread"), move || {
+    thread::Builder::new().name(format!("fetch worker thread")).spawn(move || {
         match StreamedResponse::from_http_response(res) {
             Ok(mut res) => {
                 *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
@@ -1123,7 +1123,7 @@ fn http_network_fetch(request: Rc<Request>,
                 let _ = done_sender.send(Data::Done);
             }
         }
-    });
+    }).expect("Thread spawning failed");
 
         // TODO these substeps aren't possible yet
         // Substep 1

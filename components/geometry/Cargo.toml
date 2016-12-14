@@ -1,0 +1,19 @@
+[package]
+name = "servo_geometry"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "servo_geometry"
+path = "lib.rs"
+
+[features]
+# servo as opposed to geckolib
+servo = ["app_units/plugins", "euclid/unstable"]
+
+[dependencies]
+app_units = "0.3"
+euclid = "0.10.1"
+heapsize = "0.3.0"

@@ -103,6 +103,7 @@ use std::process;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
+use std::thread;
 use style::animation::Animation;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::data::StoredRestyleHint;
@@ -121,7 +122,6 @@ use util::geometry::max_rect;
 use util::opts;
 use util::prefs::PREFS;
 use util::resource_files::read_resource_file;
-use util::thread;
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -253,8 +253,7 @@ impl LayoutThreadFactory for LayoutThread {
               content_process_shutdown_chan: Option<IpcSender<()>>,
               webrender_api_sender: webrender_traits::RenderApiSender,
               layout_threads: usize) {
-        thread::spawn_named(format!("LayoutThread {:?}", id),
-                      move || {
+        thread::Builder::new().name(format!("LayoutThread {:?}", id)).spawn(move || {
             thread_state::initialize(thread_state::LAYOUT);
 
             if let Some(top_level_frame_id) = top_level_frame_id {
@@ -285,7 +284,7 @@ impl LayoutThreadFactory for LayoutThread {
             if let Some(content_process_shutdown_chan) = content_process_shutdown_chan {
                 let _ = content_process_shutdown_chan.send(());
             }
-        });
+        }).expect("Thread spawning failed");
     }
 }
 

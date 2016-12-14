@@ -185,7 +185,6 @@ dependencies = [
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "tinyfiledialogs 0.1.0 (git+https://github.com/jdm/tinyfiledialogs)",
- "util 0.0.1",
  "uuid 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -544,7 +543,6 @@ name = "debugger"
 version = "0.0.1"
 dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
  "ws 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -582,7 +580,6 @@ dependencies = [
  "serde_derive 0.8.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
 ]
 
 [[package]]
