@@ -13,7 +13,6 @@ use servo_url::ServoUrl;
 use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
-use values::computed::ComputedValueAsSpecified;
 use values::specified::{Angle, CSSColor, Length, LengthOrPercentage};
 use values::specified::position::Position;
 use values::specified::url::{SpecifiedUrl, UrlExtraData};
@@ -230,7 +229,7 @@ fn parse_position(context: &ParserContext, input: &mut Parser) -> Result<Positio
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AngleOrCorner {
     Angle(Angle),
-    Corner(HorizontalDirection, VerticalDirection),
+    Corner(Option<HorizontalDirection>, Option<VerticalDirection>),
 }
 
 impl ToCss for AngleOrCorner {
@@ -238,10 +237,25 @@ impl ToCss for AngleOrCorner {
         match *self {
             AngleOrCorner::Angle(angle) => angle.to_css(dest),
             AngleOrCorner::Corner(horizontal, vertical) => {
+
+                //TODO: Not sure if breaking all of these out was necessary
                 try!(dest.write_str("to "));
-                try!(horizontal.to_css(dest));
-                try!(dest.write_str(" "));
-                try!(vertical.to_css(dest));
+
+                match (horizontal, vertical) {
+                    (Some(horizontal), Some(vertical)) => {
+                        try!(horizontal.to_css(dest));
+                        try!(dest.write_str(" "));
+                        try!(vertical.to_css(dest));
+                    }
+                    (Some(horizontal), None) => {
+                        try!(horizontal.to_css(dest));
+                    }
+                    (None, Some(vertical)) => {
+                        try!(vertical.to_css(dest));
+                    }
+                    (None, None) => unreachable!()
+                }
+
                 Ok(())
             }
         }
@@ -259,24 +273,7 @@ impl Parse for AngleOrCorner {
                 (input.try(HorizontalDirection::parse).ok(), Some(value))
             };
             try!(input.expect_comma());
-            match (horizontal, vertical) {
-                (None, Some(VerticalDirection::Top)) => {
-                    Ok(AngleOrCorner::Angle(Angle(0.0)))
-                },
-                (Some(HorizontalDirection::Right), None) => {
-                    Ok(AngleOrCorner::Angle(Angle(PI * 0.5)))
-                },
-                (None, Some(VerticalDirection::Bottom)) => {
-                    Ok(AngleOrCorner::Angle(Angle(PI)))
-                },
-                (Some(HorizontalDirection::Left), None) => {
-                    Ok(AngleOrCorner::Angle(Angle(PI * 1.5)))
-                },
-                (Some(horizontal), Some(vertical)) => {
-                    Ok(AngleOrCorner::Corner(horizontal, vertical))
-                }
-                (None, None) => unreachable!(),
-            }
+            Ok(AngleOrCorner::Corner(horizontal, vertical))
         } else if let Ok(angle) = input.try(|i| Angle::parse(context, i)) {
             try!(input.expect_comma());
             Ok(AngleOrCorner::Angle(angle))
@@ -285,8 +282,6 @@ impl Parse for AngleOrCorner {
         }
     }
 }
-
-impl ComputedValueAsSpecified for AngleOrCorner {}
 
 /// Specified values for one color stop in a linear gradient.
 /// https://drafts.csswg.org/css-images/#typedef-color-stop-list
