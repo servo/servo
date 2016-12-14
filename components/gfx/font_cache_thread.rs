@@ -223,25 +223,30 @@ impl FontCache {
                 let channel_to_self = self.channel_to_self.clone();
                 let bytes = Mutex::new(Vec::new());
                 let response_valid = Mutex::new(false);
+                debug!("Loading @font-face {} from {}", family_name, url);
                 fetch_async(request, &self.core_resource_thread, move |response| {
                     match response {
                         FetchResponseMsg::ProcessRequestBody |
                         FetchResponseMsg::ProcessRequestEOF => (),
                         FetchResponseMsg::ProcessResponse(meta_result) => {
+                            trace!("@font-face {} metadata ok={:?}", family_name, meta_result.is_ok());
                             *response_valid.lock().unwrap() = meta_result.is_ok();
                         }
                         FetchResponseMsg::ProcessResponseChunk(new_bytes) => {
+                            trace!("@font-face {} chunk={:?}", family_name, new_bytes);
                             if *response_valid.lock().unwrap() {
                                 bytes.lock().unwrap().extend(new_bytes.into_iter())
                             }
                         }
                         FetchResponseMsg::ProcessResponseEOF(response) => {
+                            trace!("@font-face {} EOF={:?}", family_name, response);
                             if response.is_err() || !*response_valid.lock().unwrap() {
                                 let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
                                 channel_to_self.send(msg).unwrap();
                                 return;
                             }
                             let bytes = mem::replace(&mut *bytes.lock().unwrap(), vec![]);
+                            trace!("@font-face {} data={:?}", family_name, bytes);
                             let bytes = match fontsan::process(&bytes) {
                                 Ok(san) => san,
                                 Err(_) => {
