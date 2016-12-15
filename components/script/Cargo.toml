@@ -16,6 +16,7 @@ debugmozjs = ['js/debugmozjs']
 
 [build-dependencies]
 cmake = "0.1"
+winres = {git = "https://github.com/Coder206/winres"}
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}

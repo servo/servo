@@ -16,10 +16,13 @@ fn main() {
         android_main()
     }
     if target.contains("windows") {
-        let mut res = winres::WindowsResource::new();
-        res.set_icon("Servo.ico");
-        /*res.set_resource_file("windows.rc");*/
-        res.compile().unwrap();
+          if cfg!(target_os = "windows") {
+            let mut res = winres::WindowsResource::new();
+            res.set_icon("Servo.ico");
+            res.set_manifest_file("app.manifest");
+            res.set_resource_file("windows.rc");
+            res.compile();
+            }
     }
 }
 
