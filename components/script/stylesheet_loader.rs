@@ -39,6 +39,22 @@ pub enum StylesheetContextSource {
     Import(Arc<RwLock<ImportRule>>),
 }
 
+impl StylesheetContextSource {
+    fn url(&self) -> ServoUrl {
+        match *self {
+            StylesheetContextSource::LinkElement { ref url, .. } => url.clone(),
+            StylesheetContextSource::Import(ref import) => {
+                let import = import.read();
+                // Look at the parser in style::stylesheets, where we don't
+                // trigger a load if the url is invalid.
+                import.url.url()
+                    .expect("Invalid urls shouldn't enter the loader")
+                    .clone()
+            }
+        }
+    }
+}
+
 /// The context required for asynchronously loading an external stylesheet.
 pub struct StylesheetContext {
     /// The element that initiated the request.
@@ -143,14 +159,7 @@ impl FetchResponseListener for StylesheetContext {
                 "Stylesheet loads can only be triggered by <link> or <style> elements!");
         }
 
-        let url = match self.source {
-            StylesheetContextSource::LinkElement { ref url, .. } => url.clone(),
-            StylesheetContextSource::Import(ref import) => {
-                let import = import.read();
-                import.url.url().expect("Tried to load an invalid url").clone()
-            }
-        };
-
+        let url = self.source.url();
         document.finish_load(LoadType::Stylesheet(url));
 
         if let Some(ref link) = elem.downcast::<HTMLLinkElement>() {
@@ -184,16 +193,7 @@ impl<'a> StylesheetLoader<'a> {
 
 impl<'a> StylesheetLoader<'a> {
     pub fn load(&self, source: StylesheetContextSource) {
-        let url = match source {
-            StylesheetContextSource::Import(ref import) => {
-                let import = import.read();
-                import.url.url().expect("Requested import with invalid url!").clone()
-            }
-            StylesheetContextSource::LinkElement { ref url, .. } => {
-                url.clone()
-            }
-        };
-
+        let url = source.url();
         let context = Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
             source: source,
