@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_traits::{BluetoothError, BluetoothRequest};
+use bluetooth_traits::{BluetoothError, BluetoothRequest, GATTType};
 use bluetooth_traits::{BluetoothResponse, BluetoothResponseListener, BluetoothResponseResult};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
@@ -13,14 +13,14 @@ use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilt
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
-use dom::bindings::error::Error::{self, NotFound, Security, Type};
+use dom::bindings::error::Error::{self, Network, NotFound, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{MutJS, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetoothdevice::BluetoothDevice;
-use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
+use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID, UUID};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
@@ -191,6 +191,57 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
         listener.notify_response(message.to().unwrap());
     });
     action_sender
+}
+
+#[allow(unrooted_must_root)]
+// https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
+pub fn get_gatt_children<T, F> (
+        attribute: &T,
+        single: bool,
+        uuid_canonicalizer: F,
+        uuid: Option<StringOrUnsignedLong>,
+        instance_id: String,
+        connected: bool,
+        child_type: GATTType)
+        -> Rc<Promise>
+        where T: AsyncBluetoothListener + DomObject + 'static,
+              F: FnOnce(StringOrUnsignedLong) -> Fallible<UUID> {
+    let p = Promise::new(&attribute.global());
+    let p_cx = p.global().get_cx();
+
+    let result_uuid = if let Some(u) = uuid {
+        // Step 1.
+        let canonicalized = match uuid_canonicalizer(u) {
+            Ok(canonicalized_uuid) => canonicalized_uuid.to_string(),
+            Err(e) => {
+                p.reject_error(p_cx, e);
+                return p;
+            }
+        };
+        // Step 2.
+        if uuid_is_blocklisted(canonicalized.as_ref(), Blocklist::All) {
+            p.reject_error(p_cx, Security);
+            return p;
+        }
+        Some(canonicalized)
+    } else {
+        None
+    };
+
+    // Step 3 - 4.
+    if !connected {
+        p.reject_error(p_cx, Network);
+        return p;
+    }
+
+    // TODO: Step 5: Implement representedDevice internal slot for BluetoothDevice.
+
+    // Note: Steps 6 - 7 are implemented in components/bluetooth/lib.rs in get_descriptor function
+    // and in handle_response function.
+    let sender = response_async(&p, attribute);
+    attribute.global().as_window().bluetooth_thread().send(
+        BluetoothRequest::GetGATTChildren(instance_id, result_uuid, single, child_type, sender)).unwrap();
+    return p;
 }
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothlescanfilterinit-canonicalizing
