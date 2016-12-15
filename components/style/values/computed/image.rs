@@ -8,12 +8,11 @@
 //! [image]: https://drafts.csswg.org/css-images/#image-values
 
 use cssparser::Color as CSSColor;
-use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
-use values::computed::{Context, Length, LengthOrPercentage, ToComputedValue};
+use values::computed::{AngleOrCorner, Context, Length, LengthOrPercentage, ToComputedValue};
 use values::computed::position::Position;
-use values::specified::{self, Angle, SizeKeyword, VerticalDirection, HorizontalDirection};
+use values::specified::{self, SizeKeyword};
 use values::specified::url::SpecifiedUrl;
 
 
@@ -101,7 +100,7 @@ impl ToCss for Gradient {
             try!(dest.write_str("repeating-"));
         }
         match self.gradient_kind {
-            GradientKind::Linear(ref angle_or_corner) => {
+            GradientKind::Linear(angle_or_corner) => {
                 try!(dest.write_str("linear-gradient("));
                 try!(angle_or_corner.to_css(dest));
             },
@@ -124,7 +123,7 @@ impl ToCss for Gradient {
 impl fmt::Debug for Gradient {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.gradient_kind {
-            GradientKind::Linear(ref angle_or_corner) => {
+            GradientKind::Linear(angle_or_corner) => {
                 let _ = write!(f, "{:?}", angle_or_corner);
             },
             GradientKind::Radial(ref shape, position) => {
@@ -197,8 +196,8 @@ impl ToComputedValue for specified::GradientKind {
     #[inline]
     fn from_computed_value(computed: &GradientKind) -> Self {
         match *computed {
-            GradientKind::Linear(ref angle_or_corner) => {
-                specified::GradientKind::Linear(ToComputedValue::from_computed_value(angle_or_corner))
+            GradientKind::Linear(angle_or_corner) => {
+                specified::GradientKind::Linear(ToComputedValue::from_computed_value(&angle_or_corner))
             },
             GradientKind::Radial(ref shape, position) => {
                 specified::GradientKind::Radial(ToComputedValue::from_computed_value(shape),
@@ -452,76 +451,6 @@ impl ToComputedValue for specified::LengthOrPercentageOrKeyword {
             LengthOrPercentageOrKeyword::Keyword(keyword) => {
                 specified::LengthOrPercentageOrKeyword::Keyword(keyword)
             },
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum AngleOrCorner {
-    Angle(Angle),
-    Corner(HorizontalDirection, VerticalDirection),
-}
-
-impl ToComputedValue for specified::AngleOrCorner {
-    type ComputedValue = AngleOrCorner;
-
-    #[inline]
-    fn to_computed_value(&self, _: &Context) -> AngleOrCorner {
-        match *self {
-            specified::AngleOrCorner::Angle(angle) => {
-                AngleOrCorner::Angle(angle)
-            },
-            specified::AngleOrCorner::Corner(horizontal, vertical) => {
-                match (horizontal, vertical) {
-                    (None, Some(VerticalDirection::Top)) =>
-                        AngleOrCorner::Angle(Angle(0.0)),
-                    (Some(HorizontalDirection::Right), Some(VerticalDirection::Top)) =>
-                        AngleOrCorner::Angle(Angle(PI * 0.25)),
-                    (Some(HorizontalDirection::Right), None) =>
-                        AngleOrCorner::Angle(Angle(PI * 0.5)),
-                    (Some(HorizontalDirection::Right), Some(VerticalDirection::Bottom)) =>
-                        AngleOrCorner::Angle(Angle(PI * 0.75)),
-                    (None, Some(VerticalDirection::Bottom)) =>
-                        AngleOrCorner::Angle(Angle(PI)),
-                    (Some(HorizontalDirection::Left), Some(VerticalDirection::Bottom)) =>
-                        AngleOrCorner::Angle(Angle(PI * 1.25)),
-                    (Some(HorizontalDirection::Left), None) =>
-                        AngleOrCorner::Angle(Angle(PI * 1.5)),
-                    (Some(HorizontalDirection::Left), Some(VerticalDirection::Top)) =>
-                        AngleOrCorner::Angle(Angle(PI * 1.75)),
-                    (None, None) =>
-                        AngleOrCorner::Angle(Angle(0.0)),
-                }
-            }
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &AngleOrCorner) -> Self {
-        match *computed {
-            AngleOrCorner::Angle(angle) => {
-                specified::AngleOrCorner::Angle(angle)
-            },
-            AngleOrCorner::Corner(horizontal, vertical) => {
-                specified::AngleOrCorner::Corner(Some(horizontal), Some(vertical))
-            }
-        }
-    }
-}
-
-impl ToCss for AngleOrCorner {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            AngleOrCorner::Angle(angle) => angle.to_css(dest),
-            AngleOrCorner::Corner(horizontal, vertical) => {
-                try!(dest.write_str("to "));
-                try!(horizontal.to_css(dest));
-                try!(dest.write_str(" "));
-                try!(vertical.to_css(dest));
-
-                Ok(())
-            }
         }
     }
 }

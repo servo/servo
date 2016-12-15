@@ -6,6 +6,7 @@ use app_units::Au;
 use euclid::size::Size2D;
 use font_metrics::FontMetricsProvider;
 use properties::ComputedValues;
+use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, specified};
@@ -14,7 +15,7 @@ pub use cssparser::Color as CSSColor;
 pub use self::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::{Either, None_};
-pub use super::specified::{Angle, BorderStyle, Time, UrlOrNone};
+pub use super::specified::{Angle, BorderStyle, HorizontalDirection, Time, UrlOrNone, VerticalDirection};
 pub use super::specified::url::UrlExtraData;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
@@ -169,3 +170,73 @@ impl ToCss for BorderRadiusSize {
 
 pub type Number = CSSFloat;
 pub type Opacity = CSSFloat;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum AngleOrCorner {
+    Angle(Angle),
+    Corner(HorizontalDirection, VerticalDirection),
+}
+
+impl ToComputedValue for specified::AngleOrCorner {
+    type ComputedValue = AngleOrCorner;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> AngleOrCorner {
+        match *self {
+            specified::AngleOrCorner::Angle(angle) => {
+                AngleOrCorner::Angle(angle)
+            },
+            specified::AngleOrCorner::Corner(horizontal, vertical) => {
+                match (horizontal, vertical) {
+                    (None, Some(VerticalDirection::Top)) =>
+                        AngleOrCorner::Angle(Angle(0.0)),
+                    (Some(HorizontalDirection::Right), Some(VerticalDirection::Top)) =>
+                        AngleOrCorner::Angle(Angle(PI * 0.25)),
+                    (Some(HorizontalDirection::Right), None) =>
+                        AngleOrCorner::Angle(Angle(PI * 0.5)),
+                    (Some(HorizontalDirection::Right), Some(VerticalDirection::Bottom)) =>
+                        AngleOrCorner::Angle(Angle(PI * 0.75)),
+                    (None, Some(VerticalDirection::Bottom)) =>
+                        AngleOrCorner::Angle(Angle(PI)),
+                    (Some(HorizontalDirection::Left), Some(VerticalDirection::Bottom)) =>
+                        AngleOrCorner::Angle(Angle(PI * 1.25)),
+                    (Some(HorizontalDirection::Left), None) =>
+                        AngleOrCorner::Angle(Angle(PI * 1.5)),
+                    (Some(HorizontalDirection::Left), Some(VerticalDirection::Top)) =>
+                        AngleOrCorner::Angle(Angle(PI * 1.75)),
+                    (None, None) =>
+                        AngleOrCorner::Angle(Angle(0.0)),
+                }
+            }
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &AngleOrCorner) -> Self {
+        match *computed {
+            AngleOrCorner::Angle(angle) => {
+                specified::AngleOrCorner::Angle(angle)
+            },
+            AngleOrCorner::Corner(horizontal, vertical) => {
+                specified::AngleOrCorner::Corner(Some(horizontal), Some(vertical))
+            }
+        }
+    }
+}
+
+impl ToCss for AngleOrCorner {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            AngleOrCorner::Angle(angle) => angle.to_css(dest),
+            AngleOrCorner::Corner(horizontal, vertical) => {
+                try!(dest.write_str("to "));
+                try!(horizontal.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(vertical.to_css(dest));
+
+                Ok(())
+            }
+        }
+    }
+}

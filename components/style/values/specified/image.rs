@@ -237,10 +237,7 @@ impl ToCss for AngleOrCorner {
         match *self {
             AngleOrCorner::Angle(angle) => angle.to_css(dest),
             AngleOrCorner::Corner(horizontal, vertical) => {
-
-                //TODO: Not sure if breaking all of these out was necessary
                 try!(dest.write_str("to "));
-
                 match (horizontal, vertical) {
                     (Some(horizontal), Some(vertical)) => {
                         try!(horizontal.to_css(dest));
@@ -255,7 +252,6 @@ impl ToCss for AngleOrCorner {
                     }
                     (None, None) => unreachable!()
                 }
-
                 Ok(())
             }
         }
