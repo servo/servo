@@ -34,7 +34,8 @@ use style::stylesheets::{ImportRule, Stylesheet, Origin};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 
 pub enum StylesheetContextSource {
-    LinkElement { media: MediaList, url: ServoUrl },
+    // NB: `media` is just an option so we avoid cloning it.
+    LinkElement { media: Option<MediaList>, url: ServoUrl },
     Import(Arc<RwLock<ImportRule>>),
 }
 
@@ -93,13 +94,13 @@ impl FetchResponseListener for StylesheetContext {
 
             let loader = StylesheetLoader::for_element(&elem);
             match self.source {
-                StylesheetContextSource::LinkElement { ref media, .. } => {
+                StylesheetContextSource::LinkElement { ref mut media, .. } => {
                     let sheet =
                         Arc::new(Stylesheet::from_bytes(&data, final_url,
                                                         protocol_encoding_label,
                                                         Some(environment_encoding),
                                                         Origin::Author,
-                                                        media.clone(),
+                                                        media.take().unwrap(),
                                                         Some(&loader),
                                                         win.css_error_reporter(),
                                                         ParserContextExtraData::default()));

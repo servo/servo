@@ -259,7 +259,7 @@ impl HTMLLinkElement {
         let loader = StylesheetLoader::for_element(self.upcast());
         loader.load(StylesheetContextSource::LinkElement {
             url: url,
-            media: media,
+            media: Some(media),
         });
     }
 

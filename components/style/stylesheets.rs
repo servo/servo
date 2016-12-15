@@ -45,7 +45,7 @@ pub enum Origin {
     User,
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Namespaces {
     pub default: Option<Namespace>,
@@ -728,6 +728,8 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                     let media =
                         Arc::new(RwLock::new(parse_media_query_list(input)));
 
+                    let is_valid_url = url.url().is_some();
+
                     let import_rule = Arc::new(RwLock::new(
                         ImportRule {
                             url: url,
@@ -743,9 +745,14 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                         }
                     ));
 
-                    let loader = self.loader
-                        .expect("Expected a stylesheet loader for @import");
-                    loader.request_stylesheet(&import_rule);
+                    // FIXME(emilio): See the comments regarding triggering load
+                    // events in stylesheets, this may need update depending on
+                    // the final decisions that are being taken.
+                    if is_valid_url {
+                        let loader = self.loader
+                            .expect("Expected a stylesheet loader for @import");
+                        loader.request_stylesheet(&import_rule);
+                    }
 
                     return Ok(AtRuleType::WithoutBlock(CssRule::Import(import_rule)))
                 } else {

@@ -17,7 +17,7 @@ use values::computed::{self, ToComputedValue};
 use values::specified;
 
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaList {
     pub media_queries: Vec<MediaQuery>

@@ -49,7 +49,7 @@ pub type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<::fnv::FnvHasher>>;
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Stylist {
     /// Device that the stylist is currently evaluating against.
-    pub device: Device,
+    pub device: Arc<Device>,
 
     /// Viewport constraints based on the current device.
     viewport_constraints: Option<ViewportConstraints>,
@@ -98,97 +98,12 @@ pub struct Stylist {
     non_common_style_affecting_attributes_selectors: Vec<Selector<SelectorImpl>>,
 }
 
-// I know...
-fn add_stylesheet_internal(
-    stylesheet: &Stylesheet,
-    device: &Device,
-    element_map: &mut PerPseudoElementSelectorMap,
-    pseudos_map: &mut FnvHashMap<PseudoElement, PerPseudoElementSelectorMap>,
-    animations: &mut FnvHashMap<Atom, KeyframesAnimation>,
-    precomputed_pseudo_element_decls: &mut FnvHashMap<PseudoElement, Vec<ApplicableDeclarationBlock>>,
-    rules_source_order: &mut usize,
-    state_deps: &mut DependencySet,
-    sibling_affecting_selectors: &mut Vec<Selector<SelectorImpl>>,
-    non_common_style_affecting_attributes_selectors: &mut Vec<Selector<SelectorImpl>>)
-{
-    if stylesheet.disabled() || !stylesheet.is_effective_for_device(device) {
-        return;
-    }
-
-    stylesheet.effective_rules(device, |rule| {
-        match *rule {
-            CssRule::Style(ref style_rule) => {
-                let guard = style_rule.read();
-                for selector in &guard.selectors.0 {
-                    let map = if let Some(ref pseudo) = selector.pseudo_element {
-                        pseudos_map
-                            .entry(pseudo.clone())
-                            .or_insert_with(PerPseudoElementSelectorMap::new)
-                            .borrow_for_origin(&stylesheet.origin)
-                    } else {
-                        element_map.borrow_for_origin(&stylesheet.origin)
-                    };
-
-                    map.insert(Rule {
-                        selector: selector.complex_selector.clone(),
-                        style_rule: style_rule.clone(),
-                        specificity: selector.specificity,
-                        source_order: *rules_source_order,
-                    });
-                }
-                *rules_source_order += 1;
-
-                for selector in &guard.selectors.0 {
-                    state_deps.note_selector(&selector.complex_selector);
-                    if selector.affects_siblings() {
-                        sibling_affecting_selectors.push(selector.clone());
-                    }
-
-                    if selector.matches_non_common_style_affecting_attribute() {
-                        non_common_style_affecting_attributes_selectors.push(selector.clone());
-                    }
-                }
-            }
-            CssRule::Import(ref import) => {
-                let import = import.read();
-                add_stylesheet_internal(
-                    &import.stylesheet,
-                    device,
-                    element_map,
-                    pseudos_map,
-                    animations,
-                    precomputed_pseudo_element_decls,
-                    rules_source_order,
-                    state_deps,
-                    sibling_affecting_selectors,
-                    non_common_style_affecting_attributes_selectors)
-            }
-            CssRule::Keyframes(ref keyframes_rule) => {
-                let keyframes_rule = keyframes_rule.read();
-                debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
-                if let Some(animation) = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
-                    debug!("Found valid keyframe animation: {:?}", animation);
-                    animations.insert(keyframes_rule.name.clone(),
-                                           animation);
-                } else {
-                    // If there's a valid keyframes rule, even if it doesn't
-                    // produce an animation, should shadow other animations
-                    // with the same name.
-                    animations.remove(&keyframes_rule.name);
-                }
-            }
-            // We don't care about any other rule.
-            _ => {}
-        }
-    });
-}
-
 impl Stylist {
     #[inline]
     pub fn new(device: Device) -> Self {
         let mut stylist = Stylist {
             viewport_constraints: None,
-            device: device,
+            device: Arc::new(device),
             is_device_dirty: true,
             quirks_mode: false,
 
@@ -250,23 +165,6 @@ impl Stylist {
             self.add_stylesheet(stylesheet);
         }
 
-        self.is_device_dirty = false;
-        true
-    }
-
-    fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
-        add_stylesheet_internal(
-            stylesheet,
-            &self.device,
-            &mut self.element_map,
-            &mut self.pseudos_map,
-            &mut self.animations,
-            &mut self.precomputed_pseudo_element_decls,
-            &mut self.rules_source_order,
-            &mut self.state_deps,
-            &mut self.sibling_affecting_selectors,
-            &mut self.non_common_style_affecting_attributes_selectors);
-
         debug!("Stylist stats:");
         debug!(" - Got {} sibling-affecting selectors",
                self.sibling_affecting_selectors.len());
@@ -284,7 +182,76 @@ impl Stylist {
                 map.user_agent.get_universal_rules(&mut declarations);
                 self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
             }
-        })
+        });
+
+        self.is_device_dirty = false;
+        true
+    }
+
+    fn add_stylesheet(&mut self, stylesheet: &Stylesheet) {
+        if stylesheet.disabled() || !stylesheet.is_effective_for_device(&self.device) {
+            return;
+        }
+
+        // Cheap `Arc` clone so that the closure below can borrow `&mut Stylist`.
+        let device = self.device.clone();
+
+        stylesheet.effective_rules(&device, |rule| {
+            match *rule {
+                CssRule::Style(ref style_rule) => {
+                    let guard = style_rule.read();
+                    for selector in &guard.selectors.0 {
+                        let map = if let Some(ref pseudo) = selector.pseudo_element {
+                            self.pseudos_map
+                                .entry(pseudo.clone())
+                                .or_insert_with(PerPseudoElementSelectorMap::new)
+                                .borrow_for_origin(&stylesheet.origin)
+                        } else {
+                            self.element_map.borrow_for_origin(&stylesheet.origin)
+                        };
+
+                        map.insert(Rule {
+                            selector: selector.complex_selector.clone(),
+                            style_rule: style_rule.clone(),
+                            specificity: selector.specificity,
+                            source_order: self.rules_source_order,
+                        });
+                    }
+                    self.rules_source_order += 1;
+
+                    for selector in &guard.selectors.0 {
+                        self.state_deps.note_selector(&selector.complex_selector);
+                        if selector.affects_siblings() {
+                            self.sibling_affecting_selectors.push(selector.clone());
+                        }
+
+                        if selector.matches_non_common_style_affecting_attribute() {
+                            self.non_common_style_affecting_attributes_selectors.push(selector.clone());
+                        }
+                    }
+                }
+                CssRule::Import(ref import) => {
+                    let import = import.read();
+                    self.add_stylesheet(&import.stylesheet)
+                }
+                CssRule::Keyframes(ref keyframes_rule) => {
+                    let keyframes_rule = keyframes_rule.read();
+                    debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
+                    if let Some(animation) = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
+                        debug!("Found valid keyframe animation: {:?}", animation);
+                        self.animations.insert(keyframes_rule.name.clone(),
+                                               animation);
+                    } else {
+                        // If there's a valid keyframes rule, even if it doesn't
+                        // produce an animation, should shadow other animations
+                        // with the same name.
+                        self.animations.remove(&keyframes_rule.name);
+                    }
+                }
+                // We don't care about any other rule.
+                _ => {}
+            }
+        });
     }
 
 
@@ -419,7 +386,7 @@ impl Stylist {
             mq_eval_changed(&stylesheet.rules.read().0, &self.device, &device)
         });
 
-        self.device = device;
+        self.device = Arc::new(device);
     }
 
     pub fn viewport_constraints(&self) -> &Option<ViewportConstraints> {
