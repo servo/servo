@@ -460,6 +460,7 @@ mod bindings {
             "StyleBasicShapeType",
             "StyleClipPath",
             "nsCSSKeyword",
+            "nsCSSPropertyID",
             "nsCSSShadowArray",
             "nsCSSValue",
             "nsCSSValueSharedList",
