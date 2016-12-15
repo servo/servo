@@ -13,6 +13,7 @@ use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::element::{Element, ElementCreator};
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
@@ -34,8 +35,8 @@ pub struct HTMLStyleElement {
     cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
-    // NB: We don't need to track the pending load count because we don't need
-    // to trigger an onload event for this element.
+    pending_loads: Cell<u32>,
+    any_failed_load: Cell<bool>,
 }
 
 impl HTMLStyleElement {
@@ -48,6 +49,8 @@ impl HTMLStyleElement {
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
+            pending_loads: Cell::new(0),
+            any_failed_load: Cell::new(false),
         }
     }
 
@@ -59,6 +62,28 @@ impl HTMLStyleElement {
         Node::reflect_node(box HTMLStyleElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLStyleElementBinding::Wrap)
+    }
+
+    pub fn increment_pending_loads_count(&self) {
+        self.pending_loads.set(self.pending_loads.get() + 1)
+    }
+
+    /// Returns None if there are still pending loads, or whether any load has
+    /// failed since the loads started.
+    pub fn load_finished(&self, succeeded: bool) -> Option<bool> {
+        assert!(self.pending_loads.get() > 0, "What finished?");
+        if !succeeded {
+            self.any_failed_load.set(true);
+        }
+
+        self.pending_loads.set(self.pending_loads.get() - 1);
+        if self.pending_loads.get() != 0 {
+            return None;
+        }
+
+        let any_failed = self.any_failed_load.get();
+        self.any_failed_load.set(false);
+        Some(any_failed)
     }
 
     pub fn parse_own_css(&self) {
@@ -84,6 +109,11 @@ impl HTMLStyleElement {
                                          ParserContextExtraData::default());
 
         let sheet = Arc::new(sheet);
+
+        // No subresource loads were triggered, just fire the load event now.
+        if self.pending_loads.get() == 0 {
+            self.upcast::<EventTarget>().fire_event(atom!("load"));
+        }
 
         win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
         *self.stylesheet.borrow_mut() = Some(sheet);

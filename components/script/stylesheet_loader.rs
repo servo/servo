@@ -127,8 +127,7 @@ impl FetchResponseListener for StylesheetContext {
 
             // FIXME: Revisit once consensus is reached at:
             // https://github.com/whatwg/html/issues/1142
-            successful = is_css &&
-                metadata.status.map_or(false, |(code, _)| code == 200);
+            successful = metadata.status.map_or(false, |(code, _)| code == 200);
         }
 
         if let Some(ref link) = elem.downcast::<HTMLLinkElement>() {
@@ -139,6 +138,9 @@ impl FetchResponseListener for StylesheetContext {
             if style.parser_inserted() {
                 document.decrement_script_blocking_stylesheet_count();
             }
+        } else {
+            unreachable!(
+                "Stylesheet loads can only be triggered by <link> or <style> elements!");
         }
 
         let url = match self.source {
@@ -152,17 +154,18 @@ impl FetchResponseListener for StylesheetContext {
         document.finish_load(LoadType::Stylesheet(url));
 
         if let Some(ref link) = elem.downcast::<HTMLLinkElement>() {
-            if link.decrement_pending_loads_count() {
-                // FIXME(emilio): This is buggy, we're firing the load or error
-                // event depending on whether the _last_ load was successful or
-                // not.
-                //
-                // This is kind of buggy, but there doesn't seem to be a
-                // consensus. This is also the same behavior as Gecko, see bz's
-                // comments in https://github.com/whatwg/html/issues/1142
-                let event = if successful { atom!("load") } else { atom!("error") };
+            if let Some(any_failed) = link.load_finished(successful) {
+                let event = if any_failed { atom!("error") } else { atom!("load") };
                 link.upcast::<EventTarget>().fire_event(event);
             }
+        } else if let Some(ref style) = elem.downcast::<HTMLStyleElement>() {
+            if let Some(any_failed) = style.load_finished(successful) {
+                let event = if any_failed { atom!("error") } else { atom!("load") };
+                style.upcast::<EventTarget>().fire_event(event);
+            }
+        } else {
+            unreachable!(
+                "Stylesheet loads can only be triggered by <link> or <style> elements!");
         }
     }
 }
@@ -221,6 +224,7 @@ impl<'a> StylesheetLoader<'a> {
                 referrer_policy = Some(ReferrerPolicy::NoReferrer);
             }
         } else if let Some(ref style) = self.elem.downcast::<HTMLStyleElement>() {
+            style.increment_pending_loads_count();
             if style.parser_inserted() {
                 document.increment_script_blocking_stylesheet_count();
             }

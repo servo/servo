@@ -47,6 +47,8 @@ pub struct HTMLLinkElement {
     /// The number of loads that this link element has triggered (could be more
     /// than one because of imports), and how many of them have finished.
     pending_loads: Cell<u32>,
+    /// Whether any of the loads have failed.
+    any_failed_load: Cell<bool>,
 }
 
 impl HTMLLinkElement {
@@ -59,6 +61,7 @@ impl HTMLLinkElement {
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
             pending_loads: Cell::new(0),
+            any_failed_load: Cell::new(false),
         }
     }
 
@@ -217,9 +220,22 @@ impl HTMLLinkElement {
         self.pending_loads.set(self.pending_loads.get() + 1)
     }
 
-    pub fn decrement_pending_loads_count(&self) -> bool {
+    /// Returns None if there are still pending loads, or whether any load has
+    /// failed since the loads started.
+    pub fn load_finished(&self, succeeded: bool) -> Option<bool> {
+        assert!(self.pending_loads.get() > 0, "What finished?");
+        if !succeeded {
+            self.any_failed_load.set(true);
+        }
+
         self.pending_loads.set(self.pending_loads.get() - 1);
-        self.pending_loads.get() == 0
+        if self.pending_loads.get() != 0 {
+            return None;
+        }
+
+        let any_failed = self.any_failed_load.get();
+        self.any_failed_load.set(false);
+        Some(any_failed)
     }
 
     /// https://html.spec.whatwg.org/multipage/#concept-link-obtain
