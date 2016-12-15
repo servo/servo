@@ -21,6 +21,7 @@ use debugger;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
+use event_loop::EventLoop;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcSender};
@@ -133,10 +134,10 @@ pub struct Constellation<Message, LTF, STF> {
     /// to receive sw manager message
     swmanager_receiver: Receiver<SWManagerMsg>,
 
-    /// A map from top-level frame id and registered domain name to script channels.
-    /// This double indirection ensures that separate tabs do not share script threads,
+    /// A map from top-level frame id and registered domain name to event loops.
+    /// This double indirection ensures that separate tabs do not share event loops,
     /// even if the same domain is loaded in each.
-    script_channels: HashMap<FrameId, HashMap<String, Weak<ScriptChan>>>,
+    event_loops: HashMap<FrameId, HashMap<String, Weak<EventLoop>>>,
 
     /// A list of all the pipelines. (See the `pipeline` module for more details.)
     pipelines: HashMap<PipelineId, Pipeline>,
@@ -367,30 +368,6 @@ enum ExitPipelineMode {
     Force,
 }
 
-/// A script channel, that closes the script thread down when it is dropped
-pub struct ScriptChan {
-    chan: IpcSender<ConstellationControlMsg>,
-    dont_send_or_sync: PhantomData<Rc<()>>,
-}
-
-impl Drop for ScriptChan {
-    fn drop(&mut self) {
-        let _ = self.chan.send(ConstellationControlMsg::ExitScriptThread);
-    }
-}
-
-impl ScriptChan {
-    pub fn send(&self, msg: ConstellationControlMsg) -> Result<(), IOError> {
-        self.chan.send(msg)
-    }
-    pub fn new(chan: IpcSender<ConstellationControlMsg>) -> Rc<ScriptChan> {
-        Rc::new(ScriptChan { chan: chan, dont_send_or_sync: PhantomData })
-    }
-    pub fn sender(&self) -> IpcSender<ConstellationControlMsg> {
-        self.chan.clone()
-    }
-}
-
 /// A logger directed at the constellation from content processes
 #[derive(Clone)]
 pub struct FromScriptLogger {
@@ -532,7 +509,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 swmanager_chan: None,
                 swmanager_receiver: swmanager_receiver,
                 swmanager_sender: sw_mgr_clone,
-                script_channels: HashMap::new(),
+                event_loops: HashMap::new(),
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 pending_frames: vec!(),
@@ -608,17 +585,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => self.root_frame_id,
         };
 
-        let (script_channel, host) = match sandbox {
+        let (event_loop, host) = match sandbox {
             IFrameSandboxState::IFrameSandboxed => (None, None),
             IFrameSandboxState::IFrameUnsandboxed => match reg_host(&load_data.url) {
                 None => (None, None),
                 Some(host) => {
-                    let script_channel = self.script_channels.get(&top_level_frame_id)
+                    let event_loop = self.event_loops.get(&top_level_frame_id)
                         .and_then(|map| map.get(host))
                         .and_then(|weak| weak.upgrade());
-                    match script_channel {
+                    match event_loop {
                         None => (None, Some(String::from(host))),
-                        Some(script_channel) => (Some(script_channel.clone()), None),
+                        Some(event_loop) => (Some(event_loop.clone()), None),
                     }
                 },
             },
@@ -665,7 +642,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             time_profiler_chan: self.time_profiler_chan.clone(),
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             window_size: initial_window_size,
-            script_chan: script_channel,
+            event_loop: event_loop,
             load_data: load_data,
             device_pixel_ratio: self.window_size.device_pixel_ratio,
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
@@ -680,9 +657,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(host) = host {
-            self.script_channels.entry(top_level_frame_id)
+            self.event_loops.entry(top_level_frame_id)
                 .or_insert_with(HashMap::new)
-                .insert(host, Rc::downgrade(&pipeline.script_chan));
+                .insert(host, Rc::downgrade(&pipeline.event_loop));
         }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
@@ -970,7 +947,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
                     None => { debug!("Pipeline {:?} got event after closure.", pipeline_id); return; }
-                    Some(pipeline) => pipeline.script_chan.send(msg),
+                    Some(pipeline) => pipeline.event_loop.send(msg),
                 };
                 if let Err(e) = result {
                     self.handle_send_error(pipeline_id, e);
@@ -1118,7 +1095,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let msg = ConstellationControlMsg::DispatchStorageEvent(
                     pipeline.id, storage, url.clone(), key.clone(), old_value.clone(), new_value.clone()
                 );
-                if let Err(err) = pipeline.script_chan.send(msg) {
+                if let Err(err) = pipeline.event_loop.send(msg) {
                     warn!("Failed to broadcast storage event to pipeline {} ({:?}).", pipeline.id, err);
                 }
             }
@@ -1327,7 +1304,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             match self.pipelines.get_mut(&pipeline_id) {
                 Some(pipeline) => {
                     pipeline.size = Some(*size);
-                    pipeline.script_chan.send(msg)
+                    pipeline.event_loop.send(msg)
                 }
                 None => return,
             }
@@ -1352,7 +1329,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             child: pipeline_id,
         };
         let result = match self.pipelines.get(&parent_id) {
-            Some(parent) => parent.script_chan.send(msg),
+            Some(parent) => parent.event_loop.send(msg),
             None => return warn!("Parent {} frame loaded after closure.", parent_id),
         };
         if let Err(e) = result {
@@ -1432,7 +1409,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 None => return warn!("Script loaded url in closed iframe {}.", parent_pipeline_id),
             };
 
-            let script_sender = parent_pipeline.script_chan.clone();
+            let script_sender = parent_pipeline.event_loop.clone();
 
             let url = ServoUrl::parse("about:blank").expect("infallible");
             Pipeline::new(new_pipeline_id,
@@ -1475,7 +1452,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             AnimationTickType::Script => {
                 let msg = ConstellationControlMsg::TickAllAnimations(pipeline_id);
                 match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.script_chan.send(msg),
+                    Some(pipeline) => pipeline.event_loop.send(msg),
                     None => return warn!("Pipeline {:?} got script tick after closure.", pipeline_id),
                 }
             }
@@ -1548,7 +1525,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // and issue an iframe load through there.
                 let msg = ConstellationControlMsg::Navigate(parent_pipeline_id, frame_id, load_data, replace);
                 let result = match self.pipelines.get(&parent_pipeline_id) {
-                    Some(parent_pipeline) => parent_pipeline.script_chan.send(msg),
+                    Some(parent_pipeline) => parent_pipeline.event_loop.send(msg),
                     None => {
                         warn!("Pipeline {:?} child loaded after closure", parent_pipeline_id);
                         return None;
@@ -1694,7 +1671,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let event = CompositorEvent::KeyEvent(ch, key, state, mods);
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.script_chan.send(msg),
+                    Some(pipeline) => pipeline.event_loop.send(msg),
                     None => return debug!("Pipeline {:?} got key event after closure.", pipeline_id),
                 };
                 if let Err(e) = result {
@@ -1716,7 +1693,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(pipeline_id) = root_pipeline_id {
             let msg = ConstellationControlMsg::Reload(pipeline_id);
             let result = match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => pipeline.script_chan.send(msg),
+                Some(pipeline) => pipeline.event_loop.send(msg),
                 None => return debug!("Pipeline {:?} got reload event after closure.", pipeline_id),
             };
             if let Err(e) = result {
@@ -1728,7 +1705,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_get_pipeline_title_msg(&mut self, pipeline_id: PipelineId) {
         let result = match self.pipelines.get(&pipeline_id) {
             None => return self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, None)),
-            Some(pipeline) => pipeline.script_chan.send(ConstellationControlMsg::GetTitle(pipeline_id)),
+            Some(pipeline) => pipeline.event_loop.send(ConstellationControlMsg::GetTitle(pipeline_id)),
         };
         if let Err(e) = result {
             self.handle_send_error(pipeline_id, e);
@@ -1791,7 +1768,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // telling it to mark the iframe element as focused.
         let msg = ConstellationControlMsg::FocusIFrame(parent_pipeline_id, frame_id);
         let result = match self.pipelines.get(&parent_pipeline_id) {
-            Some(pipeline) => pipeline.script_chan.send(msg),
+            Some(pipeline) => pipeline.event_loop.send(msg),
             None => return warn!("Pipeline {:?} focus after closure.", parent_pipeline_id),
         };
         if let Err(e) = result {
@@ -1853,7 +1830,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                                                                  visibility);
             let  result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Parent pipeline {:?} closed", parent_pipeline_id),
-                Some(parent_pipeline) => parent_pipeline.script_chan.send(visibility_msg),
+                Some(parent_pipeline) => parent_pipeline.event_loop.send(visibility_msg),
             };
 
             if let Err(e) = result {
@@ -1911,7 +1888,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd) => {
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
                 let result = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.script_chan.send(control_msg),
+                    Some(pipeline) => pipeline.event_loop.send(control_msg),
                     None => return warn!("Pipeline {:?} ScriptCommand after closure.", pipeline_id),
                 };
                 if let Err(e) = result {
@@ -1919,14 +1896,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
             },
             WebDriverCommandMsg::SendKeys(pipeline_id, cmd) => {
-                let script_channel = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.script_chan.clone(),
+                let event_loop = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.event_loop.clone(),
                     None => return warn!("Pipeline {:?} SendKeys after closure.", pipeline_id),
                 };
                 for (key, mods, state) in cmd {
                     let event = CompositorEvent::KeyEvent(None, key, state, mods);
                     let control_msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
-                    if let Err(e) = script_channel.send(control_msg) {
+                    if let Err(e) = event_loop.send(control_msg) {
                         return self.handle_send_error(pipeline_id, e);
                     }
                 }
@@ -2015,7 +1992,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                                                 next_pipeline_id);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child traversed after closure.", parent_pipeline_id),
-                Some(pipeline) => pipeline.script_chan.send(msg),
+                Some(pipeline) => pipeline.event_loop.send(msg),
             };
             if let Err(e) = result {
                 self.handle_send_error(parent_pipeline_id, e);
@@ -2112,7 +2089,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Some((parent_pipeline_id, _)) = pipeline.parent_info {
                 if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
                     let msg = ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, pipeline.frame_id);
-                    let _ = parent_pipeline.script_chan.send(msg);
+                    let _ = parent_pipeline.event_loop.send(msg);
                 }
             }
         }
@@ -2143,7 +2120,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 None => return warn!("Pipeline {:?} resized after closing.", pipeline_id),
                 Some(pipeline) => pipeline,
             };
-            let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(
+            let _ = pipeline.event_loop.send(ConstellationControlMsg::Resize(
                 pipeline.id,
                 new_size,
                 size_type
@@ -2156,7 +2133,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     },
                     Some(pipeline) => pipeline,
                 };
-                let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(
+                let _ = pipeline.event_loop.send(ConstellationControlMsg::ResizeInactive(
                     pipeline.id,
                     new_size
                 ));
@@ -2171,7 +2148,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 Some(pipeline) => pipeline,
             };
             if pipeline.parent_info.is_none() {
-                let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(
+                let _ = pipeline.event_loop.send(ConstellationControlMsg::Resize(
                     pipeline.id,
                     new_size,
                     size_type
@@ -2340,7 +2317,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         self.close_frame_children(frame_id, exit_mode);
 
-        self.script_channels.remove(&frame_id);
+        self.event_loops.remove(&frame_id);
         if self.frames.remove(&frame_id).is_none() {
             warn!("Closing frame {:?} twice.", frame_id);
         }
