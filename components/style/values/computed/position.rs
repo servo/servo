@@ -26,3 +26,23 @@ impl ToCss for Position {
         Ok(())
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct HorizontalPosition(pub LengthOrPercentage);
+
+impl ToCss for HorizontalPosition {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct VerticalPosition(pub LengthOrPercentage);
+
+impl ToCss for VerticalPosition {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}

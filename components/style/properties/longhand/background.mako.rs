@@ -86,43 +86,89 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position" animatable="True">
+<%helpers:vector_longhand name="background-position-x" animatable="True">
         use std::fmt;
         use style_traits::ToCss;
         use values::HasViewportPercentage;
-        use values::specified::position::Position;
+        use values::specified::position::HorizontalPosition;
 
         pub mod computed_value {
-            use values::computed::position::Position;
+            use values::computed::position::HorizontalPosition;
             use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
 
-            pub type T = Position;
+            pub type T = HorizontalPosition;
         }
 
-        pub type SpecifiedValue = Position;
+        pub type SpecifiedValue = HorizontalPosition;
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            use values::computed::position::Position;
-            Position {
-                horizontal: computed::LengthOrPercentage::Percentage(0.0),
-                vertical: computed::LengthOrPercentage::Percentage(0.0),
-            }
+            use values::computed::position::HorizontalPosition;
+            HorizontalPosition(computed::LengthOrPercentage::Percentage(0.0))
         }
         #[inline]
         pub fn get_initial_specified_value() -> SpecifiedValue {
-            use values::specified::Percentage;
-            Position {
-                horiz_keyword: None,
-                horiz_position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
-                vert_keyword: None,
-                vert_position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
+            use values::specified::position::Keyword;
+            HorizontalPosition {
+                keyword: Some(Keyword::Left),
+                position: None,
+            }
+        }
+        #[inline]
+        pub fn get_initial_position_value() -> SpecifiedValue {
+            use values::specified::{LengthOrPercentage, Percentage};
+            HorizontalPosition {
+                keyword: None,
+                position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
             }
         }
 
         pub fn parse(context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
-            Ok(try!(Position::parse(context, input)))
+            HorizontalPosition::parse(context, input)
+        }
+</%helpers:vector_longhand>
+
+<%helpers:vector_longhand name="background-position-y" animatable="True">
+        use std::fmt;
+        use style_traits::ToCss;
+        use values::HasViewportPercentage;
+        use values::specified::position::VerticalPosition;
+
+        pub mod computed_value {
+            use values::computed::position::VerticalPosition;
+            use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
+
+            pub type T = VerticalPosition;
+        }
+
+        pub type SpecifiedValue = VerticalPosition;
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            use values::computed::position::VerticalPosition;
+            VerticalPosition(computed::LengthOrPercentage::Percentage(0.0))
+        }
+        #[inline]
+        pub fn get_initial_specified_value() -> SpecifiedValue {
+            use values::specified::position::Keyword;
+            VerticalPosition {
+                keyword: Some(Keyword::Top),
+                position: None,
+            }
+        }
+        #[inline]
+        pub fn get_initial_position_value() -> SpecifiedValue {
+            use values::specified::{LengthOrPercentage, Percentage};
+            VerticalPosition {
+                keyword: None,
+                position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
+            }
+        }
+
+        pub fn parse(context: &ParserContext, input: &mut Parser)
+                     -> Result<SpecifiedValue, ()> {
+            VerticalPosition::parse(context, input)
         }
 </%helpers:vector_longhand>
 

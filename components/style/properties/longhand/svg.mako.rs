@@ -91,21 +91,59 @@ ${helpers.single_keyword("mask-repeat",
                          products="gecko",
                          animatable=False)}
 
-<%helpers:longhand name="mask-position" products="gecko" animatable="True">
-    use properties::longhands::background_position;
-    pub use ::properties::longhands::background_position::SpecifiedValue;
-    pub use ::properties::longhands::background_position::single_value as single_value;
-    pub use ::properties::longhands::background_position::computed_value as computed_value;
+<%helpers:vector_longhand name="mask-position" products="gecko" animatable="True">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::specified::position::Position;
+
+    pub mod computed_value {
+        use values::computed::position::Position;
+        use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
+        use properties::longhands::mask_position::computed_value::T as MaskPosition;
+
+        pub type T = Position;
+
+        impl RepeatableListInterpolate for MaskPosition {}
+
+        impl Interpolate for MaskPosition {
+            fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+                Ok(MaskPosition(try!(self.0.interpolate(&other.0, progress))))
+            }
+        }
+    }
+
+    pub type SpecifiedValue = Position;
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        background_position::get_initial_value()
+        use values::computed::position::Position;
+        Position {
+            horizontal: computed::LengthOrPercentage::Percentage(0.0),
+            vertical: computed::LengthOrPercentage::Percentage(0.0),
+        }
+    }
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        use values::specified::Percentage;
+        use values::specified::position::{HorizontalPosition, VerticalPosition};
+        Position {
+            horizontal: HorizontalPosition {
+                keyword: None,
+                position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
+            },
+            vertical: VerticalPosition {
+                keyword: None,
+                position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
+            },
+        }
     }
 
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        background_position::parse(context, input)
+    pub fn parse(context: &ParserContext, input: &mut Parser)
+                 -> Result<SpecifiedValue, ()> {
+        Position::parse(context, input)
     }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 // missing: margin-box fill-box stroke-box view-box no-clip
 // (gecko doesn't implement these)

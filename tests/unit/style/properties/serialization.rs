@@ -688,11 +688,12 @@ mod shorthand_serialization {
         use style::properties::longhands::background_clip as clip;
         use style::properties::longhands::background_image as image;
         use style::properties::longhands::background_origin as origin;
-        use style::properties::longhands::background_position as position;
+        use style::properties::longhands::background_position_x as position_x;
+        use style::properties::longhands::background_position_y as position_y;
         use style::properties::longhands::background_repeat as repeat;
         use style::properties::longhands::background_size as size;
         use style::values::specified::Image;
-        use style::values::specified::position::Position;
+        use style::values::specified::position::{HorizontalPosition, VerticalPosition};
         use super::*;
         macro_rules! single_vec_value_typedef {
             ($name:ident, $path:expr) => {
@@ -731,12 +732,17 @@ mod shorthand_serialization {
                 authored: None
             });
 
-            let position = single_vec_value_typedef!(position,
-                Position {
-                    horiz_keyword: None,
-                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
-                    vert_keyword: None,
-                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
+            let position_x = single_vec_value_typedef!(position_x,
+                HorizontalPosition {
+                    keyword: None,
+                    position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                }
+            );
+
+            let position_y = single_vec_value_typedef!(position_y,
+                VerticalPosition {
+                    keyword: None,
+                    position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
                 }
             );
 
@@ -759,7 +765,8 @@ mod shorthand_serialization {
             let clip = single_vec_keyword_value!(clip, padding_box);
 
             properties.push(PropertyDeclaration::BackgroundColor(color));
-            properties.push(PropertyDeclaration::BackgroundPosition(position));
+            properties.push(PropertyDeclaration::BackgroundPositionX(position_x));
+            properties.push(PropertyDeclaration::BackgroundPositionY(position_y));
             properties.push(PropertyDeclaration::BackgroundRepeat(repeat));
             properties.push(PropertyDeclaration::BackgroundAttachment(attachment));
             properties.push(PropertyDeclaration::BackgroundImage(image));
@@ -785,12 +792,17 @@ mod shorthand_serialization {
                 authored: None
             });
 
-            let position = single_vec_value_typedef!(position,
-                Position {
-                    horiz_keyword: None,
-                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
-                    vert_keyword: None,
-                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
+            let position_x = single_vec_value_typedef!(position_x,
+                HorizontalPosition {
+                    keyword: None,
+                    position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                }
+            );
+
+            let position_y = single_vec_value_typedef!(position_y,
+                VerticalPosition {
+                    keyword: None,
+                    position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
                 }
             );
 
@@ -813,7 +825,8 @@ mod shorthand_serialization {
             let clip = single_vec_keyword_value!(clip, padding_box);
 
             properties.push(PropertyDeclaration::BackgroundColor(color));
-            properties.push(PropertyDeclaration::BackgroundPosition(position));
+            properties.push(PropertyDeclaration::BackgroundPositionX(position_x));
+            properties.push(PropertyDeclaration::BackgroundPositionY(position_y));
             properties.push(PropertyDeclaration::BackgroundRepeat(repeat));
             properties.push(PropertyDeclaration::BackgroundAttachment(attachment));
             properties.push(PropertyDeclaration::BackgroundImage(image));
@@ -838,12 +851,17 @@ mod shorthand_serialization {
                 authored: None
             });
 
-             let position = single_vec_value_typedef!(position,
-                Position {
-                    horiz_keyword: None,
-                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(0f32))),
-                    vert_keyword: None,
-                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(0f32)))
+            let position_x = single_vec_value_typedef!(position_x,
+                HorizontalPosition {
+                    keyword: None,
+                    position: Some(LengthOrPercentage::Length(Length::from_px(0f32))),
+                }
+            );
+
+            let position_y = single_vec_value_typedef!(position_y,
+                VerticalPosition {
+                    keyword: None,
+                    position: Some(LengthOrPercentage::Length(Length::from_px(0f32))),
                 }
             );
 
@@ -858,7 +876,8 @@ mod shorthand_serialization {
             let clip = DeclaredValue::Initial;
 
             properties.push(PropertyDeclaration::BackgroundColor(color));
-            properties.push(PropertyDeclaration::BackgroundPosition(position));
+            properties.push(PropertyDeclaration::BackgroundPositionX(position_x));
+            properties.push(PropertyDeclaration::BackgroundPositionY(position_y));
             properties.push(PropertyDeclaration::BackgroundRepeat(repeat));
             properties.push(PropertyDeclaration::BackgroundAttachment(attachment));
             properties.push(PropertyDeclaration::BackgroundImage(image));
@@ -881,7 +900,7 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
         use style::values::specified::Image;
-        use style::values::specified::position::Position;
+        use style::values::specified::position::{HorizontalPosition, Position, VerticalPosition};
         use super::*;
 
         macro_rules! single_vec_value_typedef {
@@ -918,10 +937,14 @@ mod shorthand_serialization {
 
             let position = single_vec_value_typedef!(position,
                 Position {
-                    horiz_keyword: None,
-                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
-                    vert_keyword: None,
-                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
+                    horizontal: HorizontalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    },
+                    vertical: VerticalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
+                    },
                 }
             );
 
@@ -968,10 +991,14 @@ mod shorthand_serialization {
 
             let position = single_vec_value_typedef!(position,
                 Position {
-                    horiz_keyword: None,
-                    horiz_position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
-                    vert_keyword: None,
-                    vert_position: Some(LengthOrPercentage::Length(Length::from_px(4f32)))
+                    horizontal: HorizontalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    },
+                    vertical: VerticalPosition {
+                        keyword: None,
+                        position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
+                    },
                 }
             );
 
