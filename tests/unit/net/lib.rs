@@ -36,7 +36,8 @@ extern crate url;
 
 use devtools_traits::DevtoolsControlMsg;
 use hyper::server::{Handler, Listening, Server};
-use net::fetch::methods::{FetchContext, fetch};
+use net::fetch::cors_cache::CorsCache;
+use net::fetch::methods::{self, FetchContext};
 use net::filemanager_thread::FileManager;
 use net::test::HttpState;
 use net_traits::FetchTaskTarget;
@@ -44,8 +45,7 @@ use net_traits::request::Request;
 use net_traits::response::Response;
 use servo_url::ServoUrl;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
-use std::thread;
+use std::sync::mpsc::{Sender, channel};
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";
 
@@ -72,14 +72,30 @@ impl FetchTaskTarget for FetchResponseCollector {
     }
 }
 
-fn fetch_async(request: Request, target: Box<FetchTaskTarget + Send>, dc: Option<Sender<DevtoolsControlMsg>>) {
-    thread::spawn(move || {
-        fetch(Rc::new(request), &mut Some(target), &new_fetch_context(dc));
-    });
+fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
+    fetch_with_context(request, &new_fetch_context(dc))
 }
 
-fn fetch_sync(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
-    fetch(Rc::new(request), &mut None, &new_fetch_context(dc))
+fn fetch_with_context(request: Request, context: &FetchContext) -> Response {
+    let (sender, receiver) = channel();
+    let mut target = FetchResponseCollector {
+        sender: sender,
+    };
+
+    methods::fetch(Rc::new(request), &mut target, context);
+
+    receiver.recv().unwrap()
+}
+
+fn fetch_with_cors_cache(request: Rc<Request>, cache: &mut CorsCache) -> Response {
+    let (sender, receiver) = channel();
+    let mut target = FetchResponseCollector {
+        sender: sender,
+    };
+
+    methods::fetch_with_cors_cache(request, cache, &mut target, &new_fetch_context(None));
+
+    receiver.recv().unwrap()
 }
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, ServoUrl) {
