@@ -50,12 +50,16 @@ def setlocale(name):
 
 def find_dep_path_newest(package, bin_path):
     deps_path = path.join(path.split(bin_path)[0], "build")
+    candidates = []
     with cd(deps_path):
-        candidates = glob(package + '-*')
-    candidates = (path.join(deps_path, c) for c in candidates)
-    candidate_times = sorted(((path.getmtime(c), c) for c in candidates), reverse=True)
-    if len(candidate_times) > 0:
-        return candidate_times[0][1]
+        for c in glob(package + '-*'):
+            candidate_path = path.join(deps_path, c)
+            candidate_output = path.join(candidate_path, "output")
+            if path.exists(candidate_output):
+                candidates.append((path.getmtime(candidate_output), candidate_path))
+    candidates.sort(reverse=True)
+    if len(candidates) > 0:
+        return candidates[0][1]
     return None
 
 
