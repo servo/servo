@@ -6,6 +6,7 @@ use cssparser::Parser;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
+use servo_config::prefs::{PREFS, PrefValue};
 use servo_url::ServoUrl;
 use style::error_reporting::ParseErrorReporter;
 use style::media_queries::{Device, MediaType};
@@ -35,8 +36,7 @@ fn test_viewport_rule<F>(css: &str,
                          callback: F)
     where F: Fn(&Vec<ViewportDescriptorDeclaration>, &str)
 {
-    ::util::prefs::PREFS.set("layout.viewport.enabled",
-                             ::util::prefs::PrefValue::Boolean(true));
+    PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
     let stylesheet = stylesheet!(css, Author, Box::new(CSSErrorReporterTest));
     let mut rule_count = 0;
     stylesheet.effective_viewport_rules(&device, |rule| {
@@ -250,8 +250,7 @@ fn cascading_within_viewport_rule() {
 
 #[test]
 fn multiple_stylesheets_cascading() {
-    ::util::prefs::PREFS.set("layout.viewport.enabled",
-                             ::util::prefs::PrefValue::Boolean(true));
+    PREFS.set("layout.viewport.enabled", PrefValue::Boolean(true));
     let device = Device::new(MediaType::Screen, TypedSize2D::new(800., 600.));
     let error_reporter = CSSErrorReporterTest;
     let stylesheets = vec![

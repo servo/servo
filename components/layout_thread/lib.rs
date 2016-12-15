@@ -40,9 +40,10 @@ extern crate script_layout_interface;
 extern crate script_traits;
 extern crate selectors;
 extern crate serde_json;
+extern crate servo_config;
+extern crate servo_geometry;
 extern crate servo_url;
 extern crate style;
-extern crate util;
 extern crate webrender_traits;
 
 use app_units::Au;
@@ -94,6 +95,10 @@ use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
 use selectors::Element;
+use servo_config::opts;
+use servo_config::prefs::PREFS;
+use servo_config::resource_files::read_resource_file;
+use servo_geometry::max_rect;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -103,6 +108,7 @@ use std::process;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
+use std::thread;
 use style::animation::Animation;
 use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
 use style::data::StoredRestyleHint;
@@ -117,11 +123,6 @@ use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::DomTraversalContext;
-use util::geometry::max_rect;
-use util::opts;
-use util::prefs::PREFS;
-use util::resource_files::read_resource_file;
-use util::thread;
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -229,7 +230,7 @@ pub struct LayoutThread {
     /// only be a test-mode timer during testing for animations.
     timer: Timer,
 
-    // Number of layout threads. This is copied from `util::opts`, but we'd
+    // Number of layout threads. This is copied from `servo_config::opts`, but we'd
     // rather limit the dependency on that module here.
     layout_threads: usize,
 }
@@ -253,8 +254,7 @@ impl LayoutThreadFactory for LayoutThread {
               content_process_shutdown_chan: Option<IpcSender<()>>,
               webrender_api_sender: webrender_traits::RenderApiSender,
               layout_threads: usize) {
-        thread::spawn_named(format!("LayoutThread {:?}", id),
-                      move || {
+        thread::Builder::new().name(format!("LayoutThread {:?}", id)).spawn(move || {
             thread_state::initialize(thread_state::LAYOUT);
 
             if let Some(top_level_frame_id) = top_level_frame_id {
@@ -285,7 +285,7 @@ impl LayoutThreadFactory for LayoutThread {
             if let Some(content_process_shutdown_chan) = content_process_shutdown_chan {
                 let _ = content_process_shutdown_chan.send(());
             }
-        });
+        }).expect("Thread spawning failed");
     }
 }
 

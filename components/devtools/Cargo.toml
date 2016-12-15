@@ -22,4 +22,3 @@ serde = "0.8"
 serde_json = "0.8"
 serde_derive = "0.8"
 time = "0.1"
-util = {path = "../util"}

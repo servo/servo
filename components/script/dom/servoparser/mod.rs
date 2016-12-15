@@ -32,10 +32,10 @@ use network_listener::PreInvoke;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
+use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::mem;
-use util::resource_files::read_resource_file;
 
 mod html;
 mod xml;

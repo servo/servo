@@ -23,11 +23,11 @@ extern crate profile_traits;
 extern crate script_traits;
 #[macro_use]
 extern crate serde_derive;
+extern crate servo_config;
+extern crate servo_geometry;
 extern crate servo_url;
 extern crate style_traits;
 extern crate time;
-#[macro_use]
-extern crate util;
 extern crate webrender;
 extern crate webrender_traits;
 

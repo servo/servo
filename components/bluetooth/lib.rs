@@ -10,7 +10,6 @@ extern crate ipc_channel;
 extern crate rand;
 #[cfg(target_os = "linux")]
 extern crate tinyfiledialogs;
-extern crate util;
 extern crate uuid;
 
 pub mod test;
@@ -29,7 +28,6 @@ use std::collections::{HashMap, HashSet};
 use std::string::String;
 use std::thread;
 use std::time::Duration;
-use util::thread::spawn_named;
 
 // A transaction not completed within 30 seconds shall time out. Such a transaction shall be considered to have failed.
 // https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=286439 (Vol. 3, page 480)
@@ -88,9 +86,9 @@ impl BluetoothThreadFactory for IpcSender<BluetoothRequest> {
     fn new() -> IpcSender<BluetoothRequest> {
         let (sender, receiver) = ipc::channel().unwrap();
         let adapter = BluetoothAdapter::init().ok();
-        spawn_named("BluetoothThread".to_owned(), move || {
+        thread::Builder::new().name("BluetoothThread".to_owned()).spawn(move || {
             BluetoothManager::new(receiver, adapter).start();
-        });
+        }).expect("Thread spawning failed");
         sender
     }
 }

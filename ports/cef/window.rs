@@ -27,6 +27,7 @@ use gfx_traits::DevicePixel;
 use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
+use servo_geometry::ScreenPx;
 use std::cell::RefCell;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
@@ -35,7 +36,6 @@ use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
 use servo_url::ServoUrl;
 use style_traits::cursor::Cursor;
-use util::geometry::ScreenPx;
 #[cfg(target_os="linux")]
 extern crate x11;
 #[cfg(target_os="linux")]

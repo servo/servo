@@ -9,6 +9,7 @@ use ipc_channel::ipc::{self, IpcReceiver};
 use profile_traits::energy::{energy_interval_ms, read_energy_uj};
 use profile_traits::time::{ProfilerCategory, ProfilerChan, ProfilerMsg, TimerMetadata};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
+use servo_config::opts::OutputOptions;
 use std::{f64, thread, u32, u64};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
@@ -22,8 +23,6 @@ use std::path::Path;
 use std::time::Duration;
 use std_time::precise_time_ns;
 use trace_dump::TraceDump;
-use util::opts::OutputOptions;
-use util::thread::spawn_named;
 
 pub trait Formattable {
     fn format(&self, output: &Option<OutputOptions>) -> String;
@@ -176,28 +175,28 @@ impl Profiler {
             Some(ref option) => {
                 // Spawn the time profiler thread
                 let outputoption = option.clone();
-                spawn_named("Time profiler".to_owned(), move || {
+                thread::Builder::new().name("Time profiler".to_owned()).spawn(move || {
                     let trace = file_path.as_ref()
                         .map(path::Path::new)
                         .map(fs::File::create)
                         .map(|res| TraceDump::new(res.unwrap()));
                     let mut profiler = Profiler::new(port, trace, Some(outputoption));
                     profiler.start();
-                });
+                }).expect("Thread spawning failed");
                 // decide if we need to spawn the timer thread
                 match option {
                     &OutputOptions::FileName(_) => { /* no timer thread needed */ },
                     &OutputOptions::Stdout(period) => {
                         // Spawn a timer thread
                         let chan = chan.clone();
-                        spawn_named("Time profiler timer".to_owned(), move || {
+                        thread::Builder::new().name("Time profiler timer".to_owned()).spawn(move || {
                             loop {
                                 thread::sleep(duration_from_seconds(period));
                                 if chan.send(ProfilerMsg::Print).is_err() {
                                     break;
                                 }
                             }
-                        });
+                        }).expect("Thread spawning failed");
                     },
                 }
             },
@@ -205,17 +204,17 @@ impl Profiler {
                 // this is when the -p option hasn't been specified
                 if file_path.is_some() {
                     // Spawn the time profiler
-                    spawn_named("Time profiler".to_owned(), move || {
+                    thread::Builder::new().name("Time profiler".to_owned()).spawn(move || {
                         let trace = file_path.as_ref()
                             .map(path::Path::new)
                             .map(fs::File::create)
                             .map(|res| TraceDump::new(res.unwrap()));
                         let mut profiler = Profiler::new(port, trace, None);
                         profiler.start();
-                    });
+                    }).expect("Thread spawning failed");
                 } else {
                     // No-op to handle messages when the time profiler is not printing:
-                    spawn_named("Time profiler".to_owned(), move || {
+                    thread::Builder::new().name("Time profiler".to_owned()).spawn(move || {
                         loop {
                             match port.recv() {
                                 Err(_) => break,
@@ -226,7 +225,7 @@ impl Profiler {
                                 _ => {}
                             }
                         }
-                    });
+                    }).expect("Thread spawning failed");
                 }
             }
         }
@@ -247,7 +246,7 @@ impl Profiler {
             const MAX_ENERGY_INTERVAL_MS: u32 = 1000;
             let interval_ms = enforce_range(MIN_ENERGY_INTERVAL_MS, MAX_ENERGY_INTERVAL_MS, energy_interval_ms());
             let loop_count: u32 = (interval_ms as f32 / SLEEP_MS as f32).ceil() as u32;
-            spawn_named("Application heartbeat profiler".to_owned(), move || {
+            thread::Builder::new().name("Application heartbeat profiler".to_owned()).spawn(move || {
                 let mut start_time = precise_time_ns();
                 let mut start_energy = read_energy_uj();
                 loop {
@@ -272,7 +271,7 @@ impl Profiler {
                     start_time = end_time;
                     start_energy = end_energy;
                 }
-            });
+            }).expect("Thread spawning failed");
         }
 
         profiler_chan

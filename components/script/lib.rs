@@ -83,6 +83,8 @@ extern crate script_traits;
 extern crate selectors;
 extern crate serde;
 #[macro_use] extern crate servo_atoms;
+#[macro_use] extern crate servo_config;
+extern crate servo_geometry;
 extern crate servo_url;
 extern crate smallvec;
 #[macro_use]
@@ -93,7 +95,6 @@ extern crate time;
 extern crate tinyfiledialogs;
 extern crate url;
 #[macro_use]
-extern crate util;
 extern crate uuid;
 extern crate webrender_traits;
 extern crate websocket;

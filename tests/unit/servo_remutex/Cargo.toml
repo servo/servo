@@ -1,14 +1,14 @@
 [package]
-name = "util_tests"
+name = "servo_remutex_tests"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 
 [lib]
-name = "util_tests"
+name = "servo_remutex_tests"
 path = "lib.rs"
 doctest = false
 
 [dependencies]
-util = {path = "../../../components/util"}
+servo_remutex = {path = "../../../components/remutex"}
 

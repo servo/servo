@@ -25,6 +25,7 @@ use net::fetch::methods::{fetch, fetch_with_cors_cache};
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
+use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::fs::File;
 use std::io::Read;
@@ -35,7 +36,6 @@ use std::sync::mpsc::{Sender, channel};
 use time::{self, Duration};
 use unicase::UniCase;
 use url::Origin as UrlOrigin;
-use util::resource_files::resources_dir_path;
 
 // TODO write a struct that impls Handler for storing test values
 

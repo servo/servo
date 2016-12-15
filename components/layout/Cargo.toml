@@ -39,13 +39,13 @@ serde = "0.8"
 serde_derive = "0.8"
 serde_json = "0.8"
 servo_atoms = {path = "../atoms"}
+servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 smallvec = "0.1"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 unicode-bidi = "0.2"
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
-util = {path = "../util"}
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"

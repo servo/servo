@@ -25,6 +25,8 @@ use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use script_thread::{Runnable, STACK_ROOTS, trace_thread};
+use servo_config::opts;
+use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::io::{Write, stdout};
 use std::marker::PhantomData;
@@ -35,8 +37,6 @@ use std::ptr;
 use std::rc::Rc;
 use style::thread_state;
 use time::{Tm, now};
-use util::opts;
-use util::prefs::PREFS;
 
 /// Common messages used to control the event loops in both the script and the worker
 pub enum CommonScriptMsg {

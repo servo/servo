@@ -7,8 +7,8 @@ extern crate time as std_time;
 use energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
 use self::std_time::precise_time_ns;
+use servo_config::opts;
 use signpost;
-use util::opts;
 
 #[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Debug, Deserialize, Serialize)]
 pub struct TimerMetadata {

@@ -23,10 +23,11 @@ profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 serde = "0.8"
 serde_derive = "0.8"
+servo_config = {path = "../config", features = ["servo"]}
+servo_geometry = {path = "../geometry", features = ["servo"]}
 servo_url = {path = "../url", features = ["servo"]}
 style_traits = {path = "../style_traits"}
 time = "0.1.17"
-util = {path = "../util"}
 
 [dependencies.webrender]
 git = "https://github.com/servo/webrender"

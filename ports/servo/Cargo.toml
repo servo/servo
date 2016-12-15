@@ -22,8 +22,9 @@ net_traits_tests = {path = "../../tests/unit/net_traits"}
 plugin_compiletest = {path = "../../tests/compiletest/plugin"}
 profile_tests = {path = "../../tests/unit/profile"}
 script_tests = {path = "../../tests/unit/script"}
+servo_config_tests = {path = "../../tests/unit/servo_config"}
+servo_remutex_tests = {path = "../../tests/unit/servo_remutex"}
 style_tests = {path = "../../tests/unit/style"}
-util_tests = {path = "../../tests/unit/util"}
 
 [features]
 default = ["webdriver", "max_log_level"]

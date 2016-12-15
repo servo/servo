@@ -9,10 +9,10 @@ use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender};
 use offscreen_gl_context::{ColorAttachmentType, GLContext, GLLimits};
 use offscreen_gl_context::{GLContextAttributes, NativeGLContext, OSMesaContext};
+use servo_config::opts;
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
-use util::opts;
-use util::thread::spawn_named;
+use std::thread;
 use webrender_traits;
 
 enum GLContextWrapper {
@@ -151,7 +151,7 @@ impl WebGLPaintThread {
                  -> Result<(IpcSender<CanvasMsg>, GLLimits), String> {
         let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
         let (result_chan, result_port) = channel();
-        spawn_named("WebGLThread".to_owned(), move || {
+        thread::Builder::new().name("WebGLThread".to_owned()).spawn(move || {
             let mut painter = match WebGLPaintThread::new(size, attrs, webrender_api_sender) {
                 Ok((thread, limits)) => {
                     result_chan.send(Ok(limits)).unwrap();
@@ -191,7 +191,7 @@ impl WebGLPaintThread {
                     CanvasMsg::Canvas2d(_) => panic!("Wrong message sent to WebGLThread"),
                 }
             }
-        });
+        }).expect("Thread spawning failed");
 
         result_port.recv().unwrap().map(|limits| (sender, limits))
     }

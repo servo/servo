@@ -6,11 +6,11 @@
 //! from command line arguments.
 
 use euclid::size::TypedSize2D;
-use geometry::ScreenPx;
 use getopts::Options;
 use num_cpus;
 use prefs::{self, PrefValue, PREFS};
 use resource_files::set_resources_path;
+use servo_geometry::ScreenPx;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cmp;

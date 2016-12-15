@@ -21,10 +21,10 @@ use std::collections::HashMap;
 use std::mem;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use std::u32;
 use style::font_face::{EffectiveSources, Source};
 use style::properties::longhands::font_family::computed_value::FontFamily;
-use util::thread::spawn_named;
 use webrender_traits;
 
 /// A list of font templates that make up a given font family.
@@ -396,7 +396,7 @@ impl FontCacheThread {
         let (chan, port) = ipc::channel().unwrap();
 
         let channel_to_self = chan.clone();
-        spawn_named("FontCacheThread".to_owned(), move || {
+        thread::Builder::new().name("FontCacheThread".to_owned()).spawn(move || {
             // TODO: Allow users to specify these.
             let generic_fonts = populate_generic_fonts();
 
@@ -414,7 +414,7 @@ impl FontCacheThread {
 
             cache.refresh_local_families();
             cache.run();
-        });
+        }).expect("Thread spawning failed");
 
         FontCacheThread {
             chan: chan,

@@ -38,6 +38,7 @@ use multicol::{MulticolColumnFlow, MulticolFlow};
 use parallel;
 use script_layout_interface::{LayoutElementType, LayoutNodeType, is_image_data};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use servo_config::opts;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
@@ -64,7 +65,6 @@ use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use text::TextRunScanner;
 use traversal::PostorderNodeMutTraversal;
-use util::opts;
 use wrapper::{LayoutNodeLayoutData, TextContent, ThreadSafeLayoutNodeHelpers};
 
 /// The results of flow construction for a DOM node.

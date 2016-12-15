@@ -22,8 +22,8 @@ net = {path = "../../../components/net"}
 net_traits = {path = "../../../components/net_traits"}
 plugins = {path = "../../../components/plugins"}
 profile_traits = {path = "../../../components/profile_traits"}
+servo_config = {path = "../../../components/config"}
 time = "0.1"
 unicase = "1.0"
 url = {version = "1.2", features = ["heap_size"]}
 servo_url = {path = "../../../components/url"}
-util = {path = "../../../components/util"}

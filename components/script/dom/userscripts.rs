@@ -9,11 +9,11 @@ use dom::bindings::js::RootedReference;
 use dom::bindings::str::DOMString;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::node::Node;
+use servo_config::opts;
+use servo_config::resource_files::resources_dir_path;
 use std::borrow::ToOwned;
 use std::fs::read_dir;
 use std::path::PathBuf;
-use util::opts;
-use util::resource_files::resources_dir_path;
 
 
 pub fn load_script(head: &HTMLHeadElement) {

@@ -1,17 +1,14 @@
 [package]
-name = "debugger"
+name = "servo_remutex"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 publish = false
 
 [lib]
-name = "debugger"
+name = "servo_remutex"
 path = "lib.rs"
-crate_type = ["rlib"]
 
 [dependencies]
+lazy_static = "0.2"
 log = "0.3.5"
-
-[target.'cfg(not(target_os = "android"))'.dependencies]
-ws = "0.5.3"

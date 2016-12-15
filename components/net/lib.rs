@@ -35,6 +35,7 @@ extern crate profile_traits;
 extern crate rustc_serialize;
 #[macro_use]
 extern crate serde_derive;
+extern crate servo_config;
 extern crate servo_url;
 extern crate threadpool;
 extern crate time;
@@ -42,7 +43,6 @@ extern crate time;
 extern crate tinyfiledialogs;
 extern crate unicase;
 extern crate url;
-extern crate util;
 extern crate uuid;
 extern crate webrender_traits;
 extern crate websocket;

@@ -28,10 +28,10 @@ use html5ever_atoms::LocalName;
 use net_traits::ReferrerPolicy;
 use num_traits::ToPrimitive;
 use script_traits::MozBrowserEvent;
+use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::default::Default;
 use style::attr::AttrValue;
-use util::prefs::PREFS;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {

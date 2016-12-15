@@ -23,7 +23,7 @@ rustc-serialize = "0.3"
 selectors = "0.15"
 html5ever-atoms = "0.1"
 servo_atoms = {path = "../../../components/atoms"}
+servo_config = {path = "../../../components/config"}
 style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}
 servo_url = {path = "../../../components/url"}
-util = {path = "../../../components/util"}

@@ -4,13 +4,12 @@
 
 #[macro_use]
 extern crate log;
-extern crate util;
 #[cfg(not(target_os = "android"))]
 extern crate ws;
 
 use std::sync::mpsc;
 use std::sync::mpsc::channel;
-use util::thread::spawn_named;
+use std::thread;
 #[cfg(not(target_os = "android"))]
 use ws::{Builder, CloseCode, Handler, Handshake};
 
@@ -45,14 +44,14 @@ impl Handler for Connection {
 pub fn start_server(port: u16) -> Sender {
     debug!("Starting server.");
     let (sender, receiver) = channel();
-    spawn_named("debugger".to_owned(), move || {
+    thread::Builder::new().name("debugger".to_owned()).spawn(move || {
         let socket = Builder::new().build(|sender: ws::Sender| {
             Connection { sender: sender }
         }).unwrap();
         let sender = socket.broadcaster();
-        spawn_named("debugger-websocket".to_owned(), move || {
+        thread::Builder::new().name("debugger-websocket".to_owned()).spawn(move || {
             socket.listen(("127.0.0.1", port)).unwrap();
-        });
+        }).expect("Thread spawning failed");
         while let Ok(message) = receiver.recv() {
             match message {
                 Message::ShutdownServer => {
@@ -61,7 +60,7 @@ pub fn start_server(port: u16) -> Sender {
             }
         }
         sender.shutdown().unwrap();
-    });
+    }).expect("Thread spawning failed");
     Sender(sender)
 }
 

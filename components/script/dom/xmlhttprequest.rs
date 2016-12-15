@@ -53,6 +53,7 @@ use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode
 use net_traits::trim_http_whitespace;
 use network_listener::{NetworkListener, PreInvoke};
 use servo_atoms::Atom;
+use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -64,7 +65,6 @@ use task_source::networking::NetworkingTaskSource;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Position;
-use util::prefs::PREFS;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {

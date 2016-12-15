@@ -14,7 +14,6 @@ use std::ascii::AsciiExt;
 use std::sync::{Arc, Mutex, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
-use util::thread::spawn_named;
 use websocket::{Client, Message};
 use websocket::header::{Headers, Origin, WebSocketProtocol};
 use websocket::message::Type;
@@ -64,7 +63,7 @@ fn establish_a_websocket_connection(resource_url: &ServoUrl, net_url: (Host, Str
 }
 
 pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, cookie_jar: Arc<RwLock<CookieStorage>>) {
-    spawn_named(format!("WebSocket connection to {}", connect_data.resource_url), move || {
+    thread::Builder::new().name(format!("WebSocket connection to {}", connect_data.resource_url)).spawn(move || {
         // Step 8: Protocols.
 
         // Step 9.
@@ -162,5 +161,5 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
                 }
             }
         });
-    });
+    }).expect("Thread spawning failed");
 }

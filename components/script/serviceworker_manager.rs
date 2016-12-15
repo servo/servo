@@ -16,11 +16,11 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CustomResponseMediator, CoreResourceMsg};
 use script_traits::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
+use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender, Receiver, RecvError};
-use util::prefs::PREFS;
-use util::thread::spawn_named;
+use std::thread;
 
 enum Message {
     FromResource(CustomResponseMediator),
@@ -60,11 +60,11 @@ impl ServiceWorkerManager {
         let resource_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(resource_port);
         let _ = sw_senders.resource_sender.send(CoreResourceMsg::NetworkMediator(resource_chan));
         let _ = sw_senders.swmanager_sender.send(SWManagerMsg::OwnSender(own_sender.clone()));
-        spawn_named("ServiceWorkerManager".to_owned(), move || {
+        thread::Builder::new().name("ServiceWorkerManager".to_owned()).spawn(move || {
             ServiceWorkerManager::new(own_sender,
                                       from_constellation,
                                       resource_port).handle_message();
-        });
+        }).expect("Thread spawning failed");
     }
 
     pub fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {

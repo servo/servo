@@ -34,9 +34,10 @@ script_traits = {path = "../script_traits"}
 selectors = "0.15"
 serde_derive = "0.8"
 serde_json = "0.8"
+servo_config = {path = "../config"}
+servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 style = {path = "../style"}
-util = {path = "../util"}
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"

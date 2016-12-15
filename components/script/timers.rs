@@ -18,12 +18,12 @@ use js::jsapi::{HandleValue, Heap};
 use js::jsval::{JSVal, UndefinedValue};
 use script_traits::{MsDuration, precise_time_ms};
 use script_traits::{TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
+use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::cmp::{self, Ord, Ordering};
 use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
-use util::prefs::PREFS;
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
 pub struct OneshotTimerHandle(i32);

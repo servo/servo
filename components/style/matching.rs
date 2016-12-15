@@ -21,13 +21,13 @@ use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, MatchingReason, StyleRelations};
+use servo_config::opts;
 use sink::ForgetfulSink;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::slice::IterMut;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
-use util::opts;
 
 fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &E)
                                                          -> CommonStyleAffectingAttributes {

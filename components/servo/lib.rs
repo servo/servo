@@ -45,10 +45,9 @@ pub extern crate profile_traits;
 pub extern crate script;
 pub extern crate script_traits;
 pub extern crate script_layout_interface;
+pub extern crate servo_config;
 pub extern crate servo_url;
 pub extern crate style;
-pub extern crate url;
-pub extern crate util;
 
 #[cfg(feature = "webdriver")]
 extern crate webdriver_server;
@@ -88,17 +87,19 @@ use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{ConstellationMsg, SWManagerSenders, ScriptMsg};
+use servo_config::opts;
+use servo_config::prefs::PREFS;
+use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
-use util::opts;
-use util::prefs::PREFS;
-use util::resource_files::resources_dir_path;
 
 pub use gleam::gl;
+pub use servo_config as config;
+pub use servo_url as url;
 
 /// The in-process interface to Servo.
 ///

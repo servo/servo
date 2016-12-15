@@ -10,7 +10,7 @@ use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use util::thread::spawn_named;
+use std::thread;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 
@@ -22,9 +22,9 @@ impl StorageThreadFactory for IpcSender<StorageThreadMsg> {
     /// Create a storage thread
     fn new(config_dir: Option<PathBuf>) -> IpcSender<StorageThreadMsg> {
         let (chan, port) = ipc::channel().unwrap();
-        spawn_named("StorageManager".to_owned(), move || {
+        thread::Builder::new().name("StorageManager".to_owned()).spawn(move || {
             StorageManager::new(port, config_dir).start();
-        });
+        }).expect("Thread spawning failed");
         chan
     }
 }

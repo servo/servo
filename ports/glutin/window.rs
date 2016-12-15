@@ -26,6 +26,10 @@ use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
 use script_traits::{TouchEventType, TouchpadPressurePhase};
+use servo_config::opts;
+use servo_config::prefs::PREFS;
+use servo_config::resource_files;
+use servo_geometry::ScreenPx;
 use servo_url::ServoUrl;
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -39,10 +43,6 @@ use std::sync::mpsc::{Sender, channel};
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
-use util::geometry::ScreenPx;
-use util::opts;
-use util::prefs::PREFS;
-use util::resource_files;
 #[cfg(target_os = "windows")]
 use winapi;
 

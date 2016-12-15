@@ -8,10 +8,10 @@
 
 use dom::{OpaqueNode, TElement, TNode, UnsafeNode};
 use rayon;
+use servo_config::opts;
 use std::sync::atomic::Ordering;
 use traversal::{DomTraversalContext, PerLevelTraversalData, PreTraverseToken};
 use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
-use util::opts;
 
 pub const CHUNK_SIZE: usize = 64;
 

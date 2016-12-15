@@ -20,7 +20,7 @@ log = "0.3.5"
 plugins = {path = "../plugins"}
 serde = "0.8"
 serde_derive = "0.8"
+servo_config = {path = "../config"}
 signpost = {git = "https://github.com/pcwalton/signpost.git"}
 time = "0.1.12"
-util = {path = "../util"}
 

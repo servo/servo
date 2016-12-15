@@ -27,9 +27,9 @@ extern crate num_traits;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate servo_config;
 extern crate servo_url;
 extern crate url;
-extern crate util;
 extern crate uuid;
 extern crate webrender_traits;
 extern crate websocket;
