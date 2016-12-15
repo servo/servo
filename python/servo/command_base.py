@@ -426,6 +426,10 @@ class CommandBase(object):
             # Link moztools
             env["MOZTOOLS_PATH"] = path.join(msvc_deps_dir, "moztools", "bin")
 
+        if is_windows():
+            if not os.environ.get("NATIVE_WIN32_PYTHON"):
+                env["NATIVE_WIN32_PYTHON"] = sys.executable
+
         if not self.config["tools"]["system-rust"] \
                 or self.config["tools"]["rust-root"]:
             env["RUST_ROOT"] = self.config["tools"]["rust-root"]
