@@ -8294,6 +8294,12 @@
             "url": "/_mozilla/mozilla/iterable.html"
           }
         ],
+        "mozilla/keyframe-infinite-percentage.html": [
+          {
+            "path": "mozilla/keyframe-infinite-percentage.html",
+            "url": "/_mozilla/mozilla/keyframe-infinite-percentage.html"
+          }
+        ],
         "mozilla/lenient_this.html": [
           {
             "path": "mozilla/lenient_this.html",
