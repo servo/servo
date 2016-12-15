@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
-use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
+use bluetooth_traits::{BluetoothRequest, BluetoothResponse, GATTType};
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
-use dom::bindings::error::Error::{self, Network, Security};
+use dom::bindings::error::Error;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{MutJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
-use dom::bluetooth::{AsyncBluetoothListener, response_async};
+use dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use dom::globalscope::GlobalScope;
@@ -114,84 +113,24 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
     fn GetPrimaryService(&self, service: BluetoothServiceUUID) -> Rc<Promise> {
         // TODO: Step 1: Implement the Permission API and the allowedServices BluetoothDevice internal slot.
-        // Subsequent steps are relative to https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
-        let p = Promise::new(&self.global());
-        let p_cx = p.global().get_cx();
-
-        // Step 1.
-        let uuid = match BluetoothUUID::service(service) {
-            Ok(uuid) => uuid.to_string(),
-            Err(e) => {
-                p.reject_error(p_cx, e);
-                return p;
-            }
-        };
-
         // Step 2.
-        if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
-            p.reject_error(p_cx, Security);
-            return p;
-        }
-
-        // Step 3 - 4.
-        if !self.Device().Gatt().Connected() {
-            p.reject_error(p_cx, Network);
-            return p;
-        }
-
-        // Note: Steps 5 - 7 are implemented in components/bluetooth/lib.rs in get_primary_service function
-        // and in handle_response function.
-        let sender = response_async(&p, self);
-        self.get_bluetooth_thread().send(
-            BluetoothRequest::GetPrimaryService(String::from(self.Device().Id()), uuid, sender)).unwrap();
-        return p;
+        get_gatt_children(self, true, BluetoothUUID::service, Some(service), String::from(self.Device().Id()),
+                          self.Device().Gatt().Connected(), GATTType::PrimaryService)
     }
 
     #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices
     fn GetPrimaryServices(&self, service: Option<BluetoothServiceUUID>) -> Rc<Promise> {
         // TODO: Step 1: Implement the Permission API and the allowedServices BluetoothDevice internal slot.
-        // Subsequent steps are relative to https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
-        let p = Promise::new(&self.global());
-        let p_cx = p.global().get_cx();
+        // Step 2.
+        get_gatt_children(self, false, BluetoothUUID::service, service, String::from(self.Device().Id()),
+                          self.Connected(), GATTType::PrimaryService)
 
-        let mut uuid: Option<String> = None;
-        if let Some(s) = service {
-            // Step 1.
-            uuid = match BluetoothUUID::service(s) {
-                Ok(uuid) => Some(uuid.to_string()),
-                Err(e) => {
-                    p.reject_error(p_cx, e);
-                    return p;
-                }
-            };
-            if let Some(ref uuid) = uuid {
-                // Step 2.
-                if uuid_is_blocklisted(uuid.as_ref(), Blocklist::All) {
-                    p.reject_error(p_cx, Security);
-                    return p;
-                }
-            }
-        };
-
-        // Step 3 - 4.
-        if !self.Device().Gatt().Connected() {
-            p.reject_error(p_cx, Network);
-            return p;
-        }
-
-        // Note: Steps 5 - 7 are implemented in components/bluetooth/lib.rs in get_primary_services function
-        // and in handle_response function.
-        let sender = response_async(&p, self);
-        self.get_bluetooth_thread().send(
-            BluetoothRequest::GetPrimaryServices(String::from(self.Device().Id()), uuid, sender)).unwrap();
-        return p;
     }
 }
 
 impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
-        let device = self.Device();
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
             BluetoothResponse::GATTServerConnect(connected) => {
@@ -201,17 +140,14 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                 // Step 5.2.5.
                 promise.resolve_native(promise_cx, self);
             },
-            // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
-            BluetoothResponse::GetPrimaryService(service) => {
-                let bt_service = device.get_or_create_service(&service, &self);
-                promise.resolve_native(promise_cx, &bt_service);
-            },
-            // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices
-            // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
-            // Step 7.
-            BluetoothResponse::GetPrimaryServices(services_vec) => {
+            BluetoothResponse::GetPrimaryServices(services_vec, single) => {
+                let device = self.Device();
+                if single {
+                    promise.resolve_native(promise_cx, &device.get_or_create_service(&services_vec[0], &self));
+                    return;
+                }
                 let mut services = vec!();
                 for service in services_vec {
                     let bt_service = device.get_or_create_service(&service, &self);
