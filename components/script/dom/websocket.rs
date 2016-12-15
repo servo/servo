@@ -22,6 +22,8 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
+use hyper;
+use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsapi::JSAutoCompartment;
@@ -496,13 +498,10 @@ impl Runnable for ConnectionEstablishedTask {
         };
 
         // Step 5: Cookies.
-        if let Some(cookies) = self.headers.get_raw("set-cookie") {
-            for cookie in cookies.iter() {
-                if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
-                    let _ = ws.global().core_resource_thread().send(
-                        SetCookiesForUrl(ws.url.clone(), cookie_value, HTTP));
-                }
-            }
+        if let Some(cookies) = self.headers.get::<hyper::header::SetCookie>() {
+            let cookies = cookies.iter().map(|c| Serde(c.clone())).collect();
+            let _ = ws.global().core_resource_thread().send(
+                SetCookiesForUrl(ws.url.clone(), cookies, HTTP));
         }
 
         // Step 6.
