@@ -33,14 +33,14 @@ def msvc32_symbolify(source, ident):
 
 
 class GkAtomSource:
-    PATTERN = re.compile('^GK_ATOM\((?P<ident>.+),\s*"(?P<value>.*)"\)', re.M)
+    PATTERN = re.compile('^GK_ATOM\((.+),\s*"(.*)"\)')
     FILE = "include/nsGkAtomList.h"
     CLASS = "nsGkAtoms"
     TYPE = "nsIAtom"
 
 
 class CSSPseudoElementsAtomSource:
-    PATTERN = re.compile('^CSS_PSEUDO_ELEMENT\((?P<ident>.+),\s*"(?P<value>.*)",', re.M)
+    PATTERN = re.compile('^CSS_PSEUDO_ELEMENT\((.+),\s*"(.*)",')
     FILE = "include/nsCSSPseudoElementList.h"
     CLASS = "nsCSSPseudoElements"
     # NB: nsICSSPseudoElement is effectively the same as a nsIAtom, but we need
@@ -49,24 +49,16 @@ class CSSPseudoElementsAtomSource:
 
 
 class CSSAnonBoxesAtomSource:
-    PATTERN = re.compile('^CSS_ANON_BOX\((?P<ident>.+),\s*"(?P<value>.*)"\)', re.M)
+    PATTERN = re.compile('^CSS_ANON_BOX\((.+),\s*"(.*)"\)')
     FILE = "include/nsCSSAnonBoxList.h"
     CLASS = "nsCSSAnonBoxes"
     TYPE = "nsICSSAnonBoxPseudo"
-
-
-class CSSPropsAtomSource:
-    PATTERN = re.compile('^CSS_PROP_[A-Z]+\(\s*(?P<value>[^,]+),\s*(?P<ident>[^,]+)', re.M)
-    FILE = "include/nsCSSPropList.h"
-    CLASS = "nsCSSProps"
-    TYPE = "nsICSSProperty"
 
 
 SOURCES = [
     GkAtomSource,
     CSSPseudoElementsAtomSource,
     CSSAnonBoxesAtomSource,
-    CSSPropsAtomSource,
 ]
 
 
@@ -104,14 +96,10 @@ def collect_atoms(objdir):
     atoms = []
     for source in SOURCES:
         with open(os.path.join(objdir, source.FILE)) as f:
-            content = f.read()
-        found = set()
-        for match in source.PATTERN.finditer(content):
-            ident = match.group('ident')
-            if ident in found:
-                continue
-            found.add(ident)
-            atoms.append(Atom(source, ident, match.group('value')))
+            for line in f.readlines():
+                result = re.match(source.PATTERN, line)
+                if result:
+                    atoms.append(Atom(source, result.group(1), result.group(2)))
     return atoms
 
 
