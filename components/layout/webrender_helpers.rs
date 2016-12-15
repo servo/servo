@@ -16,7 +16,7 @@ use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode};
 use style::computed_values::filter::{self, Filter};
 use style::values::computed::BorderStyle;
-use webrender_traits::{self, DisplayListBuilder};
+use webrender_traits::{self, DisplayListBuilder, LayoutTransform};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -61,36 +61,38 @@ impl ToBoxShadowClipMode for BoxShadowClipMode {
 }
 
 trait ToSizeF {
-    fn to_sizef(&self) -> Size2D<f32>;
+    fn to_sizef(&self) -> webrender_traits::LayoutSize;
 }
 
 trait ToPointF {
-    fn to_pointf(&self) -> Point2D<f32>;
+    fn to_pointf(&self) -> webrender_traits::LayoutPoint;
 }
 
 impl ToPointF for Point2D<Au> {
-    fn to_pointf(&self) -> Point2D<f32> {
-        Point2D::new(self.x.to_f32_px(), self.y.to_f32_px())
+    fn to_pointf(&self) -> webrender_traits::LayoutPoint {
+        webrender_traits::LayoutPoint::new(self.x.to_f32_px(), self.y.to_f32_px())
     }
 }
 
 impl ToSizeF for Size2D<Au> {
-    fn to_sizef(&self) -> Size2D<f32> {
-        Size2D::new(self.width.to_f32_px(), self.height.to_f32_px())
+    fn to_sizef(&self) -> webrender_traits::LayoutSize {
+        webrender_traits::LayoutSize::new(self.width.to_f32_px(), self.height.to_f32_px())
     }
 }
 
 trait ToRectF {
-    fn to_rectf(&self) -> Rect<f32>;
+    fn to_rectf(&self) -> webrender_traits::LayoutRect;
 }
 
 impl ToRectF for Rect<Au> {
-    fn to_rectf(&self) -> Rect<f32> {
+    fn to_rectf(&self) -> webrender_traits::LayoutRect {
         let x = self.origin.x.to_f32_px();
         let y = self.origin.y.to_f32_px();
         let w = self.size.width.to_f32_px();
         let h = self.size.height.to_f32_px();
-        Rect::new(Point2D::new(x, y), Size2D::new(w, h))
+        let point = webrender_traits::LayoutPoint::new(x, y);
+        let size = webrender_traits::LayoutSize::new(w, h);
+        webrender_traits::LayoutRect::new(point, size)
     }
 }
 
@@ -340,12 +342,16 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                     ScrollPolicy::FixedPosition => webrender_traits::ScrollPolicy::Fixed,
                 };
 
+                let clip = builder.new_clip_region(&stacking_context.overflow.to_rectf(),
+                                                   vec![],
+                                                   None);
+
                 builder.push_stacking_context(webrender_scroll_policy,
                                               stacking_context.bounds.to_rectf(),
-                                              stacking_context.overflow.to_rectf(),
+                                              clip,
                                               stacking_context.z_index,
-                                              &stacking_context.transform,
-                                              &stacking_context.perspective,
+                                              &LayoutTransform::from_untyped(&stacking_context.transform),
+                                              &LayoutTransform::from_untyped(&stacking_context.perspective),
                                               stacking_context.blend_mode.to_blend_mode(),
                                               stacking_context.filters.to_filter_ops());
             }

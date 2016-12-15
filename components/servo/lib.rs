@@ -172,6 +172,9 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 enable_scrollbars: opts.output_file.is_none(),
                 renderer_kind: renderer_kind,
                 enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
+                clear_empty_tiles: true,
+                clear_framebuffer: true,
+                clear_color: webrender_traits::ColorF::new(1.0, 1.0, 1.0, 1.0),
             })
         };
 
