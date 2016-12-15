@@ -54,13 +54,10 @@ def find_dep_path_newest(package, bin_path):
     with cd(deps_path):
         for c in glob(package + '-*'):
             candidate_path = path.join(deps_path, c)
-            candidate_output = path.join(candidate_path, "output")
-            if path.exists(candidate_output):
-                candidates.append((path.getmtime(candidate_output), candidate_path))
-    candidates.sort(reverse=True)
+            if path.exists(path.join(candidate_path, "output")):
+                candidates.append(candidate_path)
     if candidates:
-        _, candidate_path = candidates[0]
-        return candidate_path
+        return max(candidates, key=lambda c: path.getmtime(path.join(c, "output")))
     return None
 
 
@@ -221,7 +218,10 @@ def is_linux():
 def set_osmesa_env(bin_path, env):
     """Set proper LD_LIBRARY_PATH and DRIVE for software rendering on Linux and OSX"""
     if is_linux():
-        osmesa_path = path.join(find_dep_path_newest('osmesa-src', bin_path), "out", "lib", "gallium")
+        dep_path = find_dep_path_newest('osmesa-src', bin_path)
+        if not dep_path:
+            return None
+        osmesa_path = path.join(dep_path, "out", "lib", "gallium")
         env["LD_LIBRARY_PATH"] = osmesa_path
         env["GALLIUM_DRIVER"] = "softpipe"
     elif is_macosx():
@@ -229,6 +229,8 @@ def set_osmesa_env(bin_path, env):
                                 "out", "src", "gallium", "targets", "osmesa", ".libs")
         glapi_path = path.join(find_dep_path_newest('osmesa-src', bin_path),
                                "out", "src", "mapi", "shared-glapi", ".libs")
+        if not (osmesa_path and glapi_path):
+            return None
         env["DYLD_LIBRARY_PATH"] = osmesa_path + ":" + glapi_path
         env["GALLIUM_DRIVER"] = "softpipe"
     return env
