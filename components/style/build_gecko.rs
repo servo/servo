@@ -617,8 +617,14 @@ mod bindings {
 pub fn generate() {
     use self::common::*;
     use std::fs;
+    use std::thread;
     fs::create_dir_all(&*OUTDIR_PATH).unwrap();
-    bindings::generate_structs(BuildType::Debug);
-    bindings::generate_structs(BuildType::Release);
-    bindings::generate_bindings();
+    let threads = vec![
+        thread::spawn(|| bindings::generate_structs(BuildType::Debug)),
+        thread::spawn(|| bindings::generate_structs(BuildType::Release)),
+        thread::spawn(|| bindings::generate_bindings()),
+    ];
+    for t in threads.into_iter() {
+        t.join().unwrap();
+    }
 }
