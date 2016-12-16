@@ -50,10 +50,11 @@ impl KeyframePercentage {
             KeyframePercentage::new(1.)
         } else {
             let percentage = try!(input.expect_percentage());
-            if percentage > 1. || percentage < 0. {
+            if percentage >= 0. && percentage <= 1. {
+                KeyframePercentage::new(percentage)
+            } else {
                 return Err(());
             }
-            KeyframePercentage::new(percentage)
         };
 
         Ok(percentage)
