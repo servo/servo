@@ -25,22 +25,39 @@ use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
-use style::context::{LocalStyleContext, StyleContext, SharedStyleContext};
+use style::context::{SharedStyleContext, ThreadLocalStyleContext};
 
-struct LocalLayoutContext {
-    style_context: LocalStyleContext,
-
-    font_context: RefCell<FontContext>,
+pub struct ThreadLocalLayoutContext {
+    pub style_context: ThreadLocalStyleContext,
+    pub font_context: RefCell<FontContext>,
 }
 
-impl HeapSizeOf for LocalLayoutContext {
+impl ThreadLocalLayoutContext {
+    pub fn new(shared: &SharedLayoutContext) -> Rc<Self> {
+        let font_cache_thread = shared.font_cache_thread.lock().unwrap().clone();
+        let local_style_data = shared.style_context.local_context_creation_data.lock().unwrap();
+
+        Rc::new(ThreadLocalLayoutContext {
+            style_context: ThreadLocalStyleContext::new(&local_style_data),
+            font_context: RefCell::new(FontContext::new(font_cache_thread)),
+        })
+    }
+}
+
+impl Borrow<ThreadLocalStyleContext> for ThreadLocalLayoutContext {
+    fn borrow(&self) -> &ThreadLocalStyleContext {
+        &self.style_context
+    }
+}
+
+impl HeapSizeOf for ThreadLocalLayoutContext {
     // FIXME(njn): measure other fields eventually.
     fn heap_size_of_children(&self) -> usize {
         self.font_context.heap_size_of_children()
     }
 }
 
-thread_local!(static LOCAL_CONTEXT_KEY: RefCell<Option<Rc<LocalLayoutContext>>> = RefCell::new(None));
+thread_local!(static LOCAL_CONTEXT_KEY: RefCell<Option<Rc<ThreadLocalLayoutContext>>> = RefCell::new(None));
 
 pub fn heap_size_of_local_context() -> usize {
     LOCAL_CONTEXT_KEY.with(|r| {
@@ -49,20 +66,14 @@ pub fn heap_size_of_local_context() -> usize {
 }
 
 // Keep this implementation in sync with the one in ports/geckolib/traversal.rs.
-fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext)
-                               -> Rc<LocalLayoutContext> {
+pub fn create_or_get_local_context(shared: &SharedLayoutContext)
+                                   -> Rc<ThreadLocalLayoutContext> {
     LOCAL_CONTEXT_KEY.with(|r| {
         let mut r = r.borrow_mut();
         if let Some(context) = r.clone() {
             context
         } else {
-            let font_cache_thread = shared_layout_context.font_cache_thread.lock().unwrap().clone();
-            let local_style_data = shared_layout_context.style_context.local_context_creation_data.lock().unwrap();
-
-            let context = Rc::new(LocalLayoutContext {
-                style_context: LocalStyleContext::new(&local_style_data),
-                font_context: RefCell::new(FontContext::new(font_cache_thread)),
-            });
+            let context = ThreadLocalLayoutContext::new(shared);
             *r = Some(context.clone());
             context
         }
@@ -97,27 +108,27 @@ impl Borrow<SharedStyleContext> for SharedLayoutContext {
 
 pub struct LayoutContext<'a> {
     pub shared: &'a SharedLayoutContext,
-    cached_local_layout_context: Rc<LocalLayoutContext>,
+    pub thread_local: &'a ThreadLocalLayoutContext,
 }
 
-impl<'a> StyleContext<'a> for LayoutContext<'a> {
-    fn shared_context(&self) -> &'a SharedStyleContext {
-        &self.shared.style_context
-    }
-
-    fn local_context(&self) -> &LocalStyleContext {
-        &self.cached_local_layout_context.style_context
+impl<'a> LayoutContext<'a> {
+    pub fn new(shared: &'a SharedLayoutContext,
+               thread_local: &'a ThreadLocalLayoutContext) -> Self
+    {
+        LayoutContext {
+            shared: shared,
+            thread_local: thread_local,
+        }
     }
 }
 
 impl<'a> LayoutContext<'a> {
-    pub fn new(shared_layout_context: &'a SharedLayoutContext) -> LayoutContext<'a> {
-        let local_context = create_or_get_local_context(shared_layout_context);
-
-        LayoutContext {
-            shared: shared_layout_context,
-            cached_local_layout_context: local_context,
-        }
+    // FIXME(bholley): The following two methods are identical and should be merged.
+    // shared_context() is the appropriate name, but it involves renaming a lot of
+    // calls.
+    #[inline(always)]
+    pub fn shared_context(&self) -> &SharedStyleContext {
+        &self.shared.style_context
     }
 
     #[inline(always)]
@@ -127,7 +138,7 @@ impl<'a> LayoutContext<'a> {
 
     #[inline(always)]
     pub fn font_context(&self) -> RefMut<FontContext> {
-        self.cached_local_layout_context.font_context.borrow_mut()
+        self.thread_local.font_context.borrow_mut()
     }
 }
 

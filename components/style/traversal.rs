@@ -6,7 +6,7 @@
 
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bloom::StyleBloom;
-use context::{LocalStyleContext, SharedStyleContext, StyleContext};
+use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, StoredRestyleHint};
 use dom::{OpaqueNode, TElement, TNode};
 use matching::{MatchMethods, StyleSharingResult};
@@ -18,6 +18,7 @@ use servo_config::opts;
 use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::mem;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use stylist::Stylist;
 
@@ -64,9 +65,8 @@ pub fn put_thread_local_bloom_filter(bf: StyleBloom) {
 ///
 /// This is mostly useful for sequential traversal, where the element will
 /// always be the last one.
-pub fn remove_from_bloom_filter<'a, E, C>(context: &C, root: OpaqueNode, element: E)
-    where E: TElement,
-          C: StyleContext<'a>
+pub fn remove_from_bloom_filter<E: TElement>(context: &SharedStyleContext,
+                                             root: OpaqueNode, element: E)
 {
     trace!("[{}] remove_from_bloom_filter", ::tid::tid());
 
@@ -78,7 +78,7 @@ pub fn remove_from_bloom_filter<'a, E, C>(context: &C, root: OpaqueNode, element
     });
 
     if let Some(mut bf) = bf {
-        if context.shared_context().generation == bf.generation() {
+        if context.generation == bf.generation() {
             bf.maybe_pop(element);
 
             // If we're the root of the reflow, just get rid of the bloom
@@ -127,10 +127,8 @@ impl LogBehavior {
     fn allow(&self) -> bool { match *self { MayLog => true, DontLog => false, } }
 }
 
-pub trait DomTraversalContext<N: TNode> {
-    type SharedContext: Sync + 'static + Borrow<SharedStyleContext>;
-
-    fn new<'a>(&'a Self::SharedContext, OpaqueNode) -> Self;
+pub trait DomTraversal<N: TNode> : Sync {
+    type ThreadLocalContext: Borrow<ThreadLocalStyleContext>;
 
     /// Process `node` on the way down, before its children have been processed.
     fn process_preorder(&self, node: N, data: &mut PerLevelTraversalData);
@@ -321,7 +319,9 @@ pub trait DomTraversalContext<N: TNode> {
     /// children of |element|.
     unsafe fn clear_element_data(element: &N::ConcreteElement);
 
-    fn local_context(&self) -> &LocalStyleContext;
+    fn shared_context(&self) -> &SharedStyleContext;
+
+    fn create_or_get_thread_local_context(&self) -> Rc<Self::ThreadLocalContext>;
 }
 
 /// Determines the amount of relations where we're going to share style.
@@ -337,11 +337,9 @@ pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
 
 /// Handles lazy resolution of style in display:none subtrees. See the comment
 /// at the callsite in query.rs.
-pub fn style_element_in_display_none_subtree<'a, E, C, F>(element: E,
-                                                          init_data: &F,
-                                                          context: &'a C) -> E
+pub fn style_element_in_display_none_subtree<E, F>(context: &StyleContext,
+                                                   element: E, init_data: &F) -> E
     where E: TElement,
-          C: StyleContext<'a>,
           F: Fn(E),
 {
     // Check the base case.
@@ -354,7 +352,7 @@ pub fn style_element_in_display_none_subtree<'a, E, C, F>(element: E,
 
     // Ensure the parent is styled.
     let parent = element.parent_element().unwrap();
-    let display_none_root = style_element_in_display_none_subtree(parent, init_data, context);
+    let display_none_root = style_element_in_display_none_subtree(context, parent, init_data);
 
     // Initialize our data.
     init_data(element);
@@ -376,13 +374,13 @@ pub fn style_element_in_display_none_subtree<'a, E, C, F>(element: E,
 /// Calculates the style for a single node.
 #[inline]
 #[allow(unsafe_code)]
-pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
-                                    traversal_data: &mut PerLevelTraversalData,
-                                    element: E,
-                                    mut data: &mut AtomicRefMut<ElementData>)
+pub fn recalc_style_at<E, D>(traversal: &D,
+                             traversal_data: &mut PerLevelTraversalData,
+                             context: &StyleContext,
+                             element: E,
+                             mut data: &mut AtomicRefMut<ElementData>)
     where E: TElement,
-          C: StyleContext<'a>,
-          D: DomTraversalContext<E::ConcreteNode>
+          D: DomTraversal<E::ConcreteNode>
 {
     debug_assert!(data.as_restyle().map_or(true, |r| r.snapshot.is_none()),
                   "Snapshots should be expanded by the caller");
@@ -395,7 +393,7 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
 
     // Compute style for this element if necessary.
     if compute_self {
-        inherited_style_changed = compute_style::<_, _, D>(context, &mut data, traversal_data, element);
+        inherited_style_changed = compute_style(traversal, traversal_data, context, element, &mut data);
     }
 
     // Now that matching and cascading is done, clear the bits corresponding to
@@ -414,7 +412,7 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
     // Preprocess children, propagating restyle hints and handling sibling relationships.
     if D::should_traverse_children(element, &data, DontLog) &&
        (element.has_dirty_descendants() || !propagated_hint.is_empty() || inherited_style_changed) {
-        preprocess_children::<_, _, D>(context, element, propagated_hint, inherited_style_changed);
+        preprocess_children(traversal, element, propagated_hint, inherited_style_changed);
     }
 }
 
@@ -423,15 +421,15 @@ pub fn recalc_style_at<'a, E, C, D>(context: &'a C,
 //
 // FIXME(bholley): This should differentiate between matching and cascading,
 // since we have separate bits for each now.
-fn compute_style<'a, E, C, D>(context: &'a C,
-                              mut data: &mut AtomicRefMut<ElementData>,
-                              traversal_data: &mut PerLevelTraversalData,
-                              element: E) -> bool
+fn compute_style<E, D>(_traversal: &D,
+                       traversal_data: &mut PerLevelTraversalData,
+                       context: &StyleContext,
+                       element: E,
+                       mut data: &mut AtomicRefMut<ElementData>) -> bool
     where E: TElement,
-          C: StyleContext<'a>,
-          D: DomTraversalContext<E::ConcreteNode>,
+          D: DomTraversal<E::ConcreteNode>,
 {
-    let shared_context = context.shared_context();
+    let shared_context = context.shared;
     let mut bf = take_thread_local_bloom_filter(shared_context);
     // Ensure the bloom filter is up to date.
     let dom_depth = bf.insert_parents_recovering(element,
@@ -447,13 +445,13 @@ fn compute_style<'a, E, C, D>(context: &'a C,
     bf.assert_complete(element);
 
     // Check to see whether we can share a style with someone.
-    let style_sharing_candidate_cache =
-        &mut context.local_context().style_sharing_candidate_cache.borrow_mut();
+    let mut style_sharing_candidate_cache =
+        context.thread_local.style_sharing_candidate_cache.borrow_mut();
 
     let sharing_result = if element.parent_element().is_none() {
         StyleSharingResult::CannotShare
     } else {
-        unsafe { element.share_style_if_possible(style_sharing_candidate_cache,
+        unsafe { element.share_style_if_possible(&mut style_sharing_candidate_cache,
                                                  shared_context, &mut data) }
     };
 
@@ -522,13 +520,12 @@ fn compute_style<'a, E, C, D>(context: &'a C,
     inherited_styles_changed
 }
 
-fn preprocess_children<'a, E, C, D>(context: &'a C,
-                                    element: E,
-                                    mut propagated_hint: StoredRestyleHint,
-                                    parent_inherited_style_changed: bool)
+fn preprocess_children<E, D>(traversal: &D,
+                             element: E,
+                             mut propagated_hint: StoredRestyleHint,
+                             parent_inherited_style_changed: bool)
     where E: TElement,
-          C: StyleContext<'a>,
-          D: DomTraversalContext<E::ConcreteNode>
+          D: DomTraversal<E::ConcreteNode>
 {
     // Loop over all the children.
     for child in element.as_node().children() {
@@ -554,7 +551,7 @@ fn preprocess_children<'a, E, C, D>(context: &'a C,
         }
 
         // Handle element snapshots.
-        let stylist = &context.shared_context().stylist;
+        let stylist = &traversal.shared_context().stylist;
         let later_siblings = restyle_data.expand_snapshot(child, stylist);
         if later_siblings {
             propagated_hint.insert(&(RESTYLE_SELF | RESTYLE_DESCENDANTS).into());

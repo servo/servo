@@ -3,35 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use atomic_refcell::AtomicRefCell;
-use context::{LocalStyleContext, SharedStyleContext, StyleContext};
+use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::ElementData;
-use dom::{NodeInfo, OpaqueNode, TNode};
-use gecko::context::StandaloneStyleContext;
+use dom::{NodeInfo, TNode};
+use gecko::context::create_or_get_local_context;
 use gecko::wrapper::{GeckoElement, GeckoNode};
-use std::mem;
-use traversal::{DomTraversalContext, PerLevelTraversalData, recalc_style_at};
+use std::rc::Rc; use traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
 
-pub struct RecalcStyleOnly<'lc> {
-    context: StandaloneStyleContext<'lc>,
+pub struct RecalcStyleOnly {
+    shared: SharedStyleContext,
 }
 
-impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
-    type SharedContext = SharedStyleContext;
-    #[allow(unsafe_code)]
-    fn new<'a>(shared: &'a Self::SharedContext, _root: OpaqueNode) -> Self {
-        // See the comment in RecalcStyleAndConstructFlows::new for an explanation of why this is
-        // necessary.
-        let shared_lc: &'lc Self::SharedContext = unsafe { mem::transmute(shared) };
+impl RecalcStyleOnly {
+    pub fn new(shared: SharedStyleContext) -> Self {
         RecalcStyleOnly {
-            context: StandaloneStyleContext::new(shared_lc),
+            shared: shared,
         }
     }
+}
+
+impl<'ln> DomTraversal<GeckoNode<'ln>> for RecalcStyleOnly {
+    type ThreadLocalContext = ThreadLocalStyleContext;
 
     fn process_preorder(&self, node: GeckoNode<'ln>, traversal_data: &mut PerLevelTraversalData) {
         if node.is_element() {
             let el = node.as_element().unwrap();
             let mut data = unsafe { el.ensure_data() }.borrow_mut();
-            recalc_style_at::<_, _, Self>(&self.context, traversal_data, el, &mut data);
+            let tlc = self.create_or_get_thread_local_context();
+            let context = StyleContext {
+                shared: &self.shared,
+                thread_local: &*tlc,
+            };
+            recalc_style_at(self, traversal_data, &context, el, &mut data);
         }
     }
 
@@ -50,7 +53,11 @@ impl<'lc, 'ln> DomTraversalContext<GeckoNode<'ln>> for RecalcStyleOnly<'lc> {
         element.clear_data()
     }
 
-    fn local_context(&self) -> &LocalStyleContext {
-        self.context.local_context()
+    fn shared_context(&self) -> &SharedStyleContext {
+        &self.shared
+    }
+
+    fn create_or_get_thread_local_context(&self) -> Rc<ThreadLocalStyleContext> {
+        create_or_get_local_context(&self.shared)
     }
 }
