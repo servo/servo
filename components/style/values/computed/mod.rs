@@ -11,7 +11,7 @@ use style_traits::ToCss;
 use super::{CSSFloat, specified};
 
 pub use cssparser::Color as CSSColor;
-pub use self::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
+pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::{Either, None_};
 pub use super::specified::{Angle, BorderStyle, GridLine, Time, UrlOrNone};

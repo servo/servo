@@ -160,10 +160,9 @@ impl nsStyleImage {
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE, NS_STYLE_GRADIENT_SIZE_EXPLICIT_SIZE};
         use gecko_bindings::structs::{NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER, NS_STYLE_GRADIENT_SIZE_FARTHEST_SIDE};
         use gecko_bindings::structs::nsStyleCoord;
-        use values::computed::{GradientKind, GradientShape, LengthOrKeyword};
+        use values::computed::{AngleOrCorner, GradientKind, GradientShape, LengthOrKeyword};
         use values::computed::LengthOrPercentageOrKeyword;
-        use values::specified::{AngleOrCorner, HorizontalDirection};
-        use values::specified::{SizeKeyword, VerticalDirection};
+        use values::specified::{HorizontalDirection, SizeKeyword, VerticalDirection};
 
         let stop_count = gradient.stops.len();
         if stop_count >= ::std::u32::MAX as usize {
