@@ -5,7 +5,7 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use app_units::Au;
-use context::{LayoutContext, SharedLayoutContext, ThreadLocalLayoutContext};
+use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use euclid::point::Point2D;
 use floats::SpeculatedFloatPlacement;
@@ -34,8 +34,7 @@ pub fn resolve_generated_content(root: &mut Flow, shared: &SharedLayoutContext) 
         }
     }
 
-    let tlc = ThreadLocalLayoutContext::new(shared);
-    let layout_context = LayoutContext::new(shared, &*tlc);
+    let layout_context = LayoutContext::new(shared);
     let mut traversal = ResolveGeneratedContent::new(&layout_context);
     doit(root, 0, &mut traversal)
 }
@@ -58,8 +57,7 @@ pub fn traverse_flow_tree_preorder(root: &mut Flow,
         }
     }
 
-    let tlc = ThreadLocalLayoutContext::new(shared);
-    let layout_context = LayoutContext::new(shared, &*tlc);
+    let layout_context = LayoutContext::new(shared);
 
     if opts::get().bubble_inline_sizes_separately {
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };

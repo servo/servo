@@ -5,7 +5,6 @@
 //! Implements sequential traversal over the DOM tree.
 
 use dom::{TElement, TNode};
-use std::borrow::Borrow;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
 pub fn traverse_dom<N, D>(traversal: &D,
@@ -16,43 +15,41 @@ pub fn traverse_dom<N, D>(traversal: &D,
 {
     debug_assert!(token.should_traverse());
 
-    fn doit<N, D>(traversal: &D, node: N, data: &mut PerLevelTraversalData)
+    fn doit<N, D>(traversal: &D, traversal_data: &mut PerLevelTraversalData,
+                  thread_local: &mut D::ThreadLocalContext, node: N)
         where N: TNode,
               D: DomTraversal<N>
     {
-        traversal.process_preorder(node, data);
+        traversal.process_preorder(traversal_data, thread_local, node);
         if let Some(el) = node.as_element() {
-            if let Some(ref mut depth) = data.current_dom_depth {
+            if let Some(ref mut depth) = traversal_data.current_dom_depth {
                 *depth += 1;
             }
 
-            D::traverse_children(el, |kid| doit(traversal, kid, data));
+            D::traverse_children(el, |kid| doit(traversal, traversal_data, thread_local, kid));
 
-            if let Some(ref mut depth) = data.current_dom_depth {
+            if let Some(ref mut depth) = traversal_data.current_dom_depth {
                 *depth -= 1;
             }
         }
 
         if D::needs_postorder_traversal() {
-            traversal.process_postorder(node);
+            traversal.process_postorder(thread_local, node);
         }
     }
 
-    let mut data = PerLevelTraversalData {
+    let mut traversal_data = PerLevelTraversalData {
         current_dom_depth: None,
     };
 
+    let mut tlc = traversal.create_thread_local_context();
     if token.traverse_unstyled_children_only() {
         for kid in root.as_node().children() {
             if kid.as_element().map_or(false, |el| el.get_data().is_none()) {
-                doit(traversal, kid, &mut data);
+                doit(traversal, &mut traversal_data, &mut tlc, kid);
             }
         }
     } else {
-        doit(traversal, root.as_node(), &mut data);
+        doit(traversal, &mut traversal_data, &mut tlc, root.as_node());
     }
-
-    // Clear the local LRU cache since we store stateful elements inside.
-    let tlc = traversal.create_or_get_thread_local_context();
-    (*tlc).borrow().style_sharing_candidate_cache.borrow_mut().clear();
 }

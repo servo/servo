@@ -8,8 +8,7 @@
 
 #![allow(unsafe_code)]
 
-use context::{LayoutContext, SharedLayoutContext, ThreadLocalLayoutContext};
-use context::create_or_get_local_context;
+use context::{LayoutContext, SharedLayoutContext};
 use flow::{self, Flow, MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
 use flow_ref::FlowRef;
 use profile_traits::time::{self, TimerMetadata, profile};
@@ -51,7 +50,7 @@ pub fn borrowed_flow_to_unsafe_flow(flow: &Flow) -> UnsafeFlow {
 }
 
 pub type ChunkedFlowTraversalFunction<'scope> =
-    extern "Rust" fn(Box<[UnsafeFlow]>, &'scope SharedLayoutContext, &rayon::Scope<'scope>);
+    extern "Rust" fn(Box<[UnsafeFlow]>, &rayon::Scope<'scope>, &'scope SharedLayoutContext);
 
 pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &LayoutContext);
 
@@ -133,23 +132,22 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
 trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     fn run_parallel<'scope>(&self,
                             unsafe_flows: &[UnsafeFlow],
-                            layout_context: &'scope SharedLayoutContext,
-                            scope: &rayon::Scope<'scope>);
+                            scope: &rayon::Scope<'scope>,
+                            shared: &'scope SharedLayoutContext);
 
     fn should_record_thread_ids(&self) -> bool;
 
     #[inline(always)]
     fn run_parallel_helper<'scope>(&self,
                                    unsafe_flows: &[UnsafeFlow],
-                                   shared: &'scope SharedLayoutContext,
                                    scope: &rayon::Scope<'scope>,
+                                   shared: &'scope SharedLayoutContext,
                                    top_down_func: ChunkedFlowTraversalFunction<'scope>,
                                    bottom_up_func: FlowTraversalFunction)
     {
-        let tlc = create_or_get_local_context(shared);
-        let context = LayoutContext::new(&shared, &*tlc);
-
         let mut discovered_child_flows = vec![];
+        let context = LayoutContext::new(&shared);
+
         for unsafe_flow in unsafe_flows {
             let mut had_children = false;
             unsafe {
@@ -187,7 +185,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
             let nodes = chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice();
 
             scope.spawn(move |scope| {
-                top_down_func(nodes, shared, scope);
+                top_down_func(nodes, scope, shared);
             });
         }
     }
@@ -196,12 +194,12 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
     fn run_parallel<'scope>(&self,
                                   unsafe_flows: &[UnsafeFlow],
-                                  layout_context: &'scope SharedLayoutContext,
-                                  scope: &rayon::Scope<'scope>)
+                                  scope: &rayon::Scope<'scope>,
+                                  shared: &'scope SharedLayoutContext)
     {
         self.run_parallel_helper(unsafe_flows,
-                                 layout_context,
                                  scope,
+                                 shared,
                                  assign_inline_sizes,
                                  assign_block_sizes_and_store_overflow)
     }
@@ -214,12 +212,12 @@ impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
 impl<'a> ParallelPostorderFlowTraversal for AssignBSizes<'a> {}
 
 fn assign_inline_sizes<'scope>(unsafe_flows: Box<[UnsafeFlow]>,
-                               shared_layout_context: &'scope SharedLayoutContext,
-                               scope: &rayon::Scope<'scope>) {
+                               scope: &rayon::Scope<'scope>,
+                               shared: &'scope SharedLayoutContext) {
     let assign_inline_sizes_traversal = AssignISizes {
-        shared_context: &shared_layout_context.style_context,
+        shared_context: &shared.style_context,
     };
-    assign_inline_sizes_traversal.run_parallel(&unsafe_flows, shared_layout_context, scope)
+    assign_inline_sizes_traversal.run_parallel(&unsafe_flows, scope, shared)
 }
 
 fn assign_block_sizes_and_store_overflow(
@@ -238,8 +236,7 @@ pub fn traverse_flow_tree_preorder(
         shared: &SharedLayoutContext,
         queue: &rayon::ThreadPool) {
     if opts::get().bubble_inline_sizes_separately {
-        let tlc = ThreadLocalLayoutContext::new(shared);
-        let context = LayoutContext::new(shared, &*tlc);
+        let context = LayoutContext::new(shared);
         let bubble_inline_sizes = BubbleISizes { layout_context: &context };
         root.traverse_postorder(&bubble_inline_sizes);
     }
@@ -250,7 +247,7 @@ pub fn traverse_flow_tree_preorder(
         rayon::scope(move |scope| {
             profile(time::ProfilerCategory::LayoutParallelWarmup,
                     profiler_metadata, time_profiler_chan, move || {
-                assign_inline_sizes(nodes, &shared, scope);
+                assign_inline_sizes(nodes, scope, &shared);
             });
         });
     });

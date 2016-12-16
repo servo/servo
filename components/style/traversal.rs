@@ -6,7 +6,7 @@
 
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use bloom::StyleBloom;
-use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
+use context::{SharedStyleContext, StyleContext};
 use data::{ElementData, StoredRestyleHint};
 use dom::{OpaqueNode, TElement, TNode};
 use matching::{MatchMethods, StyleSharingResult};
@@ -15,10 +15,8 @@ use selector_parser::RestyleDamage;
 use selectors::Element;
 use selectors::matching::StyleRelations;
 use servo_config::opts;
-use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::mem;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use stylist::Stylist;
 
@@ -128,15 +126,16 @@ impl LogBehavior {
 }
 
 pub trait DomTraversal<N: TNode> : Sync {
-    type ThreadLocalContext: Borrow<ThreadLocalStyleContext>;
+    type ThreadLocalContext: Send;
 
     /// Process `node` on the way down, before its children have been processed.
-    fn process_preorder(&self, node: N, data: &mut PerLevelTraversalData);
+    fn process_preorder(&self, data: &mut PerLevelTraversalData,
+                        thread_local: &mut Self::ThreadLocalContext, node: N);
 
     /// Process `node` on the way up, after its children have been processed.
     ///
     /// This is only executed if `needs_postorder_traversal` returns true.
-    fn process_postorder(&self, node: N);
+    fn process_postorder(&self, thread_local: &mut Self::ThreadLocalContext, node: N);
 
     /// Boolean that specifies whether a bottom up traversal should be
     /// performed.
@@ -321,7 +320,7 @@ pub trait DomTraversal<N: TNode> : Sync {
 
     fn shared_context(&self) -> &SharedStyleContext;
 
-    fn create_or_get_thread_local_context(&self) -> Rc<Self::ThreadLocalContext>;
+    fn create_thread_local_context(&self) -> Self::ThreadLocalContext;
 }
 
 /// Determines the amount of relations where we're going to share style.
