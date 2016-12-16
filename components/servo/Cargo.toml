@@ -54,6 +54,8 @@ servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo"]}
 url = "1.2"
+webvr = {path = "../webvr"}
+webvr_traits = {path = "../webvr_traits"}
 webdriver_server = {path = "../webdriver_server", optional = true}
 
 [dependencies.webrender]

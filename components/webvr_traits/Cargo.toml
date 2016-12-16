@@ -1,0 +1,17 @@
+[package]
+name = "webvr_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+publish = false
+
+[lib]
+name = "webvr_traits"
+path = "lib.rs"
+
+[dependencies]
+ipc-channel = "0.5"
+msg = {path = "../msg"}
+serde = "0.8"
+serde_derive = "0.8"
+rust-webvr = {version = "0.1", features = ["serde-serialization"]}

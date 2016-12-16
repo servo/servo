@@ -208,7 +208,8 @@ impl<'a> CanvasPaintThread<'a> {
                             }
                         }
                     }
-                    CanvasMsg::WebGL(_) => panic!("Wrong message sent to Canvas2D thread"),
+                    CanvasMsg::WebGL(_) => panic!("Wrong WebGLmessage sent to Canvas2D thread"),
+                    CanvasMsg::WebVR(_) => panic!("Wrong WebVR message sent to Canvas2D thread"),
                 }
             }
         }).expect("Thread spawning failed");

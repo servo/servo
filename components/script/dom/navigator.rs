@@ -12,7 +12,9 @@ use dom::mimetypearray::MimeTypeArray;
 use dom::navigatorinfo;
 use dom::pluginarray::PluginArray;
 use dom::serviceworkercontainer::ServiceWorkerContainer;
+use dom::vr::VR;
 use dom::window::Window;
+use script_traits::WebVREventMsg;
 
 #[dom_struct]
 pub struct Navigator {
@@ -21,6 +23,7 @@ pub struct Navigator {
     plugins: MutNullableJS<PluginArray>,
     mime_types: MutNullableJS<MimeTypeArray>,
     service_worker: MutNullableJS<ServiceWorkerContainer>,
+    vr: MutNullableJS<VR>
 }
 
 impl Navigator {
@@ -31,6 +34,7 @@ impl Navigator {
             plugins: Default::default(),
             mime_types: Default::default(),
             service_worker: Default::default(),
+            vr: Default::default(),
         }
     }
 
@@ -114,4 +118,16 @@ impl NavigatorMethods for Navigator {
         true
     }
 
+    #[allow(unrooted_must_root)]
+    // https://w3c.github.io/webvr/#interface-navigator
+    fn Vr(&self) -> Root<VR> {
+        self.vr.or_init(|| VR::new(&self.global()))
+    }
+}
+
+impl Navigator {
+     pub fn handle_webvr_event(&self, event: WebVREventMsg) {
+         self.vr.get().expect("Shouldn't arrive here with an empty VR instance")
+                      .handle_webvr_event(event);
+     }
 }

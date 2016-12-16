@@ -1,0 +1,307 @@
+<!doctype html>
+<!--
+Copyright 2016 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <title>03 - VR Presentation</title>
+
+    <!--
+      This sample demonstrates how to present the contents of a WebGL canvas to
+      a VRDisplay. The content is not mirrored on the main display while being
+      presented.
+    -->
+
+    <style>
+      #webgl-canvas, #presenting-message {
+        box-sizing: border-box;
+        height: 100%;
+        left: 0;
+        margin: 0;
+        position: absolute;
+        top: 0;
+        width: 100%;
+      }
+      #presenting-message {
+        color: white;
+        font-family: sans-serif;
+        font-size: 2em;
+        font-weight: bold;
+        z-index: 1;
+        text-align: center;
+        padding: 0.5em;
+        background-color: #444;
+        display: none;
+      }
+    </style>
+
+    <!-- This entire block in only to facilitate dynamically enabling and
+    disabling the WebVR polyfill, and is not necessary for most WebVR apps.
+    If you want to use the polyfill in your app, just include the js file and
+    everything will work the way you want it to by default. -->
+    <script>
+      var WebVRConfig = {
+        // Prevents the polyfill from initializing automatically.
+        DEFER_INITIALIZATION: true,
+        // Polyfill optimizations
+        DIRTY_SUBMIT_FRAME_BINDINGS: true,
+        BUFFER_SCALE: 0.75,
+      };
+    </script>
+    <script src="js/third-party/webvr-polyfill.js"></script>
+    <script src="js/third-party/wglu/wglu-url.js"></script>
+    <script>
+      // Dynamically turn the polyfill on if requested by the query args.
+      if (WGLUUrl.getBool('polyfill', false)) {
+        InitializeWebVRPolyfill();
+      } else {
+        // Shim for migration from older version of WebVR. Shouldn't be necessary for very long.
+        InitializeSpecShim();
+      }
+    </script>
+    <!-- End sample polyfill enabling logic -->
+
+    <script src="js/third-party/gl-matrix-min.js"></script>
+
+    <script src="js/third-party/wglu/wglu-program.js"></script>
+    <script src="js/third-party/wglu/wglu-stats.js"></script>
+    <script src="js/third-party/wglu/wglu-texture.js"></script>
+
+    <script src="js/vr-cube-sea.js"></script>
+    <script src="js/vr-samples-util.js"></script>
+  </head>
+  <body>
+    <canvas id="webgl-canvas"></canvas>
+    <div id="presenting-message">Put on your headset now</div>
+    <script>
+      /* global mat4, VRCubeSea, WGLUStats, WGLUTextureLoader, VRSamplesUtil */
+      (function () {
+      "use strict";
+
+      var vrDisplay = null;
+      var frameData = null;
+      var projectionMat = mat4.create();
+      var viewMat = mat4.create();
+
+      var vrPresentButton = null;
+
+      // ===================================================
+      // WebGL scene setup. This code is not WebVR specific.
+      // ===================================================
+
+      // WebGL setup.
+      var webglCanvas = document.getElementById("webgl-canvas");
+      var glAttribs = {
+        alpha: false,
+        antialias: false //!VRSamplesUtil.isMobile()
+      };
+      var gl = webglCanvas.getContext("webgl", glAttribs);
+      if (!gl) {
+        gl = webglCanvas.getContext("experimental-webgl", glAttribs);
+        if (!gl) {
+          VRSamplesUtil.addError("Your browser does not support WebGL.");
+          return;
+        }
+      }
+      gl.clearColor(0.1, 0.2, 0.3, 1.0);
+      gl.enable(gl.DEPTH_TEST);
+      gl.enable(gl.CULL_FACE);
+
+      var textureLoader = new WGLUTextureLoader(gl);
+      var texture = textureLoader.loadTexture("media/textures/cube-sea.png");
+      var cubeSea = new VRCubeSea(gl, texture);
+
+      var stats = new WGLUStats(gl);
+
+      var presentingMessage = document.getElementById("presenting-message");
+
+      // ================================
+      // WebVR-specific code begins here.
+      // ================================
+
+      function onVRRequestPresent () {
+        // This can only be called in response to a user gesture.
+        vrDisplay.requestPresent([{ source: webglCanvas }]).then(function () {
+          onVRPresentChange();
+          // Nothing to do because we're handling things in onVRPresentChange.
+        }, function () {
+          VRSamplesUtil.addError("requestPresent failed.", 2000);
+        });
+      }
+
+      function onVRExitPresent () {
+        // No sense in exiting presentation if we're not actually presenting.
+        // (This may happen if we get an event like vrdisplaydeactivate when
+        // we weren't presenting.)
+        if (!vrDisplay.isPresenting)
+          return;
+
+        vrDisplay.exitPresent().then(function () {
+          // Nothing to do because we're handling things in onVRPresentChange.
+        }, function () {
+          VRSamplesUtil.addError("exitPresent failed.", 2000);
+        });
+      }
+
+      function onVRPresentChange () {
+        // When we begin or end presenting, the canvas should be resized to the
+        // recommended dimensions for the display.
+        onResize();
+
+        if (vrDisplay.isPresenting) {
+          if (vrDisplay.capabilities.hasExternalDisplay) {
+            // Because we're not mirroring any images on an external screen will
+            // freeze while presenting. It's better to replace it with a message
+            // indicating that content is being shown on the VRDisplay.
+            presentingMessage.style.display = "block";
+
+            // On devices with an external display the UA may not provide a way
+            // to exit VR presentation mode, so we should provide one ourselves.
+            VRSamplesUtil.removeButton(vrPresentButton);
+            vrPresentButton = VRSamplesUtil.addButton("Exit VR", "E", "media/icons/cardboard64.png", onVRExitPresent);
+          }
+        } else {
+          // If we have an external display take down the presenting message and
+          // change the button back to "Enter VR".
+          if (vrDisplay.capabilities.hasExternalDisplay) {
+            presentingMessage.style.display = "";
+
+            VRSamplesUtil.removeButton(vrPresentButton);
+            vrPresentButton = VRSamplesUtil.addButton("Enter VR", "E", "media/icons/cardboard64.png", onVRRequestPresent);
+          }
+        }
+      }
+
+      if (navigator.vr) {
+        frameData = new VRFrameData();
+
+        navigator.vr.getDisplays().then(function (displays) {
+          if (displays.length > 0) {
+            vrDisplay = displays[0];
+
+            // It's heighly reccommended that you set the near and far planes to
+            // something appropriate for your scene so the projection matricies
+            // WebVR produces have a well scaled depth buffer.
+            vrDisplay.depthNear = 0.1;
+            vrDisplay.depthFar = 1024.0;
+
+            VRSamplesUtil.addButton("Reset Pose", "R", null, function () { vrDisplay.resetPose(); });
+
+            // Generally, you want to wait until VR support is confirmed and
+            // you know the user has a VRDisplay capable of presenting connected
+            // before adding UI that advertises VR features.
+            if (vrDisplay.capabilities.canPresent)
+              vrPresentButton = VRSamplesUtil.addButton("Enter VR", "E", "media/icons/cardboard64.png", onVRRequestPresent);
+
+            // The UA may kick us out of VR present mode for any reason, so to
+            // ensure we always know when we begin/end presenting we need to
+            // listen for vrdisplaypresentchange events.
+            vrDisplay.addEventListener('presentchange', onVRPresentChange, false);
+
+            // These events fire when the user agent has had some indication that
+            // it would be appropariate to enter or exit VR presentation mode, such
+            // as the user putting on a headset and triggering a proximity sensor.
+            // You can inspect the `reason` property of the event to learn why the
+            // event was fired, but in this case we're going to always trust the
+            // event and enter or exit VR presentation mode when asked.
+            //vrDisplay.addEventListener('activate', onVRRequestPresent, false);
+            //vrDisplay.addEventListener('deactivate', onVRExitPresent, false);
+          } else {
+            VRSamplesUtil.addInfo("WebVR supported, but no VRDisplays found.", 3000);
+          }
+        });
+      } else if (navigator.getVRDevices) {
+        VRSamplesUtil.addError("Your browser supports WebVR but not the latest version. See <a href='http://webvr.info'>webvr.info</a> for more info.");
+      } else {
+        VRSamplesUtil.addError("Your browser does not support WebVR. See <a href='http://webvr.info'>webvr.info</a> for assistance.");
+      }
+
+      function onResize () {
+        if (vrDisplay && vrDisplay.isPresenting) {
+          // If we're presenting we want to use the drawing buffer size
+          // recommended by the VRDevice, since that will ensure the best
+          // results post-distortion.
+          var leftEye = vrDisplay.getEyeParameters("left");
+          var rightEye = vrDisplay.getEyeParameters("right");
+
+          // For simplicity we're going to render both eyes at the same size,
+          // even if one eye needs less resolution. You can render each eye at
+          // the exact size it needs, but you'll need to adjust the viewports to
+          // account for that.
+          webglCanvas.width = Math.max(leftEye.renderWidth, rightEye.renderWidth) * 2;
+          webglCanvas.height = Math.max(leftEye.renderHeight, rightEye.renderHeight);
+        } else {
+          // We only want to change the size of the canvas drawing buffer to
+          // match the window dimensions when we're not presenting.
+          webglCanvas.width = window.innerWidth * window.devicePixelRatio * 2;
+          webglCanvas.height = window.innerHeight * window.devicePixelRatio * 2;
+        }
+      }
+      window.addEventListener("resize", onResize, false);
+      onResize();
+
+      function onAnimationFrame (t) {
+        stats.begin();
+
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        if (vrDisplay) {
+          // When presenting content to the VRDisplay we want to update at its
+          // refresh rate if it differs from the refresh rate of the main
+          // display. Calling VRDisplay.requestAnimationFrame ensures we render
+          // at the right speed for VR.
+          vrDisplay.requestAnimationFrame(onAnimationFrame);
+
+          // As a general rule you want to get the pose as late as possible
+          // and call VRDisplay.submitFrame as early as possible after
+          // retrieving the pose. Do any work for the frame that doesn't need
+          // to know the pose earlier to ensure the lowest latency possible.
+          //var pose = vrDisplay.getPose();
+          vrDisplay.getFrameData(frameData);
+
+          if (vrDisplay.isPresenting) {
+            // When presenting render a stereo view.
+            gl.viewport(0, 0, webglCanvas.width * 0.5, webglCanvas.height);
+            cubeSea.render(frameData.leftProjectionMatrix, frameData.leftViewMatrix, stats);
+
+            gl.viewport(webglCanvas.width * 0.5, 0, webglCanvas.width * 0.5, webglCanvas.height);
+            cubeSea.render(frameData.rightProjectionMatrix, frameData.rightViewMatrix, stats);
+
+            // If we're currently presenting to the VRDisplay we need to
+            // explicitly indicate we're done rendering.
+            vrDisplay.submitFrame();
+          } else {
+            // When not presenting render a mono view that still takes pose into
+            // account.
+            gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
+            // It's best to use our own projection matrix in this case, but we can use the left eye's view matrix
+            mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
+            cubeSea.render(projectionMat, frameData.leftViewMatrix, stats);
+            stats.renderOrtho();
+          }
+        } else {
+          window.requestAnimationFrame(onAnimationFrame);
+
+          // No VRDisplay found.
+          gl.viewport(0, 0, webglCanvas.width, webglCanvas.height);
+          mat4.perspective(projectionMat, Math.PI*0.4, webglCanvas.width / webglCanvas.height, 0.1, 1024.0);
+          mat4.identity(viewMat);
+          cubeSea.render(projectionMat, viewMat, stats);
+
+          stats.renderOrtho();
+        }
+
+        stats.end();
+      }
+      window.requestAnimationFrame(onAnimationFrame);
+      })();
+    </script>
+  </body>
+</html>

@@ -41,6 +41,7 @@ extern crate servo_remutex;
 extern crate servo_url;
 extern crate style_traits;
 extern crate webrender_traits;
+extern crate webvr_traits;
 
 mod constellation;
 mod event_loop;

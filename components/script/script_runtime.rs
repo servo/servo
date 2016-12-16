@@ -79,6 +79,7 @@ pub enum ScriptThreadEventCategory {
     ServiceWorkerEvent,
     EnterFullscreen,
     ExitFullscreen,
+    WebVREvent
 }
 
 /// An interface for receiving ScriptMsg values in an event loop. Used for synchronous DOM

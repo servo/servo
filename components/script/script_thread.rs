@@ -89,6 +89,7 @@ use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSou
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
+use script_traits::WebVREventMsg;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue, AsyncJobHandler, FinishJobHandler, InvokeType, SettleType};
 use servo_config::opts;
@@ -115,6 +116,7 @@ use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSour
 use time::Tm;
 use url::Position;
 use webdriver_handlers;
+use webvr_traits::WebVRMsg;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
@@ -473,6 +475,8 @@ pub struct ScriptThread {
     content_process_shutdown_chan: IpcSender<()>,
 
     promise_job_queue: PromiseJobQueue,
+    /// A handle to the webvr thread, if available
+    webvr_thread: Option<IpcSender<WebVRMsg>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -697,6 +701,8 @@ impl ScriptThread {
             promise_job_queue: PromiseJobQueue::new(),
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
+
+            webvr_thread: state.webvr_thread
         }
     }
 
@@ -944,6 +950,7 @@ impl ScriptThread {
                 ScriptThreadEventCategory::SetViewport => ProfilerCategory::ScriptSetViewport,
                 ScriptThreadEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
                 ScriptThreadEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
+                ScriptThreadEventCategory::WebVREvent => ProfilerCategory::ScriptWebVREvent,
                 ScriptThreadEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
                 ScriptThreadEventCategory::ServiceWorkerEvent => ProfilerCategory::ScriptServiceWorkerEvent,
                 ScriptThreadEventCategory::EnterFullscreen => ProfilerCategory::ScriptEnterFullscreen,
@@ -1008,6 +1015,8 @@ impl ScriptThread {
                 self.handle_reload(pipeline_id),
             ConstellationControlMsg::ExitPipeline(pipeline_id) =>
                 self.handle_exit_pipeline_msg(pipeline_id),
+            ConstellationControlMsg::WebVREvent(pipeline_id, event) =>
+                self.handle_webvr_event(pipeline_id, event),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -1741,7 +1750,8 @@ impl ScriptThread {
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
-                                 incomplete.window_size);
+                                 incomplete.window_size,
+                                 self.webvr_thread.clone());
         let frame_element = frame_element.r().map(Castable::upcast);
 
         let browsing_context = BrowsingContext::new(&window, frame_element);
@@ -2194,6 +2204,14 @@ impl ScriptThread {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
             window.Location().Reload();
+        }
+    }
+
+    fn handle_webvr_event(&self, pipeline_id: PipelineId, event: WebVREventMsg) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        if let Some(window) = window {
+            let navigator = window.Navigator();
+            navigator.handle_webvr_event(event);
         }
     }
 
