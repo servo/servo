@@ -236,6 +236,9 @@ pub enum AngleOrCorner {
 impl ToCss for AngleOrCorner {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
+            AngleOrCorner::None => {
+                Ok(())
+            },
             AngleOrCorner::Angle(angle) => angle.to_css(dest),
             AngleOrCorner::Corner(horizontal, vertical) => {
                 try!(dest.write_str("to "));
