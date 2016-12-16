@@ -115,6 +115,7 @@ pub mod script_runtime;
 pub mod script_thread;
 mod serviceworker_manager;
 mod serviceworkerjob;
+mod stylesheet_loader;
 mod task_source;
 pub mod textinput;
 mod timers;
