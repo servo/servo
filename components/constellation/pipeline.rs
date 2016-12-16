@@ -35,6 +35,7 @@ use std::process;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use style_traits::{PagePx, ViewportPx};
+use vr_traits::WebVRMsg;
 use webrender_traits;
 
 /// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
@@ -119,6 +120,8 @@ pub struct InitialPipelineState {
     pub webrender_api_sender: webrender_traits::RenderApiSender,
     /// Whether this pipeline is considered private.
     pub is_private: bool,
+    /// A channel to the webvr thread.
+    pub webvr_thread: Option<IpcSender<WebVRMsg>>,
 }
 
 impl Pipeline {
@@ -218,6 +221,7 @@ impl Pipeline {
                 script_content_process_shutdown_chan: script_content_process_shutdown_chan,
                 script_content_process_shutdown_port: script_content_process_shutdown_port,
                 webrender_api_sender: state.webrender_api_sender,
+                webvr_thread: state.webvr_thread,
             };
 
             // Spawn the child process.
@@ -398,6 +402,7 @@ pub struct UnprivilegedPipelineContent {
     script_content_process_shutdown_chan: IpcSender<()>,
     script_content_process_shutdown_port: IpcReceiver<()>,
     webrender_api_sender: webrender_traits::RenderApiSender,
+    webvr_thread: Option<IpcSender<WebVRMsg>>,
 }
 
 impl UnprivilegedPipelineContent {
@@ -424,6 +429,7 @@ impl UnprivilegedPipelineContent {
             window_size: self.window_size,
             pipeline_namespace_id: self.pipeline_namespace_id,
             content_process_shutdown_chan: self.script_content_process_shutdown_chan,
+            webvr_thread: self.webvr_thread
         }, self.load_data.clone());
 
         LTF::create(self.id,

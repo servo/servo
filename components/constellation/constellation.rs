@@ -48,6 +48,7 @@ use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, Scri
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
 use script_traits::{SWManagerMsg, ScopeThings, WindowSizeType};
+use script_traits::WebVREventMsg;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_remutex::ReentrantMutex;
@@ -68,6 +69,7 @@ use style_traits::PagePx;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
+use vr_traits::WebVRMsg;
 use webrender_traits;
 
 #[derive(Debug, PartialEq)]
@@ -191,6 +193,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// The random number generator and probability for closing pipelines.
     /// This is for testing the hardening of the constellation.
     random_pipeline_closure: Option<(StdRng, f32)>,
+
+    /// A channel through which messages can be sent to the webvr thread.
+    webvr_thread: Option<IpcSender<WebVRMsg>>,
 }
 
 /// State needed to construct a constellation.
@@ -541,6 +546,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     info!("Using seed {} for random pipeline closure.", seed);
                     (rng, prob)
                 }),
+                webvr_thread: None
             };
 
             constellation.run();
@@ -649,6 +655,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             prev_visibility: prev_visibility,
             webrender_api_sender: self.webrender_api_sender.clone(),
             is_private: is_private,
+            webvr_thread: self.webvr_thread.clone()
         });
 
         let pipeline = match result {
@@ -871,6 +878,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
             FromCompositorMsg::LogEntry(top_level_frame_id, thread_name, entry) => {
                 self.handle_log_entry(top_level_frame_id, thread_name, entry);
+            }
+            FromCompositorMsg::SetWebVRThread(webvr_thread) => {
+                self.webvr_thread = Some(webvr_thread)
+            }
+            FromCompositorMsg::WebVREvent(pipeline_ids, event) => {
+                debug!("constellation got webvr event message");
+                self.handle_webvr_event(pipeline_ids, event);
             }
         }
     }
@@ -1181,6 +1195,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         }
 
+        if let Some(chan) = self.webvr_thread.as_ref() {
+            debug!("Exiting WebVR thread.");
+            if let Err(e) = chan.send(WebVRMsg::Exit) {
+                warn!("Exit WebVR thread failed ({})", e);
+            }
+        }
+
         debug!("Exiting font cache thread.");
         self.font_cache_thread.exit();
 
@@ -1266,6 +1287,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
                 self.handled_warnings.push_back((thread_name, reason));
             },
+        }
+    }
+
+    fn handle_webvr_event(&mut self, ids: Vec<PipelineId>, event: WebVREventMsg) {
+        for id in ids {
+            match self.pipelines.get_mut(&id) {
+                Some(ref pipeline) => {
+                    // Notify script thread
+                    let _ = pipeline.event_loop.send(ConstellationControlMsg::WebVREvent(id, event.clone()));
+                },
+                None => warn!("constellation got webvr event for dead pipeline")
+            }
         }
     }
 
