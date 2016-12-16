@@ -102,9 +102,18 @@ impl HTMLStyleElement {
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
         let mq = parse_media_query_list(&mut CssParser::new(&mq_str));
-        let sheet = Stylesheet::from_str(&data, url, Origin::Author, mq, win.css_error_reporter(),
+        let loader = StylesheetLoader::for_element(self.upcast());
+        let sheet = Stylesheet::from_str(&data, url, Origin::Author, mq,
+                                         Some(&loader),
+                                         win.css_error_reporter(),
                                          ParserContextExtraData::default());
+
         let sheet = Arc::new(sheet);
+
+        // No subresource loads were triggered, just fire the load event now.
+        if self.pending_loads.get() == 0 {
+            self.upcast::<EventTarget>().fire_event(atom!("load"));
+        }
 
         win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
         *self.stylesheet.borrow_mut() = Some(sheet);
