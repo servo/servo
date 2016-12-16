@@ -84,10 +84,10 @@ pub struct ThreadLocalStyleContext {
 }
 
 impl ThreadLocalStyleContext {
-    pub fn new(local_context_creation_data: &ThreadLocalStyleContextCreationInfo) -> Self {
+    pub fn new(shared: &SharedStyleContext) -> Self {
         ThreadLocalStyleContext {
             style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
-            new_animations_sender: local_context_creation_data.new_animations_sender.clone(),
+            new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
         }
     }
 }
