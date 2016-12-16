@@ -70,7 +70,7 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, Lay
 use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
 use script_layout_interface::rpc::ResolvedStyleResponse;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
+use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
 use script_thread::SendableMainThreadScriptChan;
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
@@ -1633,6 +1633,13 @@ impl Window {
         unsafe {
             WindowBinding::Wrap(runtime.cx(), win)
         }
+    }
+}
+
+impl Drop for Window {
+    // When a window is reclaimed, inform the script thread.
+    fn drop(&mut self) {
+        ScriptThread::discard_window(self);
     }
 }
 

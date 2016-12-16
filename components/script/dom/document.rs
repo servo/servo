@@ -108,7 +108,7 @@ use num_traits::ToPrimitive;
 use origin::Origin;
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
+use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::{AnimationState, CompositorEvent, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
@@ -2210,13 +2210,6 @@ impl Document {
                 }
             }
         }
-    }
-}
-
-impl Drop for Document {
-    // When a document is reclaimed, inform the script thread.
-    fn drop(&mut self) {
-        ScriptThread::discard_document(self);
     }
 }
 
