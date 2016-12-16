@@ -248,12 +248,12 @@ pub fn main_fetch(request: Rc<Request>,
         response
     };
 
-    {
+    let internal_error = { // Inner scope to reborrow response
         // Step 14
-        let network_error_res;
+        let network_error_response;
         let internal_response = if let Some(error) = response.get_network_error() {
-            network_error_res = Response::network_error(error.clone());
-            &network_error_res
+            network_error_response = Response::network_error(error.clone());
+            &network_error_response
         } else {
             response.actual_response()
         };
@@ -264,10 +264,33 @@ pub fn main_fetch(request: Rc<Request>,
         }
 
         // Step 16
-        // TODO this step (CSP/blocking)
+        // TODO Blocking for CSP, mixed content, MIME type
+        let blocked_error_response;
+        let internal_response = if !response.is_network_error() && should_block_nosniff(&request, &response) {
+            // Defer rebinding result
+            blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
+            &blocked_error_response
+        } else {
+            internal_response
+        };
 
         // Step 17
-        if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
+        // We use `internal_response` since we did not mutate `response` in the previous step.
+        // Steps 14-18 may modify a response to become a network error, but not the reverse.
+        // * Step 14: `internal_response.is_network_error()` <-> `response.is_network_error()`.
+        //  `response.internal_response` may only be a non-network error type of the following:
+        //  - basic filtered response
+        //  - A CORS filtered response
+        //  - An opaque filtered response
+        //  - An opaque-redirect filtered response
+        //  - None
+        // * Step 15: No pertinent change.
+        // * Step 16:
+        //  - If *response* is already a network error, *response* and *internalResponse* are not modified.
+        //  - If *response* becomes a network error, *internalResponse* also become a network error.
+        //  - Otherwise  *response* and *internalResponse* are not modified.
+        // Therefore: `internal_response.is_network_error() == response.is_network_error().`
+        if !internal_response.is_network_error() && (is_null_body_status(&internal_response.status) ||
             match *request.method.borrow() {
                 Method::Head | Method::Connect => true,
                 _ => false })
@@ -291,7 +314,16 @@ pub fn main_fetch(request: Rc<Request>,
         //         internal_response = Response::network_error();
         //     }
         // }
-    }
+
+        internal_response.get_network_error().map(|e| e.clone())
+    };
+
+    // Execute deferred rebinding of response
+    let response = if let Some(error) = internal_error {
+        Response::network_error(error)
+    } else {
+        response
+    };
 
     // Step 19
     if request.synchronous {
@@ -497,4 +529,95 @@ fn is_null_body_status(status: &Option<StatusCode>) -> bool {
         },
         _ => false
     }
+}
+
+/// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?
+#[inline]
+fn should_block_nosniff(request: &Request, response: &Response) -> bool {
+    header! { (XContentTypeOptions, "X-Content-Type-Options") => [String] };
+
+    // Step 2
+    if let Some(header) = response.headers.get::<XContentTypeOptions>() {
+        let XContentTypeOptions(ref value) = *header;
+        // Step 3
+        if value != "nosniff" {
+            return false;
+        }
+
+        // Step 4
+        // TODO: What do we do if there is no MIME header?
+        if let Some(content_type_header) = response.headers.get::<ContentType>() {
+            let ContentType(ref mime_type) = *content_type_header;
+            // Step 5
+            let type_ = request.type_;
+
+            /// This is a tricky one: it is not straightforward.
+            /// The current practice is to use file sniffing
+            /// to determine the actual font file type.
+            ///
+            /// There is a [proposal](https://www.w3.org/TR/WOFF2/#IMT)
+            /// to add a top level "font/" MIME type.
+            ///
+            /// [These](https://docs.google.com/document/d/1Tsju6EOP4LqJ1RcFJRpqxryggbWZYbq5jvsIhVYNoyU/)
+            /// are the most commonly used MIME types for fonts in practice.
+            ///
+            /// TODO determine how to handle font file acceptance with MIME types
+            #[inline]
+            fn is_font_mime_type(mime: &Mime) -> bool {
+                // Declare that media MIME types are invalid for fonts
+                match mime.0 {
+                    TopLevel::Audio | TopLevel::Image | TopLevel::Video => false,
+                    _ => true
+                }
+            }
+
+            /// https://html.spec.whatwg.org/multipage/#scriptingLanguages
+            #[inline]
+            fn is_javascript_mime_type(mime_type: &Mime) -> bool {
+                // TODO: try to replace with const
+                let javascript_mime_types: [Mime; 16] = [
+                    mime!(Application / ("ecmascript")),
+                    mime!(Application / ("javascript")),
+                    mime!(Application / ("x-ecmascript")),
+                    mime!(Application / ("x-javascript")),
+                    mime!(Text / ("ecmascript")),
+                    mime!(Text / ("javascript")),
+                    mime!(Text / ("javascript1.0")),
+                    mime!(Text / ("javascript1.1")),
+                    mime!(Text / ("javascript1.2")),
+                    mime!(Text / ("javascript1.3")),
+                    mime!(Text / ("javascript1.4")),
+                    mime!(Text / ("javascript1.5")),
+                    mime!(Text / ("jscript")),
+                    mime!(Text / ("livescript")),
+                    mime!(Text / ("x-ecmascript")),
+                    mime!(Text / ("x-javascript")),
+                ];
+
+                javascript_mime_types.contains(mime_type)
+            }
+
+            // TODO: try to replace with const
+            let text_css: Mime = mime!(Text / Css);
+            let text_vtt: Mime = mime!(Text / ("vtt"));
+            // Assumes str::starts_with is equivalent to mime::TopLevel
+            return match type_ {
+                // Step 7
+                Type::Image => mime_type.0 != TopLevel::Image,
+                // Step 8
+                Type::Font => !is_font_mime_type(&mime_type),
+                // Step 9
+                Type::Script => !is_javascript_mime_type(&mime_type),
+                // Step 10
+                Type::Style => mime_type != &text_css,
+                // Step 11
+                Type::Track => mime_type != &text_vtt,
+                // Step 12
+                _ => false
+            }
+        }
+    }
+
+    // Step 1, 3
+    false
 }
