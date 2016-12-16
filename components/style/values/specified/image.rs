@@ -195,14 +195,14 @@ impl GradientKind {
                 // Handle <ellipse> <LengthOrPercentageOrKeyword>? <position>?
                 let length = input.try(|i| LengthOrPercentageOrKeyword::parse(context, i))
                                   .unwrap_or(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner));
-                (EndingShape::Ellipse(length), input.try(|i| parse_position(context, i))
-                                                    .unwrap_or(Position::center()))
+                (EndingShape::Ellipse(length),
+                 input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
             } else if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
                 // Handle <ellipse> <LengthOrKeyword>? <position>?
                 let length = input.try(|i| LengthOrKeyword::parse(context, i))
-                    .unwrap_or(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner));
+                                  .unwrap_or(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner));
                 (EndingShape::Circle(length), input.try(|i| parse_position(context, i))
-                    .unwrap_or(Position::center()))
+                                                   .unwrap_or(Position::center()))
             } else {
                 // If there is no shape keyword, it should set to default.
                 needs_comma = false;
