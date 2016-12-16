@@ -24,6 +24,7 @@ pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercent
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, CalcUnit};
 
 pub mod basic_shape;
+pub mod grid;
 pub mod image;
 pub mod length;
 pub mod position;
