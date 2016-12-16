@@ -77,6 +77,7 @@ fn top_down_dom<'a, 'scope, N, C>(unsafe_nodes: &'a [UnsafeNode],
           C: DomTraversalContext<N>,
 {
     let context = C::new(shared_context, root);
+    assert!(context.local_context().style_sharing_candidate_cache.borrow().is_empty());
 
     let mut discovered_child_nodes = vec![];
     for unsafe_node in unsafe_nodes {
