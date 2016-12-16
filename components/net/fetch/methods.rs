@@ -125,13 +125,13 @@ pub fn main_fetch(request: Rc<Request>,
     // TODO: Implement main fetch spec
 
     // Step 1
-    let mut response = None;
+    let mut local_response = None;
 
     // Step 2
     if request.local_urls_only {
         match request.current_url().scheme() {
             "about" | "blob" | "data" | "filesystem" => (), // Ok, the URL is local.
-            _ => response = Some(Response::network_error(NetworkError::Internal("Non-local scheme".into())))
+            _ => local_response = Some(Response::network_error(NetworkError::Internal("Non-local scheme".into())))
         }
     }
 
@@ -183,7 +183,7 @@ pub fn main_fetch(request: Rc<Request>,
     // this step is obsoleted by fetch_async
 
     // Step 11
-    let response = match response {
+    let mut response = match local_response {
         Some(response) => response,
         None => {
             let current_url = request.current_url();
@@ -237,61 +237,147 @@ pub fn main_fetch(request: Rc<Request>,
 
     // Step 13
     // no need to check if response is a network error, since the type would not be `Default`
-    let response = if response.response_type == ResponseType::Default {
+    if response.response_type == ResponseType::Default {
         let response_type = match request.response_tainting.get() {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CorsTainting => ResponseType::Cors,
             ResponseTainting::Opaque => ResponseType::Opaque,
         };
-        response.to_filtered(response_type)
+        response = response.to_filtered(response_type)
+    }
+
+    // Step 14
+    let mut internal_response = if let Some(error) = response.get_network_error() {
+        Response::network_error(error.clone())
     } else {
-        response
+        response.actual_response().clone()
     };
 
-    {
-        // Step 14
-        let network_error_res;
-        let internal_response = if let Some(error) = response.get_network_error() {
-            network_error_res = Response::network_error(error.clone());
-            &network_error_res
-        } else {
-            response.actual_response()
-        };
-
-        // Step 15
-        if internal_response.url_list.borrow().is_empty() {
-            *internal_response.url_list.borrow_mut() = request.url_list.borrow().clone();
-        }
-
-        // Step 16
-        // TODO this step (CSP/blocking)
-
-        // Step 17
-        if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
-            match *request.method.borrow() {
-                Method::Head | Method::Connect => true,
-                _ => false })
-            {
-            // when Fetch is used only asynchronously, we will need to make sure
-            // that nothing tries to write to the body at this point
-            let mut body = internal_response.body.lock().unwrap();
-            *body = ResponseBody::Empty;
-        }
-
-        // Step 18
-        // TODO be able to compare response integrity against request integrity metadata
-        // if !response.is_network_error() {
-
-        //     // Substep 1
-        //     response.wait_until_done();
-
-        //     // Substep 2
-        //     if response.termination_reason.is_none() {
-        //         response = Response::network_error();
-        //         internal_response = Response::network_error();
-        //     }
-        // }
+    // Step 15
+    if internal_response.url_list.borrow().is_empty() {
+        *internal_response.url_list.borrow_mut() = request.url_list.borrow().clone();
     }
+
+    // Step 16
+    #[inline]
+    fn should_block_nosniff(request: &Request, response: &Response) -> bool {
+        header! { (XContentTypeOptions, "X-Content-Type-Options") => [String] };
+
+        // Step 2
+        if let Some(header) = response.headers.get::<XContentTypeOptions>() {
+            let XContentTypeOptions(ref value) = *header;
+            // Step 3
+            if value != "nosniff" {
+                return false;
+            }
+
+            // Step 4
+            // TODO: What do we do if there is no MIME header?
+            if let Some(content_type_header) = response.headers.get::<ContentType>() {
+                let ContentType(ref mime_type) = *content_type_header;
+                // Step 5
+                let type_ = request.type_;
+
+                /// This is a tricky one: it is not straightforward.
+                /// The current practice is to use file sniffing
+                /// to determine the actual font file type.
+                ///
+                /// There is a [proposal](https://www.w3.org/TR/WOFF2/#IMT)
+                /// to add a top level "font/" MIME type.
+                ///
+                /// [These](https://docs.google.com/document/d/1Tsju6EOP4LqJ1RcFJRpqxryggbWZYbq5jvsIhVYNoyU/)
+                /// are the most commonly used MIME types for fonts in practice.
+                #[inline]
+                fn is_font_mime_type(_: &Mime) -> bool {
+                    // TODO: Determine how to handle font detection
+                    true
+                }
+
+                /// https://html.spec.whatwg.org/multipage/#scriptingLanguages
+                #[inline]
+                fn is_javascript_mime_type(mime_type: &Mime) -> bool {
+                    // TODO: try to replace with const
+                    let javascript_mime_types: [Mime; 16] = [
+                        mime!(Application / ("ecmascript")),
+                        mime!(Application / ("javascript")),
+                        mime!(Application / ("x-ecmascript")),
+                        mime!(Application / ("x-javascript")),
+                        mime!(Text / ("ecmascript")),
+                        mime!(Text / ("javascript")),
+                        mime!(Text / ("javascript1.0")),
+                        mime!(Text / ("javascript1.1")),
+                        mime!(Text / ("javascript1.2")),
+                        mime!(Text / ("javascript1.3")),
+                        mime!(Text / ("javascript1.4")),
+                        mime!(Text / ("javascript1.5")),
+                        mime!(Text / ("jscript")),
+                        mime!(Text / ("livescript")),
+                        mime!(Text / ("x-ecmascript")),
+                        mime!(Text / ("x-javascript")),
+                    ];
+
+                    javascript_mime_types.contains(mime_type)
+                }
+
+                // TODO: try to replace with const
+                let text_css: Mime = mime!(Text / Css);
+                let text_vtt: Mime = mime!(Text / ("vtt"));
+                // These operate under the assumption str::starts_with is equivalent to mime::TopLevel
+
+                return match type_ {
+                    // Step 7
+                    Type::Image => mime_type.0 != TopLevel::Image,
+                    // Step 8
+                    Type::Font => !is_font_mime_type(&mime_type),
+                    // Step 9
+                    Type::Script => !is_javascript_mime_type(&mime_type),
+                    // Step 10
+                    Type::Style => mime_type != &text_css,
+                    // Step 11
+                    Type::Track => mime_type != &text_vtt,
+                    // Step 12
+                    _ => false
+                }
+            }
+        }
+
+        // Step 1, 3
+        false
+    }
+
+    if should_block_nosniff(&request, &response) {
+        response = Response::network_error(NetworkError::Internal("Blocked due to nosniff".into()));
+        // TODO: clone?
+        internal_response = response.clone();
+    }
+
+    // Step 17
+    if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
+        match *request.method.borrow() {
+            Method::Head | Method::Connect => true,
+            _ => false })
+        {
+        // when Fetch is used only asynchronously, we will need to make sure
+        // that nothing tries to write to the body at this point
+        let mut body = internal_response.body.lock().unwrap();
+        *body = ResponseBody::Empty;
+    }
+
+    // Step 18
+    // TODO be able to compare response integrity against request integrity metadata
+    // if !response.is_network_error() {
+
+    //     // Substep 1
+    //     response.wait_until_done();
+
+    //     // Substep 2
+    //     if response.termination_reason.is_none() {
+    //         response = Response::network_error();
+    //         internal_response = Response::network_error();
+    //     }
+    // }
+
+    response.internal_response = Some(Box::new(internal_response));
 
     // Step 19
     if request.synchronous {
