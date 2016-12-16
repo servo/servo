@@ -44,7 +44,7 @@ parking_lot = "0.3.3"
 phf = "0.7.20"
 quickersort = "2.0.0"
 rand = "0.3"
-rayon = "0.5"
+rayon = "0.6"
 rustc-serialize = "0.3"
 selectors = "0.15"
 serde = {version = "0.8", optional = true}

@@ -27,7 +27,7 @@ net_traits = {path = "../net_traits"}
 parking_lot = {version = "0.3.3", features = ["nightly"]}
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
-rayon = "0.5"
+rayon = "0.6"
 script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
