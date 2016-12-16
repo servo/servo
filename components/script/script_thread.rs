@@ -327,6 +327,7 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
 }
 
 /// The state that a document managed by this script thread could be in.
+// TODO: really this should be WindowState, since we implement Drop on Window, not Document,
 #[must_root]
 enum DocumentState {
     /// A document that we are currently keeping.
@@ -360,7 +361,7 @@ impl DocumentState {
         DocumentState::Kept(DocumentReference::Strong, JS::from_ref(document))
     }
 
-    // This function is safe as long as Document implements Drop
+    // This function is safe as long as Window implements Drop
     // to set the state to be discarded.
     fn document(&self) -> Option<Root<Document>> {
         match *self {
@@ -369,7 +370,7 @@ impl DocumentState {
         }
     }
 
-    // This function is safe as long as Document implements Drop
+    // This function is safe as long as Window implements Drop
     // to set the state to be discarded.
     fn url(&self) -> ServoUrl {
         match *self {
@@ -380,6 +381,7 @@ impl DocumentState {
 }
 
 /// The set of all documents managed by this script thread.
+// TODO: really this should be Windows, since we implement Drop on Window, not Document,
 #[derive(JSTraceable)]
 #[must_root]
 pub struct Documents {
@@ -694,21 +696,18 @@ impl ScriptThread {
         }))
     }
 
-    pub fn discard_document(document: &Document) {
+    pub fn discard_window(window: &Window) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                if document.browsing_context().is_none() {
-                    return;
-                }
-                let pipeline_id = document.window().upcast::<GlobalScope>().pipeline_id();
-                let url = document.url().clone();
-                debug!("Document {} discarded.", pipeline_id);
+                let pipeline_id = window.upcast::<GlobalScope>().pipeline_id();
+                let url = window.get_url();
+                debug!("Window {} discarded.", pipeline_id);
                 if script_thread.documents.borrow_mut().discard(pipeline_id, url).is_none() {
                     return;
                 }
                 script_thread.closed_pipelines.borrow_mut().insert(pipeline_id);
-                shut_down_layout(document.window());
+                shut_down_layout(window);
                 let _ = script_thread.constellation_chan.send(ConstellationMsg::PipelineExited(pipeline_id));
             }
         })
@@ -1432,16 +1431,15 @@ impl ScriptThread {
 
     /// Handles freeze message
     fn handle_freeze_msg(&self, id: PipelineId) {
-        let document = match self.documents.borrow_mut().get_mut(id) {
-            None => None,
-            Some(ref mut state) if opts::get().unsafe_discard_documents => {
+        let document = if let Some(state) = self.documents.borrow_mut().get_mut(id) {
+            if opts::get().unsafe_discard_documents {
                 // For testing purposes, we have an option to agressively
                 // discard all inactive documents.
                 warn!("Discarding pipeline {}.", id);
-                **state = DocumentState::Discarded(state.url());
+                *state = DocumentState::Discarded(state.url());
                 return;
-            },
-            Some(state) => match *state {
+            }
+            match *state {
                 DocumentState::Discarded(_) => return warn!("Freezing already discarded pipeline {}.", id),
                 DocumentState::Kept(ref mut traced, ref document) => match *traced {
                     DocumentReference::Weak => return warn!("Freezing already frozen pipeline {}.", id),
@@ -1451,7 +1449,9 @@ impl ScriptThread {
                         Some(Root::from_ref(&**document))
                     },
                 },
-            },
+            }
+        } else {
+            None
         };
         if let Some(document) = document {
             document.window().freeze();
@@ -1467,9 +1467,8 @@ impl ScriptThread {
 
     /// Handles thaw message
     fn handle_thaw_msg(&self, id: PipelineId) {
-        let document = match self.documents.borrow_mut().get_mut(id) {
-            None => None,
-            Some(state) => match *state {
+        let document = if let Some(state) = self.documents.borrow_mut().get_mut(id) {
+            match *state {
                 DocumentState::Discarded(ref url) => {
                     warn!("Thawing discarded pipeline {}.", id);
                     // TODO referrer info
@@ -1486,7 +1485,9 @@ impl ScriptThread {
                     },
                     DocumentReference::Strong => return warn!("Thawing already thawed pipeline {}.", id),
                 },
-            },
+            }
+        } else {
+            None
         };
         if let Some(document) = document {
             if let Some(context) = document.browsing_context() {
