@@ -635,6 +635,7 @@ impl BluetoothManager {
         }
     }
 
+    // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
     fn get_gatt_children(&mut self,
                          id: String,
                          uuid: Option<String>,

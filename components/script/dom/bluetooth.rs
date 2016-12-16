@@ -209,23 +209,23 @@ pub fn get_gatt_children<T, F> (
     let p = Promise::new(&attribute.global());
     let p_cx = p.global().get_cx();
 
-    let mut result_uuid: Option<String> = None;
-    if let Some(u) = uuid {
+    let result_uuid = if let Some(u) = uuid {
         // Step 1.
-        result_uuid = match uuid_canonicalizer(u) {
-            Ok(canonicalized_uuid) => Some(canonicalized_uuid.to_string()),
+        let canonicalized = match uuid_canonicalizer(u) {
+            Ok(canonicalized_uuid) => canonicalized_uuid.to_string(),
             Err(e) => {
                 p.reject_error(p_cx, e);
                 return p;
             }
         };
-        if let Some(ref result_uuid) = result_uuid {
-            // Step 2.
-            if uuid_is_blocklisted(result_uuid.as_ref(), Blocklist::All) {
-                p.reject_error(p_cx, Security);
-                return p;
-            }
+        // Step 2.
+        if uuid_is_blocklisted(canonicalized.as_ref(), Blocklist::All) {
+            p.reject_error(p_cx, Security);
+            return p;
         }
+        Some(canonicalized)
+    } else {
+        None
     };
 
     // Step 3 - 4.
