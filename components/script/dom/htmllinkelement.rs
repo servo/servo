@@ -62,6 +62,11 @@ pub struct HTMLLinkElement {
 
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
+    /// The number of loads that this link element has triggered (could be more
+    /// than one because of imports), and how many of them have finished.
+    pending_loads: Cell<u32>,
+    /// Whether any of the loads have failed.
+    any_failed_load: Cell<bool>,
 }
 
 impl HTMLLinkElement {
@@ -73,6 +78,8 @@ impl HTMLLinkElement {
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
+            pending_loads: Cell::new(0),
+            any_failed_load: Cell::new(false),
         }
     }
 
@@ -85,6 +92,16 @@ impl HTMLLinkElement {
                            document,
                            HTMLLinkElementBinding::Wrap)
     }
+
+    pub fn parser_inserted(&self) -> bool {
+        self.parser_inserted.get()
+    }
+
+    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+        assert!(self.stylesheet.borrow().is_none());
+        *self.stylesheet.borrow_mut() = Some(s);
+    }
+
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
         self.stylesheet.borrow().clone()
@@ -217,6 +234,28 @@ impl VirtualMethods for HTMLLinkElement {
 
 
 impl HTMLLinkElement {
+    pub fn increment_pending_loads_count(&self) {
+        self.pending_loads.set(self.pending_loads.get() + 1)
+    }
+
+    /// Returns None if there are still pending loads, or whether any load has
+    /// failed since the loads started.
+    pub fn load_finished(&self, succeeded: bool) -> Option<bool> {
+        assert!(self.pending_loads.get() > 0, "What finished?");
+        if !succeeded {
+            self.any_failed_load.set(true);
+        }
+
+        self.pending_loads.set(self.pending_loads.get() - 1);
+        if self.pending_loads.get() != 0 {
+            return None;
+        }
+
+        let any_failed = self.any_failed_load.get();
+        self.any_failed_load.set(false);
+        Some(any_failed)
+    }
+
     /// https://html.spec.whatwg.org/multipage/#concept-link-obtain
     fn handle_stylesheet_url(&self, href: &str) {
         let document = document_from_node(self);
@@ -231,8 +270,11 @@ impl HTMLLinkElement {
 
         // Step 2.
         let url = match document.base_url().join(href) {
-            Err(e) => return debug!("Parsing url {} failed: {}", href, e),
             Ok(url) => url,
+            Err(e) => {
+                debug!("Parsing url {} failed: {}", href, e);
+                return;
+            }
         };
 
         let element = self.upcast::<Element>();

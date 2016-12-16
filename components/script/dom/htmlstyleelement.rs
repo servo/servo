@@ -12,17 +12,20 @@ use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
-use dom::element::Element;
+use dom::element::{Element, ElementCreator};
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use script_layout_interface::message::Msg;
+use std::cell::Cell;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContextExtraData;
 use style::stylesheets::{Stylesheet, Origin};
+use stylesheet_loader::StylesheetLoader;
 
 #[dom_struct]
 pub struct HTMLStyleElement {
@@ -30,26 +33,57 @@ pub struct HTMLStyleElement {
     #[ignore_heap_size_of = "Arc"]
     stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
     cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
+    /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
+    parser_inserted: Cell<bool>,
+    pending_loads: Cell<u32>,
+    any_failed_load: Cell<bool>,
 }
 
 impl HTMLStyleElement {
     fn new_inherited(local_name: LocalName,
                      prefix: Option<DOMString>,
-                     document: &Document) -> HTMLStyleElement {
+                     document: &Document,
+                     creator: ElementCreator) -> HTMLStyleElement {
         HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
+            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
+            pending_loads: Cell::new(0),
+            any_failed_load: Cell::new(false),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(local_name: LocalName,
                prefix: Option<DOMString>,
-               document: &Document) -> Root<HTMLStyleElement> {
-        Node::reflect_node(box HTMLStyleElement::new_inherited(local_name, prefix, document),
+               document: &Document,
+               creator: ElementCreator) -> Root<HTMLStyleElement> {
+        Node::reflect_node(box HTMLStyleElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLStyleElementBinding::Wrap)
+    }
+
+    pub fn increment_pending_loads_count(&self) {
+        self.pending_loads.set(self.pending_loads.get() + 1)
+    }
+
+    /// Returns None if there are still pending loads, or whether any load has
+    /// failed since the loads started.
+    pub fn load_finished(&self, succeeded: bool) -> Option<bool> {
+        assert!(self.pending_loads.get() > 0, "What finished?");
+        if !succeeded {
+            self.any_failed_load.set(true);
+        }
+
+        self.pending_loads.set(self.pending_loads.get() - 1);
+        if self.pending_loads.get() != 0 {
+            return None;
+        }
+
+        let any_failed = self.any_failed_load.get();
+        self.any_failed_load.set(false);
+        Some(any_failed)
     }
 
     pub fn parse_own_css(&self) {
@@ -93,6 +127,10 @@ impl HTMLStyleElement {
                                    sheet)
             })
         })
+    }
+
+    pub fn parser_inserted(&self) -> bool {
+        self.parser_inserted.get()
     }
 }
 
