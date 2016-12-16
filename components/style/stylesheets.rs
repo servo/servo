@@ -306,6 +306,7 @@ impl CssRule {
         let mut rule_parser = TopLevelRuleParser {
             stylesheet_origin: parent_stylesheet.origin,
             context: context,
+            loader: None,
             state: Cell::new(state),
             namespaces: &mut namespaces,
         };
@@ -604,9 +605,20 @@ rule_filter! {
     effective_keyframes_rules(Keyframes => KeyframesRule),
 }
 
+/// The stylesheet loader is the abstraction used to trigger network requests
+/// for `@import` rules.
+pub trait StylesheetLoader {
+    /// Request a stylesheet after parsing a given `@import` rule.
+    ///
+    /// The called code is responsible to update the `stylesheet` rules field
+    /// when the sheet is done loading.
+    fn request_stylesheet(&self, import: &Arc<RwLock<ImportRule>>);
+}
+
 struct TopLevelRuleParser<'a> {
     stylesheet_origin: Origin,
     namespaces: &'a mut Namespaces,
+    loader: Option<&'a StylesheetLoader>,
     context: ParserContext<'a>,
     state: Cell<State>,
 }
@@ -677,6 +689,12 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
                             })
                         }
                     ));
+
+                    if is_valid_url {
+                        let loader = self.loader
+                            .expect("Expected a stylesheet loader for @import");
+                        loader.request_stylesheet(&import_rule);
+                    }
 
                     return Ok(AtRuleType::WithoutBlock(CssRule::Import(import_rule)))
                 } else {
