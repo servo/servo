@@ -5,3 +5,6 @@ members = [
     "ports/servo",
     "support/android/build-apk",
 ]
+
+[replace]
+"rayon:0.5.0" = { git = "https://github.com/bholley/rayon.git", branch = "expose_thread_indices" }
