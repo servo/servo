@@ -12,16 +12,13 @@ use style_traits::ToCss;
 #[test]
 fn test_linear_gradient() {
     // Parsing from the right
-    assert_roundtrip_with_context!(Image::parse, "linear-gradient(to left, red, green)",
-                                                 "linear-gradient(4.712389rad, red, green)");
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(to left, red, green)");
 
     // Parsing from the left
-    assert_roundtrip_with_context!(Image::parse, "linear-gradient(to right, red, green)",
-                                                 "linear-gradient(1.5707964rad, red, green)");
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(to right, red, green)");
 
     // Parsing with two values for <side-or-corner>
-    assert_roundtrip_with_context!(Image::parse, "linear-gradient(to right top, red, green)",
-                                                 "linear-gradient(0.7853982rad, red, green)");
+    assert_roundtrip_with_context!(Image::parse, "linear-gradient(to right top, red, green)");
 
     // Parsing with <angle>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(45deg, red, green)",

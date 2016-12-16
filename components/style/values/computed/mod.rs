@@ -189,17 +189,24 @@ impl ToComputedValue for specified::AngleOrCorner {
             },
             specified::AngleOrCorner::Corner(horizontal, vertical) => {
                 match (horizontal, vertical) {
-                    (None, Some(VerticalDirection::Top)) =>
-                        AngleOrCorner::Angle(Angle(0.0)),
-                    (Some(HorizontalDirection::Right), None) =>
-                        AngleOrCorner::Angle(Angle(PI * 0.5)),
-                    (None, Some(VerticalDirection::Bottom)) =>
-                        AngleOrCorner::Angle(Angle(PI)),
-                    (Some(HorizontalDirection::Left), None) =>
-                        AngleOrCorner::Angle(Angle(PI * 1.5)),
-                    (Some(horizontal), Some(vertical)) =>
-                        AngleOrCorner::Corner(horizontal, vertical),
-                    (None, None) => unreachable!()
+                    (None, Some(VerticalDirection::Top)) => {
+                        AngleOrCorner::Angle(Angle(0.0))
+                    },
+                    (Some(HorizontalDirection::Right), None) => {
+                        AngleOrCorner::Angle(Angle(PI * 0.5))
+                    },
+                    (None, Some(VerticalDirection::Bottom)) => {
+                        AngleOrCorner::Angle(Angle(PI))
+                    },
+                    (Some(HorizontalDirection::Left), None) => {
+                        AngleOrCorner::Angle(Angle(PI * 1.5))
+                    },
+                    (Some(horizontal), Some(vertical)) => {
+                        AngleOrCorner::Corner(horizontal, vertical)
+                    },
+                    (None, None) => {
+                        unreachable!()
+                    }
                 }
             }
         }

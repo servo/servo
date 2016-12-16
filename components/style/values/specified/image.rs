@@ -187,15 +187,15 @@ impl GradientKind {
             if input.try(|input| input.expect_ident_matching("ellipse")).is_ok() {
                 // Handle <ellipse> <LengthOrPercentageOrKeyword>? <position>?
                 let length = input.try(|i| LengthOrPercentageOrKeyword::parse(context, i))
-                                  .unwrap_or(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner));
+                    .unwrap_or(LengthOrPercentageOrKeyword::Keyword(SizeKeyword::FarthestCorner));
                 (EndingShape::Ellipse(length),
                  input.try(|i| parse_position(context, i)).unwrap_or(Position::center()))
             } else if input.try(|input| input.expect_ident_matching("circle")).is_ok() {
                 // Handle <ellipse> <LengthOrKeyword>? <position>?
                 let length = input.try(|i| LengthOrKeyword::parse(context, i))
-                                  .unwrap_or(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner));
+                    .unwrap_or(LengthOrKeyword::Keyword(SizeKeyword::FarthestCorner));
                 (EndingShape::Circle(length), input.try(|i| parse_position(context, i))
-                                                   .unwrap_or(Position::center()))
+                    .unwrap_or(Position::center()))
             } else {
                 // If there is no shape keyword, it should set to default.
                 needs_comma = false;
@@ -238,19 +238,16 @@ impl ToCss for AngleOrCorner {
             AngleOrCorner::Angle(angle) => angle.to_css(dest),
             AngleOrCorner::Corner(horizontal, vertical) => {
                 try!(dest.write_str("to "));
-                match (horizontal, vertical) {
-                    (Some(horizontal), Some(vertical)) => {
-                        try!(horizontal.to_css(dest));
+                let mut horizontal_present = false;
+                if let Some(horizontal) = horizontal {
+                    try!(horizontal.to_css(dest));
+                    horizontal_present = true;
+                }
+                if let Some(vertical) = vertical {
+                    if horizontal_present {
                         try!(dest.write_str(" "));
-                        try!(vertical.to_css(dest));
                     }
-                    (Some(horizontal), None) => {
-                        try!(horizontal.to_css(dest));
-                    }
-                    (None, Some(vertical)) => {
-                        try!(vertical.to_css(dest));
-                    }
-                    (None, None) => unreachable!()
+                    try!(vertical.to_css(dest));
                 }
                 Ok(())
             }
