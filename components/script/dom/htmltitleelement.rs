@@ -42,10 +42,8 @@ impl HTMLTitleElementMethods for HTMLTitleElement {
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn Text(&self) -> DOMString {
         let mut content = String::new();
-        for child in self.upcast::<Node>().children() {
-            if let Some(text) = child.downcast::<Text>() {
-                content.push_str(&text.upcast::<CharacterData>().data());
-            }
+        for text in self.upcast::<Node>().children::<Text>() {
+            content.push_str(&text.upcast::<CharacterData>().data());
         }
         DOMString::from(content)
     }

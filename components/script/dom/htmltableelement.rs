@@ -75,9 +75,8 @@ impl HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
     fn get_first_section_of_type(&self, atom: &LocalName) -> Option<Root<HTMLTableSectionElement>> {
         self.upcast::<Node>()
-            .child_elements()
-            .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == atom)
-            .and_then(|n| n.downcast().map(Root::from_ref))
+            .children::<HTMLTableSectionElement>()
+            .find(|n| n.upcast::<Element>().local_name() == atom)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-thead
@@ -99,7 +98,7 @@ impl HTMLTableElement {
         let node = self.upcast::<Node>();
 
         if let Some(section) = section {
-            let reference_element = node.child_elements().find(reference_predicate);
+            let reference_element = node.children::<Element>().find(reference_predicate);
             let reference_node = reference_element.r().map(|e| e.upcast());
 
             try!(node.InsertBefore(section.upcast(), reference_node));
@@ -138,9 +137,8 @@ impl HTMLTableElement {
     fn get_rows(&self) -> TableRowFilter {
         TableRowFilter {
             sections: self.upcast::<Node>()
-                          .children()
-                          .filter_map(|ref node|
-                                node.downcast::<HTMLTableSectionElement>().map(|_| JS::from_ref(&**node)))
+                          .children::<HTMLTableSectionElement>()
+                          .map(|ref node| JS::from_ref(node.upcast::<Node>()))
                           .collect()
         }
     }
@@ -155,7 +153,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn GetCaption(&self) -> Option<Root<HTMLTableCaptionElement>> {
-        self.upcast::<Node>().children().filter_map(Root::downcast).next()
+        self.upcast::<Node>().children::<HTMLTableCaptionElement>().next()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption

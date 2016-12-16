@@ -63,15 +63,14 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
     fn CellIndex(&self) -> i32 {
         let self_node = self.upcast::<Node>();
 
-        let parent_children = match self_node.GetParentNode() {
+        let mut parent_children = match self_node.GetParentNode() {
             Some(ref parent_node) if parent_node.is::<HTMLTableRowElement>() => {
-                parent_node.children()
+                parent_node.children::<HTMLTableCellElement>()
             },
             _ => return -1,
         };
 
-        parent_children.filter(|c| c.is::<HTMLTableCellElement>())
-                       .position(|c| &*c == self_node)
+        parent_children.position(|c| c.upcast::<Node>() == self_node)
                        .map_or(-1, |p| p as i32)
     }
 }

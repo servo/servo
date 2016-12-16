@@ -102,7 +102,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                 el.set_disabled_state(disabled_state);
                 el.set_enabled_state(!disabled_state);
                 let mut found_legend = false;
-                let children = node.children().filter(|node| {
+                let children = node.children::<Node>().filter(|node| {
                     if found_legend {
                         true
                     } else if node.is::<HTMLLegendElement>() {

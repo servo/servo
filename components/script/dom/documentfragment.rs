@@ -66,7 +66,7 @@ impl DocumentFragmentMethods for DocumentFragment {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
     fn GetFirstElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().child_elements().next()
+        self.upcast::<Node>().children::<Element>().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
@@ -76,7 +76,7 @@ impl DocumentFragmentMethods for DocumentFragment {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(&self) -> u32 {
-        self.upcast::<Node>().child_elements().count() as u32
+        self.upcast::<Node>().children::<Element>().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend

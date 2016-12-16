@@ -1904,7 +1904,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
     fn GetNextElementSibling(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().following_siblings().filter_map(Root::downcast).next()
+        self.upcast::<Node>().following_siblings::<Element>().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
@@ -1915,7 +1915,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
     fn GetFirstElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().child_elements().next()
+        self.upcast::<Node>().children::<Element>().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
@@ -1925,7 +1925,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(&self) -> u32 {
-        self.upcast::<Node>().child_elements().count() as u32
+        self.upcast::<Node>().children::<Element>().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
@@ -2215,10 +2215,8 @@ impl VirtualMethods for Element {
         } else {
             if flags.intersects(HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
                 if let Some(next_child) = mutation.next_child() {
-                    for child in next_child.inclusively_following_siblings() {
-                        if child.is::<Element>() {
-                            child.dirty(NodeDamage::OtherNodeDamage);
-                        }
+                    for child in next_child.inclusively_following_siblings::<Element>() {
+                        child.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                     }
                 }
             }
@@ -2275,7 +2273,7 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn first_child_element(&self) -> Option<Root<Element>> {
-        self.node.child_elements().next()
+        self.node.children::<Element>().next()
     }
 
     fn last_child_element(&self) -> Option<Root<Element>> {
@@ -2287,7 +2285,7 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn next_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.following_siblings().filter_map(Root::downcast).next()
+        self.node.following_siblings::<Element>().next()
     }
 
     fn is_root(&self) -> bool {
@@ -2298,7 +2296,7 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn is_empty(&self) -> bool {
-        self.node.children().all(|node| !node.is::<Element>() && match node.downcast::<Text>() {
+        self.node.children::<Node>().all(|node| !node.is::<Element>() && match node.downcast::<Text>() {
             None => true,
             Some(text) => text.upcast::<CharacterData>().data().is_empty()
         })
@@ -2649,7 +2647,7 @@ impl Element {
                 self.set_enabled_state(false);
                 return;
             }
-            match ancestor.children()
+            match ancestor.children::<Node>()
                           .find(|child| child.is::<HTMLLegendElement>()) {
                 Some(ref legend) => {
                     // XXXabinader: should we save previous ancestor to avoid this iteration?

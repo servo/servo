@@ -2357,12 +2357,12 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(&self) -> Option<Root<DocumentType>> {
-        self.upcast::<Node>().children().filter_map(Root::downcast).next()
+        self.upcast::<Node>().children::<DocumentType>().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().child_elements().next()
+        self.upcast::<Node>().children::<Element>().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
@@ -2655,7 +2655,7 @@ impl DocumentMethods for Document {
             if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
                 // Step 1.
                 root.upcast::<Node>()
-                    .child_elements()
+                    .children::<Element>()
                     .find(|node| {
                         node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
                     })
@@ -2686,7 +2686,7 @@ impl DocumentMethods for Document {
         };
 
         let elem = if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
-            let elem = root.upcast::<Node>().child_elements().find(|node| {
+            let elem = root.upcast::<Node>().children::<Element>().find(|node| {
                 node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
             });
             match elem {
@@ -2732,7 +2732,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-head
     fn GetHead(&self) -> Option<Root<HTMLHeadElement>> {
         self.get_html_element()
-            .and_then(|root| root.upcast::<Node>().children().filter_map(Root::downcast).next())
+            .and_then(|root| root.upcast::<Node>().children::<HTMLHeadElement>().next())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-currentscript
@@ -2744,7 +2744,7 @@ impl DocumentMethods for Document {
     fn GetBody(&self) -> Option<Root<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let node = root.upcast::<Node>();
-            node.children().find(|child| {
+            node.children::<Node>().find(|child| {
                 match child.type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => true,
@@ -2883,7 +2883,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
     fn GetFirstElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().child_elements().next()
+        self.upcast::<Node>().children::<Element>().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
@@ -2893,7 +2893,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(&self) -> u32 {
-        self.upcast::<Node>().child_elements().count() as u32
+        self.upcast::<Node>().children::<Element>().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend

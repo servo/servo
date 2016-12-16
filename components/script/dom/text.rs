@@ -84,7 +84,7 @@ impl TextMethods for Text {
         let first = self.upcast::<Node>().inclusively_preceding_siblings()
                                          .take_while(|node| node.is::<Text>())
                                          .last().unwrap();
-        let nodes = first.inclusively_following_siblings()
+        let nodes = first.inclusively_following_siblings::<Node>()
                          .take_while(|node| node.is::<Text>());
         let mut text = String::new();
         for ref node in nodes {
