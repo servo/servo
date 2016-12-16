@@ -25,6 +25,7 @@ macro_rules! stylesheet {
             ServoUrl::parse("http://localhost").unwrap(),
             Origin::$origin,
             Default::default(),
+            None,
             $error_reporter,
             ParserContextExtraData::default()
         ))

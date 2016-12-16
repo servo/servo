@@ -52,6 +52,7 @@ fn test_parse_stylesheet() {
         }";
     let url = ServoUrl::parse("about::test").unwrap();
     let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
+                                          None,
                                           Box::new(CSSErrorReporterTest),
                                           ParserContextExtraData::default());
     let mut namespaces = Namespaces::default();
@@ -332,7 +333,9 @@ fn test_report_error_stylesheet() {
 
     let errors = error_reporter.errors.clone();
 
-    Stylesheet::from_str(css, url, Origin::UserAgent, Default::default(), error_reporter,
+    Stylesheet::from_str(css, url, Origin::UserAgent, Default::default(),
+                         None,
+                         error_reporter,
                          ParserContextExtraData::default());
 
     let mut errors = errors.lock().unwrap();
