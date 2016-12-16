@@ -24,7 +24,7 @@ use hyper::uri::RequestUri;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::fetch::cors_cache::CorsCache;
 use net_traits::ReferrerPolicy;
-use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode};
+use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode, Type};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
@@ -491,6 +491,53 @@ fn test_fetch_with_local_urls_only() {
 
     assert!(!local_response.is_network_error());
     assert!(server_response.is_network_error());
+}
+
+/// Fetch should return a network error if there is a header `X-Content-Type-Options: nosniff`
+#[test]
+fn test_fetch_blocked_nosniff() {
+    #[inline]
+    fn test_nosniff_request(request_type: Type,
+                            mime: Mime,
+                            should_error: bool) {
+        const MESSAGE: &'static [u8] = b"";
+        const HEADER: &'static str = "X-Content-Type-Options";
+        const VALUE: &'static [u8] = b"nosniff";
+
+        let handler = move |_: HyperRequest, mut response: HyperResponse| {
+            let mime_header = ContentType(mime.clone());
+            response.headers_mut().set(mime_header);
+            assert!(response.headers().has::<ContentType>());
+            // Add the nosniff header
+            response.headers_mut().set_raw(HEADER, vec![VALUE.to_vec()]);
+
+            response.send(MESSAGE).unwrap();
+        };
+
+        let (mut server, url) = make_server(handler);
+
+        let origin = Origin::Origin(url.origin());
+        let mut request = Request::new(url, Some(origin), false, None);
+        request.type_ = request_type;
+        let fetch_response = fetch(request, None);
+        let _ = server.close();
+
+        assert_eq!(fetch_response.is_network_error(), should_error);
+    }
+
+    let tests = vec![
+        (Type::Image,  Mime(TopLevel::Image, SubLevel::Png, vec![]), false),
+        (Type::Image,  Mime(TopLevel::Text, SubLevel::Css, vec![]), true),
+        (Type::Script, Mime(TopLevel::Text, SubLevel::Javascript, vec![]), false),
+        (Type::Script, Mime(TopLevel::Text, SubLevel::Css, vec![]), true),
+        (Type::Style,  Mime(TopLevel::Text, SubLevel::Css, vec![]), false),
+        (Type::Style,  Mime(TopLevel::Text, SubLevel::Json, vec![]), true),
+    ];
+
+    for test in tests {
+        let (type_, mime, should_error) = test;
+        test_nosniff_request(type_, mime, should_error);
+    }
 }
 
 fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response {
