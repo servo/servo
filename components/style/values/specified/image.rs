@@ -68,10 +68,14 @@ impl ToCss for Gradient {
         if self.repeating {
             try!(dest.write_str("repeating-"));
         }
+        let mut skipcomma = false;
         match self.gradient_kind {
             GradientKind::Linear(angle_or_corner) => {
                 try!(dest.write_str("linear-gradient("));
                 try!(angle_or_corner.to_css(dest));
+                if angle_or_corner == AngleOrCorner::None {
+                    skipcomma = true;
+                }
             },
             GradientKind::Radial(ref shape, position) => {
                 try!(dest.write_str("radial-gradient("));
@@ -81,7 +85,11 @@ impl ToCss for Gradient {
             },
         }
         for stop in &self.stops {
-            try!(dest.write_str(", "));
+            if skipcomma == false {
+                try!(dest.write_str(", "));
+            } else {
+                skipcomma = false;
+            }
             try!(stop.to_css(dest));
         }
         dest.write_str(")")
@@ -235,9 +243,7 @@ pub enum AngleOrCorner {
 impl ToCss for AngleOrCorner {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            AngleOrCorner::None => {
-                Ok(())
-            },
+            AngleOrCorner::None => Ok(()),
             AngleOrCorner::Angle(angle) => angle.to_css(dest),
             AngleOrCorner::Corner(horizontal, vertical) => {
                 try!(dest.write_str("to "));
