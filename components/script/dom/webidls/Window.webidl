@@ -197,3 +197,14 @@ partial interface Window {
    readonly attribute TestRunner testRunner;
    //readonly attribute EventSender eventSender;
 };
+
+// https://w3c.github.io/webvr/#interface-window
+partial interface Window {
+  attribute EventHandler onvrdisplayconnect;
+  attribute EventHandler onvrdisplaydisconnect;
+  attribute EventHandler onvrdisplayactivate;
+  attribute EventHandler onvrdisplaydeactivate;
+  attribute EventHandler onvrdisplayblur;
+  attribute EventHandler onvrdisplayfocus;
+  attribute EventHandler onvrdisplaypresentchange;
+};

@@ -57,3 +57,8 @@ interface NavigatorPlugins {
 interface NavigatorCookies {
   readonly attribute boolean cookieEnabled;
 };
+
+// https://w3c.github.io/webvr/#interface-navigator
+partial interface Navigator {
+  readonly attribute VR vr;
+};

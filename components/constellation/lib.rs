@@ -40,6 +40,7 @@ extern crate servo_config;
 extern crate servo_remutex;
 extern crate servo_url;
 extern crate style_traits;
+extern crate vr_traits;
 extern crate webrender_traits;
 
 mod constellation;
