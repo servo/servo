@@ -3,15 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use document_loader::LoadType;
-use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
-use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::eventtarget::EventTarget;
+use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::HTMLLinkElement;
-use dom::htmlstyleelement::HTMLStyleElement;
 use dom::node::{document_from_node, window_from_node};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -32,6 +30,23 @@ use style::media_queries::MediaList;
 use style::parser::ParserContextExtraData;
 use style::stylesheets::{ImportRule, Stylesheet, Origin};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+
+pub trait StylesheetOwner {
+    /// Returns whether this element was inserted by the parser (i.e., it should
+    /// trigger a document-load-blocking load).
+    fn parser_inserted(&self) -> bool;
+
+    /// Which referrer policy should loads triggered by this owner follow, or
+    /// `None` for the default.
+    fn referrer_policy(&self) -> Option<ReferrerPolicy>;
+
+    /// Notes that a new load is pending to finish.
+    fn increment_pending_loads_count(&self);
+
+    /// Returns None if there are still pending loads, or whether any load has
+    /// failed since the loads started.
+    fn load_finished(&self, successful: bool) -> Option<bool>;
+}
 
 pub enum StylesheetContextSource {
     // NB: `media` is just an option so we avoid cloning it.
@@ -146,35 +161,18 @@ impl FetchResponseListener for StylesheetContext {
             successful = metadata.status.map_or(false, |(code, _)| code == 200);
         }
 
-        if let Some(ref link) = elem.downcast::<HTMLLinkElement>() {
-            if link.parser_inserted() {
-                document.decrement_script_blocking_stylesheet_count();
-            }
-        } else if let Some(ref style) = elem.downcast::<HTMLStyleElement>() {
-            if style.parser_inserted() {
-                document.decrement_script_blocking_stylesheet_count();
-            }
-        } else {
-            unreachable!(
-                "Stylesheet loads can only be triggered by <link> or <style> elements!");
+        let owner = elem.upcast::<Element>().as_stylesheet_owner()
+            .expect("Stylesheet not loaded by <style> or <link> element!");
+        if owner.parser_inserted() {
+            document.decrement_script_blocking_stylesheet_count();
         }
 
         let url = self.source.url();
         document.finish_load(LoadType::Stylesheet(url));
 
-        if let Some(ref link) = elem.downcast::<HTMLLinkElement>() {
-            if let Some(any_failed) = link.load_finished(successful) {
-                let event = if any_failed { atom!("error") } else { atom!("load") };
-                link.upcast::<EventTarget>().fire_event(event);
-            }
-        } else if let Some(ref style) = elem.downcast::<HTMLStyleElement>() {
-            if let Some(any_failed) = style.load_finished(successful) {
-                let event = if any_failed { atom!("error") } else { atom!("load") };
-                style.upcast::<EventTarget>().fire_event(event);
-            }
-        } else {
-            unreachable!(
-                "Stylesheet loads can only be triggered by <link> or <style> elements!");
+        if let Some(any_failed) = owner.load_finished(successful) {
+            let event = if any_failed { atom!("error") } else { atom!("load") };
+            elem.upcast::<EventTarget>().fire_event(event);
         }
     }
 }
@@ -214,20 +212,13 @@ impl<'a> StylesheetLoader<'a> {
         });
 
 
-        let mut referrer_policy = document.get_referrer_policy();
-        if let Some(ref link) = self.elem.downcast::<HTMLLinkElement>() {
-            link.increment_pending_loads_count();
-            if link.parser_inserted() {
-                document.increment_script_blocking_stylesheet_count();
-            }
-            if link.RelList().Contains("noreferrer".into()) {
-                referrer_policy = Some(ReferrerPolicy::NoReferrer);
-            }
-        } else if let Some(ref style) = self.elem.downcast::<HTMLStyleElement>() {
-            style.increment_pending_loads_count();
-            if style.parser_inserted() {
-                document.increment_script_blocking_stylesheet_count();
-            }
+        let owner = self.elem.upcast::<Element>().as_stylesheet_owner()
+            .expect("Stylesheet not loaded by <style> or <link> element!");
+        let referrer_policy = owner.referrer_policy()
+            .or_else(|| document.get_referrer_policy());
+        owner.increment_pending_loads_count();
+        if owner.parser_inserted() {
+            document.increment_script_blocking_stylesheet_count();
         }
 
         let request = RequestInit {

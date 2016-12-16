@@ -51,9 +51,11 @@ use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmllabelelement::HTMLLabelElement;
 use dom::htmllegendelement::HTMLLegendElement;
+use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmlselectelement::HTMLSelectElement;
+use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementLayoutHelpers};
 use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementLayoutHelpers};
@@ -109,6 +111,7 @@ use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
+use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
 // and when the element enters or leaves a browsing context container.
@@ -2405,6 +2408,18 @@ impl Element {
                 None
             }
         })
+    }
+
+    pub fn as_stylesheet_owner(&self) -> Option<&StylesheetOwner> {
+        if let Some(s) = self.downcast::<HTMLStyleElement>() {
+            return Some(s as &StylesheetOwner)
+        }
+
+        if let Some(l) = self.downcast::<HTMLLinkElement>() {
+            return Some(l as &StylesheetOwner)
+        }
+
+        None
     }
 
     // https://html.spec.whatwg.org/multipage/#category-submit

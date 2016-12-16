@@ -19,13 +19,14 @@ use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
+use net_traits::ReferrerPolicy;
 use script_layout_interface::message::Msg;
 use std::cell::Cell;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;
 use style::parser::ParserContextExtraData;
 use style::stylesheets::{Stylesheet, Origin};
-use stylesheet_loader::StylesheetLoader;
+use stylesheet_loader::{StylesheetLoader, StylesheetOwner};
 
 #[dom_struct]
 pub struct HTMLStyleElement {
@@ -62,28 +63,6 @@ impl HTMLStyleElement {
         Node::reflect_node(box HTMLStyleElement::new_inherited(local_name, prefix, document, creator),
                            document,
                            HTMLStyleElementBinding::Wrap)
-    }
-
-    pub fn increment_pending_loads_count(&self) {
-        self.pending_loads.set(self.pending_loads.get() + 1)
-    }
-
-    /// Returns None if there are still pending loads, or whether any load has
-    /// failed since the loads started.
-    pub fn load_finished(&self, succeeded: bool) -> Option<bool> {
-        assert!(self.pending_loads.get() > 0, "What finished?");
-        if !succeeded {
-            self.any_failed_load.set(true);
-        }
-
-        self.pending_loads.set(self.pending_loads.get() - 1);
-        if self.pending_loads.get() != 0 {
-            return None;
-        }
-
-        let any_failed = self.any_failed_load.get();
-        self.any_failed_load.set(false);
-        Some(any_failed)
     }
 
     pub fn parse_own_css(&self) {
@@ -137,10 +116,6 @@ impl HTMLStyleElement {
             })
         })
     }
-
-    pub fn parser_inserted(&self) -> bool {
-        self.parser_inserted.get()
-    }
 }
 
 impl VirtualMethods for HTMLStyleElement {
@@ -167,6 +142,37 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 }
+
+impl StylesheetOwner for HTMLStyleElement {
+    fn increment_pending_loads_count(&self) {
+        self.pending_loads.set(self.pending_loads.get() + 1)
+    }
+
+    fn load_finished(&self, succeeded: bool) -> Option<bool> {
+        assert!(self.pending_loads.get() > 0, "What finished?");
+        if !succeeded {
+            self.any_failed_load.set(true);
+        }
+
+        self.pending_loads.set(self.pending_loads.get() - 1);
+        if self.pending_loads.get() != 0 {
+            return None;
+        }
+
+        let any_failed = self.any_failed_load.get();
+        self.any_failed_load.set(false);
+        Some(any_failed)
+    }
+
+    fn parser_inserted(&self) -> bool {
+        self.parser_inserted.get()
+    }
+
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+}
+
 
 impl HTMLStyleElementMethods for HTMLStyleElement {
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet

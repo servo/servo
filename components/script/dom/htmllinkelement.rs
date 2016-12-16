@@ -5,6 +5,7 @@
 use cssparser::Parser as CssParser;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::inheritance::Castable;
@@ -20,6 +21,7 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
+use net_traits::ReferrerPolicy;
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -30,7 +32,7 @@ use style::attr::AttrValue;
 use style::media_queries::parse_media_query_list;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::Stylesheet;
-use stylesheet_loader::{StylesheetLoader, StylesheetContextSource};
+use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 unsafe_no_jsmanaged_fields!(Stylesheet);
 
@@ -216,28 +218,6 @@ impl VirtualMethods for HTMLLinkElement {
 
 
 impl HTMLLinkElement {
-    pub fn increment_pending_loads_count(&self) {
-        self.pending_loads.set(self.pending_loads.get() + 1)
-    }
-
-    /// Returns None if there are still pending loads, or whether any load has
-    /// failed since the loads started.
-    pub fn load_finished(&self, succeeded: bool) -> Option<bool> {
-        assert!(self.pending_loads.get() > 0, "What finished?");
-        if !succeeded {
-            self.any_failed_load.set(true);
-        }
-
-        self.pending_loads.set(self.pending_loads.get() - 1);
-        if self.pending_loads.get() != 0 {
-            return None;
-        }
-
-        let any_failed = self.any_failed_load.get();
-        self.any_failed_load.set(false);
-        Some(any_failed)
-    }
-
     /// https://html.spec.whatwg.org/multipage/#concept-link-obtain
     fn handle_stylesheet_url(&self, href: &str) {
         let document = document_from_node(self);
@@ -294,6 +274,40 @@ impl HTMLLinkElement {
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
+    }
+}
+
+impl StylesheetOwner for HTMLLinkElement {
+    fn increment_pending_loads_count(&self) {
+        self.pending_loads.set(self.pending_loads.get() + 1)
+    }
+
+    fn load_finished(&self, succeeded: bool) -> Option<bool> {
+        assert!(self.pending_loads.get() > 0, "What finished?");
+        if !succeeded {
+            self.any_failed_load.set(true);
+        }
+
+        self.pending_loads.set(self.pending_loads.get() - 1);
+        if self.pending_loads.get() != 0 {
+            return None;
+        }
+
+        let any_failed = self.any_failed_load.get();
+        self.any_failed_load.set(false);
+        Some(any_failed)
+    }
+
+    fn parser_inserted(&self) -> bool {
+        self.parser_inserted.get()
+    }
+
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        if self.RelList().Contains("noreferrer".into()) {
+            return Some(ReferrerPolicy::NoReferrer)
+        }
+
+        None
     }
 }
 
