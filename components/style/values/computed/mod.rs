@@ -234,7 +234,6 @@ impl ToCss for AngleOrCorner {
                 try!(horizontal.to_css(dest));
                 try!(dest.write_str(" "));
                 try!(vertical.to_css(dest));
-
                 Ok(())
             }
         }
