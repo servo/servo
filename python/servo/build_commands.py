@@ -416,6 +416,14 @@ class MachCommands(CommandBase):
         if release:
             opts += ["--release"]
 
+        if with_gecko is not None:
+            print("Generating atoms data...")
+            run_file = path.join(self.context.topdir, "components",
+                                 "style", "binding_tools", "regen_atoms.py")
+            run_globals = {"__file__": run_file}
+            execfile(run_file, run_globals)
+            run_globals["generate_atoms"](env["MOZ_DIST"])
+
         build_start = time()
         with cd(path.join("ports", "geckolib")):
             ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)

@@ -34,14 +34,14 @@ def msvc32_symbolify(source, ident):
 
 class GkAtomSource:
     PATTERN = re.compile('^GK_ATOM\((?P<ident>.+),\s*"(?P<value>.*)"\)', re.M)
-    FILE = "dist/include/nsGkAtomList.h"
+    FILE = "include/nsGkAtomList.h"
     CLASS = "nsGkAtoms"
     TYPE = "nsIAtom"
 
 
 class CSSPseudoElementsAtomSource:
     PATTERN = re.compile('^CSS_PSEUDO_ELEMENT\((?P<ident>.+),\s*"(?P<value>.*)",', re.M)
-    FILE = "dist/include/nsCSSPseudoElementList.h"
+    FILE = "include/nsCSSPseudoElementList.h"
     CLASS = "nsCSSPseudoElements"
     # NB: nsICSSPseudoElement is effectively the same as a nsIAtom, but we need
     # this for MSVC name mangling.
@@ -50,14 +50,14 @@ class CSSPseudoElementsAtomSource:
 
 class CSSAnonBoxesAtomSource:
     PATTERN = re.compile('^CSS_ANON_BOX\((?P<ident>.+),\s*"(?P<value>.*)"\)', re.M)
-    FILE = "dist/include/nsCSSAnonBoxList.h"
+    FILE = "include/nsCSSAnonBoxList.h"
     CLASS = "nsCSSAnonBoxes"
     TYPE = "nsICSSAnonBoxPseudo"
 
 
 class CSSPropsAtomSource:
     PATTERN = re.compile('^CSS_PROP_[A-Z]+\(\s*(?P<value>[^,]+),\s*(?P<ident>[^,]+)', re.M)
-    FILE = "dist/include/nsCSSPropList.h"
+    FILE = "include/nsCSSPropList.h"
     CLASS = "nsCSSProps"
     TYPE = "nsICSSProperty"
 
@@ -232,10 +232,15 @@ def write_pseudo_element_helper(atoms, target_filename):
         f.write("}\n")
 
 
-if len(sys.argv) != 2:
-    print("Usage: {} objdir".format(sys.argv[0]))
-    exit(2)
+def generate_atoms(dist):
+    style_path = os.path.dirname(os.path.dirname(__file__))
+    atoms = collect_atoms(dist)
+    write_atom_macro(atoms, os.path.join(style_path, "gecko_string_cache/atom_macro.rs"))
+    write_pseudo_element_helper(atoms, os.path.join(style_path, "gecko/generated/gecko_pseudo_element_helper.rs"))
 
-atoms = collect_atoms(sys.argv[1])
-write_atom_macro(atoms, "../gecko_string_cache/atom_macro.rs")
-write_pseudo_element_helper(atoms, "../gecko/generated/gecko_pseudo_element_helper.rs")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: {} objdir".format(sys.argv[0]))
+        exit(2)
+    generate_atoms(os.path.join(sys.argv[1], "dist"))
