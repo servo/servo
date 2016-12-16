@@ -10,7 +10,6 @@
 use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use servo_url::ServoUrl;
-use std::f32::consts::PI;
 use std::fmt;
 use style_traits::ToCss;
 use values::specified::{Angle, CSSColor, Length, LengthOrPercentage};
@@ -275,7 +274,7 @@ impl Parse for AngleOrCorner {
             try!(input.expect_comma());
             Ok(AngleOrCorner::Angle(angle))
         } else {
-            Ok(AngleOrCorner::Angle(Angle(PI)))
+            Ok(AngleOrCorner::None)
         }
     }
 }
