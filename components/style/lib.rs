@@ -113,7 +113,6 @@ pub mod media_queries;
 pub mod owning_handle;
 pub mod parallel;
 pub mod parser;
-pub mod refcell;
 pub mod restyle_hints;
 pub mod rule_tree;
 pub mod selector_parser;
