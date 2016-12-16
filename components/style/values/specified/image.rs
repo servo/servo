@@ -85,7 +85,7 @@ impl ToCss for Gradient {
             },
         }
         for stop in &self.stops {
-            if skipcomma == false {
+            if !skipcomma {
                 try!(dest.write_str(", "));
             } else {
                 skipcomma = false;
