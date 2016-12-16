@@ -175,7 +175,7 @@ pub type Opacity = CSSFloat;
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AngleOrCorner {
     Angle(Angle),
-    Corner(HorizontalDirection, VerticalDirection),
+    Corner(HorizontalDirection, VerticalDirection)
 }
 
 impl ToComputedValue for specified::AngleOrCorner {
@@ -184,6 +184,9 @@ impl ToComputedValue for specified::AngleOrCorner {
     #[inline]
     fn to_computed_value(&self, _: &Context) -> AngleOrCorner {
         match *self {
+            specified::AngleOrCorner::None => {
+                AngleOrCorner::Angle(Angle(0.0))
+            },
             specified::AngleOrCorner::Angle(angle) => {
                 AngleOrCorner::Angle(angle)
             },

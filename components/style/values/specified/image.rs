@@ -145,7 +145,7 @@ impl Gradient {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum GradientKind {
     Linear(AngleOrCorner),
-    Radial(EndingShape, Position),
+    Radial(EndingShape, Position)
 }
 
 impl GradientKind {
@@ -230,6 +230,7 @@ fn parse_position(context: &ParserContext, input: &mut Parser) -> Result<Positio
 pub enum AngleOrCorner {
     Angle(Angle),
     Corner(Option<HorizontalDirection>, Option<VerticalDirection>),
+    None
 }
 
 impl ToCss for AngleOrCorner {
