@@ -26,11 +26,11 @@ fn test_linear_gradient() {
 
     // Parsing with more than two entries in <color-stop-list>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, yellow, green)",
-                                                "linear-gradient(3.1415927rad, red, yellow, green)");
+                                                 "linear-gradient(3.1415927rad, red, yellow, green)");
 
     // Parsing with percentage in the <color-stop-list>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, green, yellow 50%)",
-                                                "linear-gradient(3.1415927rad, red, green, yellow 50%)");
+                                                 "linear-gradient(3.1415927rad, red, green, yellow 50%)");
 
     // Parsing without <angle> and <side-or-corner>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, green)",
