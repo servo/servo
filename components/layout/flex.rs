@@ -26,7 +26,7 @@ use std::ops::Range;
 use std::sync::Arc;
 use style::computed_values::{align_content, align_self, flex_direction, flex_wrap, justify_content};
 use style::computed_values::border_collapse;
-use style::context::{SharedStyleContext, StyleContext};
+use style::context::SharedStyleContext;
 use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ServoComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};

@@ -21,7 +21,7 @@ use gfx_traits::print_tree::PrintTree;
 use std::cmp::{min, max};
 use std::fmt;
 use std::sync::Arc;
-use style::context::{StyleContext, SharedStyleContext};
+use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 use style::values::Either;

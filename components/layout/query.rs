@@ -6,6 +6,8 @@
 
 use app_units::Au;
 use construct::ConstructionResult;
+use context::SharedLayoutContext;
+use context::create_or_get_local_context;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
@@ -624,13 +626,12 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
 
 /// Return the resolved value of property for a given (pseudo)element.
 /// https://drafts.csswg.org/cssom/#resolved-value
-pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
-                                                style_context: &'a C,
-                                                pseudo: &Option<PseudoElement>,
-                                                property: &PropertyId,
-                                                layout_root: &mut Flow) -> String
+pub fn process_resolved_style_request<'a, N>(shared: &SharedLayoutContext,
+                                             requested_node: N,
+                                             pseudo: &Option<PseudoElement>,
+                                             property: &PropertyId,
+                                             layout_root: &mut Flow) -> String
     where N: LayoutNode,
-          C: StyleContext<'a>
 {
     use style::traversal::{clear_descendant_data, style_element_in_display_none_subtree};
     let element = requested_node.as_element().unwrap();
@@ -645,8 +646,14 @@ pub fn process_resolved_style_request<'a, N, C>(requested_node: N,
     // we'd need a mechanism to prevent detect when it's stale (since we don't
     // traverse display:none subtrees during restyle).
     let display_none_root = if element.get_data().is_none() {
-        Some(style_element_in_display_none_subtree(element, &|e| e.as_node().initialize_data(),
-                                                   style_context))
+        let tlc = create_or_get_local_context(shared);
+        let context = StyleContext {
+            shared: &shared.style_context,
+            thread_local: &tlc.style_context,
+        };
+
+        Some(style_element_in_display_none_subtree(&context, element,
+                                                   &|e| e.as_node().initialize_data()))
     } else {
         None
     };

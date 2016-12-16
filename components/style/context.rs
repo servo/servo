@@ -19,13 +19,13 @@ use stylist::Stylist;
 use timer::Timer;
 
 /// This structure is used to create a local style context from a shared one.
-pub struct LocalStyleContextCreationInfo {
+pub struct ThreadLocalStyleContextCreationInfo {
     new_animations_sender: Sender<Animation>,
 }
 
-impl LocalStyleContextCreationInfo {
+impl ThreadLocalStyleContextCreationInfo {
     pub fn new(animations_sender: Sender<Animation>) -> Self {
-        LocalStyleContextCreationInfo {
+        ThreadLocalStyleContextCreationInfo {
             new_animations_sender: animations_sender,
         }
     }
@@ -57,33 +57,33 @@ pub struct SharedStyleContext {
     ///The CSS error reporter for all CSS loaded in this layout thread
     pub error_reporter: Box<ParseErrorReporter + Sync>,
 
-    /// Data needed to create the local style context from the shared one.
-    pub local_context_creation_data: Mutex<LocalStyleContextCreationInfo>,
+    /// Data needed to create the thread-local style context from the shared one.
+    pub local_context_creation_data: Mutex<ThreadLocalStyleContextCreationInfo>,
 
     /// The current timer for transitions and animations. This is needed to test
     /// them.
     pub timer: Timer,
 }
 
-pub struct LocalStyleContext {
+pub struct ThreadLocalStyleContext {
     pub style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache>,
     /// A channel on which new animations that have been triggered by style
     /// recalculation can be sent.
     pub new_animations_sender: Sender<Animation>,
 }
 
-impl LocalStyleContext {
-    pub fn new(local_context_creation_data: &LocalStyleContextCreationInfo) -> Self {
-        LocalStyleContext {
+impl ThreadLocalStyleContext {
+    pub fn new(local_context_creation_data: &ThreadLocalStyleContextCreationInfo) -> Self {
+        ThreadLocalStyleContext {
             style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
             new_animations_sender: local_context_creation_data.new_animations_sender.clone(),
         }
     }
 }
 
-pub trait StyleContext<'a> {
-    fn shared_context(&self) -> &'a SharedStyleContext;
-    fn local_context(&self) -> &LocalStyleContext;
+pub struct StyleContext<'a> {
+    pub shared: &'a SharedStyleContext,
+    pub thread_local: &'a ThreadLocalStyleContext,
 }
 
 /// Why we're doing reflow.

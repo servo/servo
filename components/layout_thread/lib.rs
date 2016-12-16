@@ -63,7 +63,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::animation;
 use layout::construct::ConstructionResult;
-use layout::context::{LayoutContext, SharedLayoutContext, heap_size_of_local_context};
+use layout::context::{LayoutContext, SharedLayoutContext, ThreadLocalLayoutContext, heap_size_of_local_context};
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
@@ -110,7 +110,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use style::animation::Animation;
-use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
+use style::context::{ReflowGoal, SharedStyleContext, ThreadLocalStyleContextCreationInfo};
 use style::data::StoredRestyleHint;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
@@ -122,7 +122,7 @@ use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::DomTraversalContext;
+use style::traversal::DomTraversal;
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -507,7 +507,8 @@ impl LayoutThread {
                                    screen_size_changed: bool,
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
-        let local_style_context_creation_data = LocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
+        let thread_local_style_context_creation_data =
+            ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
 
         SharedLayoutContext {
             style_context: SharedStyleContext {
@@ -519,7 +520,7 @@ impl LayoutThread {
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
                 error_reporter: self.error_reporter.clone(),
-                local_context_creation_data: Mutex::new(local_style_context_creation_data),
+                local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
             },
             image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
@@ -1143,9 +1144,16 @@ impl LayoutThread {
                                                                          viewport_size_changed,
                                                                          data.reflow_info.goal);
 
+        // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
+        let traversal = RecalcStyleAndConstructFlows::new(shared_layout_context, element.as_node().opaque());
         let dom_depth = Some(0); // This is always the root node.
-        let token = <RecalcStyleAndConstructFlows as DomTraversalContext<ServoLayoutNode>>
-            ::pre_traverse(element, &shared_layout_context.style_context.stylist, /* skip_root = */ false);
+        let token = {
+            let stylist = &<RecalcStyleAndConstructFlows as
+                            DomTraversal<ServoLayoutNode>>::shared_context(&traversal).stylist;
+            <RecalcStyleAndConstructFlows as
+             DomTraversal<ServoLayoutNode>>::pre_traverse(element, stylist, /* skip_root = */ false)
+        };
+
         if token.should_traverse() {
             // Recalculate CSS styles and rebuild flows and fragments.
             profile(time::ProfilerCategory::LayoutStyleRecalc,
@@ -1153,14 +1161,14 @@ impl LayoutThread {
                     self.time_profiler_chan.clone(),
                     || {
                 // Perform CSS selector matching and flow construction.
-                if let (true, Some(traversal)) = (self.parallel_flag, self.parallel_traversal.as_mut()) {
+                if let (true, Some(pool)) = (self.parallel_flag, self.parallel_traversal.as_mut()) {
                     // Parallel mode
                     parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
-                        element, dom_depth, &shared_layout_context, token, traversal);
+                        &traversal, element, dom_depth, token, pool);
                 } else {
                     // Sequential mode
                     sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
-                        element, &shared_layout_context, token);
+                        &traversal, element, token);
                 }
             });
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
@@ -1178,6 +1186,8 @@ impl LayoutThread {
             // Retrieve the (possibly rebuilt) root flow.
             self.root_flow = self.try_get_layout_root(element.as_node());
         }
+
+        shared_layout_context = traversal.destroy();
 
         if opts::get().dump_style_tree {
             println!("{:?}", ShowSubtreeDataAndPrimaryValues(element.as_node()));
@@ -1205,7 +1215,7 @@ impl LayoutThread {
     fn respond_to_query_if_necessary(&mut self,
                                      query_type: &ReflowQueryType,
                                      rw_data: &mut LayoutThreadData,
-                                     shared_layout_context: &mut SharedLayoutContext) {
+                                     shared: &mut SharedLayoutContext) {
         let mut root_flow = match self.root_flow.clone() {
             Some(root_flow) => root_flow,
             None => return,
@@ -1253,10 +1263,9 @@ impl LayoutThread {
             },
             ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
-                let layout_context = LayoutContext::new(&shared_layout_context);
                 rw_data.resolved_style_response =
-                    process_resolved_style_request(node,
-                                                   &layout_context,
+                    process_resolved_style_request(shared,
+                                                   node,
                                                    pseudo,
                                                    property,
                                                    root_flow);
@@ -1365,7 +1374,7 @@ impl LayoutThread {
                                                query_type: Option<&ReflowQueryType>,
                                                document: Option<&ServoLayoutDocument>,
                                                rw_data: &mut LayoutThreadData,
-                                               layout_context: &mut SharedLayoutContext) {
+                                               shared: &mut SharedLayoutContext) {
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Kick off animations if any were triggered, expire completed ones.
             animation::update_animation_state(&self.constellation_chan,
@@ -1397,7 +1406,7 @@ impl LayoutThread {
             profile(time::ProfilerCategory::LayoutGeneratedContent,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
-                    || sequential::resolve_generated_content(FlowRef::deref_mut(&mut root_flow), &layout_context));
+                    || sequential::resolve_generated_content(FlowRef::deref_mut(&mut root_flow), &shared));
 
             // Guess float placement.
             profile(time::ProfilerCategory::LayoutFloatPlacementSpeculation,
@@ -1420,10 +1429,10 @@ impl LayoutThread {
                                                                  FlowRef::deref_mut(&mut root_flow),
                                                                  profiler_metadata,
                                                                  self.time_profiler_chan.clone(),
-                                                                 &*layout_context);
+                                                                 &*shared);
                     } else {
                         //Sequential mode
-                        LayoutThread::solve_constraints(FlowRef::deref_mut(&mut root_flow), &layout_context)
+                        LayoutThread::solve_constraints(FlowRef::deref_mut(&mut root_flow), &shared)
                     }
                 });
             }
@@ -1432,8 +1441,9 @@ impl LayoutThread {
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
-                let layout_context = LayoutContext::new(&*layout_context);
-                sequential::store_overflow(&layout_context,
+                let tlc = ThreadLocalLayoutContext::new(&shared);
+                let context = LayoutContext::new(&shared, &*tlc);
+                sequential::store_overflow(&context,
                                            FlowRef::deref_mut(&mut root_flow) as &mut Flow);
             });
 
@@ -1441,7 +1451,7 @@ impl LayoutThread {
                                                  query_type,
                                                  document,
                                                  rw_data,
-                                                 layout_context);
+                                                 shared);
         }
     }
 

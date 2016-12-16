@@ -8,7 +8,8 @@
 
 #![allow(unsafe_code)]
 
-use context::{LayoutContext, SharedLayoutContext};
+use context::{LayoutContext, SharedLayoutContext, ThreadLocalLayoutContext};
+use context::create_or_get_local_context;
 use flow::{self, Flow, MutableFlowUtils, PostorderFlowTraversal, PreorderFlowTraversal};
 use flow_ref::FlowRef;
 use profile_traits::time::{self, TimerMetadata, profile};
@@ -52,7 +53,7 @@ pub fn borrowed_flow_to_unsafe_flow(flow: &Flow) -> UnsafeFlow {
 pub type ChunkedFlowTraversalFunction<'scope> =
     extern "Rust" fn(Box<[UnsafeFlow]>, &'scope SharedLayoutContext, &rayon::Scope<'scope>);
 
-pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &SharedLayoutContext);
+pub type FlowTraversalFunction = extern "Rust" fn(UnsafeFlow, &LayoutContext);
 
 /// Information that we need stored in each flow.
 pub struct FlowParallelInfo {
@@ -140,11 +141,14 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
     #[inline(always)]
     fn run_parallel_helper<'scope>(&self,
                                    unsafe_flows: &[UnsafeFlow],
-                                   layout_context: &'scope SharedLayoutContext,
+                                   shared: &'scope SharedLayoutContext,
                                    scope: &rayon::Scope<'scope>,
                                    top_down_func: ChunkedFlowTraversalFunction<'scope>,
                                    bottom_up_func: FlowTraversalFunction)
     {
+        let tlc = create_or_get_local_context(shared);
+        let context = LayoutContext::new(&shared, &*tlc);
+
         let mut discovered_child_flows = vec![];
         for unsafe_flow in unsafe_flows {
             let mut had_children = false;
@@ -175,7 +179,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
 
             // If there were no more children, start assigning block-sizes.
             if !had_children {
-                bottom_up_func(*unsafe_flow, layout_context)
+                bottom_up_func(*unsafe_flow, &context)
             }
         }
 
@@ -183,7 +187,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
             let nodes = chunk.iter().cloned().collect::<Vec<_>>().into_boxed_slice();
 
             scope.spawn(move |scope| {
-                top_down_func(nodes, layout_context, scope);
+                top_down_func(nodes, shared, scope);
             });
         }
     }
@@ -220,10 +224,9 @@ fn assign_inline_sizes<'scope>(unsafe_flows: Box<[UnsafeFlow]>,
 
 fn assign_block_sizes_and_store_overflow(
         unsafe_flow: UnsafeFlow,
-        shared_layout_context: &SharedLayoutContext) {
-    let layout_context = LayoutContext::new(shared_layout_context);
+        context: &LayoutContext) {
     let assign_block_sizes_traversal = AssignBSizes {
-        layout_context: &layout_context,
+        layout_context: context,
     };
     assign_block_sizes_traversal.run_parallel(unsafe_flow)
 }
@@ -232,11 +235,12 @@ pub fn traverse_flow_tree_preorder(
         root: &mut Flow,
         profiler_metadata: Option<TimerMetadata>,
         time_profiler_chan: time::ProfilerChan,
-        shared_layout_context: &SharedLayoutContext,
+        shared: &SharedLayoutContext,
         queue: &rayon::ThreadPool) {
     if opts::get().bubble_inline_sizes_separately {
-        let layout_context = LayoutContext::new(shared_layout_context);
-        let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
+        let tlc = ThreadLocalLayoutContext::new(shared);
+        let context = LayoutContext::new(shared, &*tlc);
+        let bubble_inline_sizes = BubbleISizes { layout_context: &context };
         root.traverse_postorder(&bubble_inline_sizes);
     }
 
@@ -246,7 +250,7 @@ pub fn traverse_flow_tree_preorder(
         rayon::scope(move |scope| {
             profile(time::ProfilerCategory::LayoutParallelWarmup,
                     profiler_metadata, time_profiler_chan, move || {
-                assign_inline_sizes(nodes, &shared_layout_context, scope);
+                assign_inline_sizes(nodes, &shared, scope);
             });
         });
     });

@@ -391,16 +391,15 @@ trait PrivateMatchMethods: TElement {
     ///
     /// Note that animations only apply to nodes or ::before or ::after
     /// pseudo-elements.
-    fn cascade_node_pseudo_element<'a, Ctx>(&self,
-                                            context: &Ctx,
-                                            parent_style: Option<&Arc<ComputedValues>>,
-                                            old_style: Option<&Arc<ComputedValues>>,
-                                            rule_node: &StrongRuleNode,
-                                            possibly_expired_animations: &[PropertyAnimation],
-                                            booleans: CascadeBooleans)
-                                            -> Arc<ComputedValues>
-                                            where Ctx: StyleContext<'a> {
-        let shared_context = context.shared_context();
+    fn cascade_node_pseudo_element<'a>(&self,
+                                       context: &StyleContext,
+                                       parent_style: Option<&Arc<ComputedValues>>,
+                                       old_style: Option<&Arc<ComputedValues>>,
+                                       rule_node: &StrongRuleNode,
+                                       possibly_expired_animations: &[PropertyAnimation],
+                                       booleans: CascadeBooleans)
+                                       -> Arc<ComputedValues> {
+        let shared_context = context.shared;
         let mut cascade_info = CascadeInfo::new();
         let mut cascade_flags = CascadeFlags::empty();
         if booleans.shareable {
@@ -433,7 +432,7 @@ trait PrivateMatchMethods: TElement {
         let mut this_style = Arc::new(this_style);
 
         if booleans.animate {
-            let new_animations_sender = &context.local_context().new_animations_sender;
+            let new_animations_sender = &context.thread_local.new_animations_sender;
             let this_opaque = self.as_node().opaque();
             // Trigger any present animations if necessary.
             animation::maybe_start_animations(&shared_context,
@@ -509,26 +508,23 @@ trait PrivateMatchMethods: TElement {
     }
 }
 
-fn compute_rule_node<'a, Ctx>(context: &Ctx,
-                              applicable_declarations: &mut Vec<ApplicableDeclarationBlock>)
-                              -> StrongRuleNode
-    where Ctx: StyleContext<'a>
+fn compute_rule_node(context: &StyleContext,
+                     applicable_declarations: &mut Vec<ApplicableDeclarationBlock>)
+                     -> StrongRuleNode
 {
-    let shared_context = context.shared_context();
     let rules = applicable_declarations.drain(..).map(|d| (d.source, d.importance));
-    let rule_node = shared_context.stylist.rule_tree.insert_ordered_rules(rules);
+    let rule_node = context.shared.stylist.rule_tree.insert_ordered_rules(rules);
     rule_node
 }
 
 impl<E: TElement> PrivateMatchMethods for E {}
 
 pub trait MatchMethods : TElement {
-    fn match_element<'a, Ctx>(&self, context: &Ctx, parent_bf: Option<&BloomFilter>)
-                              -> MatchResults
-        where Ctx: StyleContext<'a>
+    fn match_element(&self, context: &StyleContext, parent_bf: Option<&BloomFilter>)
+                     -> MatchResults
     {
         let mut applicable_declarations: Vec<ApplicableDeclarationBlock> = Vec::with_capacity(16);
-        let stylist = &context.shared_context().stylist;
+        let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
 
         // Compute the primary rule node.
@@ -721,14 +717,13 @@ pub trait MatchMethods : TElement {
         }
     }
 
-    unsafe fn cascade_node<'a, Ctx>(&self,
-                                    context: &Ctx,
-                                    mut data: &mut AtomicRefMut<ElementData>,
-                                    parent: Option<Self>,
-                                    primary_rule_node: StrongRuleNode,
-                                    pseudo_rule_nodes: PseudoRuleNodes,
-                                    primary_is_shareable: bool)
-        where Ctx: StyleContext<'a>
+    unsafe fn cascade_node(&self,
+                           context: &StyleContext,
+                           mut data: &mut AtomicRefMut<ElementData>,
+                           parent: Option<Self>,
+                           primary_rule_node: StrongRuleNode,
+                           pseudo_rule_nodes: PseudoRuleNodes,
+                           primary_is_shareable: bool)
     {
         // Get our parent's style.
         let parent_data = parent.as_ref().map(|x| x.borrow_data().unwrap());
@@ -753,7 +748,7 @@ pub trait MatchMethods : TElement {
                 Some(previous) => {
                     // Update animations before the cascade. This may modify the
                     // value of the old primary style.
-                    self.update_animations_for_cascade(context.shared_context(),
+                    self.update_animations_for_cascade(&context.shared,
                                                        &mut previous.primary.values,
                                                        &mut possibly_expired_animations);
                     (Some(&previous.primary.values), Some(&mut previous.pseudos))
@@ -794,17 +789,16 @@ pub trait MatchMethods : TElement {
         data.finish_styling(new_styles, damage);
     }
 
-    fn compute_damage_and_cascade_pseudos<'a, Ctx>(
+    fn compute_damage_and_cascade_pseudos(
             &self,
             old_primary: Option<&Arc<ComputedValues>>,
             mut old_pseudos: Option<&mut PseudoStyles>,
             new_primary: &Arc<ComputedValues>,
             new_pseudos: &mut PseudoStyles,
-            context: &Ctx,
+            context: &StyleContext,
             mut pseudo_rule_nodes: PseudoRuleNodes,
             possibly_expired_animations: &mut Vec<PropertyAnimation>)
             -> RestyleDamage
-        where Ctx: StyleContext<'a>
     {
         // Here we optimise the case of the style changing but both the
         // previous and the new styles having display: none. In this
@@ -859,7 +853,7 @@ pub trait MatchMethods : TElement {
                     if let Some(ref mut old_pseudo_style) = maybe_old_pseudo_style {
                         // Update animations before the cascade. This may modify
                         // the value of old_pseudo_style.
-                        self.update_animations_for_cascade(context.shared_context(),
+                        self.update_animations_for_cascade(&context.shared,
                                                            &mut old_pseudo_style.values,
                                                            possibly_expired_animations);
                     }

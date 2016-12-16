@@ -16,11 +16,10 @@ use std::ptr;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
 use style::atomic_refcell::AtomicRefMut;
-use style::context::{LocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext};
+use style::context::{ThreadLocalStyleContextCreationInfo, ReflowGoal, SharedStyleContext, StyleContext};
 use style::data::{ElementData, RestyleData};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
-use style::gecko::context::StandaloneStyleContext;
 use style::gecko::context::clear_local_context;
 use style::gecko::data::{NUM_THREADS, PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
@@ -58,7 +57,7 @@ use style::string_cache::Atom;
 use style::stylesheets::{CssRule, CssRules, Origin, Stylesheet, StyleRule};
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{recalc_style_at, DomTraversalContext, PerLevelTraversalData};
+use style::traversal::{recalc_style_at, DomTraversal, PerLevelTraversalData};
 use style_traits::ToCss;
 use stylesheet_loader::StylesheetLoader;
 
@@ -89,7 +88,7 @@ pub extern "C" fn Servo_Shutdown() -> () {
     // Destroy our default computed values.
     unsafe { ComputedValues::shutdown(); }
 
-    // In general, LocalStyleContexts will get destroyed when the worker thread
+    // In general, ThreadLocalStyleContexts will get destroyed when the worker thread
     // is joined and the TLS is dropped. However, under some configurations we
     // may do sequential style computation on the main thread, so we need to be
     // sure to clear the main thread TLS entry as well.
@@ -101,7 +100,7 @@ fn create_shared_context(mut per_doc_data: &mut AtomicRefMut<PerDocumentStyleDat
     per_doc_data.flush_stylesheets();
 
     let local_context_data =
-        LocalStyleContextCreationInfo::new(per_doc_data.new_animations_sender.clone());
+        ThreadLocalStyleContextCreationInfo::new(per_doc_data.new_animations_sender.clone());
 
     SharedStyleContext {
         // FIXME (bug 1303229): Use the actual viewport size here
@@ -150,14 +149,14 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
     let shared_style_context = create_shared_context(&mut per_doc_data);
+    let traversal = RecalcStyleOnly::new(shared_style_context);
     let known_depth = None;
 
     if per_doc_data.num_threads == 1 || per_doc_data.work_queue.is_none() {
-        sequential::traverse_dom::<_, RecalcStyleOnly>(element, &shared_style_context, token);
+        sequential::traverse_dom(&traversal, element, token);
     } else {
-        parallel::traverse_dom::<_, RecalcStyleOnly>(element, known_depth,
-                                                     &shared_style_context, token,
-                                                     per_doc_data.work_queue.as_mut().unwrap());
+        parallel::traverse_dom(&traversal, element, known_depth, token,
+                               per_doc_data.work_queue.as_mut().unwrap());
     }
 }
 
@@ -812,8 +811,6 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
                                      consume: structs::ConsumeStyleBehavior,
                                      compute: structs::LazyComputeBehavior) -> ServoComputedValuesStrong
 {
-    use style::context::StyleContext;
-
     let element = GeckoElement(element);
     debug!("Servo_ResolveStyle: {:?}, consume={:?}, compute={:?}", element, consume, compute);
 
@@ -832,16 +829,22 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
 
             let mut per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
             let shared_style_context = create_shared_context(&mut per_doc_data);
-            let context = StandaloneStyleContext::new(&shared_style_context);
+            let traversal = RecalcStyleOnly::new(shared_style_context);
+            let tlc = traversal.create_or_get_thread_local_context();
 
             let mut traversal_data = PerLevelTraversalData {
                 current_dom_depth: None,
             };
 
-            recalc_style_at::<_, _, RecalcStyleOnly>(&context, &mut traversal_data, element, &mut data);
+            let context = StyleContext {
+                shared: traversal.shared_context(),
+                thread_local: &*tlc,
+            };
+
+            recalc_style_at(&traversal, &mut traversal_data, &context, element, &mut data);
 
             // We don't want to keep any cached style around after this one-off style resolution.
-            context.local_context().style_sharing_candidate_cache.borrow_mut().clear();
+            tlc.style_sharing_candidate_cache.borrow_mut().clear();
 
             // The element was either unstyled or needed restyle. If it was unstyled, it may have
             // additional unstyled children that subsequent traversals won't find now that the style
