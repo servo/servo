@@ -392,7 +392,7 @@ impl ToCss for ImportRule {
             try!(dest.write_str(" "));
             try!(media.to_css(dest));
         }
-        Ok(())
+        dest.write_str(";")
     }
 }
 

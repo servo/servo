@@ -6638,6 +6638,12 @@
             "url": "/_mozilla/css/float_relative_to_position.html"
           }
         ],
+        "css/import_serialization.html": [
+          {
+            "path": "css/import_serialization.html",
+            "url": "/_mozilla/css/import_serialization.html"
+          }
+        ],
         "css/matchMedia.html": [
           {
             "path": "css/matchMedia.html",
