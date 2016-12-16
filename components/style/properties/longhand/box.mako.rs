@@ -18,8 +18,7 @@
         values = """inline block inline-block
             table inline-table table-row-group table-header-group table-footer-group
             table-row table-column-group table-column table-cell table-caption
-            list-item flex
-            none
+            list-item flex none
         """.split()
         if product == "gecko":
             values += """inline-flex grid inline-grid ruby ruby-base ruby-base-container
