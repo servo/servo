@@ -8,11 +8,9 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
-use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node};
-use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 
@@ -41,13 +39,7 @@ impl HTMLTitleElement {
 impl HTMLTitleElementMethods for HTMLTitleElement {
     // https://html.spec.whatwg.org/multipage/#dom-title-text
     fn Text(&self) -> DOMString {
-        let mut content = String::new();
-        for child in self.upcast::<Node>().children() {
-            if let Some(text) = child.downcast::<Text>() {
-                content.push_str(&text.upcast::<CharacterData>().data());
-            }
-        }
-        DOMString::from(content)
+        self.upcast::<Node>().child_text_content()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-title-text

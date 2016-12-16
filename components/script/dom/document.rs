@@ -2672,7 +2672,7 @@ impl DocumentMethods for Document {
             None => DOMString::new(),
             Some(ref title) => {
                 // Steps 3-4.
-                let value = Node::collect_text_contents(title.children());
+                let value = title.child_text_content();
                 DOMString::from(str_join(split_html_space_chars(&value), " "))
             },
         }
