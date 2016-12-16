@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: @import rules are correctly serialized</title>
+<style id="test">
+  @import url("foo.css");
+  @import url("foo.css") print;
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var rules = document.styleSheets[0].cssRules;
+  assert_equals(rules[0].cssText, "@import url(\"foo.css\");");
+  assert_equals(rules[1].cssText, "@import url(\"foo.css\") print;");
+})
+</script>

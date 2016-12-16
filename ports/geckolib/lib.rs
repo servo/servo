@@ -18,6 +18,7 @@ extern crate style_traits;
 
 #[allow(non_snake_case)]
 pub mod glue;
+mod stylesheet_loader;
 
 // FIXME(bholley): This should probably go away once we harmonize the allocators.
 #[no_mangle]

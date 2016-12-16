@@ -26,6 +26,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ToCss;
 use stylist::FnvHashMap;
+use values::specified::url::SpecifiedUrl;
 use viewport::ViewportRule;
 
 
@@ -55,6 +56,12 @@ pub struct Namespaces {
 #[derive(Debug)]
 pub struct CssRules(pub Vec<CssRule>);
 
+impl CssRules {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
 pub enum RulesMutateError {
     Syntax,
     IndexSize,
@@ -79,7 +86,8 @@ impl CssRules {
     fn only_ns_or_import(&self) -> bool {
         self.0.iter().all(|r| {
             match *r {
-                CssRule::Namespace(..) /* | CssRule::Import(..) */ => true,
+                CssRule::Namespace(..) |
+                CssRule::Import(..) => true,
                 _ => false
             }
         })
@@ -104,8 +112,9 @@ impl CssRules {
 
         // Step 3, 4
         // XXXManishearth should we also store the namespace map?
-        let (new_rule, new_state) = try!(CssRule::parse(&rule, parent_stylesheet,
-                                                        ParserContextExtraData::default(), state));
+        let (new_rule, new_state) =
+            try!(CssRule::parse(&rule, parent_stylesheet,
+                                ParserContextExtraData::default(), state));
 
         // Step 5
         // Computes the maximum allowed parser state at a given index.
@@ -180,6 +189,7 @@ pub enum CssRule {
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
 
     Namespace(Arc<RwLock<NamespaceRule>>),
+    Import(Arc<RwLock<ImportRule>>),
     Style(Arc<RwLock<StyleRule>>),
     Media(Arc<RwLock<MediaRule>>),
     FontFace(Arc<RwLock<FontFaceRule>>),
@@ -235,6 +245,7 @@ impl CssRule {
     pub fn rule_type(&self) -> CssRuleType {
         match *self {
             CssRule::Style(_)     => CssRuleType::Style,
+            CssRule::Import(_)    => CssRuleType::Import,
             CssRule::Media(_)     => CssRuleType::Media,
             CssRule::FontFace(_)  => CssRuleType::FontFace,
             CssRule::Keyframes(_) => CssRuleType::Keyframes,
@@ -246,7 +257,7 @@ impl CssRule {
     fn rule_state(&self) -> State {
         match *self {
             // CssRule::Charset(..) => State::Start,
-            // CssRule::Import(..) => State::Imports,
+            CssRule::Import(..) => State::Imports,
             CssRule::Namespace(..) => State::Namespaces,
             _ => State::Body,
         }
@@ -254,10 +265,19 @@ impl CssRule {
 
     /// Call `f` with the slice of rules directly contained inside this rule.
     ///
-    /// Note that only some types of rules can contain rules. An empty slice is used for others.
+    /// Note that only some types of rules can contain rules. An empty slice is
+    /// used for others.
     pub fn with_nested_rules_and_mq<F, R>(&self, mut f: F) -> R
     where F: FnMut(&[CssRule], Option<&MediaList>) -> R {
         match *self {
+            CssRule::Import(ref lock) => {
+                let rule = lock.read();
+                let media = rule.stylesheet.media.read();
+                let rules = rule.stylesheet.rules.read();
+                // FIXME(emilio): Include the nested rules if the stylesheet is
+                // loaded.
+                f(&rules.0, Some(&media))
+            }
             CssRule::Namespace(_) |
             CssRule::Style(_) |
             CssRule::FontFace(_) |
@@ -294,6 +314,7 @@ impl CssRule {
         let mut rule_parser = TopLevelRuleParser {
             stylesheet_origin: parent_stylesheet.origin,
             context: context,
+            loader: None,
             state: Cell::new(state),
             namespaces: &mut namespaces,
         };
@@ -315,6 +336,7 @@ impl ToCss for CssRule {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             CssRule::Namespace(ref lock) => lock.read().to_css(dest),
+            CssRule::Import(ref lock) => lock.read().to_css(dest),
             CssRule::Style(ref lock) => lock.read().to_css(dest),
             CssRule::FontFace(ref lock) => lock.read().to_css(dest),
             CssRule::Viewport(ref lock) => lock.read().to_css(dest),
@@ -343,6 +365,34 @@ impl ToCss for NamespaceRule {
         try!(dest.write_str("url(\""));
         try!(dest.write_str(&*self.url.to_string()));
         dest.write_str("\");")
+    }
+}
+
+
+/// The [`@import`][import] at-rule.
+///
+/// [import]: https://drafts.csswg.org/css-cascade-3/#at-import
+#[derive(Debug)]
+pub struct ImportRule {
+    pub url: SpecifiedUrl,
+
+    /// The stylesheet is always present.
+    ///
+    /// It contains an empty list of rules and namespace set that is updated
+    /// when it loads.
+    pub stylesheet: Arc<Stylesheet>,
+}
+
+impl ToCss for ImportRule {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("@import "));
+        try!(self.url.to_css(dest));
+        let media = self.stylesheet.media.read();
+        if !media.is_empty() {
+            try!(dest.write_str(" "));
+            try!(media.to_css(dest));
+        }
+        dest.write_str(";")
     }
 }
 
@@ -421,54 +471,102 @@ impl Stylesheet {
                       environment_encoding: Option<EncodingRef>,
                       origin: Origin,
                       media: MediaList,
+                      stylesheet_loader: Option<&StylesheetLoader>,
                       error_reporter: Box<ParseErrorReporter + Send>,
                       extra_data: ParserContextExtraData)
                       -> Stylesheet {
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(&string, base_url, origin, media, error_reporter, extra_data)
+        Stylesheet::from_str(&string,
+                             base_url,
+                             origin,
+                             media,
+                             stylesheet_loader,
+                             error_reporter,
+                             extra_data)
     }
 
-    pub fn from_str(css: &str, base_url: ServoUrl, origin: Origin, media: MediaList,
-                    error_reporter: Box<ParseErrorReporter + Send>,
-                    extra_data: ParserContextExtraData) -> Stylesheet {
-        let mut namespaces = Namespaces::default();
-        let mut rules = vec![];
-        let dirty_on_viewport_size_change;
+    pub fn update_from_bytes(existing: &Stylesheet,
+                             bytes: &[u8],
+                             protocol_encoding_label: Option<&str>,
+                             environment_encoding: Option<EncodingRef>,
+                             stylesheet_loader: Option<&StylesheetLoader>,
+                             error_reporter: Box<ParseErrorReporter + Send>,
+                             extra_data: ParserContextExtraData) {
+        assert!(existing.rules.read().is_empty());
+        let (string, _) = decode_stylesheet_bytes(
+            bytes, protocol_encoding_label, environment_encoding);
+        Self::update_from_str(existing,
+                              &string,
+                              stylesheet_loader,
+                              error_reporter,
+                              extra_data)
+    }
+
+    pub fn update_from_str(existing: &Stylesheet,
+                           css: &str,
+                           stylesheet_loader: Option<&StylesheetLoader>,
+                           error_reporter: Box<ParseErrorReporter + Send>,
+                           extra_data: ParserContextExtraData) {
+        let mut rules = existing.rules.write();
+        let mut namespaces = existing.namespaces.write();
+
+        assert!(rules.is_empty());
+
+        let mut input = Parser::new(css);
+        let rule_parser = TopLevelRuleParser {
+            stylesheet_origin: existing.origin,
+            namespaces: &mut namespaces,
+            loader: stylesheet_loader,
+            context: ParserContext::new_with_extra_data(existing.origin,
+                                                        &existing.base_url,
+                                                        error_reporter,
+                                                        extra_data),
+            state: Cell::new(State::Start),
+        };
+
+        input.look_for_viewport_percentages();
+
         {
-            let rule_parser = TopLevelRuleParser {
-                stylesheet_origin: origin,
-                namespaces: &mut namespaces,
-                context: ParserContext::new_with_extra_data(origin, &base_url, error_reporter, extra_data),
-                state: Cell::new(State::Start),
-            };
-            let mut input = Parser::new(css);
-            input.look_for_viewport_percentages();
-            {
-                let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
-                while let Some(result) = iter.next() {
-                    match result {
-                        Ok(rule) => rules.push(rule),
-                        Err(range) => {
-                            let pos = range.start;
-                            let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                            log_css_error(iter.input, pos, &*message, &iter.parser.context);
-                        }
+            let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
+            while let Some(result) = iter.next() {
+                match result {
+                    Ok(rule) => rules.0.push(rule),
+                    Err(range) => {
+                        let pos = range.start;
+                        let message = format!("Invalid rule: '{}'", iter.input.slice(range));
+                        log_css_error(iter.input, pos, &*message, &iter.parser.context);
                     }
                 }
             }
-            dirty_on_viewport_size_change = input.seen_viewport_percentages();
         }
 
-        Stylesheet {
+        existing.dirty_on_viewport_size_change
+            .store(input.seen_viewport_percentages(), Ordering::Release);
+    }
+
+    pub fn from_str(css: &str, base_url: ServoUrl, origin: Origin,
+                    media: MediaList,
+                    stylesheet_loader: Option<&StylesheetLoader>,
+                    error_reporter: Box<ParseErrorReporter + Send>,
+                    extra_data: ParserContextExtraData) -> Stylesheet {
+        let s = Stylesheet {
             origin: origin,
             base_url: base_url,
-            namespaces: RwLock::new(namespaces),
-            rules: CssRules::new(rules),
+            namespaces: RwLock::new(Namespaces::default()),
+            rules: CssRules::new(vec![]),
             media: Arc::new(RwLock::new(media)),
-            dirty_on_viewport_size_change: AtomicBool::new(dirty_on_viewport_size_change),
+            dirty_on_viewport_size_change: AtomicBool::new(false),
             disabled: AtomicBool::new(false),
-        }
+        };
+
+        Self::update_from_str(&s,
+                              css,
+                              stylesheet_loader,
+                              error_reporter,
+                              extra_data);
+
+        s
     }
 
     pub fn dirty_on_viewport_size_change(&self) -> bool {
@@ -563,9 +661,20 @@ rule_filter! {
     effective_keyframes_rules(Keyframes => KeyframesRule),
 }
 
+/// The stylesheet loader is the abstraction used to trigger network requests
+/// for `@import` rules.
+pub trait StylesheetLoader {
+    /// Request a stylesheet after parsing a given `@import` rule.
+    ///
+    /// The called code is responsible to update the `stylesheet` rules field
+    /// when the sheet is done loading.
+    fn request_stylesheet(&self, import: &Arc<RwLock<ImportRule>>);
+}
+
 struct TopLevelRuleParser<'a> {
     stylesheet_origin: Origin,
     namespaces: &'a mut Namespaces,
+    loader: Option<&'a StylesheetLoader>,
     context: ParserContext<'a>,
     state: Cell<State>,
 }
@@ -612,8 +721,38 @@ impl<'a> AtRuleParser for TopLevelRuleParser<'a> {
             "import" => {
                 if self.state.get() <= State::Imports {
                     self.state.set(State::Imports);
-                    // TODO: support @import
-                    return Err(())  // "@import is not supported yet"
+                    let url = try!(input.expect_url_or_string());
+                    let url =
+                        try!(SpecifiedUrl::parse_from_string(url,
+                                                             &self.context));
+
+                    let media =
+                        Arc::new(RwLock::new(parse_media_query_list(input)));
+
+                    let is_valid_url = url.url().is_some();
+
+                    let import_rule = Arc::new(RwLock::new(
+                        ImportRule {
+                            url: url,
+                            stylesheet: Arc::new(Stylesheet {
+                                rules: Arc::new(RwLock::new(CssRules(vec![]))),
+                                media: media,
+                                origin: self.context.stylesheet_origin,
+                                base_url: self.context.base_url.clone(),
+                                namespaces: RwLock::new(Namespaces::default()),
+                                dirty_on_viewport_size_change: AtomicBool::new(false),
+                                disabled: AtomicBool::new(false),
+                            })
+                        }
+                    ));
+
+                    if is_valid_url {
+                        let loader = self.loader
+                            .expect("Expected a stylesheet loader for @import");
+                        loader.request_stylesheet(&import_rule);
+                    }
+
+                    return Ok(AtRuleType::WithoutBlock(CssRule::Import(import_rule)))
                 } else {
                     self.state.set(State::Invalid);
                     return Err(())  // "@import must be before any rule but @charset"

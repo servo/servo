@@ -3,52 +3,36 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Parser as CssParser;
-use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
+use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root, RootedReference};
-use dom::bindings::refcounted::Trusted;
-use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
-use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
-use encoding::EncodingRef;
-use encoding::all::UTF_8;
 use html5ever_atoms::LocalName;
-use hyper::header::ContentType;
-use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper_serde::Serde;
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
-use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError, ReferrerPolicy};
-use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
-use network_listener::{NetworkListener, PreInvoke};
-use script_layout_interface::message::Msg;
+use net_traits::ReferrerPolicy;
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
-use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
-use std::mem;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use style::attr::AttrValue;
-use style::media_queries::{MediaList, parse_media_query_list};
-use style::parser::ParserContextExtraData;
+use style::media_queries::parse_media_query_list;
 use style::str::HTML_SPACE_CHARACTERS;
-use style::stylesheets::{Stylesheet, Origin};
+use style::stylesheets::Stylesheet;
+use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
 unsafe_no_jsmanaged_fields!(Stylesheet);
 
@@ -62,6 +46,11 @@ pub struct HTMLLinkElement {
 
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
+    /// The number of loads that this link element has triggered (could be more
+    /// than one because of imports) and have not yet finished.
+    pending_loads: Cell<u32>,
+    /// Whether any of the loads have failed.
+    any_failed_load: Cell<bool>,
 }
 
 impl HTMLLinkElement {
@@ -73,6 +62,8 @@ impl HTMLLinkElement {
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
+            pending_loads: Cell::new(0),
+            any_failed_load: Cell::new(false),
         }
     }
 
@@ -85,6 +76,16 @@ impl HTMLLinkElement {
                            document,
                            HTMLLinkElementBinding::Wrap)
     }
+
+    pub fn parser_inserted(&self) -> bool {
+        self.parser_inserted.get()
+    }
+
+    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+        assert!(self.stylesheet.borrow().is_none());
+        *self.stylesheet.borrow_mut() = Some(s);
+    }
+
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
         self.stylesheet.borrow().clone()
@@ -231,8 +232,11 @@ impl HTMLLinkElement {
 
         // Step 2.
         let url = match document.base_url().join(href) {
-            Err(e) => return debug!("Parsing url {} failed: {}", href, e),
             Ok(url) => url,
+            Err(e) => {
+                debug!("Parsing url {} failed: {}", href, e);
+                return;
+            }
         };
 
         let element = self.upcast::<Element>();
@@ -246,50 +250,13 @@ impl HTMLLinkElement {
         let mut css_parser = CssParser::new(&mq_str);
         let media = parse_media_query_list(&mut css_parser);
 
-        // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
-        let elem = Trusted::new(self);
-
-        let context = Arc::new(Mutex::new(StylesheetContext {
-            elem: elem,
+        // TODO: #8085 - Don't load external stylesheets if the node's mq
+        // doesn't match.
+        let loader = StylesheetLoader::for_element(self.upcast());
+        loader.load(StylesheetContextSource::LinkElement {
+            url: url,
             media: Some(media),
-            data: vec!(),
-            metadata: None,
-            url: url.clone(),
-        }));
-
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let listener = NetworkListener {
-            context: context,
-            task_source: document.window().networking_task_source(),
-            wrapper: Some(document.window().get_runnable_wrapper())
-        };
-        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-            listener.notify_fetch(message.to().unwrap());
         });
-
-        if self.parser_inserted.get() {
-            document.increment_script_blocking_stylesheet_count();
-        }
-
-        let referrer_policy = match self.RelList().Contains("noreferrer".into()) {
-            true => Some(ReferrerPolicy::NoReferrer),
-            false => document.get_referrer_policy(),
-        };
-
-        let request = RequestInit {
-            url: url.clone(),
-            type_: RequestType::Style,
-            destination: Destination::Style,
-            credentials_mode: CredentialsMode::Include,
-            use_url_credentials: true,
-            origin: document.url(),
-            pipeline_id: Some(self.global().pipeline_id()),
-            referrer_url: Some(document.url()),
-            referrer_policy: referrer_policy,
-            .. RequestInit::default()
-        };
-
-        document.fetch_async(LoadType::Stylesheet(url), request, action_sender);
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
@@ -310,92 +277,37 @@ impl HTMLLinkElement {
     }
 }
 
-/// The context required for asynchronously loading an external stylesheet.
-struct StylesheetContext {
-    /// The element that initiated the request.
-    elem: Trusted<HTMLLinkElement>,
-    media: Option<MediaList>,
-    /// The response body received to date.
-    data: Vec<u8>,
-    /// The response metadata received to date.
-    metadata: Option<Metadata>,
-    /// The initial URL requested.
-    url: ServoUrl,
-}
-
-impl PreInvoke for StylesheetContext {}
-
-impl FetchResponseListener for StylesheetContext {
-    fn process_request_body(&mut self) {}
-
-    fn process_request_eof(&mut self) {}
-
-    fn process_response(&mut self,
-                        metadata: Result<FetchMetadata, NetworkError>) {
-        self.metadata = metadata.ok().map(|m| {
-            match m {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
-            }
-        });
-        if let Some(ref meta) = self.metadata {
-            if let Some(Serde(ContentType(Mime(TopLevel::Text, SubLevel::Css, _)))) = meta.content_type {
-            } else {
-                self.elem.root().upcast::<EventTarget>().fire_event(atom!("error"));
-            }
-        }
+impl StylesheetOwner for HTMLLinkElement {
+    fn increment_pending_loads_count(&self) {
+        self.pending_loads.set(self.pending_loads.get() + 1)
     }
 
-    fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
-        self.data.append(&mut payload);
+    fn load_finished(&self, succeeded: bool) -> Option<bool> {
+        assert!(self.pending_loads.get() > 0, "What finished?");
+        if !succeeded {
+            self.any_failed_load.set(true);
+        }
+
+        self.pending_loads.set(self.pending_loads.get() - 1);
+        if self.pending_loads.get() != 0 {
+            return None;
+        }
+
+        let any_failed = self.any_failed_load.get();
+        self.any_failed_load.set(false);
+        Some(any_failed)
     }
 
-    fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
-        let elem = self.elem.root();
-        let document = document_from_node(&*elem);
-        let mut successful = false;
+    fn parser_inserted(&self) -> bool {
+        self.parser_inserted.get()
+    }
 
-        if status.is_ok() {
-            let metadata = match self.metadata.take() {
-                Some(meta) => meta,
-                None => return,
-            };
-            let is_css = metadata.content_type.map_or(false, |Serde(ContentType(Mime(top, sub, _)))|
-                top == TopLevel::Text && sub == SubLevel::Css);
-
-            let data = if is_css { mem::replace(&mut self.data, vec!()) } else { vec!() };
-
-            // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
-            let environment_encoding = UTF_8 as EncodingRef;
-            let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
-            let final_url = metadata.final_url;
-
-            let win = window_from_node(&*elem);
-
-            let sheet = Arc::new(Stylesheet::from_bytes(
-                &data, final_url, protocol_encoding_label, Some(environment_encoding),
-                Origin::Author, self.media.take().unwrap(), win.css_error_reporter(),
-                ParserContextExtraData::default()));
-
-            let win = window_from_node(&*elem);
-            win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
-
-            *elem.stylesheet.borrow_mut() = Some(sheet);
-            document.invalidate_stylesheets();
-
-            // FIXME: Revisit once consensus is reached at: https://github.com/whatwg/html/issues/1142
-            successful = metadata.status.map_or(false, |(code, _)| code == 200);
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        if self.RelList().Contains("noreferrer".into()) {
+            return Some(ReferrerPolicy::NoReferrer)
         }
 
-        if elem.parser_inserted.get() {
-            document.decrement_script_blocking_stylesheet_count();
-        }
-
-        document.finish_load(LoadType::Stylesheet(self.url.clone()));
-
-        let event = if successful { atom!("load") } else { atom!("error") };
-
-        elem.upcast::<EventTarget>().fire_event(event);
+        None
     }
 }
 

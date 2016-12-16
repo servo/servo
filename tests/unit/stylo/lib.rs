@@ -16,5 +16,8 @@ extern crate style_traits;
 
 mod sanity_checks;
 
+#[path = "../../../ports/geckolib/stylesheet_loader.rs"]
+mod stylesheet_loader;
+
 mod servo_function_signatures;
 
