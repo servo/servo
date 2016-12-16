@@ -49,7 +49,7 @@ pub type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<::fnv::FnvHasher>>;
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Stylist {
     /// Device that the stylist is currently evaluating against.
-    pub device: Device,
+    pub device: Arc<Device>,
 
     /// Viewport constraints based on the current device.
     viewport_constraints: Option<ViewportConstraints>,
@@ -103,7 +103,7 @@ impl Stylist {
     pub fn new(device: Device) -> Self {
         let mut stylist = Stylist {
             viewport_constraints: None,
-            device: device,
+            device: Arc::new(device),
             is_device_dirty: true,
             quirks_mode: false,
 
@@ -174,49 +174,40 @@ impl Stylist {
             return;
         }
 
-        // Work around borrowing all of `self` if `self.something` is used in it
-        // instead of just `self.something`
-        macro_rules! borrow_self_field {
-            ($($x: ident),+) => {
-                $(
-                    let $x = &mut self.$x;
-                )+
-            }
-        }
-        borrow_self_field!(pseudos_map, element_map, state_deps, sibling_affecting_selectors,
-                           non_common_style_affecting_attributes_selectors, rules_source_order,
-                           animations, precomputed_pseudo_element_decls);
-        stylesheet.effective_rules(&self.device, |rule| {
+        // Cheap `Arc` clone so that the closure below can borrow `&mut Stylist`.
+        let device = self.device.clone();
+
+        stylesheet.effective_rules(&device, |rule| {
             match *rule {
                 CssRule::Style(ref style_rule) => {
                     let guard = style_rule.read();
                     for selector in &guard.selectors.0 {
                         let map = if let Some(ref pseudo) = selector.pseudo_element {
-                            pseudos_map
+                            self.pseudos_map
                                 .entry(pseudo.clone())
                                 .or_insert_with(PerPseudoElementSelectorMap::new)
                                 .borrow_for_origin(&stylesheet.origin)
                         } else {
-                            element_map.borrow_for_origin(&stylesheet.origin)
+                            self.element_map.borrow_for_origin(&stylesheet.origin)
                         };
 
                         map.insert(Rule {
                             selector: selector.complex_selector.clone(),
                             style_rule: style_rule.clone(),
                             specificity: selector.specificity,
-                            source_order: *rules_source_order,
+                            source_order: self.rules_source_order,
                         });
                     }
-                    *rules_source_order += 1;
+                    self.rules_source_order += 1;
 
                     for selector in &guard.selectors.0 {
-                        state_deps.note_selector(&selector.complex_selector);
+                        self.state_deps.note_selector(&selector.complex_selector);
                         if selector.affects_siblings() {
-                            sibling_affecting_selectors.push(selector.clone());
+                            self.sibling_affecting_selectors.push(selector.clone());
                         }
 
                         if selector.matches_non_common_style_affecting_attribute() {
-                            non_common_style_affecting_attributes_selectors.push(selector.clone());
+                            self.non_common_style_affecting_attributes_selectors.push(selector.clone());
                         }
                     }
                 }
@@ -225,13 +216,13 @@ impl Stylist {
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
                     if let Some(animation) = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
                         debug!("Found valid keyframe animation: {:?}", animation);
-                        animations.insert(keyframes_rule.name.clone(),
+                        self.animations.insert(keyframes_rule.name.clone(),
                                                animation);
                     } else {
                         // If there's a valid keyframes rule, even if it doesn't
                         // produce an animation, should shadow other animations
                         // with the same name.
-                        animations.remove(&keyframes_rule.name);
+                        self.animations.remove(&keyframes_rule.name);
                     }
                 }
                 // We don't care about any other rule.
@@ -241,24 +232,22 @@ impl Stylist {
 
         debug!("Stylist stats:");
         debug!(" - Got {} sibling-affecting selectors",
-               sibling_affecting_selectors.len());
+               self.sibling_affecting_selectors.len());
         debug!(" - Got {} non-common-style-attribute-affecting selectors",
-               non_common_style_affecting_attributes_selectors.len());
+               self.non_common_style_affecting_attributes_selectors.len());
         debug!(" - Got {} deps for style-hint calculation",
-               state_deps.len());
+               self.state_deps.len());
 
         SelectorImpl::each_precomputed_pseudo_element(|pseudo| {
             // TODO: Consider not doing this and just getting the rules on the
             // fly. It should be a bit slower, but we'd take rid of the
             // extra field, and avoid this precomputation entirely.
-            if let Some(map) = pseudos_map.remove(&pseudo) {
+            if let Some(map) = self.pseudos_map.remove(&pseudo) {
                 let mut declarations = vec![];
-
                 map.user_agent.get_universal_rules(&mut declarations);
-
-                precomputed_pseudo_element_decls.insert(pseudo, declarations);
+                self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
             }
-        })
+        });
     }
 
     /// Computes the style for a given "precomputed" pseudo-element, taking the
@@ -392,7 +381,7 @@ impl Stylist {
             mq_eval_changed(&stylesheet.rules.read().0, &self.device, &device)
         });
 
-        self.device = device;
+        self.device = Arc::new(device);
     }
 
     pub fn viewport_constraints(&self) -> &Option<ViewportConstraints> {
