@@ -259,4 +259,8 @@ impl Preferences {
     pub fn extend(&self, extension: HashMap<String, Pref>) {
         self.0.write().unwrap().extend(extension);
     }
+
+    pub fn is_webvr_enabled(&self) -> bool {
+        self.get("dom.webvr.enabled").as_boolean().unwrap_or(false)
+    }
 }

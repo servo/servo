@@ -36,6 +36,7 @@ servo_config = {path = "../config", features = ["servo"]}
 servo_rand = {path = "../rand"}
 servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url", features = ["servo"]}
+webvr_traits = {path = "../webvr_traits"}
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"

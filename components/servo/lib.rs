@@ -48,6 +48,8 @@ pub extern crate script_layout_interface;
 pub extern crate servo_config;
 pub extern crate servo_url;
 pub extern crate style;
+pub extern crate webvr;
+pub extern crate webvr_traits;
 
 #[cfg(feature = "webdriver")]
 extern crate webdriver_server;
@@ -96,6 +98,7 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use webvr::{WebVRThread, WebVRCompositorHandler};
 
 pub use gleam::gl;
 pub use servo_config as config;
@@ -193,6 +196,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                                     debugger_chan,
                                                                     devtools_chan,
                                                                     supports_clipboard,
+                                                                    &webrender,
                                                                     webrender_api_sender.clone());
 
         // Send the constellation's swmanager sender to service worker manager thread
@@ -260,6 +264,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
                         debugger_chan: Option<debugger::Sender>,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool,
+                        webrender: &webrender::Renderer,
                         webrender_api_sender: webrender_traits::RenderApiSender)
                         -> (Sender<ConstellationMsg>, SWManagerSenders) {
     let bluetooth_thread: IpcSender<BluetoothRequest> = BluetoothThreadFactory::new();
@@ -294,6 +299,16 @@ fn create_constellation(user_agent: Cow<'static, str>,
         Constellation::<script_layout_interface::message::Msg,
                         layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
+
+    if PREFS.is_webvr_enabled() {
+        // WebVR initialization
+        let (mut handler, sender) = WebVRCompositorHandler::new();
+        let webvr_thread = WebVRThread::spawn(constellation_chan.clone(), sender);
+        handler.set_webvr_thread_sender(webvr_thread.clone());
+
+        webrender.set_vr_compositor_handler(handler);
+        constellation_chan.send(ConstellationMsg::SetWebVRThread(webvr_thread)).unwrap();
+    }
 
     if let Some(url) = url {
         constellation_chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();

@@ -27,7 +27,7 @@ use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
 use std::default::Default;
 use std::str::FromStr;
-use webrender_traits::{WebGLCommand, WebGLContextId};
+use webrender_traits::{WebGLCommand, WebGLContextId, VRCompositorCommand};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum FillRule {
@@ -42,6 +42,7 @@ pub enum CanvasMsg {
     FromLayout(FromLayoutMsg),
     FromScript(FromScriptMsg),
     WebGL(WebGLCommand),
+    WebVR(VRCompositorCommand)
 }
 
 #[derive(Clone, Deserialize, Serialize)]
