@@ -237,7 +237,7 @@ fn parse_position(context: &ParserContext, input: &mut Parser) -> Result<Positio
 pub enum AngleOrCorner {
     Angle(Angle),
     Corner(Option<HorizontalDirection>, Option<VerticalDirection>),
-    None
+    None,
 }
 
 impl ToCss for AngleOrCorner {
