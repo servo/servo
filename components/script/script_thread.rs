@@ -1175,7 +1175,7 @@ impl ScriptThread {
     fn handle_set_scroll_state(&self,
                                id: PipelineId,
                                scroll_states: &[(UntrustedNodeAddress, Point2D<f32>)]) {
-        let window = match self.documents.borrow().find_window(id) {
+        let window = match { self.documents.borrow().find_window(id) } {
             Some(window) => window,
             None => return warn!("Set scroll state message sent to nonexistent pipeline: {:?}", id),
         };
@@ -1243,7 +1243,7 @@ impl ScriptThread {
     }
 
     fn handle_loads_complete(&self, pipeline: PipelineId) {
-        let doc = match self.documents.borrow().find_document(pipeline) {
+        let doc = match { self.documents.borrow().find_document(pipeline) } {
             Some(doc) => doc,
             None => return warn!("Message sent to closed pipeline {}.", pipeline),
         };
@@ -1408,7 +1408,7 @@ impl ScriptThread {
                                    parent_pipeline_id: PipelineId,
                                    frame_id: Option<FrameId>,
                                    event: MozBrowserEvent) {
-        let doc = match self.documents.borrow().find_document(parent_pipeline_id) {
+        let doc = match { self.documents.borrow().find_document(parent_pipeline_id) } {
             None => return warn!("Mozbrowser event after pipeline {:?} closed.", parent_pipeline_id),
             Some(doc) => doc,
         };
@@ -1496,7 +1496,7 @@ impl ScriptThread {
             Some(r) => r,
             None => return
         };
-        let window = match self.documents.borrow().find_window(pipeline_id) {
+        let window = match { self.documents.borrow().find_window(pipeline_id) } {
             Some(window) => window,
             None => return warn!("Registration failed for {}", scope),
         };
@@ -1554,7 +1554,7 @@ impl ScriptThread {
 
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
+        let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
@@ -1611,7 +1611,7 @@ impl ScriptThread {
 
     /// Handles when layout thread finishes all animation in one tick
     fn handle_tick_all_animations(&self, id: PipelineId) {
-        let document = match self.documents.borrow().find_document(id) {
+        let document = match { self.documents.borrow().find_document(id) } {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", id),
         };
@@ -1661,7 +1661,7 @@ impl ScriptThread {
     /// Notify a window of a storage event
     fn handle_storage_event(&self, pipeline_id: PipelineId, storage_type: StorageType, url: ServoUrl,
                             key: Option<String>, old_value: Option<String>, new_value: Option<String>) {
-        let window = match self.documents.borrow().find_window(pipeline_id) {
+        let window = match { self.documents.borrow().find_window(pipeline_id) } {
             None => return warn!("Storage event sent to closed pipeline {}.", pipeline_id),
             Some(window) => window,
         };
@@ -1921,7 +1921,7 @@ impl ScriptThread {
             }
 
             MouseMoveEvent(point) => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
+                let document = match { self.documents.borrow().find_document(pipeline_id) } {
                     Some(document) => document,
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
@@ -1993,7 +1993,7 @@ impl ScriptThread {
             }
 
             TouchpadPressureEvent(point, pressure, phase) => {
-                let doc = match self.documents.borrow().find_document(pipeline_id) {
+                let doc = match { self.documents.borrow().find_document(pipeline_id) } {
                     Some(doc) => doc,
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
@@ -2001,7 +2001,7 @@ impl ScriptThread {
             }
 
             KeyEvent(ch, key, state, modifiers) => {
-                let document = match self.documents.borrow().find_document(pipeline_id) {
+                let document = match { self.documents.borrow().find_document(pipeline_id) } {
                     Some(document) => document,
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
@@ -2015,7 +2015,7 @@ impl ScriptThread {
                           mouse_event_type: MouseEventType,
                           button: MouseButton,
                           point: Point2D<f32>) {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
+        let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
@@ -2028,7 +2028,7 @@ impl ScriptThread {
                           identifier: TouchId,
                           point: Point2D<f32>)
                           -> TouchEventResult {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
+        let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
             None => {
                 warn!("Message sent to closed pipeline {}.", pipeline_id);
@@ -2061,7 +2061,7 @@ impl ScriptThread {
     }
 
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData, size_type: WindowSizeType) {
-        let document = match self.documents.borrow().find_document(pipeline_id) {
+        let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
@@ -2144,7 +2144,7 @@ impl ScriptThread {
     }
 
     fn handle_parsing_complete(&self, id: PipelineId) {
-        let document = match self.documents.borrow().find_document(id) {
+        let document = match { self.documents.borrow().find_document(id) } {
             Some(document) => document,
             None => return,
         };

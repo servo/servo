@@ -141,6 +141,12 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('method declared in webidl is missing a comment with a specification link', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_script_thread(self):
+        errors = tidy.collect_errors_for_files(iterFile('script_thread.rs'), [], [tidy.check_rust], print_text=False)
+        self.assertEqual('use a separate variable for the match expression', errors.next()[2])
+        self.assertEqual('use a separate variable for the match expression', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
     def test_webidl(self):
         errors = tidy.collect_errors_for_files(iterFile('spec.webidl'), [tidy.check_webidl_spec], [], print_text=False)
         self.assertEqual('No specification link found.', errors.next()[2])

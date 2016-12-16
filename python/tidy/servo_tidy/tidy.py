@@ -542,6 +542,9 @@ def check_rust(file_name, lines):
                 lambda match, line: line.startswith('use ')),
             (r"^\s*else {", "else braces should be on the same line", no_filter),
             (r"[^$ ]\([ \t]", "extra space after (", no_filter),
+            # This particular pattern is not reentrant-safe in script_thread.rs
+            (r"match self.documents.borrow", "use a separate variable for the match expression",
+             lambda match, line: file_name.endswith('script_thread.rs')),
         ]
 
         for pattern, message, filter_func in regex_rules:
