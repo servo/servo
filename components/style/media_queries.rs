@@ -297,4 +297,8 @@ impl MediaList {
             }
         })
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.media_queries.is_empty()
+    }
 }
