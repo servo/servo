@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+<%! from data import to_rust_ident %>
 <%namespace name="helpers" file="/helpers.mako.rs" />
 <% from data import ALL_SIZES, PHYSICAL_SIDES, LOGICAL_SIDES %>
 
@@ -180,3 +181,14 @@ ${helpers.single_keyword("box-sizing",
 // https://drafts.csswg.org/css-images-3/
 ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
                          products="gecko", animatable=False)}
+
+// https://drafts.csswg.org/css-grid/#propdef-grid-row-start
+<% grid_longhands = ["grid-row-start", "grid-row-end", "grid-column-start", "grid-column-end"] %>
+
+% for longhand in grid_longhands:
+    ${helpers.predefined_type("%s" % longhand,
+                              "GridLine",
+                              "Default::default()",
+                              animatable=False,
+                              products="gecko")}
+% endfor

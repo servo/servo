@@ -16,6 +16,7 @@ use super::{CSSFloat, HasViewportPercentage, NoViewportPercentage, Either, None_
 use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use super::computed::Shadow as ComputedShadow;
 
+pub use self::grid::GridLine;
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use self::image::{SizeKeyword, VerticalDirection};
@@ -24,6 +25,7 @@ pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercent
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, CalcUnit};
 
 pub mod basic_shape;
+pub mod grid;
 pub mod image;
 pub mod length;
 pub mod position;
