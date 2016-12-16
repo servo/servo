@@ -45,7 +45,7 @@ pub struct HTMLLinkElement {
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
     /// The number of loads that this link element has triggered (could be more
-    /// than one because of imports), and how many of them have finished.
+    /// than one because of imports) and have not yet finished.
     pending_loads: Cell<u32>,
     /// Whether any of the loads have failed.
     any_failed_load: Cell<bool>,
