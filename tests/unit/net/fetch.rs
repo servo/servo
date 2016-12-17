@@ -23,6 +23,7 @@ use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::fetch::cors_cache::CorsCache;
+use net_traits::NetworkError;
 use net_traits::ReferrerPolicy;
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
@@ -57,6 +58,18 @@ fn test_fetch_response_is_not_network_error() {
     if fetch_response.is_network_error() {
         panic!("fetch response shouldn't be a network error");
     }
+}
+
+#[test]
+fn test_fetch_on_bad_port_is_network_error() {
+    let url = ServoUrl::parse("http://www.example.org:6667").unwrap();
+    let origin = Origin::Origin(url.origin());
+    let request = Request::new(url, Some(origin), false, None);
+    *request.referrer.borrow_mut() = Referrer::NoReferrer;
+    let fetch_response = fetch(request, None);
+    assert!(fetch_response.is_network_error());
+    let fetch_error = fetch_response.get_network_error().unwrap();
+    assert!(fetch_error == &NetworkError::Internal("Request attempted on bad port".into()))
 }
 
 #[test]
