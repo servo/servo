@@ -31,6 +31,14 @@ impl ThreadLocalStyleContextCreationInfo {
     }
 }
 
+#[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum QuirksMode {
+    Quirks,
+    LimitedQuirks,
+    NoQuirks,
+}
+
 pub struct SharedStyleContext {
     /// The current viewport size.
     pub viewport_size: Size2D<Au>,
@@ -63,6 +71,9 @@ pub struct SharedStyleContext {
     /// The current timer for transitions and animations. This is needed to test
     /// them.
     pub timer: Timer,
+
+    /// The QuirksMode state which the document needs to be rendered with
+    pub quirks_mode: QuirksMode,
 }
 
 pub struct ThreadLocalStyleContext {

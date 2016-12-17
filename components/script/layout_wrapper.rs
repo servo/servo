@@ -61,7 +61,7 @@ use std::sync::atomic::Ordering;
 use style::atomic_refcell::AtomicRefCell;
 use style::attr::AttrValue;
 use style::computed_values::display;
-use style::context::SharedStyleContext;
+use style::context::{QuirksMode, SharedStyleContext};
 use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthetizer, TElement, TNode};
 use style::dom::UnsafeNode;
@@ -319,6 +319,10 @@ impl<'ld> ServoLayoutDocument<'ld> {
 
     pub fn will_paint(&self) {
         unsafe { self.document.will_paint(); }
+    }
+
+    pub fn quirks_mode(&self) -> QuirksMode {
+        unsafe { self.document.quirks_mode() }
     }
 
     pub fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
