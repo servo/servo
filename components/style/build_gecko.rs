@@ -251,6 +251,7 @@ mod bindings {
         ];
         let whitelist = [
             "RawGecko.*",
+            "mozilla::ServoStyleSheet",
             "mozilla::ServoElementSnapshot.*",
             "mozilla::ConsumeStyleBehavior",
             "mozilla::css::SheetParsingMode",
@@ -527,6 +528,8 @@ mod bindings {
             "nsStyleXUL",
             "nscoord",
             "nsresult",
+            "Loader",
+            "ServoStyleSheet",
         ];
         struct ArrayType {
             cpp_type: &'static str,
@@ -541,6 +544,7 @@ mod bindings {
             "RawServoStyleSheet",
             "RawServoDeclarationBlock",
             "RawServoStyleRule",
+            "RawServoImportRule",
         ];
         struct ServoOwnedType {
             name: &'static str,
