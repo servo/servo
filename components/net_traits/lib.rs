@@ -525,6 +525,8 @@ pub enum ConstellationMsg {
 /// Network errors that have to be exported out of the loaders
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum NetworkError {
+    /// Request attempted on bad port - https://fetch.spec.whatwg.org/#block-bad-port
+    BadPort,
     /// Could be any of the internal errors, like unsupported scheme, connection errors, etc.
     Internal(String),
     LoadCancelled,
