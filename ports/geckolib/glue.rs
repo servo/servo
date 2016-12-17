@@ -875,12 +875,12 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
             };
 
             let mut tlc = ThreadLocalStyleContext::new(traversal.shared_context());
-            let context = StyleContext {
+            let mut context = StyleContext {
                 shared: traversal.shared_context(),
                 thread_local: &mut tlc,
             };
 
-            recalc_style_at(&traversal, &mut traversal_data, &context, element, &mut data);
+            recalc_style_at(&traversal, &mut traversal_data, &mut context, element, &mut data);
 
             // The element was either unstyled or needed restyle. If it was unstyled, it may have
             // additional unstyled children that subsequent traversals won't find now that the style
