@@ -25,13 +25,14 @@ use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use style::context::{SharedStyleContext, ThreadLocalStyleContext};
+use style::dom::TElement;
 
 /// TLS data scoped to the traversal.
-pub struct ScopedThreadLocalLayoutContext {
-    pub style_context: ThreadLocalStyleContext,
+pub struct ScopedThreadLocalLayoutContext<E: TElement> {
+    pub style_context: ThreadLocalStyleContext<E>,
 }
 
-impl ScopedThreadLocalLayoutContext {
+impl<E: TElement> ScopedThreadLocalLayoutContext<E> {
     pub fn new(shared: &SharedLayoutContext) -> Self {
         ScopedThreadLocalLayoutContext {
             style_context: ThreadLocalStyleContext::new(&shared.style_context),

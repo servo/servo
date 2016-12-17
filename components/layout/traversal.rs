@@ -54,7 +54,7 @@ impl<N> DomTraversal<N> for RecalcStyleAndConstructFlows
     where N: LayoutNode + TNode,
           N::ConcreteElement: TElement
 {
-    type ThreadLocalContext = ScopedThreadLocalLayoutContext;
+    type ThreadLocalContext = ScopedThreadLocalLayoutContext<N::ConcreteElement>;
 
     fn process_preorder(&self, traversal_data: &mut PerLevelTraversalData,
                         thread_local: &mut Self::ThreadLocalContext, node: N) {
@@ -115,7 +115,7 @@ pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayo
 #[inline]
 #[allow(unsafe_code)]
 fn construct_flows_at<'a, N>(context: &LayoutContext<'a>,
-                             _thread_local: &ScopedThreadLocalLayoutContext,
+                             _thread_local: &ScopedThreadLocalLayoutContext<N::ConcreteElement>,
                              root: OpaqueNode, node: N)
     where N: LayoutNode,
 {

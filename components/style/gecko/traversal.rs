@@ -22,10 +22,10 @@ impl RecalcStyleOnly {
 }
 
 impl<'ln> DomTraversal<GeckoNode<'ln>> for RecalcStyleOnly {
-    type ThreadLocalContext = ThreadLocalStyleContext;
+    type ThreadLocalContext = ThreadLocalStyleContext<GeckoElement<'ln>>;
 
     fn process_preorder(&self, traversal_data: &mut PerLevelTraversalData,
-                        thread_local: &mut ThreadLocalStyleContext,
+                        thread_local: &mut Self::ThreadLocalContext,
                         node: GeckoNode<'ln>)
     {
         if node.is_element() {
@@ -39,7 +39,7 @@ impl<'ln> DomTraversal<GeckoNode<'ln>> for RecalcStyleOnly {
         }
     }
 
-    fn process_postorder(&self, _: &mut ThreadLocalStyleContext, _: GeckoNode<'ln>) {
+    fn process_postorder(&self, _: &mut Self::ThreadLocalContext, _: GeckoNode<'ln>) {
         unreachable!();
     }
 
@@ -58,7 +58,7 @@ impl<'ln> DomTraversal<GeckoNode<'ln>> for RecalcStyleOnly {
         &self.shared
     }
 
-    fn create_thread_local_context(&self) -> ThreadLocalStyleContext {
+    fn create_thread_local_context(&self) -> Self::ThreadLocalContext {
         ThreadLocalStyleContext::new(&self.shared)
     }
 }

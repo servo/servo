@@ -336,7 +336,7 @@ pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
 
 /// Handles lazy resolution of style in display:none subtrees. See the comment
 /// at the callsite in query.rs.
-pub fn style_element_in_display_none_subtree<E, F>(context: &StyleContext,
+pub fn style_element_in_display_none_subtree<E, F>(context: &StyleContext<E>,
                                                    element: E, init_data: &F) -> E
     where E: TElement,
           F: Fn(E),
@@ -375,7 +375,7 @@ pub fn style_element_in_display_none_subtree<E, F>(context: &StyleContext,
 #[allow(unsafe_code)]
 pub fn recalc_style_at<E, D>(traversal: &D,
                              traversal_data: &mut PerLevelTraversalData,
-                             context: &StyleContext,
+                             context: &mut StyleContext<E>,
                              element: E,
                              mut data: &mut AtomicRefMut<ElementData>)
     where E: TElement,
@@ -422,7 +422,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 // since we have separate bits for each now.
 fn compute_style<E, D>(_traversal: &D,
                        traversal_data: &mut PerLevelTraversalData,
-                       context: &StyleContext,
+                       context: &mut StyleContext<E>,
                        element: E,
                        mut data: &mut AtomicRefMut<ElementData>) -> bool
     where E: TElement,
@@ -444,13 +444,10 @@ fn compute_style<E, D>(_traversal: &D,
     bf.assert_complete(element);
 
     // Check to see whether we can share a style with someone.
-    let mut style_sharing_candidate_cache =
-        context.thread_local.style_sharing_candidate_cache.borrow_mut();
-
     let sharing_result = if element.parent_element().is_none() {
         StyleSharingResult::CannotShare
     } else {
-        unsafe { element.share_style_if_possible(&mut style_sharing_candidate_cache,
+        unsafe { element.share_style_if_possible(&mut context.thread_local.style_sharing_candidate_cache,
                                                  shared_context, &mut data) }
     };
 
@@ -485,16 +482,16 @@ fn compute_style<E, D>(_traversal: &D,
 
             // Add ourselves to the LRU cache.
             if let Some(element) = shareable_element {
-                style_sharing_candidate_cache.insert_if_possible(&element,
-                                                                 &data.styles().primary.values,
-                                                                 relations);
+                context.thread_local
+                       .style_sharing_candidate_cache
+                       .insert_if_possible(&element, &data.styles().primary.values, relations);
             }
         }
         StyleSharingResult::StyleWasShared(index) => {
             if opts::get().style_sharing_stats {
                 STYLE_SHARING_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
             }
-            style_sharing_candidate_cache.touch(index);
+            context.thread_local.style_sharing_candidate_cache.touch(index);
         }
     }
 
