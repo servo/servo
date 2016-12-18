@@ -19,7 +19,8 @@ The thread that controls a collection of related web content. This could be thou
 A list of concrete rendering instructions. The display list is post-layout, so all items have stacking-context-relative pixel positions, and z-index has already been applied, so items later in the display list will always be on top of items earlier in it.
 
 ### Fragment ###
-`TODO`
+
+The most primitive thing Servo knows how to layout. Servo fragments have no direct or simple correspondence with CSS fragments (i.e. serveral fragments may coressponed to the same CSS box/DOM node, while some CSS fragments are not created at all).
 
 ### Layout thread ###
 
