@@ -901,18 +901,24 @@ impl Window {
     }
 
     pub fn clear_js_runtime(&self) {
+        // We tear down the active document, which causes all the attached
+        // nodes to dispose of their layout data. This messages the layout
+        // thread, informing it that it can safely free the memory.
         self.Document().upcast::<Node>().teardown();
 
-        // The above code may not catch all DOM objects
-        // (e.g. DOM objects removed from the tree that haven't
-        // been collected yet). Forcing a GC here means that
-        // those DOM objects will be able to call dispose()
-        // to free their layout data before the layout thread
-        // exits. Without this, those remaining objects try to
-        // send a message to free their layout data to the
-        // layout thread when the script thread is dropped,
-        // which causes a panic!
-        self.Gc();
+        // The above code may not catch all DOM objects (e.g. DOM
+        // objects removed from the tree that haven't been collected
+        // yet). There should not be any such DOM nodes with layout
+        // data, but if there are, then when they are dropped, they
+        // will attempt to send a message to the closed layout thread.
+        // This message will fail, but the thread doesn't panic, it
+        // just generates a warning. This will cause the layout data
+        // to be leaked, so hopefully this doesn't happen too often.
+        // Previous versions of this function forced a GC at this point:
+        // self.Gc();
+        // but this causes problems if a window is reclaimed during GC,
+        // since we end up with a GC happening inside a GC, which
+        // causes a runtime failure.
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
