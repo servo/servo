@@ -19,6 +19,7 @@ use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
 use gecko_bindings::structs::StyleClipPath;
 use gecko_bindings::structs::nsCSSKeyword;
+use gecko_bindings::structs::nsCSSPropertyID;
 use gecko_bindings::structs::nsCSSShadowArray;
 use gecko_bindings::structs::nsCSSValue;
 use gecko_bindings::structs::nsCSSValueSharedList;
@@ -1092,8 +1093,7 @@ extern "C" {
 extern "C" {
     pub fn Servo_DeclarationBlock_SerializeOneValue(declarations:
                                                         RawServoDeclarationBlockBorrowed,
-                                                    property: *mut nsIAtom,
-                                                    is_custom: bool,
+                                                    property: nsCSSPropertyID,
                                                     buffer:
                                                         *mut nsAString_internal);
 }
@@ -1113,32 +1113,53 @@ extern "C" {
 extern "C" {
     pub fn Servo_DeclarationBlock_GetPropertyValue(declarations:
                                                        RawServoDeclarationBlockBorrowed,
-                                                   property: *mut nsIAtom,
-                                                   is_custom: bool,
+                                                   property:
+                                                       *const nsACString_internal,
                                                    value:
                                                        *mut nsAString_internal);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_GetPropertyValueById(declarations:
+                                                           RawServoDeclarationBlockBorrowed,
+                                                       property:
+                                                           nsCSSPropertyID,
+                                                       value:
+                                                           *mut nsAString_internal);
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations:
                                                              RawServoDeclarationBlockBorrowed,
                                                          property:
-                                                             *mut nsIAtom,
-                                                         is_custom: bool)
+                                                             *const nsACString_internal)
      -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_SetProperty(declarations:
                                                   RawServoDeclarationBlockBorrowed,
-                                              property: *mut nsIAtom,
-                                              is_custom: bool,
+                                              property:
+                                                  *const nsACString_internal,
                                               value: *mut nsACString_internal,
                                               is_important: bool) -> bool;
 }
 extern "C" {
+    pub fn Servo_DeclarationBlock_SetPropertyById(declarations:
+                                                      RawServoDeclarationBlockBorrowed,
+                                                  property: nsCSSPropertyID,
+                                                  value:
+                                                      *mut nsACString_internal,
+                                                  is_important: bool) -> bool;
+}
+extern "C" {
     pub fn Servo_DeclarationBlock_RemoveProperty(declarations:
                                                      RawServoDeclarationBlockBorrowed,
-                                                 property: *mut nsIAtom,
-                                                 is_custom: bool);
+                                                 property:
+                                                     *const nsACString_internal);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_RemovePropertyById(declarations:
+                                                         RawServoDeclarationBlockBorrowed,
+                                                     property:
+                                                         nsCSSPropertyID);
 }
 extern "C" {
     pub fn Servo_CSSSupports(name: *const nsACString_internal,

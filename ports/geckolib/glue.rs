@@ -10,6 +10,7 @@ use euclid::Size2D;
 use parking_lot::RwLock;
 use selectors::Element;
 use servo_url::ServoUrl;
+use std::borrow::Cow;
 use std::fmt::Write;
 use std::mem::transmute;
 use std::ptr;
@@ -38,7 +39,7 @@ use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs;
-use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom};
+use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
 use style::gecko_bindings::structs::nsresult;
@@ -619,16 +620,24 @@ pub extern "C" fn Servo_DeclarationBlock_GetCssText(declarations: RawServoDeclar
     declarations.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
+macro_rules! get_property_id_from_nscsspropertyid {
+    ($property_id: ident, $ret: expr) => {{
+        match PropertyId::from_nscsspropertyid($property_id) {
+            Ok(property_id) => property_id,
+            Err(()) => { return $ret; }
+        }
+    }}
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
     declarations: RawServoDeclarationBlockBorrowed,
-    property: *mut nsIAtom, is_custom: bool,
-    buffer: *mut nsAString)
+    property_id: nsCSSPropertyID, buffer: *mut nsAString)
 {
+    let property_id = get_property_id_from_nscsspropertyid!(property_id, ());
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let property = get_property_id_from_atom(property, is_custom);
     let mut string = String::new();
-    let rv = declarations.read().single_value_to_css(&property, &mut string);
+    let rv = declarations.read().single_value_to_css(&property_id, &mut string);
     debug_assert!(rv.is_ok());
 
     write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
@@ -653,44 +662,49 @@ pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDe
     }
 }
 
-fn get_property_id_from_atom(atom: *mut nsIAtom, is_custom: bool) -> PropertyId {
-    let atom = Atom::from(atom);
-    if !is_custom {
-        // FIXME: can we do this mapping without going through a UTF-8 string?
-        // Maybe even from nsCSSPropertyID directly?
-        PropertyId::parse(atom.to_string().into()).expect("got unknown property name from Gecko")
-    } else {
-        PropertyId::Custom(atom)
-    }
+macro_rules! get_property_id_from_property {
+    ($property: ident, $ret: expr) => {{
+        let property = unsafe { $property.as_ref().unwrap().as_str_unchecked() };
+        match PropertyId::parse(Cow::Borrowed(property)) {
+            Ok(property_id) => property_id,
+            Err(()) => { return $ret; }
+        }
+    }}
+}
+
+fn get_property_value(declarations: RawServoDeclarationBlockBorrowed,
+                      property_id: PropertyId, value: *mut nsAString) {
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    declarations.read().property_value_to_css(&property_id, unsafe { value.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_GetPropertyValue(declarations: RawServoDeclarationBlockBorrowed,
-                                                          property: *mut nsIAtom, is_custom: bool,
-                                                          value: *mut nsAString) {
-    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let property = get_property_id_from_atom(property, is_custom);
-    declarations.read().property_value_to_css(&property, unsafe { value.as_mut().unwrap() }).unwrap();
+                                                          property: *const nsACString, value: *mut nsAString) {
+    get_property_value(declarations, get_property_id_from_property!(property, ()), value)
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_GetPropertyValueById(declarations: RawServoDeclarationBlockBorrowed,
+                                                              property: nsCSSPropertyID, value: *mut nsAString) {
+    get_property_value(declarations, get_property_id_from_nscsspropertyid!(property, ()), value)
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: RawServoDeclarationBlockBorrowed,
-                                                                property: *mut nsIAtom, is_custom: bool) -> bool {
+                                                                property: *const nsACString) -> bool {
+    let property_id = get_property_id_from_property!(property, false);
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let property = get_property_id_from_atom(property, is_custom);
-    declarations.read().property_priority(&property).important()
+    declarations.read().property_priority(&property_id).important()
 }
 
-#[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDeclarationBlockBorrowed,
-                                                     property: *mut nsIAtom, is_custom: bool,
-                                                     value: *mut nsACString, is_important: bool) -> bool {
-    let property = get_property_id_from_atom(property, is_custom);
+fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId,
+                value: *mut nsACString, is_important: bool) -> bool {
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
     // FIXME Needs real URL and ParserContextExtraData.
     let base_url = &*DUMMY_BASE_URL;
     let extra_data = ParserContextExtraData::default();
-    if let Ok(decls) = parse_one_declaration(property, value, &base_url,
+    if let Ok(decls) = parse_one_declaration(property_id, value, &base_url,
                                              Box::new(StdoutErrorReporter), extra_data) {
         let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
         let importance = if is_important { Importance::Important } else { Importance::Normal };
@@ -704,11 +718,34 @@ pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDecla
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDeclarationBlockBorrowed,
-                                                        property: *mut nsIAtom, is_custom: bool) {
+pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDeclarationBlockBorrowed,
+                                                     property: *const nsACString, value: *mut nsACString,
+                                                     is_important: bool) -> bool {
+    set_property(declarations, get_property_id_from_property!(property, false), value, is_important)
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_SetPropertyById(declarations: RawServoDeclarationBlockBorrowed,
+                                                         property: nsCSSPropertyID, value: *mut nsACString,
+                                                         is_important: bool) -> bool {
+    set_property(declarations, get_property_id_from_nscsspropertyid!(property, false), value, is_important)
+}
+
+fn remove_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId) {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let property = get_property_id_from_atom(property, is_custom);
-    declarations.write().remove_property(&property);
+    declarations.write().remove_property(&property_id);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDeclarationBlockBorrowed,
+                                                        property: *const nsACString) {
+    remove_property(declarations, get_property_id_from_property!(property, ()))
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawServoDeclarationBlockBorrowed,
+                                                            property: nsCSSPropertyID) {
+    remove_property(declarations, get_property_id_from_nscsspropertyid!(property, ()))
 }
 
 #[no_mangle]
