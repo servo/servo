@@ -18,6 +18,9 @@ The thread that controls a collection of related web content. This could be thou
 
 A list of concrete rendering instructions. The display list is post-layout, so all items have stacking-context-relative pixel positions, and z-index has already been applied, so items later in the display list will always be on top of items earlier in it.
 
+### Fragment ###
+`TODO`
+
 ### Layout thread ###
 
 A thread that is responsible for laying out a DOM tree into layers of boxes for a particular document. Receives commands from the script thread to lay out a page and either generate a new display list for use by the renderer thread, or return the results of querying the layout of the page for use by script.
