@@ -58,12 +58,9 @@ test(function () {
 test(function () {
   assert_equals( makeTime('go fish').dateTime, 'go fish' );
 }, 'the datetime attribute should be reflected by the .dateTime property even if it is invalid');
-test(function () {
-  assert_equals( makeTime(false,'2000-02-01T03:04:05Z', '2000-02-01').dateTime, '2000-02-01' );
-}, 'the datetime content attribute should not reflect the textContent when datetime attribute is present.');
-test(function () {
-  assert_equals( makeTime(false,'2000-02-01T03:04:05Z').dateTime, '2000-02-01T03:04:05Z' );
-}, 'the datetime content attribute should reflect the textContent when datetime attribute is absent.');
+test(function() {
+  assert_equals( makeTime(false,'2000-02-01T03:04:05Z').dateTime, '' );
+}, 'the datetime attribute should not reflect the textContent');
     </script>
 
   </body>
