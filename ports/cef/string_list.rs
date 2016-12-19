@@ -7,7 +7,7 @@ use std::slice;
 use string::cef_string_utf16_set;
 use types::{cef_string_list_t,cef_string_t};
 
-use std_unicode::str::Utf16Encoder;
+use rustc_unicode::str::Utf16Encoder;
 
 //cef_string_list
 
