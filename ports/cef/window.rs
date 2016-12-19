@@ -14,7 +14,7 @@ use eutil::Downcast;
 use interfaces::CefApp;
 use interfaces::CefBrowser;
 use render_handler::CefRenderHandlerExtensions;
-use std_unicode::str::Utf16Encoder;
+use rustc_unicode::str::Utf16Encoder;
 use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
 use wrappers::CefWrap;
 
