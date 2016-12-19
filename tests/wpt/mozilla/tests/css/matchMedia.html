@@ -126,12 +126,16 @@
             window.onload = function(){
 
                 var rmListener = function(x){
+                    assert_true(x instanceof MediaQueryListEvent, "Check that event is instance of MediaQueryListEvent.");
+
                     resizeTest.step(function(){
                         assert_unreached("removeListener was not successful.");
                     });
                 };
 
                 var dupListener = function(x){
+                    assert_true(x instanceof MediaQueryListEvent, "Check that event is instance of MediaQueryListEvent.");
+
                     duplicateListenerTest.step(function(){
                         assert_false(mql1.dupListenerCalled, "Check that this listener has not been called before.");
                         mql1.dupListenerCalled = true;
@@ -148,6 +152,8 @@
                 mql1.addListener(dupListener);
 
                 mql1.addListener(function(x){
+                    assert_true(x instanceof MediaQueryListEvent, "Check that event is instance of MediaQueryListEvent.");
+
                     resizeTest.step(function(){
                         assert_equals(x, mql1, "Check that the MediaQueryList passed to the handler is the same that addListener was invoked on.");
                         assert_true(x.matches, "(max-height: 50px) should now pass.");
@@ -162,6 +168,8 @@
                 });
 
                 mql1.addListener(function(x){
+                    assert_true(x instanceof MediaQueryListEvent, "Check that event is instance of MediaQueryListEvent.");
+
                     listenerOrderTest.step(function(){
                         assert_true(mql1.firstListenerCalled, "Check that the listener added last is called last.");
                     });
@@ -171,6 +179,8 @@
                 mql1.removeListener(rmListener);
 
                 mql2.addListener(function(x){
+                    assert_true(x instanceof MediaQueryListEvent, "Check that event is instance of MediaQueryListEvent.");
+
                     duplicateListenerTest.done();
                     resizeTest.step(function(){
                         assert_equals(x, mql2, "Check that the MediaQueryList passed to the handler is the same that addListener was invoked on.");
