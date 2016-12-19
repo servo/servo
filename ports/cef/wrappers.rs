@@ -8,7 +8,6 @@ use interfaces::{cef_dialog_handler_t, cef_focus_handler_t};
 use interfaces::{cef_download_handler_t, cef_drag_handler_t, cef_context_menu_handler_t};
 use interfaces::{cef_geolocation_handler_t, cef_jsdialog_handler_t, cef_keyboard_handler_t};
 use interfaces::{cef_load_handler_t, cef_request_handler_t};
-use rustc_unicode::str::Utf16Encoder;
 use types::{cef_base_t, cef_browser_settings_t, CefBrowserSettings, cef_color_model_t};
 use types::{cef_context_menu_edit_state_flags_t};
 use types::{cef_context_menu_media_state_flags_t};
@@ -255,7 +254,7 @@ impl<'a,'b> CefWrap<*mut *const c_char> for &'a mut &'b str {
 
 impl<'a> CefWrap<cef_string_userfree_t> for String {
     fn to_c(string: String) -> cef_string_userfree_t {
-        let utf16_chars: Vec<u16> = Utf16Encoder::new(string.chars()).collect();
+        let utf16_chars: Vec<u16> = string.encode_utf16().collect();
 
         let boxed_string;
         unsafe {
