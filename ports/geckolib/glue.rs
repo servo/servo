@@ -319,6 +319,12 @@ pub extern "C" fn Servo_StyleSet_RemoveStyleSheet(raw_data: RawServoStyleSetBorr
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleSet_NoteStyleSheetsChanged(raw_data: RawServoStyleSetBorrowed) {
+    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    data.stylesheets_changed = true;
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSheet_HasRules(raw_sheet: RawServoStyleSheetBorrowed) -> bool {
     !Stylesheet::as_arc(&raw_sheet).rules.read().0.is_empty()
 }
