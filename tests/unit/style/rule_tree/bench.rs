@@ -47,6 +47,7 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, Importance)> {
                                  MediaList {
                                      media_queries: vec![],
                                  },
+                                 None,
                                  Box::new(ErrorringErrorReporter),
                                  ParserContextExtraData {});
     let rules = s.rules.read();
