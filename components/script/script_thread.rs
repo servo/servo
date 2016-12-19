@@ -378,6 +378,15 @@ impl DocumentState {
             DocumentState::Discarded(ref url) => url.clone(),
         }
     }
+
+    fn discard(&mut self) -> Option<Root<Document>> {
+        let doc = match *self {
+            DocumentState::Kept(_, ref doc) => Root::from_ref(&**doc),
+            DocumentState::Discarded(_) => return None,
+        };
+        *self = DocumentState::Discarded(doc.url());
+        Some(doc)
+    }
 }
 
 /// The set of all documents managed by this script thread.
@@ -407,9 +416,8 @@ impl Documents {
         self.map.insert(pipeline_id, DocumentState::new(document));
     }
 
-    pub fn discard(&mut self, pipeline_id: PipelineId, url: ServoUrl) -> Option<Root<Document>> {
-        self.map.insert(pipeline_id, DocumentState::Discarded(url))
-            .and_then(|ref state| state.document())
+    pub fn discard(&mut self, pipeline_id: PipelineId) -> Option<Root<Document>> {
+        self.map.get_mut(&pipeline_id).and_then(|state| state.discard())
     }
 
     pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<Root<Document>> {
@@ -701,9 +709,8 @@ impl ScriptThread {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
                 let pipeline_id = window.upcast::<GlobalScope>().pipeline_id();
-                let url = window.get_url();
                 debug!("Window {} discarded.", pipeline_id);
-                if script_thread.documents.borrow_mut().discard(pipeline_id, url).is_none() {
+                if script_thread.documents.borrow_mut().discard(pipeline_id).is_none() {
                     return;
                 }
                 script_thread.closed_pipelines.borrow_mut().insert(pipeline_id);
