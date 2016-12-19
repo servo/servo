@@ -19,7 +19,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOp
 use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
@@ -28,7 +28,7 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
 use dom::crypto::Crypto;
-use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
+use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::document::{AnimationFrameCallback, Document};
 use dom::element::Element;
 use dom::event::Event;
@@ -701,7 +701,10 @@ impl WindowMethods for Window {
         };
 
         // Step 5.
-        CSSStyleDeclaration::new(self, element, pseudo, CSSModificationAccess::Readonly)
+        CSSStyleDeclaration::new(self,
+                                 CSSStyleOwner::Element(JS::from_ref(element)),
+                                 pseudo,
+                                 CSSModificationAccess::Readonly)
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-innerheight

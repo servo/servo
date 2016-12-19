@@ -13,9 +13,9 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root, RootedReference};
+use dom::bindings::js::{JS, MutNullableJS, Root, RootedReference};
 use dom::bindings::str::DOMString;
-use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
+use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::document::{Document, FocusType};
 use dom::domstringmap::DOMStringMap;
 use dom::element::{AttributeMutation, Element};
@@ -115,7 +115,10 @@ impl HTMLElementMethods for HTMLElement {
     fn Style(&self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self);
-            CSSStyleDeclaration::new(&global, self.upcast::<Element>(), None, CSSModificationAccess::ReadWrite)
+            CSSStyleDeclaration::new(&global,
+                                     CSSStyleOwner::Element(JS::from_ref(self.upcast())),
+                                     None,
+                                     CSSModificationAccess::ReadWrite)
         })
     }
 

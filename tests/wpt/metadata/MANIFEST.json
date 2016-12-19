@@ -39695,6 +39695,12 @@
             "url": "/cssom/CSSRuleList.html"
           }
         ],
+        "cssom/CSSStyleRule.html": [
+          {
+            "path": "cssom/CSSStyleRule.html",
+            "url": "/cssom/CSSStyleRule.html"
+          }
+        ],
         "cssom/CSSStyleSheet.html": [
           {
             "path": "cssom/CSSStyleSheet.html",
