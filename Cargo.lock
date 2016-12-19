@@ -368,12 +368,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "compiletest_helper"
 version = "0.0.1"
 dependencies = [
- "compiletest_rs 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "compiletest_rs 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "compiletest_rs"
-version = "0.2.5"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3342,7 +3342,7 @@ dependencies = [
 "checksum cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)" = "dfcf5bcece56ef953b8ea042509e9dcbdfe97820b7e20d86beb53df30ed94978"
 "checksum cocoa 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6d24ed9a15e9c0892cdb20c7acc3e50441501b990ee6dc318c176981829a7941"
 "checksum color_quant 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a475fc4af42d83d28adf72968d9bcfaf035a1a9381642d8e85d8a04957767b0d"
-"checksum compiletest_rs 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "f3f344389765ad7bec166f64c1b39ed6dd2b54d81c4c5dd8af789169351d380c"
+"checksum compiletest_rs 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "28d60af0dbee4912f00dda79ac3b06d1ca44b641d69359e6f1d4df7c985521d2"
 "checksum content-blocker 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1b0d86cb81505503bbfb0d47cf7e12be2e69205a75e70c4da84998e39b96b7f1"
 "checksum cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "0e3d6405328b6edb412158b3b7710e2634e23f3614b9bb1c412df7952489a626"
 "checksum core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "20a6d0448d3a99d977ae4a2aa5a98d886a923e863e81ad9ff814645b6feb3bbd"
