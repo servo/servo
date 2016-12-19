@@ -92,9 +92,9 @@ impl History {
 
         // Step 8
         if replace {
-            self.window.browsing_context().replace_session_history_entry(Some(title), Some(url), state.handle());
+            self.window.browsing_context().replace_session_history_entry(title, url, state.handle());
         } else {
-            self.window.browsing_context().push_session_history_entry(Some(title), Some(url), state.handle());
+            self.window.browsing_context().push_session_history_entry(title, url, state.handle());
         }
 
         Ok(())

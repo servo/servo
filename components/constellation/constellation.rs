@@ -221,7 +221,7 @@ pub struct InitialConstellationState {
     pub webrender_api_sender: webrender_traits::RenderApiSender,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 struct FrameState {
     instant: Instant,
     pipeline_id: PipelineId,
@@ -697,10 +697,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn joint_session_future(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
+    fn joint_session_future(&self, frame_id_root: FrameId) -> Vec<FrameState> {
         let mut future = vec!();
         for frame in self.full_frame_tree_iter(frame_id_root) {
-            future.extend(frame.next.iter().map(|entry| (entry.instant, entry.frame_id, entry.pipeline_id)));
+            future.extend(frame.next.iter().cloned());
         }
 
         // reverse sorting
@@ -713,12 +713,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .all(|frame| frame.next.is_empty())
     }
 
-    fn joint_session_past(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
+    fn joint_session_past(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameState)> {
         let mut past = vec!();
         for frame in self.full_frame_tree_iter(frame_id_root) {
             let mut prev_instant = frame.current.instant;
             for entry in frame.prev.iter().rev() {
-                past.push((prev_instant, entry.frame_id, entry.pipeline_id));
+                past.push((prev_instant, entry.clone()));
                 prev_instant = entry.instant;
             }
         }
@@ -1634,16 +1634,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .unwrap_or(self.root_frame_id);
 
         let mut traversal_info = HashMap::new();
-
         match direction {
             TraversalDirection::Forward(delta) => {
                 let mut future = self.joint_session_future(top_level_frame_id);
                 for _ in 0..delta {
                     match future.pop() {
-                        Some((_, frame_id, pipeline_id)) => {
-                            traversal_info.insert(frame_id, pipeline_id);
+                        Some(frame_state) => {
+                            traversal_info.insert(frame_state.frame_id, frame_state);
                         },
-                        None => return warn!("invalid traversal delta"),
+                        None => return warn!("invalid forward traversal delta"),
                     }
                 }
             },
@@ -1651,16 +1650,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let mut past = self.joint_session_past(top_level_frame_id);
                 for _ in 0..delta {
                     match past.pop() {
-                        Some((_, frame_id, pipeline_id)) => {
-                            traversal_info.insert(frame_id, pipeline_id);
+                        Some((_, frame_state)) => {
+                            traversal_info.insert(frame_state.frame_id, frame_state);
                         },
-                        None => return warn!("invalid traversal delta"),
+                        None => return warn!("invalid back traversal delta"),
                     }
                 }
             },
         };
-        for (frame_id, pipeline_id) in traversal_info {
-            self.traverse_frame_to_pipeline(frame_id, pipeline_id);
+        for (frame_id, frame_state) in traversal_info {
+            self.traverse_frame_to_frame_state(frame_id, frame_state);
         }
     }
 
@@ -1955,7 +1954,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn traverse_frame_to_pipeline(&mut self, frame_id: FrameId, next_pipeline_id: PipelineId) {
+    fn traverse_frame_to_frame_state(&mut self, frame_id: FrameId, next_frame_state: FrameState) {
         // Check if the currently focused pipeline is the pipeline being replaced
         // (or a child of it). This has to be done here, before the current
         // frame tree is modified below.
@@ -1966,31 +1965,30 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let prev_entry = frame.current.clone();
                 // Check that this frame contains the pipeline passed in, so that this does not
                 // change Frame's state before realizing `next_pipeline_id` is invalid.
-                if frame.next.iter().find(|entry| next_pipeline_id == entry.pipeline_id).is_some() {
+                if frame.next.iter().find(|&entry| next_frame_state == *entry).is_some() {
                     frame.prev.push(frame.current.clone());
                     while let Some(entry) = frame.next.pop() {
-                        if entry.pipeline_id == next_pipeline_id {
+                        if entry == next_frame_state {
                             frame.current = entry;
                             break;
                         } else {
                             frame.prev.push(entry);
                         }
                     }
-                } else if frame.prev.iter().find(|entry| next_pipeline_id == entry.pipeline_id).is_some() {
+                } else if frame.prev.iter().find(|&entry| next_frame_state == *entry).is_some() {
                     frame.next.push(frame.current.clone());
                     while let Some(entry) = frame.prev.pop() {
-                        if entry.pipeline_id == next_pipeline_id {
+                        if entry == next_frame_state {
                             frame.current = entry;
                             break;
                         } else {
                             frame.next.push(entry);
                         }
                     }
-                } else if prev_entry.pipeline_id != next_pipeline_id {
-                    return warn!("Tried to traverse frame {:?} to pipeline {:?} it does not contain.",
-                        frame_id, next_pipeline_id);
+                } else if prev_entry != next_frame_state {
+                    return warn!("Tried to traverse frame {:?} to state {:?} it does not contain.",
+                        frame_id, next_frame_state);
                 }
-
                 (prev_entry, frame.current.clone())
             },
             None => return warn!("no frame to traverse"),

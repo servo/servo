@@ -1748,7 +1748,7 @@ impl ScriptThread {
                                  incomplete.window_size);
         let frame_element = frame_element.r().map(Castable::upcast);
 
-        let browsing_context = BrowsingContext::new(&window, frame_element);
+        let browsing_context = BrowsingContext::new(&window, frame_element, incomplete.url.clone());
         window.init_browsing_context(&browsing_context);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
