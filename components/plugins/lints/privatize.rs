@@ -21,7 +21,7 @@ impl LintPass for PrivatizePass {
     }
 }
 
-impl LateLintPass for PrivatizePass {
+impl<'a, 'tcx> LateLintPass<'a, 'tcx> for PrivatizePass {
     fn check_struct_def(&mut self,
                         cx: &LateContext,
                         def: &hir::VariantData,

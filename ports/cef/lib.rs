@@ -22,11 +22,11 @@ extern crate euclid;
 extern crate gfx_traits;
 extern crate gleam;
 extern crate glutin_app;
-extern crate rustc_unicode;
 extern crate script_traits;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;
+extern crate std_unicode;
 extern crate style_traits;
 
 extern crate net_traits;
