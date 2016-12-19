@@ -4,10 +4,63 @@
 
 //! The `Constellation`, Servo's Grand Central Station
 //!
-//! The primary duty of a `Constellation` is to mediate between the
-//! graphics compositor and the many `Pipeline`s in the browser's
-//! navigation context, each `Pipeline` encompassing a `ScriptThread`,
-//! `LayoutThread`, and `PaintThread`.
+//! The constellation tracks all information kept globally by the
+//! browser engine, which includes:
+//!
+//! * The set of all `EventLoop` objects. Each event loop is
+//!   the constellation's view of a script thread. The constellation
+//!   interacts with a script thread by message-passing.
+//!
+//! * The set of all `Pipeline` objects.  Each pipeline gives the
+//!   constellation's view of a `Window`, with its script thread and
+//!   layout threads.  Pipelines may share script threads, but not
+//!   layout threads.
+//!
+//! * The set of all `Frame` objects. Each frame gives the constellation's
+//!   view of a browsing context. Each browsing context stores an independent
+//!   session history, created by navigation of that frame. The session
+//!   history can be traversed, for example by the back and forwards UI,
+//!   so each session history maintains a list of past and future pipelines,
+//!   as well as the current active pipeline.
+//!
+//! There are two kinds of frames: top-level frames (for example tabs
+//! in a browser UI), and nested frames (typically caused by `iframe`
+//! elements). Frames have a hierarchy (typically caused by `iframe`s
+//! containing `iframe`s), giving rise to a frame tree with a root frame.
+//! The logical relationship between these types is:
+//!
+//! ```
+//! +---------+              +------------+                 +-------------+
+//! |  Frame  | --parent?--> |  Pipeline  | --event_loop--> |  EventLoop  |
+//! |         | --current--> |            |                 |             |
+//! |         | --prev*----> |            | <---pipeline*-- |             |
+//! |         | --next*----> |            |                 +-------------+
+//! |         |              |            |
+//! |         | <----frame-- |            |
+//! +---------+              +------------+
+//! ```
+//
+//! Complicating matters, there are also mozbrowser iframes, which are top-level
+//! frames with a parent.
+//!
+//! The constellation also maintains channels to threads, including:
+//!
+//! * The script and layout threads.
+//! * The graphics compositor.
+//! * The font cache, image cache, and resource manager, which load
+//!   and cache shared fonts, images, or other resources.
+//! * The service worker manager.
+//! * The devtools, debugger and webdriver servers.
+//!
+//! The constellation passes messages between the threads, and updates its state
+//! to track the evolving state of the frame tree.
+//!
+//! The constellation acts as a logger, tracking any `warn!` messages from threads,
+//! and converting any `error!` or `panic!` into a crash report, which is filed
+//! using an appropriate `mozbrowsererror` event.
+//!
+//! Since there is only one constellation, and its responsibilities include crash reporting,
+//! it is very important that it does not panic.
 
 use backtrace::Backtrace;
 use bluetooth_traits::BluetoothRequest;
