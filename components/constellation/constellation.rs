@@ -2021,7 +2021,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Some(pipeline) => {
                 let msg = ConstellationControlMsg::ActivateHistoryState(next_entry.pipeline_id,
                         next_entry.history_state_id);
-                let _ = pipeline.script_chan.send(msg);
+                let _ = pipeline.event_loop.send(msg);
             },
             None => return warn!("Pipeline {:?} traversed after closure.", next_entry.pipeline_id),
         };
@@ -2351,7 +2351,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     Some(pipeline) => {
                         let msg = ConstellationControlMsg::RemoveHistoryStateEntries(pipeline_id,
                             discarded_history_states);
-                        let _ = pipeline.script_chan.send(msg);
+                        let _ = pipeline.event_loop.send(msg);
                     },
                     None => return warn!("Pipeline {:?} closed after removing state entries", pipeline_id),
                 }
