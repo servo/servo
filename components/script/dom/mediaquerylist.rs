@@ -9,12 +9,15 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::MediaQueryListBinding::{self, MediaQueryListMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
+use dom::bindings::reflector::DomObject;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::weakref::{WeakRef, WeakRefVec};
 use dom::document::Document;
+use dom::event::Event;
 use dom::eventtarget::EventTarget;
+use dom::mediaquerylistevent::MediaQueryListEvent;
 use euclid::scale_factor::ScaleFactor;
 use js::jsapi::JSTracer;
 use std::cell::Cell;
@@ -136,8 +139,14 @@ impl WeakMediaQueryListVec {
     /// https://drafts.csswg.org/cssom-view/#evaluate-media-queries-and-report-changes
     pub fn evaluate_and_report_changes(&self) {
         for mql in self.cell.borrow().iter() {
-            if let MediaQueryListMatchState::Changed(_) = mql.root().unwrap().evaluate_changes() {
-                mql.root().unwrap().upcast::<EventTarget>().fire_event(atom!("change"));
+            let mql = mql.root().unwrap();
+            if let MediaQueryListMatchState::Changed(_) = mql.evaluate_changes() {
+                let event = MediaQueryListEvent::new(&mql.global(),
+                                                     atom!("change"),
+                                                     false, false,
+                                                     mql.Media(),
+                                                     mql.Matches());
+                event.upcast::<Event>().fire(mql.upcast::<EventTarget>());
             }
         }
     }
