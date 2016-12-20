@@ -7,8 +7,6 @@ use std::slice;
 use string::cef_string_utf16_set;
 use types::{cef_string_list_t,cef_string_t};
 
-use rustc_unicode::str::Utf16Encoder;
-
 //cef_string_list
 
 #[no_mangle]
@@ -38,7 +36,7 @@ pub extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int
         if index < 0 || lt.is_null() { return 0; }
         if index as usize > (*lt).len() - 1 { return 0; }
         let ref string = (*lt)[index as usize];
-        let utf16_chars: Vec<u16> = Utf16Encoder::new(string.chars()).collect();
+        let utf16_chars: Vec<u16> = string.encode_utf16().collect();
         cef_string_utf16_set(utf16_chars.as_ptr(), utf16_chars.len(), value, 1)
     }
 }

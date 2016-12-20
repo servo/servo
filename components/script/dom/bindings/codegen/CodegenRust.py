@@ -4260,7 +4260,9 @@ class CGUnionConversionStruct(CGThing):
 
         return CGWrapper(
             CGIndenter(jsConversion, 4),
-            pre="unsafe fn TryConvertTo%s(cx: *mut JSContext, value: HandleValue) -> %s {\n" % (t.name, returnType),
+            # TryConvertToObject is unused, but not generating it while generating others is tricky.
+            pre="#[allow(dead_code)] unsafe fn TryConvertTo%s(cx: *mut JSContext, value: HandleValue) -> %s {\n"
+                % (t.name, returnType),
             post="\n}")
 
     def define(self):

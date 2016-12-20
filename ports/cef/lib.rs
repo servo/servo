@@ -6,7 +6,6 @@
 #![feature(core_intrinsics)]
 #![feature(link_args)]
 #![feature(plugin)]
-#![feature(unicode)]
 
 #![allow(non_camel_case_types)]
 
@@ -22,7 +21,6 @@ extern crate euclid;
 extern crate gfx_traits;
 extern crate gleam;
 extern crate glutin_app;
-extern crate rustc_unicode;
 extern crate script_traits;
 extern crate servo_config;
 extern crate servo_geometry;

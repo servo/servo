@@ -69,7 +69,7 @@ macro_rules! declare_viewport_descriptor_inner {
         const VIEWPORT_DESCRIPTOR_VARIANTS: usize = $number_of_variants;
 
         impl ViewportDescriptor {
-            fn discriminant_value(&self) -> usize {
+            pub fn discriminant_value(&self) -> usize {
                 match *self {
                     $(
                         ViewportDescriptor::$assigned_variant(..) => $assigned_discriminant,

@@ -14,7 +14,6 @@ use eutil::Downcast;
 use interfaces::CefApp;
 use interfaces::CefBrowser;
 use render_handler::CefRenderHandlerExtensions;
-use rustc_unicode::str::Utf16Encoder;
 use types::{cef_cursor_handle_t, cef_cursor_type_t, cef_rect_t};
 use wrappers::CefWrap;
 
@@ -331,10 +330,7 @@ impl WindowMethods for Window {
             Some(ref browser) => browser,
         };
         let str = match info {
-            Some(s) => {
-                let utf16_chars: Vec<u16> = Utf16Encoder::new(s.chars()).collect();
-                utf16_chars
-            }
+            Some(s) => s.encode_utf16().collect::<Vec<u16>>(),
             None => vec![]
         };
 
@@ -397,7 +393,7 @@ impl WindowMethods for Window {
         };
         if check_ptr_exist!(browser.get_host().get_client(), get_load_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_load_handler(), on_load_error) {
-            let utf16_chars: Vec<u16> = Utf16Encoder::new((url).chars()).collect();
+            let utf16_chars: Vec<u16> = url.encode_utf16().collect();
             browser.get_host()
                    .get_client()
                    .get_load_handler()
@@ -428,10 +424,7 @@ impl WindowMethods for Window {
         let frame = frame.downcast();
         let mut title_visitor = frame.title_visitor.borrow_mut();
         let str = match string {
-            Some(s) => {
-                let utf16_chars: Vec<u16> = Utf16Encoder::new(s.chars()).collect();
-                utf16_chars
-            }
+            Some(s) => s.encode_utf16().collect(),
             None => vec![]
         };
 
@@ -461,7 +454,7 @@ impl WindowMethods for Window {
         // FIXME(https://github.com/rust-lang/rust/issues/23338)
         let mut frame_url = servoframe.url.borrow_mut();
         *frame_url = url.into_string();
-        let utf16_chars: Vec<u16> = Utf16Encoder::new((*frame_url).chars()).collect();
+        let utf16_chars: Vec<u16> = frame_url.encode_utf16().collect();
         if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
            check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_address_change) {
             browser.get_host().get_client().get_display_handler().on_address_change((*browser).clone(), frame.clone(), utf16_chars.as_slice());
