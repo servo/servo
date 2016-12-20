@@ -39719,6 +39719,12 @@
             "url": "/cssom/shorthand-serialization.html"
           }
         ],
+        "fetch/api/request/request-bad-port.html": [
+          {
+            "path": "fetch/api/request/request-bad-port.html",
+            "url": "/fetch/api/request/request-bad-port.html"
+          }
+        ],
         "html/semantics/forms/form-submission-0/submit-entity-body.html": [
           {
             "path": "html/semantics/forms/form-submission-0/submit-entity-body.html",
