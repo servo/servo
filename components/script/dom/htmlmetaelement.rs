@@ -68,7 +68,8 @@ impl HTMLMetaElement {
                                    "text/css".into(),
                                    None, // todo handle location
                                    None, // todo handle title
-                                   sheet)
+                                   sheet,
+                                   true) // todo add origin-clean flag
             })
         })
     }
