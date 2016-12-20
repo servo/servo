@@ -8,7 +8,6 @@
 
 use dom::{OpaqueNode, TElement, TNode, UnsafeNode};
 use rayon;
-use scoped_tls::ScopedTLS;
 use servo_config::opts;
 use std::sync::atomic::Ordering;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
@@ -48,7 +47,7 @@ pub fn traverse_dom<N, D>(traversal: &D,
     let traversal_data = PerLevelTraversalData {
         current_dom_depth: depth,
     };
-    let tls = ScopedTLS::<D::ThreadLocalContext>::new(queue);
+    let tls = rayon::ScopedTLS::<D::ThreadLocalContext>::new(queue);
     let root = root.as_node().opaque();
 
     queue.install(|| {
@@ -75,7 +74,7 @@ fn top_down_dom<'a, 'scope, N, D>(unsafe_nodes: &'a [UnsafeNode],
                                   mut traversal_data: PerLevelTraversalData,
                                   scope: &'a rayon::Scope<'scope>,
                                   traversal: &'scope D,
-                                  tls: &'scope ScopedTLS<'scope, D::ThreadLocalContext>)
+                                  tls: &'scope rayon::ScopedTLS<'scope, D::ThreadLocalContext>)
     where N: TNode,
           D: DomTraversal<N>,
 {
@@ -129,7 +128,7 @@ fn traverse_nodes<'a, 'scope, N, D>(nodes: Vec<UnsafeNode>, root: OpaqueNode,
                                     traversal_data: PerLevelTraversalData,
                                     scope: &'a rayon::Scope<'scope>,
                                     traversal: &'scope D,
-                                    tls: &'scope ScopedTLS<'scope, D::ThreadLocalContext>)
+                                    tls: &'scope rayon::ScopedTLS<'scope, D::ThreadLocalContext>)
     where N: TNode,
           D: DomTraversal<N>,
 {

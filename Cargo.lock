@@ -2182,7 +2182,7 @@ dependencies = [
 [[package]]
 name = "rayon"
 version = "0.5.0"
-source = "git+https://github.com/bholley/rayon.git?branch=expose_thread_indices#d15a5faca95ca5ee296fee60a4660a043752466d"
+source = "git+https://github.com/bholley/rayon.git?branch=scoped_tls#2133be25c9c752f1c88068e08f7e1a9d593a8e3a"
 dependencies = [
  "deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2194,7 +2194,7 @@ dependencies = [
 name = "rayon"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-replace = "rayon 0.5.0 (git+https://github.com/bholley/rayon.git?branch=expose_thread_indices)"
+replace = "rayon 0.5.0 (git+https://github.com/bholley/rayon.git?branch=scoped_tls)"
 
 [[package]]
 name = "ref_filter_map"
@@ -3486,7 +3486,7 @@ dependencies = [
 "checksum quine-mc_cluskey 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "07589615d719a60c8dd8a4622e7946465dfef20d1a428f969e3443e7386d5f45"
 "checksum quote 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "ea1e0c9bc6bfb0a60d539aab6e338207c1a5456e62f5bd5375132cee119aa4b3"
 "checksum rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)" = "2791d88c6defac799c3f20d74f094ca33b9332612d9aef9078519c82e4fe04a5"
-"checksum rayon 0.5.0 (git+https://github.com/bholley/rayon.git?branch=expose_thread_indices)" = "<none>"
+"checksum rayon 0.5.0 (git+https://github.com/bholley/rayon.git?branch=scoped_tls)" = "<none>"
 "checksum rayon 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3b6a6e05e0e6b703e9f2ad266eb63f3712e693a17a2702b95a23de14ce8defa9"
 "checksum ref_filter_map 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "2b5ceb840e4009da4841ed22a15eb49f64fdd00a2138945c5beacf506b2fb5ed"
 "checksum ref_slice 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "546bb4aa91c85f232732cc5b3c8097ea97ae9a77304f9ab4df8b203ff7672dad"
