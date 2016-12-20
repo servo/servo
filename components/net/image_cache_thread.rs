@@ -5,7 +5,7 @@
 use immeta::load_from_buf;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use net_traits::{CoreResourceThread, NetworkError, fetch_async, FetchResponseMsg, FetchMetadata, Metadata};
+use net_traits::{CoreResourceThread, NetworkError, fetch_async, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};

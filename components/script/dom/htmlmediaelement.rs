@@ -437,6 +437,7 @@ impl HTMLMediaElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
+    #[allow(unreachable_code)]
     fn resource_selection_algorithm_sync(&self, base_url: ServoUrl) {
         // TODO step 5 (populate pending text tracks)
 
@@ -446,7 +447,7 @@ impl HTMLMediaElement {
             ResourceSelectionMode::Object
         } else if let Some(attr) = self.upcast::<Element>().get_attribute(&ns!(), &local_name!("src")) {
             ResourceSelectionMode::Attribute(attr.Value().to_string())
-        } else if false {
+        } else if false {  // TODO: when implementing this remove #[allow(unreachable_code)] above.
             // TODO <source> child
             ResourceSelectionMode::Children(panic!())
         } else {
