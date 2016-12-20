@@ -106,7 +106,27 @@ windows-dev:
   - ./mach test-unit
   - ./mach build-geckolib
 
+windows-gnu-dev:
+  - ./mach build --dev
+  - ./mach test-unit
+  - ./mach build-geckolib
+
+windows-msvc-dev:
+  - mach.bat build --dev
+  - mach.bat test-unit
+  - mach.bat build-geckolib
+
 windows-nightly:
   - ./mach build --release
   - ./mach package --release
-  - ./etc/ci/upload_nightly.sh windows
+  - ./etc/ci/upload_nightly.sh windows-gnu
+
+windows-nightly-gnu:
+  - ./mach build --release
+  - ./mach package --release
+  - ./etc/ci/upload_nightly.sh windows-gnu
+
+windows-nightly-msvc:
+  - mach.bat build --release
+  - mach.bat package --release
+  - .\etc\ci\upload_nightly.sh windows-msvc
