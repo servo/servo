@@ -4,7 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-	test(function () {
+	promise_test(function () {
 		// list of bad ports according to
 		// https://fetch.spec.whatwg.org/#port-blocking
 		var BLOCKED_PORTS_LIST = [
@@ -75,9 +75,7 @@
 		];
 		for (var i = 0; i < BLOCKED_PORTS_LIST.length; i++) {
 			var blockedPort = BLOCKED_PORTS_LIST[i];
-			assert_throws(new TypeError(), function (port) {
-				fetch("http://example.com:" + port);
-			}(blockedPort));
+			assert_promise_rejects(new TypeError(), fetch("http://example.com:" + blockedPort));
 		}
 	}, "Requests on bad ports should fail")
 </script>
