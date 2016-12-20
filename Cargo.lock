@@ -394,7 +394,6 @@ dependencies = [
  "gleam 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "layers 0.5.3 (git+https://github.com/servo/rust-layers)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
@@ -1295,26 +1294,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "language-tags"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "layers"
-version = "0.5.3"
-source = "git+https://github.com/servo/rust-layers#b064de859b2cf3f4e07b29ee11a34543f1671ac0"
-dependencies = [
- "cgl 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "gleam 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "glx 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "heapsize 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "io-surface 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-skia 0.20130412.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 2.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "layout"
@@ -3512,7 +3491,6 @@ dependencies = [
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
 "checksum khronos_api 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "09c9d3760673c427d46f91a0350f0a84a52e6bc5a84adf26dc610b6c52436630"
 "checksum language-tags 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a91d884b6667cd606bb5a69aa0c99ba811a115fc68915e7056ec08a46e93199a"
-"checksum layers 0.5.3 (git+https://github.com/servo/rust-layers)" = "<none>"
 "checksum lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)" = "cf186d1a8aa5f5bee5fd662bc9c1b949e0259e1bcc379d1f006847b0080c7417"
 "checksum lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6abe0ee2e758cd6bc8a2cd56726359007748fbf4128da998b65d0b70f881e19b"
 "checksum leak 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "bd100e01f1154f2908dfa7d02219aeab25d0b9c7fa955164192e3245255a0c73"
