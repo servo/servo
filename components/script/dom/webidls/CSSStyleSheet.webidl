@@ -6,7 +6,7 @@
 [Exposed=Window]
 interface CSSStyleSheet : StyleSheet {
   // readonly attribute CSSRule? ownerRule;
-  [SameObject] readonly attribute CSSRuleList cssRules;
+  [Throws, SameObject] readonly attribute CSSRuleList cssRules;
   [Throws] unsigned long insertRule(DOMString rule, unsigned long index);
   [Throws] void deleteRule(unsigned long index);
 };

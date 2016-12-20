@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::CSSStyleSheetBinding;
 use dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{reflect_dom_object, DomObject};
 use dom::bindings::str::DOMString;
@@ -13,6 +13,7 @@ use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::element::Element;
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
+use std::cell::Cell;
 use std::sync::Arc;
 use style::stylesheets::Stylesheet as StyleStyleSheet;
 
@@ -23,6 +24,7 @@ pub struct CSSStyleSheet {
     rulelist: MutNullableJS<CSSRuleList>,
     #[ignore_heap_size_of = "Arc"]
     style_stylesheet: Arc<StyleStyleSheet>,
+    origin_clean: Cell<bool>,
 }
 
 impl CSSStyleSheet {
@@ -36,6 +38,7 @@ impl CSSStyleSheet {
             owner: JS::from_ref(owner),
             rulelist: MutNullableJS::new(None),
             style_stylesheet: stylesheet,
+            origin_clean: Cell::new(false),
         }
     }
 
@@ -71,25 +74,34 @@ impl CSSStyleSheet {
     pub fn style_stylesheet(&self) -> &StyleStyleSheet {
         &self.style_stylesheet
     }
+
+    pub fn set_origin_clean(&self, origin_clean: bool) {
+        self.origin_clean.set(origin_clean);
+    }
 }
 
 impl CSSStyleSheetMethods for CSSStyleSheet {
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules
-    fn CssRules(&self) -> Root<CSSRuleList> {
-        // XXXManishearth check origin clean flag
-        // https://github.com/servo/servo/issues/14327
-        self.rulelist()
+    fn GetCssRules(&self) -> Fallible<Root<CSSRuleList>> {
+        if !self.origin_clean.get() {
+            return Err(Error::Security);
+        }
+        Ok(self.rulelist())
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule
     fn InsertRule(&self, rule: DOMString, index: u32) -> Fallible<u32> {
-        // XXXManishearth check origin clean flag
+        if !self.origin_clean.get() {
+            return Err(Error::Security);
+        }
         self.rulelist().insert_rule(&rule, index, /* nested */ false)
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule
     fn DeleteRule(&self, index: u32) -> ErrorResult {
-        // XXXManishearth check origin clean flag
+        if !self.origin_clean.get() {
+            return Err(Error::Security);
+        }
         self.rulelist().remove_rule(index)
     }
 }

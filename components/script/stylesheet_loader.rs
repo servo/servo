@@ -4,13 +4,17 @@
 
 use document_loader::LoadType;
 use dom::bindings::inheritance::Castable;
+use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmetaelement::HTMLMetaElement;
+use dom::htmlstyleelement::HTMLStyleElement;
 use dom::node::{document_from_node, window_from_node};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -19,7 +23,7 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError, ReferrerPolicy};
+use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
@@ -92,6 +96,35 @@ impl FetchResponseListener for StylesheetContext {
 
     fn process_response(&mut self,
                         metadata: Result<FetchMetadata, NetworkError>) {
+        let stylesheet: Option<Root<CSSStyleSheet>>;
+        let elem = self.elem.root();
+        if let Some(element) = elem.downcast::<HTMLLinkElement>() {
+            stylesheet = element.get_cssom_stylesheet();
+        } else if let Some(element) = elem.downcast::<HTMLMetaElement>() {
+            stylesheet = element.get_cssom_stylesheet();
+        } else if let Some(element) = elem.downcast::<HTMLStyleElement>() {
+            stylesheet = element.get_cssom_stylesheet();
+        } else {
+            stylesheet = None;
+        }
+
+        if let Some(stylesheet) = stylesheet {
+            match metadata {
+                Ok(FetchMetadata::Unfiltered(_)) => {
+                    stylesheet.set_origin_clean(true);
+                },
+                Ok(FetchMetadata::Filtered { ref filtered, .. }) => {
+                    let same_origin = match *filtered {
+                        FilteredMetadata::Basic(_) |
+                        FilteredMetadata::Cors(_) => true,
+                        _ => false,
+                    };
+                    stylesheet.set_origin_clean(same_origin);
+                },
+                _ => {},
+            }
+        }
+
         self.metadata = metadata.ok().map(|m| {
             match m {
                 FetchMetadata::Unfiltered(m) => m,
