@@ -70,7 +70,7 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, Lay
 use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
 use script_layout_interface::rpc::ResolvedStyleResponse;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper, ScriptThread};
+use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
 use script_thread::SendableMainThreadScriptChan;
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
@@ -911,14 +911,14 @@ impl Window {
         // yet). There should not be any such DOM nodes with layout
         // data, but if there are, then when they are dropped, they
         // will attempt to send a message to the closed layout thread.
-        // This message will fail, but the thread doesn't panic, it
-        // just generates a warning. This will cause the layout data
-        // to be leaked, so hopefully this doesn't happen too often.
-        // Previous versions of this function forced a GC at this point:
-        // self.Gc();
-        // but this causes problems if a window is reclaimed during GC,
-        // since we end up with a GC happening inside a GC, which
-        // causes a runtime failure.
+        // This causes memory safety issues, because the DOM node uses
+        // the layout channel from its window, and the window has
+        // already been GC'd.  For nodes which do not have a live
+        // pointer, we can avoid this by GCing now:
+        self.Gc();
+        // but there may still be nodes being kept alive by user
+        // script.
+        // TODO: ensure that this doesn't happen!
 
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
@@ -1453,6 +1453,8 @@ impl Window {
 
     pub fn freeze(&self) {
         self.upcast::<GlobalScope>().suspend();
+        // A hint to the JS runtime that now would be a good time to GC this window.
+        self.Gc();
     }
 
     pub fn thaw(&self) {
@@ -1639,13 +1641,6 @@ impl Window {
         unsafe {
             WindowBinding::Wrap(runtime.cx(), win)
         }
-    }
-}
-
-impl Drop for Window {
-    // When a window is reclaimed, inform the script thread.
-    fn drop(&mut self) {
-        ScriptThread::discard_window(self);
     }
 }
 

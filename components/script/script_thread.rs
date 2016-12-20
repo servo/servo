@@ -326,75 +326,11 @@ impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
     }
 }
 
-/// The state that a document managed by this script thread could be in.
-// TODO: really this should be WindowState, since we implement Drop on Window, not Document,
-#[must_root]
-enum DocumentState {
-    /// A document that we are currently keeping.
-    /// When documents are active, the flag is true, but if they become inactive we
-    /// set it to false, at which point the document can be garbage collected.
-    Kept(DocumentReference, JS<Document>),
-    Discarded(ServoUrl),
-}
-
-/// Is the reference to the document strong or weak. Weak references can be garbage
-/// collected, strong references cannot. A document reference is marked as strong
-/// if it is fully active.
-enum DocumentReference {
-    Strong,
-    Weak,
-}
-
-unsafe impl JSTraceable for DocumentState {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        // Strong references to documents are kept alive by the script thread,
-        // weak references are not, but may be kept alive by references from other pipelines,
-        // for example by using `iframe.contentDocument`.
-        if let DocumentState::Kept(DocumentReference::Strong, ref doc) = *self {
-            doc.trace(trc);
-        }
-    }
-}
-
-impl DocumentState {
-    fn new(document: &Document) -> DocumentState {
-        DocumentState::Kept(DocumentReference::Strong, JS::from_ref(document))
-    }
-
-    // This function is safe as long as Window implements Drop
-    // to set the state to be discarded.
-    fn document(&self) -> Option<Root<Document>> {
-        match *self {
-            DocumentState::Kept(_, ref doc) => Some(Root::from_ref(doc)),
-            DocumentState::Discarded(_) => None,
-        }
-    }
-
-    // This function is safe as long as Window implements Drop
-    // to set the state to be discarded.
-    fn url(&self) -> ServoUrl {
-        match *self {
-            DocumentState::Kept(_, ref doc) => doc.url(),
-            DocumentState::Discarded(ref url) => url.clone(),
-        }
-    }
-
-    fn discard(&mut self) -> Option<Root<Document>> {
-        let doc = match *self {
-            DocumentState::Kept(_, ref doc) => Root::from_ref(&**doc),
-            DocumentState::Discarded(_) => return None,
-        };
-        *self = DocumentState::Discarded(doc.url());
-        Some(doc)
-    }
-}
-
 /// The set of all documents managed by this script thread.
-// TODO: really this should be Windows, since we implement Drop on Window, not Document,
 #[derive(JSTraceable)]
 #[must_root]
 pub struct Documents {
-    map: HashMap<PipelineId, DocumentState>,
+    map: HashMap<PipelineId, JS<Document>>,
 }
 
 impl Documents {
@@ -404,24 +340,12 @@ impl Documents {
         }
     }
 
-    fn get(&self, pipeline_id: PipelineId) -> Option<&DocumentState> {
-        self.map.get(&pipeline_id)
-    }
-
-    fn get_mut(&mut self, pipeline_id: PipelineId) -> Option<&mut DocumentState> {
-        self.map.get_mut(&pipeline_id)
-    }
-
-    pub fn insert(&mut self, pipeline_id: PipelineId, document: &Document) {
-        self.map.insert(pipeline_id, DocumentState::new(document));
-    }
-
-    pub fn discard(&mut self, pipeline_id: PipelineId) -> Option<Root<Document>> {
-        self.map.get_mut(&pipeline_id).and_then(|state| state.discard())
+    pub fn insert(&mut self, pipeline_id: PipelineId, doc: &Document) {
+        self.map.insert(pipeline_id, JS::from_ref(doc));
     }
 
     pub fn remove(&mut self, pipeline_id: PipelineId) -> Option<Root<Document>> {
-        self.map.remove(&pipeline_id).and_then(|ref state| state.document())
+        self.map.remove(&pipeline_id).map(|ref doc| Root::from_ref(&**doc))
     }
 
     pub fn is_empty(&self) -> bool {
@@ -429,7 +353,7 @@ impl Documents {
     }
 
     pub fn find_document(&self, pipeline_id: PipelineId) -> Option<Root<Document>> {
-        self.get(pipeline_id).and_then(|state| state.document())
+        self.map.get(&pipeline_id).map(|doc| Root::from_ref(&**doc))
     }
 
     pub fn find_window(&self, pipeline_id: PipelineId) -> Option<Root<Window>> {
@@ -453,19 +377,14 @@ impl Documents {
 
 #[allow(unrooted_must_root)]
 pub struct DocumentsIter<'a> {
-    iter: hash_map::Iter<'a, PipelineId, DocumentState>,
+    iter: hash_map::Iter<'a, PipelineId, JS<Document>>,
 }
 
 impl<'a> Iterator for DocumentsIter<'a> {
     type Item = (PipelineId, Root<Document>);
 
     fn next(&mut self) -> Option<(PipelineId, Root<Document>)> {
-        while let Some((id, state)) = self.iter.next() {
-            if let Some(document) = state.document() {
-                return Some((*id, document));
-            }
-        }
-        return None;
+        self.iter.next().map(|(id, doc)| (*id, Root::from_ref(&**doc)))
     }
 }
 
@@ -702,22 +621,6 @@ impl ScriptThread {
             let script_thread = unsafe { &*script_thread };
             script_thread.documents.borrow().find_document(id)
         }))
-    }
-
-    pub fn discard_window(window: &Window) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                let pipeline_id = window.upcast::<GlobalScope>().pipeline_id();
-                debug!("Window {} discarded.", pipeline_id);
-                if script_thread.documents.borrow_mut().discard(pipeline_id).is_none() {
-                    return;
-                }
-                script_thread.closed_pipelines.borrow_mut().insert(pipeline_id);
-                shut_down_layout(window);
-                let _ = script_thread.constellation_chan.send(ConstellationMsg::PipelineExited(pipeline_id));
-            }
-        })
     }
 
     /// Creates a new script thread.
@@ -1161,7 +1064,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => {
                 match documents.find_window(id) {
                     Some(window) => devtools::handle_evaluate_js(window.upcast(), s, reply),
-                    None => return warn!("Devtools evaluate JS message sent to closed pipeline {}.", id),
+                    None => return warn!("Message sent to closed pipeline {}.", id),
                 }
             },
             DevtoolScriptControlMsg::GetRootNode(id, reply) =>
@@ -1179,7 +1082,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
                 match documents.find_window(id) {
                     Some(window) => devtools::handle_wants_live_notifications(window.upcast(), to_send),
-                    None => return warn!("Devtools live notifications message sent to closed pipeline {}.", id),
+                    None => return warn!("Message sent to closed pipeline {}.", id),
                 }
             },
             DevtoolScriptControlMsg::SetTimelineMarkers(id, marker_types, reply) =>
@@ -1344,7 +1247,7 @@ impl ScriptThread {
     fn handle_loads_complete(&self, pipeline: PipelineId) {
         let doc = match { self.documents.borrow().find_document(pipeline) } {
             Some(doc) => doc,
-            None => return warn!("Loads complete message sent to closed pipeline {}.", pipeline),
+            None => return warn!("Message sent to closed pipeline {}.", pipeline),
         };
         if doc.loader().is_blocked() {
             debug!("Script thread got loads complete while loader is blocked.");
@@ -1440,30 +1343,9 @@ impl ScriptThread {
 
     /// Handles freeze message
     fn handle_freeze_msg(&self, id: PipelineId) {
-        let document = if let Some(state) = self.documents.borrow_mut().get_mut(id) {
-            if opts::get().unsafe_discard_documents {
-                // For testing purposes, we have an option to agressively
-                // discard all inactive documents.
-                warn!("Discarding pipeline {}.", id);
-                *state = DocumentState::Discarded(state.url());
-                return;
-            }
-            match *state {
-                DocumentState::Discarded(_) => return warn!("Freezing already discarded pipeline {}.", id),
-                DocumentState::Kept(ref mut traced, ref document) => match *traced {
-                    DocumentReference::Weak => return warn!("Freezing already frozen pipeline {}.", id),
-                    DocumentReference::Strong => {
-                        debug!("Freezing pipeline {}.", id);
-                        *traced = DocumentReference::Weak;
-                        Some(Root::from_ref(&**document))
-                    },
-                },
-            }
-        } else {
-            None
-        };
-        if let Some(document) = document {
-            document.window().freeze();
+        let window = self.documents.borrow().find_window(id);
+        if let Some(window) = window {
+            window.freeze();
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -1476,28 +1358,7 @@ impl ScriptThread {
 
     /// Handles thaw message
     fn handle_thaw_msg(&self, id: PipelineId) {
-        let document = if let Some(state) = self.documents.borrow_mut().get_mut(id) {
-            match *state {
-                DocumentState::Discarded(ref url) => {
-                    warn!("Thawing discarded pipeline {}.", id);
-                    // TODO referrer info
-                    let load_data = LoadData::new(url.clone(), None, None);
-                    let msg = ConstellationMsg::LoadUrl(id, load_data, true);
-                    self.constellation_chan.send(msg).unwrap();
-                    return;
-                },
-                DocumentState::Kept(ref mut traced, ref document) => match *traced {
-                    DocumentReference::Weak => {
-                        debug!("Thawing pipeline {}.", id);
-                        *traced = DocumentReference::Strong;
-                        Some(Root::from_ref(&**document))
-                    },
-                    DocumentReference::Strong => return warn!("Thawing already thawed pipeline {}.", id),
-                },
-            }
-        } else {
-            None
-        };
+        let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             if let Some(context) = document.browsing_context() {
                 let needed_reflow = context.set_reflow_status(false);
@@ -1575,14 +1436,10 @@ impl ScriptThread {
 
     /// Window was resized, but this script was not active, so don't reflow yet
     fn handle_resize_inactive_msg(&self, id: PipelineId, new_size: WindowSizeData) {
-        let window = self.documents.borrow().find_window(id);
-        match window {
-            None => warn!("Resize msg after pipeline {} closed.", id),
-            Some(window) => {
-                window.set_window_size(new_size);
-                window.browsing_context().set_reflow_status(true);
-            },
-        }
+        let window = self.documents.borrow().find_window(id)
+            .expect("ScriptThread: received a resize msg for a pipeline not in this script thread. This is a bug.");
+        window.set_window_size(new_size);
+        window.browsing_context().set_reflow_status(true);
     }
 
     /// We have gotten a window.close from script, which we pass on to the compositor.
@@ -1701,7 +1558,7 @@ impl ScriptThread {
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
-            None => return warn!("Get title message sent to closed pipeline {}.", pipeline_id),
+            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
         document.send_title_to_compositor();
     }
@@ -1731,8 +1588,7 @@ impl ScriptThread {
             }
         }
 
-        let document = self.documents.borrow_mut().remove(id);
-        if let Some(document) = document {
+        if let Some(document) = self.documents.borrow_mut().remove(id) {
             shut_down_layout(document.window());
             let _ = self.constellation_chan.send(ConstellationMsg::PipelineExited(id));
         }
@@ -1759,7 +1615,7 @@ impl ScriptThread {
     fn handle_tick_all_animations(&self, id: PipelineId) {
         let document = match { self.documents.borrow().find_document(id) } {
             Some(document) => document,
-            None => return warn!("Tick all animations message sent to closed pipeline {}.", id),
+            None => return warn!("Message sent to closed pipeline {}.", id),
         };
         document.run_the_animation_frame_callbacks();
     }
@@ -1825,7 +1681,7 @@ impl ScriptThread {
         let iframe = self.documents.borrow().find_iframe(parent_id, frame_id);
         match iframe {
             Some(iframe) => iframe.iframe_load_event_steps(child_id),
-            None => warn!("Frame load message sent to closed pipeline {}.", parent_id),
+            None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
     }
 
@@ -2069,7 +1925,7 @@ impl ScriptThread {
             MouseMoveEvent(point) => {
                 let document = match { self.documents.borrow().find_document(pipeline_id) } {
                     Some(document) => document,
-                    None => return warn!("Mouse event message sent to closed pipeline {}.", pipeline_id),
+                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
 
                 // Get the previous target temporarily
@@ -2209,7 +2065,7 @@ impl ScriptThread {
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData, size_type: WindowSizeType) {
         let document = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(document) => document,
-            None => return warn!("Resize message sent to closed pipeline {}.", pipeline_id),
+            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
 
         let window = document.window();
