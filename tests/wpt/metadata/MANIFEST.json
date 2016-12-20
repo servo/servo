@@ -18332,6 +18332,10 @@
         "url": "/fetch/api/request/request-cache-default-conditional.html"
       },
       {
+        "path": "fetch/api/request/request-bad-port.html",
+        "url": "/fetch/api/request/request-bad-port.html"
+      },
+      {
         "path": "fetch/api/request/request-cache-default.html",
         "url": "/fetch/api/request/request-cache-default.html"
       },
