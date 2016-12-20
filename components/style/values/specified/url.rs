@@ -13,7 +13,6 @@ use parser::ParserContextExtraData;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fmt::{self, Write};
-use std::ptr;
 use std::sync::Arc;
 use style_traits::ToCss;
 use values::NoViewportPercentage;
@@ -121,10 +120,15 @@ impl SpecifiedUrl {
     }
 
     /// Little helper for Gecko's ffi.
-    pub fn as_slice_components(&self) -> (*const u8, usize) {
+    #[cfg(feature = "gecko")]
+    pub fn as_slice_components(&self) -> Result<(*const u8, usize), (*const u8, usize)> {
         match self.resolved {
-            Some(ref url) => (url.as_str().as_ptr(), url.as_str().len()),
-            None => (ptr::null(), 0),
+            Some(ref url) => Ok((url.as_str().as_ptr(), url.as_str().len())),
+            None => {
+                let url = self.original.as_ref()
+                    .expect("We should always have either the original or the resolved value");
+                Err((url.as_str().as_ptr(), url.as_str().len()))
+            }
         }
     }
 

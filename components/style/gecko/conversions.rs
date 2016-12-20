@@ -133,7 +133,9 @@ impl nsStyleImage {
                 self.set_gradient(gradient)
             },
             Image::Url(ref url) if with_url => {
-                let (ptr, len) = url.as_slice_components();
+                let (ptr, len) = match url.as_slice_components() {
+                    Ok(value) | Err(value) => value
+                };
                 let extra_data = url.extra_data();
                 unsafe {
                     Gecko_SetUrlImageValue(self,
