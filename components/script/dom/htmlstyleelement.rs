@@ -191,6 +191,12 @@ impl StylesheetOwner for HTMLStyleElement {
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
     }
+
+    fn set_origin_clean(&self, origin_clean: bool) {
+        if let Some(stylesheet) = self.get_cssom_stylesheet() {
+            stylesheet.set_origin_clean(origin_clean);
+        }
+    }
 }
 
 
