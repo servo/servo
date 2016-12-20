@@ -17,12 +17,12 @@ ${helpers.single_keyword("list-style-position", "outside inside", animatable=Fal
 //
 // [1]: http://dev.w3.org/csswg/css-counter-styles/
 ${helpers.single_keyword("list-style-type", """
-    disc none circle square decimal lower-alpha upper-alpha  disclosure-open disclosure-closed
+    disc none circle square decimal disclosure-open disclosure-closed
 """, extra_servo_values="""arabic-indic bengali cambodian cjk-decimal devanagari
                            gujarati gurmukhi kannada khmer lao malayalam mongolian
                            myanmar oriya persian telugu thai tibetan cjk-earthly-branch
                            cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana
-                           katakana-iroha""",
+                           katakana-iroha lower-alpha upper-alpha""",
     gecko_constant_prefix="NS_STYLE_LIST_STYLE",
     animatable=False)}
 
