@@ -10,7 +10,6 @@ name = "net_traits"
 path = "lib.rs"
 
 [dependencies]
-bluetooth_traits = {path = "../bluetooth_traits"}
 msg = {path = "../msg"}
 ipc-channel = "0.5"
 heapsize = "0.3.0"

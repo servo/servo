@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_traits::{BluetoothError, BluetoothRequest, GATTType};
-use bluetooth_traits::{BluetoothResponse, BluetoothResponseListener, BluetoothResponseResult};
+use bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
@@ -27,7 +27,7 @@ use dom::promise::Promise;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{JSAutoCompartment, JSContext};
-use network_listener::{NetworkListener, PreInvoke};
+use script_thread::Runnable;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -61,9 +61,7 @@ pub trait AsyncBluetoothListener {
     fn handle_response(&self, result: BluetoothResponse, cx: *mut JSContext, promise: &Rc<Promise>);
 }
 
-impl<Listener: AsyncBluetoothListener + DomObject> PreInvoke for BluetoothContext<Listener> {}
-
-impl<Listener: AsyncBluetoothListener + DomObject> BluetoothResponseListener for BluetoothContext<Listener> {
+impl<T: AsyncBluetoothListener + DomObject> BluetoothContext<T> {
     #[allow(unrooted_must_root)]
     fn response(&mut self, response: BluetoothResponseResult) {
         let promise = self.promise.take().expect("bt promise is missing").root();
@@ -182,13 +180,29 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
         promise: Some(TrustedPromise::new(promise.clone())),
         receiver: Trusted::new(receiver),
     }));
-    let listener = NetworkListener {
-        context: context,
-        task_source: task_source,
-        wrapper: None,
-    };
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-        listener.notify_response(message.to().unwrap());
+        struct ListenerRunnable<T: AsyncBluetoothListener + DomObject> {
+            context: Arc<Mutex<BluetoothContext<T>>>,
+            action: BluetoothResponseResult,
+        }
+
+        impl<T: AsyncBluetoothListener + DomObject> Runnable for ListenerRunnable<T> {
+            fn handler(self: Box<Self>) {
+                let this = *self;
+                let mut context = this.context.lock().unwrap();
+                context.response(this.action);
+            }
+        }
+
+        let runnable = box ListenerRunnable {
+            context: context.clone(),
+            action: message.to().unwrap(),
+        };
+
+        let result = task_source.queue_wrapperless(runnable);
+        if let Err(err) = result {
+            warn!("failed to deliver network data: {:?}", err);
+        }
     });
     action_sender
 }

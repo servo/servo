@@ -108,7 +108,3 @@ pub enum BluetoothResponse {
     EnableNotification(()),
     WatchAdvertisements(()),
 }
-
-pub trait BluetoothResponseListener {
-    fn response(&mut self, response: BluetoothResponseResult);
-}
