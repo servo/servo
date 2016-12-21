@@ -740,6 +740,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
         pub use self::AnimationIterationCount as SingleComputedValue;
 
+        // https://drafts.csswg.org/css-animations/#animation-iteration-count
         #[derive(Debug, Clone, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub enum AnimationIterationCount {
@@ -758,7 +759,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                     return Err(());
                 }
 
-                Ok(AnimationIterationCount::Number(number as f32))
+                Ok(AnimationIterationCount::Number(number))
             }
         }
 
