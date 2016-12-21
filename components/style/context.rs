@@ -6,12 +6,11 @@
 
 use animation::Animation;
 use app_units::Au;
-use dom::OpaqueNode;
+use dom::{OpaqueNode, TElement};
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
@@ -76,25 +75,25 @@ pub struct SharedStyleContext {
     pub quirks_mode: QuirksMode,
 }
 
-pub struct ThreadLocalStyleContext {
-    pub style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache>,
+pub struct ThreadLocalStyleContext<E: TElement> {
+    pub style_sharing_candidate_cache: StyleSharingCandidateCache<E>,
     /// A channel on which new animations that have been triggered by style
     /// recalculation can be sent.
     pub new_animations_sender: Sender<Animation>,
 }
 
-impl ThreadLocalStyleContext {
-    pub fn new(local_context_creation_data: &ThreadLocalStyleContextCreationInfo) -> Self {
+impl<E: TElement> ThreadLocalStyleContext<E> {
+    pub fn new(shared: &SharedStyleContext) -> Self {
         ThreadLocalStyleContext {
-            style_sharing_candidate_cache: RefCell::new(StyleSharingCandidateCache::new()),
-            new_animations_sender: local_context_creation_data.new_animations_sender.clone(),
+            style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
+            new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
         }
     }
 }
 
-pub struct StyleContext<'a> {
+pub struct StyleContext<'a, E: TElement + 'a> {
     pub shared: &'a SharedStyleContext,
-    pub thread_local: &'a ThreadLocalStyleContext,
+    pub thread_local: &'a mut ThreadLocalStyleContext<E>,
 }
 
 /// Why we're doing reflow.

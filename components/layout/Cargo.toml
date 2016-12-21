@@ -31,7 +31,7 @@ parking_lot = "0.3.3"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
-rayon = "0.5"
+rayon = "0.6"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 selectors = "0.15"

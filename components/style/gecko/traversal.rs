@@ -6,9 +6,8 @@ use atomic_refcell::AtomicRefCell;
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::ElementData;
 use dom::{NodeInfo, TNode};
-use gecko::context::create_or_get_local_context;
 use gecko::wrapper::{GeckoElement, GeckoNode};
-use std::rc::Rc; use traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
+use traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
 
 pub struct RecalcStyleOnly {
     shared: SharedStyleContext,
@@ -23,22 +22,24 @@ impl RecalcStyleOnly {
 }
 
 impl<'ln> DomTraversal<GeckoNode<'ln>> for RecalcStyleOnly {
-    type ThreadLocalContext = ThreadLocalStyleContext;
+    type ThreadLocalContext = ThreadLocalStyleContext<GeckoElement<'ln>>;
 
-    fn process_preorder(&self, node: GeckoNode<'ln>, traversal_data: &mut PerLevelTraversalData) {
+    fn process_preorder(&self, traversal_data: &mut PerLevelTraversalData,
+                        thread_local: &mut Self::ThreadLocalContext,
+                        node: GeckoNode<'ln>)
+    {
         if node.is_element() {
             let el = node.as_element().unwrap();
             let mut data = unsafe { el.ensure_data() }.borrow_mut();
-            let tlc = self.create_or_get_thread_local_context();
-            let context = StyleContext {
+            let mut context = StyleContext {
                 shared: &self.shared,
-                thread_local: &*tlc,
+                thread_local: thread_local,
             };
-            recalc_style_at(self, traversal_data, &context, el, &mut data);
+            recalc_style_at(self, traversal_data, &mut context, el, &mut data);
         }
     }
 
-    fn process_postorder(&self, _: GeckoNode<'ln>) {
+    fn process_postorder(&self, _: &mut Self::ThreadLocalContext, _: GeckoNode<'ln>) {
         unreachable!();
     }
 
@@ -57,7 +58,7 @@ impl<'ln> DomTraversal<GeckoNode<'ln>> for RecalcStyleOnly {
         &self.shared
     }
 
-    fn create_or_get_thread_local_context(&self) -> Rc<ThreadLocalStyleContext> {
-        create_or_get_local_context(&self.shared)
+    fn create_thread_local_context(&self) -> Self::ThreadLocalContext {
+        ThreadLocalStyleContext::new(&self.shared)
     }
 }

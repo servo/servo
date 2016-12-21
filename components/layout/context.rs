@@ -19,64 +19,69 @@ use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use parking_lot::RwLock;
 use servo_config::opts;
 use servo_url::ServoUrl;
-use std::borrow::Borrow;
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use style::context::{SharedStyleContext, ThreadLocalStyleContext};
+use style::dom::TElement;
 
-pub struct ThreadLocalLayoutContext {
-    pub style_context: ThreadLocalStyleContext,
+/// TLS data scoped to the traversal.
+pub struct ScopedThreadLocalLayoutContext<E: TElement> {
+    pub style_context: ThreadLocalStyleContext<E>,
+}
+
+impl<E: TElement> ScopedThreadLocalLayoutContext<E> {
+    pub fn new(shared: &SharedLayoutContext) -> Self {
+        ScopedThreadLocalLayoutContext {
+            style_context: ThreadLocalStyleContext::new(&shared.style_context),
+        }
+    }
+}
+
+/// TLS data that persists across traversals.
+pub struct PersistentThreadLocalLayoutContext {
+    // FontContext uses Rc all over the place and so isn't Send, which means we
+    // can't use ScopedTLS for it. There's also no reason to scope it to the
+    // traversal, and performance is probably better if we don't.
     pub font_context: RefCell<FontContext>,
 }
 
-impl ThreadLocalLayoutContext {
+impl PersistentThreadLocalLayoutContext {
     pub fn new(shared: &SharedLayoutContext) -> Rc<Self> {
         let font_cache_thread = shared.font_cache_thread.lock().unwrap().clone();
-        let local_style_data = shared.style_context.local_context_creation_data.lock().unwrap();
-
-        Rc::new(ThreadLocalLayoutContext {
-            style_context: ThreadLocalStyleContext::new(&local_style_data),
+        Rc::new(PersistentThreadLocalLayoutContext {
             font_context: RefCell::new(FontContext::new(font_cache_thread)),
         })
     }
 }
 
-impl Borrow<ThreadLocalStyleContext> for ThreadLocalLayoutContext {
-    fn borrow(&self) -> &ThreadLocalStyleContext {
-        &self.style_context
-    }
-}
-
-impl HeapSizeOf for ThreadLocalLayoutContext {
-    // FIXME(njn): measure other fields eventually.
+impl HeapSizeOf for PersistentThreadLocalLayoutContext {
     fn heap_size_of_children(&self) -> usize {
         self.font_context.heap_size_of_children()
     }
 }
 
-thread_local!(static LOCAL_CONTEXT_KEY: RefCell<Option<Rc<ThreadLocalLayoutContext>>> = RefCell::new(None));
+thread_local!(static LOCAL_CONTEXT_KEY: RefCell<Option<Rc<PersistentThreadLocalLayoutContext>>> = RefCell::new(None));
 
-pub fn heap_size_of_local_context() -> usize {
-    LOCAL_CONTEXT_KEY.with(|r| {
-        r.borrow().clone().map_or(0, |context| context.heap_size_of_children())
-    })
-}
-
-// Keep this implementation in sync with the one in ports/geckolib/traversal.rs.
-pub fn create_or_get_local_context(shared: &SharedLayoutContext)
-                                   -> Rc<ThreadLocalLayoutContext> {
+fn create_or_get_persistent_context(shared: &SharedLayoutContext)
+                                    -> Rc<PersistentThreadLocalLayoutContext> {
     LOCAL_CONTEXT_KEY.with(|r| {
         let mut r = r.borrow_mut();
         if let Some(context) = r.clone() {
             context
         } else {
-            let context = ThreadLocalLayoutContext::new(shared);
+            let context = PersistentThreadLocalLayoutContext::new(shared);
             *r = Some(context.clone());
             context
         }
+    })
+}
+
+pub fn heap_size_of_persistent_local_context() -> usize {
+    LOCAL_CONTEXT_KEY.with(|r| {
+        r.borrow().clone().map_or(0, |context| context.heap_size_of_children())
     })
 }
 
@@ -100,24 +105,17 @@ pub struct SharedLayoutContext {
                                                   BuildHasherDefault<FnvHasher>>>>,
 }
 
-impl Borrow<SharedStyleContext> for SharedLayoutContext {
-    fn borrow(&self) -> &SharedStyleContext {
-        &self.style_context
-    }
-}
-
 pub struct LayoutContext<'a> {
     pub shared: &'a SharedLayoutContext,
-    pub thread_local: &'a ThreadLocalLayoutContext,
+    pub persistent: Rc<PersistentThreadLocalLayoutContext>,
 }
 
 impl<'a> LayoutContext<'a> {
-    pub fn new(shared: &'a SharedLayoutContext,
-               thread_local: &'a ThreadLocalLayoutContext) -> Self
+    pub fn new(shared: &'a SharedLayoutContext) -> Self
     {
         LayoutContext {
             shared: shared,
-            thread_local: thread_local,
+            persistent: create_or_get_persistent_context(shared),
         }
     }
 }
@@ -138,7 +136,7 @@ impl<'a> LayoutContext<'a> {
 
     #[inline(always)]
     pub fn font_context(&self) -> RefMut<FontContext> {
-        self.thread_local.font_context.borrow_mut()
+        self.persistent.font_context.borrow_mut()
     }
 }
 

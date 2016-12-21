@@ -63,7 +63,8 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::animation;
 use layout::construct::ConstructionResult;
-use layout::context::{LayoutContext, SharedLayoutContext, ThreadLocalLayoutContext, heap_size_of_local_context};
+use layout::context::{LayoutContext, SharedLayoutContext};
+use layout::context::heap_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
@@ -723,11 +724,11 @@ impl LayoutThread {
             size: stylist.heap_size_of_children(),
         });
 
-        // The LayoutThread has a context in TLS...
+        // The LayoutThread has data in Persistent TLS...
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "local-context"],
             kind: ReportKind::ExplicitJemallocHeapSize,
-            size: heap_size_of_local_context(),
+            size: heap_size_of_persistent_local_context(),
         });
 
         reports_chan.send(reports);
@@ -1447,8 +1448,7 @@ impl LayoutThread {
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
-                let tlc = ThreadLocalLayoutContext::new(&shared);
-                let context = LayoutContext::new(&shared, &*tlc);
+                let context = LayoutContext::new(&shared);
                 sequential::store_overflow(&context,
                                            FlowRef::deref_mut(&mut root_flow) as &mut Flow);
             });

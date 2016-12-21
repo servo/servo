@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-pub mod context;
 pub mod data;
 pub mod restyle_damage;
 pub mod snapshot;

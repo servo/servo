@@ -20,7 +20,7 @@ html5ever-atoms = "0.1"
 matches = "0.1"
 owning_ref = "0.2.2"
 parking_lot = "0.3"
-rayon = "0.5"
+rayon = "0.6"
 rustc-serialize = "0.3"
 selectors = "0.15"
 servo_atoms = {path = "../../../components/atoms"}

@@ -13,7 +13,7 @@ use cache::LRUCache;
 use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, PseudoStyles};
-use dom::{TElement, TNode, UnsafeNode};
+use dom::{TElement, TNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
@@ -65,22 +65,29 @@ impl MatchResults {
     }
 }
 
+// TElement isn't Send because we want to be careful and explicit about our
+// parallel traversal, but we need the candidates to be Send so that we can stick
+// them in ScopedTLS.
+#[derive(Debug, PartialEq)]
+struct SendElement<E: TElement>(pub E);
+unsafe impl<E: TElement> Send for SendElement<E> {}
+
 /// Information regarding a candidate.
 ///
 /// TODO: We can stick a lot more info here.
 #[derive(Debug)]
-struct StyleSharingCandidate {
-    /// The node, guaranteed to be an element.
-    node: UnsafeNode,
+struct StyleSharingCandidate<E: TElement> {
+    /// The element.
+    element: SendElement<E>,
     /// The cached common style affecting attribute info.
     common_style_affecting_attributes: Option<CommonStyleAffectingAttributes>,
     /// the cached class names.
     class_attributes: Option<Vec<Atom>>,
 }
 
-impl PartialEq<StyleSharingCandidate> for StyleSharingCandidate {
+impl<E: TElement> PartialEq<StyleSharingCandidate<E>> for StyleSharingCandidate<E> {
     fn eq(&self, other: &Self) -> bool {
-        self.node == other.node &&
+        self.element == other.element &&
             self.common_style_affecting_attributes == other.common_style_affecting_attributes
     }
 }
@@ -90,13 +97,8 @@ impl PartialEq<StyleSharingCandidate> for StyleSharingCandidate {
 ///
 /// Note that this cache is flushed every time we steal work from the queue, so
 /// storing nodes here temporarily is safe.
-///
-/// NB: We store UnsafeNode's, but this is not unsafe. It's a shame being
-/// generic over elements is unfeasible (you can make compile style without much
-/// difficulty, but good luck with layout and all the types with assoc.
-/// lifetimes).
-pub struct StyleSharingCandidateCache {
-    cache: LRUCache<StyleSharingCandidate, ()>,
+pub struct StyleSharingCandidateCache<E: TElement> {
+    cache: LRUCache<StyleSharingCandidate<E>, ()>,
 }
 
 #[derive(Clone, Debug)]
@@ -117,7 +119,7 @@ pub enum CacheMiss {
 }
 
 fn element_matches_candidate<E: TElement>(element: &E,
-                                          candidate: &mut StyleSharingCandidate,
+                                          candidate: &mut StyleSharingCandidate<E>,
                                           candidate_element: &E,
                                           shared_context: &SharedStyleContext)
                                           -> Result<ComputedStyle, CacheMiss> {
@@ -193,7 +195,7 @@ fn element_matches_candidate<E: TElement>(element: &E,
 }
 
 fn have_same_common_style_affecting_attributes<E: TElement>(element: &E,
-                                                            candidate: &mut StyleSharingCandidate,
+                                                            candidate: &mut StyleSharingCandidate<E>,
                                                             candidate_element: &E) -> bool {
     if candidate.common_style_affecting_attributes.is_none() {
         candidate.common_style_affecting_attributes =
@@ -272,7 +274,7 @@ pub fn rare_style_affecting_attributes() -> [LocalName; 3] {
 }
 
 fn have_same_class<E: TElement>(element: &E,
-                                candidate: &mut StyleSharingCandidate,
+                                candidate: &mut StyleSharingCandidate<E>,
                                 candidate_element: &E) -> bool {
     // XXX Efficiency here, I'm only validating ideas.
     let mut element_class_attributes = vec![];
@@ -304,21 +306,21 @@ fn match_same_sibling_affecting_rules<E: TElement>(element: &E,
 
 static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 8;
 
-impl StyleSharingCandidateCache {
+impl<E: TElement> StyleSharingCandidateCache<E> {
     pub fn new() -> Self {
         StyleSharingCandidateCache {
             cache: LRUCache::new(STYLE_SHARING_CANDIDATE_CACHE_SIZE),
         }
     }
 
-    fn iter_mut(&mut self) -> IterMut<(StyleSharingCandidate, ())> {
+    fn iter_mut(&mut self) -> IterMut<(StyleSharingCandidate<E>, ())> {
         self.cache.iter_mut()
     }
 
-    pub fn insert_if_possible<E: TElement>(&mut self,
-                                           element: &E,
-                                           style: &Arc<ComputedValues>,
-                                           relations: StyleRelations) {
+    pub fn insert_if_possible(&mut self,
+                              element: &E,
+                              style: &Arc<ComputedValues>,
+                              relations: StyleRelations) {
         use traversal::relations_are_shareable;
 
         let parent = match element.parent_element() {
@@ -348,10 +350,10 @@ impl StyleSharingCandidateCache {
         }
 
         debug!("Inserting into cache: {:?} with parent {:?}",
-               element.as_node().to_unsafe(), parent.as_node().to_unsafe());
+               element, parent);
 
         self.cache.insert(StyleSharingCandidate {
-            node: element.as_node().to_unsafe(),
+            element: SendElement(*element),
             common_style_affecting_attributes: None,
             class_attributes: None,
         }, ());
@@ -392,7 +394,7 @@ trait PrivateMatchMethods: TElement {
     /// Note that animations only apply to nodes or ::before or ::after
     /// pseudo-elements.
     fn cascade_node_pseudo_element<'a>(&self,
-                                       context: &StyleContext,
+                                       context: &StyleContext<Self>,
                                        parent_style: Option<&Arc<ComputedValues>>,
                                        old_style: Option<&Arc<ComputedValues>>,
                                        rule_node: &StrongRuleNode,
@@ -497,20 +499,17 @@ trait PrivateMatchMethods: TElement {
 
     fn share_style_with_candidate_if_possible(&self,
                                               shared_context: &SharedStyleContext,
-                                              candidate: &mut StyleSharingCandidate)
+                                              candidate: &mut StyleSharingCandidate<Self>)
                                               -> Result<ComputedStyle, CacheMiss> {
-        let candidate_element = unsafe {
-            Self::ConcreteNode::from_unsafe(&candidate.node).as_element().unwrap()
-        };
-
+        let candidate_element = candidate.element.0;
         element_matches_candidate(self, candidate, &candidate_element,
                                   shared_context)
     }
 }
 
-fn compute_rule_node(context: &StyleContext,
-                     applicable_declarations: &mut Vec<ApplicableDeclarationBlock>)
-                     -> StrongRuleNode
+fn compute_rule_node<E: TElement>(context: &StyleContext<E>,
+                                  applicable_declarations: &mut Vec<ApplicableDeclarationBlock>)
+                                  -> StrongRuleNode
 {
     let rules = applicable_declarations.drain(..).map(|d| (d.source, d.importance));
     let rule_node = context.shared.stylist.rule_tree.insert_ordered_rules(rules);
@@ -520,7 +519,7 @@ fn compute_rule_node(context: &StyleContext,
 impl<E: TElement> PrivateMatchMethods for E {}
 
 pub trait MatchMethods : TElement {
-    fn match_element(&self, context: &StyleContext, parent_bf: Option<&BloomFilter>)
+    fn match_element(&self, context: &StyleContext<Self>, parent_bf: Option<&BloomFilter>)
                      -> MatchResults
     {
         let mut applicable_declarations: Vec<ApplicableDeclarationBlock> = Vec::with_capacity(16);
@@ -569,7 +568,7 @@ pub trait MatchMethods : TElement {
     /// guarantee that at the type system level yet.
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
-                                        &mut StyleSharingCandidateCache,
+                                        &mut StyleSharingCandidateCache<Self>,
                                       shared_context: &SharedStyleContext,
                                       data: &mut AtomicRefMut<ElementData>)
                                       -> StyleSharingResult {
@@ -718,7 +717,7 @@ pub trait MatchMethods : TElement {
     }
 
     unsafe fn cascade_node(&self,
-                           context: &StyleContext,
+                           context: &StyleContext<Self>,
                            mut data: &mut AtomicRefMut<ElementData>,
                            parent: Option<Self>,
                            primary_rule_node: StrongRuleNode,
@@ -795,7 +794,7 @@ pub trait MatchMethods : TElement {
             mut old_pseudos: Option<&mut PseudoStyles>,
             new_primary: &Arc<ComputedValues>,
             new_pseudos: &mut PseudoStyles,
-            context: &StyleContext,
+            context: &StyleContext<Self>,
             mut pseudo_rule_nodes: PseudoRuleNodes,
             possibly_expired_animations: &mut Vec<PropertyAnimation>)
             -> RestyleDamage

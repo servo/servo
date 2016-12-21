@@ -17,11 +17,11 @@ use std::ptr;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
 use style::atomic_refcell::AtomicRefMut;
-use style::context::{ThreadLocalStyleContextCreationInfo, QuirksMode, ReflowGoal, SharedStyleContext, StyleContext};
+use style::context::{QuirksMode, ReflowGoal, SharedStyleContext, StyleContext};
+use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInfo};
 use style::data::{ElementData, RestyleData};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
-use style::gecko::context::clear_local_context;
 use style::gecko::data::{NUM_THREADS, PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
@@ -88,12 +88,6 @@ pub extern "C" fn Servo_Initialize() -> () {
 pub extern "C" fn Servo_Shutdown() -> () {
     // Destroy our default computed values.
     unsafe { ComputedValues::shutdown(); }
-
-    // In general, ThreadLocalStyleContexts will get destroyed when the worker thread
-    // is joined and the TLS is dropped. However, under some configurations we
-    // may do sequential style computation on the main thread, so we need to be
-    // sure to clear the main thread TLS entry as well.
-    clear_local_context();
 }
 
 fn create_shared_context(mut per_doc_data: &mut AtomicRefMut<PerDocumentStyleDataImpl>) -> SharedStyleContext {
@@ -875,21 +869,18 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
             let mut per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
             let shared_style_context = create_shared_context(&mut per_doc_data);
             let traversal = RecalcStyleOnly::new(shared_style_context);
-            let tlc = traversal.create_or_get_thread_local_context();
 
             let mut traversal_data = PerLevelTraversalData {
                 current_dom_depth: None,
             };
 
-            let context = StyleContext {
+            let mut tlc = ThreadLocalStyleContext::new(traversal.shared_context());
+            let mut context = StyleContext {
                 shared: traversal.shared_context(),
-                thread_local: &*tlc,
+                thread_local: &mut tlc,
             };
 
-            recalc_style_at(&traversal, &mut traversal_data, &context, element, &mut data);
-
-            // We don't want to keep any cached style around after this one-off style resolution.
-            tlc.style_sharing_candidate_cache.borrow_mut().clear();
+            recalc_style_at(&traversal, &mut traversal_data, &mut context, element, &mut data);
 
             // The element was either unstyled or needed restyle. If it was unstyled, it may have
             // additional unstyled children that subsequent traversals won't find now that the style
