@@ -2464,7 +2464,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
-                  skip_longhands="column-count column-gap -moz-column-rule-width">
+                  skip_longhands="column-count column-gap column-rule-width">
 
     #[allow(unused_unsafe)]
     pub fn set_column_count(&mut self, v: longhands::column_count::computed_value::T) {
@@ -2491,7 +2491,7 @@ clip-path
 
     <%call expr="impl_coord_copy('column_gap', 'mColumnGap')"></%call>
 
-    <% impl_app_units("_moz_column_rule_width", "mColumnRuleWidth", need_clone=True,
+    <% impl_app_units("column_rule_width", "mColumnRuleWidth", need_clone=True,
                       round_to_pixels=True) %>
 </%self:impl_trait>
 
