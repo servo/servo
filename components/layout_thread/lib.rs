@@ -1152,7 +1152,7 @@ impl LayoutThread {
                                                                          data.reflow_info.goal);
 
         // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
-        let traversal = RecalcStyleAndConstructFlows::new(shared_layout_context, element.as_node().opaque());
+        let traversal = RecalcStyleAndConstructFlows::new(shared_layout_context);
         let dom_depth = Some(0); // This is always the root node.
         let token = {
             let stylist = &<RecalcStyleAndConstructFlows as
