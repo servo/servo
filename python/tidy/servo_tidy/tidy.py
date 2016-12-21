@@ -33,10 +33,10 @@ config = {
     "lint-scripts": [],
     "ignore": {
         "files": [
-            "./.",   # ignore hidden files
+            os.path.join(".", "."),   # ignore hidden files
         ],
         "directories": [
-            "./.",   # ignore hidden directories
+            os.path.join(".", "."),   # ignore hidden directories
         ],
         "packages": [],
     },
@@ -90,6 +90,10 @@ def is_iter_empty(iterator):
         return False, iterator
 
 
+def normilize_paths(paths):
+    return [os.path.join(*path.split('/')) for path in paths]
+
+
 # A simple wrapper for iterators to show progress
 # (Note that it's inefficient for giant iterators, since it iterates once to get the upper bound)
 def progress_wrapper(iterator):
@@ -123,11 +127,9 @@ class FileList(object):
         args = ["git", "log", "-n1", "--merges", "--format=%H"]
         last_merge = subprocess.check_output(args).strip()
         args = ["git", "diff", "--name-only", last_merge, self.directory]
-        file_list = subprocess.check_output(args)
+        file_list = normilize_paths(subprocess.check_output(args).splitlines())
 
-        for f in file_list.splitlines():
-            if sys.platform == 'win32':
-                os.path.join(*f.split('/'))
+        for f in file_list:
             if not any(os.path.join('.', os.path.dirname(f)).startswith(path) for path in self.excluded):
                 yield os.path.join('.', f)
 
@@ -862,23 +864,17 @@ def parse_config(content):
     config_file = toml.loads(content)
     exclude = config_file.get("ignore", {})
     # Add list of ignored directories to config
-    config["ignore"]["directories"] += exclude.get("directories", [])
+    config["ignore"]["directories"] += normilize_paths(exclude.get("directories", []))
     # Add list of ignored files to config
-    config["ignore"]["files"] += exclude.get("files", [])
+    config["ignore"]["files"] += normilize_paths(exclude.get("files", []))
     # Add list of ignored packages to config
     config["ignore"]["packages"] = exclude.get("packages", [])
-    # Fix the paths (OS-dependent)
-    config['ignore']['files'] = map(lambda path: os.path.join(*path.split('/')),
-                                    config['ignore']['files'])
-    config['ignore']['directories'] = map(lambda path: os.path.join(*path.split('/')),
-                                          config['ignore']['directories'])
 
     # Add dict of dir, list of expected ext to config
     dirs_to_check = config_file.get("check_ext", {})
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
-        fixed_path = os.path.join(*path.split('/'))
-        config['check_ext'][fixed_path] = exts
+        config['check_ext'][normilize_paths([path])[0]] = exts
 
     # Override default configs
     user_configs = config_file.get("configs", [])
