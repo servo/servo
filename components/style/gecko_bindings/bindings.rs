@@ -991,16 +991,18 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowed,
-                                           sheet: RawServoStyleSheetBorrowed);
+                                           sheet: RawServoStyleSheetBorrowed,
+                                           flush: bool);
 }
 extern "C" {
     pub fn Servo_StyleSet_PrependStyleSheet(set: RawServoStyleSetBorrowed,
-                                            sheet:
-                                                RawServoStyleSheetBorrowed);
+                                            sheet: RawServoStyleSheetBorrowed,
+                                            flush: bool);
 }
 extern "C" {
     pub fn Servo_StyleSet_RemoveStyleSheet(set: RawServoStyleSetBorrowed,
-                                           sheet: RawServoStyleSheetBorrowed);
+                                           sheet: RawServoStyleSheetBorrowed,
+                                           flush: bool);
 }
 extern "C" {
     pub fn Servo_StyleSet_InsertStyleSheetBefore(set:
@@ -1008,7 +1010,11 @@ extern "C" {
                                                  sheet:
                                                      RawServoStyleSheetBorrowed,
                                                  reference:
-                                                     RawServoStyleSheetBorrowed);
+                                                     RawServoStyleSheetBorrowed,
+                                                 flush: bool);
+}
+extern "C" {
+    pub fn Servo_StyleSet_FlushStyleSheets(set: RawServoStyleSetBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_NoteStyleSheetsChanged(set:
