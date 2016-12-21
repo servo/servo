@@ -5,7 +5,3 @@ members = [
     "ports/servo",
     "support/android/build-apk",
 ]
-
-[replace]
-"https://github.com/servo/webrender#0.11.0" = { path = '/users/Sam/servo/servo_fork/webrender/webrender/' }
-"https://github.com/servo/webrender#webrender_traits:0.11.0" = { path = '/users/Sam/servo/servo_fork/webrender/webrender_traits/' }

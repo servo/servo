@@ -42,9 +42,7 @@ use std::sync::mpsc::{Sender, channel};
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
-
 use webrender_traits::ScrollLocation;
-
 #[cfg(target_os = "windows")]
 use winapi;
 

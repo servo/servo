@@ -1037,7 +1037,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
                 match point.cast() {
-                    Some(point) => self.on_scroll_window_event(ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(&delta.to_untyped())),
+                    Some(point) => self.on_scroll_window_event(ScrollLocation::Delta(
+                                                               webrender_traits::LayerPoint::from_untyped(
+                                                               &delta.to_untyped())),
                                                                point),
                     None => error!("Point cast failed."),
                 }
@@ -1046,7 +1048,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let cursor = TypedPoint2D::new(-1, -1);  // Make sure this hits the base layer.
                 self.pending_scroll_zoom_events.push(ScrollZoomEvent {
                     magnification: magnification,
-                    scroll_location: ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(&scroll_delta.to_untyped())),
+                    scroll_location: ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(
+                                                           &scroll_delta.to_untyped())),
                     cursor: cursor,
                     phase: ScrollEventPhase::Move(true),
                     event_count: 1,
@@ -1181,7 +1184,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                 break;
                             }
                         };
-                        let delta = (TypedPoint2D::from_untyped(&combined_delta.to_untyped()) / self.scale).to_untyped();
+                        let delta = (TypedPoint2D::from_untyped(&combined_delta.to_untyped()) / self.scale)
+                                     .to_untyped();
                         let delta = webrender_traits::LayerPoint::from_untyped(&delta);
                         let cursor =
                             (combined_event.cursor.to_f32() / self.scale).to_untyped();
@@ -1197,7 +1201,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 (last_combined_event @ &mut None, _) => {
                     *last_combined_event = Some(ScrollZoomEvent {
                         magnification: scroll_event.magnification,
-                        scroll_location: ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(&this_delta.to_untyped())),
+                        scroll_location: ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(
+                                                               &this_delta.to_untyped())),
                         cursor: this_cursor,
                         phase: scroll_event.phase,
                         event_count: 1,
@@ -1233,7 +1238,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if let Some(combined_event) = last_combined_event {
             let scroll_location = match combined_event.scroll_location {
                         ScrollLocation::Delta(delta) => {
-                            let scaled_delta = (TypedPoint2D::from_untyped(&delta.to_untyped()) / self.scale).to_untyped();
+                            let scaled_delta = (TypedPoint2D::from_untyped(&delta.to_untyped()) / self.scale)
+                                               .to_untyped();
                             let calculated_delta = webrender_traits::LayoutPoint::from_untyped(&scaled_delta);
                             ScrollLocation::Delta(calculated_delta)
                         },
