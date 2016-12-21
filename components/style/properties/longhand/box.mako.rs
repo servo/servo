@@ -1559,3 +1559,11 @@ ${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
                           animatable="False",
                           disable_when_testing="True")}
+
+// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient
+${helpers.single_keyword("-moz-orient",
+                          "inline block horizontal vertical",
+                          products="gecko",
+                          gecko_ffi_name="mOrient",
+                          gecko_enum_prefix="StyleOrient",
+                          animatable=False)}
