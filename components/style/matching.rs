@@ -13,7 +13,7 @@ use cache::LRUCache;
 use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, PseudoStyles};
-use dom::{TElement, TNode};
+use dom::{SendElement, TElement, TNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
 use rule_tree::StrongRuleNode;
@@ -65,19 +65,13 @@ impl MatchResults {
     }
 }
 
-// TElement isn't Send because we want to be careful and explicit about our
-// parallel traversal, but we need the candidates to be Send so that we can stick
-// them in ScopedTLS.
-#[derive(Debug, PartialEq)]
-struct SendElement<E: TElement>(pub E);
-unsafe impl<E: TElement> Send for SendElement<E> {}
-
 /// Information regarding a candidate.
 ///
 /// TODO: We can stick a lot more info here.
 #[derive(Debug)]
 struct StyleSharingCandidate<E: TElement> {
-    /// The element.
+    /// The element. We use SendElement here so that the cache may live in
+    /// ScopedTLS.
     element: SendElement<E>,
     /// The cached common style affecting attribute info.
     common_style_affecting_attributes: Option<CommonStyleAffectingAttributes>,
@@ -353,7 +347,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                element, parent);
 
         self.cache.insert(StyleSharingCandidate {
-            element: SendElement(*element),
+            element: unsafe { SendElement::new(*element) },
             common_style_affecting_attributes: None,
             class_attributes: None,
         }, ());
@@ -501,9 +495,8 @@ trait PrivateMatchMethods: TElement {
                                               shared_context: &SharedStyleContext,
                                               candidate: &mut StyleSharingCandidate<Self>)
                                               -> Result<ComputedStyle, CacheMiss> {
-        let candidate_element = candidate.element.0;
-        element_matches_candidate(self, candidate, &candidate_element,
-                                  shared_context)
+        let candidate_element = *candidate.element;
+        element_matches_candidate(self, candidate, &candidate_element, shared_context)
     }
 }
 
