@@ -59,4 +59,4 @@ directories = [
 # Directories that are checked for correct file extension
 [check_ext]
 # directory, list of expected file extensions
-"components/script/dom/webidls" = [".webidl"]
+"./components/script/dom/webidls" = [".webidl"]
