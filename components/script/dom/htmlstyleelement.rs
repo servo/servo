@@ -50,8 +50,8 @@ impl HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
-            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
-            in_stack_of_open_elements: Cell::new(creator == ElementCreator::ParserCreated),
+            parser_inserted: Cell::new(creator.is_parser_created()),
+            in_stack_of_open_elements: Cell::new(creator.is_parser_created()),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
         }

@@ -145,8 +145,23 @@ impl fmt::Debug for Element {
 
 #[derive(PartialEq, HeapSizeOf)]
 pub enum ElementCreator {
-    ParserCreated,
+    ParserCreated(u64),
     ScriptCreated,
+}
+
+impl ElementCreator {
+    pub fn is_parser_created(&self) -> bool {
+        match *self {
+            ElementCreator::ParserCreated(_) => true,
+            ElementCreator::ScriptCreated => false,
+        }
+    }
+    pub fn return_line_number(&self) -> u64 {
+        match *self {
+            ElementCreator::ParserCreated(l) => l,
+            ElementCreator::ScriptCreated => 1,
+        }
+    }
 }
 
 pub enum AdjacentPosition {

@@ -59,7 +59,7 @@ impl HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
-            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
+            parser_inserted: Cell::new(creator.is_parser_created()),
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
             pending_loads: Cell::new(0),
