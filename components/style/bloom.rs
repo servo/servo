@@ -19,27 +19,18 @@ pub struct StyleBloom {
     /// Note that the use we do for them is safe, since the data we access from
     /// them is completely read-only during restyling.
     elements: Vec<UnsafeNode>,
-
-    /// A monotonic counter incremented which each reflow in order to invalidate
-    /// the bloom filter if appropriate.
-    generation: u32,
 }
 
 impl StyleBloom {
-    pub fn new(generation: u32) -> Self {
+    pub fn new() -> Self {
         StyleBloom {
             filter: Box::new(BloomFilter::new()),
             elements: vec![],
-            generation: generation,
         }
     }
 
     pub fn filter(&self) -> &BloomFilter {
         &*self.filter
-    }
-
-    pub fn generation(&self) -> u32 {
-        self.generation
     }
 
     pub fn maybe_pop<E>(&mut self, element: E)
@@ -129,14 +120,12 @@ impl StyleBloom {
     /// Returns the new bloom filter depth.
     pub fn insert_parents_recovering<E>(&mut self,
                                         element: E,
-                                        element_depth: Option<usize>,
-                                        generation: u32)
+                                        element_depth: Option<usize>)
                                         -> usize
         where E: TElement,
     {
         // Easy case, we're in a different restyle, or we're empty.
-        if self.generation != generation || self.elements.is_empty() {
-            self.generation = generation;
+        if self.elements.is_empty() {
             return self.rebuild(element);
         }
 
