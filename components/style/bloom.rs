@@ -5,23 +5,19 @@
 //! The style bloom filter is used as an optimization when matching deep
 //! descendant selectors.
 
-use dom::{TNode, TElement, UnsafeNode};
+use dom::{SendElement, TElement};
 use matching::MatchMethods;
 use selectors::bloom::BloomFilter;
 
-pub struct StyleBloom {
+pub struct StyleBloom<E: TElement> {
     /// The bloom filter per se.
     filter: Box<BloomFilter>,
 
-    /// The stack of elements that this bloom filter contains. These unsafe
-    /// nodes are guaranteed to be elements.
-    ///
-    /// Note that the use we do for them is safe, since the data we access from
-    /// them is completely read-only during restyling.
-    elements: Vec<UnsafeNode>,
+    /// The stack of elements that this bloom filter contains.
+    elements: Vec<SendElement<E>>,
 }
 
-impl StyleBloom {
+impl<E: TElement> StyleBloom<E> {
     pub fn new() -> Self {
         StyleBloom {
             filter: Box::new(BloomFilter::new()),
@@ -33,39 +29,27 @@ impl StyleBloom {
         &*self.filter
     }
 
-    pub fn maybe_pop<E>(&mut self, element: E)
-        where E: TElement + MatchMethods
-    {
-        if self.elements.last() == Some(&element.as_node().to_unsafe()) {
-            self.pop::<E>().unwrap();
+    pub fn maybe_pop(&mut self, element: E) {
+        if self.elements.last().map(|el| **el) == Some(element) {
+            self.pop().unwrap();
         }
     }
 
     /// Push an element to the bloom filter, knowing that it's a child of the
     /// last element parent.
-    pub fn push<E>(&mut self, element: E)
-        where E: TElement + MatchMethods,
-    {
+    pub fn push(&mut self, element: E) {
         if cfg!(debug_assertions) {
             if self.elements.is_empty() {
                 assert!(element.parent_element().is_none());
             }
         }
         element.insert_into_bloom_filter(&mut *self.filter);
-        self.elements.push(element.as_node().to_unsafe());
+        self.elements.push(unsafe { SendElement::new(element) });
     }
 
     /// Pop the last element in the bloom filter and return it.
-    fn pop<E>(&mut self) -> Option<E>
-        where E: TElement + MatchMethods,
-    {
-        let popped =
-            self.elements.pop().map(|unsafe_node| {
-                let parent = unsafe {
-                    E::ConcreteNode::from_unsafe(&unsafe_node)
-                };
-                parent.as_element().unwrap()
-            });
+    fn pop(&mut self) -> Option<E> {
+        let popped = self.elements.pop().map(|el| *el);
         if let Some(popped) = popped {
             popped.remove_from_bloom_filter(&mut self.filter);
         }
@@ -78,14 +62,12 @@ impl StyleBloom {
         self.elements.clear();
     }
 
-    fn rebuild<E>(&mut self, mut element: E) -> usize
-        where E: TElement + MatchMethods,
-    {
+    fn rebuild(&mut self, mut element: E) -> usize {
         self.clear();
 
         while let Some(parent) = element.parent_element() {
             parent.insert_into_bloom_filter(&mut *self.filter);
-            self.elements.push(parent.as_node().to_unsafe());
+            self.elements.push(unsafe { SendElement::new(parent) });
             element = parent;
         }
 
@@ -96,14 +78,11 @@ impl StyleBloom {
 
     /// In debug builds, asserts that all the parents of `element` are in the
     /// bloom filter.
-    pub fn assert_complete<E>(&self, mut element: E)
-        where E: TElement,
-    {
+    pub fn assert_complete(&self, mut element: E) {
         if cfg!(debug_assertions) {
             let mut checked = 0;
             while let Some(parent) = element.parent_element() {
-                assert_eq!(parent.as_node().to_unsafe(),
-                           self.elements[self.elements.len() - 1 - checked]);
+                assert_eq!(parent, *self.elements[self.elements.len() - 1 - checked]);
                 element = parent;
                 checked += 1;
             }
@@ -118,11 +97,10 @@ impl StyleBloom {
     /// provided always rebuilds the filter from scratch.
     ///
     /// Returns the new bloom filter depth.
-    pub fn insert_parents_recovering<E>(&mut self,
-                                        element: E,
-                                        element_depth: Option<usize>)
-                                        -> usize
-        where E: TElement,
+    pub fn insert_parents_recovering(&mut self,
+                                     element: E,
+                                     element_depth: Option<usize>)
+                                     -> usize
     {
         // Easy case, we're in a different restyle, or we're empty.
         if self.elements.is_empty() {
@@ -138,8 +116,7 @@ impl StyleBloom {
             }
         };
 
-        let unsafe_parent = parent_element.as_node().to_unsafe();
-        if self.elements.last() == Some(&unsafe_parent) {
+        if self.elements.last().map(|el| **el) == Some(parent_element) {
             // Ta da, cache hit, we're all done.
             return self.elements.len();
         }
@@ -171,7 +148,7 @@ impl StyleBloom {
         // If the filter represents an element too deep in the dom, we need to
         // pop ancestors.
         while current_depth > element_depth - 1 {
-            self.pop::<E>().expect("Emilio is bad at math");
+            self.pop().expect("Emilio is bad at math");
             current_depth -= 1;
         }
 
@@ -208,9 +185,9 @@ impl StyleBloom {
         // off the document (such as scrollbars) as a separate subtree from the
         // document root.  Thus it's possible with Gecko that we do not find any
         // common ancestor.
-        while *self.elements.last().unwrap() != common_parent.as_node().to_unsafe() {
+        while **self.elements.last().unwrap() != common_parent {
             parents_to_insert.push(common_parent);
-            self.pop::<E>().unwrap();
+            self.pop().unwrap();
             common_parent = match common_parent.parent_element() {
                 Some(parent) => parent,
                 None => {

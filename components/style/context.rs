@@ -78,7 +78,7 @@ pub struct SharedStyleContext {
 
 pub struct ThreadLocalStyleContext<E: TElement> {
     pub style_sharing_candidate_cache: StyleSharingCandidateCache<E>,
-    pub bloom_filter: StyleBloom,
+    pub bloom_filter: StyleBloom<E>,
     /// A channel on which new animations that have been triggered by style
     /// recalculation can be sent.
     pub new_animations_sender: Sender<Animation>,
