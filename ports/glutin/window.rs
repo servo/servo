@@ -43,10 +43,6 @@ use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
 
-use util::geometry::ScreenPx;
-use util::opts;
-use util::prefs::PREFS;
-use util::resource_files;
 use webrender_traits::ScrollLocation;
 
 #[cfg(target_os = "windows")]

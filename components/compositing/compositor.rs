@@ -39,7 +39,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_traits::{self, ScrollEventPhase, ServoScrollRootId, LayoutPoint};
+use webrender_traits::{self, ScrollEventPhase, ServoScrollRootId, LayoutPoint, ScrollLocation};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -1037,7 +1037,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
                 match point.cast() {
-                    Some(point) => self.on_scroll_window_event(ScrollLocation::Delta(delta.to_untyped()),
+                    Some(point) => self.on_scroll_window_event(ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(&delta.to_untyped())),
                                                                point),
                     None => error!("Point cast failed."),
                 }
@@ -1046,7 +1046,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let cursor = TypedPoint2D::new(-1, -1);  // Make sure this hits the base layer.
                 self.pending_scroll_zoom_events.push(ScrollZoomEvent {
                     magnification: magnification,
-                    scroll_location: ScrollLocation::Delta(scroll_delta.to_untyped()),
+                    scroll_location: ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(&scroll_delta.to_untyped())),
                     cursor: cursor,
                     phase: ScrollEventPhase::Move(true),
                     event_count: 1,
@@ -1157,6 +1157,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Batch up all scroll events into one, or else we'll do way too much painting.
         let mut last_combined_event: Option<ScrollZoomEvent> = None;
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
+            let this_cursor = scroll_event.cursor;
+
             let this_delta = match scroll_event.scroll_location {
                 ScrollLocation::Delta(delta) => delta,
                 _ => {
@@ -1166,17 +1168,26 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     break;
                 }
             };
-            let this_cursor = scroll_event.cursor;
 
             if let Some(combined_event) = last_combined_event {
                 if combined_event.phase != scroll_event.phase {
-                    if let ScrollLocation::Delta(delta) = combined_event.scroll_location {
-                        let scaled_delta = (delta / self.scale).to_untyped();
-                        let calculated_delta = (TypedPoint2D::from_untyped(&scaled_delta) / self.scale).to_untyped();
+                    if combined_event.phase != scroll_event.phase {
+                        let combined_delta = match combined_event.scroll_location {
+                            ScrollLocation::Delta(delta) => delta,
+                            _ => {
+                                // If this is an event which is scrolling to the start or end of the page,
+                                // disregard other pending events and exit the loop.
+                                last_combined_event = Some(scroll_event);
+                                break;
+                            }
+                        };
+                        let delta = (TypedPoint2D::from_untyped(&combined_delta.to_untyped()) / self.scale).to_untyped();
+                        let delta = webrender_traits::LayerPoint::from_untyped(&delta);
                         let cursor =
                             (combined_event.cursor.to_f32() / self.scale).to_untyped();
+                        let location = webrender_traits::ScrollLocation::Delta(delta);
                         let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
-                        self.webrender_api.scroll(ScrollLocation::Delta(calculated_delta), cursor, combined_event.phase);
+                        self.webrender_api.scroll(location, cursor, combined_event.phase);
                         last_combined_event = None
                     }
                 }
@@ -1186,7 +1197,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 (last_combined_event @ &mut None, _) => {
                     *last_combined_event = Some(ScrollZoomEvent {
                         magnification: scroll_event.magnification,
-                        scroll_location: ScrollLocation::Delta(this_delta.to_untyped()),
+                        scroll_location: ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(&this_delta.to_untyped())),
                         cursor: this_cursor,
                         phase: scroll_event.phase,
                         event_count: 1,
@@ -1222,8 +1233,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if let Some(combined_event) = last_combined_event {
             let scroll_location = match combined_event.scroll_location {
                         ScrollLocation::Delta(delta) => {
-                            let scaled_delta = (combined_event.delta / self.scale).to_untyped();
-                            let calculated_delta = webrender_traits::LayoutPoint::from_untyped(&delta);
+                            let scaled_delta = (TypedPoint2D::from_untyped(&delta.to_untyped()) / self.scale).to_untyped();
+                            let calculated_delta = webrender_traits::LayoutPoint::from_untyped(&scaled_delta);
                             ScrollLocation::Delta(calculated_delta)
                         },
                         sl @ _ => sl, // Leave ScrollLocation unchanged if it is Start or End location.

@@ -18,8 +18,6 @@ use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::cursor::Cursor;
 
-use url::Url;
-use util::geometry::ScreenPx;
 use webrender_traits::{ScrollLocation};
 
 #[derive(Clone)]
