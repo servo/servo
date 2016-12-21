@@ -650,10 +650,6 @@ impl PropertyId {
 
                 if ident == "float":
                     ident = "float_"
-                elif "outline_radius" in ident:
-                    ident = ident.replace("right", "Right").replace("left", "Left")
-                elif ident.startswith("_moz_"):
-                    ident = ident[len("_moz_"):]
                 return "nsCSSPropertyID::eCSSProperty_" + ident
         %>
         match id {
