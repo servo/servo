@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use bluetooth_traits::{BluetoothResponseListener, BluetoothResponseResult};
 use net_traits::{Action, FetchResponseListener, FetchResponseMsg};
 use script_thread::{Runnable, RunnableWrapper};
 use std::sync::{Arc, Mutex};
@@ -37,13 +36,6 @@ impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
 // helps type inference
 impl<Listener: FetchResponseListener + PreInvoke + Send + 'static> NetworkListener<Listener> {
     pub fn notify_fetch(&self, action: FetchResponseMsg) {
-        self.notify(action);
-    }
-}
-
-// helps type inference
-impl<Listener: BluetoothResponseListener + PreInvoke + Send + 'static> NetworkListener<Listener> {
-    pub fn notify_response(&self, action: BluetoothResponseResult) {
         self.notify(action);
     }
 }

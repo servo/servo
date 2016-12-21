@@ -9,7 +9,6 @@
 
 #![deny(unsafe_code)]
 
-extern crate bluetooth_traits;
 extern crate cookie as cookie_rs;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
@@ -34,7 +33,6 @@ extern crate uuid;
 extern crate webrender_traits;
 extern crate websocket;
 
-use bluetooth_traits::{BluetoothResponseListener, BluetoothResponseResult};
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
 use heapsize::HeapSizeOf;
@@ -235,13 +233,6 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessResponseChunk(data) => listener.process_response_chunk(data),
             FetchResponseMsg::ProcessResponseEOF(data) => listener.process_response_eof(data),
         }
-    }
-}
-
-impl<T: BluetoothResponseListener> Action<T> for BluetoothResponseResult {
-    /// Execute the default action on a provided listener.
-    fn process(self, listener: &mut T) {
-        listener.response(self)
     }
 }
 
