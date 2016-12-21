@@ -4,9 +4,23 @@
 
 //! Implements parallel traversal over the DOM tree.
 //!
-//! This code is highly unsafe. Keep this file small and easy to audit.
+//! This traversal is based on Rayon, and therefore its safety is largely
+//! verified by the type system.
+//!
+//! The primary trickiness and fine print for the above relates to the
+//! thread safety of the DOM nodes themselves. Accessing a DOM element
+//! concurrently on multiple threads is actually mostly "safe", since all
+//! the mutable state is protected by an AtomicRefCell, and so we'll
+//! generally panic if something goes wrong. Still, we try to to enforce our
+//! thread invariants at compile time whenever possible. As such, TNode and
+//! TElement are not Send, so ordinary style system code cannot accidentally
+//! share them with other threads. In the parallel traversal, we explicitly
+//! invoke |unsafe { SendNode::new(n) }| to put nodes in containers that may
+//! be sent to other threads. This occurs in only a handful of places and is
+//! easy to grep for. At the time of this writing, there is no other unsafe
+//! code in the parallel traversal.
 
-use dom::{OpaqueNode, TElement, TNode, UnsafeNode};
+use dom::{OpaqueNode, SendNode, TElement, TNode};
 use rayon;
 use scoped_tls::ScopedTLS;
 use servo_config::opts;
@@ -16,6 +30,7 @@ use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
 
 pub const CHUNK_SIZE: usize = 64;
 
+#[allow(unsafe_code)]
 pub fn traverse_dom<N, D>(traversal: &D,
                           root: N::ConcreteElement,
                           known_root_dom_depth: Option<usize>,
@@ -37,12 +52,12 @@ pub fn traverse_dom<N, D>(traversal: &D,
         let mut children = vec![];
         for kid in root.as_node().children() {
             if kid.as_element().map_or(false, |el| el.get_data().is_none()) {
-                children.push(kid.to_unsafe());
+                children.push(unsafe { SendNode::new(kid) });
             }
         }
         (children, known_root_dom_depth.map(|x| x + 1))
     } else {
-        (vec![root.as_node().to_unsafe()], known_root_dom_depth)
+        (vec![unsafe { SendNode::new(root.as_node()) }], known_root_dom_depth)
     };
 
     let traversal_data = PerLevelTraversalData {
@@ -70,13 +85,13 @@ pub fn traverse_dom<N, D>(traversal: &D,
 /// A parallel top-down DOM traversal.
 #[inline(always)]
 #[allow(unsafe_code)]
-fn top_down_dom<'a, 'scope, N, D>(unsafe_nodes: &'a [UnsafeNode],
+fn top_down_dom<'a, 'scope, N, D>(nodes: &'a [SendNode<N>],
                                   root: OpaqueNode,
                                   mut traversal_data: PerLevelTraversalData,
                                   scope: &'a rayon::Scope<'scope>,
                                   traversal: &'scope D,
                                   tls: &'scope ScopedTLS<'scope, D::ThreadLocalContext>)
-    where N: TNode,
+    where N: TNode + 'scope,
           D: DomTraversal<N>,
 {
     let mut discovered_child_nodes = vec![];
@@ -85,17 +100,15 @@ fn top_down_dom<'a, 'scope, N, D>(unsafe_nodes: &'a [UnsafeNode],
         // potentially traversing a child on this thread.
         let mut tlc = tls.ensure(|| traversal.create_thread_local_context());
 
-        for unsafe_node in unsafe_nodes {
-            // Get a real layout node.
-            let node = unsafe { N::from_unsafe(&unsafe_node) };
-
+        for n in nodes {
             // Perform the appropriate traversal.
+            let node = **n;
             let mut children_to_process = 0isize;
             traversal.process_preorder(&mut traversal_data, &mut *tlc, node);
             if let Some(el) = node.as_element() {
                 D::traverse_children(el, |kid| {
                     children_to_process += 1;
-                    discovered_child_nodes.push(kid.to_unsafe())
+                    discovered_child_nodes.push(unsafe { SendNode::new(kid) })
                 });
             }
 
@@ -104,7 +117,7 @@ fn top_down_dom<'a, 'scope, N, D>(unsafe_nodes: &'a [UnsafeNode],
             if D::needs_postorder_traversal() {
                 if children_to_process == 0 {
                     // If there were no more children, start walking back up.
-                    bottom_up_dom(traversal, &mut *tlc, root, *unsafe_node)
+                    bottom_up_dom(traversal, &mut *tlc, root, node)
                 } else {
                     // Otherwise record the number of children to process when the
                     // time comes.
@@ -121,12 +134,12 @@ fn top_down_dom<'a, 'scope, N, D>(unsafe_nodes: &'a [UnsafeNode],
     traverse_nodes(discovered_child_nodes, root, traversal_data, scope, traversal, tls);
 }
 
-fn traverse_nodes<'a, 'scope, N, D>(nodes: Vec<UnsafeNode>, root: OpaqueNode,
+fn traverse_nodes<'a, 'scope, N, D>(nodes: Vec<SendNode<N>>, root: OpaqueNode,
                                     traversal_data: PerLevelTraversalData,
                                     scope: &'a rayon::Scope<'scope>,
                                     traversal: &'scope D,
                                     tls: &'scope ScopedTLS<'scope, D::ThreadLocalContext>)
-    where N: TNode,
+    where N: TNode + 'scope,
           D: DomTraversal<N>,
 {
     if nodes.is_empty() {
@@ -163,16 +176,13 @@ fn traverse_nodes<'a, 'scope, N, D>(nodes: Vec<UnsafeNode>, root: OpaqueNode,
 ///
 /// The only communication between siblings is that they both
 /// fetch-and-subtract the parent's children count.
-#[allow(unsafe_code)]
 fn bottom_up_dom<N, D>(traversal: &D,
                        thread_local: &mut D::ThreadLocalContext,
                        root: OpaqueNode,
-                       unsafe_node: UnsafeNode)
+                       mut node: N)
     where N: TNode,
           D: DomTraversal<N>
 {
-    // Get a real layout node.
-    let mut node = unsafe { N::from_unsafe(&unsafe_node) };
     loop {
         // Perform the appropriate operation.
         traversal.process_postorder(thread_local, node);

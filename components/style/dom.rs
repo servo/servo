@@ -269,7 +269,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 /// (including but not limited to the traversal) where we need to send DOM
 /// objects to other threads.
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SendNode<N: TNode>(N);
 unsafe impl<N: TNode> Send for SendNode<N> {}
 impl<N: TNode> SendNode<N> {
