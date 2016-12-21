@@ -107,7 +107,7 @@ ${helpers.single_keyword("column-fill", "auto balance",
                          products="gecko", animatable=False)}
 
 // https://drafts.csswg.org/css-multicol-1/#propdef-column-rule-width
-<%helpers:longhand name="-moz-column-rule-width" products="gecko" animatable="True">
+<%helpers:longhand name="column-rule-width" products="gecko" animatable="True">
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
@@ -137,19 +137,18 @@ ${helpers.single_keyword("column-fill", "auto balance",
 </%helpers:longhand>
 
 // https://drafts.csswg.org/css-multicol-1/#crc
-${helpers.predefined_type("-moz-column-rule-color", "CSSColor",
+${helpers.predefined_type("column-rule-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
-                          products="gecko", gecko_ffi_name="mColumnRuleColor",
-                          animatable=True, complex_color=True, need_clone=True)}
+                          products="gecko", animatable=True,
+                          complex_color=True, need_clone=True)}
 
 // It's not implemented in servo or gecko yet.
 // https://drafts.csswg.org/css-multicol-1/#column-span
 ${helpers.single_keyword("column-span", "none all",
                          products="none", animatable=False)}
 
-${helpers.single_keyword("-moz-column-rule-style",
+${helpers.single_keyword("column-rule-style",
                          "none hidden dotted dashed solid double groove ridge inset outset",
                          products="gecko",
-                         gecko_ffi_name="mColumnRuleStyle",
                          gecko_constant_prefix="NS_STYLE_BORDER_STYLE",
                          animatable=False)}

@@ -59,10 +59,10 @@
 </%helpers:shorthand>
 
 // https://drafts.csswg.org/css-multicol/#column-rule
-<%helpers:shorthand name="-moz-column-rule" products="gecko"
-    sub_properties="-moz-column-rule-width -moz-column-rule-style -moz-column-rule-color">
-    use properties::longhands::{_moz_column_rule_width, _moz_column_rule_style};
-    use properties::longhands::_moz_column_rule_color;
+<%helpers:shorthand name="column-rule" products="gecko"
+    sub_properties="column-rule-width column-rule-style column-rule-color">
+    use properties::longhands::{column_rule_width, column_rule_style};
+    use properties::longhands::column_rule_color;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         % for name in "width style color".split():
@@ -74,7 +74,7 @@
             % for name in "width style color".split():
             if column_rule_${name}.is_none() {
                 if let Ok(value) = input.try(|input|
-                        _moz_column_rule_${name}::parse(context, input)) {
+                        column_rule_${name}::parse(context, input)) {
                     column_rule_${name} = Some(value);
                     any = true;
                     continue
@@ -87,10 +87,10 @@
         if any {
             Ok(Longhands {
                 % for name in "width style".split():
-                    _moz_column_rule_${name}: column_rule_${name}
-                        .or(Some(_moz_column_rule_${name}::get_initial_specified_value())),
+                    column_rule_${name}: column_rule_${name}
+                        .or(Some(column_rule_${name}::get_initial_specified_value())),
                 % endfor
-                _moz_column_rule_color: column_rule_color,
+                column_rule_color: column_rule_color,
             })
         } else {
             Err(())
@@ -100,14 +100,14 @@
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let mut need_space = false;
-            try!(self._moz_column_rule_width.to_css(dest));
+            try!(self.column_rule_width.to_css(dest));
 
-            if let DeclaredValue::Value(ref width) = *self._moz_column_rule_width {
+            if let DeclaredValue::Value(ref width) = *self.column_rule_width {
                 try!(width.to_css(dest));
                 need_space = true;
             }
 
-            if let DeclaredValue::Value(ref style) = *self._moz_column_rule_style {
+            if let DeclaredValue::Value(ref style) = *self.column_rule_style {
                 if need_space {
                     try!(write!(dest, " "));
                 }
@@ -115,7 +115,7 @@
                 need_space = true;
             }
 
-            if let DeclaredValue::Value(ref color) = *self._moz_column_rule_color {
+            if let DeclaredValue::Value(ref color) = *self.column_rule_color {
                 if need_space {
                     try!(write!(dest, " "));
                 }
