@@ -173,9 +173,9 @@ impl<'a> TryFrom<&'a str> for AdjacentPosition {
 //
 impl Element {
     pub fn create(name: QualName, prefix: Option<Prefix>,
-                  document: &Document, creator: ElementCreator)
+                  document: &Document, creator: ElementCreator, line_number: u64)
                   -> Root<Element> {
-        create_element(name, prefix, document, creator)
+        create_element(name, prefix, document, creator, line_number)
     }
 
     pub fn new_inherited(local_name: LocalName,
@@ -1884,7 +1884,7 @@ impl ElementMethods for Element {
             NodeTypeId::DocumentFragment => {
                 let body_elem = Element::create(QualName::new(ns!(html), local_name!("body")),
                                                 None, &context_document,
-                                                ElementCreator::ScriptCreated);
+                                                ElementCreator::ScriptCreated, 1);
                 Root::upcast(body_elem)
             },
             _ => context_node.GetParentElement().unwrap()

@@ -129,7 +129,7 @@ impl<'a> TreeSink for Sink {
             local: name.local,
         };
         let elem = Element::create(name, prefix, &*self.document,
-                                   ElementCreator::ParserCreated);
+                                   ElementCreator::ParserCreated, 1);
 
         for attr in attrs {
             let name = QualName {

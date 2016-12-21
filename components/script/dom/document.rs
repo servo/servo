@@ -2427,7 +2427,7 @@ impl DocumentMethods for Document {
             local_name.make_ascii_lowercase();
         }
         let name = QualName::new(ns!(html), LocalName::from(local_name));
-        Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
+        Ok(Element::create(name, None, self, ElementCreator::ScriptCreated, 1))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createelementns
@@ -2438,7 +2438,7 @@ impl DocumentMethods for Document {
         let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
                                                                         &qualified_name));
         let name = QualName::new(namespace, local_name);
-        Ok(Element::create(name, prefix, self, ElementCreator::ScriptCreated))
+        Ok(Element::create(name, prefix, self, ElementCreator::ScriptCreated, 1))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
@@ -2691,7 +2691,7 @@ impl DocumentMethods for Document {
                 Some(elem) => Root::upcast::<Node>(elem),
                 None => {
                     let name = QualName::new(ns!(svg), local_name!("title"));
-                    let elem = Element::create(name, None, self, ElementCreator::ScriptCreated);
+                    let elem = Element::create(name, None, self, ElementCreator::ScriptCreated, 1);
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent.InsertBefore(child, parent.GetFirstChild().r())
@@ -2711,7 +2711,7 @@ impl DocumentMethods for Document {
                             let elem = Element::create(name,
                                                        None,
                                                        self,
-                                                       ElementCreator::ScriptCreated);
+                                                       ElementCreator::ScriptCreated, 1);
                             head.upcast::<Node>()
                                 .AppendChild(elem.upcast())
                                 .unwrap()

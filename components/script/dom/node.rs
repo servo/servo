@@ -1737,7 +1737,7 @@ impl Node {
                 };
                 let element = Element::create(name,
                     element.prefix().map(|p| Prefix::from(&**p)),
-                    &document, ElementCreator::ScriptCreated);
+                    &document, ElementCreator::ScriptCreated, 1);
                 Root::upcast::<Node>(element)
             },
         };
