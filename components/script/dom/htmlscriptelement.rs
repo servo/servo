@@ -60,6 +60,9 @@ pub struct HTMLScriptElement {
 
     /// Document of the parser that created this element
     parser_document: JS<Document>,
+
+    /// Track line line_number
+    line_number: u64,
 }
 
 impl HTMLScriptElement {
@@ -69,10 +72,11 @@ impl HTMLScriptElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
             already_started: Cell::new(false),
-            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
-            non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
+            parser_inserted: Cell::new(creator.is_parser_created()),
+            non_blocking: Cell::new(!creator.is_parser_created()),
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
+            line_number: creator.return_line_number(),
         }
     }
 
@@ -508,7 +512,7 @@ impl HTMLScriptElement {
         let window = window_from_node(self);
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
         window.upcast::<GlobalScope>().evaluate_script_on_global_with_result(
-            &script.text, script.url.as_str(), rval.handle_mut());
+            &script.text, script.url.as_str(), rval.handle_mut(), self.line_number as u32);
 
         // Step 6.
         document.set_current_script(old_script.r());
