@@ -520,7 +520,6 @@ impl LayoutThread {
                 viewport_size: self.viewport_size.clone(),
                 screen_size_changed: screen_size_changed,
                 stylist: rw_data.stylist.clone(),
-                generation: self.generation,
                 goal: goal,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
@@ -1152,7 +1151,7 @@ impl LayoutThread {
                                                                          data.reflow_info.goal);
 
         // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
-        let traversal = RecalcStyleAndConstructFlows::new(shared_layout_context, element.as_node().opaque());
+        let traversal = RecalcStyleAndConstructFlows::new(shared_layout_context);
         let dom_depth = Some(0); // This is always the root node.
         let token = {
             let stylist = &<RecalcStyleAndConstructFlows as

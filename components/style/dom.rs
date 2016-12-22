@@ -16,6 +16,7 @@ use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
 use sink::Push;
 use std::fmt;
 use std::fmt::Debug;
+use std::ops::Deref;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
 
@@ -261,4 +262,39 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// blockification on this element.  (This function exists so that Gecko
     /// native anonymous content can opt out of this style fixup.)
     fn skip_root_and_item_based_display_fixup(&self) -> bool;
+}
+
+/// TNode and TElement aren't Send because we want to be careful and explicit
+/// about our parallel traversal. However, there are certain situations
+/// (including but not limited to the traversal) where we need to send DOM
+/// objects to other threads.
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct SendNode<N: TNode>(N);
+unsafe impl<N: TNode> Send for SendNode<N> {}
+impl<N: TNode> SendNode<N> {
+    pub unsafe fn new(node: N) -> Self {
+        SendNode(node)
+    }
+}
+impl<N: TNode> Deref for SendNode<N> {
+    type Target = N;
+    fn deref(&self) -> &N {
+        &self.0
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct SendElement<E: TElement>(E);
+unsafe impl<E: TElement> Send for SendElement<E> {}
+impl<E: TElement> SendElement<E> {
+    pub unsafe fn new(el: E) -> Self {
+        SendElement(el)
+    }
+}
+impl<E: TElement> Deref for SendElement<E> {
+    type Target = E;
+    fn deref(&self) -> &E {
+        &self.0
+    }
 }

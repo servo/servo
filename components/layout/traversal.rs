@@ -9,7 +9,6 @@ use context::{LayoutContext, ScopedThreadLocalLayoutContext, SharedLayoutContext
 use display_list_builder::DisplayListBuildState;
 use flow::{self, PreorderFlowTraversal};
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
-use gfx::display_list::OpaqueNode;
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
 use style::atomic_refcell::AtomicRefCell;
@@ -18,13 +17,12 @@ use style::data::ElementData;
 use style::dom::{TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
-use style::traversal::{DomTraversal, recalc_style_at, remove_from_bloom_filter};
+use style::traversal::{DomTraversal, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
 use wrapper::{GetRawData, LayoutNodeHelpers, LayoutNodeLayoutData};
 
 pub struct RecalcStyleAndConstructFlows {
     shared: SharedLayoutContext,
-    root: OpaqueNode,
 }
 
 impl RecalcStyleAndConstructFlows {
@@ -35,10 +33,9 @@ impl RecalcStyleAndConstructFlows {
 
 impl RecalcStyleAndConstructFlows {
     /// Creates a traversal context, taking ownership of the shared layout context.
-    pub fn new(shared: SharedLayoutContext, root: OpaqueNode) -> Self {
+    pub fn new(shared: SharedLayoutContext) -> Self {
         RecalcStyleAndConstructFlows {
             shared: shared,
-            root: root,
         }
     }
 
@@ -75,7 +72,7 @@ impl<N> DomTraversal<N> for RecalcStyleAndConstructFlows
 
     fn process_postorder(&self, thread_local: &mut Self::ThreadLocalContext, node: N) {
         let context = LayoutContext::new(&self.shared);
-        construct_flows_at(&context, thread_local, self.root, node);
+        construct_flows_at(&context, thread_local, node);
     }
 
     fn text_node_needs_traversal(node: N) -> bool {
@@ -115,8 +112,8 @@ pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayo
 #[inline]
 #[allow(unsafe_code)]
 fn construct_flows_at<'a, N>(context: &LayoutContext<'a>,
-                             _thread_local: &ScopedThreadLocalLayoutContext<N::ConcreteElement>,
-                             root: OpaqueNode, node: N)
+                             _thread_local: &mut ScopedThreadLocalLayoutContext<N::ConcreteElement>,
+                             node: N)
     where N: LayoutNode,
 {
     debug!("construct_flows_at: {:?}", node);
@@ -142,8 +139,6 @@ fn construct_flows_at<'a, N>(context: &LayoutContext<'a>,
     if let Some(el) = node.as_element() {
         el.mutate_data().unwrap().persist();
         unsafe { el.unset_dirty_descendants(); }
-
-        remove_from_bloom_filter(&context.shared.style_context, root, el);
     }
 }
 

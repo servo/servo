@@ -6,6 +6,7 @@
 
 use animation::Animation;
 use app_units::Au;
+use bloom::StyleBloom;
 use dom::{OpaqueNode, TElement};
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
@@ -48,10 +49,6 @@ pub struct SharedStyleContext {
     /// The CSS selector stylist.
     pub stylist: Arc<Stylist>,
 
-    /// Starts at zero, and increased by one every time a layout completes.
-    /// This can be used to easily check for invalid stale data.
-    pub generation: u32,
-
     /// Why is this reflow occurring
     pub goal: ReflowGoal,
 
@@ -77,6 +74,7 @@ pub struct SharedStyleContext {
 
 pub struct ThreadLocalStyleContext<E: TElement> {
     pub style_sharing_candidate_cache: StyleSharingCandidateCache<E>,
+    pub bloom_filter: StyleBloom<E>,
     /// A channel on which new animations that have been triggered by style
     /// recalculation can be sent.
     pub new_animations_sender: Sender<Animation>,
@@ -86,6 +84,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
     pub fn new(shared: &SharedStyleContext) -> Self {
         ThreadLocalStyleContext {
             style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
+            bloom_filter: StyleBloom::new(),
             new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
         }
     }
