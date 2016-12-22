@@ -157,9 +157,9 @@ pub mod weakref;
 pub mod xmlname;
 
 /// Generated JS-Rust bindings.
-#[allow(dead_code, missing_docs, non_snake_case)]
+#[allow(missing_docs, non_snake_case)]
 pub mod codegen {
-    #[allow(unrooted_must_root)]
+    #[allow(dead_code, unrooted_must_root)]
     pub mod Bindings {
         include!(concat!(env!("OUT_DIR"), "/Bindings/mod.rs"));
     }
@@ -169,7 +169,7 @@ pub mod codegen {
     pub mod InterfaceTypes {
         include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
     }
-    #[allow(unused_imports)]
+    #[allow(dead_code, unused_imports)]
     pub mod InheritTypes {
         include!(concat!(env!("OUT_DIR"), "/InheritTypes.rs"));
     }
