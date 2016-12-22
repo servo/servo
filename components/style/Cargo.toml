@@ -18,7 +18,7 @@ bindgen = ["libbindgen", "regex"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_derive",
          "style_traits/servo", "app_units/plugins", "servo_atoms", "html5ever-atoms",
          "cssparser/heap_size", "cssparser/serde-serialization",
-         "plugins", "rayon/unstable", "servo_url/servo"]
+         "rayon/unstable", "servo_url/servo"]
 testing = []
 
 [dependencies]
@@ -56,7 +56,6 @@ style_traits = {path = "../style_traits"}
 servo_url = {path = "../url"}
 time = "0.1"
 unicode-segmentation = "0.1.2"
-plugins = {path = "../plugins", optional = true}
 
 [dependencies.num_cpus]
 optional = true
