@@ -1364,6 +1364,8 @@ cfg_if! {
             pub static nsGkAtoms_onattributewritereq: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms14onaudioprocessE"]
             pub static nsGkAtoms_onaudioprocess: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms10onauxclickE"]
+            pub static nsGkAtoms_onauxclick: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms12onbeforecopyE"]
             pub static nsGkAtoms_onbeforecopy: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms11onbeforecutE"]
@@ -1636,14 +1638,6 @@ cfg_if! {
             pub static nsGkAtoms_onmouseup: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms15onMozAfterPaintE"]
             pub static nsGkAtoms_onMozAfterPaint: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms24onmozbrowserafterkeydownE"]
-            pub static nsGkAtoms_onmozbrowserafterkeydown: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms22onmozbrowserafterkeyupE"]
-            pub static nsGkAtoms_onmozbrowserafterkeyup: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms25onmozbrowserbeforekeydownE"]
-            pub static nsGkAtoms_onmozbrowserbeforekeydown: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms23onmozbrowserbeforekeyupE"]
-            pub static nsGkAtoms_onmozbrowserbeforekeyup: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21onmozfullscreenchangeE"]
             pub static nsGkAtoms_onmozfullscreenchange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms20onmozfullscreenerrorE"]
@@ -1838,6 +1832,8 @@ cfg_if! {
             pub static nsGkAtoms_ontouchmove: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms13ontouchcancelE"]
             pub static nsGkAtoms_ontouchcancel: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms18ontransitioncancelE"]
+            pub static nsGkAtoms_ontransitioncancel: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms15ontransitionendE"]
             pub static nsGkAtoms_ontransitionend: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms15ontransitionrunE"]
@@ -2300,8 +2296,6 @@ cfg_if! {
             pub static nsGkAtoms_spinner: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5splitE"]
             pub static nsGkAtoms_split: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms9splitmenuE"]
-            pub static nsGkAtoms_splitmenu: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8splitterE"]
             pub static nsGkAtoms_splitter: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6springE"]
@@ -4006,6 +4000,8 @@ cfg_if! {
             pub static nsGkAtoms_svgForeignObjectFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms24svgGenericContainerFrameE"]
             pub static nsGkAtoms_svgGenericContainerFrame: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms16svgGeometryFrameE"]
+            pub static nsGkAtoms_svgGeometryFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9svgGFrameE"]
             pub static nsGkAtoms_svgGFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms16svgGradientFrameE"]
@@ -4026,8 +4022,6 @@ cfg_if! {
             pub static nsGkAtoms_svgOuterSVGFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms25svgOuterSVGAnonChildFrameE"]
             pub static nsGkAtoms_svgOuterSVGAnonChildFrame: *mut nsIAtom;
-            #[link_name = "_ZN9nsGkAtoms20svgPathGeometryFrameE"]
-            pub static nsGkAtoms_svgPathGeometryFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms15svgPatternFrameE"]
             pub static nsGkAtoms_svgPatternFrame: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms22svgRadialGradientFrameE"]
@@ -6283,6 +6277,8 @@ cfg_if! {
             pub static nsGkAtoms_onattributewritereq: *mut nsIAtom;
             #[link_name = "?onaudioprocess@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onaudioprocess: *mut nsIAtom;
+            #[link_name = "?onauxclick@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onauxclick: *mut nsIAtom;
             #[link_name = "?onbeforecopy@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onbeforecopy: *mut nsIAtom;
             #[link_name = "?onbeforecut@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6555,14 +6551,6 @@ cfg_if! {
             pub static nsGkAtoms_onmouseup: *mut nsIAtom;
             #[link_name = "?onMozAfterPaint@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onMozAfterPaint: *mut nsIAtom;
-            #[link_name = "?onmozbrowserafterkeydown@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmozbrowserafterkeydown: *mut nsIAtom;
-            #[link_name = "?onmozbrowserafterkeyup@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmozbrowserafterkeyup: *mut nsIAtom;
-            #[link_name = "?onmozbrowserbeforekeydown@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmozbrowserbeforekeydown: *mut nsIAtom;
-            #[link_name = "?onmozbrowserbeforekeyup@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_onmozbrowserbeforekeyup: *mut nsIAtom;
             #[link_name = "?onmozfullscreenchange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onmozfullscreenchange: *mut nsIAtom;
             #[link_name = "?onmozfullscreenerror@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -6757,6 +6745,8 @@ cfg_if! {
             pub static nsGkAtoms_ontouchmove: *mut nsIAtom;
             #[link_name = "?ontouchcancel@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_ontouchcancel: *mut nsIAtom;
+            #[link_name = "?ontransitioncancel@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_ontransitioncancel: *mut nsIAtom;
             #[link_name = "?ontransitionend@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_ontransitionend: *mut nsIAtom;
             #[link_name = "?ontransitionrun@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -7219,8 +7209,6 @@ cfg_if! {
             pub static nsGkAtoms_spinner: *mut nsIAtom;
             #[link_name = "?split@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_split: *mut nsIAtom;
-            #[link_name = "?splitmenu@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_splitmenu: *mut nsIAtom;
             #[link_name = "?splitter@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_splitter: *mut nsIAtom;
             #[link_name = "?spring@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -8925,6 +8913,8 @@ cfg_if! {
             pub static nsGkAtoms_svgForeignObjectFrame: *mut nsIAtom;
             #[link_name = "?svgGenericContainerFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_svgGenericContainerFrame: *mut nsIAtom;
+            #[link_name = "?svgGeometryFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_svgGeometryFrame: *mut nsIAtom;
             #[link_name = "?svgGFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_svgGFrame: *mut nsIAtom;
             #[link_name = "?svgGradientFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -8945,8 +8935,6 @@ cfg_if! {
             pub static nsGkAtoms_svgOuterSVGFrame: *mut nsIAtom;
             #[link_name = "?svgOuterSVGAnonChildFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_svgOuterSVGAnonChildFrame: *mut nsIAtom;
-            #[link_name = "?svgPathGeometryFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
-            pub static nsGkAtoms_svgPathGeometryFrame: *mut nsIAtom;
             #[link_name = "?svgPatternFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_svgPatternFrame: *mut nsIAtom;
             #[link_name = "?svgRadialGradientFrame@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -11202,6 +11190,8 @@ cfg_if! {
             pub static nsGkAtoms_onattributewritereq: *mut nsIAtom;
             #[link_name = "\x01?onaudioprocess@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onaudioprocess: *mut nsIAtom;
+            #[link_name = "\x01?onauxclick@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onauxclick: *mut nsIAtom;
             #[link_name = "\x01?onbeforecopy@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onbeforecopy: *mut nsIAtom;
             #[link_name = "\x01?onbeforecut@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11474,14 +11464,6 @@ cfg_if! {
             pub static nsGkAtoms_onmouseup: *mut nsIAtom;
             #[link_name = "\x01?onMozAfterPaint@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onMozAfterPaint: *mut nsIAtom;
-            #[link_name = "\x01?onmozbrowserafterkeydown@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmozbrowserafterkeydown: *mut nsIAtom;
-            #[link_name = "\x01?onmozbrowserafterkeyup@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmozbrowserafterkeyup: *mut nsIAtom;
-            #[link_name = "\x01?onmozbrowserbeforekeydown@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmozbrowserbeforekeydown: *mut nsIAtom;
-            #[link_name = "\x01?onmozbrowserbeforekeyup@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_onmozbrowserbeforekeyup: *mut nsIAtom;
             #[link_name = "\x01?onmozfullscreenchange@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onmozfullscreenchange: *mut nsIAtom;
             #[link_name = "\x01?onmozfullscreenerror@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -11676,6 +11658,8 @@ cfg_if! {
             pub static nsGkAtoms_ontouchmove: *mut nsIAtom;
             #[link_name = "\x01?ontouchcancel@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_ontouchcancel: *mut nsIAtom;
+            #[link_name = "\x01?ontransitioncancel@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_ontransitioncancel: *mut nsIAtom;
             #[link_name = "\x01?ontransitionend@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_ontransitionend: *mut nsIAtom;
             #[link_name = "\x01?ontransitionrun@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -12138,8 +12122,6 @@ cfg_if! {
             pub static nsGkAtoms_spinner: *mut nsIAtom;
             #[link_name = "\x01?split@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_split: *mut nsIAtom;
-            #[link_name = "\x01?splitmenu@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_splitmenu: *mut nsIAtom;
             #[link_name = "\x01?splitter@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_splitter: *mut nsIAtom;
             #[link_name = "\x01?spring@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13844,6 +13826,8 @@ cfg_if! {
             pub static nsGkAtoms_svgForeignObjectFrame: *mut nsIAtom;
             #[link_name = "\x01?svgGenericContainerFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_svgGenericContainerFrame: *mut nsIAtom;
+            #[link_name = "\x01?svgGeometryFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_svgGeometryFrame: *mut nsIAtom;
             #[link_name = "\x01?svgGFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_svgGFrame: *mut nsIAtom;
             #[link_name = "\x01?svgGradientFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -13864,8 +13848,6 @@ cfg_if! {
             pub static nsGkAtoms_svgOuterSVGFrame: *mut nsIAtom;
             #[link_name = "\x01?svgOuterSVGAnonChildFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_svgOuterSVGAnonChildFrame: *mut nsIAtom;
-            #[link_name = "\x01?svgPathGeometryFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
-            pub static nsGkAtoms_svgPathGeometryFrame: *mut nsIAtom;
             #[link_name = "\x01?svgPatternFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_svgPatternFrame: *mut nsIAtom;
             #[link_name = "\x01?svgRadialGradientFrame@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -16124,6 +16106,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onattributewritereq as *mut _) } };
 ("onaudioprocess") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onaudioprocess as *mut _) } };
+("onauxclick") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onauxclick as *mut _) } };
 ("onbeforecopy") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onbeforecopy as *mut _) } };
 ("onbeforecut") =>
@@ -16396,14 +16380,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmouseup as *mut _) } };
 ("onMozAfterPaint") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onMozAfterPaint as *mut _) } };
-("onmozbrowserafterkeydown") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserafterkeydown as *mut _) } };
-("onmozbrowserafterkeyup") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserafterkeyup as *mut _) } };
-("onmozbrowserbeforekeydown") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserbeforekeydown as *mut _) } };
-("onmozbrowserbeforekeyup") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozbrowserbeforekeyup as *mut _) } };
 ("onmozfullscreenchange") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onmozfullscreenchange as *mut _) } };
 ("onmozfullscreenerror") =>
@@ -16598,6 +16574,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontouchmove as *mut _) } };
 ("ontouchcancel") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontouchcancel as *mut _) } };
+("ontransitioncancel") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontransitioncancel as *mut _) } };
 ("ontransitionend") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_ontransitionend as *mut _) } };
 ("ontransitionrun") =>
@@ -17060,8 +17038,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_spinner as *mut _) } };
 ("split") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_split as *mut _) } };
-("splitmenu") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_splitmenu as *mut _) } };
 ("splitter") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_splitter as *mut _) } };
 ("spring") =>
@@ -18766,6 +18742,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgForeignObjectFrame as *mut _) } };
 ("SVGGenericContainerFrame") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGenericContainerFrame as *mut _) } };
+("SVGGeometryFrame") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGeometryFrame as *mut _) } };
 ("SVGGFrame") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgGFrame as *mut _) } };
 ("SVGGradientFrame") =>
@@ -18786,8 +18764,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgOuterSVGFrame as *mut _) } };
 ("SVGOuterSVGAnonChildFrame") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgOuterSVGAnonChildFrame as *mut _) } };
-("SVGPathGeometryFrame") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgPathGeometryFrame as *mut _) } };
 ("SVGPatternFrame") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_svgPatternFrame as *mut _) } };
 ("SVGRadialGradientFrame") =>
