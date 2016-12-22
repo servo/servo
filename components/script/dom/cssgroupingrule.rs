@@ -2,17 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding;
 use dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::cssrule::CSSRule;
 use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::cssstylesheet::CSSStyleSheet;
-use dom::window::Window;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::stylesheets::CssRules as StyleCssRules;
@@ -33,14 +31,6 @@ impl CSSGroupingRule {
             rules: rules,
             rulelist: MutNullableJS::new(None),
         }
-    }
-
-    #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               rules: Arc<RwLock<StyleCssRules>>) -> Root<CSSGroupingRule> {
-        reflect_dom_object(box CSSGroupingRule::new_inherited(parent_stylesheet, rules),
-                           window,
-                           CSSGroupingRuleBinding::Wrap)
     }
 
     fn rulelist(&self) -> Root<CSSRuleList> {

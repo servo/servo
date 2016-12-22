@@ -31,7 +31,7 @@ impl<T: DomObject> SimpleWorkerErrorHandler<T> {
 
 #[derive(Copy, Clone)]
 pub struct SharedRt {
-    pub rt: *mut JSRuntime
+    rt: *mut JSRuntime
 }
 
 impl SharedRt {
@@ -46,10 +46,6 @@ impl SharedRt {
         unsafe {
             JS_RequestInterruptCallback(self.rt);
         }
-    }
-
-    pub fn rt(&self) -> *mut JSRuntime {
-        self.rt
     }
 }
 #[allow(unsafe_code)]

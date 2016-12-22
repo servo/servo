@@ -26,12 +26,6 @@ pub struct MediaQueryListEvent {
 }
 
 impl MediaQueryListEvent {
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<MediaQueryListEvent> {
-        MediaQueryListEvent::new_initialized(global,
-                                             DOMString::new(),
-                                             false)
-    }
-
     pub fn new_initialized(global: &GlobalScope,
                            media: DOMString,
                            matches: bool) -> Root<MediaQueryListEvent> {

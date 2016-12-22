@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://drafts.csswg.org/cssom/#the-cssrule-interface
-[Exposed=Window]
+[Abstract, Exposed=Window]
 interface CSSRule {
   const unsigned short STYLE_RULE = 1;
   const unsigned short CHARSET_RULE = 2; // historical

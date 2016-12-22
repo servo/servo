@@ -77,10 +77,6 @@ impl HTMLLinkElement {
                            HTMLLinkElementBinding::Wrap)
     }
 
-    pub fn parser_inserted(&self) -> bool {
-        self.parser_inserted.get()
-    }
-
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
         assert!(self.stylesheet.borrow().is_none());
         *self.stylesheet.borrow_mut() = Some(s);

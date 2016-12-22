@@ -129,6 +129,10 @@
 //! return `Err()` from the method with the appropriate [error value]
 //! (error/enum.Error.html).
 
+#![allow(unsafe_code)]
+#![deny(missing_docs)]
+#![deny(non_snake_case)]
+
 pub mod callback;
 pub mod cell;
 pub mod constant;
@@ -153,7 +157,7 @@ pub mod weakref;
 pub mod xmlname;
 
 /// Generated JS-Rust bindings.
-#[allow(missing_docs, non_snake_case)]
+#[allow(dead_code, missing_docs, non_snake_case)]
 pub mod codegen {
     #[allow(unrooted_must_root)]
     pub mod Bindings {

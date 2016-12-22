@@ -2,12 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::SVGGraphicsElementBinding;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
-use dom::node::Node;
 use dom::svgelement::SVGElement;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
@@ -31,13 +28,6 @@ impl SVGGraphicsElement {
             svgelement:
                 SVGElement::new_inherited_with_state(state, tag_name, prefix, document),
         }
-    }
-
-    #[allow(unrooted_must_root)]
-    pub fn new(local_name: LocalName, prefix: Option<DOMString>, document: &Document) -> Root<SVGGraphicsElement> {
-        Node::reflect_node(box SVGGraphicsElement::new_inherited(local_name, prefix, document),
-                           document,
-                           SVGGraphicsElementBinding::Wrap)
     }
 }
 

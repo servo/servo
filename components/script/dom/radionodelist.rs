@@ -40,10 +40,6 @@ impl RadioNodeList {
         RadioNodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_ref(&*r)).collect()))
     }
 
-    pub fn empty(window: &Window) -> Root<RadioNodeList> {
-        RadioNodeList::new(window, NodeListType::Simple(vec![]))
-    }
-
     // FIXME: This shouldn't need to be implemented here since NodeList (the parent of
     // RadioNodeList) implements Length
     // https://github.com/servo/servo/issues/5875

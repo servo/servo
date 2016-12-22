@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://svgwg.org/svg2-draft/types.html#InterfaceSVGElement
-[Pref="dom.svg.enabled"]
+[Abstract, Pref="dom.svg.enabled"]
 interface SVGElement : Element {
 
   //[SameObject] readonly attribute SVGAnimatedString className;

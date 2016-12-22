@@ -2829,39 +2829,4 @@ impl UniformSetterType {
             UniformSetterType::FloatMat4 => 16,
         }
     }
-
-    pub fn is_compatible_with(&self, gl_type: u32) -> bool {
-        gl_type == self.as_gl_constant() || match *self {
-            // Sampler uniform variables have an index value (the index of the
-            // texture), and as such they have to be set as ints
-            UniformSetterType::Int => gl_type == constants::SAMPLER_2D ||
-                                gl_type == constants::SAMPLER_CUBE,
-            // Don't ask me why, but it seems we must allow setting bool
-            // uniforms with uniform1f.
-            //
-            // See the WebGL conformance test
-            //   conformance/uniforms/gl-uniform-bool.html
-            UniformSetterType::Float => gl_type == constants::BOOL,
-            UniformSetterType::FloatVec2 => gl_type == constants::BOOL_VEC2,
-            UniformSetterType::FloatVec3 => gl_type == constants::BOOL_VEC3,
-            UniformSetterType::FloatVec4 => gl_type == constants::BOOL_VEC4,
-            _ => false,
-        }
-    }
-
-    fn as_gl_constant(&self) -> u32 {
-        match *self {
-            UniformSetterType::Int => constants::INT,
-            UniformSetterType::IntVec2 => constants::INT_VEC2,
-            UniformSetterType::IntVec3 => constants::INT_VEC3,
-            UniformSetterType::IntVec4 => constants::INT_VEC4,
-            UniformSetterType::Float => constants::FLOAT,
-            UniformSetterType::FloatVec2 => constants::FLOAT_VEC2,
-            UniformSetterType::FloatVec3 => constants::FLOAT_VEC3,
-            UniformSetterType::FloatVec4 => constants::FLOAT_VEC4,
-            UniformSetterType::FloatMat2 => constants::FLOAT_MAT2,
-            UniformSetterType::FloatMat3 => constants::FLOAT_MAT3,
-            UniformSetterType::FloatMat4 => constants::FLOAT_MAT4,
-        }
-    }
 }

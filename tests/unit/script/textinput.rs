@@ -13,7 +13,7 @@ use msg::constellation_msg::CONTROL;
 #[cfg(target_os = "macos")]
 use msg::constellation_msg::SUPER;
 use script::clipboard_provider::DummyClipboardContext;
-use script::dom::bindings::str::DOMString;
+use script::test::DOMString;
 use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
 
 fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {

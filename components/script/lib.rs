@@ -105,7 +105,7 @@ pub mod clipboard_provider;
 mod devtools;
 pub mod document_loader;
 #[macro_use]
-pub mod dom;
+mod dom;
 pub mod fetch;
 pub mod layout_wrapper;
 mod mem;
@@ -118,6 +118,7 @@ mod serviceworker_manager;
 mod serviceworkerjob;
 mod stylesheet_loader;
 mod task_source;
+pub mod test;
 pub mod textinput;
 mod timers;
 mod unpremultiplytable;
