@@ -221,7 +221,7 @@ pub struct InitialConstellationState {
     pub webrender_api_sender: webrender_traits::RenderApiSender,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 struct FrameState {
     // The timestamp for when this session history entry was created
     instant: Instant,
@@ -291,7 +291,7 @@ struct FrameChange {
     new_pipeline_id: PipelineId,
     url: ServoUrl,
     document_ready: bool,
-    replace: bool,
+    replace: Option<FrameState>,
 }
 
 /// An iterator over a frame tree, returning nodes in depth-first order.
@@ -700,16 +700,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn joint_session_future(&self, frame_id_root: FrameId) -> impl Iterator<Item=(FrameId, Instant)> {
-        let mut future = vec!();
-        for frame in self.full_frame_tree_iter(frame_id_root) {
-            future.extend(frame.next.iter().map(|entry| (entry.instant, entry.frame_id)));
-        }
+    fn joint_session_future<'a>(&'a self, frame_id_root: FrameId) -> impl Iterator<Item=FrameState> {
+        let mut future: Vec<FrameState> = self.full_frame_tree_iter(frame_id_root)
+            .flat_map(|frame| frame.next.iter().cloned())
+            .collect();
 
         // Sort the joint session future by the timestamp that the pipeline was navigated to
-        // in chronologicl order
-        future.sort();
-        future.into_iter().map(|(instant, frame_id)| (frame_id, instant))
+        // in chronological order
+        future.sort_by(|a, b| a.instant.cmp(&b.instant));
+        future.into_iter()
     }
 
     fn joint_session_future_is_empty(&self, frame_id_root: FrameId) -> bool {
@@ -717,20 +716,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .all(|frame| frame.next.is_empty())
     }
 
-    fn joint_session_past(&self, frame_id_root: FrameId) -> impl Iterator<Item=(FrameId, Instant)> {
-        let mut past: Vec<(Instant, Instant, FrameId)> = vec!();
-        for frame in self.full_frame_tree_iter(frame_id_root) {
-            let mut prev_instant = frame.instant;
-            for entry in frame.prev.iter().rev() {
-                past.push((prev_instant, entry.instant, entry.frame_id));
-                prev_instant = entry.instant;
-            }
-        }
+    fn joint_session_past<'a>(&self, frame_id_root: FrameId) -> impl Iterator<Item=FrameState> {
+        let mut past: Vec<(Instant, FrameState)> = self.full_frame_tree_iter(frame_id_root)
+            .flat_map(|frame| frame.prev.iter().rev().scan(frame.instant, |prev_instant, entry| {
+                let instant = *prev_instant;
+                *prev_instant = entry.instant;
+                Some((instant, entry.clone()))
+            }))
+            .collect();
 
         // Sort the joint session past by the timestamp that the pipeline was navigated from
         // in reverse chronological order
-        past.sort_by(|a, b| b.cmp(a));
-        past.into_iter().map(|(_, instant, frame_id)| (frame_id, instant))
+        past.sort_by(|a, b| b.0.cmp(&a.0));
+        past.into_iter().map(|(_, entry)| entry)
     }
 
     fn joint_session_past_is_empty(&self, frame_id_root: FrameId) -> bool {
@@ -1268,7 +1266,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             new_pipeline_id: new_pipeline_id,
             url: failure_url,
             document_ready: false,
-            replace: false,
+            replace: None,
         });
     }
 
@@ -1303,7 +1301,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             new_pipeline_id: root_pipeline_id,
             url: url.clone(),
             document_ready: false,
-            replace: false,
+            replace: None,
         });
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
@@ -1394,6 +1392,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             (load_data, window_size, is_private)
         };
 
+        let replace = if load_info.info.replace {
+            self.frames.get(&load_info.info.frame_id).map(|frame| frame.current())
+        } else {
+            None
+        };
 
         // Create the new pipeline, attached to the parent and push to pending frames
         self.pending_frames.push(FrameChange {
@@ -1402,7 +1405,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             new_pipeline_id: load_info.info.new_pipeline_id,
             url: load_data.url.clone(),
             document_ready: false,
-            replace: load_info.info.replace,
+            replace: replace,
         });
 
         self.new_pipeline(load_info.info.new_pipeline_id,
@@ -1446,6 +1449,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           url.clone(),
                           None,
                           parent_pipeline.visible)
+        };
+
+        let replace = if replace {
+            self.frames.get(&frame_id).map(|frame| frame.current())
+        } else {
+            None
         };
 
         assert!(!self.pipelines.contains_key(&new_pipeline_id));
@@ -1587,6 +1596,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let new_pipeline_id = PipelineId::new();
                 let root_frame_id = self.root_frame_id;
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
+                let replace = if replace {
+                    self.frames.get(&frame_id).map(|frame| frame.current())
+                } else {
+                    None
+                };
                 self.pending_frames.push(FrameChange {
                     frame_id: root_frame_id,
                     old_pipeline_id: Some(source_id),
@@ -1641,12 +1655,32 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .map(|pipeline_id| self.get_top_level_frame_for_pipeline(pipeline_id))
             .unwrap_or(self.root_frame_id);
 
-        let traversal_info: HashMap<FrameId, Instant> = match direction {
-            TraversalDirection::Forward(delta) => self.joint_session_future(top_level_frame_id).take(delta).collect(),
-            TraversalDirection::Back(delta) => self.joint_session_past(top_level_frame_id).take(delta).collect(),
-        };
-        for (frame_id, instant) in traversal_info {
-            self.traverse_frame_to_timestamp(frame_id, instant);
+        let mut size = 0;
+        let mut table = HashMap::new();
+
+        match direction {
+            TraversalDirection::Forward(delta) => {
+                for entry in self.joint_session_future(top_level_frame_id).take(delta) {
+                    size = size + 1;
+                    table.insert(entry.frame_id, entry);
+                }
+                if size < delta {
+                    return debug!("Traversing forward too much.");
+                }
+            },
+            TraversalDirection::Back(delta) => {
+                for entry in self.joint_session_past(top_level_frame_id).take(delta) {
+                    size = size + 1;
+                    table.insert(entry.frame_id, entry);
+                }
+                if size < delta {
+                    return debug!("Traversing back too much.");
+                }
+            },
+        }
+
+        for (_, entry) in table {
+            self.traverse_to_entry(entry);
         }
     }
 
@@ -1926,78 +1960,96 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn traverse_frame_to_timestamp(&mut self, frame_id: FrameId, instant: Instant) {
+    // https://html.spec.whatwg.org/multipage/#traverse-the-history
+    fn traverse_to_entry(&mut self, entry: FrameState) {
+        // Step 1.
+        let frame_id = entry.frame_id;
+        let pipeline_id = match entry.pipeline_id {
+            Some(pipeline_id) => pipeline_id,
+            None => {
+                // If there is no pipeline, then the document for this
+                // entry has been discarded, so we navigate to the entry
+                // URL instead. When the document has activated, it will
+                // traverse to the entry, but with the new pipeline id.
+                debug!("Reloading document {} for frame {}.", entry.url, frame_id);
+                // TODO: referrer?
+                let load_data = LoadData::new(entry.url.clone(), None, None);
+                // TODO: save the sandbox state so it can be restored here.
+                let sandbox = IFrameSandboxState::IFrameUnsandboxed;
+                let new_pipeline_id = PipelineId::new();
+                let (old_pipeline_id, parent_info, window_size, is_private) = match self.frames.get(&frame_id) {
+                    Some(frame) => match self.pipelines.get(&frame.pipeline_id) {
+                        Some(pipeline) => (frame.pipeline_id, pipeline.parent_info, pipeline.size, pipeline.is_private),
+                        None => (frame.pipeline_id, None, None, false),
+                    },
+                    None => return warn!("no frame to traverse"),
+                };
+                self.new_pipeline(new_pipeline_id, frame_id, parent_info, window_size, load_data, sandbox, is_private);
+                self.pending_frames.push(FrameChange {
+                    frame_id: frame_id,
+                    old_pipeline_id: Some(old_pipeline_id),
+                    new_pipeline_id: new_pipeline_id,
+                    url: entry.url.clone(),
+                    document_ready: false,
+                    replace: Some(entry),
+                });
+                return;
+            }
+        };
+
         // Check if the currently focused pipeline is the pipeline being replaced
         // (or a child of it). This has to be done here, before the current
         // frame tree is modified below.
-        let update_focus_pipeline = self.focused_pipeline_in_tree(frame_id);
+        let update_focus_pipeline = self.focused_pipeline_in_tree(entry.frame_id);
 
-        let (prev_pipeline_id, next_pipeline_id, entry) = match self.frames.get_mut(&frame_id) {
+        let old_pipeline_id = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
-                let prev_pipeline_id = frame.pipeline_id;
-                let mut entry = frame.current();
+                let old_pipeline_id = frame.pipeline_id;
+                let mut curr_entry = frame.current();
 
-                if instant > frame.instant {
+                if entry.instant > frame.instant {
                     // We are traversing to the future.
                     while let Some(next) = frame.next.pop() {
-                        frame.prev.push(entry);
-                        entry = next;
-                        if instant <= entry.instant { break; }
+                        frame.prev.push(curr_entry);
+                        curr_entry = next;
+                        if entry.instant <= curr_entry.instant { break; }
                     }
-                } else if instant < frame.instant {
+                } else if entry.instant < frame.instant {
                     // We are traversing to the past.
                     while let Some(prev) = frame.prev.pop() {
-                        frame.next.push(entry);
-                        entry = prev;
-                        if instant >= entry.instant { break; }
+                        frame.next.push(curr_entry);
+                        curr_entry = prev;
+                        if entry.instant >= curr_entry.instant { break; }
                     }
                 }
 
-                let next_pipeline_id = entry.pipeline_id.unwrap_or_else(PipelineId::new);
+                debug_assert_eq!(entry.instant, curr_entry.instant);
 
-                frame.pipeline_id = next_pipeline_id;
+                frame.pipeline_id = pipeline_id;
                 frame.instant = entry.instant;
                 frame.url = entry.url.clone();
 
-                (prev_pipeline_id, next_pipeline_id, entry)
+                old_pipeline_id
             },
             None => return warn!("no frame to traverse"),
         };
 
-        let (parent_info, window_size, is_private) = match self.pipelines.get(&prev_pipeline_id) {
-            None => (None, None, false),
-            Some(pipeline) => (pipeline.parent_info, pipeline.size, pipeline.is_private),
-        };
-
-        // If the session history entry has been discarded, reload it.
-        if entry.pipeline_id.is_none() {
-            let load_data = LoadData::new(entry.url.clone(), None, None);
-            // TODO: save the sandbox state so it can be restored here.
-            let sandbox = IFrameSandboxState::IFrameUnsandboxed;
-            self.new_pipeline(next_pipeline_id, frame_id, parent_info, window_size, load_data, sandbox, is_private);
-            self.pending_frames.push(FrameChange {
-                frame_id: frame_id,
-                old_pipeline_id: None,
-                new_pipeline_id: next_pipeline_id,
-                url: entry.url,
-                document_ready: false,
-                replace: true,
-            });
-        }
+        let parent_info = self.pipelines.get(&old_pipeline_id)
+            .and_then(|pipeline| pipeline.parent_info);
 
         // If the currently focused pipeline is the one being changed (or a child
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
         if update_focus_pipeline {
-            self.focus_pipeline_id = Some(next_pipeline_id);
+            self.focus_pipeline_id = Some(pipeline_id);
         }
 
         // Suspend the old pipeline, and resume the new one.
-        if let Some(prev_pipeline) = self.pipelines.get(&prev_pipeline_id) {
-            prev_pipeline.freeze();
+        if let Some(pipeline) = self.pipelines.get(&old_pipeline_id) {
+            pipeline.freeze();
         }
-        if let Some(next_pipeline) = self.pipelines.get(&next_pipeline_id) {
-            next_pipeline.thaw();
+        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+            pipeline.thaw();
         }
 
         // Set paint permissions correctly for the compositor layers.
@@ -2006,9 +2058,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, _)) = parent_info {
-            let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
-                                                                frame_id,
-                                                                next_pipeline_id);
+            let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id, frame_id, pipeline_id);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child traversed after closure.", parent_pipeline_id),
                 Some(pipeline) => pipeline.event_loop.send(msg),
@@ -2019,7 +2069,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             // If this is an iframe, send a mozbrowser location change event.
             // This is the result of a back/forward traversal.
-            self.trigger_mozbrowserlocationchange(next_pipeline_id);
+            self.trigger_mozbrowserlocationchange(pipeline_id);
         }
     }
 
@@ -2069,50 +2119,37 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         }
 
-        let (evicted_id, new_frame) = if let Some(frame) = self.frames.get_mut(&frame_change.frame_id) {
-            // The new pipeline is in an existing frame
-            if frame_change.replace {
-                debug!("Replacing pipeline {} with {}.", frame.pipeline_id, frame_change.new_pipeline_id);
-                let evicted = if frame_change.new_pipeline_id == frame.pipeline_id {
-                    // If we are updating the state of the current pipeline, we don't need to evict anything
-                    None
-                } else {
-                    // Otherwise, we evict the current pipeline
-                    Some(frame.pipeline_id)
-                };
-                frame.pipeline_id = frame_change.new_pipeline_id;
-                frame.url = frame_change.url.clone();
-                (evicted, false)
-            } else {
-                debug!("Loading new pipeline {}.", frame_change.new_pipeline_id);
-                // Load a new pipeline
-                frame.load(frame_change.new_pipeline_id, frame_change.url.clone());
-                // If the session history is too long, evict an old pipeline,
-                // and remove it from the session history.
-                let evicted = frame.prev.get_mut(opts::get().max_session_history)
-                    .and_then(|entry| entry.pipeline_id.take());
-                (evicted, false)
-            }
+        let (evicted_id, new_frame, clear_future, location_changed) = if let Some(mut entry) = frame_change.replace {
+            debug!("Replacing pipeline in existing frame.");
+            let evicted_id = entry.pipeline_id;
+            entry.pipeline_id = Some(frame_change.new_pipeline_id);
+            self.traverse_to_entry(entry);
+            (evicted_id, false, false, false)
+        } else if let Some(frame) = self.frames.get_mut(&frame_change.frame_id) {
+            debug!("Adding pipeline to existing frame.");
+            frame.load(frame_change.new_pipeline_id, frame_change.url.clone());
+            let evicted_id = frame.prev.get_mut(opts::get().max_session_history)
+                .and_then(|entry| entry.pipeline_id.take());
+            (evicted_id, false, true, true)
         } else {
-            (None, true)
-        };
-
-        if new_frame {
-            // The new pipeline is in a new frame with no history
-            self.new_frame(frame_change.frame_id, frame_change.new_pipeline_id, frame_change.url);
+            (None, true, false, true)
         };
 
         if let Some(evicted_id) = evicted_id {
             self.close_pipeline(evicted_id, ExitPipelineMode::Normal);
         }
 
-        if !frame_change.replace {
-            // If this is an iframe, send a mozbrowser location change event.
-            // This is the result of a link being clicked and a navigation completing.
-            self.trigger_mozbrowserlocationchange(frame_change.new_pipeline_id);
+        if new_frame {
+            self.new_frame(frame_change.frame_id, frame_change.new_pipeline_id, frame_change.url);
+        };
 
+        if clear_future {
             let top_level_frame_id = self.get_top_level_frame_for_pipeline(frame_change.new_pipeline_id);
             self.clear_joint_session_future(top_level_frame_id);
+        }
+
+        if location_changed {
+            self.trigger_mozbrowserlocationchange(frame_change.new_pipeline_id);
         }
 
         // Build frame tree

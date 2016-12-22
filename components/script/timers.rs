@@ -228,18 +228,18 @@ impl OneshotTimers {
     }
 
     pub fn suspend(&self) {
-        assert!(self.suspended_since.get().is_none());
+        // Suspend is idempotent: do nothing if the timers are already suspended.
+        if self.suspended_since.get().is_some() { return; }
 
         self.suspended_since.set(Some(precise_time_ms()));
         self.invalidate_expected_event_id();
     }
 
     pub fn resume(&self) {
-        assert!(self.suspended_since.get().is_some());
-
+        // Suspend is idempotent: do nothing if the timers are already suspended.
         let additional_offset = match self.suspended_since.get() {
             Some(suspended_since) => precise_time_ms() - suspended_since,
-            None => panic!("Timers are not suspended.")
+            None => return,
         };
 
         self.suspension_offset.set(self.suspension_offset.get() + additional_offset);
