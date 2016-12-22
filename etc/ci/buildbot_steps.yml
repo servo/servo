@@ -121,12 +121,12 @@ windows-nightly:
   - ./mach package --release
   - ./etc/ci/upload_nightly.sh windows-gnu
 
-windows-nightly-gnu:
+windows-gnu-nightly:
   - ./mach build --release
   - ./mach package --release
   - ./etc/ci/upload_nightly.sh windows-gnu
 
-windows-nightly-msvc:
+windows-msvc-nightly:
   - mach.bat build --release
   - mach.bat package --release
   - .\etc\ci\upload_nightly.sh windows-msvc
