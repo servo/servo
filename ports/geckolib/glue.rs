@@ -19,7 +19,7 @@ use style::arc_ptr_eq;
 use style::atomic_refcell::AtomicRefMut;
 use style::context::{QuirksMode, ReflowGoal, SharedStyleContext, StyleContext};
 use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInfo};
-use style::data::{ElementData, RestyleData};
+use style::data::{ElementData, ElementStyles, RestyleData};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::gecko::data::{NUM_THREADS, PerDocumentStyleData, PerDocumentStyleDataImpl};
@@ -474,45 +474,46 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_GetForPseudoElement(parent_style: ServoComputedValuesBorrowed,
-                                                           match_element: RawGeckoElementBorrowed,
-                                                           pseudo_tag: *mut nsIAtom,
-                                                           raw_data: RawServoStyleSetBorrowed,
-                                                           is_probe: bool)
-     -> ServoComputedValuesStrong {
-    debug_assert!(!(match_element as *const _).is_null());
+pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
+                                           pseudo_tag: *mut nsIAtom, is_probe: bool,
+                                           raw_data: RawServoStyleSetBorrowed)
+     -> ServoComputedValuesStrong
+{
+    let element = GeckoElement(element);
+    let data = unsafe { element.ensure_data() }.borrow_mut();
 
-    let parent_or_null = || {
-        if is_probe {
+    // FIXME(bholley): Assert against this.
+    if data.get_styles().is_none() {
+        error!("Calling Servo_ResolvePseudoStyle on unstyled element");
+        return if is_probe {
             Strong::null()
         } else {
-            ComputedValues::as_arc(&parent_style).clone().into_strong()
-        }
-    };
+            Arc::new(ComputedValues::initial_values().clone()).into_strong()
+        };
+    }
 
-    let atom = Atom::from(pseudo_tag);
-    let pseudo = PseudoElement::from_atom_unchecked(atom, /* anon_box = */ false);
+    let doc_data = PerDocumentStyleData::from_ffi(raw_data);
+    match get_pseudo_style(element, pseudo_tag, data.styles(), doc_data) {
+        Some(values) => values.into_strong(),
+        None if !is_probe => data.styles().primary.values.clone().into_strong(),
+        None => Strong::null(),
+    }
+}
 
-    let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    let element = GeckoElement(match_element);
-
-
+fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
+                    styles: &ElementStyles, doc_data: &PerDocumentStyleData)
+                    -> Option<Arc<ComputedValues>>
+{
+    let pseudo = PseudoElement::from_atom_unchecked(Atom::from(pseudo_tag), false);
     match SelectorImpl::pseudo_element_cascade_type(&pseudo) {
-        PseudoElementCascadeType::Eager => {
-            let maybe_computed = element.get_pseudo_style(&pseudo);
-            maybe_computed.map_or_else(parent_or_null, FFIArcHelpers::into_strong)
-        }
+        PseudoElementCascadeType::Eager => styles.pseudos.get(&pseudo).map(|s| s.values.clone()),
+        PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {
-            let parent = ComputedValues::as_arc(&parent_style);
-            data.stylist
-                .lazily_compute_pseudo_element_style(&element, &pseudo, parent)
-                .map(|styles| styles.values)
-                .map_or_else(parent_or_null, FFIArcHelpers::into_strong)
-        }
-        PseudoElementCascadeType::Precomputed => {
-            unreachable!("Anonymous pseudo found in \
-                         Servo_GetComputedValuesForPseudoElement");
-        }
+            let d = doc_data.borrow_mut();
+            let base = &styles.primary.values;
+            d.stylist.lazily_compute_pseudo_element_style(&element, &pseudo, base)
+                     .map(|s| s.values.clone())
+        },
     }
 }
 
