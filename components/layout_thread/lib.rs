@@ -520,7 +520,6 @@ impl LayoutThread {
                 viewport_size: self.viewport_size.clone(),
                 screen_size_changed: screen_size_changed,
                 stylist: rw_data.stylist.clone(),
-                generation: self.generation,
                 goal: goal,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),

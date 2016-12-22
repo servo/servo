@@ -49,10 +49,6 @@ pub struct SharedStyleContext {
     /// The CSS selector stylist.
     pub stylist: Arc<Stylist>,
 
-    /// Starts at zero, and increased by one every time a layout completes.
-    /// This can be used to easily check for invalid stale data.
-    pub generation: u32,
-
     /// Why is this reflow occurring
     pub goal: ReflowGoal,
 

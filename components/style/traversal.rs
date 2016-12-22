@@ -18,10 +18,6 @@ use std::mem;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use stylist::Stylist;
 
-/// Every time we do another layout, the old bloom filters are invalid. This is
-/// detected by ticking a generation number every layout.
-pub type Generation = u32;
-
 /// Style sharing candidate cache stats. These are only used when
 /// `-Z style-sharing-stats` is given.
 pub static STYLE_SHARING_CACHE_HITS: AtomicUsize = ATOMIC_USIZE_INIT;

@@ -101,7 +101,6 @@ fn create_shared_context(mut per_doc_data: &mut AtomicRefMut<PerDocumentStyleDat
         // FIXME (bug 1303229): Use the actual viewport size here
         viewport_size: Size2D::new(Au(0), Au(0)),
         screen_size_changed: false,
-        generation: per_doc_data.next_generation(),
         goal: ReflowGoal::ForScriptQuery,
         stylist: per_doc_data.stylist.clone(),
         running_animations: per_doc_data.running_animations.clone(),

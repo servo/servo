@@ -112,7 +112,7 @@ pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayo
 #[inline]
 #[allow(unsafe_code)]
 fn construct_flows_at<'a, N>(context: &LayoutContext<'a>,
-                             thread_local: &mut ScopedThreadLocalLayoutContext<N::ConcreteElement>,
+                             _thread_local: &mut ScopedThreadLocalLayoutContext<N::ConcreteElement>,
                              node: N)
     where N: LayoutNode,
 {
@@ -139,8 +139,6 @@ fn construct_flows_at<'a, N>(context: &LayoutContext<'a>,
     if let Some(el) = node.as_element() {
         el.mutate_data().unwrap().persist();
         unsafe { el.unset_dirty_descendants(); }
-
-        thread_local.style_context.bloom_filter.maybe_pop(el);
     }
 }
 
