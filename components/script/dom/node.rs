@@ -426,10 +426,6 @@ impl Node {
         self.get_flag(HAS_DIRTY_DESCENDANTS)
     }
 
-    pub fn set_has_dirty_descendants(&self, state: bool) {
-        self.set_flag(HAS_DIRTY_DESCENDANTS, state)
-    }
-
     pub fn rev_version(&self) {
         // The new version counter is 1 plus the max of the node's current version counter,
         // its descendants version, and the document's version. Normally, this will just be
