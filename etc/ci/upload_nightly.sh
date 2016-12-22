@@ -11,7 +11,7 @@ shopt -s failglob
 
 
 usage() {
-    printf "usage: ${0} android|linux|mac|macbrew|windows\n"
+    printf "usage: ${0} android|linux|mac|macbrew|windows-gnu|windows-msvc\n"
 }
 
 
@@ -48,7 +48,8 @@ main() {
     elif [[ "${platform}" == "macbrew" ]]; then
         extension=tar.gz
         package=target/release/brew/*."${extension}"
-    elif [[ "${platform}" == "windows" ]]; then
+    elif [[ "${platform}" == "windows-gnu" ||
+            "${platform}" == "windows-msvc" ]]; then
         extension=msi
         package=target/release/msi/*.msi
     else
