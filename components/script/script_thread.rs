@@ -1049,8 +1049,12 @@ impl ScriptThread {
             TimerSource::FromWorker => panic!("Worker timeouts must not be sent to script thread"),
         };
 
-        let window = self.documents.borrow().find_window(pipeline_id)
-            .expect("ScriptThread: received fire timer msg for a pipeline not in this script thread. This is a bug.");
+        let window = self.documents.borrow().find_window(pipeline_id);
+        let window = match window {
+            Some(w) => w,
+            None => return warn!("ScriptThread: received fire timer msg for a pipeline not in \
+                                  this script thread. This is a bug."),
+        };
 
         window.handle_fire_timer(id);
     }

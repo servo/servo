@@ -14930,6 +14930,12 @@
             "url": "/_mozilla/mozilla/textcontent.html"
           }
         ],
+        "mozilla/timeout-in-discarded-document.html": [
+          {
+            "path": "mozilla/timeout-in-discarded-document.html",
+            "url": "/_mozilla/mozilla/timeout-in-discarded-document.html"
+          }
+        ],
         "mozilla/timer_eventInvalidation.html": [
           {
             "path": "mozilla/timer_eventInvalidation.html",
