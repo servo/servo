@@ -222,21 +222,23 @@ fn create_heart_rate_service(device: &BluetoothDevice,
         try!(create_characteristic_with_value(&heart_rate_service,
                                               HEART_RATE_MEASUREMENT_CHARACTERISTIC_UUID.to_owned(),
                                               vec![0]));
-    try!(heart_rate_measurement_characteristic.set_flags(vec![NOTIFY_FLAG.to_string()]));
+    try!(heart_rate_measurement_characteristic.set_flags(vec![NOTIFY_FLAG.to_string(),
+                                                              READ_FLAG.to_string(),
+                                                              WRITE_FLAG.to_string()]));
 
     // Body Sensor Location Characteristic 1
     let body_sensor_location_characteristic_1 =
         try!(create_characteristic_with_value(&heart_rate_service,
                                               BODY_SENSOR_LOCATION_CHARACTERISTIC_UUID.to_owned(),
                                               vec![49]));
-    try!(body_sensor_location_characteristic_1.set_flags(vec![READ_FLAG.to_string()]));
+    try!(body_sensor_location_characteristic_1.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()]));
 
     // Body Sensor Location Characteristic 2
     let body_sensor_location_characteristic_2 =
         try!(create_characteristic_with_value(&heart_rate_service,
                                               BODY_SENSOR_LOCATION_CHARACTERISTIC_UUID.to_owned(),
                                               vec![50]));
-    try!(body_sensor_location_characteristic_2.set_flags(vec![READ_FLAG.to_string()]));
+    try!(body_sensor_location_characteristic_2.set_flags(vec![READ_FLAG.to_string(), WRITE_FLAG.to_string()]));
     Ok(heart_rate_service)
 }
 

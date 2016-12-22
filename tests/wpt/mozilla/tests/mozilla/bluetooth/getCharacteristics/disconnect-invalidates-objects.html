@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => {
+        return gattServer.getPrimaryService(heart_rate.name)
+        .then(service => service.getCharacteristics())
+        .then(c => {
+            let characteristics = c;
+            assert_greater_than(characteristics.length, 1);
+            gattServer.disconnect();
+            return gattServer.connect()
+            .then(() => characteristics);
+        });
+    })
+    .then(characteristics => {
+        let promises = [];
+        for (let characteristic of characteristics) {
+            promises.push(promise_rejects(t, 'InvalidStateError', characteristic.getDescriptor(number_of_digitals.name)));
+            promises.push(promise_rejects(t, 'InvalidStateError', characteristic.getDescriptors(number_of_digitals.name)));
+            promises.push(promise_rejects(t, 'InvalidStateError', characteristic.getDescriptors()));
+            promises.push(promise_rejects(t, 'InvalidStateError', characteristic.readValue()));
+            promises.push(promise_rejects(t, 'InvalidStateError', characteristic.writeValue(new Uint8Array(1))));
+            promises.push(promise_rejects(t, 'InvalidStateError', characteristic.startNotifications()));
+            promises.push(promise_rejects(t, 'InvalidStateError', characteristic.stopNotifications()));
+        }
+        return Promise.all(promises);
+    });
+}, 'Calls on characteristics after we disconnect and connect again. Should reject with InvalidStateError.');
+</script>

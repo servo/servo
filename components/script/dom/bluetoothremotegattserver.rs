@@ -15,7 +15,7 @@ use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use std::cell::Cell;
 use std::rc::Rc;
@@ -45,6 +45,10 @@ impl BluetoothRemoteGATTServer {
 
     fn get_bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.global().as_window().bluetooth_thread()
+    }
+
+    pub fn set_connected(&self, connected: bool) {
+        self.connected.set(connected);
     }
 }
 
@@ -86,27 +90,14 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 
         // Step 2.
         if !self.Connected() {
-            return Ok(());
+            return Ok(())
         }
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.get_bluetooth_thread().send(
-            BluetoothRequest::GATTServerDisconnect(String::from(self.Device().Id()), sender)).unwrap();
-        let server = receiver.recv().unwrap();
 
-        // TODO: Step 3: Implement the `clean up the disconnected device` algorithm.
+        // Step 3.
+        self.Device().clean_up_disconnected_device();
 
-        // TODO: Step 4: Implement representedDevice internal slot for BluetoothDevice.
-
-        // TODO: Step 5: Implement the `garbage-collect the connection` algorithm.
-        match server {
-            Ok(connected) => {
-                self.connected.set(connected);
-                Ok(())
-            },
-            Err(error) => {
-                Err(Error::from(error))
-            },
-        }
+        // Step 4 - 5:
+        self.Device().garbage_collect_the_connection()
     }
 
     #[allow(unrooted_must_root)]
@@ -134,6 +125,14 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
             BluetoothResponse::GATTServerConnect(connected) => {
+                // Step 5.2.3
+                if self.Device().is_represented_device_null() {
+                    if let Err(e) = self.Device().garbage_collect_the_connection() {
+                        return promise.reject_error(promise_cx, Error::from(e));
+                    }
+                    return promise.reject_error(promise_cx, Error::Network);
+                }
+
                 // Step 5.2.4.
                 self.connected.set(connected);
 

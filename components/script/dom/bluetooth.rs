@@ -104,6 +104,10 @@ impl Bluetooth {
         self.global().as_window().bluetooth_thread()
     }
 
+    pub fn get_device_map(&self) -> &DOMRefCell<HashMap<String, MutJS<BluetoothDevice>>> {
+        &self.device_instance_map
+    }
+
     // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
     fn request_bluetooth_devices(&self,
                                  p: &Rc<Promise>,

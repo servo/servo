@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [generic_access.name]}]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => {
+        return gattServer.getPrimaryService(generic_access.name)
+        .then(service => service.getCharacteristic(device_name.name))
+        .then(characteristic => characteristic.getDescriptors())
+        .then(d => {
+            let descriptors = d;
+            gattServer.disconnect();
+            return gattServer.connect()
+            .then(() => descriptors);
+        });
+    })
+    .then(descriptors => {
+        let promises = [];
+        for (let descriptor of descriptors) {
+            promises.push(promise_rejects(t, 'InvalidStateError', descriptor.readValue()));
+            if (descriptor.uuid != client_characteristic_configuration.uuid)
+                promises.push(promise_rejects(t, 'InvalidStateError', descriptor.writeValue(new Uint8Array(1))));
+        }
+        return Promise.all(promises);
+    });
+}, 'Calls on descriptors after we disconnect and connect again. Should reject with InvalidStateError.');
+</script>

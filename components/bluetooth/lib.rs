@@ -247,6 +247,12 @@ impl BluetoothManager {
                 BluetoothRequest::Test(data_set_name, sender) => {
                     let _ = sender.send(self.test(data_set_name));
                 }
+                BluetoothRequest::SetRepresentedToNull(service_ids, characteristic_ids, descriptor_ids) => {
+                    self.remove_ids_from_caches(service_ids, characteristic_ids, descriptor_ids)
+                }
+                BluetoothRequest::IsRepresentedDeviceNull(id, sender) => {
+                    let _ = sender.send(!self.device_is_cached(&id));
+                }
                 BluetoothRequest::Exit => {
                     break
                 },
@@ -270,6 +276,26 @@ impl BluetoothManager {
         match test::test(self, data_set_name) {
             Ok(_) => return Ok(()),
             Err(error) => Err(BluetoothError::Type(error.description().to_owned())),
+        }
+    }
+
+    fn remove_ids_from_caches(&mut self,
+                              service_ids: Vec<String>,
+                              characteristic_ids: Vec<String>,
+                              descriptor_ids: Vec<String>) {
+        for id in service_ids {
+            self.cached_services.remove(&id);
+            self.service_to_device.remove(&id);
+        }
+
+        for id in characteristic_ids {
+            self.cached_characteristics.remove(&id);
+            self.characteristic_to_service.remove(&id);
+        }
+
+        for id in descriptor_ids {
+            self.cached_descriptors.remove(&id);
+            self.descriptor_to_characteristic.remove(&id);
         }
     }
 
@@ -613,20 +639,19 @@ impl BluetoothManager {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-disconnect
-    fn gatt_server_disconnect(&mut self, device_id: String) -> BluetoothResult<bool> {
+    fn gatt_server_disconnect(&mut self, device_id: String) -> BluetoothResult<()> {
         let mut adapter = try!(self.get_adapter());
-
         match self.get_device(&mut adapter, &device_id) {
             Some(d) => {
                 // Step 2.
                 if !d.is_connected().unwrap_or(true) {
-                    return Ok(false);
+                    return Ok(());
                 }
                 let _ = d.disconnect();
                 for _ in 0..MAXIMUM_TRANSACTION_TIME {
                     match d.is_connected().unwrap_or(true) {
                         true => thread::sleep(Duration::from_millis(CONNECTION_TIMEOUT_MS)),
-                        false => return Ok(false),
+                        false => return Ok(()),
                     }
                 }
                 return Err(BluetoothError::Network);
