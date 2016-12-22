@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/_mozilla/mozilla/bluetooth/bluetooth-helpers.js"></script>
+<script>
+'use strict';
+promise_test(t => {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    return window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}],
+        optionalServices: [generic_access.name]
+    })
+    .then(device => device.gatt.connect())
+    .then(gattServer => gattServer.getPrimaryService(heart_rate.name))
+    .then(service => service.getCharacteristic(body_sensor_location.name))
+    .then(characteristic => {
+        return promise_rejects(t, 'NotSupportedError', characteristic.startNotifications());
+    });
+}, 'Characteristic doesn\'t support Notifications. Reject with NotSupportedError.');
+</script>
