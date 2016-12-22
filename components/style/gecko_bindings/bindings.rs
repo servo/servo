@@ -1011,6 +1011,10 @@ extern "C" {
                                                      RawServoStyleSheetBorrowed);
 }
 extern "C" {
+    pub fn Servo_StyleSet_NoteStyleSheetsChanged(set:
+                                                     RawServoStyleSetBorrowed);
+}
+extern "C" {
     pub fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
                                     result: nsTArrayBorrowed_uintptr_t);
 }
