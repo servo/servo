@@ -22,7 +22,7 @@ impl LintPass for InheritancePass {
     }
 }
 
-impl LateLintPass for InheritancePass {
+impl<'a, 'tcx> LateLintPass<'a, 'tcx> for InheritancePass {
     fn check_struct_def(&mut self, cx: &LateContext, def: &hir::VariantData, _n: ast::Name,
                         _gen: &hir::Generics, id: ast::NodeId) {
         // Lints are run post expansion, so it's fine to use

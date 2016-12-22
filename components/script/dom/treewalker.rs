@@ -251,9 +251,6 @@ impl TreeWalkerMethods for TreeWalker {
     }
 }
 
-type NodeAdvancer<'a> = Fn(&Node) -> Option<Root<Node>> + 'a;
-
-
 impl TreeWalker {
     // https://dom.spec.whatwg.org/#concept-traverse-children
     fn traverse_children<F, G>(&self,
