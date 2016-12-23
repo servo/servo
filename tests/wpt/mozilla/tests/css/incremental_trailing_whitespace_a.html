@@ -1,9 +1,10 @@
 <!doctype html>
-<html>
+<html class="reftest-wait">
   <head>
     <meta charset="utf-8">
     <title>incremental trailing whitespace test</title>
     <link rel="match" href="incremental_trailing_whitespace_ref.html">
+    <script src="/common/reftest-wait.js"></script>
     <style>
       #a {
         border: 0 solid;
@@ -20,8 +21,14 @@
     </div>
     <script>
       document.body.offsetWidth; // force layout
-      document.querySelector('#a').classList.add('go');
-      // FIXME (#10245): Wait for the "transitionend" event.
+      var div = document.getElementById('a');
+      div.addEventListener('transitionend', function() {
+        // FIXME(emilio, #13865): requestAnimationFrame shouldn't be needed.
+        requestAnimationFrame(function() {
+          document.documentElement.classList.remove('reftest-wait');
+        });
+      });
+      div.classList.add('go');
     </script>
   </body>
 </html>

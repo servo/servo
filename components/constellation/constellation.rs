@@ -76,6 +76,7 @@ enum ReadyToSave {
     PendingFrames,
     WebFontNotLoaded,
     DocumentLoading,
+    UnknownState,
     EpochMismatch,
     PipelineUnknown,
     Ready,
@@ -2231,9 +2232,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // See if this pipeline has reached idle script state yet.
             match self.document_states.get(&frame.current.pipeline_id) {
                 Some(&DocumentState::Idle) => {}
-                Some(&DocumentState::Pending) | None => {
+                Some(&DocumentState::Pending) => {
                     return ReadyToSave::DocumentLoading;
                 }
+                None => return ReadyToSave::UnknownState,
             }
 
             // Check the visible rectangle for this pipeline. If the constellation has received a
