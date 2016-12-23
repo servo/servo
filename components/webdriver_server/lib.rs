@@ -96,6 +96,7 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
     }).expect("Thread spawning failed");
 }
 
+#[derive(Clone, PartialEq)]
 struct WebDriverSession {
     id: Uuid,
     frame_id: Option<FrameId>
@@ -281,7 +282,7 @@ impl Handler {
     fn session(&self) -> WebDriverResult<&WebDriverSession> {
         match self.session {
             Some(ref x) => Ok(x),
-            None => Err(WebDriverError::new(ErrorStatus::SessionNotCreated,
+            None => Err(WebDriverError::new(ErrorStatus::InvalidSessionId,
                                             "Session not created"))
         }
     }
@@ -292,7 +293,7 @@ impl Handler {
                 x.frame_id = frame_id;
                 Ok(())
             },
-            None => Err(WebDriverError::new(ErrorStatus::SessionNotCreated,
+            None => Err(WebDriverError::new(ErrorStatus::InvalidSessionId,
                                             "Session not created"))
         }
     }
@@ -310,17 +311,19 @@ impl Handler {
                 NewSessionResponse::new(
                     session.id.to_string(),
                     Json::Object(capabilities))));
+            try!(self.handle_get(&GetParameters { url: String::from("about:blank") }));
             self.session = Some(session);
             rv
         } else {
-            Err(WebDriverError::new(ErrorStatus::UnknownError,
+            Err(WebDriverError::new(ErrorStatus::SessionNotCreated,
                                     "Session already created"))
         }
     }
 
     fn handle_delete_session(&mut self) -> WebDriverResult<WebDriverResponse> {
+        try!(self.handle_get(&GetParameters { url: String::from("about:blank") }));
         self.session = None;
-        Ok(WebDriverResponse::Void)
+        Ok(WebDriverResponse::DeleteSession)
     }
 
     #[inline]
@@ -853,6 +856,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         match msg.command {
             WebDriverCommand::NewSession(_) => {},
             _ => {
+                // TODO: check that the session id is the same as the current session
                 try!(self.session());
             }
         }
@@ -906,8 +910,6 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
     }
 
     fn delete_session(&mut self, _session: &Option<Session>) {
-        // Servo doesn't support multiple sessions, so we exit on session deletion
-        let _ = self.constellation_chan.send(ConstellationMsg::Exit);
-        self.session = None;
+        // We don't do any post-processing after a session is deleted
     }
 }
