@@ -660,6 +660,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
 {
+    /// Create a new constellation thread.
     pub fn start(state: InitialConstellationState) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
         let (compositor_sender, compositor_receiver) = channel();
 
@@ -735,6 +736,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         (compositor_sender, swmanager_sender)
     }
 
+    /// The main event loop for the constellation.
     fn run(&mut self) {
         while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
@@ -745,6 +747,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.handle_shutdown();
     }
 
+    /// Generate a new pipeline id namespace.
     fn next_pipeline_namespace_id(&mut self) -> PipelineNamespaceId {
         let namespace_id = self.next_pipeline_namespace_id;
         let PipelineNamespaceId(ref mut i) = self.next_pipeline_namespace_id;
@@ -852,8 +855,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.pipelines.insert(pipeline_id, pipeline);
     }
 
-    // Get an iterator for the current frame tree. Specify self.root_frame_id to
-    // iterate the entire tree, or a specific frame id to iterate only that sub-tree.
+    /// Get an iterator for the current frame tree. Specify self.root_frame_id to
+    /// iterate the entire tree, or a specific frame id to iterate only that sub-tree.
+    /// Iterates over the fully active frames in the tree.
     fn current_frame_tree_iter(&self, frame_id_root: FrameId) -> FrameTreeIterator {
         FrameTreeIterator {
             stack: vec!(frame_id_root),
@@ -862,6 +866,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    /// Get an iterator for the current frame tree. Specify self.root_frame_id to
+    /// iterate the entire tree, or a specific frame id to iterate only that sub-tree.
+    /// Iterates over all frames in the tree.
     fn full_frame_tree_iter(&self, frame_id_root: FrameId) -> FullFrameTreeIterator {
         FullFrameTreeIterator {
             stack: vec!(frame_id_root),
@@ -870,6 +877,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    /// The joint session future is the merge of the session future of every
+    /// frame in the frame tree, sorted chronologically.
     fn joint_session_future(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
         let mut future = vec!();
         for frame in self.full_frame_tree_iter(frame_id_root) {
@@ -881,11 +890,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         future
     }
 
+    /// Is the joint session future empty?
     fn joint_session_future_is_empty(&self, frame_id_root: FrameId) -> bool {
         self.full_frame_tree_iter(frame_id_root)
             .all(|frame| frame.next.is_empty())
     }
 
+    /// The joint session past is the merge of the session past of every
+    /// frame in the frame tree, sorted chronologically.
     fn joint_session_past(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
         let mut past = vec!();
         for frame in self.full_frame_tree_iter(frame_id_root) {
@@ -900,12 +912,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         past
     }
 
+    /// Is the joint session past empty?
     fn joint_session_past_is_empty(&self, frame_id_root: FrameId) -> bool {
         self.full_frame_tree_iter(frame_id_root)
             .all(|frame| frame.prev.is_empty())
     }
 
-    // Create a new frame and update the internal bookkeeping.
+    /// Create a new frame and update the internal bookkeeping.
     fn new_frame(&mut self, frame_id: FrameId, pipeline_id: PipelineId) {
         let frame = Frame::new(frame_id, pipeline_id);
         self.frames.insert(frame_id, frame);
