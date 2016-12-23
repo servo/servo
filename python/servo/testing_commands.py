@@ -199,7 +199,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--bench', default=False, action="store_true",
                      help="Run in bench mode")
     @CommandArgument('--nocapture', default=False, action="store_true",
-                     help="Run with nocapture")
+                     help="Run tests with nocapture ( show test stdout )")
     def test_unit(self, test_name=None, package=None, bench=False, nocapture=False):
         if test_name is None:
             test_name = []
