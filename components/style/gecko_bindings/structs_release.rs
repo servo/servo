@@ -1043,27 +1043,69 @@ pub mod root {
     pub mod std {
         #[allow(unused_imports)]
         use self::super::super::root;
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct atomic<_Tp> {
-            pub _M_i: _Tp,
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct pair<_T1, _T2> {
-            pub first: _T1,
-            pub second: _T2,
-        }
-        pub type pair_first_type<_T1> = _T1;
-        pub type pair_second_type<_T2> = _T2;
         pub mod namespace {
             #[allow(unused_imports)]
             use self::super::super::super::root;
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct atomic<_Tp> {
+                pub _base: (),
+                pub _phantom_0: ::std::marker::PhantomData<_Tp>,
+            }
+            pub type atomic___base = [u8; 0usize];
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct pair<_T1, _T2> {
+                pub first: _T1,
+                pub second: _T2,
+            }
+            pub type pair_first_type<_T1> = _T1;
+            pub type pair_second_type<_T2> = _T2;
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct input_iterator_tag {
+                pub _address: u8,
+            }
+            impl Clone for input_iterator_tag {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct forward_iterator_tag {
+                pub _address: u8,
+            }
+            impl Clone for forward_iterator_tag {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct bidirectional_iterator_tag {
+                pub _address: u8,
+            }
+            impl Clone for bidirectional_iterator_tag {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct random_access_iterator_tag {
+                pub _address: u8,
+            }
+            impl Clone for random_access_iterator_tag {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct __bit_const_reference<_Cp> {
+                pub __seg_: root::std::namespace::__bit_const_reference___storage_pointer<_Cp>,
+                pub __mask_: root::std::namespace::__bit_const_reference___storage_type<_Cp>,
+            }
+            pub type __bit_const_reference___storage_type<_Cp> = _Cp;
+            pub type __bit_const_reference___storage_pointer<_Cp> = _Cp;
+            pub mod namespace {
+                #[allow(unused_imports)]
+                use self::super::super::super::super::root;
+            }
         }
-    }
-    pub mod __gnu_cxx {
-        #[allow(unused_imports)]
-        use self::super::super::root;
     }
     pub mod mozilla {
         #[allow(unused_imports)]
@@ -8590,63 +8632,63 @@ pub mod root {
     impl Clone for nsDOMMutationObserver {
         fn clone(&self) -> Self { *self }
     }
-    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_HAS_LISTENERMANAGER;
-    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_HAS_PROPERTIES;
-    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_IS_ANONYMOUS_ROOT;
-    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_FORCE_XBL_BINDINGS;
-    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_MAY_BE_IN_BINDING_MNGR;
-    pub const NODE_IS_EDITABLE: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_IS_EDITABLE;
-    pub const NODE_MAY_HAVE_CLASS: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_MAY_HAVE_CLASS;
-    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_IS_IN_SHADOW_TREE;
-    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_HAS_EMPTY_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_HAS_SLOW_SELECTOR;
-    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_HAS_EDGE_CHILD_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
-    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_ALL_SELECTOR_FLAGS;
-    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_NEEDS_FRAME;
-    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_DESCENDANTS_NEED_FRAMES;
-    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_HAS_ACCESSKEY;
-    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_HAS_DIRECTION_RTL;
-    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_HAS_DIRECTION_LTR;
-    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_ALL_DIRECTION_FLAGS;
-    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_CHROME_ONLY_ACCESS;
-    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
-    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_SHARED_RESTYLE_BIT_2;
-    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_66 =
-        _bindgen_ty_66::NODE_TYPE_SPECIFIC_BITS_OFFSET;
+    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_HAS_LISTENERMANAGER;
+    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_HAS_PROPERTIES;
+    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_IS_ANONYMOUS_ROOT;
+    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_FORCE_XBL_BINDINGS;
+    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_MAY_BE_IN_BINDING_MNGR;
+    pub const NODE_IS_EDITABLE: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_IS_EDITABLE;
+    pub const NODE_MAY_HAVE_CLASS: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_MAY_HAVE_CLASS;
+    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_IS_IN_SHADOW_TREE;
+    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_HAS_EMPTY_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_HAS_SLOW_SELECTOR;
+    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_HAS_EDGE_CHILD_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
+    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_ALL_SELECTOR_FLAGS;
+    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_NEEDS_FRAME;
+    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_DESCENDANTS_NEED_FRAMES;
+    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_HAS_ACCESSKEY;
+    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_HAS_DIRECTION_RTL;
+    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_HAS_DIRECTION_LTR;
+    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_ALL_DIRECTION_FLAGS;
+    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_CHROME_ONLY_ACCESS;
+    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
+    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_2;
+    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_23 =
+        _bindgen_ty_23::NODE_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum _bindgen_ty_66 {
+    pub enum _bindgen_ty_23 {
         NODE_HAS_LISTENERMANAGER = 4,
         NODE_HAS_PROPERTIES = 8,
         NODE_IS_ANONYMOUS_ROOT = 16,
@@ -9430,21 +9472,21 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
-    pub struct _bindgen_ty_26 {
+    pub struct _bindgen_ty_11 {
         pub mInt: root::__BindgenUnionField<i32>,
         pub mFloat: root::__BindgenUnionField<f32>,
         pub mPointer: root::__BindgenUnionField<*mut ::std::os::raw::c_void>,
         pub bindgen_union_field: u64,
     }
     #[test]
-    fn bindgen_test_layout__bindgen_ty_26() {
-        assert_eq!(::std::mem::size_of::<_bindgen_ty_26>() , 8usize);
-        assert_eq!(::std::mem::align_of::<_bindgen_ty_26>() , 8usize);
+    fn bindgen_test_layout__bindgen_ty_11() {
+        assert_eq!(::std::mem::size_of::<_bindgen_ty_11>() , 8usize);
+        assert_eq!(::std::mem::align_of::<_bindgen_ty_11>() , 8usize);
     }
-    impl Clone for _bindgen_ty_26 {
+    impl Clone for _bindgen_ty_11 {
         fn clone(&self) -> Self { *self }
     }
-    pub type nsStyleUnion = root::_bindgen_ty_26;
+    pub type nsStyleUnion = root::_bindgen_ty_11;
     /**
  * Class that hold a single size specification used by the style
  * system.  The size specification consists of two parts -- a number
@@ -12205,7 +12247,8 @@ pub mod root {
         pub mQuotePairs: root::nsStyleQuoteValues_QuotePairArray,
     }
     pub type nsStyleQuoteValues_QuotePairArray =
-        root::nsTArray<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>;
+        root::nsTArray<root::std::namespace::pair<::nsstring::nsStringRepr,
+                                                  ::nsstring::nsStringRepr>>;
     pub type nsStyleQuoteValues_HasThreadSafeRefCnt = root::mozilla::TrueType;
     #[test]
     fn bindgen_test_layout_nsStyleQuoteValues() {
@@ -13140,9 +13183,11 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_36() {
-        assert_eq!(::std::mem::size_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
+        assert_eq!(::std::mem::size_of::<root::std::namespace::pair<::nsstring::nsStringRepr,
+                                                 ::nsstring::nsStringRepr>>()
                    , 32usize);
-        assert_eq!(::std::mem::align_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
+        assert_eq!(::std::mem::align_of::<root::std::namespace::pair<::nsstring::nsStringRepr,
+                                                  ::nsstring::nsStringRepr>>()
                    , 8usize);
     }
 }
