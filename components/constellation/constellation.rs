@@ -123,116 +123,149 @@ use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
 use webrender_traits;
 
-#[derive(Debug, PartialEq)]
-enum ReadyToSave {
-    NoRootFrame,
-    PendingFrames,
-    WebFontNotLoaded,
-    DocumentLoading,
-    EpochMismatch,
-    PipelineUnknown,
-    Ready,
-}
-
-/// Maintains the pipelines and navigation context and grants permission to composite.
+/// The `Constellation` itself. In the servo browser, there is one
+/// constellation, which maintains all of the browser global data.
+/// In embedded applications, there may be more than one constellation,
+/// which are independent of each other.
+///
+/// The constellation may be in a different process from the pipelines,
+/// and communicates using IPC.
 ///
 /// It is parameterized over a `LayoutThreadFactory` and a
 /// `ScriptThreadFactory` (which in practice are implemented by
 /// `LayoutThread` in the `layout` crate, and `ScriptThread` in
-/// the `script` crate).
+/// the `script` crate). Script and layout communicate using a `Message`
+/// type.
 pub struct Constellation<Message, LTF, STF> {
-    /// A channel through which script messages can be sent to this object.
+    /// An IPC channel for script threads to send messages to the constellation.
+    /// This is the script threads' view of `script_receiver`.
     script_sender: IpcSender<FromScriptMsg>,
 
-    /// A channel through which layout thread messages can be sent to this object.
-    layout_sender: IpcSender<FromLayoutMsg>,
-
-    /// Receives messages from scripts.
+    /// A channel for the constellation to receive messages from script threads.
+    /// This is the constellation's view of `script_sender`.
     script_receiver: Receiver<FromScriptMsg>,
 
-    /// Receives messages from the compositor
-    compositor_receiver: Receiver<FromCompositorMsg>,
+    /// An IPC channel for layout threads to send messages to the constellation.
+    /// This is the layout threads' view of `layout_receiver`.
+    layout_sender: IpcSender<FromLayoutMsg>,
 
-    /// Receives messages from the layout thread
+    /// A channel for the constellation to receive messages from layout threads.
+    /// This is the constellation's view of `layout_sender`.
     layout_receiver: Receiver<FromLayoutMsg>,
 
-    /// A channel (the implementation of which is port-specific) through which messages can be sent
-    /// to the compositor.
+    /// A channel for the constellation to receive messages from the compositor thread.
+    compositor_receiver: Receiver<FromCompositorMsg>,
+
+    /// A channel (the implementation of which is port-specific) for the
+    /// constellation to send messages to the compositor thread.
     compositor_proxy: Box<CompositorProxy>,
 
-    /// Channels through which messages can be sent to the resource-related threads.
+    /// Channels for the constellation to send messages to the public
+    /// resource-related threads.  There are two groups of resource
+    /// threads: one for public browsing, and one for private
+    /// browsing.
     public_resource_threads: ResourceThreads,
 
-    /// Channels through which messages can be sent to the resource-related threads.
+    /// Channels for the constellation to send messages to the private
+    /// resource-related threads.  There are two groups of resource
+    /// threads: one for public browsing, and one for private
+    /// browsing.
     private_resource_threads: ResourceThreads,
 
-    /// A channel through which messages can be sent to the image cache thread.
+    /// A channel for the constellation to send messages to the image
+    /// cache thread.
     image_cache_thread: ImageCacheThread,
 
-    /// A channel through which messages can be sent to the debugger.
-    debugger_chan: Option<debugger::Sender>,
-
-    /// A channel through which messages can be sent to the developer tools.
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-
-    /// A channel through which messages can be sent to the bluetooth thread.
-    bluetooth_thread: IpcSender<BluetoothRequest>,
-
-    /// Sender to Service Worker Manager thread
-    swmanager_chan: Option<IpcSender<ServiceWorkerMsg>>,
-
-    /// to send messages to this object
-    swmanager_sender: IpcSender<SWManagerMsg>,
-
-    /// to receive sw manager message
-    swmanager_receiver: Receiver<SWManagerMsg>,
-
-    /// A map from top-level frame id and registered domain name to event loops.
-    /// This double indirection ensures that separate tabs do not share event loops,
-    /// even if the same domain is loaded in each.
-    event_loops: HashMap<FrameId, HashMap<String, Weak<EventLoop>>>,
-
-    /// A list of all the pipelines. (See the `pipeline` module for more details.)
-    pipelines: HashMap<PipelineId, Pipeline>,
-
-    /// A list of all the frames
-    frames: HashMap<FrameId, Frame>,
-
-    /// A channel through which messages can be sent to the font cache.
+    /// A channel for the constellation to send messages to the font
+    /// cache thread.
     font_cache_thread: FontCacheThread,
 
-    /// ID of the root frame.
-    root_frame_id: FrameId,
+    /// A channel for the constellation to send messages to the
+    /// debugger thread.
+    debugger_chan: Option<debugger::Sender>,
 
-    /// The next free ID to assign to a pipeline ID namespace.
-    next_pipeline_namespace_id: PipelineNamespaceId,
+    /// A channel for the constellation to send messages to the
+    /// devtools thread.
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
-    /// Pipeline ID that has currently focused element for key events.
-    focus_pipeline_id: Option<PipelineId>,
+    /// An IPC channel for the constellation to send messages to the
+    /// bluetooth thread.
+    bluetooth_thread: IpcSender<BluetoothRequest>,
 
-    /// Navigation operations that are in progress.
-    pending_frames: Vec<FrameChange>,
+    /// An IPC channel for the constellation to send messages to the
+    /// Service Worker Manager thread.
+    swmanager_chan: Option<IpcSender<ServiceWorkerMsg>>,
 
-    /// A channel through which messages can be sent to the time profiler.
+    /// An IPC channel for Service Worker Manager threads to send
+    /// messages to the constellation.  This is the SW Manager thread's
+    /// view of `swmanager_receiver`.
+    swmanager_sender: IpcSender<SWManagerMsg>,
+
+    /// A channel for the constellation to receive messages from the
+    /// Service Worker Manager thread. This is the constellation's view of
+    /// `swmanager_sender`.
+    swmanager_receiver: Receiver<SWManagerMsg>,
+
+    /// A channel for the constellation to send messages to the
+    /// time profiler thread.
     time_profiler_chan: time::ProfilerChan,
 
-    /// A channel through which messages can be sent to the memory profiler.
+    /// A channel for the constellation to send messages to the
+    /// memory profiler thread.
     mem_profiler_chan: mem::ProfilerChan,
 
-    phantom: PhantomData<(Message, LTF, STF)>,
+    /// A channel for the constellation to send messages to the
+    /// timer thread.
+    scheduler_chan: IpcSender<TimerEventRequest>,
 
+    /// A channel for the constellation to send messages to the
+    /// Webrender thread.
+    webrender_api_sender: webrender_traits::RenderApiSender,
+
+    /// The set of all event loops in the browser. We generate a new
+    /// event loop for each registered domain name (aka eTLD+1) in
+    /// each top-level frame. We store the event loops in a map
+    /// indexed by top-level frame id (as a `FrameId`) and registered
+    /// domain name (as a `String`) to event loops. This double
+    /// indirection ensures that separate tabs do not share event
+    /// loops, even if the same domain is loaded in each.
+    /// It is important that scripts with the same eTLD+1
+    /// share an event loop, since they can use `document.domain`
+    /// to become same-origin, at which point they can share DOM objects.
+    event_loops: HashMap<FrameId, HashMap<String, Weak<EventLoop>>>,
+
+    /// The set of all the pipelines in the browser.
+    /// (See the `pipeline` module for more details.)
+    pipelines: HashMap<PipelineId, Pipeline>,
+
+    /// The set of all the frames in the browser.
+    frames: HashMap<FrameId, Frame>,
+
+    /// When a navigation is performed, we do not immediately update
+    /// the frame tree, instead we ask the event loop to begin loading
+    /// the new document, and do not update the frame tree until the
+    /// document is active. Between starting the load and it activating,
+    /// we store a `FrameChange` object for the navigation in progress.
+    pending_frames: Vec<FrameChange>,
+
+    /// The root frame.
+    root_frame_id: FrameId,
+
+    /// The currently focused pipeline for key events.
+    focus_pipeline_id: Option<PipelineId>,
+
+    /// Pipeline IDs are namespaced in order to avoid name collisions,
+    /// and the namespaces are allocated by the constellation.
+    next_pipeline_namespace_id: PipelineNamespaceId,
+
+    /// The size of the top-level window.
     window_size: WindowSizeData,
 
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData,
 
-    scheduler_chan: IpcSender<TimerEventRequest>,
-
     /// Document states for loaded pipelines (used only when writing screenshots).
     document_states: HashMap<PipelineId, DocumentState>,
-
-    // Webrender interface.
-    webrender_api_sender: webrender_traits::RenderApiSender,
 
     /// Are we shutting down?
     shutting_down: bool,
@@ -244,6 +277,9 @@ pub struct Constellation<Message, LTF, STF> {
     /// The random number generator and probability for closing pipelines.
     /// This is for testing the hardening of the constellation.
     random_pipeline_closure: Option<(StdRng, f32)>,
+
+    /// Phantom data that keeps the Rust type system happy.
+    phantom: PhantomData<(Message, LTF, STF)>,
 }
 
 /// State needed to construct a constellation.
@@ -272,6 +308,17 @@ pub struct InitialConstellationState {
     pub supports_clipboard: bool,
     /// Webrender API.
     pub webrender_api_sender: webrender_traits::RenderApiSender,
+}
+
+#[derive(Debug, PartialEq)]
+enum ReadyToSave {
+    NoRootFrame,
+    PendingFrames,
+    WebFontNotLoaded,
+    DocumentLoading,
+    EpochMismatch,
+    PipelineUnknown,
+    Ready,
 }
 
 #[derive(Debug, Clone)]
