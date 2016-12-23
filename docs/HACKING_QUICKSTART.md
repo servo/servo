@@ -108,25 +108,26 @@ This is how my projects are laid out:
 
 ```
 ~/my-projects/servo/
-~/my-projects/webrender/
+~/my-projects/mozjs/
 ```
+Both folder are git repositories. 
 
-To make it so that servo uses `~/my-projects/webrender/webrender`, first ascertain which version of the crate Servo is using and whether it is a git dependency or one from crates.io.  
+To make it so that servo uses `~/my-projects/mozjs/`, first ascertain which version of the crate Servo is using and whether it is a git dependency or one from crates.io.  
 
-Both information can be found using, in this exampple, `/mach cargo pkgid webrender`.
+Both information can be found using, in this example, `/mach cargo pkgid mozjs_sys`(`mozjs_sys` is the actual crate name, which doesn't necessarily match the repo folder name).
 
-If the output is in the format `https://github.com/servo/webrender#0.11.0`, you are dealing with a git dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` file and add at the bottom:
+If the output is in the format `https://github.com/servo/mozjs#mozjs_sys:0.0.0`, you are dealing with a git dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` file and add at the bottom:
 
 ``` toml
 [replace]
-"https://github.com/servo/webrender#webrender:0.11.0" = { path = '../webrender/webrender' }
+"https://github.com/servo/mozjs#mozjs_sys:0.0.0" = { path = '../mozjs' }
 ```
 
-If the output is in the format `https://github.com/rust-lang/crates.io-index#webrender#0.11.0`, you are dealing with a crates.io dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` in the following way:
+If the output is in the format `https://github.com/rust-lang/crates.io-index#mozjs_sys#0.0.0`, you are dealing with a crates.io dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` in the following way:
 
 ``` toml
 [replace]
-"webrender:0.11.0" = { path = '../webrender/webrender' }
+"mozjs_sys:0.0.0" = { path = '../mozjs' }
 ```
 
 Both will tell any cargo project to not use the online version of the dependency, but your local clone.
