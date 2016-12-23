@@ -505,6 +505,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "LengthOrPercentage": impl_style_coord,
         "LengthOrPercentageOrAuto": impl_style_coord,
         "LengthOrPercentageOrNone": impl_style_coord,
+        "LengthOrNone": impl_style_coord,
         "Number": impl_simple,
         "Opacity": impl_simple,
         "CSSColor": impl_color,
@@ -1053,7 +1054,7 @@ fn static_assert() {
 <% skip_box_longhands= """display overflow-y vertical-align
                           -moz-binding page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
-                          scroll-snap-type-y""" %>
+                          scroll-snap-type-y perspective-origin""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1325,6 +1326,15 @@ fn static_assert() {
 
     ${impl_keyword('scroll_snap_type_y', 'mScrollSnapTypeY', scroll_snap_type_keyword, need_clone=False)}
 
+    pub fn set_perspective_origin(&mut self, v: longhands::perspective_origin::computed_value::T) {
+        self.gecko.mPerspectiveOrigin[0].set(v.horizontal);
+        self.gecko.mPerspectiveOrigin[1].set(v.vertical);
+    }
+
+    pub fn copy_perspective_origin_from(&mut self, other: &Self) {
+        self.gecko.mPerspectiveOrigin[0].copy_from(&other.gecko.mPerspectiveOrigin[0]);
+        self.gecko.mPerspectiveOrigin[1].copy_from(&other.gecko.mPerspectiveOrigin[1]);
+    }
 </%self:impl_trait>
 
 <%def name="simple_image_array_property(name, shorthand, field_name)">
