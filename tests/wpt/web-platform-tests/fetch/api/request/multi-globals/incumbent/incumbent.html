@@ -6,9 +6,8 @@
 <script>
 'use strict';
 
-const current = document.querySelector('#c').contentWindow;
-
 window.createRequest = (...args) => {
+    const current = document.querySelector('#c').contentWindow;
     return new current.Request(...args);
 };
 

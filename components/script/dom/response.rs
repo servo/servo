@@ -149,8 +149,7 @@ impl Response {
     // https://fetch.spec.whatwg.org/#dom-response-redirect
     pub fn Redirect(global: &GlobalScope, url: USVString, status: u16) -> Fallible<Root<Response>> {
         // Step 1
-        // TODO: `entry settings object` is not implemented in Servo yet.
-        let base_url = global.get_url();
+        let base_url = global.api_base_url();
         let parsed_url = base_url.join(&url.0);
 
         // Step 2

@@ -92,8 +92,7 @@ impl Request {
         let mut fallback_credentials: Option<NetTraitsRequestCredentials> = None;
 
         // Step 4
-        // TODO: `entry settings object` is not implemented in Servo yet.
-        let base_url = global.get_url();
+        let base_url = global.api_base_url();
 
         match input {
             // Step 5

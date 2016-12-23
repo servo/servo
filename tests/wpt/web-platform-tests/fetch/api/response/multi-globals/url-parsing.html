@@ -18,9 +18,9 @@ const loadPromise = new Promise(resolve => {
 
 promise_test(() => {
     return loadPromise.then(() => {
-        const res = frames[0].createRedirectResponse("url");
+        const res = document.querySelector('iframe').contentWindow.createRedirectResponse("url");
 
-        assert_equals(res.headers.get("Location"), new URL("current/url", location.href).href);
+        assert_equals(res.headers.get("Location"), new URL("current/success/url", location.href).href);
     });
 }, "should parse the redirect Location URL relative to the current settings object");
 

@@ -7,10 +7,9 @@
 <script>
 'use strict';
 
-const current = document.querySelector('#c').contentWindow;
-const relevant = document.querySelector('#r').contentWindow;
-
 window.createRedirectResponse = (...args) => {
+    const current = document.querySelector('#c').contentWindow;
+    const relevant = document.querySelector('#r').contentWindow;
     return current.Response.redirect.call(relevant.Response, ...args);
 };
 

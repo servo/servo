@@ -18,9 +18,9 @@ const loadPromise = new Promise(resolve => {
 
 promise_test(() => {
     return loadPromise.then(() => {
-        const req = frames[0].createRequest("url");
+        const req = document.querySelector('iframe').contentWindow.createRequest("url");
 
-        assert_equals(req.url, new URL("current/url", location.href).href);
+        assert_equals(req.url, new URL("current/success/url", location.href).href);
     });
 }, "should parse the URL relative to the current settings object");
 
