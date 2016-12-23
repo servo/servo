@@ -475,8 +475,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # Make a list of types we can't auto-generate.
     #
     force_stub = [];
-    # These are currently being shuffled to a different style struct on the gecko side.
-    force_stub += ["backface-visibility", "transform-box", "transform-style"]
     # These live in an nsFont member in Gecko. Should be straightforward to do manually.
     force_stub += ["font-variant"]
     # These have unusual representations in gecko.
@@ -1054,7 +1052,7 @@ fn static_assert() {
 <% skip_box_longhands= """display overflow-y vertical-align
                           -moz-binding page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
-                          scroll-snap-type-y perspective-origin""" %>
+                          scroll-snap-type-y perspective-origin transform-origin""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1334,6 +1332,31 @@ fn static_assert() {
     pub fn copy_perspective_origin_from(&mut self, other: &Self) {
         self.gecko.mPerspectiveOrigin[0].copy_from(&other.gecko.mPerspectiveOrigin[0]);
         self.gecko.mPerspectiveOrigin[1].copy_from(&other.gecko.mPerspectiveOrigin[1]);
+    }
+
+    pub fn set_transform_origin(&mut self, v: longhands::transform_origin::computed_value::T) {
+        self.gecko.mTransformOrigin[0].set(v.horizontal);
+        self.gecko.mTransformOrigin[1].set(v.vertical);
+        self.gecko.mTransformOrigin[2].set(v.depth);
+    }
+
+    pub fn copy_transform_origin_from(&mut self, other: &Self) {
+        self.gecko.mTransformOrigin[0].copy_from(&other.gecko.mTransformOrigin[0]);
+        self.gecko.mTransformOrigin[1].copy_from(&other.gecko.mTransformOrigin[1]);
+        self.gecko.mTransformOrigin[2].copy_from(&other.gecko.mTransformOrigin[2]);
+    }
+
+    pub fn clone_transform_origin(&self) -> longhands::transform_origin::computed_value::T {
+        use properties::longhands::transform_origin::computed_value::T;
+        use values::computed::LengthOrPercentage;
+        T {
+            horizontal: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mTransformOrigin[0])
+                .expect("clone for LengthOrPercentage failed"),
+            vertical: LengthOrPercentage::from_gecko_style_coord(&self.gecko.mTransformOrigin[1])
+                .expect("clone for LengthOrPercentage failed"),
+            depth: Au::from_gecko_style_coord(&self.gecko.mTransformOrigin[2])
+                .expect("clone for Length failed"),
+        }
     }
 </%self:impl_trait>
 

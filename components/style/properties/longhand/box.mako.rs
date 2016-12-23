@@ -1636,11 +1636,12 @@ ${helpers.single_keyword("transform-box",
 // `auto` keyword is not supported in gecko yet.
 // https://drafts.csswg.org/css-transforms/#transform-style-property
 ${helpers.single_keyword("transform-style",
-                         "auto flat preserve-3d",
+                         "auto flat preserve-3d" if product == "servo" else
+                         "flat preserve-3d",
                          animatable=False)}
 
 // https://drafts.csswg.org/css-transforms/#transform-origin-property
-<%helpers:longhand name="transform-origin" products="servo" animatable="True">
+<%helpers:longhand name="transform-origin" animatable="True">
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
