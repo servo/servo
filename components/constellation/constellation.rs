@@ -286,67 +286,68 @@ pub struct Constellation<Message, LTF, STF> {
 pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: Box<CompositorProxy + Send>,
+
     /// A channel to the debugger, if applicable.
     pub debugger_chan: Option<debugger::Sender>,
+
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
+
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
+
     /// A channel to the font cache thread.
     pub font_cache_thread: FontCacheThread,
+
     /// A channel to the resource thread.
     pub public_resource_threads: ResourceThreads,
+
     /// A channel to the resource thread.
     pub private_resource_threads: ResourceThreads,
+
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
+
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: mem::ProfilerChan,
-    /// Whether the constellation supports the clipboard.
-    pub supports_clipboard: bool,
+
     /// Webrender API.
     pub webrender_api_sender: webrender_traits::RenderApiSender,
+
+    /// Whether the constellation supports the clipboard.
+    /// TODO: this field is not used, remove it?
+    pub supports_clipboard: bool,
 }
 
-#[derive(Debug, PartialEq)]
-enum ReadyToSave {
-    NoRootFrame,
-    PendingFrames,
-    WebFontNotLoaded,
-    DocumentLoading,
-    EpochMismatch,
-    PipelineUnknown,
-    Ready,
-}
-
+/// A frame in the frame tree.
+/// Each frame is the constrellation's view of a browsing context.
+/// Each browsing context has a session history, caused by
+/// navigation and traversing the history. Each frame has its
+/// current entry, plus past and future entries. The past is sorted
+/// chronologically, the future is sorted reverse chronoogically:
+/// in partiucular prev.pop() is the latest past entry, and
+/// next.pop() is the earliest future entry.
 #[derive(Debug, Clone)]
-struct FrameState {
-    instant: Instant,
-    pipeline_id: PipelineId,
-    frame_id: FrameId,
-}
-
-impl FrameState {
-    fn new(pipeline_id: PipelineId, frame_id: FrameId) -> FrameState {
-        FrameState {
-            instant: Instant::now(),
-            pipeline_id: pipeline_id,
-            frame_id: frame_id,
-        }
-    }
-}
-
-/// Stores the navigation context for a single frame in the frame tree.
 struct Frame {
+    /// The frame id.
     id: FrameId,
+
+    /// The past session history, ordered chronologically.
     prev: Vec<FrameState>,
+
+    /// The currently active session history entry.
     current: FrameState,
+
+    /// The future session history, ordered reverse chronologically.
     next: Vec<FrameState>,
 }
 
 impl Frame {
+    /// Create a new frame.
+    /// Note this just creates the frame, it doesn't add it to the frame tree.
     fn new(id: FrameId, pipeline_id: PipelineId) -> Frame {
         Frame {
             id: id,
@@ -356,36 +357,84 @@ impl Frame {
         }
     }
 
+    /// Set the current frame entry, and push the current frame entry into the past.
     fn load(&mut self, pipeline_id: PipelineId) {
         self.prev.push(self.current.clone());
         self.current = FrameState::new(pipeline_id, self.id);
     }
 
+    /// Set the future to be empty.
     fn remove_forward_entries(&mut self) -> Vec<FrameState> {
         replace(&mut self.next, vec!())
     }
 
+    /// Set the current frame entry, and drop the current frame entry.
     fn replace_current(&mut self, pipeline_id: PipelineId) -> FrameState {
         replace(&mut self.current, FrameState::new(pipeline_id, self.id))
+    }
+}
+
+/// An entry in a frame's session history.
+/// Each entry stores the pipeline id for a document in the session history.
+/// When we operate on the joint session history, entries are sorted chronologically,
+/// so we timestamp the entries by when the entry was added to the session history.
+#[derive(Debug, Clone)]
+struct FrameState {
+    /// The timestamp for when the session history entry was created
+    instant: Instant,
+    /// The pipeline for the document in the session history
+    pipeline_id: PipelineId,
+    /// The frame that this session history entry is part of
+    frame_id: FrameId,
+}
+
+impl FrameState {
+    /// Create a new session history entry.
+    fn new(pipeline_id: PipelineId, frame_id: FrameId) -> FrameState {
+        FrameState {
+            instant: Instant::now(),
+            pipeline_id: pipeline_id,
+            frame_id: frame_id,
+        }
     }
 }
 
 /// Represents a pending change in the frame tree, that will be applied
 /// once the new pipeline has loaded and completed initial layout / paint.
 struct FrameChange {
+    /// The frame to change.
+
     frame_id: FrameId,
+    /// The pipeline that was currently active at the time the change started.
+    /// TODO: can this field be removed?
     old_pipeline_id: Option<PipelineId>,
+
+    /// The pipeline for the document being loaded.
     new_pipeline_id: PipelineId,
+
+    /// Is this document ready to be activated?
+    /// TODO: this flag is never set, it can be removed.
     document_ready: bool,
+
+    /// Is the new document replacing the current document (e.g. a reload)
+    /// or pushing it into the session history (e.g. a navigation)?
     replace: bool,
 }
 
-/// An iterator over a frame tree, returning nodes in depth-first order.
-/// Note that this iterator should _not_ be used to mutate nodes _during_
-/// iteration. Mutating nodes once the iterator is out of scope is OK.
+/// An iterator over a frame tree, returning the fully active frames in
+/// depth-first order. Note that this iterator only returns the fully
+/// active frames, that is ones where every ancestor frame is
+/// in the currently active pipeline of its parent frame.
 struct FrameTreeIterator<'a> {
+    /// The frames still to iterate over.
     stack: Vec<FrameId>,
+
+    /// The set of all frames.
     frames: &'a HashMap<FrameId, Frame>,
+
+    /// The set of all pipelines.  We use this to find the active
+    /// children of a frame, which are the iframes in the currently
+    /// active document.
     pipelines: &'a HashMap<PipelineId, Pipeline>,
 }
 
@@ -417,9 +466,19 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
     }
 }
 
+/// An iterator over a frame tree, returning all frames in depth-first
+/// order. Note that this iterator returns all frames, not just the
+/// fully active ones.
 struct FullFrameTreeIterator<'a> {
+    /// The frames still to iterate over.
     stack: Vec<FrameId>,
+
+    /// The set of all frames.
     frames: &'a HashMap<FrameId, Frame>,
+
+    /// The set of all pipelines.  We use this to find the
+    /// children of a frame, which are the iframes in all documents
+    /// in the session history.
     pipelines: &'a HashMap<PipelineId, Pipeline>,
 }
 
@@ -448,6 +507,7 @@ impl<'a> Iterator for FullFrameTreeIterator<'a> {
     }
 }
 
+/// Data needed for webdriver
 struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>,
     resize_channel: Option<IpcSender<WindowSizeData>>,
@@ -462,6 +522,23 @@ impl WebDriverData {
     }
 }
 
+/// When we are running reftests, we save an image to compare against a reference.
+/// This enum gives the possible states of preparing such an image.
+#[derive(Debug, PartialEq)]
+enum ReadyToSave {
+    NoRootFrame,
+    PendingFrames,
+    WebFontNotLoaded,
+    DocumentLoading,
+    EpochMismatch,
+    PipelineUnknown,
+    Ready,
+}
+
+/// When we are exiting a pipeline, we can either force exiting or not.
+/// A normal exit waits for the compositor to update its state before
+/// exiting, and delegates layout exit to script. A forced exit does
+/// not notify the compositor, and exits layout without involving script.
 #[derive(Clone, Copy)]
 enum ExitPipelineMode {
     Normal,
