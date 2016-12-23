@@ -12,6 +12,7 @@ pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotat
         let mut item2 = (*item).clone();
         item2.attrs.push(quote_attr!(cx, #[must_root]));
         item2.attrs.push(quote_attr!(cx, #[privatize]));
+        item2.attrs.push(quote_attr!(cx, #[repr(C)]));
         item2.attrs.push(quote_attr!(cx, #[derive(JSTraceable)]));
         item2.attrs.push(quote_attr!(cx, #[derive(HeapSizeOf)]));
 
