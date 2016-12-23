@@ -1531,12 +1531,12 @@ ${helpers.single_keyword("resize",
 ${helpers.predefined_type("perspective",
                           "LengthOrNone",
                           "Either::Second(None_)",
-                          products="servo",
+                          gecko_ffi_name="mChildPerspective",
                           animatable=True)}
 
 // FIXME: This prop should be animatable
 // https://drafts.csswg.org/css-transforms/#perspective-origin-property
-<%helpers:longhand name="perspective-origin" products="servo" animatable="False">
+<%helpers:longhand name="perspective-origin" animatable="False">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
