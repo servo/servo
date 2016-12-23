@@ -37,28 +37,56 @@ use std::sync::mpsc::Sender;
 use style_traits::{PagePx, ViewportPx};
 use webrender_traits;
 
-/// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
+/// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an
+/// event loop (executed by a script thread) and a layout thread. A script thread
+/// may be responsible for many pipelines, but a layout thread is only responsible
+/// for one.
 pub struct Pipeline {
+    /// The ID of the pipeline.
     pub id: PipelineId,
+
     /// The ID of the frame that contains this Pipeline.
     pub frame_id: FrameId,
+
+    /// The parent pipeline of this one. `None` if this is a root pipeline.
+    /// Note that because of mozbrowser iframes, even top-level pipelines
+    /// may have a parent (in which case the frame type will be
+    /// `MozbrowserIFrame`).
+    /// TODO: move this field to `Frame`.
     pub parent_info: Option<(PipelineId, FrameType)>,
+
+    /// The event loop handling this pipeline.
     pub event_loop: Rc<EventLoop>,
+
     /// A channel to layout, for performing reflows and shutdown.
     pub layout_chan: IpcSender<LayoutControlMsg>,
+
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
-    /// URL corresponding to the most recently-loaded page.
+
+    /// The most recently loaded URL in this pipeline.
+    /// Note that this URL can change, for example if the page navigates
+    /// to a hash URL.
     pub url: ServoUrl,
+
     /// The title of the most recently-loaded page.
     pub title: Option<String>,
+
+    /// The size of the frame.
+    /// TODO: move this field to `Frame`.
     pub size: Option<TypedSize2D<f32, PagePx>>,
+
     /// Whether this pipeline is currently running animations. Pipelines that are running
     /// animations cause composites to be continually scheduled.
     pub running_animations: bool,
+
+    /// The child frames of this pipeline (these are iframes in the document).
     pub children: Vec<FrameId>,
-    /// Whether this pipeline is considered distinct from public pipelines.
+
+    /// Whether this pipeline is in private browsing mode.
+    /// TODO: move this field to `Frame`.
     pub is_private: bool,
+
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
     /// resource management.
     pub visible: bool,
@@ -71,58 +99,80 @@ pub struct Pipeline {
 pub struct InitialPipelineState {
     /// The ID of the pipeline to create.
     pub id: PipelineId,
+
     /// The ID of the frame that contains this Pipeline.
     pub frame_id: FrameId,
+
     /// The ID of the top-level frame that contains this Pipeline.
     pub top_level_frame_id: FrameId,
+
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
     pub parent_info: Option<(PipelineId, FrameType)>,
+
     /// A channel to the associated constellation.
     pub constellation_chan: IpcSender<ScriptMsg>,
+
     /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
+
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
+
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
+
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
+
     /// A channel to the service worker manager thread
     pub swmanager_thread: IpcSender<SWManagerMsg>,
+
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
+
     /// A channel to the font cache thread.
     pub font_cache_thread: FontCacheThread,
+
     /// Channels to the resource-related threads.
     pub resource_threads: ResourceThreads,
+
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
+
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: profile_mem::ProfilerChan,
+
     /// Information about the initial window size.
     pub window_size: Option<TypedSize2D<f32, PagePx>>,
+
     /// Information about the device pixel ratio.
     pub device_pixel_ratio: ScaleFactor<f32, ViewportPx, DevicePixel>,
-    /// The event loop to run in, if applicable. If this is `Some`,
-    /// then `parent_info` must also be `Some`.
+
+    /// The event loop to run in, if applicable.
     pub event_loop: Option<Rc<EventLoop>>,
+
     /// Information about the page to load.
     pub load_data: LoadData,
+
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
+
     /// Pipeline visibility to be inherited
     pub prev_visibility: Option<bool>,
+
     /// Webrender api.
     pub webrender_api_sender: webrender_traits::RenderApiSender,
+
     /// Whether this pipeline is considered private.
     pub is_private: bool,
 }
 
 impl Pipeline {
-    /// Starts a paint thread, layout thread, and possibly a script thread, in
+    /// Starts a layout thread, and possibly a script thread, in
     /// a new process if requested.
     pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, IOError>
         where LTF: LayoutThreadFactory<Message=Message>,
@@ -276,6 +326,8 @@ impl Pipeline {
         pipeline
     }
 
+    /// A normal exit of the pipeline, which waits for the compositor,
+    /// and delegates layout shutdown to the script thread.
     pub fn exit(&self) {
         debug!("pipeline {:?} exiting", self.id);
 
@@ -298,18 +350,8 @@ impl Pipeline {
         }
     }
 
-    pub fn freeze(&self) {
-        if let Err(e) = self.event_loop.send(ConstellationControlMsg::Freeze(self.id)) {
-            warn!("Sending freeze message failed ({}).", e);
-        }
-    }
-
-    pub fn thaw(&self) {
-        if let Err(e) = self.event_loop.send(ConstellationControlMsg::Thaw(self.id)) {
-            warn!("Sending freeze message failed ({}).", e);
-        }
-    }
-
+    /// A forced exit of the shutdown, which does not wait for the compositor,
+    /// or for the script thread to shut down layout.
     pub fn force_exit(&self) {
         if let Err(e) = self.event_loop.send(ConstellationControlMsg::ExitPipeline(self.id)) {
             warn!("Sending script exit message failed ({}).", e);
@@ -319,6 +361,21 @@ impl Pipeline {
         }
     }
 
+    /// Notify this pipeline that it is no longer fully active.
+    pub fn freeze(&self) {
+        if let Err(e) = self.event_loop.send(ConstellationControlMsg::Freeze(self.id)) {
+            warn!("Sending freeze message failed ({}).", e);
+        }
+    }
+
+    /// Notify this pipeline that it is fully active.
+    pub fn thaw(&self) {
+        if let Err(e) = self.event_loop.send(ConstellationControlMsg::Thaw(self.id)) {
+            warn!("Sending freeze message failed ({}).", e);
+        }
+    }
+
+    /// The compositor's view of a pipeline.
     pub fn to_sendable(&self) -> CompositionPipeline {
         CompositionPipeline {
             id: self.id.clone(),
@@ -327,10 +384,12 @@ impl Pipeline {
         }
     }
 
+    /// Add a new child frame.
     pub fn add_child(&mut self, frame_id: FrameId) {
         self.children.push(frame_id);
     }
 
+    /// Remove a child frame.
     pub fn remove_child(&mut self, frame_id: FrameId) {
         match self.children.iter().position(|id| *id == frame_id) {
             None => return warn!("Pipeline remove child already removed ({:?}).", frame_id),
@@ -338,6 +397,9 @@ impl Pipeline {
         };
     }
 
+    /// Send a mozbrowser event to the script thread for this pipeline.
+    /// This will cause an event to be fired on an iframe in the document,
+    /// or on the `Window` if no frame is given.
     pub fn trigger_mozbrowser_event(&self,
                                      child_id: Option<FrameId>,
                                      event: MozBrowserEvent) {
@@ -351,13 +413,18 @@ impl Pipeline {
         }
     }
 
+    /// Notify the script thread that this pipeline is visible.
     fn notify_visibility(&self) {
         let script_msg = ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, self.visible);
         let compositor_msg = CompositorMsg::PipelineVisibilityChanged(self.id, self.visible);
-        self.event_loop.send(script_msg).expect("Pipeline script chan");
+        let err = self.event_loop.send(script_msg);
+        if let Err(e) = err {
+            warn!("Sending visibility change failed ({}).", e);
+        }
         self.compositor_proxy.send(compositor_msg);
     }
 
+    /// Change the visibility of this pipeline.
     pub fn change_visibility(&mut self, visible: bool) {
         if visible == self.visible {
             return;
@@ -368,6 +435,9 @@ impl Pipeline {
 
 }
 
+/// Creating a new pipeline may require creating a new event loop.
+/// This is the data used to initialize the event loop.
+/// TODO: simplify this, and unify it with `InitialPipelineState` if possible.
 #[derive(Deserialize, Serialize)]
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
@@ -537,10 +607,13 @@ impl UnprivilegedPipelineContent {
     }
 }
 
+/// A trait to unify commands launched as multiprocess with or without a sandbox.
 trait CommandMethods {
+    /// A command line argument.
     fn arg<T>(&mut self, arg: T)
         where T: AsRef<OsStr>;
 
+    /// An environment variable.
     fn env<T, U>(&mut self, key: T, val: U)
         where T: AsRef<OsStr>, U: AsRef<OsStr>;
 }
