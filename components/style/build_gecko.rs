@@ -338,7 +338,7 @@ mod bindings {
             "mozilla::DefaultDelete",
         ];
         let opaque_types = [
-            "atomic___base", "std::atomic__My_base",
+            "std::namespace::atomic___base", "std::atomic__My_base",
             "nsAString_internal_char_traits",
             "nsAString_internal_incompatible_char_type",
             "nsACString_internal_char_traits",

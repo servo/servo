@@ -317,12 +317,14 @@ dependencies = [
 
 [[package]]
 name = "clang-sys"
-version = "0.11.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "glob 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libloading 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1406,15 +1408,15 @@ dependencies = [
 
 [[package]]
 name = "libbindgen"
-version = "0.1.1"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "aster 0.34.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cexpr 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "clang-sys 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clang-sys 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "quasi 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1432,6 +1434,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "libloading"
 version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "target_build_utils 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "libloading"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2732,7 +2745,7 @@ dependencies = [
  "html5ever-atoms 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "libbindgen 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libbindgen 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "nsstring_vendor 0.1.0",
@@ -3339,7 +3352,7 @@ dependencies = [
 "checksum cexpr 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "393a5f0088efbe41f9d1fcd062f24e83c278608420e62109feb2c8abee07de7d"
 "checksum cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "de1e760d7b6535af4241fca8bd8adf68e2e7edacc6b29f5d399050c5e48cf88c"
 "checksum cgl 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "8bdd78cca65a739cb5475dbf6b6bbb49373e327f4a6f2b499c0f98632df38c10"
-"checksum clang-sys 0.11.1 (registry+https://github.com/rust-lang/crates.io-index)" = "19911f7964ce61a02d382adee8400f919d0fedd53c5441e3d6a9858ba73e249e"
+"checksum clang-sys 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "822ea22bbbef9f5934e9477860545fb0311a1759e43a276de42e2856c605aa2b"
 "checksum clippy_lints 0.0.98 (registry+https://github.com/rust-lang/crates.io-index)" = "4329699b62341fd3ce3ebe13ade6c87d35b8778091e0c2f6da51399e081b9671"
 "checksum cmake 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)" = "dfcf5bcece56ef953b8ea042509e9dcbdfe97820b7e20d86beb53df30ed94978"
 "checksum cocoa 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6d24ed9a15e9c0892cdb20c7acc3e50441501b990ee6dc318c176981829a7941"
@@ -3420,9 +3433,10 @@ dependencies = [
 "checksum lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "49247ec2a285bb3dcb23cbd9c35193c025e7251bfce77c1d5da97e6362dffe7f"
 "checksum leak 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "bd100e01f1154f2908dfa7d02219aeab25d0b9c7fa955164192e3245255a0c73"
 "checksum leaky-cow 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "40a8225d44241fd324a8af2806ba635fc7c8a7e9a7de4d5cf3ef54e71f5926fc"
-"checksum libbindgen 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "6a46e95efa501b2940e9c81dbb727e557b39b41f77f1170aba6eed5a546e9964"
+"checksum libbindgen 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)" = "398d7148c9a542aeb0a21440ac05beb0317107121e48bc34f6f4c7173f51d0dd"
 "checksum libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)" = "044d1360593a78f5c8e5e710beccdc24ab71d1f01bc19a29bcacdba22e8475d8"
 "checksum libloading 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "eceb2637ee9a27c7f19764048a9f377e40e3a70a322722f348e6bc7704d565f2"
+"checksum libloading 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "84816a8c6ed8163dfe0dbdd2b09d35c6723270ea77a4c7afa4bedf038a36cb99"
 "checksum libressl-pnacl-sys 2.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "cbc058951ab6a3ef35ca16462d7642c4867e6403520811f28537a4e2f2db3e71"
 "checksum libz-sys 1.0.6 (registry+https://github.com/rust-lang/crates.io-index)" = "40f2df7730b5d29426c3e44ce4d088d8c5def6471c2c93ba98585b89fb201ce6"
 "checksum log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "ab83497bf8bf4ed2a74259c1c802351fcd67a65baa86394b6ba73c36f4838054"
