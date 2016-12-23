@@ -552,7 +552,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
             &url,
             CookieSource::HTTP
         ).unwrap();
-        cookie_jar.push(cookie, CookieSource::HTTP);
+        cookie_jar.push(cookie, &url, CookieSource::HTTP);
     }
 
     let request = Request::from_init(RequestInit {
@@ -590,7 +590,7 @@ fn test_load_sends_cookie_if_nonhttp() {
             &url,
             CookieSource::NonHTTP
         ).unwrap();
-        cookie_jar.push(cookie, CookieSource::HTTP);
+        cookie_jar.push(cookie, &url, CookieSource::HTTP);
     }
 
     let request = Request::from_init(RequestInit {
@@ -982,14 +982,14 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
             CookieSource::HTTP
         ).unwrap();
 
-        cookie_jar.push(cookie_x, CookieSource::HTTP);
+        cookie_jar.push(cookie_x, &url_x, CookieSource::HTTP);
 
         let cookie_y = Cookie::new_wrapped(
             CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned()),
             &url_y,
             CookieSource::HTTP
         ).unwrap();
-        cookie_jar.push(cookie_y, CookieSource::HTTP);
+        cookie_jar.push(cookie_y, &url_y, CookieSource::HTTP);
     }
 
     let request = Request::from_init(RequestInit {
@@ -1175,7 +1175,7 @@ fn test_cookies_blocked() {
             &url,
             CookieSource::HTTP
         ).unwrap();
-        cookie_jar.push(cookie, CookieSource::HTTP);
+        cookie_jar.push(cookie, &url, CookieSource::HTTP);
     }
 
     let request = Request::from_init(RequestInit {

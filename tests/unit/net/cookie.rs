@@ -133,6 +133,119 @@ fn test_sort_order() {
     assert!(CookieStorage::cookie_comparator(&a, &a) == Ordering::Equal);
 }
 
+fn add_cookie_to_storage(storage: &mut CookieStorage, url: &ServoUrl, cookie_str: &str)
+{
+    let source = CookieSource::HTTP;
+    let cookie = Cookie::new_wrapped(cookie_rs::Cookie::parse(cookie_str).unwrap(), url, source).unwrap();
+    storage.push(cookie, url, source);
+}
+
+#[test]
+fn test_insecure_cookies_cannot_evict_secure_cookie() {
+    let mut storage = CookieStorage::new(5);
+    let secure_url = ServoUrl::parse("https://home.example.org:8888/cookie-parser?0001").unwrap();
+    let source = CookieSource::HTTP;
+    let mut cookies = Vec::new();
+
+    cookies.push(cookie_rs::Cookie::parse("foo=bar; Secure; Domain=home.example.org").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo2=bar; Secure; Domain=.example.org").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo3=bar; Secure; Path=/foo").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo4=bar; Secure; Path=/foo/bar").unwrap());
+
+    for bare_cookie in cookies {
+        let cookie = Cookie::new_wrapped(bare_cookie, &secure_url, source).unwrap();
+        storage.push(cookie, &secure_url, source);
+    }
+
+    let insecure_url = ServoUrl::parse("http://home.example.org:8888/cookie-parser?0001").unwrap();
+
+    add_cookie_to_storage(&mut storage, &insecure_url, "foo=value; Domain=home.example.org");
+    add_cookie_to_storage(&mut storage, &insecure_url, "foo2=value; Domain=.example.org");
+    add_cookie_to_storage(&mut storage, &insecure_url, "foo3=value; Path=/foo/bar");
+    add_cookie_to_storage(&mut storage, &insecure_url, "foo4=value; Path=/foo");
+
+    let source = CookieSource::HTTP;
+    assert_eq!(storage.cookies_for_url(&secure_url, source).unwrap(), "foo=bar; foo2=bar");
+
+    let url = ServoUrl::parse("https://home.example.org:8888/foo/cookie-parser-result?0001").unwrap();
+    let source = CookieSource::HTTP;
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(), "foo3=bar; foo4=value; foo=bar; foo2=bar");
+
+    let url = ServoUrl::parse("https://home.example.org:8888/foo/bar/cookie-parser-result?0001").unwrap();
+    let source = CookieSource::HTTP;
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(), "foo4=bar; foo3=bar; foo4=value; foo=bar; foo2=bar");
+}
+
+#[test]
+fn test_secure_cookies_eviction() {
+    let mut storage = CookieStorage::new(5);
+    let url = ServoUrl::parse("https://home.example.org:8888/cookie-parser?0001").unwrap();
+    let source = CookieSource::HTTP;
+    let mut cookies = Vec::new();
+
+    cookies.push(cookie_rs::Cookie::parse("foo=bar; Secure; Domain=home.example.org").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo2=bar; Secure; Domain=.example.org").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo3=bar; Secure; Path=/foo").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo4=bar; Secure; Path=/foo/bar").unwrap());
+
+    for bare_cookie in cookies {
+        let cookie = Cookie::new_wrapped(bare_cookie, &url, source).unwrap();
+        storage.push(cookie, &url, source);
+    }
+
+    add_cookie_to_storage(&mut storage, &url, "foo=value; Domain=home.example.org");
+    add_cookie_to_storage(&mut storage, &url, "foo2=value; Domain=.example.org");
+    add_cookie_to_storage(&mut storage, &url, "foo3=value; Path=/foo/bar");
+    add_cookie_to_storage(&mut storage, &url, "foo4=value; Path=/foo");
+
+    let source = CookieSource::HTTP;
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(), "foo2=value");
+
+    let url = ServoUrl::parse("https://home.example.org:8888/foo/cookie-parser-result?0001").unwrap();
+    let source = CookieSource::HTTP;
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(), "foo3=bar; foo4=value; foo2=value");
+
+    let url = ServoUrl::parse("https://home.example.org:8888/foo/bar/cookie-parser-result?0001").unwrap();
+    let source = CookieSource::HTTP;
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(),
+               "foo4=bar; foo3=value; foo3=bar; foo4=value; foo2=value");
+}
+
+#[test]
+fn test_secure_cookies_eviction_non_http_source() {
+    let mut storage = CookieStorage::new(5);
+    let url = ServoUrl::parse("https://home.example.org:8888/cookie-parser?0001").unwrap();
+    let source = CookieSource::NonHTTP;
+    let mut cookies = Vec::new();
+
+    cookies.push(cookie_rs::Cookie::parse("foo=bar; Secure; Domain=home.example.org").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo2=bar; Secure; Domain=.example.org").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo3=bar; Secure; Path=/foo").unwrap());
+    cookies.push(cookie_rs::Cookie::parse("foo4=bar; Secure; Path=/foo/bar").unwrap());
+
+    for bare_cookie in cookies {
+        let cookie = Cookie::new_wrapped(bare_cookie, &url, source).unwrap();
+        storage.push(cookie, &url, source);
+    }
+
+    add_cookie_to_storage(&mut storage, &url, "foo=value; Domain=home.example.org");
+    add_cookie_to_storage(&mut storage, &url, "foo2=value; Domain=.example.org");
+    add_cookie_to_storage(&mut storage, &url, "foo3=value; Path=/foo/bar");
+    add_cookie_to_storage(&mut storage, &url, "foo4=value; Path=/foo");
+
+    let source = CookieSource::HTTP;
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(), "foo2=value");
+
+    let url = ServoUrl::parse("https://home.example.org:8888/foo/cookie-parser-result?0001").unwrap();
+    let source = CookieSource::HTTP;
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(), "foo3=bar; foo4=value; foo2=value");
+
+    let url = ServoUrl::parse("https://home.example.org:8888/foo/bar/cookie-parser-result?0001").unwrap();
+    let source = CookieSource::HTTP;
+    assert_eq!(storage.cookies_for_url(&url, source).unwrap(),
+               "foo4=bar; foo3=value; foo3=bar; foo4=value; foo2=value");
+}
+
 
 fn add_retrieve_cookies(set_location: &str,
                         set_cookies: &[String],
@@ -149,7 +262,7 @@ fn add_retrieve_cookies(set_location: &str,
         let SetCookie(cookies) = header;
         for bare_cookie in cookies {
             let cookie = Cookie::new_wrapped(bare_cookie, &url, source).unwrap();
-            storage.push(cookie, source);
+            storage.push(cookie, &url, source);
         }
     }
 
