@@ -199,7 +199,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--bench', default=False, action="store_true",
                      help="Run in bench mode")
     @CommandArgument('--nocapture', default=False, action="store_true",
-                    help="Run with nocapture")
+                     help="Run with nocapture")
     def test_unit(self, test_name=None, package=None, bench=False, nocapture=False):
         if test_name is None:
             test_name = []
@@ -258,13 +258,13 @@ class MachCommands(CommandBase):
             for crate in packages:
                 args += ["-p", "%s_tests" % crate]
             args += test_patterns
-            
+
             if features:
                 args += ["--features", "%s" % ' '.join(features)]
 
             if nocapture:
                 args += [" -- --nocapture"]
-                
+
             err = call(args, env=env, cwd=self.servo_crate())
             if err is not 0:
                 return err
