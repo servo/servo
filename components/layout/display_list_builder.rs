@@ -1822,7 +1822,7 @@ impl FragmentDisplayListBuilding for Fragment {
             Some(ref operations) => operations,
         };
 
-        let transform_origin = &self.style.get_effects().transform_origin;
+        let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x = model::specified(transform_origin.horizontal,
                                                   stacking_relative_border_box.size
                                                                               .width).to_f32_px();
