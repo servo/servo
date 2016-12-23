@@ -1054,6 +1054,22 @@ impl WindowMethods for Window {
                                        .height - 2.0 * LINE_HEIGHT,
                                    TouchEventType::Move);
             }
+            (NONE, None, Key::End) => {
+                self.scroll_window(0.0,
+                                   -self.size()
+                                        .to_f32()
+                                        .to_untyped()
+                                        .height * LINE_HEIGHT,
+                                   TouchEventType::Move);
+            }
+            (NONE, None, Key::Home) => {
+                self.scroll_window(0.0,
+                                   self.size()
+                                       .to_f32()
+                                       .to_untyped()
+                                       .height * LINE_HEIGHT,
+                                   TouchEventType::Move);
+            }
             (NONE, None, Key::Up) => {
                 self.scroll_window(0.0, 3.0 * LINE_HEIGHT, TouchEventType::Move);
             }
