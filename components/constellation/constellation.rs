@@ -545,6 +545,10 @@ enum ExitPipelineMode {
     Force,
 }
 
+/// The constellation uses logging to perform crash reporting.
+/// The constellation receives all `warn!`, `error!` and `panic!` messages,
+/// and generates a crash report when it receives a panic.
+
 /// A logger directed at the constellation from content processes
 #[derive(Clone)]
 pub struct FromScriptLogger {
@@ -621,6 +625,10 @@ impl Log for FromCompositorLogger {
     }
 }
 
+/// Rust uses `LogRecord` for storing logging, but servo converts that to
+/// a `LogEntry`. We do this so that we can record panics as well as log
+/// messages, and because `LogRecord` does not implement serde (de)serialization,
+/// so cannot be used over an IPC channel.
 fn log_entry(record: &LogRecord) -> Option<LogEntry> {
     match record.level() {
         LogLevel::Error if thread::panicking() => Some(LogEntry::Panic(
@@ -637,6 +645,7 @@ fn log_entry(record: &LogRecord) -> Option<LogEntry> {
     }
 }
 
+/// The number of warnings to include in each crash report.
 const WARNINGS_BUFFER_SIZE: usize = 32;
 
 /// The registered domain name (aka eTLD+1) for a URL.
