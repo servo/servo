@@ -25,10 +25,9 @@ use dom::urlhelper::UrlHelper;
 use hyper;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
-use libc::{uint32_t, uint8_t};
+use js::typedarray::ArrayBuffer;
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::CookieSource::HTTP;
 use net_traits::CoreResourceMsg::{SetCookiesForUrl, WebsocketConnect};
@@ -608,13 +607,14 @@ impl Runnable for MessageReceivedTask {
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {
-                            let len = data.len() as uint32_t;
-                            let buf = JS_NewArrayBuffer(cx, len);
-                            let mut is_shared = false;
-                            let buf_data: *mut uint8_t = JS_GetArrayBufferData(buf, &mut is_shared, ptr::null());
-                            assert!(!is_shared);
-                            ptr::copy_nonoverlapping(data.as_ptr(), buf_data, len as usize);
-                            buf.to_jsval(cx, message.handle_mut());
+                            rooted!(in(cx) let mut array_buffer = ptr::null_mut());
+                            assert!(ArrayBuffer::create(cx,
+                                                        data.len() as u32,
+                                                        Some(data.as_slice()),
+                                                        array_buffer.handle_mut())
+                                    .is_ok());
+
+                            (*array_buffer).to_jsval(cx, message.handle_mut());
                         }
 
                     }
