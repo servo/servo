@@ -2370,7 +2370,7 @@ impl Fragment {
 
         // TODO(mrobinson): Determine if this is necessary, since blocks with
         // transformations already create stacking contexts.
-        if let Either::First(ref _length) = self.style().get_effects().perspective {
+        if let Either::First(ref _length) = self.style().get_box().perspective {
             return true
         }
 

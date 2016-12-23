@@ -1340,7 +1340,7 @@ impl ComputedValues {
             if box_.transform.0.is_some() {
                 return transform_style::T::flat;
             }
-            if let Either::First(ref _length) = effects.perspective {
+            if let Either::First(ref _length) = box_.perspective {
                 return transform_style::T::flat;
             }
         }
