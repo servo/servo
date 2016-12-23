@@ -108,7 +108,7 @@ This is how my projects are laid out:
 
 ```
 ~/my-projects/servo/
-~/my-projects/webrender/webrender
+~/my-projects/webrender/
 ```
 
 To make it so that servo uses `~/my-projects/webrender/webrender`, first ascertain which version of the crate Servo is using and whether it is a git dependency or one from crates.io.  
