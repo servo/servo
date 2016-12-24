@@ -108,20 +108,29 @@ This is how my projects are laid out:
 
 ```
 ~/my-projects/servo/
-~/my-projects/cocoa-rs/
-~/my-projects/glutin/
+~/my-projects/mozjs/
+```
+Both folder are git repositories. 
+
+To make it so that servo uses `~/my-projects/mozjs/`, first ascertain which version of the crate Servo is using and whether it is a git dependency or one from crates.io.  
+
+Both information can be found using, in this example, `/mach cargo pkgid mozjs_sys`(`mozjs_sys` is the actual crate name, which doesn't necessarily match the repo folder name).
+
+If the output is in the format `https://github.com/servo/mozjs#mozjs_sys:0.0.0`, you are dealing with a git dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` file and add at the bottom:
+
+``` toml
+[replace]
+"https://github.com/servo/mozjs#mozjs_sys:0.0.0" = { path = '../mozjs' }
 ```
 
-These are all git repositories.
+If the output is in the format `https://github.com/rust-lang/crates.io-index#mozjs_sys#0.0.0`, you are dealing with a crates.io dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` in the following way:
 
-To make it so that servo uses `~/my-projects/cocoa-rs/` and `~/my-projects/glutin/` , create a `~/my-projects/servo/.cargo/config` file:
-
-``` shell
-$ cat ~/my-projects/servo/.cargo/config
-paths = ['../glutin', '../cocoa-rs']
+``` toml
+[replace]
+"mozjs_sys:0.0.0" = { path = '../mozjs' }
 ```
 
-This will tell any cargo project to not use the online version of the dependency, but your local clone.
+Both will tell any cargo project to not use the online version of the dependency, but your local clone.
 
 For more details about overriding dependencies, see [Cargo's documentation](http://doc.crates.io/specifying-dependencies.html#overriding-dependencies).
 
