@@ -4,10 +4,63 @@
 
 //! The `Constellation`, Servo's Grand Central Station
 //!
-//! The primary duty of a `Constellation` is to mediate between the
-//! graphics compositor and the many `Pipeline`s in the browser's
-//! navigation context, each `Pipeline` encompassing a `ScriptThread`,
-//! `LayoutThread`, and `PaintThread`.
+//! The constellation tracks all information kept globally by the
+//! browser engine, which includes:
+//!
+//! * The set of all `EventLoop` objects. Each event loop is
+//!   the constellation's view of a script thread. The constellation
+//!   interacts with a script thread by message-passing.
+//!
+//! * The set of all `Pipeline` objects.  Each pipeline gives the
+//!   constellation's view of a `Window`, with its script thread and
+//!   layout threads.  Pipelines may share script threads, but not
+//!   layout threads.
+//!
+//! * The set of all `Frame` objects. Each frame gives the constellation's
+//!   view of a browsing context. Each browsing context stores an independent
+//!   session history, created by navigation of that frame. The session
+//!   history can be traversed, for example by the back and forwards UI,
+//!   so each session history maintains a list of past and future pipelines,
+//!   as well as the current active pipeline.
+//!
+//! There are two kinds of frames: top-level frames (for example tabs
+//! in a browser UI), and nested frames (typically caused by `iframe`
+//! elements). Frames have a hierarchy (typically caused by `iframe`s
+//! containing `iframe`s), giving rise to a frame tree with a root frame.
+//! The logical relationship between these types is:
+//!
+//! ```
+//! +---------+              +------------+                 +-------------+
+//! |  Frame  | --parent?--> |  Pipeline  | --event_loop--> |  EventLoop  |
+//! |         | --current--> |            |                 |             |
+//! |         | --prev*----> |            | <---pipeline*-- |             |
+//! |         | --next*----> |            |                 +-------------+
+//! |         |              |            |
+//! |         | <----frame-- |            |
+//! +---------+              +------------+
+//! ```
+//
+//! Complicating matters, there are also mozbrowser iframes, which are top-level
+//! frames with a parent.
+//!
+//! The constellation also maintains channels to threads, including:
+//!
+//! * The script and layout threads.
+//! * The graphics compositor.
+//! * The font cache, image cache, and resource manager, which load
+//!   and cache shared fonts, images, or other resources.
+//! * The service worker manager.
+//! * The devtools, debugger and webdriver servers.
+//!
+//! The constellation passes messages between the threads, and updates its state
+//! to track the evolving state of the frame tree.
+//!
+//! The constellation acts as a logger, tracking any `warn!` messages from threads,
+//! and converting any `error!` or `panic!` into a crash report, which is filed
+//! using an appropriate `mozbrowsererror` event.
+//!
+//! Since there is only one constellation, and its responsibilities include crash reporting,
+//! it is very important that it does not panic.
 
 use backtrace::Backtrace;
 use bluetooth_traits::BluetoothRequest;
@@ -70,116 +123,149 @@ use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
 use webrender_traits;
 
-#[derive(Debug, PartialEq)]
-enum ReadyToSave {
-    NoRootFrame,
-    PendingFrames,
-    WebFontNotLoaded,
-    DocumentLoading,
-    EpochMismatch,
-    PipelineUnknown,
-    Ready,
-}
-
-/// Maintains the pipelines and navigation context and grants permission to composite.
+/// The `Constellation` itself. In the servo browser, there is one
+/// constellation, which maintains all of the browser global data.
+/// In embedded applications, there may be more than one constellation,
+/// which are independent of each other.
+///
+/// The constellation may be in a different process from the pipelines,
+/// and communicates using IPC.
 ///
 /// It is parameterized over a `LayoutThreadFactory` and a
 /// `ScriptThreadFactory` (which in practice are implemented by
 /// `LayoutThread` in the `layout` crate, and `ScriptThread` in
-/// the `script` crate).
+/// the `script` crate). Script and layout communicate using a `Message`
+/// type.
 pub struct Constellation<Message, LTF, STF> {
-    /// A channel through which script messages can be sent to this object.
+    /// An IPC channel for script threads to send messages to the constellation.
+    /// This is the script threads' view of `script_receiver`.
     script_sender: IpcSender<FromScriptMsg>,
 
-    /// A channel through which layout thread messages can be sent to this object.
-    layout_sender: IpcSender<FromLayoutMsg>,
-
-    /// Receives messages from scripts.
+    /// A channel for the constellation to receive messages from script threads.
+    /// This is the constellation's view of `script_sender`.
     script_receiver: Receiver<FromScriptMsg>,
 
-    /// Receives messages from the compositor
-    compositor_receiver: Receiver<FromCompositorMsg>,
+    /// An IPC channel for layout threads to send messages to the constellation.
+    /// This is the layout threads' view of `layout_receiver`.
+    layout_sender: IpcSender<FromLayoutMsg>,
 
-    /// Receives messages from the layout thread
+    /// A channel for the constellation to receive messages from layout threads.
+    /// This is the constellation's view of `layout_sender`.
     layout_receiver: Receiver<FromLayoutMsg>,
 
-    /// A channel (the implementation of which is port-specific) through which messages can be sent
-    /// to the compositor.
+    /// A channel for the constellation to receive messages from the compositor thread.
+    compositor_receiver: Receiver<FromCompositorMsg>,
+
+    /// A channel (the implementation of which is port-specific) for the
+    /// constellation to send messages to the compositor thread.
     compositor_proxy: Box<CompositorProxy>,
 
-    /// Channels through which messages can be sent to the resource-related threads.
+    /// Channels for the constellation to send messages to the public
+    /// resource-related threads.  There are two groups of resource
+    /// threads: one for public browsing, and one for private
+    /// browsing.
     public_resource_threads: ResourceThreads,
 
-    /// Channels through which messages can be sent to the resource-related threads.
+    /// Channels for the constellation to send messages to the private
+    /// resource-related threads.  There are two groups of resource
+    /// threads: one for public browsing, and one for private
+    /// browsing.
     private_resource_threads: ResourceThreads,
 
-    /// A channel through which messages can be sent to the image cache thread.
+    /// A channel for the constellation to send messages to the image
+    /// cache thread.
     image_cache_thread: ImageCacheThread,
 
-    /// A channel through which messages can be sent to the debugger.
-    debugger_chan: Option<debugger::Sender>,
-
-    /// A channel through which messages can be sent to the developer tools.
-    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-
-    /// A channel through which messages can be sent to the bluetooth thread.
-    bluetooth_thread: IpcSender<BluetoothRequest>,
-
-    /// Sender to Service Worker Manager thread
-    swmanager_chan: Option<IpcSender<ServiceWorkerMsg>>,
-
-    /// to send messages to this object
-    swmanager_sender: IpcSender<SWManagerMsg>,
-
-    /// to receive sw manager message
-    swmanager_receiver: Receiver<SWManagerMsg>,
-
-    /// A map from top-level frame id and registered domain name to event loops.
-    /// This double indirection ensures that separate tabs do not share event loops,
-    /// even if the same domain is loaded in each.
-    event_loops: HashMap<FrameId, HashMap<String, Weak<EventLoop>>>,
-
-    /// A list of all the pipelines. (See the `pipeline` module for more details.)
-    pipelines: HashMap<PipelineId, Pipeline>,
-
-    /// A list of all the frames
-    frames: HashMap<FrameId, Frame>,
-
-    /// A channel through which messages can be sent to the font cache.
+    /// A channel for the constellation to send messages to the font
+    /// cache thread.
     font_cache_thread: FontCacheThread,
 
-    /// ID of the root frame.
-    root_frame_id: FrameId,
+    /// A channel for the constellation to send messages to the
+    /// debugger thread.
+    debugger_chan: Option<debugger::Sender>,
 
-    /// The next free ID to assign to a pipeline ID namespace.
-    next_pipeline_namespace_id: PipelineNamespaceId,
+    /// A channel for the constellation to send messages to the
+    /// devtools thread.
+    devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
-    /// Pipeline ID that has currently focused element for key events.
-    focus_pipeline_id: Option<PipelineId>,
+    /// An IPC channel for the constellation to send messages to the
+    /// bluetooth thread.
+    bluetooth_thread: IpcSender<BluetoothRequest>,
 
-    /// Navigation operations that are in progress.
-    pending_frames: Vec<FrameChange>,
+    /// An IPC channel for the constellation to send messages to the
+    /// Service Worker Manager thread.
+    swmanager_chan: Option<IpcSender<ServiceWorkerMsg>>,
 
-    /// A channel through which messages can be sent to the time profiler.
+    /// An IPC channel for Service Worker Manager threads to send
+    /// messages to the constellation.  This is the SW Manager thread's
+    /// view of `swmanager_receiver`.
+    swmanager_sender: IpcSender<SWManagerMsg>,
+
+    /// A channel for the constellation to receive messages from the
+    /// Service Worker Manager thread. This is the constellation's view of
+    /// `swmanager_sender`.
+    swmanager_receiver: Receiver<SWManagerMsg>,
+
+    /// A channel for the constellation to send messages to the
+    /// time profiler thread.
     time_profiler_chan: time::ProfilerChan,
 
-    /// A channel through which messages can be sent to the memory profiler.
+    /// A channel for the constellation to send messages to the
+    /// memory profiler thread.
     mem_profiler_chan: mem::ProfilerChan,
 
-    phantom: PhantomData<(Message, LTF, STF)>,
+    /// A channel for the constellation to send messages to the
+    /// timer thread.
+    scheduler_chan: IpcSender<TimerEventRequest>,
 
+    /// A channel for the constellation to send messages to the
+    /// Webrender thread.
+    webrender_api_sender: webrender_traits::RenderApiSender,
+
+    /// The set of all event loops in the browser. We generate a new
+    /// event loop for each registered domain name (aka eTLD+1) in
+    /// each top-level frame. We store the event loops in a map
+    /// indexed by top-level frame id (as a `FrameId`) and registered
+    /// domain name (as a `String`) to event loops. This double
+    /// indirection ensures that separate tabs do not share event
+    /// loops, even if the same domain is loaded in each.
+    /// It is important that scripts with the same eTLD+1
+    /// share an event loop, since they can use `document.domain`
+    /// to become same-origin, at which point they can share DOM objects.
+    event_loops: HashMap<FrameId, HashMap<String, Weak<EventLoop>>>,
+
+    /// The set of all the pipelines in the browser.
+    /// (See the `pipeline` module for more details.)
+    pipelines: HashMap<PipelineId, Pipeline>,
+
+    /// The set of all the frames in the browser.
+    frames: HashMap<FrameId, Frame>,
+
+    /// When a navigation is performed, we do not immediately update
+    /// the frame tree, instead we ask the event loop to begin loading
+    /// the new document, and do not update the frame tree until the
+    /// document is active. Between starting the load and it activating,
+    /// we store a `FrameChange` object for the navigation in progress.
+    pending_frames: Vec<FrameChange>,
+
+    /// The root frame.
+    root_frame_id: FrameId,
+
+    /// The currently focused pipeline for key events.
+    focus_pipeline_id: Option<PipelineId>,
+
+    /// Pipeline IDs are namespaced in order to avoid name collisions,
+    /// and the namespaces are allocated by the constellation.
+    next_pipeline_namespace_id: PipelineNamespaceId,
+
+    /// The size of the top-level window.
     window_size: WindowSizeData,
 
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData,
 
-    scheduler_chan: IpcSender<TimerEventRequest>,
-
     /// Document states for loaded pipelines (used only when writing screenshots).
     document_states: HashMap<PipelineId, DocumentState>,
-
-    // Webrender interface.
-    webrender_api_sender: webrender_traits::RenderApiSender,
 
     /// Are we shutting down?
     shutting_down: bool,
@@ -191,62 +277,77 @@ pub struct Constellation<Message, LTF, STF> {
     /// The random number generator and probability for closing pipelines.
     /// This is for testing the hardening of the constellation.
     random_pipeline_closure: Option<(StdRng, f32)>,
+
+    /// Phantom data that keeps the Rust type system happy.
+    phantom: PhantomData<(Message, LTF, STF)>,
 }
 
 /// State needed to construct a constellation.
 pub struct InitialConstellationState {
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: Box<CompositorProxy + Send>,
+
     /// A channel to the debugger, if applicable.
     pub debugger_chan: Option<debugger::Sender>,
+
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothRequest>,
+
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
+
     /// A channel to the font cache thread.
     pub font_cache_thread: FontCacheThread,
+
     /// A channel to the resource thread.
     pub public_resource_threads: ResourceThreads,
+
     /// A channel to the resource thread.
     pub private_resource_threads: ResourceThreads,
+
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
+
     /// A channel to the memory profiler thread.
     pub mem_profiler_chan: mem::ProfilerChan,
-    /// Whether the constellation supports the clipboard.
-    pub supports_clipboard: bool,
+
     /// Webrender API.
     pub webrender_api_sender: webrender_traits::RenderApiSender,
+
+    /// Whether the constellation supports the clipboard.
+    /// TODO: this field is not used, remove it?
+    pub supports_clipboard: bool,
 }
 
+/// A frame in the frame tree.
+/// Each frame is the constrellation's view of a browsing context.
+/// Each browsing context has a session history, caused by
+/// navigation and traversing the history. Each frame has its
+/// current entry, plus past and future entries. The past is sorted
+/// chronologically, the future is sorted reverse chronoogically:
+/// in partiucular prev.pop() is the latest past entry, and
+/// next.pop() is the earliest future entry.
 #[derive(Debug, Clone)]
-struct FrameState {
-    instant: Instant,
-    pipeline_id: PipelineId,
-    frame_id: FrameId,
-}
-
-impl FrameState {
-    fn new(pipeline_id: PipelineId, frame_id: FrameId) -> FrameState {
-        FrameState {
-            instant: Instant::now(),
-            pipeline_id: pipeline_id,
-            frame_id: frame_id,
-        }
-    }
-}
-
-/// Stores the navigation context for a single frame in the frame tree.
 struct Frame {
+    /// The frame id.
     id: FrameId,
+
+    /// The past session history, ordered chronologically.
     prev: Vec<FrameState>,
+
+    /// The currently active session history entry.
     current: FrameState,
+
+    /// The future session history, ordered reverse chronologically.
     next: Vec<FrameState>,
 }
 
 impl Frame {
+    /// Create a new frame.
+    /// Note this just creates the frame, it doesn't add it to the frame tree.
     fn new(id: FrameId, pipeline_id: PipelineId) -> Frame {
         Frame {
             id: id,
@@ -256,36 +357,84 @@ impl Frame {
         }
     }
 
+    /// Set the current frame entry, and push the current frame entry into the past.
     fn load(&mut self, pipeline_id: PipelineId) {
         self.prev.push(self.current.clone());
         self.current = FrameState::new(pipeline_id, self.id);
     }
 
+    /// Set the future to be empty.
     fn remove_forward_entries(&mut self) -> Vec<FrameState> {
         replace(&mut self.next, vec!())
     }
 
+    /// Set the current frame entry, and drop the current frame entry.
     fn replace_current(&mut self, pipeline_id: PipelineId) -> FrameState {
         replace(&mut self.current, FrameState::new(pipeline_id, self.id))
+    }
+}
+
+/// An entry in a frame's session history.
+/// Each entry stores the pipeline id for a document in the session history.
+/// When we operate on the joint session history, entries are sorted chronologically,
+/// so we timestamp the entries by when the entry was added to the session history.
+#[derive(Debug, Clone)]
+struct FrameState {
+    /// The timestamp for when the session history entry was created
+    instant: Instant,
+    /// The pipeline for the document in the session history
+    pipeline_id: PipelineId,
+    /// The frame that this session history entry is part of
+    frame_id: FrameId,
+}
+
+impl FrameState {
+    /// Create a new session history entry.
+    fn new(pipeline_id: PipelineId, frame_id: FrameId) -> FrameState {
+        FrameState {
+            instant: Instant::now(),
+            pipeline_id: pipeline_id,
+            frame_id: frame_id,
+        }
     }
 }
 
 /// Represents a pending change in the frame tree, that will be applied
 /// once the new pipeline has loaded and completed initial layout / paint.
 struct FrameChange {
+    /// The frame to change.
     frame_id: FrameId,
+
+    /// The pipeline that was currently active at the time the change started.
+    /// TODO: can this field be removed?
     old_pipeline_id: Option<PipelineId>,
+
+    /// The pipeline for the document being loaded.
     new_pipeline_id: PipelineId,
+
+    /// Is this document ready to be activated?
+    /// TODO: this flag is never set, it can be removed.
     document_ready: bool,
+
+    /// Is the new document replacing the current document (e.g. a reload)
+    /// or pushing it into the session history (e.g. a navigation)?
     replace: bool,
 }
 
-/// An iterator over a frame tree, returning nodes in depth-first order.
-/// Note that this iterator should _not_ be used to mutate nodes _during_
-/// iteration. Mutating nodes once the iterator is out of scope is OK.
+/// An iterator over a frame tree, returning the fully active frames in
+/// depth-first order. Note that this iterator only returns the fully
+/// active frames, that is ones where every ancestor frame is
+/// in the currently active pipeline of its parent frame.
 struct FrameTreeIterator<'a> {
+    /// The frames still to iterate over.
     stack: Vec<FrameId>,
+
+    /// The set of all frames.
     frames: &'a HashMap<FrameId, Frame>,
+
+    /// The set of all pipelines.  We use this to find the active
+    /// children of a frame, which are the iframes in the currently
+    /// active document.
     pipelines: &'a HashMap<PipelineId, Pipeline>,
 }
 
@@ -317,9 +466,19 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
     }
 }
 
+/// An iterator over a frame tree, returning all frames in depth-first
+/// order. Note that this iterator returns all frames, not just the
+/// fully active ones.
 struct FullFrameTreeIterator<'a> {
+    /// The frames still to iterate over.
     stack: Vec<FrameId>,
+
+    /// The set of all frames.
     frames: &'a HashMap<FrameId, Frame>,
+
+    /// The set of all pipelines.  We use this to find the
+    /// children of a frame, which are the iframes in all documents
+    /// in the session history.
     pipelines: &'a HashMap<PipelineId, Pipeline>,
 }
 
@@ -348,6 +507,7 @@ impl<'a> Iterator for FullFrameTreeIterator<'a> {
     }
 }
 
+/// Data needed for webdriver
 struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>,
     resize_channel: Option<IpcSender<WindowSizeData>>,
@@ -362,11 +522,32 @@ impl WebDriverData {
     }
 }
 
+/// When we are running reftests, we save an image to compare against a reference.
+/// This enum gives the possible states of preparing such an image.
+#[derive(Debug, PartialEq)]
+enum ReadyToSave {
+    NoRootFrame,
+    PendingFrames,
+    WebFontNotLoaded,
+    DocumentLoading,
+    EpochMismatch,
+    PipelineUnknown,
+    Ready,
+}
+
+/// When we are exiting a pipeline, we can either force exiting or not.
+/// A normal exit waits for the compositor to update its state before
+/// exiting, and delegates layout exit to script. A forced exit does
+/// not notify the compositor, and exits layout without involving script.
 #[derive(Clone, Copy)]
 enum ExitPipelineMode {
     Normal,
     Force,
 }
+
+/// The constellation uses logging to perform crash reporting.
+/// The constellation receives all `warn!`, `error!` and `panic!` messages,
+/// and generates a crash report when it receives a panic.
 
 /// A logger directed at the constellation from content processes
 #[derive(Clone)]
@@ -444,6 +625,10 @@ impl Log for FromCompositorLogger {
     }
 }
 
+/// Rust uses `LogRecord` for storing logging, but servo converts that to
+/// a `LogEntry`. We do this so that we can record panics as well as log
+/// messages, and because `LogRecord` does not implement serde (de)serialization,
+/// so cannot be used over an IPC channel.
 fn log_entry(record: &LogRecord) -> Option<LogEntry> {
     match record.level() {
         LogLevel::Error if thread::panicking() => Some(LogEntry::Panic(
@@ -460,6 +645,7 @@ fn log_entry(record: &LogRecord) -> Option<LogEntry> {
     }
 }
 
+/// The number of warnings to include in each crash report.
 const WARNINGS_BUFFER_SIZE: usize = 32;
 
 /// The registered domain name (aka eTLD+1) for a URL.
@@ -474,6 +660,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
 {
+    /// Create a new constellation thread.
     pub fn start(state: InitialConstellationState) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
         let (compositor_sender, compositor_receiver) = channel();
 
@@ -549,6 +736,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         (compositor_sender, swmanager_sender)
     }
 
+    /// The main event loop for the constellation.
     fn run(&mut self) {
         while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
@@ -559,6 +747,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.handle_shutdown();
     }
 
+    /// Generate a new pipeline id namespace.
     fn next_pipeline_namespace_id(&mut self) -> PipelineNamespaceId {
         let namespace_id = self.next_pipeline_namespace_id;
         let PipelineNamespaceId(ref mut i) = self.next_pipeline_namespace_id;
@@ -666,8 +855,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.pipelines.insert(pipeline_id, pipeline);
     }
 
-    // Get an iterator for the current frame tree. Specify self.root_frame_id to
-    // iterate the entire tree, or a specific frame id to iterate only that sub-tree.
+    /// Get an iterator for the current frame tree. Specify self.root_frame_id to
+    /// iterate the entire tree, or a specific frame id to iterate only that sub-tree.
+    /// Iterates over the fully active frames in the tree.
     fn current_frame_tree_iter(&self, frame_id_root: FrameId) -> FrameTreeIterator {
         FrameTreeIterator {
             stack: vec!(frame_id_root),
@@ -676,6 +866,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    /// Get an iterator for the current frame tree. Specify self.root_frame_id to
+    /// iterate the entire tree, or a specific frame id to iterate only that sub-tree.
+    /// Iterates over all frames in the tree.
     fn full_frame_tree_iter(&self, frame_id_root: FrameId) -> FullFrameTreeIterator {
         FullFrameTreeIterator {
             stack: vec!(frame_id_root),
@@ -684,6 +877,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    /// The joint session future is the merge of the session future of every
+    /// frame in the frame tree, sorted reverse chronologically.
     fn joint_session_future(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
         let mut future = vec!();
         for frame in self.full_frame_tree_iter(frame_id_root) {
@@ -695,11 +890,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         future
     }
 
+    /// Is the joint session future empty?
     fn joint_session_future_is_empty(&self, frame_id_root: FrameId) -> bool {
         self.full_frame_tree_iter(frame_id_root)
             .all(|frame| frame.next.is_empty())
     }
 
+    /// The joint session past is the merge of the session past of every
+    /// frame in the frame tree, sorted chronologically.
     fn joint_session_past(&self, frame_id_root: FrameId) -> Vec<(Instant, FrameId, PipelineId)> {
         let mut past = vec!();
         for frame in self.full_frame_tree_iter(frame_id_root) {
@@ -714,12 +912,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         past
     }
 
+    /// Is the joint session past empty?
     fn joint_session_past_is_empty(&self, frame_id_root: FrameId) -> bool {
         self.full_frame_tree_iter(frame_id_root)
             .all(|frame| frame.prev.is_empty())
     }
 
-    // Create a new frame and update the internal bookkeeping.
+    /// Create a new frame and update the internal bookkeeping.
     fn new_frame(&mut self, frame_id: FrameId, pipeline_id: PipelineId) {
         let frame = Frame::new(frame_id, pipeline_id);
         self.frames.insert(frame_id, frame);
