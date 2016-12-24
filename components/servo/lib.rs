@@ -164,7 +164,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 device_pixel_ratio: device_pixel_ratio,
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
-                enable_msaa: opts.use_msaa,
                 enable_profiler: opts.webrender_stats,
                 debug: opts.webrender_debug,
                 enable_recording: opts.webrender_record,
