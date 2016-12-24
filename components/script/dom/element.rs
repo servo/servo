@@ -143,7 +143,7 @@ impl fmt::Debug for Element {
 
 #[derive(PartialEq, HeapSizeOf)]
 pub enum ElementCreator {
-    ParserCreated,
+    ParserCreated(u64),
     ScriptCreated,
 }
 
@@ -173,9 +173,9 @@ impl<'a> TryFrom<&'a str> for AdjacentPosition {
 //
 impl Element {
     pub fn create(name: QualName, prefix: Option<Prefix>,
-                  document: &Document, creator: ElementCreator, line_number: u64)
+                  document: &Document, creator: ElementCreator)
                   -> Root<Element> {
-        create_element(name, prefix, document, creator, line_number)
+        create_element(name, prefix, document, creator)
     }
 
     pub fn new_inherited(local_name: LocalName,
@@ -1884,7 +1884,7 @@ impl ElementMethods for Element {
             NodeTypeId::DocumentFragment => {
                 let body_elem = Element::create(QualName::new(ns!(html), local_name!("body")),
                                                 None, &context_document,
-                                                ElementCreator::ScriptCreated, 1);
+                                                ElementCreator::ScriptCreated);
                 Root::upcast(body_elem)
             },
             _ => context_node.GetParentElement().unwrap()

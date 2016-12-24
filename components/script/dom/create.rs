@@ -276,8 +276,7 @@ fn create_html_element(name: QualName,
 pub fn create_element(name: QualName,
                       prefix: Option<Prefix>,
                       document: &Document,
-                      creator: ElementCreator,
-                      line_number: u64)
+                      creator: ElementCreator)
                       -> Root<Element> {
     // FIXME(ajeffrey): Convert directly from Prefix to DOMString.
 

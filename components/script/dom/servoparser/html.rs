@@ -157,7 +157,7 @@ impl<'a> TreeSink for Sink {
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
             -> JS<Node> {
         let elem = Element::create(name, None, &*self.document,
-                                   ElementCreator::ParserCreated, 1);
+                                   ElementCreator::ParserCreated(self.current_line));
 
         for attr in attrs {
             elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
