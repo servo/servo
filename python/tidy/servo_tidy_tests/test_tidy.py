@@ -207,6 +207,12 @@ class CheckTidiness(unittest.TestCase):
 \tThe following packages depend on version 0.4.9:
 \t\ttest2"""
         self.assertEqual(msg, errors.next()[2])
+        msg2 = """different sources for package "test3"
+\t\033[93mfound dependency with source from\033[0m \033[96mregistry+https://github.com/rust-lang/crates.io-index\033[0m
+\t\033[91mand different source\033[0m \033[96mhttps://github.com/\033[0m
+\tThe following packages depend on source `https://github.com/`:
+\t\ttest5"""
+        self.assertEqual(msg2, errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_lint_runner(self):

@@ -304,41 +304,32 @@ def check_flake8(file_name, contents):
 
 
 def check_lock(file_name, contents):
-    def find_reverse_dependencies(dependency, version, content):
-        dependency_prefix = "{} {}".format(dependency, version)
+    def find_reverse_dependencies(name, version, content):
         for package in itertools.chain([content["root"]], content["package"]):
             for dependency in package.get("dependencies", []):
-                if dependency.startswith(dependency_prefix):
+                if dependency.startswith(name) and version in dependency:
                     yield package["name"]
 
     if not file_name.endswith(".lock"):
         raise StopIteration
 
-    # package names to be neglected (as named by cargo)
+    # Package names to be neglected (as named by cargo)
     exceptions = config["ignore"]["packages"]
 
-    # toml.py has a bug(?) that we trip up in [metadata] sections;
-    # see https://github.com/uiri/toml/issues/61
-    # This should only affect a very few lines (that have embedded ?branch=...),
-    # and most of them won't be in the repo
-    try:
-        content = toml.loads(contents)
-    except:
-        print "WARNING!"
-        print "WARNING! toml parsing failed for Cargo.lock, but ignoring..."
-        print "WARNING!"
-        raise StopIteration
+    content = toml.loads(contents)
 
     packages = {}
     for package in content.get("package", []):
-        packages.setdefault(package["name"], []).append(package["version"])
+        packages.setdefault(package["name"], {})
+        packages[package["name"]].setdefault("version", []).append(package["version"])
+        packages[package["name"]].setdefault("source", []).append(package.get("source", ""))
 
-    for (name, versions) in packages.iteritems():
-        if name in exceptions or len(versions) <= 1:
+    for (name, data) in packages.iteritems():
+        if name in exceptions or len(data["version"]) <= 1:
             continue
 
-        highest = max(versions)
-        for version in versions:
+        highest = max(data["version"])
+        for version in data["version"]:
             if version != highest:
                 reverse_dependencies = "\n".join(
                     "\t\t{}".format(n)
@@ -359,6 +350,43 @@ duplicate versions for package "{package}"
 {reverse_dependencies}
 """.format(**substitutions).strip()
                 yield (1, message)
+
+        # Packages with same version from different sources
+        if (len(set(data["version"])) < len(data["version"])
+                and len(set(data["source"])) == len(data["source"])):
+            # Set recommended source
+            if r"registry+https://github.com/rust-lang/crates.io-index" in data["source"]:
+                req_source = r"registry+https://github.com/rust-lang/crates.io-index"
+            elif "github.com/servo/" in data["source"]:
+                for s in data["source"]:
+                    if "github.com/servo/" in s:
+                        req_source = s
+                        break
+            else:
+                req_source = data["source"][0]
+
+            for source in data["source"]:
+                if source != req_source:
+                    short_source = source.split("#")[0]
+                    reverse_dependencies = "\n".join(
+                        "\t\t{}".format(n)
+                        for n in find_reverse_dependencies(name, short_source, content)
+                    )
+                    substitutions = {
+                        "package": name,
+                        "recommended_source": req_source,
+                        "other_source": short_source.replace("git+", ""),
+                        "reverse_dependencies": reverse_dependencies
+                    }
+
+                    message = """
+different sources for package "{package}"
+\t\033[93mfound dependency with source from\033[0m \033[96m{recommended_source}\033[0m
+\t\033[91mand different source\033[0m \033[96m{other_source}\033[0m
+\tThe following packages depend on source `{other_source}`:
+{reverse_dependencies}
+""".format(**substitutions).strip()
+                    yield (1, message)
 
 
 def check_toml(file_name, lines):

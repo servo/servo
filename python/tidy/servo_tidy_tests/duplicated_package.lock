@@ -19,3 +19,29 @@ source = "git+https://github.com/"
 dependencies = [
  "test 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "test3"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "test3"
+version = "0.5.1"
+source = "git+https://github.com/"
+
+[[package]]
+name = "test4"
+version = "0.1.0"
+source = "git+https://github.com/"
+dependencies = [
+ "test3 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "test5"
+version = "0.1.0"
+source = "git+https://github.com/"
+dependencies = [
+ "test3 0.5.1 (git+https://github.com/)",
+]
