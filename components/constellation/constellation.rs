@@ -236,6 +236,14 @@ impl FrameState {
             frame_id: frame_id,
         }
     }
+
+    fn new_with_instant(instant: Instant, pipeline_id: PipelineId, frame_id: FrameId) -> FrameState {
+        FrameState {
+            instant: instant,
+            pipeline_id: pipeline_id,
+            frame_id: frame_id,
+        }
+    }
 }
 
 /// Stores the navigation context for a single frame in the frame tree.
@@ -266,7 +274,8 @@ impl Frame {
     }
 
     fn replace_current(&mut self, pipeline_id: PipelineId) -> FrameState {
-        replace(&mut self.current, FrameState::new(pipeline_id, self.id))
+        let instant = self.current.instant;
+        replace(&mut self.current, FrameState::new_with_instant(instant, pipeline_id, self.id))
     }
 }
 
