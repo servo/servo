@@ -141,17 +141,22 @@ pub struct InlineFragmentsConstructionResult {
 /// The resulting `ConstructionItem` for the outer `span` will be:
 ///
 /// ```ignore
-///     ConstructionItem::InlineFragments(Some(~[
-///         InlineBlockSplit {
-///             predecessor_fragments: ~[
-///                 A
+///     ConstructionItem::InlineFragments(
+///         InlineFragmentsConstructionResult{
+///             splits: linked_list![
+///                 InlineBlockSplit{
+///                     predecessors: IntermediateInlineFragments{
+///                         fragments: linked_list![A],
+///                         absolute_descendents: AbsoluteDescendents{
+///                             descendant_links: vec![]
+///                         }
+///                     },
+///                     flow: B
+///                 }
 ///             ],
-///             block: ~BlockFlow {
-///                 B
-///             },
-///         }),~[
-///             C
-///         ])
+///             fragments: linked_list![C],
+///         }
+///     )
 /// ```
 #[derive(Clone)]
 pub struct InlineBlockSplit {
