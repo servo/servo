@@ -301,61 +301,42 @@ def check_flake8(file_name, contents):
 
 
 def check_lock(file_name, contents):
-    def find_reverse_dependencies(dependency, version, content):
-        dependency_prefix = "{} {}".format(dependency, version)
+    def find_reverse_dependencies(name, content):
         for package in itertools.chain([content["root"]], content["package"]):
             for dependency in package.get("dependencies", []):
-                if dependency.startswith(dependency_prefix):
-                    yield package["name"]
+                if dependency.startswith("{} ".format(name)):
+                    yield package["name"], dependency
 
     if not file_name.endswith(".lock"):
         raise StopIteration
 
-    # package names to be neglected (as named by cargo)
+    # Package names to be neglected (as named by cargo)
     exceptions = config["ignore"]["packages"]
 
-    # toml.py has a bug(?) that we trip up in [metadata] sections;
-    # see https://github.com/uiri/toml/issues/61
-    # This should only affect a very few lines (that have embedded ?branch=...),
-    # and most of them won't be in the repo
-    try:
-        content = toml.loads(contents)
-    except:
-        print "WARNING!"
-        print "WARNING! toml parsing failed for Cargo.lock, but ignoring..."
-        print "WARNING!"
-        raise StopIteration
+    content = toml.loads(contents)
 
-    packages = {}
+    packages_by_name = {}
     for package in content.get("package", []):
-        packages.setdefault(package["name"], []).append(package["version"])
+        source = package.get("source", "")
+        if source == r"registry+https://github.com/rust-lang/crates.io-index":
+            source = "crates.io"
+        packages_by_name.setdefault(package["name"], []).append((package["version"], source))
 
-    for (name, versions) in packages.iteritems():
-        if name in exceptions or len(versions) <= 1:
+    for (name, packages) in packages_by_name.iteritems():
+        if name in exceptions or len(packages) <= 1:
             continue
 
-        highest = max(versions)
-        for version in versions:
-            if version != highest:
-                reverse_dependencies = "\n".join(
-                    "\t\t{}".format(n)
-                    for n in find_reverse_dependencies(name, version, content)
-                )
-                substitutions = {
-                    "package": name,
-                    "old_version": version,
-                    "new_version": highest,
-                    "reverse_dependencies": reverse_dependencies
-                }
-                message = """
-duplicate versions for package "{package}"
-\t\033[93mfound dependency on version {old_version}\033[0m
-\t\033[91mbut highest version is {new_version}\033[0m
-\t\033[93mtry upgrading with\033[0m \033[96m./mach cargo-update -p {package}:{old_version}\033[0m
-\tThe following packages depend on version {old_version}:
-{reverse_dependencies}
-""".format(**substitutions).strip()
-                yield (1, message)
+        message = "duplicate versions for package `{}`".format(name)
+        packages.sort()
+        packages_dependencies = list(find_reverse_dependencies(name, content))
+        for version, source in packages:
+            short_source = source.split("#")[0].replace("git+", "")
+            message += "\n\t\033[93mThe following packages depend on version {} from '{}':\033[0m" \
+                       .format(version, short_source)
+            for name, dependency in packages_dependencies:
+                if version in dependency and short_source in dependency:
+                    message += "\n\t\t" + name
+        yield (1, message)
 
 
 def check_toml(file_name, lines):

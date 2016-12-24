@@ -200,13 +200,17 @@ class CheckTidiness(unittest.TestCase):
 
     def test_lock(self):
         errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [], print_text=False)
-        msg = """duplicate versions for package "test"
-\t\033[93mfound dependency on version 0.4.9\033[0m
-\t\033[91mbut highest version is 0.5.1\033[0m
-\t\033[93mtry upgrading with\033[0m \033[96m./mach cargo-update -p test:0.4.9\033[0m
-\tThe following packages depend on version 0.4.9:
-\t\ttest2"""
+        msg = """duplicate versions for package `test`
+\t\x1b[93mThe following packages depend on version 0.4.9 from 'crates.io':\x1b[0m
+\t\ttest2
+\t\x1b[93mThe following packages depend on version 0.5.1 from 'crates.io':\x1b[0m"""
         self.assertEqual(msg, errors.next()[2])
+        msg2 = """duplicate versions for package `test3`
+\t\x1b[93mThe following packages depend on version 0.5.1 from 'crates.io':\x1b[0m
+\t\ttest4
+\t\x1b[93mThe following packages depend on version 0.5.1 from 'https://github.com/user/test3':\x1b[0m
+\t\ttest5"""
+        self.assertEqual(msg2, errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_lint_runner(self):
