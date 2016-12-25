@@ -10,6 +10,7 @@
 extern crate azure;
 extern crate canvas_traits;
 extern crate core;
+extern crate cssparser;
 extern crate euclid;
 extern crate gleam;
 extern crate ipc_channel;

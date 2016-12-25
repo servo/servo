@@ -12,6 +12,7 @@ path = "lib.rs"
 [dependencies]
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 canvas_traits = {path = "../canvas_traits"}
+cssparser = {version = "0.7", features = ["heap_size", "serde-serialization"]}
 euclid = "0.10.1"
 gleam = "0.2.8"
 ipc-channel = "0.5"

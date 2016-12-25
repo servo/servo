@@ -10,7 +10,6 @@
 
 #![deny(unsafe_code)]
 
-extern crate azure;
 extern crate core;
 extern crate cssparser;
 extern crate euclid;
@@ -21,11 +20,6 @@ extern crate serde;
 #[macro_use] extern crate serde_derive;
 extern crate webrender_traits;
 
-use azure::azure::AzFloat;
-use azure::azure_hl::{CapStyle, CompositionOp, JoinStyle};
-use azure::azure_hl::{Color, ColorPattern, DrawTarget, Pattern};
-use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
-use azure::azure_hl::{SurfaceFormat, SurfacePattern};
 use cssparser::RGBA;
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
@@ -202,58 +196,6 @@ pub enum FillOrStrokeStyle {
     Surface(SurfaceStyle),
 }
 
-impl FillOrStrokeStyle {
-    pub fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Option<Pattern> {
-        match *self {
-            FillOrStrokeStyle::Color(ref color) => {
-                Some(Pattern::Color(ColorPattern::new(color.to_azcolor())))
-            },
-            FillOrStrokeStyle::LinearGradient(ref linear_gradient_style) => {
-                let gradient_stops: Vec<GradientStop> = linear_gradient_style.stops.iter().map(|s| {
-                    GradientStop {
-                        offset: s.offset as AzFloat,
-                        color: s.color.to_azcolor()
-                    }
-                }).collect();
-
-                Some(Pattern::LinearGradient(LinearGradientPattern::new(
-                    &Point2D::new(linear_gradient_style.x0 as AzFloat, linear_gradient_style.y0 as AzFloat),
-                    &Point2D::new(linear_gradient_style.x1 as AzFloat, linear_gradient_style.y1 as AzFloat),
-                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Matrix2D::identity())))
-            },
-            FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
-                let gradient_stops: Vec<GradientStop> = radial_gradient_style.stops.iter().map(|s| {
-                    GradientStop {
-                        offset: s.offset as AzFloat,
-                        color: s.color.to_azcolor()
-                    }
-                }).collect();
-
-                Some(Pattern::RadialGradient(RadialGradientPattern::new(
-                    &Point2D::new(radial_gradient_style.x0 as AzFloat, radial_gradient_style.y0 as AzFloat),
-                    &Point2D::new(radial_gradient_style.x1 as AzFloat, radial_gradient_style.y1 as AzFloat),
-                    radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
-                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
-                    &Matrix2D::identity())))
-            },
-            FillOrStrokeStyle::Surface(ref surface_style) => {
-                drawtarget.create_source_surface_from_data(&surface_style.surface_data,
-                                                           surface_style.surface_size,
-                                                           surface_style.surface_size.width * 4,
-                                                           SurfaceFormat::B8G8R8A8)
-                          .map(|source_surface| {
-                    Pattern::Surface(SurfacePattern::new(
-                        source_surface.azure_source_surface,
-                        surface_style.repeat_x,
-                        surface_style.repeat_y,
-                        &Matrix2D::identity()))
-                    })
-            }
-        }
-    }
-}
-
 #[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
 pub enum LineCapStyle {
     Butt = 0,
@@ -274,16 +216,6 @@ impl FromStr for LineCapStyle {
     }
 }
 
-impl LineCapStyle {
-    pub fn to_azure_style(&self) -> CapStyle {
-        match *self {
-            LineCapStyle::Butt => CapStyle::Butt,
-            LineCapStyle::Round => CapStyle::Round,
-            LineCapStyle::Square => CapStyle::Square,
-        }
-    }
-}
-
 #[derive(Copy, Clone, PartialEq, Deserialize, Serialize, HeapSizeOf)]
 pub enum LineJoinStyle {
     Round = 0,
@@ -300,16 +232,6 @@ impl FromStr for LineJoinStyle {
             "bevel" => Ok(LineJoinStyle::Bevel),
             "miter" => Ok(LineJoinStyle::Miter),
             _ => Err(()),
-        }
-    }
-}
-
-impl LineJoinStyle {
-    pub fn to_azure_style(&self) -> JoinStyle {
-        match *self {
-            LineJoinStyle::Round => JoinStyle::Round,
-            LineJoinStyle::Bevel => JoinStyle::Bevel,
-            LineJoinStyle::Miter => JoinStyle::Miter,
         }
     }
 }
@@ -373,22 +295,6 @@ impl FromStr for CompositionStyle {
 }
 
 impl CompositionStyle {
-    pub fn to_azure_style(&self) -> CompositionOp {
-        match *self {
-            CompositionStyle::SrcIn    => CompositionOp::In,
-            CompositionStyle::SrcOut   => CompositionOp::Out,
-            CompositionStyle::SrcOver  => CompositionOp::Over,
-            CompositionStyle::SrcAtop  => CompositionOp::Atop,
-            CompositionStyle::DestIn   => CompositionOp::DestIn,
-            CompositionStyle::DestOut  => CompositionOp::DestOut,
-            CompositionStyle::DestOver => CompositionOp::DestOver,
-            CompositionStyle::DestAtop => CompositionOp::DestAtop,
-            CompositionStyle::Copy     => CompositionOp::Source,
-            CompositionStyle::Lighter  => CompositionOp::Add,
-            CompositionStyle::Xor      => CompositionOp::Xor,
-        }
-    }
-
     pub fn to_str(&self) -> &str {
         match *self {
             CompositionStyle::SrcIn    => "source-in",
@@ -451,26 +357,6 @@ impl FromStr for BlendingStyle {
 }
 
 impl BlendingStyle {
-    pub fn to_azure_style(&self) -> CompositionOp {
-        match *self {
-            BlendingStyle::Multiply   => CompositionOp::Multiply,
-            BlendingStyle::Screen     => CompositionOp::Screen,
-            BlendingStyle::Overlay    => CompositionOp::Overlay,
-            BlendingStyle::Darken     => CompositionOp::Darken,
-            BlendingStyle::Lighten    => CompositionOp::Lighten,
-            BlendingStyle::ColorDodge => CompositionOp::ColorDodge,
-            BlendingStyle::ColorBurn  => CompositionOp::ColorBurn,
-            BlendingStyle::HardLight  => CompositionOp::HardLight,
-            BlendingStyle::SoftLight  => CompositionOp::SoftLight,
-            BlendingStyle::Difference => CompositionOp::Difference,
-            BlendingStyle::Exclusion  => CompositionOp::Exclusion,
-            BlendingStyle::Hue        => CompositionOp::Hue,
-            BlendingStyle::Saturation => CompositionOp::Saturation,
-            BlendingStyle::Color      => CompositionOp::Color,
-            BlendingStyle::Luminosity => CompositionOp::Luminosity,
-        }
-    }
-
     pub fn to_str(&self) -> &str {
         match *self {
             BlendingStyle::Multiply   => "multiply",
@@ -517,28 +403,6 @@ impl FromStr for CompositionOrBlending {
         }
 
         Err(())
-    }
-}
-
-impl CompositionOrBlending {
-    pub fn to_azure_style(&self) -> CompositionOp {
-        match *self {
-            CompositionOrBlending::Composition(op) => op.to_azure_style(),
-            CompositionOrBlending::Blending(op) => op.to_azure_style(),
-        }
-    }
-}
-
-pub trait ToAzColor {
-    fn to_azcolor(&self) -> Color;
-}
-
-impl ToAzColor for RGBA {
-    fn to_azcolor(&self) -> Color {
-        Color::rgba(self.red as AzFloat,
-                    self.green as AzFloat,
-                    self.blue as AzFloat,
-                    self.alpha as AzFloat)
     }
 }
 

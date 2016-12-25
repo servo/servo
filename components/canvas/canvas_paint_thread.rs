@@ -6,7 +6,10 @@ use azure::azure::AzFloat;
 use azure::azure_hl::{AntialiasMode, CapStyle, CompositionOp, JoinStyle};
 use azure::azure_hl::{BackendType, DrawOptions, DrawTarget, Pattern, StrokeOptions, SurfaceFormat};
 use azure::azure_hl::{Color, ColorPattern, DrawSurfaceOptions, Filter, PathBuilder};
+use azure::azure_hl::{ExtendMode, GradientStop, LinearGradientPattern, RadialGradientPattern};
+use azure::azure_hl::SurfacePattern;
 use canvas_traits::*;
+use cssparser::RGBA;
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
@@ -185,7 +188,7 @@ impl<'a> CanvasPaintThread<'a> {
                             Canvas2dMsg::SetShadowOffsetX(value) => painter.set_shadow_offset_x(value),
                             Canvas2dMsg::SetShadowOffsetY(value) => painter.set_shadow_offset_y(value),
                             Canvas2dMsg::SetShadowBlur(value) => painter.set_shadow_blur(value),
-                            Canvas2dMsg::SetShadowColor(ref color) => painter.set_shadow_color(color.to_azcolor()),
+                            Canvas2dMsg::SetShadowColor(ref color) => painter.set_shadow_color(color.to_azure_style()),
                         }
                     },
                     CanvasMsg::Common(message) => {
@@ -794,8 +797,8 @@ fn write_image(draw_target: &DrawTarget,
         let draw_options = DrawOptions::new(global_alpha, composition_op, AntialiasMode::None);
 
         draw_target.draw_surface(source_surface,
-                                 dest_rect.to_azfloat(),
-                                 image_rect.to_azfloat(),
+                                 dest_rect.to_azure_style(),
+                                 image_rect.to_azure_style(),
                                  draw_surface_options,
                                  draw_options);
     }
@@ -854,13 +857,163 @@ impl RectToi32 for Rect<f64> {
 
 }
 
-pub trait ToAzFloat {
-    fn to_azfloat(&self) -> Rect<AzFloat>;
+pub trait ToAzureStyle {
+    type Target;
+    fn to_azure_style(self) -> Self::Target;
 }
 
-impl ToAzFloat for Rect<f64> {
-    fn to_azfloat(&self) -> Rect<AzFloat> {
+impl ToAzureStyle for Rect<f64> {
+    type Target = Rect<AzFloat>;
+
+    fn to_azure_style(self) -> Rect<AzFloat> {
         Rect::new(Point2D::new(self.origin.x as AzFloat, self.origin.y as AzFloat),
                   Size2D::new(self.size.width as AzFloat, self.size.height as AzFloat))
+    }
+}
+
+
+impl ToAzureStyle for LineCapStyle {
+    type Target = CapStyle;
+
+    fn to_azure_style(self) -> CapStyle {
+        match self {
+            LineCapStyle::Butt => CapStyle::Butt,
+            LineCapStyle::Round => CapStyle::Round,
+            LineCapStyle::Square => CapStyle::Square,
+        }
+    }
+}
+
+impl ToAzureStyle for LineJoinStyle {
+    type Target = JoinStyle;
+
+    fn to_azure_style(self) -> JoinStyle {
+        match self {
+            LineJoinStyle::Round => JoinStyle::Round,
+            LineJoinStyle::Bevel => JoinStyle::Bevel,
+            LineJoinStyle::Miter => JoinStyle::Miter,
+        }
+    }
+}
+
+impl ToAzureStyle for CompositionStyle {
+    type Target = CompositionOp;
+
+    fn to_azure_style(self) -> CompositionOp {
+        match self {
+            CompositionStyle::SrcIn    => CompositionOp::In,
+            CompositionStyle::SrcOut   => CompositionOp::Out,
+            CompositionStyle::SrcOver  => CompositionOp::Over,
+            CompositionStyle::SrcAtop  => CompositionOp::Atop,
+            CompositionStyle::DestIn   => CompositionOp::DestIn,
+            CompositionStyle::DestOut  => CompositionOp::DestOut,
+            CompositionStyle::DestOver => CompositionOp::DestOver,
+            CompositionStyle::DestAtop => CompositionOp::DestAtop,
+            CompositionStyle::Copy     => CompositionOp::Source,
+            CompositionStyle::Lighter  => CompositionOp::Add,
+            CompositionStyle::Xor      => CompositionOp::Xor,
+        }
+    }
+}
+
+impl ToAzureStyle for BlendingStyle {
+    type Target = CompositionOp;
+
+    fn to_azure_style(self) -> CompositionOp {
+        match self {
+            BlendingStyle::Multiply   => CompositionOp::Multiply,
+            BlendingStyle::Screen     => CompositionOp::Screen,
+            BlendingStyle::Overlay    => CompositionOp::Overlay,
+            BlendingStyle::Darken     => CompositionOp::Darken,
+            BlendingStyle::Lighten    => CompositionOp::Lighten,
+            BlendingStyle::ColorDodge => CompositionOp::ColorDodge,
+            BlendingStyle::ColorBurn  => CompositionOp::ColorBurn,
+            BlendingStyle::HardLight  => CompositionOp::HardLight,
+            BlendingStyle::SoftLight  => CompositionOp::SoftLight,
+            BlendingStyle::Difference => CompositionOp::Difference,
+            BlendingStyle::Exclusion  => CompositionOp::Exclusion,
+            BlendingStyle::Hue        => CompositionOp::Hue,
+            BlendingStyle::Saturation => CompositionOp::Saturation,
+            BlendingStyle::Color      => CompositionOp::Color,
+            BlendingStyle::Luminosity => CompositionOp::Luminosity,
+        }
+    }
+}
+
+impl ToAzureStyle for CompositionOrBlending {
+    type Target = CompositionOp;
+
+    fn to_azure_style(self) -> CompositionOp {
+        match self {
+            CompositionOrBlending::Composition(op) => op.to_azure_style(),
+            CompositionOrBlending::Blending(op) => op.to_azure_style(),
+        }
+    }
+}
+
+pub trait ToAzurePattern {
+    fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Option<Pattern>;
+}
+
+impl ToAzurePattern for FillOrStrokeStyle {
+    fn to_azure_pattern(&self, drawtarget: &DrawTarget) -> Option<Pattern> {
+        match *self {
+            FillOrStrokeStyle::Color(ref color) => {
+                Some(Pattern::Color(ColorPattern::new(color.to_azure_style())))
+            },
+            FillOrStrokeStyle::LinearGradient(ref linear_gradient_style) => {
+                let gradient_stops: Vec<GradientStop> = linear_gradient_style.stops.iter().map(|s| {
+                    GradientStop {
+                        offset: s.offset as AzFloat,
+                        color: s.color.to_azure_style()
+                    }
+                }).collect();
+
+                Some(Pattern::LinearGradient(LinearGradientPattern::new(
+                    &Point2D::new(linear_gradient_style.x0 as AzFloat, linear_gradient_style.y0 as AzFloat),
+                    &Point2D::new(linear_gradient_style.x1 as AzFloat, linear_gradient_style.y1 as AzFloat),
+                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
+                    &Matrix2D::identity())))
+            },
+            FillOrStrokeStyle::RadialGradient(ref radial_gradient_style) => {
+                let gradient_stops: Vec<GradientStop> = radial_gradient_style.stops.iter().map(|s| {
+                    GradientStop {
+                        offset: s.offset as AzFloat,
+                        color: s.color.to_azure_style()
+                    }
+                }).collect();
+
+                Some(Pattern::RadialGradient(RadialGradientPattern::new(
+                    &Point2D::new(radial_gradient_style.x0 as AzFloat, radial_gradient_style.y0 as AzFloat),
+                    &Point2D::new(radial_gradient_style.x1 as AzFloat, radial_gradient_style.y1 as AzFloat),
+                    radial_gradient_style.r0 as AzFloat, radial_gradient_style.r1 as AzFloat,
+                    drawtarget.create_gradient_stops(&gradient_stops, ExtendMode::Clamp),
+                    &Matrix2D::identity())))
+            },
+            FillOrStrokeStyle::Surface(ref surface_style) => {
+                drawtarget.create_source_surface_from_data(&surface_style.surface_data,
+                                                           surface_style.surface_size,
+                                                           surface_style.surface_size.width * 4,
+                                                           SurfaceFormat::B8G8R8A8)
+                          .map(|source_surface| {
+                    Pattern::Surface(SurfacePattern::new(
+                        source_surface.azure_source_surface,
+                        surface_style.repeat_x,
+                        surface_style.repeat_y,
+                        &Matrix2D::identity()))
+                    })
+            }
+        }
+    }
+}
+
+impl ToAzureStyle for RGBA {
+    type Target = Color;
+
+    fn to_azure_style(self) -> Color {
+        Color::rgba(self.red as AzFloat,
+                    self.green as AzFloat,
+                    self.blue as AzFloat,
+                    self.alpha as AzFloat)
     }
 }
