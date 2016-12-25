@@ -725,10 +725,8 @@ impl ScriptThread {
 
         for (id, document) in self.documents.borrow().iter() {
             // Only process a resize if layout is idle.
-            let resize_event = document.window().steal_resize_event();
-            match resize_event {
-                Some((size, size_type)) => resizes.push((id, size, size_type)),
-                None => ()
+            if let Some((size, size_type)) = document.window().steal_resize_event() {
+                resizes.push((id, size, size_type));
             }
         }
 
