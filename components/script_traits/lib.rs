@@ -686,7 +686,7 @@ pub enum ConstellationMsg {
     /// Request that the constellation send the current pipeline id for the provided frame
     /// id, or for the root frame if this is None, over a provided channel.
     /// Also returns a boolean saying whether the document has finished loading or not.
-    GetPipeline(Option<FrameId>, IpcSender<Option<(PipelineId, bool)>>),
+    GetPipeline(Option<FrameId>, IpcSender<Option<PipelineId>>),
     /// Requests that the constellation inform the compositor of the title of the pipeline
     /// immediately.
     GetPipelineTitle(PipelineId),
