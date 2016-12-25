@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::TextDecoderBinding;
 use dom::bindings::codegen::Bindings::TextDecoderBinding::TextDecoderMethods;
-use dom::bindings::conversions::array_buffer_view_data;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -85,9 +84,10 @@ impl TextDecoderMethods for TextDecoder {
             None => return Ok(USVString("".to_owned())),
         };
 
-        let data = match array_buffer_view_data::<u8>(input) {
-            Some(data) => data,
-            None => {
+        typedarray!(in(_cx) let data_res: ArrayBufferView = input);
+        let mut data = match data_res {
+            Ok(data) => data,
+            Err(_)   => {
                 return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView".to_owned()));
             }
         };
@@ -98,7 +98,7 @@ impl TextDecoderMethods for TextDecoder {
             DecoderTrap::Replace
         };
 
-        match self.encoding.decode(data, trap) {
+        match self.encoding.decode(data.as_slice(), trap) {
             Ok(s) => Ok(USVString(s)),
             Err(_) => Err(Error::Type("Decoding failed".to_owned())),
         }
