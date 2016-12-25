@@ -230,6 +230,7 @@ mod bindings {
             "mozilla::DisplayItemClip",  // Needed because bindgen generates
                                          // specialization tests for this even
                                          // though it shouldn't.
+            "mozilla::StyleShapeRadius",
             ".*ThreadSafe.*Holder",
             "AnonymousContent",
             "AudioContext",
