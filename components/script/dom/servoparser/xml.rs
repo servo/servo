@@ -100,7 +100,6 @@ struct Sink {
     script: MutNullableJS<HTMLScriptElement>,
 }
 
-//TODO: Add ability to track lines to API of xml5ever
 impl<'a> TreeSink for Sink {
     type Handle = JS<Node>;
 
@@ -129,6 +128,7 @@ impl<'a> TreeSink for Sink {
             ns: name.namespace_url,
             local: name.local,
         };
+        //TODO: Add ability to track lines to API of xml5ever
         let elem = Element::create(name, prefix, &*self.document,
                                    ElementCreator::ParserCreated(1));
 

@@ -64,6 +64,9 @@ pub struct HTMLScriptElement {
 
     /// The source this script was loaded from
     load: DOMRefCell<Option<Result<ScriptOrigin, NetworkError>>>,
+
+    /// Track line line_number
+    line_number: u64,
 }
 
 impl HTMLScriptElement {
@@ -78,6 +81,7 @@ impl HTMLScriptElement {
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
             load: DOMRefCell::new(None),
+            line_number: creator.is_parser_created(),
         }
     }
 
@@ -495,7 +499,7 @@ impl HTMLScriptElement {
         let window = window_from_node(self);
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
         window.upcast::<GlobalScope>().evaluate_script_on_global_with_result(
-            &script.text, script.url.as_str(), rval.handle_mut());
+            &script.text, script.url.as_str(), rval.handle_mut(), 1);
 
         // Step 6.
         document.set_current_script(old_script.r());

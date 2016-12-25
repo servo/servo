@@ -147,6 +147,15 @@ pub enum ElementCreator {
     ScriptCreated,
 }
 
+impl ElementCreator {
+    pub fn is_parser_created(&self) -> u64 {
+        match *self {
+            ElementCreator::ParserCreated(l) => l,
+            ElementCreator::ScriptCreated => 1,
+        }
+    }
+}
+
 pub enum AdjacentPosition {
     BeforeBegin,
     AfterEnd,
