@@ -498,13 +498,10 @@ impl<'a> ScriptMemoryFailsafe<'a> {
 impl<'a> Drop for ScriptMemoryFailsafe<'a> {
     #[allow(unrooted_must_root)]
     fn drop(&mut self) {
-        match self.owner {
-            Some(owner) => {
-                for (_, document) in owner.documents.borrow().iter() {
-                    document.window().clear_js_runtime_for_script_deallocation();
-                }
+        if let Some(owner) = self.owner {
+            for (_, document) in owner.documents.borrow().iter() {
+                document.window().clear_js_runtime_for_script_deallocation();
             }
-            None => (),
         }
     }
 }
