@@ -260,7 +260,7 @@ impl Handler {
             let msg = ConstellationMsg::GetPipeline(frame_id, sender.clone());
             self.constellation_chan.send(msg).unwrap();
             // Wait until the document is ready before returning the pipeline id.
-            if let Some((x, true)) = receiver.recv().unwrap() {
+            if let Some(x) = receiver.recv().unwrap() {
                 return Ok(x);
             }
             thread::sleep(Duration::from_millis(interval));

@@ -412,10 +412,6 @@ struct FrameChange {
     /// The pipeline for the document being loaded.
     new_pipeline_id: PipelineId,
 
-    /// Is this document ready to be activated?
-    /// TODO: this flag is never set, it can be removed.
-    document_ready: bool,
-
     /// Is the new document replacing the current document (e.g. a reload)
     /// or pushing it into the session history (e.g. a navigation)?
     replace: bool,
@@ -1446,7 +1442,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             frame_id: top_level_frame_id,
             old_pipeline_id: pipeline_id,
             new_pipeline_id: new_pipeline_id,
-            document_ready: false,
             replace: false,
         });
     }
@@ -1480,7 +1475,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             frame_id: self.root_frame_id,
             old_pipeline_id: None,
             new_pipeline_id: root_pipeline_id,
-            document_ready: false,
             replace: false,
         });
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
@@ -1585,7 +1579,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             frame_id: load_info.info.frame_id,
             old_pipeline_id: load_info.old_pipeline_id,
             new_pipeline_id: load_info.info.new_pipeline_id,
-            document_ready: false,
             replace: load_info.info.replace,
         });
     }
@@ -1630,7 +1623,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             frame_id: frame_id,
             old_pipeline_id: None,
             new_pipeline_id: new_pipeline_id,
-            document_ready: false,
             replace: replace,
         });
     }
@@ -1766,7 +1758,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     frame_id: root_frame_id,
                     old_pipeline_id: Some(source_id),
                     new_pipeline_id: new_pipeline_id,
-                    document_ready: false,
                     replace: replace,
                 });
 
@@ -1929,15 +1920,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_get_pipeline(&mut self, frame_id: Option<FrameId>,
-                           resp_chan: IpcSender<Option<(PipelineId, bool)>>) {
+                           resp_chan: IpcSender<Option<PipelineId>>) {
         let frame_id = frame_id.unwrap_or(self.root_frame_id);
         let current_pipeline_id = self.frames.get(&frame_id)
             .map(|frame| frame.current.pipeline_id);
         let current_pipeline_id_loaded = current_pipeline_id
-            .map(|id| (id, true));
+            .map(|id| id);
         let pipeline_id_loaded = self.pending_frames.iter().rev()
             .find(|x| x.old_pipeline_id == current_pipeline_id)
-            .map(|x| (x.new_pipeline_id, x.document_ready))
+            .map(|x| x.new_pipeline_id)
             .or(current_pipeline_id_loaded);
         if let Err(e) = resp_chan.send(pipeline_id_loaded) {
             warn!("Failed get_pipeline response ({}).", e);
