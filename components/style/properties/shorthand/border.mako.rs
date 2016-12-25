@@ -40,6 +40,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
                     },
                     &DeclaredValue::Initial => DeclaredValue::Initial,
                     &DeclaredValue::Inherit => DeclaredValue::Inherit,
+                    &DeclaredValue::Unset => DeclaredValue::Unset,
                 };
             % endfor
 

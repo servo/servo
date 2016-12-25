@@ -90,6 +90,14 @@ pub mod shorthands {
     use parser::{Parse, ParserContext};
     use values::specified;
 
+    bitflags! {
+        flags SerializeFlags: u8 {
+            const ALL_INHERIT = 0b001,
+            const ALL_INITIAL = 0b010,
+            const ALL_UNSET   = 0b100,
+        }
+    }
+
     pub fn parse_four_sides<F, T>(input: &mut Parser, parse_one: F) -> Result<(T, T, T, T), ()>
         where F: Fn(&mut Parser) -> Result<T, ()>, T: Clone
     {
@@ -520,9 +528,7 @@ pub enum DeclaredValue<T> {
     },
     Initial,
     Inherit,
-    // There is no Unset variant here.
-    // The 'unset' keyword is represented as either Initial or Inherit,
-    // depending on whether the property is inherited.
+    Unset,
 }
 
 impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
@@ -533,7 +539,8 @@ impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
             DeclaredValue::WithVariables { .. }
                 => panic!("DeclaredValue::has_viewport_percentage without resolving variables!"),
             DeclaredValue::Initial |
-            DeclaredValue::Inherit => false,
+            DeclaredValue::Inherit |
+            DeclaredValue::Unset => false,
         }
     }
 }
@@ -549,6 +556,7 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
             DeclaredValue::WithVariables { .. } => Ok(()),
             DeclaredValue::Initial => dest.write_str("initial"),
             DeclaredValue::Inherit => dest.write_str("inherit"),
+            DeclaredValue::Unset => dest.write_str("unset"),
         }
     }
 }
@@ -817,7 +825,7 @@ impl PropertyDeclaration {
         match id {
             PropertyId::Custom(name) => {
                 let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                    Ok(CSSWideKeyword::UnsetKeyword) |  // Custom properties are alawys inherited
+                    Ok(CSSWideKeyword::UnsetKeyword) => DeclaredValue::Unset,
                     Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
                     Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
@@ -900,8 +908,7 @@ impl PropertyDeclaration {
                         Ok(CSSWideKeyword::UnsetKeyword) => {
                             % for sub_property in shorthand.sub_properties:
                                 result_list.push(PropertyDeclaration::${sub_property.camel_case}(
-                                    DeclaredValue::${"Inherit" if sub_property.style_struct.inherited else "Initial"}
-                                ));
+                                        DeclaredValue::Unset));
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },

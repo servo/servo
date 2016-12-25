@@ -28,6 +28,7 @@
                 (&DeclaredValue::WithVariables { .. }, &DeclaredValue::WithVariables { .. }) => true,
                 (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
                 (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
+                (&DeclaredValue::Unset, &DeclaredValue::Unset) => true,
                 _ => false
             };
 
@@ -331,6 +332,7 @@ macro_rules! try_parse_one {
                 },
                 (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
                 (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
+                (&DeclaredValue::Unset, &DeclaredValue::Unset) => true,
                 (x, y) => { *x == *y },
             };
 

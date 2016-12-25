@@ -245,6 +245,9 @@
                                 % endif
                             }
                             DeclaredValue::WithVariables { .. } => unreachable!(),
+                            % if not data.current_style_struct.inherited:
+                            DeclaredValue::Unset |
+                            % endif
                             DeclaredValue::Initial => {
                                 // We assume that it's faster to use copy_*_from rather than
                                 // set_*(get_initial_value());
@@ -253,6 +256,9 @@
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                                       .copy_${property.ident}_from(initial_struct ${maybe_wm});
                             },
+                            % if data.current_style_struct.inherited:
+                            DeclaredValue::Unset |
+                            % endif
                             DeclaredValue::Inherit => {
                                 // This is a bit slow, but this is rare so it shouldn't
                                 // matter.
@@ -286,8 +292,7 @@
                 match input.try(|i| CSSWideKeyword::parse(context, i)) {
                     Ok(CSSWideKeyword::InheritKeyword) => Ok(DeclaredValue::Inherit),
                     Ok(CSSWideKeyword::InitialKeyword) => Ok(DeclaredValue::Initial),
-                    Ok(CSSWideKeyword::UnsetKeyword) => Ok(DeclaredValue::${
-                        "Inherit" if data.current_style_struct.inherited else "Initial"}),
+                    Ok(CSSWideKeyword::UnsetKeyword) => Ok(DeclaredValue::Unset),
                     Err(()) => {
                         input.look_for_var_functions();
                         let start = input.position();
@@ -383,6 +388,7 @@
         use properties::{longhands, PropertyDeclaration, DeclaredValue, ShorthandId};
         use std::fmt;
         use style_traits::ToCss;
+        use super::{SerializeFlags, ALL_INHERIT, ALL_INITIAL, ALL_UNSET};
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
@@ -441,17 +447,16 @@
 
         impl<'a> ToCss for LonghandsToSerialize<'a> {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                let mut all_inherit = true;
-                let mut all_initial = true;
+                let mut all_flags = SerializeFlags::all();
                 let mut with_variables = false;
                 % for sub_property in shorthand.sub_properties:
                     match *self.${sub_property.ident} {
-                        DeclaredValue::Initial => all_inherit = false,
-                        DeclaredValue::Inherit => all_initial = false,
+                        DeclaredValue::Initial => all_flags &= ALL_INITIAL,
+                        DeclaredValue::Inherit => all_flags &= ALL_INHERIT,
+                        DeclaredValue::Unset => all_flags &= ALL_UNSET,
                         DeclaredValue::WithVariables {..} => with_variables = true,
                         DeclaredValue::Value(..) => {
-                            all_initial = false;
-                            all_inherit = false;
+                            all_flags = SerializeFlags::empty();
                         }
                     }
                 % endfor
@@ -459,10 +464,12 @@
                 if with_variables {
                     // We don't serialize shorthands with variables
                     dest.write_str("")
-                } else if all_inherit {
+                } else if all_flags == ALL_INHERIT {
                     dest.write_str("inherit")
-                } else if all_initial {
+                } else if all_flags == ALL_INITIAL {
                     dest.write_str("initial")
+                } else if all_flags == ALL_UNSET {
+                    dest.write_str("unset")
                 } else {
                     self.to_css_declared(dest)
                 }
