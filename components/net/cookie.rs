@@ -160,7 +160,7 @@ impl Cookie {
             }
         }
 
-        if self.cookie.secure && url.scheme() != "https" {
+        if self.cookie.secure && !url.is_secure_scheme() {
             return false;
         }
         if self.cookie.httponly && source == CookieSource::NonHTTP {
