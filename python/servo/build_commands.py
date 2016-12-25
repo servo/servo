@@ -434,7 +434,7 @@ class MachCommands(CommandBase):
 
         print("GeckoLib build completed in %s" % format_duration(elapsed))
 
-        if with_gecko is not None and ret == 0:
+        if with_gecko is not None:
             print("Copying binding files to style/gecko_bindings...")
             build_path = path.join(geckolib_build_path, "release" if release else "debug", "")
             target_style_path = find_dep_path_newest("style", build_path)
