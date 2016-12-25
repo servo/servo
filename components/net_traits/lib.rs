@@ -438,24 +438,17 @@ impl Metadata {
 
     /// Extract the parts of a Mime that we care about.
     pub fn set_content_type(&mut self, content_type: Option<&Mime>) {
-        match self.headers {
-            None => self.headers = Some(Serde(Headers::new())),
-            Some(_) => (),
+        if self.headers.is_none() {
+            self.headers = Some(Serde(Headers::new()));
         }
 
-        match content_type {
-            None => (),
-            Some(mime) => {
-                if let Some(headers) = self.headers.as_mut() {
-                    headers.set(ContentType(mime.clone()));
-                }
-
-                self.content_type = Some(Serde(ContentType(mime.clone())));
-                let &Mime(_, _, ref parameters) = mime;
-                for &(ref k, ref v) in parameters {
-                    if &Attr::Charset == k {
-                        self.charset = Some(v.to_string());
-                    }
+        if let Some(mime) = content_type {
+            self.headers.as_mut().unwrap().set(ContentType(mime.clone()));
+            self.content_type = Some(Serde(ContentType(mime.clone())));
+            let Mime(_, _, ref parameters) = *mime;
+            for &(ref k, ref v) in parameters {
+                if Attr::Charset == *k {
+                    self.charset = Some(v.to_string());
                 }
             }
         }
