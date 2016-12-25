@@ -296,12 +296,7 @@ impl Profiler {
     }
 
     fn find_or_insert(&mut self, k: (ProfilerCategory, Option<TimerMetadata>), t: f64) {
-        match self.buckets.get_mut(&k) {
-            None => {},
-            Some(v) => { v.push(t); return; },
-        }
-
-        self.buckets.insert(k, vec!(t));
+        self.buckets.entry(k).or_insert_with(Vec::new).push(t);
     }
 
     fn handle_msg(&mut self, msg: ProfilerMsg) -> bool {

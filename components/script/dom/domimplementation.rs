@@ -155,20 +155,17 @@ impl DOMImplementationMethods for DOMImplementation {
                 doc_html.AppendChild(&doc_head).unwrap();
 
                 // Step 6.
-                match title {
-                    None => (),
-                    Some(title_str) => {
-                        // Step 6.1.
-                        let doc_title =
-                            Root::upcast::<Node>(HTMLTitleElement::new(local_name!("title"),
-                                                                       None,
-                                                                       &doc));
-                        doc_head.AppendChild(&doc_title).unwrap();
+                if let Some(title_str) = title {
+                    // Step 6.1.
+                    let doc_title =
+                        Root::upcast::<Node>(HTMLTitleElement::new(local_name!("title"),
+                                                                   None,
+                                                                   &doc));
+                    doc_head.AppendChild(&doc_title).unwrap();
 
-                        // Step 6.2.
-                        let title_text = Text::new(title_str, &doc);
-                        doc_title.AppendChild(title_text.upcast()).unwrap();
-                    }
+                    // Step 6.2.
+                    let title_text = Text::new(title_str, &doc);
+                    doc_title.AppendChild(title_text.upcast()).unwrap();
                 }
             }
 

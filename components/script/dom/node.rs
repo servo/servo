@@ -1792,9 +1792,8 @@ impl Node {
     pub fn collect_text_contents<T: Iterator<Item=Root<Node>>>(iterator: T) -> DOMString {
         let mut content = String::new();
         for node in iterator {
-            match node.downcast::<Text>() {
-                Some(ref text) => content.push_str(&text.upcast::<CharacterData>().data()),
-                None => (),
+            if let Some(ref text) = node.downcast::<Text>() {
+                content.push_str(&text.upcast::<CharacterData>().data());
             }
         }
         DOMString::from(content)

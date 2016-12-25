@@ -60,10 +60,9 @@ mod imp {
 
     pub fn initialize(x: ThreadState) {
         STATE.with(|ref k| {
-            match *k.borrow() {
-                Some(s) => panic!("Thread state already initialized as {:?}", s),
-                None => ()
-            };
+            if let Some(ref s) = *k.borrow() {
+                panic!("Thread state already initialized as {:?}", s);
+            }
             *k.borrow_mut() = Some(x);
         });
         get(); // check the assertion below

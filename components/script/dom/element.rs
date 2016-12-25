@@ -2663,15 +2663,11 @@ impl Element {
                 self.set_enabled_state(false);
                 return;
             }
-            match ancestor.children()
-                          .find(|child| child.is::<HTMLLegendElement>()) {
-                Some(ref legend) => {
-                    // XXXabinader: should we save previous ancestor to avoid this iteration?
-                    if node.ancestors().any(|ancestor| ancestor == *legend) {
-                        continue;
-                    }
-                },
-                None => (),
+            if let Some(ref legend) = ancestor.children().find(|n| n.is::<HTMLLegendElement>()) {
+                // XXXabinader: should we save previous ancestor to avoid this iteration?
+                if node.ancestors().any(|ancestor| ancestor == *legend) {
+                    continue;
+                }
             }
             self.set_disabled_state(true);
             self.set_enabled_state(false);

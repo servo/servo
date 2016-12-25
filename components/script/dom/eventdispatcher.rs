@@ -156,15 +156,11 @@ pub fn dispatch_event(target: &EventTarget,
     dispatch_to_listeners(event, target, event_path.r());
 
     // Default action.
-    let target = event.GetTarget();
-    match target {
-        Some(ref target) => {
-            if let Some(node) = target.downcast::<Node>() {
-                let vtable = vtable_for(&node);
-                vtable.handle_event(event);
-            }
+    if let Some(target) = event.GetTarget() {
+        if let Some(node) = target.downcast::<Node>() {
+            let vtable = vtable_for(&node);
+            vtable.handle_event(event);
         }
-        None => {}
     }
 
     // Step 10-12.
