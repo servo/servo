@@ -76,12 +76,12 @@ impl HTMLScriptElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
             already_started: Cell::new(false),
-            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated(1)),
-            non_blocking: Cell::new(creator != ElementCreator::ParserCreated(1)),
+            parser_inserted: Cell::new(creator.is_parser_created()),
+            non_blocking: Cell::new(!creator.is_parser_created()),
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
             load: DOMRefCell::new(None),
-            line_number: creator.is_parser_created(),
+            line_number: creator.return_line_number(),
         }
     }
 

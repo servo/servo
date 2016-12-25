@@ -148,7 +148,13 @@ pub enum ElementCreator {
 }
 
 impl ElementCreator {
-    pub fn is_parser_created(&self) -> u64 {
+    pub fn is_parser_created(&self) -> bool {
+        match *self {
+            ElementCreator::ParserCreated(l) => true,
+            ElementCreator::ScriptCreated => false,
+        }
+    }
+    pub fn return_line_number(&self) -> u64 {
         match *self {
             ElementCreator::ParserCreated(l) => l,
             ElementCreator::ScriptCreated => 1,
