@@ -234,8 +234,6 @@ pub mod root {
     pub const NS_CORNER_BOTTOM_RIGHT_Y: ::std::os::raw::c_uint = 5;
     pub const NS_CORNER_BOTTOM_LEFT_X: ::std::os::raw::c_uint = 6;
     pub const NS_CORNER_BOTTOM_LEFT_Y: ::std::os::raw::c_uint = 7;
-    pub const NS_RADIUS_FARTHEST_SIDE: ::std::os::raw::c_uint = 0;
-    pub const NS_RADIUS_CLOSEST_SIDE: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_STACK_SIZING_IGNORE: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_STACK_SIZING_STRETCH_TO_FIT: ::std::os::raw::c_uint =
         1;
@@ -1014,6 +1012,7 @@ pub mod root {
     pub const NS_STYLE_DISPLAY_MODE_BROWSER: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_DISPLAY_MODE_MINIMAL_UI: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_DISPLAY_MODE_STANDALONE: ::std::os::raw::c_uint = 2;
+    pub const NS_STYLE_DISPLAY_MODE_FULLSCREEN: ::std::os::raw::c_uint = 3;
     pub const NS_STYLE_INHERIT_MASK: ::std::os::raw::c_uint = 16777215;
     pub const NS_STYLE_HAS_TEXT_DECORATION_LINES: ::std::os::raw::c_uint =
         16777216;
@@ -1043,69 +1042,27 @@ pub mod root {
     pub mod std {
         #[allow(unused_imports)]
         use self::super::super::root;
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct atomic<_Tp> {
+            pub _M_i: _Tp,
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct pair<_T1, _T2> {
+            pub first: _T1,
+            pub second: _T2,
+        }
+        pub type pair_first_type<_T1> = _T1;
+        pub type pair_second_type<_T2> = _T2;
         pub mod namespace {
             #[allow(unused_imports)]
             use self::super::super::super::root;
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct atomic<_Tp> {
-                pub _base: (),
-                pub _phantom_0: ::std::marker::PhantomData<_Tp>,
-            }
-            pub type atomic___base = [u8; 0usize];
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct pair<_T1, _T2> {
-                pub first: _T1,
-                pub second: _T2,
-            }
-            pub type pair_first_type<_T1> = _T1;
-            pub type pair_second_type<_T2> = _T2;
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct input_iterator_tag {
-                pub _address: u8,
-            }
-            impl Clone for input_iterator_tag {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct forward_iterator_tag {
-                pub _address: u8,
-            }
-            impl Clone for forward_iterator_tag {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct bidirectional_iterator_tag {
-                pub _address: u8,
-            }
-            impl Clone for bidirectional_iterator_tag {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct random_access_iterator_tag {
-                pub _address: u8,
-            }
-            impl Clone for random_access_iterator_tag {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct __bit_const_reference<_Cp> {
-                pub __seg_: root::std::namespace::__bit_const_reference___storage_pointer<_Cp>,
-                pub __mask_: root::std::namespace::__bit_const_reference___storage_type<_Cp>,
-            }
-            pub type __bit_const_reference___storage_type<_Cp> = _Cp;
-            pub type __bit_const_reference___storage_pointer<_Cp> = _Cp;
-            pub mod namespace {
-                #[allow(unused_imports)]
-                use self::super::super::super::super::root;
-            }
         }
+    }
+    pub mod __gnu_cxx {
+        #[allow(unused_imports)]
+        use self::super::super::root;
     }
     pub mod mozilla {
         #[allow(unused_imports)]
@@ -1329,6 +1286,112 @@ pub mod root {
             }
             #[repr(C)]
             #[derive(Debug)]
+            pub struct EventTarget {
+                pub _base: root::nsIDOMEventTarget,
+                pub _base_1: root::nsWrapperCache,
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct EventTarget_COMTypeInfo<T, U> {
+                pub _address: u8,
+                pub _phantom_0: ::std::marker::PhantomData<T>,
+                pub _phantom_1: ::std::marker::PhantomData<U>,
+            }
+            #[test]
+            fn bindgen_test_layout_EventTarget() {
+                assert_eq!(::std::mem::size_of::<EventTarget>() , 32usize);
+                assert_eq!(::std::mem::align_of::<EventTarget>() , 8usize);
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct AudioContext {
+                pub _address: u8,
+            }
+            impl Clone for AudioContext {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct DocGroup {
+                pub _address: u8,
+            }
+            impl Clone for DocGroup {
+                fn clone(&self) -> Self { *self }
+            }
+            pub const ReferrerPolicy_RP_Default:
+                      root::mozilla::dom::ReferrerPolicy =
+                ReferrerPolicy::RP_No_Referrer_When_Downgrade;
+            #[repr(u32)]
+            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+            pub enum ReferrerPolicy {
+                RP_No_Referrer = 2,
+                RP_Origin = 3,
+                RP_No_Referrer_When_Downgrade = 1,
+                RP_Origin_When_Crossorigin = 4,
+                RP_Unsafe_URL = 5,
+                RP_Same_Origin = 6,
+                RP_Strict_Origin = 7,
+                RP_Strict_Origin_When_Cross_Origin = 8,
+                RP_Unset = 0,
+            }
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct Element {
+                pub _base: root::mozilla::dom::FragmentOrElement,
+                pub mState: root::EventStates,
+                pub mServoData: ::gecko_bindings::structs::ServoCell<*mut ::gecko_bindings::structs::ServoNodeData>,
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy, Clone)]
+            pub struct Element_COMTypeInfo<T, U> {
+                pub _address: u8,
+                pub _phantom_0: ::std::marker::PhantomData<T>,
+                pub _phantom_1: ::std::marker::PhantomData<U>,
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct Element_MappedAttributeEntry {
+                pub attribute: *mut *mut root::nsIAtom,
+            }
+            #[test]
+            fn bindgen_test_layout_Element_MappedAttributeEntry() {
+                assert_eq!(::std::mem::size_of::<Element_MappedAttributeEntry>()
+                           , 8usize);
+                assert_eq!(::std::mem::align_of::<Element_MappedAttributeEntry>()
+                           , 8usize);
+            }
+            impl Clone for Element_MappedAttributeEntry {
+                fn clone(&self) -> Self { *self }
+            }
+            pub const Element_kFireMutationEvent: bool = true;
+            pub const Element_kDontFireMutationEvent: bool = false;
+            pub const Element_kNotifyDocumentObservers: bool = true;
+            pub const Element_kDontNotifyDocumentObservers: bool = false;
+            pub const Element_kCallAfterSetAttr: bool = true;
+            pub const Element_kDontCallAfterSetAttr: bool = false;
+            #[test]
+            fn bindgen_test_layout_Element() {
+                assert_eq!(::std::mem::size_of::<Element>() , 128usize);
+                assert_eq!(::std::mem::align_of::<Element>() , 8usize);
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct TimeoutManager {
+                pub _address: u8,
+            }
+            impl Clone for TimeoutManager {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct PrefSetting {
+                pub _address: u8,
+            }
+            impl Clone for PrefSetting {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug)]
             pub struct CallbackObject {
                 pub _base: root::nsISupports,
                 pub mRefCnt: root::nsCycleCollectingAutoRefCnt,
@@ -1427,241 +1490,6 @@ pub mod root {
                            48usize);
                 assert_eq!(::std::mem::align_of::<CallbackFunction>() ,
                            8usize);
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct AudioContext {
-                pub _address: u8,
-            }
-            impl Clone for AudioContext {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct DocGroup {
-                pub _address: u8,
-            }
-            impl Clone for DocGroup {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct FragmentOrElement {
-                pub _base: root::nsIContent,
-                pub mRefCnt: root::nsCycleCollectingAutoRefCnt,
-                /**
-   * Array containing all attributes and children for this element
-   */
-                pub mAttrsAndChildren: root::nsAttrAndChildArray,
-            }
-            pub type FragmentOrElement_HasThreadSafeRefCnt =
-                root::mozilla::FalseType;
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct FragmentOrElement_cycleCollection {
-                pub _base: root::nsXPCOMCycleCollectionParticipant,
-            }
-            #[test]
-            fn bindgen_test_layout_FragmentOrElement_cycleCollection() {
-                assert_eq!(::std::mem::size_of::<FragmentOrElement_cycleCollection>()
-                           , 16usize);
-                assert_eq!(::std::mem::align_of::<FragmentOrElement_cycleCollection>()
-                           , 8usize);
-            }
-            impl Clone for FragmentOrElement_cycleCollection {
-                fn clone(&self) -> Self { *self }
-            }
-            /**
-   * There are a set of DOM- and scripting-specific instance variables
-   * that may only be instantiated when a content object is accessed
-   * through the DOM. Rather than burn actual slots in the content
-   * objects for each of these instance variables, we put them off
-   * in a side structure that's only allocated when the content is
-   * accessed through the DOM.
-   */
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct FragmentOrElement_nsDOMSlots {
-                pub _base: root::nsINode_nsSlots,
-                /**
-     * The .style attribute (an interface that forwards to the actual
-     * style rules)
-     * @see nsGenericHTMLElement::GetStyle
-     */
-                pub mStyle: root::nsCOMPtr<root::nsICSSDeclaration>,
-                /**
-     * The .dataset attribute.
-     * @see nsGenericHTMLElement::GetDataset
-     */
-                pub mDataset: *mut root::nsDOMStringMap,
-                /**
-     * SMIL Overridde style rules (for SMIL animation of CSS properties)
-     * @see nsIContent::GetSMILOverrideStyle
-     */
-                pub mSMILOverrideStyle: root::nsCOMPtr<root::nsICSSDeclaration>,
-                /**
-     * Holds any SMIL override style declaration for this element.
-     */
-                pub mSMILOverrideStyleDeclaration: root::RefPtr<root::mozilla::DeclarationBlock>,
-                /**
-     * An object implementing nsIDOMMozNamedAttrMap for this content (attributes)
-     * @see FragmentOrElement::GetAttributes
-     */
-                pub mAttributeMap: root::RefPtr<root::nsDOMAttributeMap>,
-                pub __bindgen_anon_1: root::mozilla::dom::FragmentOrElement_nsDOMSlots__bindgen_ty_1,
-                /**
-     * An object implementing the .children property for this element.
-     */
-                pub mChildrenList: root::RefPtr<root::nsContentList>,
-                /**
-     * An object implementing the .classList property for this element.
-     */
-                pub mClassList: root::RefPtr<root::nsDOMTokenList>,
-                /**
-     * ShadowRoot bound to the element.
-     */
-                pub mShadowRoot: root::RefPtr<root::mozilla::dom::ShadowRoot>,
-                /**
-     * The root ShadowRoot of this element if it is in a shadow tree.
-     */
-                pub mContainingShadow: root::RefPtr<root::mozilla::dom::ShadowRoot>,
-                /**
-     * An array of web component insertion points to which this element
-     * is distributed.
-     */
-                pub mDestInsertionPoints: root::nsTArray<*mut root::nsIContent>,
-                /**
-     * XBL binding installed on the element.
-     */
-                pub mXBLBinding: root::RefPtr<root::nsXBLBinding>,
-                /**
-     * XBL binding installed on the lement.
-     */
-                pub mXBLInsertionParent: root::nsCOMPtr<root::nsIContent>,
-                /**
-     * Web components custom element data.
-     */
-                pub mCustomElementData: root::RefPtr<root::mozilla::dom::CustomElementData>,
-                /**
-     * Registered Intersection Observers on the element.
-     */
-                pub mRegisteredIntersectionObservers: [u64; 5usize],
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct FragmentOrElement_nsDOMSlots__bindgen_ty_1 {
-                /**
-      * The nearest enclosing content node with a binding that created us.
-      * @see FragmentOrElement::GetBindingParent
-      */
-                pub mBindingParent: root::__BindgenUnionField<*mut root::nsIContent>,
-                /**
-      * The controllers of the XUL Element.
-      */
-                pub mControllers: root::__BindgenUnionField<*mut root::nsIControllers>,
-                pub bindgen_union_field: u64,
-            }
-            #[test]
-            fn bindgen_test_layout_FragmentOrElement_nsDOMSlots__bindgen_ty_1() {
-                assert_eq!(::std::mem::size_of::<FragmentOrElement_nsDOMSlots__bindgen_ty_1>()
-                           , 8usize);
-                assert_eq!(::std::mem::align_of::<FragmentOrElement_nsDOMSlots__bindgen_ty_1>()
-                           , 8usize);
-            }
-            impl Clone for FragmentOrElement_nsDOMSlots__bindgen_ty_1 {
-                fn clone(&self) -> Self { *self }
-            }
-            #[test]
-            fn bindgen_test_layout_FragmentOrElement_nsDOMSlots() {
-                assert_eq!(::std::mem::size_of::<FragmentOrElement_nsDOMSlots>()
-                           , 200usize);
-                assert_eq!(::std::mem::align_of::<FragmentOrElement_nsDOMSlots>()
-                           , 8usize);
-            }
-            extern "C" {
-                #[link_name =
-                      "_ZN7mozilla3dom17FragmentOrElement21_cycleCollectorGlobalE"]
-                pub static mut FragmentOrElement__cycleCollectorGlobal:
-                           root::mozilla::dom::FragmentOrElement_cycleCollection;
-            }
-            #[test]
-            fn bindgen_test_layout_FragmentOrElement() {
-                assert_eq!(::std::mem::size_of::<FragmentOrElement>() ,
-                           112usize);
-                assert_eq!(::std::mem::align_of::<FragmentOrElement>() ,
-                           8usize);
-            }
-            pub const ReferrerPolicy_RP_Default:
-                      root::mozilla::dom::ReferrerPolicy =
-                ReferrerPolicy::RP_No_Referrer_When_Downgrade;
-            #[repr(u32)]
-            #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-            pub enum ReferrerPolicy {
-                RP_No_Referrer = 2,
-                RP_Origin = 3,
-                RP_No_Referrer_When_Downgrade = 1,
-                RP_Origin_When_Crossorigin = 4,
-                RP_Unsafe_URL = 5,
-                RP_Same_Origin = 6,
-                RP_Strict_Origin = 7,
-                RP_Strict_Origin_When_Cross_Origin = 8,
-                RP_Unset = 0,
-            }
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct Element {
-                pub _base: root::mozilla::dom::FragmentOrElement,
-                pub mState: root::EventStates,
-                pub mServoData: ::gecko_bindings::structs::ServoCell<*mut ::gecko_bindings::structs::ServoNodeData>,
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct Element_COMTypeInfo<T, U> {
-                pub _address: u8,
-                pub _phantom_0: ::std::marker::PhantomData<T>,
-                pub _phantom_1: ::std::marker::PhantomData<U>,
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct Element_MappedAttributeEntry {
-                pub attribute: *mut *mut root::nsIAtom,
-            }
-            #[test]
-            fn bindgen_test_layout_Element_MappedAttributeEntry() {
-                assert_eq!(::std::mem::size_of::<Element_MappedAttributeEntry>()
-                           , 8usize);
-                assert_eq!(::std::mem::align_of::<Element_MappedAttributeEntry>()
-                           , 8usize);
-            }
-            impl Clone for Element_MappedAttributeEntry {
-                fn clone(&self) -> Self { *self }
-            }
-            pub const Element_kFireMutationEvent: bool = true;
-            pub const Element_kDontFireMutationEvent: bool = false;
-            pub const Element_kNotifyDocumentObservers: bool = true;
-            pub const Element_kDontNotifyDocumentObservers: bool = false;
-            pub const Element_kCallAfterSetAttr: bool = true;
-            pub const Element_kDontCallAfterSetAttr: bool = false;
-            #[test]
-            fn bindgen_test_layout_Element() {
-                assert_eq!(::std::mem::size_of::<Element>() , 128usize);
-                assert_eq!(::std::mem::align_of::<Element>() , 8usize);
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct TimeoutManager {
-                pub _address: u8,
-            }
-            impl Clone for TimeoutManager {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct PrefSetting {
-                pub _address: u8,
-            }
-            impl Clone for PrefSetting {
-                fn clone(&self) -> Self { *self }
             }
             pub mod prototypes {
                 #[allow(unused_imports)]
@@ -1888,26 +1716,8 @@ pub mod root {
             }
             #[repr(C)]
             #[derive(Debug)]
-            pub struct nsIAttribute {
-                pub _base: root::nsINode,
-                pub mAttrMap: root::RefPtr<root::nsDOMAttributeMap>,
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy, Clone)]
-            pub struct nsIAttribute_COMTypeInfo<T, U> {
-                pub _address: u8,
-                pub _phantom_0: ::std::marker::PhantomData<T>,
-                pub _phantom_1: ::std::marker::PhantomData<U>,
-            }
-            #[test]
-            fn bindgen_test_layout_nsIAttribute() {
-                assert_eq!(::std::mem::size_of::<nsIAttribute>() , 104usize);
-                assert_eq!(::std::mem::align_of::<nsIAttribute>() , 8usize);
-            }
-            #[repr(C)]
-            #[derive(Debug)]
             pub struct Attr {
-                pub _base: root::mozilla::dom::nsIAttribute,
+                pub _base: root::nsIAttribute,
                 pub _base_1: root::nsIDOMAttr,
                 pub mRefCnt: root::nsCycleCollectingAutoRefCnt,
                 pub mValue: ::nsstring::nsStringRepr,
@@ -2020,6 +1830,153 @@ pub mod root {
             }
             impl Clone for CustomElementData {
                 fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct FragmentOrElement {
+                pub _base: root::nsIContent,
+                pub mRefCnt: root::nsCycleCollectingAutoRefCnt,
+                /**
+   * Array containing all attributes and children for this element
+   */
+                pub mAttrsAndChildren: root::nsAttrAndChildArray,
+            }
+            pub type FragmentOrElement_HasThreadSafeRefCnt =
+                root::mozilla::FalseType;
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct FragmentOrElement_cycleCollection {
+                pub _base: root::nsXPCOMCycleCollectionParticipant,
+            }
+            #[test]
+            fn bindgen_test_layout_FragmentOrElement_cycleCollection() {
+                assert_eq!(::std::mem::size_of::<FragmentOrElement_cycleCollection>()
+                           , 16usize);
+                assert_eq!(::std::mem::align_of::<FragmentOrElement_cycleCollection>()
+                           , 8usize);
+            }
+            impl Clone for FragmentOrElement_cycleCollection {
+                fn clone(&self) -> Self { *self }
+            }
+            /**
+   * There are a set of DOM- and scripting-specific instance variables
+   * that may only be instantiated when a content object is accessed
+   * through the DOM. Rather than burn actual slots in the content
+   * objects for each of these instance variables, we put them off
+   * in a side structure that's only allocated when the content is
+   * accessed through the DOM.
+   */
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct FragmentOrElement_nsDOMSlots {
+                pub _base: root::nsINode_nsSlots,
+                /**
+     * The .style attribute (an interface that forwards to the actual
+     * style rules)
+     * @see nsGenericHTMLElement::GetStyle
+     */
+                pub mStyle: root::nsCOMPtr<root::nsICSSDeclaration>,
+                /**
+     * The .dataset attribute.
+     * @see nsGenericHTMLElement::GetDataset
+     */
+                pub mDataset: *mut root::nsDOMStringMap,
+                /**
+     * SMIL Overridde style rules (for SMIL animation of CSS properties)
+     * @see nsIContent::GetSMILOverrideStyle
+     */
+                pub mSMILOverrideStyle: root::nsCOMPtr<root::nsICSSDeclaration>,
+                /**
+     * Holds any SMIL override style declaration for this element.
+     */
+                pub mSMILOverrideStyleDeclaration: root::RefPtr<root::mozilla::DeclarationBlock>,
+                /**
+     * An object implementing nsIDOMMozNamedAttrMap for this content (attributes)
+     * @see FragmentOrElement::GetAttributes
+     */
+                pub mAttributeMap: root::RefPtr<root::nsDOMAttributeMap>,
+                pub __bindgen_anon_1: root::mozilla::dom::FragmentOrElement_nsDOMSlots__bindgen_ty_1,
+                /**
+     * An object implementing the .children property for this element.
+     */
+                pub mChildrenList: root::RefPtr<root::nsContentList>,
+                /**
+     * An object implementing the .classList property for this element.
+     */
+                pub mClassList: root::RefPtr<root::nsDOMTokenList>,
+                /**
+     * ShadowRoot bound to the element.
+     */
+                pub mShadowRoot: root::RefPtr<root::mozilla::dom::ShadowRoot>,
+                /**
+     * The root ShadowRoot of this element if it is in a shadow tree.
+     */
+                pub mContainingShadow: root::RefPtr<root::mozilla::dom::ShadowRoot>,
+                /**
+     * An array of web component insertion points to which this element
+     * is distributed.
+     */
+                pub mDestInsertionPoints: root::nsTArray<*mut root::nsIContent>,
+                /**
+     * XBL binding installed on the element.
+     */
+                pub mXBLBinding: root::RefPtr<root::nsXBLBinding>,
+                /**
+     * XBL binding installed on the lement.
+     */
+                pub mXBLInsertionParent: root::nsCOMPtr<root::nsIContent>,
+                /**
+     * Web components custom element data.
+     */
+                pub mCustomElementData: root::RefPtr<root::mozilla::dom::CustomElementData>,
+                /**
+     * Registered Intersection Observers on the element.
+     */
+                pub mRegisteredIntersectionObservers: [u64; 5usize],
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct FragmentOrElement_nsDOMSlots__bindgen_ty_1 {
+                /**
+      * The nearest enclosing content node with a binding that created us.
+      * @see FragmentOrElement::GetBindingParent
+      */
+                pub mBindingParent: root::__BindgenUnionField<*mut root::nsIContent>,
+                /**
+      * The controllers of the XUL Element.
+      */
+                pub mControllers: root::__BindgenUnionField<*mut root::nsIControllers>,
+                pub bindgen_union_field: u64,
+            }
+            #[test]
+            fn bindgen_test_layout_FragmentOrElement_nsDOMSlots__bindgen_ty_1() {
+                assert_eq!(::std::mem::size_of::<FragmentOrElement_nsDOMSlots__bindgen_ty_1>()
+                           , 8usize);
+                assert_eq!(::std::mem::align_of::<FragmentOrElement_nsDOMSlots__bindgen_ty_1>()
+                           , 8usize);
+            }
+            impl Clone for FragmentOrElement_nsDOMSlots__bindgen_ty_1 {
+                fn clone(&self) -> Self { *self }
+            }
+            #[test]
+            fn bindgen_test_layout_FragmentOrElement_nsDOMSlots() {
+                assert_eq!(::std::mem::size_of::<FragmentOrElement_nsDOMSlots>()
+                           , 200usize);
+                assert_eq!(::std::mem::align_of::<FragmentOrElement_nsDOMSlots>()
+                           , 8usize);
+            }
+            extern "C" {
+                #[link_name =
+                      "_ZN7mozilla3dom17FragmentOrElement21_cycleCollectorGlobalE"]
+                pub static mut FragmentOrElement__cycleCollectorGlobal:
+                           root::mozilla::dom::FragmentOrElement_cycleCollection;
+            }
+            #[test]
+            fn bindgen_test_layout_FragmentOrElement() {
+                assert_eq!(::std::mem::size_of::<FragmentOrElement>() ,
+                           112usize);
+                assert_eq!(::std::mem::align_of::<FragmentOrElement>() ,
+                           8usize);
             }
             #[repr(C)]
             #[derive(Debug)]
@@ -2217,6 +2174,27 @@ pub mod root {
                 fn clone(&self) -> Self { *self }
             }
             #[repr(C)]
+            #[derive(Debug)]
+            pub struct URLValue {
+                pub _base: root::mozilla::css::URLValueData,
+            }
+            #[test]
+            fn bindgen_test_layout_URLValue() {
+                assert_eq!(::std::mem::size_of::<URLValue>() , 64usize);
+                assert_eq!(::std::mem::align_of::<URLValue>() , 8usize);
+            }
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct ImageValue {
+                pub _base: root::mozilla::css::URLValueData,
+                pub mRequests: [u64; 5usize],
+            }
+            #[test]
+            fn bindgen_test_layout_ImageValue() {
+                assert_eq!(::std::mem::size_of::<ImageValue>() , 104usize);
+                assert_eq!(::std::mem::align_of::<ImageValue>() , 8usize);
+            }
+            #[repr(C)]
             pub struct URLValueData__bindgen_vtable {
             }
             #[repr(C)]
@@ -2238,27 +2216,6 @@ pub mod root {
             fn bindgen_test_layout_URLValueData() {
                 assert_eq!(::std::mem::size_of::<URLValueData>() , 64usize);
                 assert_eq!(::std::mem::align_of::<URLValueData>() , 8usize);
-            }
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct URLValue {
-                pub _base: root::mozilla::css::URLValueData,
-            }
-            #[test]
-            fn bindgen_test_layout_URLValue() {
-                assert_eq!(::std::mem::size_of::<URLValue>() , 64usize);
-                assert_eq!(::std::mem::align_of::<URLValue>() , 8usize);
-            }
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct ImageValue {
-                pub _base: root::mozilla::css::URLValueData,
-                pub mRequests: [u64; 5usize],
-            }
-            #[test]
-            fn bindgen_test_layout_ImageValue() {
-                assert_eq!(::std::mem::size_of::<ImageValue>() , 104usize);
-                assert_eq!(::std::mem::align_of::<ImageValue>() , 8usize);
             }
             #[repr(C)]
             #[derive(Debug)]
@@ -2623,13 +2580,6 @@ pub mod root {
         impl Clone for FramePropertyDescriptorUntyped {
             fn clone(&self) -> Self { *self }
         }
-        #[test]
-        fn __bindgen_test_layout_template_1() {
-            assert_eq!(::std::mem::size_of::<root::nsPtrHashKey<root::nsIFrame>>()
-                       , 16usize);
-            assert_eq!(::std::mem::align_of::<root::nsPtrHashKey<root::nsIFrame>>()
-                       , 8usize);
-        }
         /**
  * The FramePropertyTable is optimized for storing 0 or 1 properties on
  * a given frame. Storing very large numbers of properties on a single
@@ -2797,6 +2747,9 @@ pub mod root {
             Border = 3,
             Margin = 4,
         }
+        #[repr(u8)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum StyleShapeRadius { FarthestSide = 0, ClosestSide = 1, }
         #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum StyleShapeSourceType {
@@ -3076,7 +3029,7 @@ pub mod root {
             fn clone(&self) -> Self { *self }
         }
         #[test]
-        fn __bindgen_test_layout_template_2() {
+        fn __bindgen_test_layout_template_1() {
             assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::RawServoStyleSet>>()
                        , 1usize);
             assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::RawServoStyleSet>>()
@@ -3158,6 +3111,34 @@ pub mod root {
             }
             impl Clone for ProgressTracker {
                 fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            pub struct IProgressObserver__bindgen_vtable {
+            }
+            /**
+ * An interface for observing changes to image state, as reported by
+ * ProgressTracker.
+ *
+ * This is the ImageLib-internal version of imgINotificationObserver,
+ * essentially, with implementation details that code outside of ImageLib
+ * shouldn't see.
+ *
+ * XXX(seth): It's preferable to avoid adding anything to this interface if
+ * possible.  In the long term, it would be ideal to get to a place where we can
+ * just use the imgINotificationObserver interface internally as well.
+ */
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct IProgressObserver {
+                pub vtable_: *const IProgressObserver__bindgen_vtable,
+                pub _base: u64,
+            }
+            #[test]
+            fn bindgen_test_layout_IProgressObserver() {
+                assert_eq!(::std::mem::size_of::<IProgressObserver>() ,
+                           16usize);
+                assert_eq!(::std::mem::align_of::<IProgressObserver>() ,
+                           8usize);
             }
         }
         #[repr(C)]
@@ -3243,14 +3224,14 @@ pub mod root {
         pub type StyleShapeOutside =
             root::mozilla::StyleShapeSource<root::mozilla::StyleShapeOutsideShapeBox>;
         #[test]
-        fn __bindgen_test_layout_template_3() {
+        fn __bindgen_test_layout_template_2() {
             assert_eq!(::std::mem::size_of::<root::mozilla::StyleShapeSource<root::mozilla::StyleClipPathGeometryBox>>()
                        , 16usize);
             assert_eq!(::std::mem::align_of::<root::mozilla::StyleShapeSource<root::mozilla::StyleClipPathGeometryBox>>()
                        , 8usize);
         }
         #[test]
-        fn __bindgen_test_layout_template_4() {
+        fn __bindgen_test_layout_template_3() {
             assert_eq!(::std::mem::size_of::<root::mozilla::StyleShapeSource<root::mozilla::StyleShapeOutsideShapeBox>>()
                        , 16usize);
             assert_eq!(::std::mem::align_of::<root::mozilla::StyleShapeSource<root::mozilla::StyleShapeOutsideShapeBox>>()
@@ -3879,12 +3860,6 @@ pub mod root {
                            8usize);
             }
         }
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct HeapBase<T> {
-            pub _address: u8,
-            pub _phantom_0: ::std::marker::PhantomData<T>,
-        }
         /**
  * The Heap<T> class is a heap-stored reference to a JS GC thing. All members of
  * heap classes that refer to GC things should use Heap<T> (or possibly
@@ -3954,7 +3929,7 @@ pub mod root {
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum TenuredHeap__bindgen_ty_1 { maskBits = 0, }
         #[test]
-        fn __bindgen_test_layout_template_5() {
+        fn __bindgen_test_layout_template_4() {
             assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<*mut ::std::os::raw::c_char,
                                                root::JS::FreePolicy>>()
                        , 8usize);
@@ -3977,6 +3952,12 @@ pub mod root {
         pub mod gc {
             #[allow(unused_imports)]
             use self::super::super::super::root;
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct HeapBase<T> {
+            pub _address: u8,
+            pub _phantom_0: ::std::marker::PhantomData<T>,
         }
         #[repr(C)]
         pub struct SourceHook__bindgen_vtable {
@@ -4329,13 +4310,13 @@ pub mod root {
         pub _phantom_0: ::std::marker::PhantomData<CharT>,
     }
     #[test]
-    fn __bindgen_test_layout_template_6() {
+    fn __bindgen_test_layout_template_5() {
         assert_eq!(::std::mem::size_of::<root::nsCharTraits<u16>>() , 1usize);
         assert_eq!(::std::mem::align_of::<root::nsCharTraits<u16>>() ,
                    1usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_7() {
+    fn __bindgen_test_layout_template_6() {
         assert_eq!(::std::mem::size_of::<root::nsCharTraits<::std::os::raw::c_char>>()
                    , 1usize);
         assert_eq!(::std::mem::align_of::<root::nsCharTraits<::std::os::raw::c_char>>()
@@ -4527,6 +4508,13 @@ pub mod root {
                 ((val as u32 as u32) << 31u32) & (2147483648usize as u32);
         }
     }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsCOMPtr<T> {
+        pub _base: root::nsCOMPtr_base,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+    }
+    pub type nsCOMPtr_element_type<T> = T;
     /**
  * Factors implementation for all template versions of nsCOMPtr.
  *
@@ -4541,15 +4529,8 @@ pub mod root {
     pub struct nsCOMPtr_base {
         pub mRawPtr: *mut root::nsISupports,
     }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCOMPtr<T> {
-        pub _base: root::nsCOMPtr_base,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-    }
-    pub type nsCOMPtr_element_type<T> = T;
     #[test]
-    fn __bindgen_test_layout_template_8() {
+    fn __bindgen_test_layout_template_7() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsISupports>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsISupports>>()
@@ -4654,26 +4635,6 @@ pub mod root {
             self._bitfield_1 |=
                 ((val as u32 as u32) << 31u32) & (2147483648usize as u32);
         }
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsISerializable {
-        pub _base: root::nsISupports,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsISerializable_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    #[test]
-    fn bindgen_test_layout_nsISerializable() {
-        assert_eq!(::std::mem::size_of::<nsISerializable>() , 8usize);
-        assert_eq!(::std::mem::align_of::<nsISerializable>() , 8usize);
-    }
-    impl Clone for nsISerializable {
-        fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -4885,6 +4846,26 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
+    pub struct nsISerializable {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsISerializable_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsISerializable() {
+        assert_eq!(::std::mem::size_of::<nsISerializable>() , 8usize);
+        assert_eq!(::std::mem::align_of::<nsISerializable>() , 8usize);
+    }
+    impl Clone for nsISerializable {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
     pub struct nsIURI {
         pub _base: root::nsISupports,
     }
@@ -4903,11 +4884,6 @@ pub mod root {
     impl Clone for nsIURI {
         fn clone(&self) -> Self { *self }
     }
-    #[test]
-    fn __bindgen_test_layout_template_9() {
-        assert_eq!(::std::mem::size_of::<[u64; 28usize]>() , 224usize);
-        assert_eq!(::std::mem::align_of::<[u64; 28usize]>() , 8usize);
-    }
     #[repr(C)]
     #[derive(Debug)]
     pub struct nsPIDOMWindowInner {
@@ -4924,217 +4900,6 @@ pub mod root {
     fn bindgen_test_layout_nsPIDOMWindowInner() {
         assert_eq!(::std::mem::size_of::<nsPIDOMWindowInner>() , 224usize);
         assert_eq!(::std::mem::align_of::<nsPIDOMWindowInner>() , 8usize);
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsIDOMEventTarget {
-        pub _base: root::nsISupports,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsIDOMEventTarget_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    #[test]
-    fn bindgen_test_layout_nsIDOMEventTarget() {
-        assert_eq!(::std::mem::size_of::<nsIDOMEventTarget>() , 8usize);
-        assert_eq!(::std::mem::align_of::<nsIDOMEventTarget>() , 8usize);
-    }
-    impl Clone for nsIDOMEventTarget {
-        fn clone(&self) -> Self { *self }
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct EventTarget {
-        pub _base: root::nsIDOMEventTarget,
-        pub _base_1: root::nsWrapperCache,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct EventTarget_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    #[test]
-    fn bindgen_test_layout_EventTarget() {
-        assert_eq!(::std::mem::size_of::<EventTarget>() , 32usize);
-        assert_eq!(::std::mem::align_of::<EventTarget>() , 8usize);
-    }
-    /**
- * An internal interface that abstracts some DOMNode-related parts that both
- * nsIContent and nsIDocument share.  An instance of this interface has a list
- * of nsIContent children and provides access to them.
- */
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsINode {
-        pub _base: root::EventTarget,
-        pub mNodeInfo: root::RefPtr<root::mozilla::dom::NodeInfo>,
-        pub mParent: *mut root::nsINode,
-        pub mBoolFlags: u32,
-        pub mNextSibling: *mut root::nsIContent,
-        pub mPreviousSibling: *mut root::nsIContent,
-        pub mFirstChild: *mut root::nsIContent,
-        pub __bindgen_anon_1: root::nsINode__bindgen_ty_1,
-        pub mSlots: *mut root::nsINode_nsSlots,
-    }
-    pub type nsINode_BoxQuadOptions = root::mozilla::dom::BoxQuadOptions;
-    pub type nsINode_ConvertCoordinateOptions =
-        root::mozilla::dom::ConvertCoordinateOptions;
-    pub type nsINode_DOMPoint = root::mozilla::dom::DOMPoint;
-    pub type nsINode_DOMPointInit = root::mozilla::dom::DOMPointInit;
-    pub type nsINode_DOMQuad = root::mozilla::dom::DOMQuad;
-    pub type nsINode_DOMRectReadOnly = root::mozilla::dom::DOMRectReadOnly;
-    pub type nsINode_OwningNodeOrString =
-        root::mozilla::dom::OwningNodeOrString;
-    pub type nsINode_TextOrElementOrDocument =
-        root::mozilla::dom::TextOrElementOrDocument;
-    pub type nsINode_ErrorResult = [u64; 2usize];
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsINode_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    pub const nsINode_eCONTENT: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eCONTENT;
-    pub const nsINode_eDOCUMENT: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eDOCUMENT;
-    pub const nsINode_eATTRIBUTE: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eATTRIBUTE;
-    pub const nsINode_eTEXT: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eTEXT;
-    pub const nsINode_ePROCESSING_INSTRUCTION: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::ePROCESSING_INSTRUCTION;
-    pub const nsINode_eCOMMENT: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eCOMMENT;
-    pub const nsINode_eHTML_FORM_CONTROL: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eHTML_FORM_CONTROL;
-    pub const nsINode_eDOCUMENT_FRAGMENT: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eDOCUMENT_FRAGMENT;
-    pub const nsINode_eDATA_NODE: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eDATA_NODE;
-    pub const nsINode_eMEDIA: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eMEDIA;
-    pub const nsINode_eANIMATION: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eANIMATION;
-    pub const nsINode_eFILTER: root::nsINode__bindgen_ty_2 =
-        nsINode__bindgen_ty_2::eFILTER;
-    #[repr(u32)]
-    /**
-   * Bit-flags to pass (or'ed together) to IsNodeOfType()
-   */
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsINode__bindgen_ty_2 {
-        eCONTENT = 1,
-        eDOCUMENT = 2,
-        eATTRIBUTE = 4,
-        eTEXT = 8,
-        ePROCESSING_INSTRUCTION = 16,
-        eCOMMENT = 32,
-        eHTML_FORM_CONTROL = 64,
-        eDOCUMENT_FRAGMENT = 128,
-        eDATA_NODE = 256,
-        eMEDIA = 512,
-        eANIMATION = 1024,
-        eFILTER = 2048,
-    }
-    #[repr(C)]
-    pub struct nsINode_nsSlots__bindgen_vtable {
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsINode_nsSlots {
-        pub vtable_: *const nsINode_nsSlots__bindgen_vtable,
-        /**
-     * A list of mutation observers
-     */
-        pub mMutationObservers: [u64; 2usize],
-        /**
-     * An object implementing nsIDOMNodeList for this content (childNodes)
-     * @see nsIDOMNodeList
-     * @see nsGenericHTMLElement::GetChildNodes
-     */
-        pub mChildNodes: root::RefPtr<root::nsChildContentList>,
-        /**
-     * Weak reference to this node.  This is cleared by the destructor of
-     * nsNodeWeakReference.
-     */
-        pub mWeakReference: *mut root::nsNodeWeakReference,
-        /**
-     * Number of descendant nodes in the uncomposed document that have been
-     * explicitly set as editable.
-     */
-        pub mEditableDescendantCount: u32,
-    }
-    #[test]
-    fn bindgen_test_layout_nsINode_nsSlots() {
-        assert_eq!(::std::mem::size_of::<nsINode_nsSlots>() , 48usize);
-        assert_eq!(::std::mem::align_of::<nsINode_nsSlots>() , 8usize);
-    }
-    #[repr(u32)]
-    /**
-   * Boolean flags
-   */
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsINode_BooleanFlag {
-        NodeHasRenderingObservers = 0,
-        IsInDocument = 1,
-        ParentIsContent = 2,
-        NodeIsElement = 3,
-        ElementHasID = 4,
-        ElementMayHaveStyle = 5,
-        ElementHasName = 6,
-        ElementMayHaveContentEditableAttr = 7,
-        NodeIsCommonAncestorForRangeInSelection = 8,
-        NodeIsDescendantOfCommonAncestorForRangeInSelection = 9,
-        NodeIsCCMarkedRoot = 10,
-        NodeIsCCBlackTree = 11,
-        NodeIsPurpleRoot = 12,
-        NodeHasExplicitBaseURI = 13,
-        ElementHasLockedStyleStates = 14,
-        ElementHasPointerLock = 15,
-        NodeMayHaveDOMMutationObserver = 16,
-        NodeIsContent = 17,
-        ElementHasAnimations = 18,
-        NodeHasValidDirAttribute = 19,
-        NodeHasFixedDir = 20,
-        NodeHasDirAutoSet = 21,
-        NodeHasTextNodeDirectionalityMap = 22,
-        NodeHasDirAuto = 23,
-        NodeAncestorHasDirAuto = 24,
-        ElementIsInStyleScope = 25,
-        ElementIsScopedStyleRoot = 26,
-        NodeHandlingClick = 27,
-        NodeHasRelevantHoverRules = 28,
-        ElementHasWeirdParserInsertionMode = 29,
-        ParserHasNotified = 30,
-        MayBeApzAware = 31,
-        BooleanFlagCount = 32,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsINode__bindgen_ty_1 {
-        pub mPrimaryFrame: root::__BindgenUnionField<*mut root::nsIFrame>,
-        pub mSubtreeRoot: root::__BindgenUnionField<*mut root::nsINode>,
-        pub bindgen_union_field: u64,
-    }
-    #[test]
-    fn bindgen_test_layout_nsINode__bindgen_ty_1() {
-        assert_eq!(::std::mem::size_of::<nsINode__bindgen_ty_1>() , 8usize);
-        assert_eq!(::std::mem::align_of::<nsINode__bindgen_ty_1>() , 8usize);
-    }
-    impl Clone for nsINode__bindgen_ty_1 {
-        fn clone(&self) -> Self { *self }
-    }
-    #[test]
-    fn bindgen_test_layout_nsINode() {
-        assert_eq!(::std::mem::size_of::<nsINode>() , 96usize);
-        assert_eq!(::std::mem::align_of::<nsINode>() , 8usize);
     }
     /**
  * Smart pointer class that can hold a pointer to either an nsStyleSet
@@ -5164,26 +4929,6 @@ pub mod root {
         assert_eq!(::std::mem::align_of::<StyleSetHandle>() , 8usize);
     }
     impl Clone for StyleSetHandle {
-        fn clone(&self) -> Self { *self }
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsIObserver {
-        pub _base: root::nsISupports,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsIObserver_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    #[test]
-    fn bindgen_test_layout_nsIObserver() {
-        assert_eq!(::std::mem::size_of::<nsIObserver>() , 8usize);
-        assert_eq!(::std::mem::align_of::<nsIObserver>() , 8usize);
-    }
-    impl Clone for nsIObserver {
         fn clone(&self) -> Self { *self }
     }
     /**
@@ -6170,6 +5915,26 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
+    pub struct nsIObserver {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIObserver_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIObserver() {
+        assert_eq!(::std::mem::size_of::<nsIObserver>() , 8usize);
+        assert_eq!(::std::mem::align_of::<nsIObserver>() , 8usize);
+    }
+    impl Clone for nsIObserver {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
     pub struct nsIVariant {
         pub _base: root::nsISupports,
     }
@@ -6209,6 +5974,26 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     pub type DOMHighResTimeStamp = f64;
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIDOMAttr {
+        pub _base: root::nsIDOMNode,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIDOMAttr_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIDOMAttr() {
+        assert_eq!(::std::mem::size_of::<nsIDOMAttr>() , 8usize);
+        assert_eq!(::std::mem::align_of::<nsIDOMAttr>() , 8usize);
+    }
+    impl Clone for nsIDOMAttr {
+        fn clone(&self) -> Self { *self }
+    }
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsIDOMNode {
@@ -6302,26 +6087,6 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
-    pub struct nsIDOMAttr {
-        pub _base: root::nsIDOMNode,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsIDOMAttr_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    #[test]
-    fn bindgen_test_layout_nsIDOMAttr() {
-        assert_eq!(::std::mem::size_of::<nsIDOMAttr>() , 8usize);
-        assert_eq!(::std::mem::align_of::<nsIDOMAttr>() , 8usize);
-    }
-    impl Clone for nsIDOMAttr {
-        fn clone(&self) -> Self { *self }
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
     pub struct nsIDOMClientRect {
         pub _base: root::nsISupports,
     }
@@ -6358,6 +6123,26 @@ pub mod root {
         assert_eq!(::std::mem::align_of::<nsIDOMStyleSheet>() , 8usize);
     }
     impl Clone for nsIDOMStyleSheet {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIDOMEventTarget {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIDOMEventTarget_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIDOMEventTarget() {
+        assert_eq!(::std::mem::size_of::<nsIDOMEventTarget>() , 8usize);
+        assert_eq!(::std::mem::align_of::<nsIDOMEventTarget>() , 8usize);
+    }
+    impl Clone for nsIDOMEventTarget {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
@@ -6407,11 +6192,6 @@ pub mod root {
     }
     impl Clone for nsIControllers {
         fn clone(&self) -> Self { *self }
-    }
-    #[test]
-    fn __bindgen_test_layout_template_10() {
-        assert_eq!(::std::mem::size_of::<u64>() , 8usize);
-        assert_eq!(::std::mem::align_of::<u64>() , 8usize);
     }
     #[repr(u8)]
     /**
@@ -7634,73 +7414,6 @@ pub mod root {
         fn clone(&self) -> Self { *self }
     }
     pub type nsWeakPtr = root::nsCOMPtr<root::nsIWeakReference>;
-    pub type nsLoadFlags = u32;
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsIRequest {
-        pub _base: root::nsISupports,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsIRequest_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    pub const nsIRequest_LOAD_REQUESTMASK: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::LOAD_REQUESTMASK;
-    pub const nsIRequest_LOAD_NORMAL: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::LOAD_NORMAL;
-    pub const nsIRequest_LOAD_BACKGROUND: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::LOAD_BACKGROUND;
-    pub const nsIRequest_INHIBIT_PIPELINE: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::INHIBIT_PIPELINE;
-    pub const nsIRequest_INHIBIT_CACHING: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::INHIBIT_CACHING;
-    pub const nsIRequest_INHIBIT_PERSISTENT_CACHING:
-              root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::INHIBIT_PERSISTENT_CACHING;
-    pub const nsIRequest_LOAD_BYPASS_CACHE: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::LOAD_BYPASS_CACHE;
-    pub const nsIRequest_LOAD_FROM_CACHE: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::LOAD_FROM_CACHE;
-    pub const nsIRequest_VALIDATE_ALWAYS: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::VALIDATE_ALWAYS;
-    pub const nsIRequest_VALIDATE_NEVER: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::VALIDATE_NEVER;
-    pub const nsIRequest_VALIDATE_ONCE_PER_SESSION:
-              root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::VALIDATE_ONCE_PER_SESSION;
-    pub const nsIRequest_LOAD_ANONYMOUS: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::LOAD_ANONYMOUS;
-    pub const nsIRequest_LOAD_FRESH_CONNECTION: root::nsIRequest__bindgen_ty_1
-              =
-        nsIRequest__bindgen_ty_1::LOAD_FRESH_CONNECTION;
-    #[repr(u32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsIRequest__bindgen_ty_1 {
-        LOAD_REQUESTMASK = 65535,
-        LOAD_NORMAL = 0,
-        LOAD_BACKGROUND = 1,
-        INHIBIT_PIPELINE = 64,
-        INHIBIT_CACHING = 128,
-        INHIBIT_PERSISTENT_CACHING = 256,
-        LOAD_BYPASS_CACHE = 512,
-        LOAD_FROM_CACHE = 1024,
-        VALIDATE_ALWAYS = 2048,
-        VALIDATE_NEVER = 4096,
-        VALIDATE_ONCE_PER_SESSION = 8192,
-        LOAD_ANONYMOUS = 16384,
-        LOAD_FRESH_CONNECTION = 32768,
-    }
-    #[test]
-    fn bindgen_test_layout_nsIRequest() {
-        assert_eq!(::std::mem::size_of::<nsIRequest>() , 8usize);
-        assert_eq!(::std::mem::align_of::<nsIRequest>() , 8usize);
-    }
-    impl Clone for nsIRequest {
-        fn clone(&self) -> Self { *self }
-    }
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsIChannel {
@@ -7772,6 +7485,7 @@ pub mod root {
     impl Clone for nsIChannel {
         fn clone(&self) -> Self { *self }
     }
+    pub type nsLoadFlags = u32;
     #[repr(C)]
     #[derive(Debug, Copy)]
     pub struct nsILoadGroup {
@@ -7791,6 +7505,245 @@ pub mod root {
     }
     impl Clone for nsILoadGroup {
         fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIRequest {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIRequest_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    pub const nsIRequest_LOAD_REQUESTMASK: root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::LOAD_REQUESTMASK;
+    pub const nsIRequest_LOAD_NORMAL: root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::LOAD_NORMAL;
+    pub const nsIRequest_LOAD_BACKGROUND: root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::LOAD_BACKGROUND;
+    pub const nsIRequest_INHIBIT_PIPELINE: root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::INHIBIT_PIPELINE;
+    pub const nsIRequest_INHIBIT_CACHING: root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::INHIBIT_CACHING;
+    pub const nsIRequest_INHIBIT_PERSISTENT_CACHING:
+              root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::INHIBIT_PERSISTENT_CACHING;
+    pub const nsIRequest_LOAD_BYPASS_CACHE: root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::LOAD_BYPASS_CACHE;
+    pub const nsIRequest_LOAD_FROM_CACHE: root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::LOAD_FROM_CACHE;
+    pub const nsIRequest_VALIDATE_ALWAYS: root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::VALIDATE_ALWAYS;
+    pub const nsIRequest_VALIDATE_NEVER: root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::VALIDATE_NEVER;
+    pub const nsIRequest_VALIDATE_ONCE_PER_SESSION:
+              root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::VALIDATE_ONCE_PER_SESSION;
+    pub const nsIRequest_LOAD_ANONYMOUS: root::nsIRequest__bindgen_ty_1 =
+        nsIRequest__bindgen_ty_1::LOAD_ANONYMOUS;
+    pub const nsIRequest_LOAD_FRESH_CONNECTION: root::nsIRequest__bindgen_ty_1
+              =
+        nsIRequest__bindgen_ty_1::LOAD_FRESH_CONNECTION;
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsIRequest__bindgen_ty_1 {
+        LOAD_REQUESTMASK = 65535,
+        LOAD_NORMAL = 0,
+        LOAD_BACKGROUND = 1,
+        INHIBIT_PIPELINE = 64,
+        INHIBIT_CACHING = 128,
+        INHIBIT_PERSISTENT_CACHING = 256,
+        LOAD_BYPASS_CACHE = 512,
+        LOAD_FROM_CACHE = 1024,
+        VALIDATE_ALWAYS = 2048,
+        VALIDATE_NEVER = 4096,
+        VALIDATE_ONCE_PER_SESSION = 8192,
+        LOAD_ANONYMOUS = 16384,
+        LOAD_FRESH_CONNECTION = 32768,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIRequest() {
+        assert_eq!(::std::mem::size_of::<nsIRequest>() , 8usize);
+        assert_eq!(::std::mem::align_of::<nsIRequest>() , 8usize);
+    }
+    impl Clone for nsIRequest {
+        fn clone(&self) -> Self { *self }
+    }
+    /**
+ * An internal interface that abstracts some DOMNode-related parts that both
+ * nsIContent and nsIDocument share.  An instance of this interface has a list
+ * of nsIContent children and provides access to them.
+ */
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsINode {
+        pub _base: root::mozilla::dom::EventTarget,
+        pub mNodeInfo: root::RefPtr<root::mozilla::dom::NodeInfo>,
+        pub mParent: *mut root::nsINode,
+        pub mBoolFlags: u32,
+        pub mNextSibling: *mut root::nsIContent,
+        pub mPreviousSibling: *mut root::nsIContent,
+        pub mFirstChild: *mut root::nsIContent,
+        pub __bindgen_anon_1: root::nsINode__bindgen_ty_1,
+        pub mSlots: *mut root::nsINode_nsSlots,
+    }
+    pub type nsINode_BoxQuadOptions = root::mozilla::dom::BoxQuadOptions;
+    pub type nsINode_ConvertCoordinateOptions =
+        root::mozilla::dom::ConvertCoordinateOptions;
+    pub type nsINode_DOMPoint = root::mozilla::dom::DOMPoint;
+    pub type nsINode_DOMPointInit = root::mozilla::dom::DOMPointInit;
+    pub type nsINode_DOMQuad = root::mozilla::dom::DOMQuad;
+    pub type nsINode_DOMRectReadOnly = root::mozilla::dom::DOMRectReadOnly;
+    pub type nsINode_OwningNodeOrString =
+        root::mozilla::dom::OwningNodeOrString;
+    pub type nsINode_TextOrElementOrDocument =
+        root::mozilla::dom::TextOrElementOrDocument;
+    pub type nsINode_ErrorResult = [u64; 2usize];
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsINode_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    pub const nsINode_eCONTENT: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eCONTENT;
+    pub const nsINode_eDOCUMENT: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eDOCUMENT;
+    pub const nsINode_eATTRIBUTE: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eATTRIBUTE;
+    pub const nsINode_eTEXT: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eTEXT;
+    pub const nsINode_ePROCESSING_INSTRUCTION: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::ePROCESSING_INSTRUCTION;
+    pub const nsINode_eCOMMENT: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eCOMMENT;
+    pub const nsINode_eHTML_FORM_CONTROL: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eHTML_FORM_CONTROL;
+    pub const nsINode_eDOCUMENT_FRAGMENT: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eDOCUMENT_FRAGMENT;
+    pub const nsINode_eDATA_NODE: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eDATA_NODE;
+    pub const nsINode_eMEDIA: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eMEDIA;
+    pub const nsINode_eANIMATION: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eANIMATION;
+    pub const nsINode_eFILTER: root::nsINode__bindgen_ty_2 =
+        nsINode__bindgen_ty_2::eFILTER;
+    #[repr(u32)]
+    /**
+   * Bit-flags to pass (or'ed together) to IsNodeOfType()
+   */
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsINode__bindgen_ty_2 {
+        eCONTENT = 1,
+        eDOCUMENT = 2,
+        eATTRIBUTE = 4,
+        eTEXT = 8,
+        ePROCESSING_INSTRUCTION = 16,
+        eCOMMENT = 32,
+        eHTML_FORM_CONTROL = 64,
+        eDOCUMENT_FRAGMENT = 128,
+        eDATA_NODE = 256,
+        eMEDIA = 512,
+        eANIMATION = 1024,
+        eFILTER = 2048,
+    }
+    #[repr(C)]
+    pub struct nsINode_nsSlots__bindgen_vtable {
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsINode_nsSlots {
+        pub vtable_: *const nsINode_nsSlots__bindgen_vtable,
+        /**
+     * A list of mutation observers
+     */
+        pub mMutationObservers: [u64; 2usize],
+        /**
+     * An object implementing nsIDOMNodeList for this content (childNodes)
+     * @see nsIDOMNodeList
+     * @see nsGenericHTMLElement::GetChildNodes
+     */
+        pub mChildNodes: root::RefPtr<root::nsChildContentList>,
+        /**
+     * Weak reference to this node.  This is cleared by the destructor of
+     * nsNodeWeakReference.
+     */
+        pub mWeakReference: *mut root::nsNodeWeakReference,
+        /**
+     * Number of descendant nodes in the uncomposed document that have been
+     * explicitly set as editable.
+     */
+        pub mEditableDescendantCount: u32,
+    }
+    #[test]
+    fn bindgen_test_layout_nsINode_nsSlots() {
+        assert_eq!(::std::mem::size_of::<nsINode_nsSlots>() , 48usize);
+        assert_eq!(::std::mem::align_of::<nsINode_nsSlots>() , 8usize);
+    }
+    #[repr(u32)]
+    /**
+   * Boolean flags
+   */
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsINode_BooleanFlag {
+        NodeHasRenderingObservers = 0,
+        IsInDocument = 1,
+        ParentIsContent = 2,
+        NodeIsElement = 3,
+        ElementHasID = 4,
+        ElementMayHaveStyle = 5,
+        ElementHasName = 6,
+        ElementMayHaveContentEditableAttr = 7,
+        NodeIsCommonAncestorForRangeInSelection = 8,
+        NodeIsDescendantOfCommonAncestorForRangeInSelection = 9,
+        NodeIsCCMarkedRoot = 10,
+        NodeIsCCBlackTree = 11,
+        NodeIsPurpleRoot = 12,
+        NodeHasExplicitBaseURI = 13,
+        ElementHasLockedStyleStates = 14,
+        ElementHasPointerLock = 15,
+        NodeMayHaveDOMMutationObserver = 16,
+        NodeIsContent = 17,
+        ElementHasAnimations = 18,
+        NodeHasValidDirAttribute = 19,
+        NodeHasFixedDir = 20,
+        NodeHasDirAutoSet = 21,
+        NodeHasTextNodeDirectionalityMap = 22,
+        NodeHasDirAuto = 23,
+        NodeAncestorHasDirAuto = 24,
+        ElementIsInStyleScope = 25,
+        ElementIsScopedStyleRoot = 26,
+        NodeHandlingClick = 27,
+        NodeHasRelevantHoverRules = 28,
+        ElementHasWeirdParserInsertionMode = 29,
+        ParserHasNotified = 30,
+        MayBeApzAware = 31,
+        BooleanFlagCount = 32,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsINode__bindgen_ty_1 {
+        pub mPrimaryFrame: root::__BindgenUnionField<*mut root::nsIFrame>,
+        pub mSubtreeRoot: root::__BindgenUnionField<*mut root::nsINode>,
+        pub bindgen_union_field: u64,
+    }
+    #[test]
+    fn bindgen_test_layout_nsINode__bindgen_ty_1() {
+        assert_eq!(::std::mem::size_of::<nsINode__bindgen_ty_1>() , 8usize);
+        assert_eq!(::std::mem::align_of::<nsINode__bindgen_ty_1>() , 8usize);
+    }
+    impl Clone for nsINode__bindgen_ty_1 {
+        fn clone(&self) -> Self { *self }
+    }
+    #[test]
+    fn bindgen_test_layout_nsINode() {
+        assert_eq!(::std::mem::size_of::<nsINode>() , 96usize);
+        assert_eq!(::std::mem::align_of::<nsINode>() , 8usize);
     }
     #[repr(C)]
     #[derive(Debug)]
@@ -8056,26 +8009,6 @@ pub mod root {
         pub _address: u8,
     }
     impl Clone for nsChildContentList {
-        fn clone(&self) -> Self { *self }
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsIDOMMozNamedAttrMap {
-        pub _base: root::nsISupports,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsIDOMMozNamedAttrMap_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    #[test]
-    fn bindgen_test_layout_nsIDOMMozNamedAttrMap() {
-        assert_eq!(::std::mem::size_of::<nsIDOMMozNamedAttrMap>() , 8usize);
-        assert_eq!(::std::mem::align_of::<nsIDOMMozNamedAttrMap>() , 8usize);
-    }
-    impl Clone for nsIDOMMozNamedAttrMap {
         fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
@@ -8632,63 +8565,63 @@ pub mod root {
     impl Clone for nsDOMMutationObserver {
         fn clone(&self) -> Self { *self }
     }
-    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_HAS_LISTENERMANAGER;
-    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_HAS_PROPERTIES;
-    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_IS_ANONYMOUS_ROOT;
-    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_FORCE_XBL_BINDINGS;
-    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_MAY_BE_IN_BINDING_MNGR;
-    pub const NODE_IS_EDITABLE: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_IS_EDITABLE;
-    pub const NODE_MAY_HAVE_CLASS: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_MAY_HAVE_CLASS;
-    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_IS_IN_SHADOW_TREE;
-    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_HAS_EMPTY_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_HAS_SLOW_SELECTOR;
-    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_HAS_EDGE_CHILD_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
-    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_ALL_SELECTOR_FLAGS;
-    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_NEEDS_FRAME;
-    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_DESCENDANTS_NEED_FRAMES;
-    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_HAS_ACCESSKEY;
-    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_HAS_DIRECTION_RTL;
-    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_HAS_DIRECTION_LTR;
-    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_ALL_DIRECTION_FLAGS;
-    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_CHROME_ONLY_ACCESS;
-    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
-    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_2;
-    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_23 =
-        _bindgen_ty_23::NODE_TYPE_SPECIFIC_BITS_OFFSET;
+    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_LISTENERMANAGER;
+    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_PROPERTIES;
+    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_ANONYMOUS_ROOT;
+    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_FORCE_XBL_BINDINGS;
+    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_MAY_BE_IN_BINDING_MNGR;
+    pub const NODE_IS_EDITABLE: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_EDITABLE;
+    pub const NODE_MAY_HAVE_CLASS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_MAY_HAVE_CLASS;
+    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_IN_SHADOW_TREE;
+    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_EMPTY_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_SLOW_SELECTOR;
+    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_EDGE_CHILD_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
+    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_ALL_SELECTOR_FLAGS;
+    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_NEEDS_FRAME;
+    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_DESCENDANTS_NEED_FRAMES;
+    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_ACCESSKEY;
+    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_DIRECTION_RTL;
+    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_DIRECTION_LTR;
+    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_ALL_DIRECTION_FLAGS;
+    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_CHROME_ONLY_ACCESS;
+    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
+    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_2;
+    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum _bindgen_ty_23 {
+    pub enum _bindgen_ty_118 {
         NODE_HAS_LISTENERMANAGER = 4,
         NODE_HAS_PROPERTIES = 8,
         NODE_IS_ANONYMOUS_ROOT = 16,
@@ -9048,6 +8981,26 @@ pub mod root {
     impl Clone for nsDOMStringMap {
         fn clone(&self) -> Self { *self }
     }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsIDOMMozNamedAttrMap {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIDOMMozNamedAttrMap_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIDOMMozNamedAttrMap() {
+        assert_eq!(::std::mem::size_of::<nsIDOMMozNamedAttrMap>() , 8usize);
+        assert_eq!(::std::mem::align_of::<nsIDOMMozNamedAttrMap>() , 8usize);
+    }
+    impl Clone for nsIDOMMozNamedAttrMap {
+        fn clone(&self) -> Self { *self }
+    }
     /**
  * Interface used for handling clicks on links
  */
@@ -9070,6 +9023,24 @@ pub mod root {
     }
     impl Clone for nsILinkHandler {
         fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsIAttribute {
+        pub _base: root::nsINode,
+        pub mAttrMap: root::RefPtr<root::nsDOMAttributeMap>,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsIAttribute_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsIAttribute() {
+        assert_eq!(::std::mem::size_of::<nsIAttribute>() , 104usize);
+        assert_eq!(::std::mem::align_of::<nsIAttribute>() , 8usize);
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -9472,21 +9443,21 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
-    pub struct _bindgen_ty_11 {
+    pub struct _bindgen_ty_25 {
         pub mInt: root::__BindgenUnionField<i32>,
         pub mFloat: root::__BindgenUnionField<f32>,
         pub mPointer: root::__BindgenUnionField<*mut ::std::os::raw::c_void>,
         pub bindgen_union_field: u64,
     }
     #[test]
-    fn bindgen_test_layout__bindgen_ty_11() {
-        assert_eq!(::std::mem::size_of::<_bindgen_ty_11>() , 8usize);
-        assert_eq!(::std::mem::align_of::<_bindgen_ty_11>() , 8usize);
+    fn bindgen_test_layout__bindgen_ty_25() {
+        assert_eq!(::std::mem::size_of::<_bindgen_ty_25>() , 8usize);
+        assert_eq!(::std::mem::align_of::<_bindgen_ty_25>() , 8usize);
     }
-    impl Clone for _bindgen_ty_11 {
+    impl Clone for _bindgen_ty_25 {
         fn clone(&self) -> Self { *self }
     }
-    pub type nsStyleUnion = root::_bindgen_ty_11;
+    pub type nsStyleUnion = root::_bindgen_ty_25;
     /**
  * Class that hold a single size specification used by the style
  * system.  The size specification consists of two parts -- a number
@@ -11104,127 +11075,11 @@ pub mod root {
     pub struct nsMainThreadPtrHandle<T> {
         pub mPtr: root::RefPtr<T>,
     }
-    #[test]
-    fn __bindgen_test_layout_template_11() {
-        assert_eq!(::std::mem::size_of::<u64>() , 8usize);
-        assert_eq!(::std::mem::align_of::<u64>() , 8usize);
-    }
-    #[repr(C)]
-    pub struct IProgressObserver__bindgen_vtable {
-    }
-    /**
- * An interface for observing changes to image state, as reported by
- * ProgressTracker.
- *
- * This is the ImageLib-internal version of imgINotificationObserver,
- * essentially, with implementation details that code outside of ImageLib
- * shouldn't see.
- *
- * XXX(seth): It's preferable to avoid adding anything to this interface if
- * possible.  In the long term, it would be ideal to get to a place where we can
- * just use the imgINotificationObserver interface internally as well.
- */
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct IProgressObserver {
-        pub vtable_: *const IProgressObserver__bindgen_vtable,
-        pub _base: u64,
-    }
-    #[test]
-    fn bindgen_test_layout_IProgressObserver() {
-        assert_eq!(::std::mem::size_of::<IProgressObserver>() , 16usize);
-        assert_eq!(::std::mem::align_of::<IProgressObserver>() , 8usize);
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsISupportsPriority {
-        pub _base: root::nsISupports,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsISupportsPriority_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    pub const nsISupportsPriority_PRIORITY_HIGHEST:
-              root::nsISupportsPriority__bindgen_ty_1 =
-        nsISupportsPriority__bindgen_ty_1::PRIORITY_HIGHEST;
-    pub const nsISupportsPriority_PRIORITY_HIGH:
-              root::nsISupportsPriority__bindgen_ty_1 =
-        nsISupportsPriority__bindgen_ty_1::PRIORITY_HIGH;
-    pub const nsISupportsPriority_PRIORITY_NORMAL:
-              root::nsISupportsPriority__bindgen_ty_1 =
-        nsISupportsPriority__bindgen_ty_1::PRIORITY_NORMAL;
-    pub const nsISupportsPriority_PRIORITY_LOW:
-              root::nsISupportsPriority__bindgen_ty_1 =
-        nsISupportsPriority__bindgen_ty_1::PRIORITY_LOW;
-    pub const nsISupportsPriority_PRIORITY_LOWEST:
-              root::nsISupportsPriority__bindgen_ty_1 =
-        nsISupportsPriority__bindgen_ty_1::PRIORITY_LOWEST;
-    #[repr(i32)]
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum nsISupportsPriority__bindgen_ty_1 {
-        PRIORITY_HIGHEST = -20,
-        PRIORITY_HIGH = -10,
-        PRIORITY_NORMAL = 0,
-        PRIORITY_LOW = 10,
-        PRIORITY_LOWEST = 20,
-    }
-    #[test]
-    fn bindgen_test_layout_nsISupportsPriority() {
-        assert_eq!(::std::mem::size_of::<nsISupportsPriority>() , 8usize);
-        assert_eq!(::std::mem::align_of::<nsISupportsPriority>() , 8usize);
-    }
-    impl Clone for nsISupportsPriority {
-        fn clone(&self) -> Self { *self }
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsISecurityInfoProvider {
-        pub _base: root::nsISupports,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsISecurityInfoProvider_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    #[test]
-    fn bindgen_test_layout_nsISecurityInfoProvider() {
-        assert_eq!(::std::mem::size_of::<nsISecurityInfoProvider>() , 8usize);
-        assert_eq!(::std::mem::align_of::<nsISecurityInfoProvider>() ,
-                   8usize);
-    }
-    impl Clone for nsISecurityInfoProvider {
-        fn clone(&self) -> Self { *self }
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsITimedChannel {
-        pub _base: root::nsISupports,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
-    pub struct nsITimedChannel_COMTypeInfo<T, U> {
-        pub _address: u8,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-        pub _phantom_1: ::std::marker::PhantomData<U>,
-    }
-    #[test]
-    fn bindgen_test_layout_nsITimedChannel() {
-        assert_eq!(::std::mem::size_of::<nsITimedChannel>() , 8usize);
-        assert_eq!(::std::mem::align_of::<nsITimedChannel>() , 8usize);
-    }
-    impl Clone for nsITimedChannel {
-        fn clone(&self) -> Self { *self }
-    }
     #[repr(C)]
     #[derive(Debug)]
     pub struct imgRequestProxy {
         pub _base: root::imgIRequest,
-        pub _base_1: root::IProgressObserver,
+        pub _base_1: root::mozilla::image::IProgressObserver,
         pub _base_2: root::nsISupportsPriority,
         pub _base_3: root::nsISecurityInfoProvider,
         pub _base_4: root::nsITimedChannel,
@@ -11700,6 +11555,91 @@ pub mod root {
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
+    pub struct nsISecurityInfoProvider {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsISecurityInfoProvider_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsISecurityInfoProvider() {
+        assert_eq!(::std::mem::size_of::<nsISecurityInfoProvider>() , 8usize);
+        assert_eq!(::std::mem::align_of::<nsISecurityInfoProvider>() ,
+                   8usize);
+    }
+    impl Clone for nsISecurityInfoProvider {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsISupportsPriority {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsISupportsPriority_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    pub const nsISupportsPriority_PRIORITY_HIGHEST:
+              root::nsISupportsPriority__bindgen_ty_1 =
+        nsISupportsPriority__bindgen_ty_1::PRIORITY_HIGHEST;
+    pub const nsISupportsPriority_PRIORITY_HIGH:
+              root::nsISupportsPriority__bindgen_ty_1 =
+        nsISupportsPriority__bindgen_ty_1::PRIORITY_HIGH;
+    pub const nsISupportsPriority_PRIORITY_NORMAL:
+              root::nsISupportsPriority__bindgen_ty_1 =
+        nsISupportsPriority__bindgen_ty_1::PRIORITY_NORMAL;
+    pub const nsISupportsPriority_PRIORITY_LOW:
+              root::nsISupportsPriority__bindgen_ty_1 =
+        nsISupportsPriority__bindgen_ty_1::PRIORITY_LOW;
+    pub const nsISupportsPriority_PRIORITY_LOWEST:
+              root::nsISupportsPriority__bindgen_ty_1 =
+        nsISupportsPriority__bindgen_ty_1::PRIORITY_LOWEST;
+    #[repr(i32)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsISupportsPriority__bindgen_ty_1 {
+        PRIORITY_HIGHEST = -20,
+        PRIORITY_HIGH = -10,
+        PRIORITY_NORMAL = 0,
+        PRIORITY_LOW = 10,
+        PRIORITY_LOWEST = 20,
+    }
+    #[test]
+    fn bindgen_test_layout_nsISupportsPriority() {
+        assert_eq!(::std::mem::size_of::<nsISupportsPriority>() , 8usize);
+        assert_eq!(::std::mem::align_of::<nsISupportsPriority>() , 8usize);
+    }
+    impl Clone for nsISupportsPriority {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsITimedChannel {
+        pub _base: root::nsISupports,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct nsITimedChannel_COMTypeInfo<T, U> {
+        pub _address: u8,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
+        pub _phantom_1: ::std::marker::PhantomData<U>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsITimedChannel() {
+        assert_eq!(::std::mem::size_of::<nsITimedChannel>() , 8usize);
+        assert_eq!(::std::mem::align_of::<nsITimedChannel>() , 8usize);
+    }
+    impl Clone for nsITimedChannel {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
     pub struct ProxyBehaviour {
         pub _address: u8,
     }
@@ -11846,7 +11786,7 @@ pub mod root {
         assert_eq!(::std::mem::align_of::<CachedBorderImageData>() , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_12() {
+    fn __bindgen_test_layout_template_8() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleSides,
                                                root::mozilla::DefaultDelete<root::nsStyleSides>>>()
                    , 8usize);
@@ -12247,8 +12187,7 @@ pub mod root {
         pub mQuotePairs: root::nsStyleQuoteValues_QuotePairArray,
     }
     pub type nsStyleQuoteValues_QuotePairArray =
-        root::nsTArray<root::std::namespace::pair<::nsstring::nsStringRepr,
-                                                  ::nsstring::nsStringRepr>>;
+        root::nsTArray<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>;
     pub type nsStyleQuoteValues_HasThreadSafeRefCnt = root::mozilla::TrueType;
     #[test]
     fn bindgen_test_layout_nsStyleQuoteValues() {
@@ -13023,171 +12962,176 @@ pub mod root {
         root::nsMainThreadPtrHolder<root::nsIPrincipal>;
     pub type ThreadSafeURIHolder = root::nsMainThreadPtrHolder<root::nsIURI>;
     #[test]
-    fn __bindgen_test_layout_template_13() {
+    fn __bindgen_test_layout_template_9() {
         assert_eq!(::std::mem::size_of::<root::JS::TenuredHeap<*mut root::JSObject>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::JS::TenuredHeap<*mut root::JSObject>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_14() {
+    fn __bindgen_test_layout_template_10() {
         assert_eq!(::std::mem::size_of::<root::JS::Heap<*mut root::JSObject>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::JS::Heap<*mut root::JSObject>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_15() {
+    fn __bindgen_test_layout_template_11() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCString>>() ,
                    8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<root::nsCString>>() ,
                    8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_16() {
+    fn __bindgen_test_layout_template_12() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIPrincipal>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsIPrincipal>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_17() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::mozilla::dom::TimeoutManager>>()
-                   , 1usize);
-        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::mozilla::dom::TimeoutManager>>()
-                   , 1usize);
-    }
-    #[test]
-    fn __bindgen_test_layout_template_18() {
+    fn __bindgen_test_layout_template_13() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::Element>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::RefPtr<root::mozilla::dom::Element>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_19() {
+    fn __bindgen_test_layout_template_14() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::Element>>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::Element>>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_20() {
+    fn __bindgen_test_layout_template_15() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIObserver>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsIObserver>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_21() {
+    fn __bindgen_test_layout_template_16() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIWeakReference>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsIWeakReference>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_22() {
+    fn __bindgen_test_layout_template_17() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_23() {
+    fn __bindgen_test_layout_template_18() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_24() {
+    fn __bindgen_test_layout_template_19() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::mozilla::dom::TimeoutManager>>()
+                   , 1usize);
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::mozilla::dom::TimeoutManager>>()
+                   , 1usize);
+    }
+    #[test]
+    fn __bindgen_test_layout_template_20() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_25() {
+    fn __bindgen_test_layout_template_21() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::nsINode>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::mozilla::OwningNonNull<root::nsINode>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_26() {
+    fn __bindgen_test_layout_template_22() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<f64>>() , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<f64>>() , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_27() {
+    fn __bindgen_test_layout_template_23() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_28() {
+    fn __bindgen_test_layout_template_24() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_29() {
+    fn __bindgen_test_layout_template_25() {
         assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
                    , 24usize);
         assert_eq!(::std::mem::align_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_30() {
+    fn __bindgen_test_layout_template_26() {
         assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIPrincipal>>()
                    , 24usize);
         assert_eq!(::std::mem::align_of::<root::nsMainThreadPtrHolder<root::nsIPrincipal>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_31() {
+    fn __bindgen_test_layout_template_27() {
+        assert_eq!(::std::mem::size_of::<root::nsPtrHashKey<root::nsIFrame>>()
+                   , 16usize);
+        assert_eq!(::std::mem::align_of::<root::nsPtrHashKey<root::nsIFrame>>()
+                   , 8usize);
+    }
+    #[test]
+    fn __bindgen_test_layout_template_28() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_32() {
+    fn __bindgen_test_layout_template_29() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMRect>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::RefPtr<root::mozilla::dom::DOMRect>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_33() {
+    fn __bindgen_test_layout_template_30() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::ProxyBehaviour>>()
                    , 1usize);
         assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::ProxyBehaviour>>()
                    , 1usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_34() {
+    fn __bindgen_test_layout_template_31() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsStyleSides>>()
                    , 1usize);
         assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::nsStyleSides>>()
                    , 1usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_35() {
+    fn __bindgen_test_layout_template_32() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::CachedBorderImageData>>()
                    , 1usize);
         assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::CachedBorderImageData>>()
                    , 1usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_36() {
-        assert_eq!(::std::mem::size_of::<root::std::namespace::pair<::nsstring::nsStringRepr,
-                                                 ::nsstring::nsStringRepr>>()
+    fn __bindgen_test_layout_template_33() {
+        assert_eq!(::std::mem::size_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
                    , 32usize);
-        assert_eq!(::std::mem::align_of::<root::std::namespace::pair<::nsstring::nsStringRepr,
-                                                  ::nsstring::nsStringRepr>>()
+        assert_eq!(::std::mem::align_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
                    , 8usize);
     }
 }
