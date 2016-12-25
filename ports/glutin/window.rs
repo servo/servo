@@ -303,12 +303,9 @@ impl Window {
 
     fn nested_window_resize(width: u32, height: u32) {
         unsafe {
-            match G_NESTED_EVENT_LOOP_LISTENER {
-                None => {}
-                Some(listener) => {
-                    (*listener).handle_event_from_nested_event_loop(
-                        WindowEvent::Resize(TypedSize2D::new(width, height)));
-                }
+            if let Some(listener) = G_NESTED_EVENT_LOOP_LISTENER {
+                (*listener).handle_event_from_nested_event_loop(
+                    WindowEvent::Resize(TypedSize2D::new(width, height)));
             }
         }
     }
