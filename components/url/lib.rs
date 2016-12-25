@@ -79,6 +79,11 @@ impl ServoUrl {
         self.0.scheme()
     }
 
+    pub fn is_secure_scheme(&self) -> bool {
+        let scheme = self.scheme();
+        scheme == "https" || scheme == "wss"
+    }
+
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }
