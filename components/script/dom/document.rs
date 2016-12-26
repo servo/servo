@@ -41,7 +41,7 @@ use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator, ElementPerformFullscreenEnter, ElementPerformFullscreenExit};
 use dom::errorevent::ErrorEvent;
-use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable, EventDefault};
 use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::focusevent::FocusEvent;
@@ -1308,10 +1308,10 @@ impl Document {
                                           props.key_code);
         let event = keyevent.upcast::<Event>();
         event.fire(target);
-        let mut prevented = event.DefaultPrevented();
+        let mut cancel_state = event.get_cancel_state();
 
         // https://w3c.github.io/uievents/#keys-cancelable-keys
-        if state != KeyState::Released && props.is_printable() && !prevented {
+        if state != KeyState::Released && props.is_printable() && cancel_state != EventDefault::Prevented {
             // https://w3c.github.io/uievents/#keypress-event-order
             let event = KeyboardEvent::new(&self.window,
                                            DOMString::from("keypress"),
@@ -1334,40 +1334,40 @@ impl Document {
                                            0);
             let ev = event.upcast::<Event>();
             ev.fire(target);
-            prevented = ev.DefaultPrevented();
+            cancel_state = ev.get_cancel_state();
             // TODO: if keypress event is canceled, prevent firing input events
         }
 
-        if !prevented {
+        if cancel_state == EventDefault::Allowed {
             constellation.send(ConstellationMsg::SendKeyEvent(ch, key, state, modifiers)).unwrap();
-        }
 
-        // This behavior is unspecced
-        // We are supposed to dispatch synthetic click activation for Space and/or Return,
-        // however *when* we do it is up to us
-        // I'm dispatching it after the key event so the script has a chance to cancel it
-        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-        match key {
-            Key::Space if !prevented && state == KeyState::Released => {
-                let maybe_elem = target.downcast::<Element>();
-                if let Some(el) = maybe_elem {
-                    synthetic_click_activation(el,
-                                               false,
-                                               false,
-                                               false,
-                                               false,
-                                               ActivationSource::NotFromClick)
-                }
-            }
-            Key::Enter if !prevented && state == KeyState::Released => {
-                let maybe_elem = target.downcast::<Element>();
-                if let Some(el) = maybe_elem {
-                    if let Some(a) = el.as_maybe_activatable() {
-                        a.implicit_submission(ctrl, alt, shift, meta);
+            // This behavior is unspecced
+            // We are supposed to dispatch synthetic click activation for Space and/or Return,
+            // however *when* we do it is up to us.
+            // Here, we're dispatching it after the key event so the script has a chance to cancel it
+            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
+            match key {
+                Key::Space if state == KeyState::Released => {
+                    let maybe_elem = target.downcast::<Element>();
+                    if let Some(el) = maybe_elem {
+                        synthetic_click_activation(el,
+                                                   false,
+                                                   false,
+                                                   false,
+                                                   false,
+                                                   ActivationSource::NotFromClick)
                     }
                 }
+                Key::Enter if state == KeyState::Released => {
+                    let maybe_elem = target.downcast::<Element>();
+                    if let Some(el) = maybe_elem {
+                        if let Some(a) = el.as_maybe_activatable() {
+                            a.implicit_submission(ctrl, alt, shift, meta);
+                        }
+                    }
+                }
+                _ => (),
             }
-            _ => (),
         }
 
         self.window.reflow(ReflowGoal::ForDisplay,
