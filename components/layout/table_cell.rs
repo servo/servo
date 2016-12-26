@@ -41,6 +41,9 @@ pub struct TableCellFlow {
     /// The column span of this cell.
     pub column_span: u32,
 
+    /// The rows spanned by this cell.
+    pub row_span: u32,
+
     /// Whether this cell is visible. If false, the value of `empty-cells` means that we must not
     /// display this cell.
     pub visible: bool,
@@ -52,6 +55,7 @@ impl TableCellFlow {
             block_flow: BlockFlow::from_fragment(fragment),
             collapsed_borders: CollapsedBordersForCell::new(),
             column_span: 1,
+            row_span: 1,
             visible: true,
         }
     }
@@ -62,6 +66,7 @@ impl TableCellFlow {
             block_flow: BlockFlow::from_fragment(fragment),
             collapsed_borders: CollapsedBordersForCell::new(),
             column_span: node.get_colspan(),
+            row_span: node.get_rowspan(),
             visible: visible,
         }
     }

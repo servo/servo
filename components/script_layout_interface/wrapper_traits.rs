@@ -265,6 +265,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Debug + GetLayoutData + NodeInfo 
 
     fn get_colspan(&self) -> u32;
 
+    fn get_rowspan(&self) -> u32;
+
     fn fragment_type(&self) -> FragmentType {
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => FragmentType::FragmentBody,

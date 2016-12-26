@@ -37,7 +37,6 @@ use style::properties::ServoComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
-use table_row;
 
 #[derive(Copy, Clone, Serialize, Debug)]
 pub enum TableLayout {
@@ -394,7 +393,6 @@ impl Flow for TableWrapperFlow {
             }
         };
 
-        let border_spacing = self.block_flow.fragment.style().get_inheritedtable().border_spacing;
         match assigned_column_inline_sizes {
             None => {
                 self.block_flow
@@ -410,17 +408,11 @@ impl Flow for TableWrapperFlow {
                                                                 inline_start_content_edge,
                                                                 inline_end_content_edge,
                                                                 content_inline_size,
-                                                                |child_flow,
-                                                                 _child_index,
-                                                                 _content_inline_size,
-                                                                 writing_mode,
-                                                                 _inline_start_margin_edge,
-                                                                 _inline_end_margin_edge| {
-                    table_row::propagate_column_inline_sizes_to_child(
-                        child_flow,
-                        writing_mode,
-                        assigned_column_inline_sizes,
-                        &border_spacing);
+                                                                |child_flow, _, _, _, _, _| {
+                    if child_flow.class() == FlowClass::Table {
+                        child_flow.as_mut_table().column_computed_inline_sizes =
+                            assigned_column_inline_sizes.to_vec();
+                    }
                 })
             }
         }

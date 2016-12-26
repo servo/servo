@@ -18,6 +18,7 @@ use html5ever_atoms::LocalName;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_COLSPAN: u32 = 1;
+const DEFAULT_ROWSPAN: u32 = 1;
 
 #[dom_struct]
 pub struct HTMLTableCellElement {
@@ -41,6 +42,12 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-colspan
     make_uint_setter!(SetColSpan, "colspan", DEFAULT_COLSPAN);
+
+    // https://html.spec.whatwg.org/multipage/#dom-tdth-rowspan
+    make_uint_getter!(RowSpan, "rowspan", DEFAULT_ROWSPAN);
+
+    // https://html.spec.whatwg.org/multipage/#dom-tdth-rowspan
+    make_uint_setter!(SetRowSpan, "rowspan", DEFAULT_ROWSPAN);
 
     // https://html.spec.whatwg.org/multipage/#dom-tdth-bgcolor
     make_getter!(BgColor, "bgcolor");
@@ -75,6 +82,7 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 pub trait HTMLTableCellElementLayoutHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
     fn get_colspan(&self) -> Option<u32>;
+    fn get_rowspan(&self) -> Option<u32>;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
@@ -93,6 +101,14 @@ impl HTMLTableCellElementLayoutHelpers for LayoutJS<HTMLTableCellElement> {
         unsafe {
             (&*self.upcast::<Element>().unsafe_get())
                 .get_attr_for_layout(&ns!(), &local_name!("colspan"))
+                .map(AttrValue::as_uint)
+        }
+    }
+
+    fn get_rowspan(&self) -> Option<u32> {
+        unsafe {
+            (&*self.upcast::<Element>().unsafe_get())
+                .get_attr_for_layout(&ns!(), &local_name!("rowspan"))
                 .map(AttrValue::as_uint)
         }
     }
@@ -116,6 +132,7 @@ impl VirtualMethods for HTMLTableCellElement {
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
         match *local_name {
             local_name!("colspan") => AttrValue::from_u32(value.into(), DEFAULT_COLSPAN),
+            local_name!("rowspan") => AttrValue::from_u32(value.into(), DEFAULT_ROWSPAN),
             local_name!("bgcolor") => AttrValue::from_legacy_color(value.into()),
             local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
