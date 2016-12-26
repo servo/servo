@@ -42,7 +42,6 @@ use hyper::mime::{Attr, Mime};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use msg::constellation_msg::PipelineId;
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
 use servo_url::ServoUrl;
@@ -499,12 +498,6 @@ pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Opt
 /// An unique identifier to keep track of each load message in the resource handler
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
-
-#[derive(Deserialize, Serialize)]
-pub enum ConstellationMsg {
-    /// Queries whether a pipeline or its ancestors are private
-    IsPrivate(PipelineId, IpcSender<bool>),
-}
 
 /// Network errors that have to be exported out of the loaders
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize, HeapSizeOf)]
