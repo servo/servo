@@ -11,7 +11,7 @@ use app_units::Au;
 use cssparser::{Delimiter, Parser, Token};
 use euclid::size::{Size2D, TypedSize2D};
 use serialize_comma_separated_list;
-use std::fmt::{self, Write};
+use std::fmt;
 use style_traits::{ToCss, ViewportPx};
 use values::computed::{self, ToComputedValue};
 use values::specified;
@@ -118,18 +118,21 @@ impl ToCss for MediaQuery {
             try!(write!(dest, "not "));
         }
 
-        let mut type_ = String::new();
         match self.media_type {
-            MediaQueryType::All => try!(write!(type_, "all")),
-            MediaQueryType::Known(MediaType::Screen) => try!(write!(type_, "screen")),
-            MediaQueryType::Known(MediaType::Print) => try!(write!(type_, "print")),
-            MediaQueryType::Unknown(ref desc) => try!(write!(type_, "{}", desc)),
+            MediaQueryType::All => try!(write!(dest, "all")),
+            MediaQueryType::Known(MediaType::Screen) => try!(write!(dest, "screen")),
+            MediaQueryType::Known(MediaType::Print) => try!(write!(dest, "print")),
+            MediaQueryType::Unknown(ref desc) => try!(write!(dest, "{}", desc)),
         };
+
         if self.expressions.is_empty() {
-            return write!(dest, "{}", type_)
-        } else if type_ != "all" || self.qualifier == Some(Qualifier::Not) {
-            try!(write!(dest, "{} and ", type_));
+            return Ok(());
         }
+
+        if self.media_type != MediaQueryType::All || self.qualifier == Some(Qualifier::Not) {
+            try!(write!(dest, " and "));
+        }
+
         for (i, &e) in self.expressions.iter().enumerate() {
             try!(write!(dest, "("));
             let (mm, l) = match e {
