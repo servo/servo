@@ -55,6 +55,6 @@
   "layout.writing-mode.enabled": false,
   "network.mime.sniff": false,
   "shell.builtin-key-shortcuts.enabled": true,
-  "shell.homepage": "http://servo.org",
+  "shell.homepage": "https://servo.org",
   "shell.native-titlebar.enabled": true
 }

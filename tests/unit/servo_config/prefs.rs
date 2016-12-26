@@ -12,7 +12,7 @@ fn test_create_pref() {
     let json_str = "{\
   \"layout.writing-mode.enabled\": true,\
   \"network.mime.sniff\": false,\
-  \"shell.homepage\": \"http://servo.org\"\
+  \"shell.homepage\": \"https://servo.org\"\
 }";
 
     let prefs = read_prefs_from_file(json_str.as_bytes());
@@ -33,11 +33,11 @@ fn test_get_set_reset_extend() {
     assert_eq!(*PREFS.get("test"), PrefValue::Missing);
     PREFS.set("test", PrefValue::String("hi".to_owned()));
     assert_eq!(*PREFS.get("test"), PrefValue::String("hi".to_owned()));
-    assert_eq!(*PREFS.get("shell.homepage"), PrefValue::String("http://servo.org".to_owned()));
+    assert_eq!(*PREFS.get("shell.homepage"), PrefValue::String("https://servo.org".to_owned()));
     PREFS.set("shell.homepage", PrefValue::Boolean(true));
     assert_eq!(*PREFS.get("shell.homepage"), PrefValue::Boolean(true));
     PREFS.reset("shell.homepage");
-    assert_eq!(*PREFS.get("shell.homepage"), PrefValue::String("http://servo.org".to_owned()));
+    assert_eq!(*PREFS.get("shell.homepage"), PrefValue::String("https://servo.org".to_owned()));
 
     let extension = read_prefs_from_file(json_str.as_bytes()).unwrap();
     PREFS.extend(extension);
