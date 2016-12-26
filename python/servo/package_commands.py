@@ -13,6 +13,7 @@ import sys
 import os.path as path
 sys.path.append(path.join(path.dirname(sys.argv[0]), "components", "style", "properties", "Mako-0.9.1.zip"))
 
+import json
 import os
 import shutil
 import subprocess
@@ -78,7 +79,6 @@ def change_non_system_libraries_path(libraries, relative_path, binary):
 
 
 def copy_dependencies(binary_path, lib_path):
-
     relative_path = path.relpath(lib_path, path.dirname(binary_path)) + "/"
 
     # Update binary libraries
@@ -103,6 +103,24 @@ def copy_dependencies(binary_path, lib_path):
             need_checked.update(need_relinked)
         checked.update(checking)
         need_checked.difference_update(checked)
+
+
+def change_prefs(resources_path, platform):
+    print("Swapping prefs")
+    prefs_path = path.join(resources_path, "prefs.json")
+    package_prefs_path = path.join(resources_path, "package-prefs.json")
+    os_type = "os:{}".format(platform)
+    with open(prefs_path) as prefs, open(package_prefs_path) as package_prefs:
+        prefs = json.load(prefs)
+        package_prefs = json.load(package_prefs)
+        for pref in package_prefs:
+            if os_type in pref:
+                prefs[pref.split(";")[1]] = package_prefs[pref]
+            if pref in prefs:
+                prefs[pref] = package_prefs[pref]
+        with open(prefs_path, "w") as out:
+            json.dump(prefs, out, sort_keys=True, indent=2)
+    delete(package_prefs_path)
 
 
 @CommandProvider
@@ -151,7 +169,6 @@ class PackageCommands(CommandBase):
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
         elif is_macosx():
-
             dir_to_build = path.dirname(binary_path)
             dir_to_root = self.get_top_dir()
 
@@ -176,12 +193,7 @@ class PackageCommands(CommandBase):
             os.makedirs(content_dir)
             shutil.copy2(binary_path, content_dir)
 
-            print("Swapping prefs")
-            package_prefs_path = path.join(dir_to_resources, 'package-prefs.json')
-            prefs_path = path.join(dir_to_resources, 'prefs.json')
-            delete(prefs_path)
-            shutil.copy2(package_prefs_path, prefs_path)
-            delete(package_prefs_path)
+            change_prefs(dir_to_resources, "macosx")
 
             print("Finding dylibs and relinking")
             copy_dependencies(path.join(content_dir, 'servo'), content_dir)
@@ -250,7 +262,6 @@ class PackageCommands(CommandBase):
             archive_deterministically(dir_to_brew, tar_path, prepend_path='servo/')
             delete(dir_to_brew)
             print("Packaged Servo into " + tar_path)
-
         elif is_windows():
             dir_to_package = path.dirname(binary_path)
             dir_to_root = self.get_top_dir()
@@ -259,20 +270,27 @@ class PackageCommands(CommandBase):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_msi)
             os.makedirs(dir_to_msi)
-            top_path = dir_to_root
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
                 return 1
             browserhtml_path = path.join(browserhtml_path, "out")
+
+            print("Copying files")
+            dir_to_resources = path.join(dir_to_msi, 'resources')
+            shutil.copytree(path.join(self.get_top_dir(), 'resources'), dir_to_resources)
+
+            change_prefs(dir_to_resources, "windows")
+
             # generate Servo.wxs
             template_path = path.join(dir_to_root, "support", "windows", "Servo.wxs.mako")
             template = Template(open(template_path).read())
             wxs_path = path.join(dir_to_msi, "Servo.wxs")
             open(wxs_path, "w").write(template.render(
                 exe_path=dir_to_package,
-                top_path=top_path,
+                resources_path=dir_to_resources,
                 browserhtml_path=browserhtml_path))
+
             # run candle and light
             print("Creating MSI")
             try:
@@ -307,12 +325,10 @@ class PackageCommands(CommandBase):
             shutil.copytree(browserhtml_path, path.join(dir_to_temp, 'browserhtml'))
             shutil.copy(binary_path, dir_to_temp)
 
+            change_prefs(dir_to_resources, "linux")
+
             print("Writing runservo.sh")
-            # TODO: deduplicate this arg list from post_build_commands
             servo_args = ['-b',
-                          '--pref', 'dom.mozbrowser.enabled',
-                          '--pref', 'dom.forcetouch.enabled',
-                          '--pref', 'shell.builtin-key-shortcuts.enabled=false',
                           path.join('./browserhtml', 'out', 'index.html')]
 
             runservo = os.open(path.join(dir_to_temp, 'runservo.sh'), os.O_WRONLY | os.O_CREAT, int("0755", 8))
