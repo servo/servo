@@ -390,12 +390,23 @@ impl Interpolate for BackgroundSize {
 impl Interpolate for RGBA {
     #[inline]
     fn interpolate(&self, other: &RGBA, progress: f64) -> Result<Self, ()> {
-        Ok(RGBA {
-            red: try!(self.red.interpolate(&other.red, progress)),
-            green: try!(self.green.interpolate(&other.green, progress)),
-            blue: try!(self.blue.interpolate(&other.blue, progress)),
-            alpha: try!(self.alpha.interpolate(&other.alpha, progress)),
-        })
+        fn clamp(val: f32) -> f32 {
+            val.max(0.).min(1.)
+        }
+
+        let alpha = clamp(try!(self.alpha.interpolate(&other.alpha, progress)));
+        if alpha == 0. {
+            Ok(RGBA { red: 0., green: 0., blue: 0., alpha: 0. })
+        } else {
+            Ok(RGBA { red: clamp(try!((self.red * self.alpha).interpolate(&(other.red * other.alpha), progress))
+                                 * 1. / alpha),
+                      green: clamp(try!((self.green * self.alpha).interpolate(&(other.green * other.alpha), progress))
+                                   * 1. / alpha),
+                      blue: clamp(try!((self.blue * self.alpha).interpolate(&(other.blue * other.alpha), progress))
+                                  * 1. / alpha),
+                      alpha: alpha
+            })
+        }
     }
 }
 
