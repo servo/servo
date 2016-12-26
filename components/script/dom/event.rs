@@ -77,6 +77,13 @@ impl From<bool> for EventCancelable {
     }
 }
 
+#[derive(JSTraceable, HeapSizeOf, Copy, Clone, PartialEq)]
+pub enum EventDefault {
+    Allowed,
+    Prevented,
+    Handled,
+}
+
 #[dom_struct]
 pub struct Event {
     reflector_: Reflector,
@@ -84,7 +91,7 @@ pub struct Event {
     target: MutNullableJS<EventTarget>,
     type_: DOMRefCell<Atom>,
     phase: Cell<EventPhase>,
-    canceled: Cell<bool>,
+    canceled: Cell<EventDefault>,
     stop_propagation: Cell<bool>,
     stop_immediate: Cell<bool>,
     cancelable: Cell<bool>,
@@ -103,7 +110,7 @@ impl Event {
             target: Default::default(),
             type_: DOMRefCell::new(atom!("")),
             phase: Cell::new(EventPhase::None),
-            canceled: Cell::new(false),
+            canceled: Cell::new(EventDefault::Allowed),
             stop_propagation: Cell::new(false),
             stop_immediate: Cell::new(false),
             cancelable: Cell::new(false),
@@ -146,7 +153,7 @@ impl Event {
         self.initialized.set(true);
         self.stop_propagation.set(false);
         self.stop_immediate.set(false);
-        self.canceled.set(false);
+        self.canceled.set(EventDefault::Allowed);
         self.trusted.set(false);
         self.target.set(None);
         *self.type_.borrow_mut() = type_;
@@ -229,6 +236,16 @@ impl Event {
     pub fn type_(&self) -> Atom {
         self.type_.borrow().clone()
     }
+
+    #[inline]
+    pub fn mark_as_handled(&self) {
+        self.canceled.set(EventDefault::Handled);
+    }
+
+    #[inline]
+    pub fn get_cancel_state(&self) -> EventDefault {
+        self.canceled.get()
+    }
 }
 
 impl EventMethods for Event {
@@ -254,13 +271,13 @@ impl EventMethods for Event {
 
     // https://dom.spec.whatwg.org/#dom-event-defaultprevented
     fn DefaultPrevented(&self) -> bool {
-        self.canceled.get()
+        self.canceled.get() == EventDefault::Prevented
     }
 
     // https://dom.spec.whatwg.org/#dom-event-preventdefault
     fn PreventDefault(&self) {
         if self.cancelable.get() {
-            self.canceled.set(true)
+            self.canceled.set(EventDefault::Prevented)
         }
     }
 
