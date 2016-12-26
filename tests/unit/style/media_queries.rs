@@ -74,7 +74,7 @@ fn test_mq_screen() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == None, css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Screen), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Known(MediaType::Screen), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 
@@ -82,7 +82,7 @@ fn test_mq_screen() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == Some(Qualifier::Only), css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Screen), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Known(MediaType::Screen), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 
@@ -90,7 +90,7 @@ fn test_mq_screen() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == Some(Qualifier::Not), css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Screen), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Known(MediaType::Screen), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 }
@@ -101,7 +101,7 @@ fn test_mq_print() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == None, css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Print), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Known(MediaType::Print), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 
@@ -109,7 +109,7 @@ fn test_mq_print() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == Some(Qualifier::Only), css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Print), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Known(MediaType::Print), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 
@@ -117,7 +117,7 @@ fn test_mq_print() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == Some(Qualifier::Not), css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Print), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Known(MediaType::Print), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 }
@@ -128,7 +128,7 @@ fn test_mq_unknown() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == None, css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown(Atom::from("fridge"))), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Unknown(Atom::from("fridge")), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 
@@ -136,7 +136,7 @@ fn test_mq_unknown() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == Some(Qualifier::Only), css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown(Atom::from("glass"))), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Unknown(Atom::from("glass")), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 
@@ -144,7 +144,7 @@ fn test_mq_unknown() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == Some(Qualifier::Not), css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown(Atom::from("wood"))), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Unknown(Atom::from("wood")), css.to_owned());
         assert!(q.expressions.len() == 0, css.to_owned());
     });
 }
@@ -182,12 +182,12 @@ fn test_mq_or() {
         assert!(list.media_queries.len() == 2, css.to_owned());
         let q0 = &list.media_queries[0];
         assert!(q0.qualifier == None, css.to_owned());
-        assert!(q0.media_type == MediaQueryType::MediaType(MediaType::Screen), css.to_owned());
+        assert!(q0.media_type == MediaQueryType::Known(MediaType::Screen), css.to_owned());
         assert!(q0.expressions.len() == 0, css.to_owned());
 
         let q1 = &list.media_queries[1];
         assert!(q1.qualifier == None, css.to_owned());
-        assert!(q1.media_type == MediaQueryType::MediaType(MediaType::Print), css.to_owned());
+        assert!(q1.media_type == MediaQueryType::Known(MediaType::Print), css.to_owned());
         assert!(q1.expressions.len() == 0, css.to_owned());
     });
 }
@@ -225,7 +225,7 @@ fn test_mq_expressions() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == None, css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Screen), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Known(MediaType::Screen), css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match q.expressions[0] {
             Expression::Width(Range::Min(w)) => assert!(w == specified::Length::Absolute(Au::from_px(100))),
@@ -237,7 +237,7 @@ fn test_mq_expressions() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == None, css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Print), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Known(MediaType::Print), css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match q.expressions[0] {
             Expression::Width(Range::Max(w)) => assert!(w == specified::Length::Absolute(Au::from_px(43))),
@@ -249,7 +249,7 @@ fn test_mq_expressions() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == None, css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Print), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Known(MediaType::Print), css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match q.expressions[0] {
             Expression::Width(Range::Eq(w)) => assert!(w == specified::Length::Absolute(Au::from_px(43))),
@@ -261,7 +261,7 @@ fn test_mq_expressions() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == None, css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Unknown(Atom::from("fridge"))), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Unknown(Atom::from("fridge")), css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match q.expressions[0] {
             Expression::Width(Range::Max(w)) => assert!(w == specified::Length::Absolute(Au::from_px(52))),
@@ -302,7 +302,7 @@ fn test_mq_multiple_expressions() {
         assert!(list.media_queries.len() == 1, css.to_owned());
         let q = &list.media_queries[0];
         assert!(q.qualifier == Some(Qualifier::Not), css.to_owned());
-        assert!(q.media_type == MediaQueryType::MediaType(MediaType::Screen), css.to_owned());
+        assert!(q.media_type == MediaQueryType::Known(MediaType::Screen), css.to_owned());
         assert!(q.expressions.len() == 2, css.to_owned());
         match q.expressions[0] {
             Expression::Width(Range::Min(w)) => assert!(w == specified::Length::Absolute(Au::from_px(100))),
@@ -377,7 +377,7 @@ fn test_mq_malformed_expressions() {
         assert!(q0.expressions.len() == 0, css.to_owned());
         let q1 = &list.media_queries[1];
         assert!(q1.qualifier == None, css.to_owned());
-        assert!(q1.media_type == MediaQueryType::MediaType(MediaType::Print), css.to_owned());
+        assert!(q1.media_type == MediaQueryType::Known(MediaType::Print), css.to_owned());
         assert!(q1.expressions.len() == 0, css.to_owned());
     });
 
@@ -385,7 +385,7 @@ fn test_mq_malformed_expressions() {
         assert!(list.media_queries.len() == 2, css.to_owned());
         let q0 = &list.media_queries[0];
         assert!(q0.qualifier == None, css.to_owned());
-        assert!(q0.media_type == MediaQueryType::MediaType(MediaType::Screen), css.to_owned());
+        assert!(q0.media_type == MediaQueryType::Known(MediaType::Screen), css.to_owned());
         assert!(q0.expressions.len() == 0, css.to_owned());
         let q1 = &list.media_queries[1];
         assert!(q1.qualifier == Some(Qualifier::Not), css.to_owned());

@@ -94,6 +94,12 @@ pub struct MediaQuery {
 }
 
 impl MediaQuery {
+    /// Return a media query that never matches, used for when we fail to parse
+    /// a given media query.
+    fn never_matching() -> Self {
+        Self::new(Some(Qualifier::Not), MediaQueryType::All, vec![])
+    }
+
     pub fn new(qualifier: Option<Qualifier>, media_type: MediaQueryType,
                expressions: Vec<Expression>) -> MediaQuery {
         MediaQuery {
@@ -115,9 +121,9 @@ impl ToCss for MediaQuery {
         let mut type_ = String::new();
         match self.media_type {
             MediaQueryType::All => try!(write!(type_, "all")),
-            MediaQueryType::MediaType(MediaType::Screen) => try!(write!(type_, "screen")),
-            MediaQueryType::MediaType(MediaType::Print) => try!(write!(type_, "print")),
-            MediaQueryType::MediaType(MediaType::Unknown(ref desc)) => try!(write!(type_, "{}", desc)),
+            MediaQueryType::Known(MediaType::Screen) => try!(write!(type_, "screen")),
+            MediaQueryType::Known(MediaType::Print) => try!(write!(type_, "print")),
+            MediaQueryType::Unknown(ref desc) => try!(write!(type_, "{}", desc)),
         };
         if self.expressions.is_empty() {
             return write!(dest, "{}", type_)
@@ -148,7 +154,18 @@ impl ToCss for MediaQuery {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum MediaQueryType {
     All,  // Always true
-    MediaType(MediaType),
+    Known(MediaType),
+    Unknown(Atom),
+}
+
+impl MediaQueryType {
+    fn matches(&self, other: &MediaType) -> bool {
+        match *self {
+            MediaQueryType::All => true,
+            MediaQueryType::Known(ref known_type) => known_type == other,
+            MediaQueryType::Unknown(..) => false,
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -156,7 +173,6 @@ pub enum MediaQueryType {
 pub enum MediaType {
     Screen,
     Print,
-    Unknown(Atom),
 }
 
 #[derive(Debug)]
@@ -220,10 +236,10 @@ impl MediaQuery {
         let media_type;
         if let Ok(ident) = input.try(|input| input.expect_ident()) {
             media_type = match_ignore_ascii_case! { ident,
-                "screen" => MediaQueryType::MediaType(MediaType::Screen),
-                "print" => MediaQueryType::MediaType(MediaType::Print),
+                "screen" => MediaQueryType::Known(MediaType::Screen),
+                "print" => MediaQueryType::Known(MediaType::Print),
                 "all" => MediaQueryType::All,
-                _ => MediaQueryType::MediaType(MediaType::Unknown(Atom::from(&*ident)))
+                _ => MediaQueryType::Unknown(Atom::from(&*ident))
             }
         } else {
             // Media type is only optional if qualifier is not specified.
@@ -253,10 +269,8 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
     let mut media_queries = vec![];
     loop {
         media_queries.push(
-            input.parse_until_before(Delimiter::Comma, MediaQuery::parse)
-                 .unwrap_or(MediaQuery::new(Some(Qualifier::Not),
-                                            MediaQueryType::All,
-                                            vec!())));
+            input.parse_until_before(Delimiter::Comma, MediaQuery::parse).ok()
+                 .unwrap_or_else(MediaQuery::never_matching));
         match input.next() {
             Ok(Token::Comma) => {},
             Ok(_) => unreachable!(),
@@ -275,12 +289,7 @@ impl MediaList {
         // Check if it is an empty media query list or any queries match (OR condition)
         // https://drafts.csswg.org/mediaqueries-4/#mq-list
         self.media_queries.is_empty() || self.media_queries.iter().any(|mq| {
-            // Check if media matches. Unknown media never matches.
-            let media_match = match mq.media_type {
-                MediaQueryType::MediaType(MediaType::Unknown(_)) => false,
-                MediaQueryType::MediaType(ref media_type) => *media_type == device.media_type,
-                MediaQueryType::All => true,
-            };
+            let media_match = mq.media_type.matches(&device.media_type);
 
             // Check if all conditions match (AND condition)
             let query_match = media_match && mq.expressions.iter().all(|expression| {
