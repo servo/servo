@@ -15,6 +15,7 @@
 //! those cases are not present.
 
 use servo_config::resource_files::read_resource_file;
+use servo_url::ServoUrl;
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::str::from_utf8;
@@ -137,4 +138,12 @@ pub fn is_pub_domain(domain: &str) -> bool {
 
 pub fn is_reg_domain(domain: &str) -> bool {
     PUB_DOMAINS.is_registrable_suffix(domain)
+}
+
+/// The registered domain name (aka eTLD+1) for a URL.
+/// Returns None if the URL has no host name.
+/// Returns the registered suffix for the host name if it is a domain.
+/// Leaves the host name alone if it is an IP address.
+pub fn reg_host<'a>(url: &'a ServoUrl) -> Option<&'a str> {
+    url.domain().map(reg_suffix).or(url.host_str())
 }
