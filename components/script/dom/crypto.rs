@@ -6,7 +6,6 @@ use core::nonzero::NonZero;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CryptoBinding;
 use dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
-use dom::bindings::conversions::array_buffer_view_data;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -46,9 +45,10 @@ impl CryptoMethods for Crypto {
                        input: *mut JSObject)
                        -> Fallible<NonZero<*mut JSObject>> {
         assert!(!input.is_null());
-        let mut data = match array_buffer_view_data::<u8>(input) {
-            Some(data) => data,
-            None => {
+        typedarray!(in(_cx) let mut array_buffer_view: ArrayBufferView = input);
+        let mut data = match array_buffer_view.as_mut() {
+            Ok(x) => x.as_mut_slice(),
+            Err(_) => {
                 return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView"
                                        .to_owned()));
             }
