@@ -11,6 +11,7 @@ use app_units::Au;
 use cssparser::{Delimiter, Parser, Token};
 use euclid::size::{Size2D, TypedSize2D};
 use serialize_comma_separated_list;
+use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::{ToCss, ViewportPx};
 use values::computed::{self, ToComputedValue};
@@ -162,6 +163,17 @@ pub enum MediaQueryType {
 }
 
 impl MediaQueryType {
+    fn parse(ident: &str) -> Self {
+        if ident.eq_ignore_ascii_case("all") {
+            return MediaQueryType::All;
+        }
+
+        match MediaType::parse(ident) {
+            Some(media_type) => MediaQueryType::Known(media_type),
+            None => MediaQueryType::Unknown(Atom::from(ident)),
+        }
+    }
+
     fn matches(&self, other: &MediaType) -> bool {
         match *self {
             MediaQueryType::All => true,
@@ -176,6 +188,16 @@ impl MediaQueryType {
 pub enum MediaType {
     Screen,
     Print,
+}
+
+impl MediaType {
+    fn parse(name: &str) -> Option<Self> {
+        Some(match_ignore_ascii_case! { name,
+            "screen" => MediaType::Screen,
+            "print" => MediaType::Print,
+            _ => return None
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -236,23 +258,20 @@ impl MediaQuery {
             None
         };
 
-        let media_type;
-        if let Ok(ident) = input.try(|input| input.expect_ident()) {
-            media_type = match_ignore_ascii_case! { ident,
-                "screen" => MediaQueryType::Known(MediaType::Screen),
-                "print" => MediaQueryType::Known(MediaType::Print),
-                "all" => MediaQueryType::All,
-                _ => MediaQueryType::Unknown(Atom::from(&*ident))
+        let media_type = match input.try(|input| input.expect_ident()) {
+            Ok(ident) => MediaQueryType::parse(&*ident),
+            Err(()) => {
+                // Media type is only optional if qualifier is not specified.
+                if qualifier.is_some() {
+                    return Err(())
+                }
+
+                // Without a media type, require at least one expression.
+                expressions.push(try!(Expression::parse(input)));
+
+                MediaQueryType::All
             }
-        } else {
-            // Media type is only optional if qualifier is not specified.
-            if qualifier.is_some() {
-                return Err(())
-            }
-            media_type = MediaQueryType::All;
-            // Without a media type, require at least one expression
-            expressions.push(try!(Expression::parse(input)));
-        }
+        };
 
         // Parse any subsequent expressions
         loop {
