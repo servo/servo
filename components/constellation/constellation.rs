@@ -86,7 +86,7 @@ use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
 use net_traits::{self, IpcSend, ResourceThreads};
 use net_traits::image_cache_thread::ImageCacheThread;
-use net_traits::pub_domains::reg_suffix;
+use net_traits::pub_domains::reg_host;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{InitialPipelineState, Pipeline};
@@ -643,14 +643,6 @@ fn log_entry(record: &LogRecord) -> Option<LogEntry> {
 
 /// The number of warnings to include in each crash report.
 const WARNINGS_BUFFER_SIZE: usize = 32;
-
-/// The registered domain name (aka eTLD+1) for a URL.
-/// Returns None if the URL has no host name.
-/// Returns the registered suffix for the host name if it is a domain.
-/// Leaves the host name alone if it is an IP address.
-fn reg_host<'a>(url: &'a ServoUrl) -> Option<&'a str> {
-    url.domain().map(reg_suffix).or(url.host_str())
-}
 
 impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
