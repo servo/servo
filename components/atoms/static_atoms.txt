@@ -52,6 +52,7 @@ beforeunload
 message
 click
 keydown
+keypress
 abort
 beforescriptexecute
 afterscriptexecute

@@ -1335,7 +1335,6 @@ impl Document {
             let ev = event.upcast::<Event>();
             ev.fire(target);
             cancel_state = ev.get_cancel_state();
-            // TODO: if keypress event is canceled, prevent firing input events
         }
 
         if cancel_state == EventDefault::Allowed {
