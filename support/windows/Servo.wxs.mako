@@ -38,7 +38,6 @@
                           WorkingDirectory="INSTALLDIR"
                           Icon="Servo.ico"
                           IconIndex="0"
-                          Arguments="browserhtml\index.html"
                           Advertise="yes"/>
               </File>
               <File Id="ServoManifest"

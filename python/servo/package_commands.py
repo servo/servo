@@ -221,16 +221,6 @@ class PackageCommands(CommandBase):
                     credits_file.write(template.render(version=version))
             delete(template_path)
 
-            print("Writing run-servo")
-            bhtml_path = path.join('${0%/*}', '..', 'Resources', 'browserhtml', 'index.html')
-            runservo = os.open(
-                path.join(content_dir, 'run-servo'),
-                os.O_WRONLY | os.O_CREAT,
-                int("0755", 8)
-            )
-            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + bhtml_path)
-            os.close(runservo)
-
             print("Creating dmg")
             os.symlink('/Applications', path.join(dir_to_dmg, 'Applications'))
             dmg_path = path.join(dir_to_build, "servo-tech-demo.dmg")
@@ -323,14 +313,6 @@ class PackageCommands(CommandBase):
             shutil.copy(binary_path, dir_to_temp)
 
             change_prefs(dir_to_resources, "linux")
-
-            print("Writing runservo.sh")
-            servo_args = ['-b',
-                          path.join('./browserhtml', 'index.html')]
-
-            runservo = os.open(path.join(dir_to_temp, 'runservo.sh'), os.O_WRONLY | os.O_CREAT, int("0755", 8))
-            os.write(runservo, "#!/usr/bin/env sh\n./servo " + ' '.join(servo_args))
-            os.close(runservo)
 
             print("Creating tarball")
             tar_path = path.join(path.dirname(binary_path), 'servo-tech-demo.tar.gz')
