@@ -494,7 +494,7 @@ pub mod basic_shape {
                 Fill => GeometryBox::Fill,
                 Stroke => GeometryBox::Stroke,
                 View => GeometryBox::View,
-                _ => panic!("unexpected StyleGeometryBox value"),
+                other => panic!("Unexpected StyleGeometryBox::{:?} while converting to GeometryBox", other),
             }
         }
     }
