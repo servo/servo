@@ -47,6 +47,7 @@ macro_rules! parse_longhand {
     }};
 }
 
+mod animation;
 mod background;
 mod basic_shape;
 mod border;
