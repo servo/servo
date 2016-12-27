@@ -734,7 +734,7 @@ def check_for_alphabetical_sorted_json_keys(key_value_pairs):
 def check_json_requirements(filename):
     def check_fn(key_value_pairs):
         check_for_possible_duplicate_json_keys(key_value_pairs)
-        if filename in config["check-ordered-json-keys"]:
+        if filename in normilize_paths(config["check-ordered-json-keys"]):
             check_for_alphabetical_sorted_json_keys(key_value_pairs)
     return check_fn
 
