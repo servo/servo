@@ -124,6 +124,13 @@ def change_prefs(resources_path, platform):
         delete(package_prefs_path)
 
 
+def get_browserhtml_path(binary_path):
+    browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
+    if browserhtml_path:
+        return path.join(browserhtml_path, "out")
+    sys.exit("Could not find browserhtml package; perhaps you haven't built Servo.")
+
+
 @CommandProvider
 class PackageCommands(CommandBase):
     @Command('package',
@@ -180,14 +187,11 @@ class PackageCommands(CommandBase):
             if path.exists(dir_to_dmg):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_dmg)
-            browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
-            if browserhtml_path is None:
-                print("Could not find browserhtml package; perhaps you haven't built Servo.")
-                return 1
+            browserhtml_path = get_browserhtml_path(binary_path)
 
             print("Copying files")
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            shutil.copytree(browserhtml_path, path.join(dir_to_resources, path.basename(browserhtml_path)))
+            shutil.copytree(browserhtml_path, path.join(dir_to_resources, 'browserhtml'))
             shutil.copy2(path.join(dir_to_root, 'Info.plist'), path.join(dir_to_app, 'Contents', 'Info.plist'))
 
             content_dir = path.join(dir_to_app, 'Contents', 'MacOS')
@@ -220,7 +224,7 @@ class PackageCommands(CommandBase):
             delete(template_path)
 
             print("Writing run-servo")
-            bhtml_path = path.join('${0%/*}', '..', 'Resources', path.basename(browserhtml_path), 'out', 'index.html')
+            bhtml_path = path.join('${0%/*}', '..', 'Resources', 'browserhtml', 'index.html')
             runservo = os.open(
                 path.join(content_dir, 'run-servo'),
                 os.O_WRONLY | os.O_CREAT,
@@ -272,11 +276,7 @@ class PackageCommands(CommandBase):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_msi)
             os.makedirs(dir_to_msi)
-            browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
-            if browserhtml_path is None:
-                print("Could not find browserhtml package; perhaps you haven't built Servo.")
-                return 1
-            browserhtml_path = path.join(browserhtml_path, "out")
+            browserhtml_path = get_browserhtml_path(binary_path)
 
             print("Copying files")
             dir_to_resources = path.join(dir_to_msi, 'resources')
@@ -313,10 +313,7 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into {}".format(msi_path))
         else:
             dir_to_temp = path.join(path.dirname(binary_path), 'packaging-temp')
-            browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
-            if browserhtml_path is None:
-                print("Could not find browserhtml package; perhaps you haven't built Servo.")
-                return 1
+            browserhtml_path = get_browserhtml_path(binary_path)
             if path.exists(dir_to_temp):
                 # TODO(aneeshusa): lock dir_to_temp to prevent simultaneous builds
                 print("Cleaning up from previous packaging")
@@ -333,7 +330,7 @@ class PackageCommands(CommandBase):
 
             print("Writing runservo.sh")
             servo_args = ['-b',
-                          path.join('./browserhtml', 'out', 'index.html')]
+                          path.join('./browserhtml', 'index.html')]
 
             runservo = os.open(path.join(dir_to_temp, 'runservo.sh'), os.O_WRONLY | os.O_CREAT, int("0755", 8))
             os.write(runservo, "#!/usr/bin/env sh\n./servo " + ' '.join(servo_args))
