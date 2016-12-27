@@ -1755,13 +1755,15 @@ pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
                             node.flags.contains(InlineFragmentNodeFlags::FIRST_FRAGMENT_OF_ELEMENT)
                         })
                     }) {
-                        // This fragment isn't useful for anything, not even queries.
-                        //
-                        // If we keep fragments like this, they'll cause {ib} splits between every
-                        // pair of blocks in every inline element, putting space between them where
-                        // there shouldn't be any.
+                        // This is the first fragment of an element, and there's no fragment
+                        // following it for us to meld it with, so we have to keep it.
                         retained_leading_fragments.push_back(removed_fragment);
                     }
+                    // Otherwise, this fragment isn't useful for anything, not even queries.
+                    //
+                    // If we keep fragments like that, they'll cause {ib} splits between every
+                    // pair of blocks in every inline element, putting space between them where
+                    // there shouldn't be any.
                 }
             },
         }
