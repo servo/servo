@@ -326,7 +326,7 @@ pub mod basic_shape {
     use gecko_bindings::structs;
     use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleFillRule};
     use gecko_bindings::structs::{nsStyleCoord, nsStyleCorners};
-    use gecko_bindings::structs::StyleClipPathGeometryBox;
+    use gecko_bindings::structs::StyleGeometryBox;
     use gecko_bindings::sugar::ns_style_coord::{CoordDataMut, CoordDataValue};
     use std::borrow::Borrow;
     use values::computed::{BorderRadiusSize, LengthOrPercentage};
@@ -465,9 +465,9 @@ pub mod basic_shape {
         }
     }
 
-    impl From<GeometryBox> for StyleClipPathGeometryBox {
+    impl From<GeometryBox> for StyleGeometryBox {
         fn from(reference: GeometryBox) -> Self {
-            use gecko_bindings::structs::StyleClipPathGeometryBox::*;
+            use gecko_bindings::structs::StyleGeometryBox::*;
             match reference {
                 GeometryBox::ShapeBox(ShapeBox::Content) => Content,
                 GeometryBox::ShapeBox(ShapeBox::Padding) => Padding,
@@ -483,11 +483,10 @@ pub mod basic_shape {
     // Will panic on NoBox
     // Ideally these would be implemented on Option<T>,
     // but coherence doesn't like that and TryFrom isn't stable
-    impl From<StyleClipPathGeometryBox> for GeometryBox {
-        fn from(reference: StyleClipPathGeometryBox) -> Self {
-            use gecko_bindings::structs::StyleClipPathGeometryBox::*;
+    impl From<StyleGeometryBox> for GeometryBox {
+        fn from(reference: StyleGeometryBox) -> Self {
+            use gecko_bindings::structs::StyleGeometryBox::*;
             match reference {
-                NoBox => panic!("Shouldn't convert NoBox to GeometryBox"),
                 Content => GeometryBox::ShapeBox(ShapeBox::Content),
                 Padding => GeometryBox::ShapeBox(ShapeBox::Padding),
                 Border => GeometryBox::ShapeBox(ShapeBox::Border),
@@ -495,6 +494,7 @@ pub mod basic_shape {
                 Fill => GeometryBox::Fill,
                 Stroke => GeometryBox::Stroke,
                 View => GeometryBox::View,
+                _ => panic!("unexpected StyleGeometryBox value"),
             }
         }
     }
