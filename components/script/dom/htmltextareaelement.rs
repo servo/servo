@@ -415,11 +415,11 @@ impl VirtualMethods for HTMLTextAreaElement {
                         }
 
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                        event.PreventDefault();
+                        event.mark_as_handled();
                     }
                     KeyReaction::RedrawSelection => {
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                        event.PreventDefault();
+                        event.mark_as_handled();
                     }
                     KeyReaction::Nothing => (),
                 }

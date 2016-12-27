@@ -1117,11 +1117,11 @@ impl VirtualMethods for HTMLInputElement {
                             }
 
                             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                            event.PreventDefault();
+                            event.mark_as_handled();
                         }
                         RedrawSelection => {
                             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-                            event.PreventDefault();
+                            event.mark_as_handled();
                         }
                         Nothing => (),
                     }
