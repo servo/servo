@@ -3,7 +3,6 @@ skip-check-length = false
 skip-check-licenses = false
 check-ordered-json-keys = [
   "./resources/prefs.json",
-  "./resources/package-prefs.json",
 ]
 lint-scripts = [
   "./python/servo/lints/wpt_lint.py",
