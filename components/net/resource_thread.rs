@@ -325,6 +325,7 @@ impl CoreResourceManager {
             cookie_jar: group.cookie_jar.clone(),
             auth_cache: group.auth_cache.clone(),
             blocked_content: BLOCKED_CONTENT_RULES.clone(),
+            connector_pool: group.connector.clone(),
         };
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
