@@ -333,7 +333,7 @@ mod bindings {
             "StyleBasicShape",
             "StyleBasicShapeType",
             "StyleClipPath",
-            "StyleClipPathGeometryBox",
+            "StyleGeometryBox",
             "StyleTransition",
             "mozilla::UniquePtr",
             "mozilla::DefaultDelete",

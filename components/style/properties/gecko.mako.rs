@@ -1062,10 +1062,10 @@ fn static_assert() {
                                             "table-header-group table-footer-group table-row table-column-group " +
                                             "table-column table-cell table-caption list-item flex none " +
                                             "inline-flex grid inline-grid ruby ruby-base ruby-base-container " +
-                                            "ruby-text ruby-text-container contents -webkit-box -webkit-inline-box " +
-                                            "-moz-box -moz-inline-box -moz-grid -moz-inline-grid -moz-grid-group " +
-                                            "-moz-grid-line -moz-stack -moz-inline-stack -moz-deck -moz-popup " +
-                                            "-moz-groupbox",
+                                            "ruby-text ruby-text-container contents flow-root -webkit-box " +
+                                            "-webkit-inline-box -moz-box -moz-inline-box -moz-grid -moz-inline-grid " +
+                                            "-moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck " +
+                                            "-moz-popup -moz-groupbox",
                                             gecko_enum_prefix="StyleDisplay",
                                             gecko_strip_moz_prefix=False) %>
 
@@ -1401,22 +1401,24 @@ fn static_assert() {
     </%self:simple_image_array_property>
 
     <%self:simple_image_array_property name="clip" shorthand="${shorthand}" field_name="mClip">
+        use gecko_bindings::structs::StyleGeometryBox;
         use properties::longhands::${shorthand}_clip::single_value::computed_value::T;
 
         match servo {
-            T::border_box => structs::NS_STYLE_IMAGELAYER_CLIP_BORDER as u8,
-            T::padding_box => structs::NS_STYLE_IMAGELAYER_CLIP_PADDING as u8,
-            T::content_box => structs::NS_STYLE_IMAGELAYER_CLIP_CONTENT as u8,
+            T::border_box => StyleGeometryBox::Border,
+            T::padding_box => StyleGeometryBox::Padding,
+            T::content_box => StyleGeometryBox::Content,
         }
     </%self:simple_image_array_property>
 
     <%self:simple_image_array_property name="origin" shorthand="${shorthand}" field_name="mOrigin">
+        use gecko_bindings::structs::StyleGeometryBox;
         use properties::longhands::${shorthand}_origin::single_value::computed_value::T;
 
         match servo {
-            T::border_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_BORDER as u8,
-            T::padding_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_PADDING as u8,
-            T::content_box => structs::NS_STYLE_IMAGELAYER_ORIGIN_CONTENT as u8,
+            T::border_box => StyleGeometryBox::Border,
+            T::padding_box => StyleGeometryBox::Padding,
+            T::content_box => StyleGeometryBox::Content,
         }
     </%self:simple_image_array_property>
 
@@ -2236,7 +2238,7 @@ clip-path
     </%self:simple_image_array_property>
     pub fn set_clip_path(&mut self, v: longhands::clip_path::computed_value::T) {
         use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyClipPath};
-        use gecko_bindings::structs::StyleClipPathGeometryBox;
+        use gecko_bindings::structs::StyleGeometryBox;
         use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
         use gecko_bindings::structs::{StyleClipPath, StyleFillRule};
         use gecko::conversions::basic_shape::set_corners_from_radius;
@@ -2257,7 +2259,7 @@ clip-path
             }
             ShapeSource::Shape(servo_shape, maybe_box) => {
                 clip_path.mReferenceBox = maybe_box.map(Into::into)
-                                                   .unwrap_or(StyleClipPathGeometryBox::NoBox);
+                                                   .unwrap_or(StyleGeometryBox::NoBox);
                 clip_path.mType = StyleShapeSourceType::Shape;
 
                 fn init_shape(clip_path: &mut StyleClipPath, ty: StyleBasicShapeType) -> &mut StyleBasicShape {
@@ -2342,7 +2344,7 @@ clip-path
 
     pub fn clone_clip_path(&self) -> longhands::clip_path::computed_value::T {
         use gecko_bindings::structs::StyleShapeSourceType;
-        use gecko_bindings::structs::StyleClipPathGeometryBox;
+        use gecko_bindings::structs::StyleGeometryBox;
         use values::computed::basic_shape::*;
         let ref clip_path = self.gecko.mClipPath;
 
@@ -2356,7 +2358,7 @@ clip-path
                 Default::default()
             }
             StyleShapeSourceType::Shape => {
-                let reference = if let StyleClipPathGeometryBox::NoBox = clip_path.mReferenceBox {
+                let reference = if let StyleGeometryBox::NoBox = clip_path.mReferenceBox {
                     None
                 } else {
                     Some(clip_path.mReferenceBox.into())
