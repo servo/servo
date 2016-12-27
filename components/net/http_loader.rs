@@ -72,6 +72,7 @@ pub struct HttpState {
     pub cookie_jar: Arc<RwLock<CookieStorage>>,
     pub auth_cache: Arc<RwLock<AuthCache>>,
     pub blocked_content: Arc<Option<RuleList>>,
+    pub connector_pool: Arc<Pool<Connector>>,
 }
 
 impl HttpState {
@@ -81,6 +82,7 @@ impl HttpState {
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
             auth_cache: Arc::new(RwLock::new(AuthCache::new())),
             blocked_content: Arc::new(None),
+            connector_pool: create_http_connector(),
         }
     }
 }
@@ -1021,15 +1023,15 @@ fn http_network_fetch(request: Rc<Request>,
 
     // Step 2
     // TODO be able to create connection using current url's origin and credentials
-    let connection = create_http_connector();
 
     // Step 3
     // TODO be able to tell if the connection is a failure
 
     // Step 4
     let factory = NetworkHttpRequestFactory {
-        connector: connection,
+        connector: context.state.connector_pool.clone(),
     };
+
     let url = request.current_url();
 
     let request_id = context.devtools_chan.as_ref().map(|_| {
