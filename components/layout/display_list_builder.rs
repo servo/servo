@@ -1567,9 +1567,9 @@ impl FragmentDisplayListBuilding for Fragment {
         let overflow = base_flow.overflow.paint.translate(&-border_box_offset);
 
         let transform = self.transform_matrix(&border_box);
-        let perspective = match self.style().get_effects().perspective {
+        let perspective = match self.style().get_box().perspective {
             Either::First(length) => {
-                let perspective_origin = self.style().get_effects().perspective_origin;
+                let perspective_origin = self.style().get_box().perspective_origin;
                 let perspective_origin =
                     Point2D::new(model::specified(perspective_origin.horizontal,
                                                   border_box.size.width).to_f32_px(),
@@ -1822,7 +1822,7 @@ impl FragmentDisplayListBuilding for Fragment {
             Some(ref operations) => operations,
         };
 
-        let transform_origin = &self.style.get_effects().transform_origin;
+        let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x = model::specified(transform_origin.horizontal,
                                                   stacking_relative_border_box.size
                                                                               .width).to_f32_px();

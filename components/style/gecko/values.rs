@@ -9,7 +9,7 @@ use cssparser::RGBA;
 use gecko_bindings::structs::{nsStyleCoord, StyleShapeRadius};
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use std::cmp::max;
-use values::{Auto, Either};
+use values::{Auto, Either, None_};
 use values::computed::{Angle, LengthOrPercentageOrNone, Number};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::basic_shape::ShapeRadius;
@@ -201,6 +201,20 @@ impl GeckoStyleCoordConvertible for Auto {
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         if let CoordDataValue::Auto = coord.as_value() {
             Some(Auto)
+        } else {
+            None
+        }
+    }
+}
+
+impl GeckoStyleCoordConvertible for None_ {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        coord.set_value(CoordDataValue::None)
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        if let CoordDataValue::None = coord.as_value() {
+            Some(None_)
         } else {
             None
         }

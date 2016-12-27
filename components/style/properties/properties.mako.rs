@@ -1343,17 +1343,17 @@ impl ComputedValues {
             return transform_style::T::flat;
         }
 
-        if effects.transform_style == transform_style::T::auto {
+        if box_.transform_style == transform_style::T::auto {
             if box_.transform.0.is_some() {
                 return transform_style::T::flat;
             }
-            if let Either::First(ref _length) = effects.perspective {
+            if let Either::First(ref _length) = box_.perspective {
                 return transform_style::T::flat;
             }
         }
 
         // Return the computed value if not overridden by the above exceptions
-        effects.transform_style
+        box_.transform_style
     }
 
     pub fn transform_requires_layer(&self) -> bool {

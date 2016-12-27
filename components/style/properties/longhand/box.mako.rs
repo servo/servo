@@ -1526,6 +1526,228 @@ ${helpers.single_keyword("resize",
                          products="gecko",
                          animatable=False)}
 
+
+// https://drafts.csswg.org/css-transforms/#perspective
+${helpers.predefined_type("perspective",
+                          "LengthOrNone",
+                          "Either::Second(None_)",
+                          gecko_ffi_name="mChildPerspective",
+                          animatable=True)}
+
+// FIXME: This prop should be animatable
+// https://drafts.csswg.org/css-transforms/#perspective-origin-property
+<%helpers:longhand name="perspective-origin" animatable="False">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::specified::{LengthOrPercentage, Percentage};
+
+    pub mod computed_value {
+        use values::computed::LengthOrPercentage;
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T {
+            pub horizontal: LengthOrPercentage,
+            pub vertical: LengthOrPercentage,
+        }
+    }
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(self.horizontal.to_css(dest));
+            try!(dest.write_str(" "));
+            self.vertical.to_css(dest)
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            self.horizontal.has_viewport_percentage() || self.vertical.has_viewport_percentage()
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue {
+        horizontal: LengthOrPercentage,
+        vertical: LengthOrPercentage,
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(self.horizontal.to_css(dest));
+            try!(dest.write_str(" "));
+            self.vertical.to_css(dest)
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T {
+            horizontal: computed::LengthOrPercentage::Percentage(0.5),
+            vertical: computed::LengthOrPercentage::Percentage(0.5),
+        }
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        let result = try!(super::parse_origin(context, input));
+        match result.depth {
+            Some(_) => Err(()),
+            None => Ok(SpecifiedValue {
+                horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
+                vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
+            })
+        }
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            computed_value::T {
+                horizontal: self.horizontal.to_computed_value(context),
+                vertical: self.vertical.to_computed_value(context),
+            }
+        }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            SpecifiedValue {
+                horizontal: ToComputedValue::from_computed_value(&computed.horizontal),
+                vertical: ToComputedValue::from_computed_value(&computed.vertical),
+            }
+        }
+    }
+</%helpers:longhand>
+
+// https://drafts.csswg.org/css-transforms/#backface-visibility-property
+${helpers.single_keyword("backface-visibility",
+                         "visible hidden",
+                         animatable=False)}
+
+// https://drafts.csswg.org/css-transforms/#transform-box
+${helpers.single_keyword("transform-box",
+                         "border-box fill-box view-box",
+                         products="gecko",
+                         animatable=False)}
+
+// `auto` keyword is not supported in gecko yet.
+// https://drafts.csswg.org/css-transforms/#transform-style-property
+${helpers.single_keyword("transform-style",
+                         "auto flat preserve-3d" if product == "servo" else
+                         "flat preserve-3d",
+                         animatable=False)}
+
+// https://drafts.csswg.org/css-transforms/#transform-origin-property
+<%helpers:longhand name="transform-origin" animatable="True">
+    use app_units::Au;
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::specified::{Length, LengthOrPercentage, Percentage};
+
+    pub mod computed_value {
+        use properties::animated_properties::Interpolate;
+        use values::computed::{Length, LengthOrPercentage};
+
+        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T {
+            pub horizontal: LengthOrPercentage,
+            pub vertical: LengthOrPercentage,
+            pub depth: Length,
+        }
+
+        impl Interpolate for T {
+            fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+                Ok(T {
+                    horizontal: try!(self.horizontal.interpolate(&other.horizontal, time)),
+                    vertical: try!(self.vertical.interpolate(&other.vertical, time)),
+                    depth: try!(self.depth.interpolate(&other.depth, time)),
+                })
+            }
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            self.horizontal.has_viewport_percentage() ||
+            self.vertical.has_viewport_percentage() ||
+            self.depth.has_viewport_percentage()
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue {
+        horizontal: LengthOrPercentage,
+        vertical: LengthOrPercentage,
+        depth: Length,
+    }
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(self.horizontal.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.vertical.to_css(dest));
+            try!(dest.write_str(" "));
+            self.depth.to_css(dest)
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            try!(self.horizontal.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.vertical.to_css(dest));
+            try!(dest.write_str(" "));
+            self.depth.to_css(dest)
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T {
+            horizontal: computed::LengthOrPercentage::Percentage(0.5),
+            vertical: computed::LengthOrPercentage::Percentage(0.5),
+            depth: Au(0),
+        }
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        let result = try!(super::parse_origin(context, input));
+        Ok(SpecifiedValue {
+            horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
+            vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
+            depth: result.depth.unwrap_or(Length::Absolute(Au(0))),
+        })
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            computed_value::T {
+                horizontal: self.horizontal.to_computed_value(context),
+                vertical: self.vertical.to_computed_value(context),
+                depth: self.depth.to_computed_value(context),
+            }
+        }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            SpecifiedValue {
+                horizontal: ToComputedValue::from_computed_value(&computed.horizontal),
+                vertical: ToComputedValue::from_computed_value(&computed.vertical),
+                depth: ToComputedValue::from_computed_value(&computed.depth),
+            }
+        }
+    }
+</%helpers:longhand>
+
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
