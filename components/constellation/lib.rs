@@ -44,6 +44,7 @@ extern crate webrender_traits;
 
 mod constellation;
 mod event_loop;
+mod frame;
 mod pipeline;
 #[cfg(not(target_os = "windows"))]
 mod sandboxing;
