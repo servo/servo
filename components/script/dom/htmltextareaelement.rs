@@ -403,17 +403,6 @@ impl VirtualMethods for HTMLTextAreaElement {
                     KeyReaction::DispatchInput => {
                         self.value_changed.set(true);
                         self.update_placeholder_shown_state();
-
-                        if event.IsTrusted() {
-                            let window = window_from_node(self);
-                            let _ = window.user_interaction_task_source().queue_event(
-                                &self.upcast(),
-                                atom!("input"),
-                                EventBubbles::Bubbles,
-                                EventCancelable::NotCancelable,
-                                &window);
-                        }
-
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                         event.mark_as_handled();
                     }
@@ -423,6 +412,16 @@ impl VirtualMethods for HTMLTextAreaElement {
                     }
                     KeyReaction::Nothing => (),
                 }
+            }
+        } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
+            if event.IsTrusted() {
+                let window = window_from_node(self);
+                let _ = window.user_interaction_task_source()
+                              .queue_event(&self.upcast(),
+                                           atom!("input"),
+                                           EventBubbles::Bubbles,
+                                           EventCancelable::NotCancelable,
+                                           &window);
             }
         }
     }
