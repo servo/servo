@@ -86,6 +86,17 @@ pub enum Qualifier {
     Not,
 }
 
+impl ToCss for Qualifier {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write
+    {
+        match *self {
+            Qualifier::Not => write!(dest, "not"),
+            Qualifier::Only => write!(dest, "only"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaQuery {
@@ -115,22 +126,32 @@ impl ToCss for MediaQuery {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
-        if self.qualifier == Some(Qualifier::Not) {
-            try!(write!(dest, "not "));
+        if let Some(qual) = self.qualifier {
+            try!(qual.to_css(dest));
+            try!(write!(dest, " "));
         }
 
         match self.media_type {
-            MediaQueryType::All => try!(write!(dest, "all")),
+            MediaQueryType::All => {
+                // We need to print "all" if there's a qualifier, or there's
+                // just an empty list of expressions.
+                //
+                // Otherwise, we'd serialize media queries like "(min-width:
+                // 40px)" in "all (min-width: 40px)", which is unexpected.
+                if self.qualifier.is_some() || self.expressions.is_empty() {
+                    try!(write!(dest, "all"));
+                }
+            },
             MediaQueryType::Known(MediaType::Screen) => try!(write!(dest, "screen")),
             MediaQueryType::Known(MediaType::Print) => try!(write!(dest, "print")),
             MediaQueryType::Unknown(ref desc) => try!(write!(dest, "{}", desc)),
-        };
+        }
 
         if self.expressions.is_empty() {
             return Ok(());
         }
 
-        if self.media_type != MediaQueryType::All || self.qualifier == Some(Qualifier::Not) {
+        if self.media_type != MediaQueryType::All || self.qualifier.is_some() {
             try!(write!(dest, " and "));
         }
 
@@ -143,10 +164,9 @@ impl ToCss for MediaQuery {
             };
             try!(write!(dest, "{}width: ", mm));
             try!(l.to_css(dest));
-            if i == self.expressions.len() - 1 {
-                try!(write!(dest, ")"));
-            } else {
-                try!(write!(dest, ") and "));
+            try!(write!(dest, ")"));
+            if i != self.expressions.len() - 1 {
+                try!(write!(dest, " and "));
             }
         }
         Ok(())
