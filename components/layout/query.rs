@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use construct::ConstructionResult;
-use context::{ScopedThreadLocalLayoutContext, SharedLayoutContext};
+use context::SharedLayoutContext;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
@@ -29,7 +29,7 @@ use std::cmp::{min, max};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values;
-use style::context::StyleContext;
+use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
 use style::properties::{style_structs, PropertyId, PropertyDeclarationId, LonghandId};
@@ -626,37 +626,46 @@ pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layou
 /// Return the resolved value of property for a given (pseudo)element.
 /// https://drafts.csswg.org/cssom/#resolved-value
 pub fn process_resolved_style_request<'a, N>(shared: &SharedLayoutContext,
-                                             requested_node: N,
+                                             node: N,
                                              pseudo: &Option<PseudoElement>,
                                              property: &PropertyId,
                                              layout_root: &mut Flow) -> String
     where N: LayoutNode,
 {
-    use style::traversal::{clear_descendant_data, style_element_in_display_none_subtree};
-    let element = requested_node.as_element().unwrap();
+    use style::traversal::resolve_style;
+    let element = node.as_element().unwrap();
 
     // We call process_resolved_style_request after performing a whole-document
-    // traversal, so the only reason we wouldn't have an up-to-date style here
-    // is that the requested node is in a display:none subtree. We currently
-    // maintain the invariant that elements in display:none subtrees always have
-    // no ElementData, so we need to temporarily bend those invariants here, and
-    // then throw them the style data away again before returning to preserve them.
-    // We could optimize this later to keep the style data cached somehow, but
-    // we'd need a mechanism to prevent detect when it's stale (since we don't
-    // traverse display:none subtrees during restyle).
-    let display_none_root = if element.get_data().is_none() {
-        let mut tlc = ScopedThreadLocalLayoutContext::new(shared);
-        let context = StyleContext {
-            shared: &shared.style_context,
-            thread_local: &mut tlc.style_context,
-        };
+    // traversal, so in the common case, the element is styled.
+    if element.get_data().is_some() {
+        return process_resolved_style_request_internal(node, pseudo, property, layout_root);
+    }
 
-        Some(style_element_in_display_none_subtree(&context, element,
-                                                   &|e| e.as_node().initialize_data()))
-    } else {
-        None
+    // However, the element may be in a display:none subtree. The style system
+    // has a mechanism to give us that within a defined scope (after which point
+    // it's cleared to maintained style system invariants).
+    let mut tlc = ThreadLocalStyleContext::new(&shared.style_context);
+    let context = StyleContext {
+        shared: &shared.style_context,
+        thread_local: &mut tlc,
     };
+    let mut result = None;
+    let ensure = |el: N::ConcreteElement| el.as_node().initialize_data();
+    let clear = |el: N::ConcreteElement| el.as_node().clear_data();
+    resolve_style(&context, element, &ensure, &clear, |_: &_| {
+        let s = process_resolved_style_request_internal(node, pseudo, property, layout_root);
+        result = Some(s);
+    });
+    result.unwrap()
+}
 
+/// The primary resolution logic, which assumes that the element is styled.
+fn process_resolved_style_request_internal<'a, N>(requested_node: N,
+                                                  pseudo: &Option<PseudoElement>,
+                                                  property: &PropertyId,
+                                                  layout_root: &mut Flow) -> String
+    where N: LayoutNode,
+{
     let layout_el = requested_node.to_threadsafe().as_element().unwrap();
     let layout_el = match *pseudo {
         Some(PseudoElement::Before) => layout_el.get_before_pseudo(),
@@ -690,10 +699,6 @@ pub fn process_resolved_style_request<'a, N>(shared: &SharedLayoutContext,
             return style.computed_value_to_string(PropertyDeclarationId::Custom(name))
         }
     };
-
-    // Clear any temporarily-resolved data to maintain our invariants. See the comment
-    // at the top of this function.
-    display_none_root.map(|r| clear_descendant_data(r, &|e| e.as_node().clear_data()));
 
     let positioned = match style.get_box().position {
         position::computed_value::T::relative |
