@@ -467,6 +467,21 @@ impl ShorthandId {
         }
     }
 
+    // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
+    // values, they no longer use the shared property name "overflow".
+    pub fn overflow_longhands_to_css<'a, W, I>(&self, declarations: I, dest: &mut W) -> fmt::Result
+        where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+        match *self {
+            ShorthandId::Overflow => {
+                match shorthands::overflow::LonghandsToSerialize::from_iter(declarations) {
+                    Ok(longhands) => longhands.to_css_declared_with_name(dest),
+                    Err(_) => Err(fmt::Error)
+                }
+            },
+            _ => Err(fmt::Error)
+        }
+    }
+
     /// Serializes the possible shorthand name with value to input buffer given
     /// a list of longhand declarations.
     ///

@@ -45845,7 +45845,16 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
+    "items": {
+      "testharness": {
+        "cssom/overflow-serialization.html": [
+          {
+            "path": "cssom/overflow-serialization.html",
+            "url": "/cssom/overflow-serialization.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

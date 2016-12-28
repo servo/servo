@@ -111,7 +111,7 @@ impl PropertyDeclarationBlock {
                 // so we treat this as a normal-importance property
                 let importance = Importance::Normal;
                 let appendable_value = shorthand.get_shorthand_appendable_value(list).unwrap();
-                append_declaration_value(dest, appendable_value, importance)
+                append_declaration_value(dest, appendable_value, importance, false)
             }
             Err(longhand_or_custom) => {
                 if let Some(&(ref value, _importance)) = self.get(longhand_or_custom) {
@@ -377,7 +377,8 @@ fn handle_first_serialization<W>(dest: &mut W, is_first_serialization: &mut bool
 pub fn append_declaration_value<'a, W, I>
                            (dest: &mut W,
                             appendable_value: AppendableValue<'a, I>,
-                            importance: Importance)
+                            importance: Importance,
+                            is_overflow_with_name: bool)
                             -> fmt::Result
                             where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
   match appendable_value {
@@ -388,7 +389,11 @@ pub fn append_declaration_value<'a, W, I>
           try!(decl.to_css(dest));
        },
        AppendableValue::DeclarationsForShorthand(shorthand, decls) => {
-          try!(shorthand.longhands_to_css(decls, dest));
+          if is_overflow_with_name {
+            try!(shorthand.overflow_longhands_to_css(decls, dest));
+          } else {
+            try!(shorthand.longhands_to_css(decls, dest));
+          }
        }
   }
 
@@ -414,7 +419,7 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
     // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
     // values, they no longer use the shared property name "overflow" and must be handled differently
     if shorthands::is_overflow_shorthand(&appendable_value) {
-        return append_declaration_value(dest, appendable_value, importance);
+        return append_declaration_value(dest, appendable_value, importance, true);
     }
 
     try!(property_name.to_css(dest));
@@ -434,7 +439,7 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
          &AppendableValue::DeclarationsForShorthand(..) => try!(write!(dest, " "))
     }
 
-    try!(append_declaration_value(dest, appendable_value, importance));
+    try!(append_declaration_value(dest, appendable_value, importance, false));
     write!(dest, ";")
 }
 
