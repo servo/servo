@@ -15,3 +15,15 @@
 .hidden-glyphicon {
   visibility:hidden;
 }
+
+#toolbar {
+  background: rgba(255,255,255,0.5);
+  box-shadow: 0.5em 0.5em 2em lightgrey;
+  position: fixed;
+  top: 1em;
+  right: 1em;
+  padding: 1em;
+  border-radius: 1em;
+  font-weight: bold;
+  text-align: right;
+}

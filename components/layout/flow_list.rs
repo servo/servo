@@ -37,8 +37,9 @@ impl Serialize for FlowList {
                     FlowClass::TableRowGroup => to_value(f.as_table_rowgroup()),
                     FlowClass::TableRow => to_value(f.as_table_row()),
                     FlowClass::TableCell => to_value(f.as_table_cell()),
+                    FlowClass::Flex => to_value(f.as_flex()),
                     FlowClass::ListItem | FlowClass::TableColGroup | FlowClass::TableCaption |
-                    FlowClass::Multicol | FlowClass::MulticolColumn | FlowClass::Flex => {
+                    FlowClass::Multicol | FlowClass::MulticolColumn => {
                         Value::Null // Not implemented yet
                     }
                 })
