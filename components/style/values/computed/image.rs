@@ -470,7 +470,7 @@ impl ToComputedValue for specified::AngleOrCorner {
     fn to_computed_value(&self, _: &Context) -> AngleOrCorner {
         match *self {
             specified::AngleOrCorner::None => {
-                AngleOrCorner::Angle(Angle(0.0))
+                AngleOrCorner::Angle(Angle(PI))
             },
             specified::AngleOrCorner::Angle(angle) => {
                 AngleOrCorner::Angle(angle)
