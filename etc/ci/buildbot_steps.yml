@@ -1,5 +1,5 @@
 mac-rel-wpt1:
-  - ./mach build --release
+  - ./mach build --release --debug-mozjs
   - ./mach test-wpt-failure
   - ./mach test-wpt --release --processes 8 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
@@ -9,7 +9,7 @@ mac-rel-wpt1:
   - bash ./etc/ci/manifest_changed.sh
 
 mac-rel-wpt2:
-  - ./mach build --release
+  - ./mach build --release --debug-mozjs
   - ./mach test-wpt --release --processes 8 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
 
@@ -22,7 +22,7 @@ mac-dev-unit:
   - bash ./etc/ci/manifest_changed.sh
 
 mac-rel-css:
-  - ./mach build --release
+  - ./mach build --release --debug-mozjs
   - ./mach test-css --release --processes 4 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
   - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
   - ./mach build-geckolib --release
@@ -37,11 +37,11 @@ mac-nightly:
   - ./etc/ci/update_brew.sh
 
 linux-rel-intermittent:
-  - ./mach build --release
+  - ./mach build --release --debug-mozjs
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 mac-rel-intermittent:
-  - ./mach build --release
+  - ./mach build --release --debug-mozjs
   - ./etc/ci/check_intermittents.sh --log-raw intermittents.log
 
 linux-dev:
@@ -58,14 +58,14 @@ linux-dev:
   - bash ./etc/ci/check_no_panic.sh
 
 linux-rel-wpt:
-  - ./mach build --release --with-debug-assertions
+  - ./mach build --release --debug-mozjs --with-debug-assertions
   - ./mach test-wpt-failure
   - ./mach test-wpt --release --processes 24 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
 
 linux-rel-css:
-  - ./mach build --release --with-debug-assertions
+  - ./mach build --release --debug-mozjs --with-debug-assertions
   - ./mach test-css --release --processes 16 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
   - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
   - ./mach build-cef --release --with-debug-assertions
