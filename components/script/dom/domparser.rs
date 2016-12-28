@@ -46,7 +46,7 @@ impl DOMParser {
 }
 
 impl DOMParserMethods for DOMParser {
-    // https://domparsing.spec.whatwg.org/#the-domparser-interface
+    // https://w3c.github.io/DOM-Parsing/#the-domparser-interface
     fn ParseFromString(&self,
                        s: DOMString,
                        ty: DOMParserBinding::SupportedType)

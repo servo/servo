@@ -4,7 +4,7 @@
 /*
  * The origin of this IDL file is
  * https://dom.spec.whatwg.org/#element and
- * https://domparsing.spec.whatwg.org/ and
+ * https://w3c.github.io/DOM-Parsing/ and
  * http://dev.w3.org/csswg/cssom-view/ and
  * http://www.w3.org/TR/selectors-api/
  *
@@ -102,7 +102,7 @@ partial interface Element {
   readonly attribute long clientHeight;
 };
 
-// https://domparsing.spec.whatwg.org/#extensions-to-the-element-interface
+// https://w3c.github.io/DOM-Parsing/#extensions-to-the-element-interface
 partial interface Element {
   [Throws,TreatNullAs=EmptyString]
   attribute DOMString innerHTML;
