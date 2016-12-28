@@ -55,7 +55,7 @@ struct FetchResponseCollector {
 
 fn new_fetch_context(dc: Option<Sender<DevtoolsControlMsg>>) -> FetchContext {
     FetchContext {
-        state: HttpState::new(),
+        state: HttpState::new("certs"),
         user_agent: DEFAULT_USER_AGENT.into(),
         devtools_chan: dc,
         filemanager: FileManager::new(),
