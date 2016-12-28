@@ -447,32 +447,45 @@
 
         impl<'a> ToCss for LonghandsToSerialize<'a> {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                let mut all_flags = SerializeFlags::all();
+                let mut _all_flags = SerializeFlags::all();
                 let mut with_variables = false;
                 % for sub_property in shorthand.sub_properties:
                     match *self.${sub_property.ident} {
-                        DeclaredValue::Initial => all_flags &= ALL_INITIAL,
-                        DeclaredValue::Inherit => all_flags &= ALL_INHERIT,
-                        DeclaredValue::Unset => all_flags &= ALL_UNSET,
+                        DeclaredValue::Initial => _all_flags &= ALL_INITIAL,
+                        DeclaredValue::Inherit => _all_flags &= ALL_INHERIT,
+                        DeclaredValue::Unset => _all_flags &= ALL_UNSET,
                         DeclaredValue::WithVariables {..} => with_variables = true,
                         DeclaredValue::Value(..) => {
-                            all_flags = SerializeFlags::empty();
+                            _all_flags = SerializeFlags::empty();
                         }
                     }
                 % endfor
 
-                if with_variables {
-                    // We don't serialize shorthands with variables
-                    dest.write_str("")
-                } else if all_flags == ALL_INHERIT {
-                    dest.write_str("inherit")
-                } else if all_flags == ALL_INITIAL {
-                    dest.write_str("initial")
-                } else if all_flags == ALL_UNSET {
-                    dest.write_str("unset")
-                } else {
-                    self.to_css_declared(dest)
-                }
+                // Overflow does not behave like a normal shorthand. When overflow-x and
+                // overflow-y are not equal values, they no longer use the shared
+                // property name "overflow" and must be handled differently.
+                // CSS-wide keywords are handled inside `to_css_declared` method too.
+                % if shorthand.ident == "overflow":
+                    if with_variables {
+                        // We don't serialize shorthands with variables
+                        dest.write_str("")
+                    } else {
+                        self.to_css_declared(dest)
+                    }
+                % else:
+                    if with_variables {
+                        // We don't serialize shorthands with variables
+                        dest.write_str("")
+                    } else if _all_flags == ALL_INHERIT {
+                        dest.write_str("inherit")
+                    } else if _all_flags == ALL_INITIAL {
+                        dest.write_str("initial")
+                    } else if _all_flags == ALL_UNSET {
+                        dest.write_str("unset")
+                    } else {
+                        self.to_css_declared(dest)
+                    }
+                % endif
             }
         }
 
