@@ -280,7 +280,6 @@ fn resolve_style_internal<E, F>(context: &StyleContext<E>, element: E, ensure_da
         // Compute the parent style if necessary.
         if let Some(parent) = element.parent_element() {
             display_none_root = resolve_style_internal(context, parent, ensure_data);
-            debug_assert!(display_none_root == Some(parent) || parent.has_dirty_descendants());
         }
 
         // Compute our style.

@@ -903,10 +903,19 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
 
     // In the common case we already have the style. Check that before setting
     // up all the computation machinery.
-    if let Some(d) = element.mutate_data() {
-        if let Some(styles) = d.get_styles() {
-            return finish(styles).into_strong();
+    let mut result = element.mutate_data()
+                            .and_then(|d| d.get_styles().map(&finish));
+    if result.is_some() {
+        if consume == structs::ConsumeStyleBehavior::Consume {
+            let mut d = element.mutate_data().unwrap();
+            if !d.is_persistent() {
+                // XXXheycam is it right to persist an ElementData::Restyle?
+                // Couldn't we lose restyle hints that would cause us to
+                // restyle descendants?
+                d.persist();
+            }
         }
+        return result.unwrap().into_strong();
     }
 
     // We don't have the style ready. Go ahead and compute it as necessary.
@@ -916,7 +925,6 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
         shared: &shared,
         thread_local: &mut tlc,
     };
-    let mut result = None;
     let ensure = |el: GeckoElement| { unsafe { el.ensure_data(); } };
     let clear = |el: GeckoElement| el.clear_data();
     resolve_style(&mut context, element, &ensure, &clear,
