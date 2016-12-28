@@ -35,9 +35,6 @@ branches:
   only:
     - master
 
-platform:
-  - x64
-
 cache:
   - .servo -> rust-nightly-date, cargo-commit-hash
   - .cargo -> rust-nightly-date, cargo-commit-hash

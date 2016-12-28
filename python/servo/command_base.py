@@ -110,10 +110,12 @@ def host_triple():
         os_type = "linux-androideabi"
     elif os_type == "windows":
         # If we are in a Visual Studio environment, use msvc
-        if os.getenv("VSInstallDir") is not None:
+        if os.getenv("PLATFORM") is not None:
             os_type = "pc-windows-msvc"
-        else:
+        elif os.getenv("MSYSTEM") is not None:
             os_type = "pc-windows-gnu"
+        else:
+            os_type = "unknown"
     elif os_type.startswith("mingw64_nt-") or os_type.startswith("cygwin_nt-"):
         os_type = "pc-windows-gnu"
     elif os_type == "freebsd":
