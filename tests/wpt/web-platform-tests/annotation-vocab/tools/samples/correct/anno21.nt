@@ -1,0 +1,7 @@
+_:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#SpecificResource> .
+_:b0 <http://www.w3.org/ns/oa#hasSource> <http://example.org/city1> .
+_:b0 <http://www.w3.org/ns/oa#hasPurpose> <http://www.w3.org/ns/oa#tagging> .
+<http://example.org/anno21> <http://www.w3.org/ns/oa#hasBody> _:b0 .
+<http://example.org/anno21> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
+<http://example.org/anno21> <http://www.w3.org/ns/oa#hasTarget> <http://example.org/photo1> .
+<http://example.org/photo1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/dc/dcmitype/StillImage> .

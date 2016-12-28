@@ -1,0 +1,6 @@
+<http://example.org/anno7> <http://www.w3.org/ns/oa#hasTarget> <http://example.org/target1> .
+<http://example.org/anno7> <http://www.w3.org/ns/oa#hasBody> _:b0 .
+<http://example.org/anno7> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
+_:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "Comment text" .
+_:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#TextualBody> .
+_:b0 <http://purl.org/dc/elements/1.1/format> "text/plain" .

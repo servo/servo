@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <script>
+      test(t => {
+        var i = document.createElement('iframe');
+        assert_equals('', i.csp);
+        assert_true('csp' in i);
+        assert_equals('string', typeof i.csp);
+      }, "<iframe> has a 'csp' attibute which is an empty string if undefined.");
+
+      test(t => {
+        var i = document.createElement('iframe');
+        i.setAttribute('csp', 123456);
+        assert_equals('123456', i.csp);
+      }, "<iframe>'s csp attribute is always a string.");
+
+      test(t => {
+        var i = document.createElement('iframe');
+        i.csp = 'value';
+        assert_equals('value', i.getAttribute('csp'));
+      }, "<iframe>'s 'csp content attribute reflects the IDL attribute.");
+
+      test(t => {
+        var i = document.createElement('iframe');
+        i.setAttribute('csp', 'value');
+        assert_equals('value', i.csp);
+      }, "<iframe>'s IDL attribute reflects the DOM attribute.");
+  </script>
+</body>
+</html>

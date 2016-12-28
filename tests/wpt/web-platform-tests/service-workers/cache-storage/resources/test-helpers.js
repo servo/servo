@@ -32,7 +32,7 @@
 function cache_test(test_function, description) {
   promise_test(function(test) {
       return create_temporary_cache(test)
-        .then(test_function);
+        .then(function(cache) { return test_function(cache, test); });
     }, description);
 }
 
@@ -234,4 +234,12 @@ function assert_response_in_array(actual, expected_array, description) {
             return false;
         }
     }), description);
+}
+
+// Deletes all caches, returning a promise indicating success.
+function delete_all_caches() {
+  return self.caches.keys()
+    .then(function(keys) {
+      return Promise.all(keys.map(self.caches.delete.bind(self.caches)));
+    });
 }

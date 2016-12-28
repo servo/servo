@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>window.requestIdleCallback callback behavior during idle periods.</title>
+<link rel="author" title="Ross McIlroy" href="mailto:rmcilroy@chromium.org" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+async_test(function() {
+  // Check that two separate calls to requestIdleCallbacks can run in the same
+  // idle period.
+  var callback_1_deadline;
+  var callback_1_has_run = false;
+  var callback_1 = function(deadline) {
+    callback_1_has_run = true;
+    var remaining = deadline.timeRemaining();
+    if (remaining >= 5) {
+      // Should be enough time to run the next callback in the current idle
+      // period.
+      callback_1_deadline = performance.now() + remaining;
+    }
+  };
+  var callback_2 = this.step_func(function(deadline) {
+    assert_true(callback_1_has_run, "Should run callbacks in order of posting if they don't have a timeout.");
+    if (callback_1_deadline != undefined) {
+      assert_true(performance.now() < callback_1_deadline, "Should be able to run both callbacks in the same idle period.");
+      this.done();
+    } else {
+      // Might not have had enough idle time, so try again.
+      callback_1_has_run = false;
+      setTimeout(function() {
+        requestIdleCallback(callback_1);
+        requestIdleCallback(callback_2);
+      }, 0);
+    }
+  });
+  requestIdleCallback(callback_1);
+  requestIdleCallback(callback_2);
+}, 'requestIdleCallback can run multiple different requestIdleCallback callbacks in the same idle period.');
+
+async_test(function() {
+  // Check that if an idle callback calls requestIdleCallback, the new callback
+  // doesn't get the same deadline (i.e., runs in a new idle period).
+  var previous_deadline = undefined;
+  var idle_callbacks_remaining = 10;
+  var rIC = this.step_func(function(deadline) {
+    var now = performance.now();
+    var remaining = deadline.timeRemaining();
+    var new_deadline = now + remaining;
+    if (previous_deadline != undefined) {
+      assert_true(new_deadline > previous_deadline, "A requestIdleCallback scheduled during an idle period should be called back with a deadline greater than that in the current idle period.");
+    }
+
+    // Schedule a new requestIdleCallback.
+    if (--idle_callbacks_remaining > 0) {
+      previous_deadline = new_deadline;
+      requestIdleCallback(rIC);
+    } else {
+      this.done();
+    }
+  });
+
+  // Spin an empty rAF loop to cause an idle period each frame.
+  var idle_task_posted = false;
+  requestAnimationFrame(function rAFLoop() {
+    if (!idle_task_posted) {
+      requestIdleCallback(rIC);
+      idle_task_posted = true;
+    }
+    requestAnimationFrame(rAFLoop);
+  });
+}, 'Check that if an idle callback calls requestIdleCallback the new callback doesn\'t run in the current idle period.');
+</script>
+<h1>Test of requestIdleCallback idle period behavior</h1>
+<p>This test validates that window.requestIdleCallback deals with callbacks during idle periods correctly.</p>
+<div id="log"></div>

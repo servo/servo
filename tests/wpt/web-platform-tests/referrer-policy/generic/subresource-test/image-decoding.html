@@ -19,7 +19,7 @@
       var messaging_test = async_test("Image is encoding headers as JSON.");
       var urlPath = '/referrer-policy/generic/subresource/image.py';
       var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
-                urlPath;
+                urlPath + "?cache_destroyer=" + (new Date()).getTime();
       queryImage(url, function(message) {
         var pre = document.getElementById('received_message')
         var headers = message.headers;

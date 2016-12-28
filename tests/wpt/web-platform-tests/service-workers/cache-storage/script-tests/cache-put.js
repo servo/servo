@@ -1,6 +1,5 @@
 if (self.importScripts) {
     importScripts('/resources/testharness.js');
-    importScripts('../resources/testharness-helpers.js');
     importScripts('../resources/test-helpers.js');
 }
 
@@ -190,18 +189,20 @@ cache_test(function(cache) {
         });
   }, 'Cache.put with a string request');
 
-cache_test(function(cache) {
-    return assert_promise_rejects(
-      cache.put(new Request(test_url), 'Hello world!'),
+cache_test(function(cache, test) {
+    return promise_rejects(
+      test,
       new TypeError(),
+      cache.put(new Request(test_url), 'Hello world!'),
       'Cache.put should only accept a Response object as the response.');
   }, 'Cache.put with an invalid response');
 
-cache_test(function(cache) {
-    return assert_promise_rejects(
+cache_test(function(cache, test) {
+    return promise_rejects(
+      test,
+      new TypeError(),
       cache.put(new Request('file:///etc/passwd'),
                 new Response(test_body)),
-      new TypeError(),
       'Cache.put should reject non-HTTP/HTTPS requests with a TypeError.');
   }, 'Cache.put with a non-HTTP/HTTPS request');
 
@@ -218,26 +219,29 @@ cache_test(function(cache) {
         });
   }, 'Cache.put with a relative URL');
 
-cache_test(function(cache) {
+cache_test(function(cache, test) {
     var request = new Request('http://example.com/foo', { method: 'HEAD' });
-    return assert_promise_rejects(
-      cache.put(request, new Response(test_body)),
+    return promise_rejects(
+      test,
       new TypeError(),
+      cache.put(request, new Response(test_body)),
       'Cache.put should throw a TypeError for non-GET requests.');
   }, 'Cache.put with a non-GET request');
 
-cache_test(function(cache) {
-    return assert_promise_rejects(
-      cache.put(new Request(test_url), null),
+cache_test(function(cache, test) {
+    return promise_rejects(
+      test,
       new TypeError(),
+      cache.put(new Request(test_url), null),
       'Cache.put should throw a TypeError for a null response.');
   }, 'Cache.put with a null response');
 
-cache_test(function(cache) {
+cache_test(function(cache, test) {
     var request = new Request(test_url, {method: 'POST', body: test_body});
-    return assert_promise_rejects(
-      cache.put(request, new Response(test_body)),
+    return promise_rejects(
+      test,
       new TypeError(),
+      cache.put(request, new Response(test_body)),
       'Cache.put should throw a TypeError for a POST request.');
   }, 'Cache.put with a POST request');
 
@@ -266,20 +270,22 @@ cache_test(function(cache) {
       });
   }, 'getReader() after Cache.put');
 
-cache_test(function(cache) {
-    return assert_promise_rejects(
+cache_test(function(cache, test) {
+    return promise_rejects(
+      test,
+      new TypeError(),
       cache.put(new Request(test_url),
                 new Response(test_body, { headers: { VARY: '*' }})),
-      new TypeError(),
       'Cache.put should reject VARY:* Responses with a TypeError.');
   }, 'Cache.put with a VARY:* Response');
 
-cache_test(function(cache) {
-    return assert_promise_rejects(
+cache_test(function(cache, test) {
+    return promise_rejects(
+      test,
+      new TypeError(),
       cache.put(new Request(test_url),
                 new Response(test_body,
                              { headers: { VARY: 'Accept-Language,*' }})),
-      new TypeError(),
       'Cache.put should reject Responses with an embedded VARY:* with a ' +
       'TypeError.');
   }, 'Cache.put with an embedded VARY:* Response');

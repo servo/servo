@@ -21,7 +21,7 @@ function check_PointerEvent(event, testNamePrefix) {
 
     if (expectedPointerType != null) {
         test(function () {
-            assert_equals(event.pointerType, expectedPointerType, "pointerType should be the same as the requested device.");
+            assert_equals(event.pointerType, expectedPointerType, "pointerType should be the one specified in the test page.");
         }, pointerTestName + " event pointerType is correct.");
     }
 
@@ -201,6 +201,7 @@ function rPointerCapture(e) {
 
 var globalPointerEventTest = null;
 var expectedPointerType = null;
+const ALL_POINTERS = ['mouse', 'touch', 'pen'];
 const HOVERABLE_POINTERS = ['mouse', 'pen'];
 const NOHOVER_POINTERS = ['touch'];
 
@@ -225,6 +226,10 @@ MultiPointerTypeTest.prototype.done = function() {
         prevTest.done();
 }
 
+MultiPointerTypeTest.prototype.step = function(stepFunction) {
+    this.currentTest.step(stepFunction);
+}
+
 MultiPointerTypeTest.prototype.createNextTest = function() {
     if (this.currentTypeIndex < this.types.length) {
         var pointerTypeDescription = document.getElementById('pointerTypeDescription');
@@ -240,5 +245,9 @@ MultiPointerTypeTest.prototype.createNextTest = function() {
 
 
 function setup_pointerevent_test(testName, supportedPointerTypes) {
-   return globalPointerEventTest = new MultiPointerTypeTest(testName, supportedPointerTypes);
+    return globalPointerEventTest = new MultiPointerTypeTest(testName, supportedPointerTypes);
+}
+
+function checkPointerEventType(event) {
+    assert_equals(event.pointerType, expectedPointerType, "pointerType should be the same as the requested device.");
 }

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    var t = async_test('Makes sure that a dynamically added preloaded resource is downloaded');
+</script>
+<body>
+<script>
+    t.step(function() {
+        var link = document.createElement("link");
+        assert_true(link.relList && link.relList.supports && link.relList.supports("preload"), "relList is not defined or browser doesn't support preload.");
+        link.as = "script";
+        link.rel = "preload";
+        link.href = "resources/dummy.js";
+        link.onload = t.step_func(function() {
+            t.step_timeout(function() {
+                assert_equals(performance.getEntriesByType("resource").length, 3);
+                t.done();
+            }, 0);
+        });
+        document.body.appendChild(link);
+    });
+</script>
+</body>

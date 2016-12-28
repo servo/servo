@@ -12,6 +12,25 @@
   </head>
   <body>
     <script>
+    function blobToFormDataResponse(name, blob) {
+      var formData = new FormData();
+      formData.append(name, blob);
+      return new Response(formData);
+    }
+
+    function readBlobAsArrayBuffer(blob) {
+      return new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function(evt) {
+          resolve(reader.result);
+        };
+        reader.onerror = function(evt) {
+          reject("Blob's reader failed");
+        };
+        reader.readAsArrayBuffer(blob);
+      });
+    }
+
     function responsePromise(body, responseInit) {
       return new Promise(function(resolve, reject) {
         resolve(new Response(body, responseInit));
@@ -204,6 +223,73 @@
     checkResponseBody(fetch("../resources/top.txt"), "top", checkBodyText, "from fetch to text");
     checkResponseBody(fetch("../resources/top.txt"), "top", checkBodyArrayBuffer, "from fetch to arrayBuffer");
     checkResponseBody(fetch("../resources/top.txt"), "top", checkBodyFormDataError, "from fetch without correct type to formData (error case)");
+
+    promise_test(function(test) {
+      var response = new Response(new Blob([
+        "--boundary\r\n",
+        "Content-Disposition: form-data; name=string\r\n",
+        "\r\nvalue", new Uint8Array([0xC2, 0xA0]), "1\r\n",
+        "--boundary\r\n",
+        "Content-Disposition: form-data; name=string-with-default-charset\r\n",
+        "Content-Type: text/plain; charset=utf-8\r\n",
+        "\r\nvalue", new Uint8Array([0xC2, 0xA0]), "2\r\n",
+        "--boundary\r\n",
+        "Content-Disposition: form-data; name=string-with-non-default-charset\r\n",
+        "Content-Type: text/plain; charset=iso-8859-1\r\n",
+        "\r\nvalue", new Uint8Array([0xC2, 0xA0]), "3\r\n",
+        "--boundary\r\n",
+        "Content-Disposition: form-data; name=string-with-non-default-type\r\n",
+        "Content-Type: application/octet-stream\r\n",
+        "\r\nvalue", new Uint8Array([0xC2, 0xA0]), "4\r\n",
+        "--boundary\r\n",
+        "Content-Disposition: form-data; name=file; filename=file1\r\n",
+        "Content-Type: application/octet-stream; x-param=x-value\r\n",
+        "\r\n", new Uint8Array([5, 0x0, 0xFF]), "\r\n",
+        "--boundary\r\n",
+        "Content-Disposition: form-data; name=\"file-without-type\"; filename=\"file2\"\r\n",
+        "\r\n", new Uint8Array([6, 0x0, 0x7F, 0xFF]), "\r\n",
+        "--boundary--\r\n"
+      ]), { "headers": [["Content-Type", 'multipart/form-data; boundary="boundary"']] });
+      return response.formData().then(function(bodyAsFormData) {
+        // Non-file parts must always be decoded using utf-8 encoding.
+        assert_equals(bodyAsFormData.get("string"), "value\u00A01", "Retrieve and verify response's 1st entry value");
+        assert_equals(bodyAsFormData.get("string-with-default-charset"), "value\u00A02", "Retrieve and verify response's 2nd entry value");
+        assert_equals(bodyAsFormData.get("string-with-non-default-charset"), "value\u00A03", "Retrieve and verify response's 3rd entry value");
+        assert_equals(bodyAsFormData.get("string-with-non-default-type"), "value\u00A04", "Retrieve and verify response's 4th entry value");
+        // The name of a File must be taken from the filename parameter in
+        // the Content-Disposition header field.
+        assert_equals(bodyAsFormData.get("file").name, "file1", "Retrieve and verify response's 5th entry name property");
+        assert_equals(bodyAsFormData.get("file-without-type").name, "file2", "Retrieve and verify response's 6th entry name property");
+        // The type of a File must be taken from the Content-Type header field
+        // which defaults to "text/plain".
+        assert_equals(bodyAsFormData.get("file").type, "application/octet-stream; x-param=x-value", "Retrieve and verify response's 5th entry type property");
+        assert_equals(bodyAsFormData.get("file-without-type").type, "text/plain", "Retrieve and verify response's 6th entry type property");
+
+        return Promise.resolve().then(function() {
+          return blobToFormDataResponse("file", bodyAsFormData.get("file")).text().then(function(bodyAsText) {
+            // Verify that filename, name and type are preserved.
+            assert_regexp_match(bodyAsText, /\r\nContent-Disposition: *form-data;([^\r\n]*;)* *filename=("?)file1\2[;\r]/i, "Retrieve and verify response's 5th entry filename parameter");
+            assert_regexp_match(bodyAsText, /\r\nContent-Disposition: *form-data;([^\r\n]*;)* *name=("?)file\2[;\r]/i, "Retrieve and verify response's 5th entry name parameter");
+            assert_regexp_match(bodyAsText, /\r\nContent-Type: *application\/octet-stream; x-param=x-value\r\n/i, "Retrieve and verify response's 5th entry type field");
+            // Verify that the content is preserved.
+            return readBlobAsArrayBuffer(bodyAsFormData.get("file")).then(function(arrayBuffer) {
+              assert_array_equals(new Uint8Array(arrayBuffer), new Uint8Array([5, 0x0, 0xFF]), "Retrieve and verify response's 5th entry content");
+            });
+          });
+        }).then(function() {
+          return blobToFormDataResponse("file-without-type", bodyAsFormData.get("file-without-type")).text().then(function(bodyAsText) {
+            // Verify that filename, name and type are preserved.
+            assert_regexp_match(bodyAsText, /\r\nContent-Disposition: *form-data;([^\r\n]*;)* *filename=("?)file2\2[;\r]/i, "Retrieve and verify response's 6th entry filename parameter");
+            assert_regexp_match(bodyAsText, /\r\nContent-Disposition: *form-data;([^\r\n]*;)* *name=("?)file-without-type\2[;\r]/i, "Retrieve and verify response's 6th entry name parameter");
+            assert_regexp_match(bodyAsText, /\r\nContent-Type: *text\/plain\r\n/i, "Retrieve and verify response's 6th entry type field");
+            // Verify that the content is preserved.
+            return readBlobAsArrayBuffer(bodyAsFormData.get("file-without-type")).then(function(arrayBuffer) {
+              assert_array_equals(new Uint8Array(arrayBuffer), new Uint8Array([6, 0x0, 0x7F, 0xFF]), "Retrieve and verify response's 6th entry content");
+            });
+          });
+        });
+      });
+    }, "Consume response's body: from multipart form data blob to formData");
 
     </script>
   </body>

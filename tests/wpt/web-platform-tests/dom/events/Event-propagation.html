@@ -38,4 +38,11 @@ ev.stopImmediatePropagation();
 testPropagationFlag(ev, false, "After stopImmediatePropagation()");
 ev.initEvent("foo", true, false);
 testPropagationFlag(ev, true, "Reinitialized after stopImmediatePropagation()");
+
+var ev = document.createEvent("Event");
+ev.initEvent("foo", true, false);
+ev.cancelBubble = true;
+testPropagationFlag(ev, false, "After cancelBubble=true");
+ev.initEvent("foo", true, false);
+testPropagationFlag(ev, true, "Reinitialized after cancelBubble=true");
 </script>

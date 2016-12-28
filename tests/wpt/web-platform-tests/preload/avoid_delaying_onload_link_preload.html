@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    var t = async_test('Makes sure link preload preloaded resources are not delaying onload');
+</script>
+<link rel=preload href="resources/dummy.js?pipe=trickle(d5)" as=script>
+<script>
+    window.addEventListener("load", t.step_func(function() {
+        assert_equals(performance.getEntriesByType("resource").length, 2);
+        t.done();
+    }));
+</script>

@@ -1118,12 +1118,12 @@
             }
         },
         {
-            "comment": "No percent-encoding at all (!); nuls, tabs, and newlines are removed",
+            "comment": "Simple percent-encoding; nuls, tabs, and newlines are removed",
             "href": "a:/",
             "new_value": "\u0000\u0001\t\n\r\u001f !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\u007f\u0080\u0081Éé",
             "expected": {
-                "href": "a:/#\u0001\u001f !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\u007f\u0080\u0081Éé",
-                "hash": "#\u0001\u001f !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\u007f\u0080\u0081Éé"
+                "href": "a:/#%01%1F !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~%7F%C2%80%C2%81%C3%89%C3%A9",
+                "hash": "#%01%1F !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~%7F%C2%80%C2%81%C3%89%C3%A9"
             }
         },
         {
@@ -1131,8 +1131,8 @@
             "href": "http://example.net",
             "new_value": "%c3%89té",
             "expected": {
-                "href": "http://example.net/#%c3%89té",
-                "hash": "#%c3%89té"
+                "href": "http://example.net/#%c3%89t%C3%A9",
+                "hash": "#%c3%89t%C3%A9"
             }
         }
     ]

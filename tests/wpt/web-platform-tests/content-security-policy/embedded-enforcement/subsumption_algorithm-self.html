@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - 'self' keyword.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "'self' keywords should match.", 
+        "required_csp": "img-src 'self' http://b.com:*", 
+        "returned_csp": "img-src 'self' http://b.com:*",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned CSP does not have to specify 'self'.", 
+        "required_csp": "img-src 'self' http://b.com:*", 
+        "returned_csp": "img-src http://b.com:*",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned CSP must not allow 'self' if required CSP does not.", 
+        "required_csp": "img-src http://b.com:*", 
+        "returned_csp": "img-src 'self' http://b.com:*",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Returned 'self' should match to an origin's url.", 
+        "required_csp": "img-src 'self' http://b.com:*", 
+        "returned_csp": "img-src " + getCrossOrigin(),
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Required 'self' should match to a origin's url.", 
+        "required_csp": "img-src " +  getCrossOrigin() + " http://b.com:*", 
+        "returned_csp": "img-src 'self'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Required 'self' should subsume a more secure version of origin's url.", 
+        "required_csp": "img-src 'self' http://b.com:*", 
+        "returned_csp": "img-src " + getSecureCrossOrigin(),
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned 'self' should not be subsumed by a more secure version of origin's url.", 
+        "required_csp": "img-src " + getSecureCrossOrigin() + " http://b.com:*", 
+        "returned_csp": "img-src 'self'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+    ];
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

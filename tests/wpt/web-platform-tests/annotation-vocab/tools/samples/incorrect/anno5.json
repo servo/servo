@@ -1,0 +1,9 @@
+{
+  "@context": ["http://example.org/not/my/context.json",
+    "http://example.org/nor/this/one.json"
+  ],
+    "id": "http://example.org/anno1",
+  "type": "Annotation",
+  "label": "Bad context",
+  "target": "http://example.org/target"
+}

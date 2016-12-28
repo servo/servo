@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>window.requestIdleCallback exists</title>
+<link rel="author" title="Ross McIlroy" href="mailto:rmcilroy@chromium.org" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(typeof window.requestIdleCallback, "function");
+}, "window.requestIdleCallback is defined", {assert: "The window.requestIdleCallback function is used to request callbacks during browser-defined idle time."});
+
+test(function() {
+  assert_equals(typeof window.cancelIdleCallback, "function");
+}, "window.cancelIdleCallback is defined", {assert: "The window.cancelIdleCallback function is used to cancel callbacks scheduled via requestIdleCallback."});
+
+test(function() {
+  assert_equals(typeof window.requestIdleCallback(function() {}), "number");
+}, "window.requestIdleCallback() returns a number", {assert: "The requestIdleCallback method MUST return a long"});
+
+test(function() {
+  assert_equals(typeof window.cancelIdleCallback(1), "undefined");
+}, "window.cancelIdleCallback() returns undefined", {assert: "The cancelIdleCallback method MUST return void"});
+
+async_test(function() {
+  // Check whether requestIdleCallback schedules a callback which gets executed
+  // and the deadline argument is passed correctly.
+  requestIdleCallback(this.step_func_done(function(deadline) {
+    assert_equals(arguments.length, 1, "Only one argument should be passed to callback.");
+    assert_class_string(deadline, "IdleDeadline");
+    assert_equals(typeof deadline.timeRemaining, "function", "IdleDeadline.timeRemaining MUST be a function which returns the time remaining in milliseconds");
+    assert_equals(typeof deadline.timeRemaining(), "number", "IdleDeadline.timeRemaining MUST return a double of the time remaining in milliseconds");
+    assert_true(deadline.timeRemaining() <= 50, "IdleDeadline.timeRemaining() MUST be less than or equal to 50ms in the future.");
+    assert_equals(typeof deadline.didTimeout, "boolean", "IdleDeadline.didTimeout MUST be a boolean");
+    assert_false(deadline.didTimeout, "IdleDeadline.didTimeout MUST be false if requestIdleCallback wasn't scheduled due to a timeout");
+  }));
+}, 'requestIdleCallback schedules callbacks');
+
+async_test(function() {
+  // Check whether requestIdleCallback schedules a callback which gets executed
+  // and the deadline argument is passed correctly.
+  var handle = requestIdleCallback(this.step_func(function(deadline) {
+    assert_unreached("callback should not be called if canceled with cancelIdleCallback");
+  }));
+  cancelIdleCallback(handle);
+  setTimeout(this.step_func(function() {
+    this.done();
+  }), 200);
+}, 'cancelIdleCallback cancels callbacks');
+
+</script>
+<h1>Basic requestIdleCallback Tests</h1>
+<div id="log"></div>

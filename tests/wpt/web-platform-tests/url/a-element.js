@@ -38,9 +38,6 @@ function runURLTests(urltests) {
       }
 
       assert_equals(url.href, expected.href, "href")
-      if ("origin" in expected) {
-        assert_equals(url.origin, expected.origin, "origin")
-      }
       assert_equals(url.protocol, expected.protocol, "protocol")
       assert_equals(url.username, expected.username, "username")
       assert_equals(url.password, expected.password, "password")

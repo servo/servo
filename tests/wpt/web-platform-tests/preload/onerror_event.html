@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head></head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    var t = async_test('Makes sure that preloaded resources trigger the onerror event');
+    var scriptFailed = false;
+    var styleFailed = false;
+    var imageFailed = false;
+    var fontFailed = false;
+    var videoFailed = false;
+    var audioFailed = false;
+    var trackFailed = false;
+    var gibberishFailed = false;
+    var noTypeFailed = false;
+</script>
+<link rel=preload href="non-existent/dummy.js" as=script onerror="scriptFailed = true;">
+<link rel=preload href="non-existent/dummy.css" as=style onerror="styleFailed = true;">
+<link rel=preload href="non-existent/square.png" as=image onerror="imageFailed = true;">
+<link rel=preload href="non-existent/Ahem.ttf" as=font crossorigin onerror="fontFailed = true;">
+<link rel=preload href="non-existent/test.mp4" as=video onerror="videoFailed = true;">
+<link rel=preload href="non-existent/test.oga" as=audio onerror="audioFailed = true;">
+<link rel=preload href="non-existent/security/captions.vtt" as=media onerror="trackFailed = true;">
+<link rel=preload href="non-existent/dummy.xml" as=foobarxmlthing onerror="gibberishFailed = true;">
+<link rel=preload href="non-existent/dummy.xml" onerror="noTypeFailed = true;">
+<script src="resources/dummy.js?pipe=trickle(d5)"></script>
+<script>
+    window.onload = t.step_func(function() {
+        assert_true(styleFailed, "style triggered error event");
+        assert_true(scriptFailed, "script triggered error event");
+        assert_true(imageFailed, "image triggered error event");
+        assert_true(fontFailed, "font triggered error event");
+        assert_true(videoFailed, "video triggered error event");
+        assert_true(audioFailed, "audio triggered error event");
+        assert_true(trackFailed, "track triggered error event");
+        assert_true(gibberishFailed, "gibberish as value triggered error event");
+        assert_true(noTypeFailed, "empty as triggered error event");
+        t.done();
+    });
+</script>
+</body>
+</html>

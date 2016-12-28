@@ -83,11 +83,8 @@
       "oneOf": [
       {"$ref": "id.json#/definitions/stringUri"},
       {"$ref": "choiceSet.json#/definitions/choiceDetected" },
-      {"$ref": "choiceSet.json#/definitions/compositeDetected" },
-        {"$ref": "choiceSet.json#/definitions/independentsDetected" },
-        {"$ref": "choiceSet.json#/definitions/listDetected" },
-          {"$ref": "specificResource.json#/definitions/specificeResourceDetected" },
-          {"$ref": "#/definitions/externalWebResourceDetected" }
+      {"$ref": "specificResource.json#/definitions/specificeResourceDetected" },
+      {"$ref": "#/definitions/externalWebResourceDetected" }
       ]
     },
 
@@ -100,9 +97,6 @@
       "anyOf": [
       {"$ref": "id.json#/definitions/stringUri"},
       {"$ref": "choiceSet.json#/definitions/choiceDetected" },
-      {"$ref": "choiceSet.json#/definitions/compositeDetected" },
-      {"$ref": "choiceSet.json#/definitions/independentsDetected" },
-      {"$ref": "choiceSet.json#/definitions/listDetected" },
       {"$ref": "specificResource.json#/definitions/specificeResourceDetected" },
       {"$ref": "#/definitions/externalWebResourceDetected" },
       {"$ref": "#/definitions/textualBodyFound" }

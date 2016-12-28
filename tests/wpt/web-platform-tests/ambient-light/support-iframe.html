@@ -1,11 +1,10 @@
 <!DOCTYPE HTML>
 <meta charset="utf-8">
-<input type="text" id="reading" />
 <script>
-
-let sensor = new AmbientLightSensor();
-sensor.start();
-document.getElementById("reading").value = String(sensor.reading);
-sensor.stop();
-
+try {
+  let sensor = new AmbientLightSensor();
+  parent.postMessage( "sensor.start() can be fired within iframes" , '*');
+} catch (e) {
+  parent.postMessage( e.name , '*');
+}
 </script>

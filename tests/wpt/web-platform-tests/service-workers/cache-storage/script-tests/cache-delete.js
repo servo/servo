@@ -1,6 +1,5 @@
 if (self.importScripts) {
     importScripts('/resources/testharness.js');
-    importScripts('../resources/testharness-helpers.js');
     importScripts('../resources/test-helpers.js');
 }
 
@@ -17,10 +16,11 @@ function new_test_response() {
   return new Response('Hello world!', { status: 200 });
 }
 
-cache_test(function(cache) {
-    return assert_promise_rejects(
-      cache.delete(),
+cache_test(function(cache, test) {
+    return promise_rejects(
+      test,
       new TypeError(),
+      cache.delete(),
       'Cache.delete should reject with a TypeError when called with no ' +
       'arguments.');
   }, 'Cache.delete with no arguments');

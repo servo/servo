@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>AmbientLightSensor Test: insecure context</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.w3.org/TR/ambient-light/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<h2>Precondition</h2>
+<ol>
+  <li>
+    Run test in an insecure context, e.g. http://example.com/.
+  </li>
+</ol>
+<div id="log"></div>
+<script>
+
+test(() => {
+  assert_throws('SecurityError', () => {
+    let sensor = new AmbientLightSensor();
+  });
+}, "throw a 'SecurityError' when construct AmbientLightSensor in an insecure context");
+
+</script>

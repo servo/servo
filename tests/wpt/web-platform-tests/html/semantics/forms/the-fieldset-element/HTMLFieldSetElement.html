@@ -38,9 +38,9 @@ test(function () {
 }, "The form attribute must return the fieldset's form owner");
 
 test(function () {
-  assert_true(children_outer instanceof HTMLFormControlsCollection,
-              "The elements attribute should be an HTMLFormControlsCollection object");
-}, "The elements must return an HTMLFormControlsCollection object");
+  assert_equals(children_outer.constructor, HTMLCollection,
+              "The elements attribute should be an HTMLCollection object");
+}, "The elements must return an HTMLCollection object");
 
 test(function () {
   var fs_inner = document.getElementById("fs_inner");

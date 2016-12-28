@@ -3,6 +3,7 @@
   "name": "A single Annotation Collection implements optional keys and meets optional key value constraints",
   "description": "A Collection of Web Annotations: <ul> <li>Should include certain properties (keys)</li> <li>May include additional keys</li> <li>May have creator Agent key values that conform to model recommended constraints</li></ul> Note: failing an assertion indicates only that a recommended or optional feature has not been implemented or has not been implemented correctly. <br/><b>Please fill textarea with json-ld serialization of a single Annotation Collection description</b>",
   "testType": "manual",
+  "skipFailures": [ "should", "may" ],
   "ref": "https://www.w3.org/TR/annotation-model/",
   "assertions": [
     "collections/5.1-collectionLabelImplemented.json",

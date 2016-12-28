@@ -1,0 +1,5 @@
+_:b0 <http://www.w3.org/ns/oa#hasState> <http://example.org/state1> .
+_:b0 <http://www.w3.org/ns/oa#hasSource> <http://example.org/page1> .
+<http://example.org/anno33> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
+<http://example.org/anno33> <http://www.w3.org/ns/oa#hasBody> <http://example.org/note1> .
+<http://example.org/anno33> <http://www.w3.org/ns/oa#hasTarget> _:b0 .

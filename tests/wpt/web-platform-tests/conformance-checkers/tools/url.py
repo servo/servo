@@ -202,7 +202,6 @@ element_attribute_pairs = [
     "del cite",
     "embed src",
     "form action",
-    "html manifest",
     "iframe src",
     "img src", # srcset is tested elsewhere
     "input formaction", # type=submit, type=image
@@ -234,14 +233,6 @@ def write_novalid_files():
                 f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-novalid.html" % (el, attr, desc)), 'wb')
                 f.write(template + '<title>invalid %s: %s</title>\n' % (attr, desc))
                 f.write('<%s %s="%s">\n' % (el, attr, url))
-                f.close()
-            elif ("html" == el):
-                f = open(os.path.join(ccdir, "html/elements/html/manifest/%s-novalid.html" % desc), 'wb')
-                f.write('<!DOCTYPE html>\n')
-                f.write('<html manifest="%s">\n' % url)
-                f.write('<meta charset=utf-8>\n')
-                f.write('<title>invalid manifest: %s</title>\n' %  desc)
-                f.write('</html>\n')
                 f.close()
             elif ("img" == el):
                 f = open(os.path.join(ccdir, "html/elements/img/src/%s-novalid.html" % desc), 'wb')
@@ -309,14 +300,6 @@ def write_haswarn_files():
                 f = open(os.path.join(ccdir, "html/elements/%s/%s/%s-haswarn.html" % (el, attr, desc)), 'wb')
                 f.write(template + '<title>%s warning: %s</title>\n' % (attr, desc))
                 f.write('<%s %s="%s">\n' % (el, attr, url))
-                f.close()
-            elif ("html" == el):
-                f = open(os.path.join(ccdir, "html/elements/html/manifest/%s-haswarn.html" % desc), 'wb')
-                f.write('<!DOCTYPE html>\n')
-                f.write('<html manifest="%s">\n' % url)
-                f.write('<meta charset=utf-8>\n')
-                f.write('<title>%s warning: %s</title>\n' % (attr, desc))
-                f.write('</html>\n')
                 f.close()
             elif ("img" == el):
                 f = open(os.path.join(ccdir, "html/elements/img/src/%s-haswarn.html" % desc), 'wb')
@@ -415,13 +398,6 @@ def write_isvalid_files():
         f = open(os.path.join(ccdir, "html/elements/base/href/%s-isvalid.html" % desc), 'wb')
         f.write(template + '<title>valid href: %s</title>\n' % desc)
         f.write('<base href="%s">\n' % url)
-        f.close()
-        f = open(os.path.join(ccdir, "html/elements/html/manifest/%s-isvalid.html" % desc), 'wb')
-        f.write('<!DOCTYPE html>\n')
-        f.write('<html manifest="%s">\n' % url)
-        f.write('<meta charset=utf-8>\n')
-        f.write('<title>valid manifest: %s</title>\n' % desc)
-        f.write('</html>\n')
         f.close()
     f = open(os.path.join(ccdir, "html/elements/meta/refresh-isvalid.html"), 'wb')
     f.write(template + '<title>valid meta refresh</title>\n')

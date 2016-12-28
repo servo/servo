@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - 'strict-dynamic' keyword.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "'strict-dynamic' is ineffective for `style-src`.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "style-src 'strict-dynamic' http://example1.com/foo/bar.html",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'strict-dynamic' is ineffective for `img-src`.", 
+        "required_csp": "img-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "img-src 'strict-dynamic' http://example1.com/foo/bar.html",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'strict-dynamic' is ineffective for `frame-src`.", 
+        "required_csp": "frame-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "frame-src 'strict-dynamic' http://example1.com/foo/bar.html",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'strict-dynamic' is ineffective for `child-src`.", 
+        "required_csp": "child-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "child-src 'strict-dynamic' http://example1.com/foo/bar.html",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'strict-dynamic' is effective only for `script-src`.", 
+        "required_csp": "script-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "script-src 'strict-dynamic' http://example1.com/foo/bar.html",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "'strict-dynamic' is proper handled for finding effective policy.", 
+        "required_csp": "script-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "script-src 'strict-dynamic' http://example1.com/foo/bar.html",
+        "returned_csp_2": "script-src 'strict-dynamic' 'nonce-abc'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "'strict-dynamic' makes host source expressions ineffective.", 
+        "required_csp": "script-src 'strict-dynamic' 'nonce-abc'", 
+        "returned_csp_1": "script-src http://example.com 'strict-dynamic' 'nonce-abc'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'strict-dynamic' makes scheme source expressions ineffective.", 
+        "required_csp": "script-src 'strict-dynamic' 'nonce-abc'", 
+        "returned_csp_1": "script-src http: 'strict-dynamic' 'nonce-abc'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'strict-dynamic' makes 'self' ineffective.", 
+        "required_csp": "script-src 'strict-dynamic' 'nonce-abc'", 
+        "returned_csp_1": "script-src 'self' 'strict-dynamic' 'nonce-abc'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'strict-dynamic' makes 'unsafe-inline' ineffective.", 
+        "required_csp": "script-src 'strict-dynamic' 'nonce-abc'", 
+        "returned_csp_1": "script-src 'unsafe-inline' 'strict-dynamic' 'nonce-abc'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'strict-dynamic' has to be allowed by required csp if it is present in returned csp.", 
+        "required_csp": "script-src 'nonce-abc'", 
+        "returned_csp_1": "script-src 'strict-dynamic' 'nonce-abc'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+    ];
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp_1);
+        if (test.returned_csp_2)
+          url.searchParams.append("policy2", test.returned_csp_2);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

@@ -1,6 +1,5 @@
 if (self.importScripts) {
     importScripts('/resources/testharness.js');
-    importScripts('../resources/testharness-helpers.js');
     importScripts('../resources/test-helpers.js');
 }
 
@@ -61,7 +60,7 @@ promise_test(function(test) {
     return Promise.all(test_cache_list.map(function(key) {
         return self.caches.open(key);
       }))
-      .then(function() { return caches.open('x'); })
+      .then(function() { return self.caches.open('x'); })
       .then(function(cache) {
           return cache.put(transaction.request.clone(),
                            transaction.response.clone());
@@ -100,7 +99,7 @@ promise_test(function(test) {
       .then(function(response) {
           assert_equals(response, undefined,
                         'The response should not be found.');
-        })
+        });
 }, 'CacheStorageMatch with no cached entry');
 
 promise_test(function(test) {

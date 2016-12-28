@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - 'unsafe-hashed-attributes' keyword.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "'unsafe-hashed-attributes' is properly subsumed.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-eval' 'strict-dynamic' 'unsafe-hashed-attributes'", 
+        "returned_csp_1": "style-src http://example1.com/foo/bar.html 'unsafe-hashed-attributes'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "No other keyword has the same effect as 'unsafe-hashed-attributes'.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-hashed-attributes'", 
+        "returned_csp_1": "style-src http://example1.com/foo/ 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Other expressions have to be subsumed.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-hashed-attributes'", 
+        "returned_csp_1": "style-src http://example1.com/foo/ 'unsafe-inline' 'unsafe-hashed-attributes'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Effective policy is properly found.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self'  'unsafe-hashed-attributes'", 
+        "returned_csp_1": "style-src http://example1.com/foo/ 'unsafe-eval' 'unsafe-hashed-attributes'",
+        "returned_csp_2": "style-src http://example1.com/foo/ 'self' 'unsafe-hashed-attributes'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Required csp must allow 'unsafe-hashed-attributes'.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "style-src http://example1.com/foo/ 'self'  'unsafe-hashed-attributes'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Effective policy is properly found where 'unsafe-hashed-attributes' is not subsumed.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "style-src 'unsafe-eval' 'unsafe-hashed-attributes'",
+        "returned_csp_2": "style-src 'unsafe-hashed-attributes' 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Effective policy is properly found where 'unsafe-hashed-attributes' is not part of it.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "style-src 'unsafe-eval' 'self'",
+        "returned_csp_2": "style-src 'unsafe-hashed-attributes' 'self'",
+        "expected": IframeLoad.EXPECT_LOAD },
+    ];
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp_1);
+        if (test.returned_csp_2)
+          url.searchParams.append("policy2", test.returned_csp_2);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

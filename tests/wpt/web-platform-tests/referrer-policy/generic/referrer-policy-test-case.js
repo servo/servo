@@ -85,9 +85,9 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
       if (delivery_method in elementAttributesForDeliveryMethod) {
         invoker(t._subresourceUrl,
                 callback,
-                elementAttributesForDeliveryMethod[delivery_method]);
+                elementAttributesForDeliveryMethod[delivery_method], t._scenario.referrer_policy);
       } else {
-        invoker(t._subresourceUrl, callback);
+        invoker(t._subresourceUrl, callback, null, t._scenario.referrer_policy);
       }
 
     },

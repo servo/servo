@@ -12,10 +12,14 @@ var metadataElements = {
     crossOrigin: {type: "enum", keywords: ["anonymous", "use-credentials"], nonCanon:{"": "anonymous"}, isNullable: true, defaultVal: null, invalidVal: "anonymous"},
     rel: "string",
     relList: {type: "tokenlist", domAttrName: "rel"},
+    // as: {}, XXX TODO: reflecting IDL attribute is an IDL enumeration
     media: "string",
+    nonce: "string",
+    integrity: "string",
     hreflang: "string",
     type: "string",
     sizes: "settable tokenlist",
+    referrerPolicy: {type: "enum", keywords: ["", "no-referrer", "no-referrer-when-downgrade", "same-origin", "origin", "strict-origin", "origin-when-cross-origin", "strict-origin-when-cross-origin", "unsafe-url"]},
 
     // Obsolete
     charset: "string",

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Element#requestFullscreen() followed by removing the element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+async_test(t => {
+  const target = document.getElementById("target");
+
+  document.onfullscreenchange = t.unreached_func("fullscreenchange event");
+  document.onfullscreenerror = t.step_func_done(() => {
+    assert_equals(document.fullscreenElement, null);
+  });
+
+  trusted_click(t.step_func(() => {
+    target.requestFullscreen();
+    target.remove();
+  }), document.body);
+});
+</script>

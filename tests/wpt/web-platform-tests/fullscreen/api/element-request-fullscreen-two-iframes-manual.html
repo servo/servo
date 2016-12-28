@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Element#requestFullscreen() on two elements in different iframes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<iframe id="a" allowfullscreen></iframe>
+<iframe id="b" allowfullscreen></iframe>
+<script>
+async_test(t => {
+  // Request fullscreen on the body elements of both iframes, but in reverse
+  // tree order.
+  const a = document.getElementById('a');
+  const b = document.getElementById('b');
+
+  // Expect two fullscreenchange events, with document.fullscreenElement
+  // changing in the same order as the requests. (Events should also fire on the
+  // iframes' documents, but this is not covered by this test.)
+  const order = [];
+  document.onfullscreenchange = t.step_func(() => {
+    assert_in_array(document.fullscreenElement, [a, b]);
+    order.push(document.fullscreenElement.id);
+    if (order.length == 2) {
+      assert_array_equals(order, ['b', 'a'],
+                          'fullscreenElement IDs in fullscreenchange events');
+      t.done();
+    }
+  });
+  document.onfullscreenerror = t.unreached_func('fullscreenerror event');
+
+  trusted_click(t.step_func(() => {
+    b.contentDocument.body.requestFullscreen();
+    a.contentDocument.body.requestFullscreen();
+  }), document.body);
+});
+</script>

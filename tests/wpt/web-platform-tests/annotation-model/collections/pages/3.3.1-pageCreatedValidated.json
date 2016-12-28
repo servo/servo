@@ -5,20 +5,12 @@
   "expectedResult": "valid",
   "onUnexpectedResult" : "failAndContinue",
   "errorMessage": "ERROR: Annotation page has multiple created key values or a single created key value that is not of format date-time.",
-  "title": "If present the Annotation page-level **_created_ key** has a **single value** that is of **format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
-  "description": "True when no Annotation page created key present or when created key has a single value that is of format date-time (Section 3.3.1)",
-  "type": "object",
-  "oneOf": [
-      { "allOf": [
-           { "$ref": "otherProperties.json#/definitions/createdValidIfPresent" },
-           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
-         ]
-      },
-      { "properties":
-         {"first":
+  "title": "If present the Annotation page-level **_created_ key** (i.e., in description of Collection included using partOf key) has a **single value** that is of **format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "description": "True when no Annotation page created key present (i.e., in description of Collection included using partOf key) or when created key has a single value that is of format date-time (Section 3.3.1)",
+   "type": "object",
+  "properties":
+  {
+    "partOf":
            { "$ref": "otherProperties.json#/definitions/createdValidIfPresent" }
-         },
-        "required": [ "first" ]
-      }
-  ]
+  }
 }

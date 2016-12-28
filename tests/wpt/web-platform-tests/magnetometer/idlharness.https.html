@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Magnetometer Sensor IDL tests</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.w3.org/TR/magnetometer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<style>
+  pre {
+    display: none;
+  }
+</style>
+<div id="log"></div>
+
+<pre id="idl">
+interface Event {
+};
+
+interface EventTarget {
+};
+
+interface EventHandler {
+};
+
+interface Error {
+};
+
+dictionary EventInit {
+};
+</pre>
+
+<pre id="generic-idl">
+[SecureContext]
+interface Sensor : EventTarget {
+  readonly attribute SensorState state;
+  readonly attribute SensorReading? reading;
+  void start();
+  void stop();
+  attribute EventHandler onchange;
+  attribute EventHandler onactivate;
+  attribute EventHandler onerror;
+};
+
+dictionary SensorOptions {
+  double? frequency;
+};
+
+enum SensorState {
+  "idle",
+  "activating",
+  "activated",
+  "errored"
+};
+
+[SecureContext]
+interface SensorReading {
+  readonly attribute DOMHighResTimeStamp timeStamp;
+};
+
+[SecureContext, Constructor(DOMString type, SensorErrorEventInit errorEventInitDict)]
+interface SensorErrorEvent : Event {
+  readonly attribute Error error;
+};
+
+dictionary SensorErrorEventInit : EventInit {
+  required Error error;
+};
+
+</pre>
+
+<pre id="magnetometer-idl">
+[Constructor(optional SensorOptions sensorOptions)]
+interface Magnetometer : Sensor {
+  readonly attribute MagnetometerReading? reading;
+};
+
+[Constructor(MagnetometerReadingInit magnetometerReadingInit)]
+interface MagnetometerReading : SensorReading {
+    readonly attribute double x;
+    readonly attribute double y;
+    readonly attribute double z;
+};
+
+dictionary MagnetometerReadingInit {
+  double x = 0;
+  double y = 0;
+  double z = 0;
+};
+</pre>
+
+<script>
+(function() {
+  "use strict";
+  var idl_array = new IdlArray();
+  idl_array.add_untested_idls(document.getElementById('idl').textContent);
+  idl_array.add_untested_idls(document.getElementById('generic-idl').textContent);
+  idl_array.add_idls(document.getElementById('magnetometer-idl').textContent);
+
+  idl_array.add_objects({
+    Magnetometer: ['new Magnetometer();'],
+    MagnetometerReading: ['new MagnetometerReading({x: 0.5, y: 0.5, z: 0.5});']
+  });
+
+  idl_array.test();
+})();
+</script>

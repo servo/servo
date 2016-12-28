@@ -5,20 +5,12 @@
   "expectedResult": "valid",
   "onUnexpectedResult" : "failAndContinue",
   "errorMessage": "ERROR: Annotation page has multiple modified key values or a single modified key value that is not of format date-time.",
-  "title": "If present the Annotation page-level **_modified_ key** has a **single value** that is of **format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
-  "description": "True when no Annotation page modified key present or when modified key has a single value that is of format date-time (Section 3.3.1)",
-  "type": "object",
-  "oneOf": [
-      { "allOf": [
-           { "$ref": "otherProperties.json#/definitions/modifiedValidIfPresent" },
-           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
-         ]
-      },
-      { "properties":
-         {"first":
+  "title": "If present the Annotation page-level **_modified_ key** (i.e., in description of Collection included using partOf key) has a **single value** that is of **format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "description": "True when no Annotation page modified key present (i.e., in description of Collection included using partOf key) or when modified key has a single value that is of format date-time (Section 3.3.1)",
+   "type": "object",
+  "properties":
+  {
+    "partOf":
            { "$ref": "otherProperties.json#/definitions/modifiedValidIfPresent" }
-         },
-        "required": [ "first" ]
-      }
-  ]
+  }
 }
