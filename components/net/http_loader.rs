@@ -76,13 +76,13 @@ pub struct HttpState {
 }
 
 impl HttpState {
-    pub fn new() -> HttpState {
+    pub fn new(certificate_path: &str) -> HttpState {
         HttpState {
             hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
             auth_cache: Arc::new(RwLock::new(AuthCache::new())),
             blocked_content: Arc::new(None),
-            connector_pool: create_http_connector(),
+            connector_pool: create_http_connector(certificate_path),
         }
     }
 }

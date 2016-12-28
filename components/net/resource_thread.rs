@@ -109,13 +109,13 @@ fn create_resource_groups(config_dir: Option<&Path>)
         cookie_jar: Arc::new(RwLock::new(cookie_jar)),
         auth_cache: Arc::new(RwLock::new(auth_cache)),
         hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
-        connector: create_http_connector(),
+        connector: create_http_connector("certs"),
     };
     let private_resource_group = ResourceGroup {
         cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
         auth_cache: Arc::new(RwLock::new(AuthCache::new())),
         hsts_list: Arc::new(RwLock::new(HstsList::new())),
-        connector: create_http_connector(),
+        connector: create_http_connector("certs"),
     };
     (resource_group, private_resource_group)
 }
