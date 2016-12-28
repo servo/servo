@@ -4,10 +4,15 @@
 
 mod common {
     use std::env;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
+    use std::sync::Mutex;
+    use std::time::SystemTime;
 
     lazy_static! {
         pub static ref OUTDIR_PATH: PathBuf = PathBuf::from(env::var("OUT_DIR").unwrap()).join("gecko");
+        pub static ref LAST_MODIFIED: Mutex<SystemTime> =
+            Mutex::new(get_modified_time(&env::current_exe().unwrap())
+                       .expect("Failed to get modified time of executable"));
     }
 
     pub const STRUCTS_DEBUG_FILE: &'static str = "structs_debug.rs";
@@ -26,16 +31,21 @@ mod common {
             BuildType::Release => STRUCTS_RELEASE_FILE
         }
     }
+
+    pub fn get_modified_time(file: &Path) -> Option<SystemTime> {
+        file.metadata().and_then(|m| m.modified()).ok()
+    }
 }
 
 #[cfg(feature = "bindgen")]
 mod bindings {
     use libbindgen::{Builder, CodegenConfig};
     use regex::Regex;
+    use std::cmp;
     use std::collections::HashSet;
     use std::env;
     use std::fs::File;
-    use std::io::{BufWriter, Read, Write};
+    use std::io::{Read, Write};
     use std::path::PathBuf;
     use std::sync::Mutex;
     use super::common::*;
@@ -59,9 +69,13 @@ mod bindings {
     fn search_include(name: &str) -> Option<PathBuf> {
         for path in SEARCH_PATHS.iter() {
             let file = path.join(name);
-            if file.is_file() {
-                return Some(file);
+            if !file.is_file() {
+                continue;
             }
+            let modified = get_modified_time(&file).unwrap();
+            let mut last_modified = LAST_MODIFIED.lock().unwrap();
+            *last_modified = cmp::max(modified, *last_modified);
+            return Some(file);
         }
         None
     }
@@ -178,10 +192,25 @@ mod bindings {
         }
     }
 
-    fn write_binding_file(builder: Builder, file: &str) {
-        let bindings = builder.generate().expect("Unable to generate bindings");
-        let binding_file = File::create(&OUTDIR_PATH.join(file)).unwrap();
-        bindings.write(Box::new(BufWriter::new(binding_file))).expect("Unable to write output");
+    struct Fixup {
+        pat: String,
+        rep: String
+    }
+
+    fn write_binding_file(builder: Builder, file: &str, fixups: &[Fixup]) {
+        let out_file = OUTDIR_PATH.join(file);
+        if let Some(modified) = get_modified_time(&out_file) {
+            // Don't generate the file if nothing it depends on was modified.
+            let last_modified = LAST_MODIFIED.lock().unwrap();
+            if *last_modified <= modified {
+                return;
+            }
+        }
+        let mut result = builder.generate().expect("Unable to generate bindings").to_string();
+        for fixup in fixups.iter() {
+            result = Regex::new(&format!(r"\b{}\b", fixup.pat)).unwrap().replace_all(&result, fixup.rep.as_str());
+        }
+        File::create(&out_file).unwrap().write_all(&result.into_bytes()).expect("Unable to write output");
     }
 
     pub fn generate_structs(build_type: BuildType) {
@@ -392,10 +421,6 @@ mod bindings {
                 servo: "AtomicRefCell<ElementData>",
             }
         ];
-        struct Fixup {
-            pat: String,
-            rep: String
-        }
         let mut fixups = vec![
             Fixup {
                 pat: "root::nsString".into(),
@@ -421,12 +446,7 @@ mod bindings {
                 rep: format!("::gecko_bindings::structs::{}", gecko_name)
             });
         }
-        let mut result = builder.generate().expect("Unable to generate bindings").to_string();
-        for fixup in fixups.iter() {
-            result = Regex::new(&format!(r"\b{}\b", fixup.pat)).unwrap().replace_all(&result, fixup.rep.as_str());
-        }
-        File::create(&OUTDIR_PATH.join(structs_file(build_type))).unwrap()
-            .write_all(&result.into_bytes()).unwrap();
+        write_binding_file(builder, structs_file(build_type), &fixups);
     }
 
     pub fn generate_bindings() {
@@ -588,7 +608,7 @@ mod bindings {
             // type with zero_size_type. If we ever introduce immutable borrow types
             // which _do_ need to be opaque, we'll need a separate mode.
         }
-        write_binding_file(builder, BINDINGS_FILE);
+        write_binding_file(builder, BINDINGS_FILE, &Vec::new());
     }
 }
 
