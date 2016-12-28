@@ -1,0 +1,11 @@
+<http://example.org/anno18> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
+<http://example.org/anno18> <http://www.w3.org/ns/oa#hasTarget> <http://example.com/page1> .
+<http://example.org/anno18> <http://www.w3.org/ns/oa#motivatedBy> <http://www.w3.org/ns/oa#bookmarking> .
+<http://example.org/anno18> <http://www.w3.org/ns/oa#hasBody> _:b1 .
+<http://example.org/anno18> <http://www.w3.org/ns/oa#hasBody> _:b0 .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#TextualBody> .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "A good description of the topic that bears further investigation" .
+_:b1 <http://www.w3.org/ns/oa#hasPurpose> <http://www.w3.org/ns/oa#describing> .
+_:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#TextualBody> .
+_:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "readme" .
+_:b0 <http://www.w3.org/ns/oa#hasPurpose> <http://www.w3.org/ns/oa#tagging> .

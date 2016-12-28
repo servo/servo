@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "id": "choiceSet.json",
-  "title": "Definitions: Choice, Composite, List, Independents.",
-  "description": "Schemas in #/definitions detect or validate keys/objects used in describing Choice, Composite, List, Independents (Sections 3.2.7 and 3.2.8).",
+  "title": "Definitions: Choice.",
+  "description": "Schemas in #/definitions detect or validate keys/objects used in describing Choice (Sections 3.2.7 and 3.2.8).",
   "definitions":
   {
 
@@ -55,69 +55,18 @@
       "required": [ "type" ]
     },
 
-    "compositeTypeDefinition":
-    {
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "title": "Definition: Composite type",
-      "description": "True when object has type key and object's type is 'Composite' (Section 3.2.7)",
-      "type": "object",
-      "properties":
-      {
-        "type":
-        {
-          "type": "string",
-          "enum": ["Composite"]
-        }
-      },
-      "required": [ "type" ]
-    },
-
-    "listTypeDefinition":
-    {
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "title": "Definition: List type",
-      "description": "True when object has type key and object's type is 'List' (Section 3.2.7)",
-      "type": "object",
-      "properties":
-      {
-        "type":
-        {
-          "type": "string",
-          "enum": ["List"]
-        }
-      },
-      "required": [ "type" ]
-    },
-
-    "independentsTypeDefinition":
-    {
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "title": "Definition: Independents type",
-      "description": "True when object has type key and object's type is 'Independents' (Section 3.2.7)",
-      "type": "object",
-      "properties":
-      {
-        "type":
-        {
-          "type": "string",
-          "enum": ["Independents"]
-        }
-      },
-      "required": [ "type" ]
-    },
-
     "choiceOrSetTypeDefinition":
     {
        "$schema": "http://json-schema.org/draft-04/schema#",
        "title": "Definition: Choice or Set type",
-       "description": "True when object has type key and object's type is any of 'Choice', 'Composite', 'List', 'Independents' (Section 3.2.7)",
+       "description": "True when object has type key and object's type is any of 'Choice' (Section 3.2.7)",
        "type": "object",
        "properties":
        {
          "type":
          {
            "type": "string",
-           "enum": ["Choice", "Composite", "List", "Independents"]
+           "enum": ["Choice"]
          }
        },
             "required": [ "type" ]
@@ -135,46 +84,10 @@
         ]
     },
 
-    "compositeDetected": {
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "title": "Detection: Composite",
-      "description": "True when object's type is 'Composite' and the object has an items array (Section 3.2.8)",
-      "type": "object",
-      "allOf":
-        [
-        { "$ref": "#/definitions/compositeTypeDefinition" },
-        { "$ref": "#/definitions/itemsDetected" }
-        ]
-    },
-
-    "listDetected": {
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "title": "Detection: List",
-      "description": "True when object's type is 'List' and the object has an items array (Section 3.2.7)",
-      "type": "object",
-      "allOf":
-        [
-        { "$ref": "#/definitions/listTypeDefinition" },
-        { "$ref": "#/definitions/itemsDetected" }
-        ]
-    },
-
-    "independentsDetected": {
-      "$schema": "http://json-schema.org/draft-04/schema#",
-      "title": "Detection: Independents",
-      "description": "True when object's type is 'Independents' and the object has an items array (Section 3.2.7)",
-      "type": "object",
-      "allOf":
-        [
-        { "$ref": "#/definitions/independentsTypeDefinition" },
-        { "$ref": "#/definitions/itemsDetected" }
-        ]
-    },
-
     "choiceOrSetDetected": {
       "$schema": "http://json-schema.org/draft-04/schema#",
       "title": "Detection: Choice or Set",
-      "description": "True when object's type is one of Choice, Composite, List or Independents and the object has an items array (Section 3.2.7)",
+      "description": "True when object's type is one of Choice and the object has an items array (Section 3.2.7)",
       "type": "object",
       "allOf":
         [

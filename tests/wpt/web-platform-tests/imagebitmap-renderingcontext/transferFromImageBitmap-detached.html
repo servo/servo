@@ -28,7 +28,7 @@ promise_test(function() {
     var ctx = srcCanvas.getContext('2d');
     ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
     ctx.fillRect(0, 0, width, height);
-    createImageBitmap(srcCanvas).then(testException);
+    return createImageBitmap(srcCanvas).then(testException);
 }, "Test transferFromImageBitmap(image) with a detached image should throw InvalidStateError");
 
 </script>

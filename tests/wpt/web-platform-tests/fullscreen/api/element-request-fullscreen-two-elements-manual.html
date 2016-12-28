@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Element#requestFullscreen() on two elements in the same document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="a"></div>
+<div id="b"></div>
+<script>
+async_test(t => {
+  // Request fullscreen on both elements, but in reverse tree order.
+  const a = document.getElementById('a');
+  const b = document.getElementById('b');
+
+  // Expect two fullscreenchange events, with document.fullscreenElement
+  // changing in the same order as the requests.
+  const order = [];
+  document.onfullscreenchange = t.step_func(() => {
+    assert_in_array(document.fullscreenElement, [a, b]);
+    order.push(document.fullscreenElement.id);
+    if (order.length == 2) {
+      assert_array_equals(order, ['b', 'a'],
+                          'fullscreenElement IDs in fullscreenchange events');
+      t.done();
+    }
+  });
+  document.onfullscreenerror = t.unreached_func('fullscreenerror event');
+
+  trusted_click(t.step_func(() => {
+    b.requestFullscreen();
+    a.requestFullscreen();
+  }), document.body);
+});
+</script>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Embedding-CSP header.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "Embedding-CSP is not sent if `csp` attribute is not set on <iframe>.", 
+        "csp": null,
+        "expected":  null },
+      { "name": "Send Embedding-CSP when `csp` attribute of <iframe> is not empty.", 
+        "csp": "script-src 'unsafe-inline'",
+        "expected":  "script-src 'unsafe-inline'" },
+      { "name": "Send Embedding-CSP Header on change of `src` attribute on iframe.", 
+        "csp": "script-src 'unsafe-inline'", 
+        "expected":  "script-src 'unsafe-inline'" },
+      { "name": "Wrong value of `csp` should not trigger sending Embedding-CSP Header.", 
+        "csp": "completely wrong csp", 
+        "expected": null},
+    ];
+
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.EMBEDDING_CSP);
+        assert_embedding_csp(t, url, test.csp, test.expected);
+      }, "Test same origin: " + test.name);
+
+      async_test(t => {
+        var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.EMBEDDING_CSP);
+        var redirect_url = generateRedirect(Host.SAME_ORIGIN, url);
+        assert_embedding_csp(t, redirect_url, test.csp, test.expected);
+      }, "Test same origin redirect: " + test.name);
+
+      async_test(t => {
+        var url = generateURLString(Host.SAME_ORIGIN, PolicyHeader.EMBEDDING_CSP);
+        var redirect_url = generateRedirect(Host.CROSS_ORIGIN, url);
+        assert_embedding_csp(t, redirect_url, test.csp, test.expected);
+      }, "Test cross origin redirect: " + test.name);
+
+      async_test(t => {
+        var url = generateURLString(Host.CROSS_ORIGIN, PolicyHeader.EMBEDDING_CSP);
+        var redirect_url = generateRedirect(Host.CROSS_ORIGIN, url);
+        assert_embedding_csp(t, redirect_url, test.csp, test.expected);
+      }, "Test cross origin redirect of cross origin iframe: " + test.name);
+
+      async_test(t => {
+        var i = document.createElement('iframe');
+        if (test.csp)
+          i.csp = test.csp;
+        i.src = generateURLString(Host.SAME_ORIGIN, PolicyHeader.EMBEDDING_CSP);
+        var loaded = false;
+
+        window.addEventListener('message', t.step_func(e => {
+          if (e.source != i.contentWindow || !('embedding_csp' in e.data))
+              return;
+          if (!loaded) {
+            assert_equals(test.expected, e.data['embedding_csp']);
+            loaded = true;
+            i.csp = "default-src 'unsafe-inline'";
+            i.src = generateURLString(Host.CROSS_ORIGIN, PolicyHeader.EMBEDDING_CSP);
+          } else {
+            // Once iframe has loaded, check that on change of `src` attribute
+            // Embedding-CSP value is based on latest `csp` attribute value.
+            assert_equals("default-src 'unsafe-inline'", e.data['embedding_csp']);
+            t.done();
+          }
+        }));
+
+        document.body.appendChild(i);
+      }, "Test Embedding-CSP value on `csp` change: " + test.name);
+    });
+  </script>
+</body>
+</html>

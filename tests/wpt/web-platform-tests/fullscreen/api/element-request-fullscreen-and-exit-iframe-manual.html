@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Element#requestFullscreen() and Document#exitFullscreen() in iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<iframe allowfullscreen></iframe>
+<script>
+async_test(t => {
+  const iframe = document.querySelector('iframe');
+  const iframeDoc = iframe.contentDocument;
+  const iframeBody = iframeDoc.body;
+
+  let count = 0;
+  document.onfullscreenchange = iframeDoc.onfullscreenchange = t.step_func(event => {
+    count++;
+    assert_between_inclusive(count, 1, 4, 'number of fullscreenchange events');
+    const expected = {
+      target: count == 1 || count == 4 ? document : iframeDoc,
+      outerFullscreenElement: count <= 2 ? iframe : null,
+      innerFullscreenElement: count <= 2 ? iframeBody : null,
+    };
+    assert_equals(event.target, expected.target, 'event target');
+    assert_equals(document.fullscreenElement, expected.outerFullscreenElement, 'outer fullscreenElement');
+    assert_equals(iframeDoc.fullscreenElement, expected.innerFullscreenElement, 'inner fullscreenElement');
+    if (count == 2) {
+      iframeDoc.exitFullscreen();
+    } else if (count == 4) {
+      // Done, but set timeout to fail on extra events.
+      setTimeout(t.step_func_done());
+    }
+  });
+  document.onfullscreenerror = t.unreached_func('fullscreenerror event');
+  iframeDoc.onfullscreenerror = t.unreached_func('iframe fullscreenerror event');
+
+  trusted_request(iframeBody, document.body);
+});
+</script>

@@ -43,7 +43,7 @@ promise_test(function() {
     var ctx = srcCanvas.getContext('2d');
     ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
     ctx.fillRect(0, 0, width, height);
-    createImageBitmap(srcCanvas).then(function(image) {
+    return createImageBitmap(srcCanvas).then(function(image) {
         consumeImageBitmap(image, 'false', 0, 127, 0, 255);
     });
 }, "Test that an ImageBitmapRenderingContext with alpha disabled makes the canvas opaque");
@@ -55,7 +55,7 @@ promise_test(function() {
     var ctx = srcCanvas.getContext('2d');
     ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
     ctx.fillRect(0, 0, width, height);
-    createImageBitmap(srcCanvas).then(function(image) {
+    return createImageBitmap(srcCanvas).then(function(image) {
         consumeImageBitmap(image, 'true', 0, 255, 0, 127);
     });
 }, "Test that an ImageBitmapRenderingContext with alpha enabled preserves the alpha");
@@ -67,7 +67,7 @@ promise_test(function() {
     var ctx = srcCanvas.getContext('2d');
     ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
     ctx.fillRect(0, 0, width, height);
-    createImageBitmap(srcCanvas).then(function(image) {
+    return createImageBitmap(srcCanvas).then(function(image) {
         consumeImageBitmap(image, '', 0, 255, 0, 127);
     });
 }, "Test that the 'alpha' context creation attribute is true by default");

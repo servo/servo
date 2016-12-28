@@ -4,23 +4,16 @@
   "assertionType": "may",
   "expectedResult": "valid",
   "onUnexpectedResult" : "passAndContinue",
-  "errorMessage": "Email for Annotation Page Creator (Agent), inherited from Collection, not found. Agents may have one or more email values.",
-  "title": "Implements Annotation Page-level creator (Agent), inherited from Collection, **_email_ key** with one or more values, each of which is a **mailto: uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
-  "description": "True when one or more email values for Annotation Page Creator (Agent), inherited from Collection, is implemented (Section 3.3.2)",
-  "oneOf": [
-      { "allOf": [
-           { "$ref": "#/definitions/creatorAgentEmailFound" },
-           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
-         ]
-      },
-      { "type": "object",
-        "properties":
-         {"first":
+  "errorMessage": "Email for Annotation Page Creator (Agent) (i.e., in description of Collection included using partOf key) not found. Agents may have one or more email values.",
+  "title": "Implements Annotation Page-level creator (Agent) (i.e., in description of Collection included using partOf key) **_email_ key** with one or more values, each of which is a **mailto: uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when one or more email values for Annotation Page Creator (Agent) (i.e., in description of Collection included using partOf key) is implemented (Section 3.3.2)",
+   "type": "object",
+  "properties":
+  {
+    "partOf":
            { "$ref": "#/definitions/creatorAgentEmailFound" }
-         },
-        "required": [ "first" ]
-      }
-  ],
+  },
+  "required": [ "partOf" ],
   "definitions": {
    "creatorAgentEmailFound":
     {  "properties":

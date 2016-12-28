@@ -105,6 +105,20 @@
           assert_throws(new TypeError(), function() { new Request("", options); });
         },"Bad " + parameter +" init parameter value");
       });
+
+      function testOnlyIfCachedMode(fetchMode, ok) {
+        test(function() {
+          var options = {"cache": "only-if-cached", "mode": fetchMode};
+          if (ok)
+            new Request("test", options);
+          else
+            assert_throws(new TypeError(), function() { new Request("test", options); });
+        }, "Request with cache mode: only-if-cached and fetch mode: " + fetchMode);
+      }
+      testOnlyIfCachedMode("same-origin", true);
+      testOnlyIfCachedMode("cors", false);
+      testOnlyIfCachedMode("no-cors", false);
+
     </script>
   </body>
 </html>

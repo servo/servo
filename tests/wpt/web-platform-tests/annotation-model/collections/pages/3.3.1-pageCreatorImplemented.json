@@ -4,23 +4,15 @@
   "assertionType": "may",
   "expectedResult": "valid",
   "onUnexpectedResult" : "passAndContinue",
-  "errorMessage": "Valid Annotation Page-level creator key not found. Annotation Page may have zero or more creators inherited from Collection.",
-  "title": "Implements **Annotation Page-level _creator_ key** which has one or more values, each of which is a **string of format uri** or an **object** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
-  "description": "True when the Annotation Page implements creator key (Section 3.3.1)",
-  "oneOf": [
-      { "allOf": [
-           { "$ref": "#/definitions/creatorImplemented" },
-           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
-         ]
-      },
-      { "type": "object",
-        "properties":
-         {"first":
+  "errorMessage": "Valid Annotation Page-level creator key (i.e., in description of Collection included using partOf key) not found. Annotation Page may have zero or more creators inherited from Collection.",
+  "title": "Implements **Annotation Page-level _creator_ key** (i.e., in description of Collection included using partOf key) which has one or more values, each of which is a **string of format uri** or an **object** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
            { "$ref": "#/definitions/creatorImplemented" }
-         },
-        "required": [ "first" ]
-      }
-  ],
+  },
+  "required": [ "partOf" ],
   "definitions":
   {
     "creatorImplemented":

@@ -23,9 +23,9 @@ function consumeImageBitmap(image, t)
 
     createImageBitmap(myCanvas).then(t.step_func_done(function(imageBitmap) {
         // Per spec, when transferFromImageBitmap happens, the transferred
-        // ImageBitmap (|image| here) should be the intrinsic size of
+        // ImageBitmap (|image| here) must determine the intrinsic size of
         // myCanvas, and hence myCanvas.width/height is ignored. Therefore,
-        // this created |imageBitmap| should have the same size as the |image|.
+        // |imageBitmap| should have the same size as the |image|.
         assert_equals(imageBitmap.width, width);
         assert_equals(imageBitmap.height, height);
 

@@ -3,6 +3,7 @@
 <head>
 <title>Shadow DOM: slotchange event</title>
 <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="author" title="Hayato Ito" href="mailto:hayato@google.com">
 <link rel="help" href="https://dom.spec.whatwg.org/#signaling-slot-change">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -10,8 +11,6 @@
 <body>
 <div id="log"></div>
 <script>
-// FIXME: Fix these test cases once https://github.com/w3c/webcomponents/issues/571 is resolved.
-
 function treeName(mode, connectedToDocument)
 {
     return (mode == 'open' ? 'an ' : 'a ') + mode + ' shadow root '
@@ -490,7 +489,6 @@ function testSlotchangeFiresWhenNestedSlotChange(mode, connectedToDocument)
         outerShadow.appendChild(document.createElement('span'));
         outerSlot = document.createElement('slot');
         outerSlot.addEventListener('slotchange', function (event) {
-            event.stopPropagation();
             test.step(function () {
                 assert_equals(event.target, outerSlot, 'slotchange event\'s target must be the slot element');
             });
@@ -507,7 +505,7 @@ function testSlotchangeFiresWhenNestedSlotChange(mode, connectedToDocument)
         innerSlot.addEventListener('slotchange', function (event) {
             event.stopPropagation();
             test.step(function () {
-                assert_equals(event.target, innerSlot, 'slotchange event\'s target must be the slot element');
+                assert_equals(event.target, outerSlot, 'slotchange event\'s target must be the outer slot element');
             });
             innerSlotEventCount++;
         });
@@ -521,10 +519,10 @@ function testSlotchangeFiresWhenNestedSlotChange(mode, connectedToDocument)
 
     setTimeout(function () {
         test.step(function () {
-            assert_equals(innerSlotEventCount, 1,
-                'slotchange must be fired on a slot element if the assigned nodes changed');
             assert_equals(outerSlotEventCount, 1,
-                'slotchange must be fired on a slot element if the assigned nodes of an inner slot changed');
+                'slotchange must be fired on a slot element if the assigned nodes changed');
+            assert_equals(innerSlotEventCount, 1,
+                'slotchange must be fired on a slot element and must bubble');
         });
         test.done();
     }, 1);
@@ -540,70 +538,51 @@ function testSlotchangeFiresAtEndOfMicroTask(mode, connectedToDocument)
     var test = async_test('slotchange event must fire at the end of current microtask after mutation observers are invoked inside '
         + treeName(mode, connectedToDocument) + ' when slots\'s contents change');
 
-    var outerHost;
-    var innerHost;
-    var outerSlot;
-    var innerSlot;
-    var slotchangeEvents = [];
+    var host;
+    var slot;
+    var eventCount = 0;
 
     test.step(function () {
-        outerHost = document.createElement('div');
+        host = document.createElement('div');
         if (connectedToDocument)
-            document.body.appendChild(outerHost);
+            document.body.appendChild(host);
 
-        var outerShadow = outerHost.attachShadow({'mode': mode});
-        outerShadow.appendChild(document.createElement('span'));
-        outerSlot = document.createElement('slot');
-        outerSlot.addEventListener('slotchange', function (event) {
-            event.stopPropagation();
+        var shadowRoot = host.attachShadow({'mode': mode});
+        slot = document.createElement('slot');
+
+        slot.addEventListener('slotchange', function (event) {
             test.step(function () {
-                assert_equals(event.target, outerSlot, 'slotchange event\'s target must be the slot element');
+                assert_equals(event.type, 'slotchange', 'slotchange event\'s type must be "slotchange"');
+                assert_equals(event.target, slot, 'slotchange event\'s target must be the slot element');
             });
-            slotchangeEvents.push('outer');
+            eventCount++;
         });
 
-        innerHost = document.createElement('div');
-        innerHost.appendChild(outerSlot);
-        outerShadow.appendChild(innerHost);
-
-        var innerShadow = innerHost.attachShadow({'mode': mode});
-        innerShadow.appendChild(document.createElement('span'));
-        innerSlot = document.createElement('slot');
-        innerSlot.addEventListener('slotchange', function (event) {
-            event.stopPropagation();
-            test.step(function () {
-                assert_equals(event.target, innerSlot, 'slotchange event\'s target must be the slot element');
-            });
-            slotchangeEvents.push('inner');
-        });
-        innerShadow.appendChild(innerSlot);
-
-        outerHost.appendChild(document.createElement('span'));
-
-        assert_equals(slotchangeEvents.length, 0, 'slotchange event must not be fired synchronously');
+        shadowRoot.appendChild(slot);
     });
 
     var element = document.createElement('div');
 
     new MutationObserver(function () {
         test.step(function () {
-            assert_equals(slotchangeEvents.length, 0, 'slotchange event must not be fired before mutation records are delivered');
+            assert_equals(eventCount, 0, 'slotchange event must not be fired before mutation records are delivered');
         });
+        host.appendChild(document.createElement('span'));
         element.setAttribute('title', 'bar');
-        innerHost.appendChild(document.createElement('span'));
     }).observe(element, {attributes: true, attributeFilter: ['id']});
 
     new MutationObserver(function () {
         test.step(function () {
-            assert_array_equals(slotchangeEvents, ['outer', 'inner'], 'slotchange event must be fired during a single compound microtask');
+            assert_equals(eventCount, 1, 'slotchange event must be fired during a single compound microtask');
         });
     }).observe(element, {attributes: true, attributeFilter: ['title']});
 
     element.setAttribute('id', 'foo');
+    host.appendChild(document.createElement('div'));
 
     setTimeout(function () {
         test.step(function () {
-            assert_array_equals(slotchangeEvents, ['outer', 'inner', 'inner'],
+            assert_equals(eventCount, 2,
                 'a distinct slotchange event must be enqueued for changes made during a mutation observer delivery');
         });
         test.done();
@@ -614,7 +593,6 @@ testSlotchangeFiresAtEndOfMicroTask('open', true);
 testSlotchangeFiresAtEndOfMicroTask('closed', true);
 testSlotchangeFiresAtEndOfMicroTask('open', false);
 testSlotchangeFiresAtEndOfMicroTask('closed', false);
-
 </script>
 </body>
 </html>

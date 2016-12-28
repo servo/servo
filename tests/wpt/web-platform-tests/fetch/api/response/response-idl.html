@@ -56,8 +56,8 @@
     </script>
     <script>
       var idlsArray = new IdlArray();
-      var idl = document.getElementById("body-idl").innerHTML
-      idl += document.getElementById("response-idl").innerHTML
+      var idl = document.getElementById("body-idl").textContent
+      idl += document.getElementById("response-idl").textContent
 
       idlsArray.add_idls(idl);
       idlsArray.add_untested_idls("interface Headers {};");

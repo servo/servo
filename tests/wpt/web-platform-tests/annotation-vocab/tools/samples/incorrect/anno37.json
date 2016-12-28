@@ -1,0 +1,10 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": ["http://example.org/1", "http://example.org/2"],
+  "type": "Annotation",
+  "label": "no source for specific resource",
+  "body": "http://example.org/post1",
+  "target": {
+    "type": "SpecificResource",
+  }
+}

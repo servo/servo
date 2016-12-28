@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Gyroscope Sensor IDL tests</title>
+<link rel="author" title="Intel" href="http://www.intel.com">
+<link rel="help" href="https://www.w3.org/TR/gyroscope/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<style>
+  pre {
+    display: none;
+  }
+</style>
+<div id="log"></div>
+
+<pre id="idl">
+interface Event {
+};
+
+interface EventTarget {
+};
+
+interface EventHandler {
+};
+
+interface Error {
+};
+
+dictionary EventInit {
+};
+</pre>
+
+<pre id="generic-idl">
+[SecureContext]
+interface Sensor : EventTarget {
+  readonly attribute SensorState state;
+  readonly attribute SensorReading? reading;
+  void start();
+  void stop();
+  attribute EventHandler onchange;
+  attribute EventHandler onactivate;
+  attribute EventHandler onerror;
+};
+
+dictionary SensorOptions {
+  double? frequency;
+};
+
+enum SensorState {
+  "idle",
+  "activating",
+  "activated",
+  "errored"
+};
+
+[SecureContext]
+interface SensorReading {
+  readonly attribute DOMHighResTimeStamp timeStamp;
+};
+
+[SecureContext, Constructor(DOMString type, SensorErrorEventInit errorEventInitDict)]
+interface SensorErrorEvent : Event {
+  readonly attribute Error error;
+};
+
+dictionary SensorErrorEventInit : EventInit {
+  required Error error;
+};
+
+</pre>
+
+<pre id="gyroscope-idl">
+[Constructor(optional SensorOptions sensorOptions)]
+interface Gyroscope : Sensor {
+  readonly attribute GyroscopeReading? reading;
+};
+
+[Constructor(GyroscopeReadingInit GyroscopeReadingInit)]
+interface GyroscopeReading : SensorReading {
+    readonly attribute unrestricted double x;
+    readonly attribute unrestricted double y;
+    readonly attribute unrestricted double z;
+};
+
+dictionary GyroscopeReadingInit {
+    unrestricted double x = 0;
+    unrestricted double y = 0;
+    unrestricted double z = 0;
+};
+</pre>
+
+<script>
+(function() {
+  "use strict";
+  var idl_array = new IdlArray();
+  idl_array.add_untested_idls(document.getElementById('idl').textContent);
+  idl_array.add_untested_idls(document.getElementById('generic-idl').textContent);
+  idl_array.add_idls(document.getElementById('gyroscope-idl').textContent);
+
+  idl_array.add_objects({
+    Gyroscope: ['new Gyroscope();'],
+    GyroscopeReading: ['new GyroscopeReading({x: 0.5, y: 0.5, z: 0.5});']
+  });
+
+  idl_array.test();
+})();
+</script>

@@ -181,6 +181,8 @@ assertions:
     text: "copy<^><eol>"
   - id: 2d.composite.xor
     text: "xor<^><eol>"
+  - id: 2d.composite.clear
+    text: "clear<^><eol>"
 
   - id: 2d.composite.operation.casesensitive
     text: "These values are all case-sensitive<^> <...> they *must* be used exactly as shown."
@@ -584,9 +586,9 @@ assertions:
     text: "If the image argument is <...> an HTMLVideoElement object whose readyState attribute is either HAVE_NOTHING or HAVE_METADATA<^>, then the implementation *must* return without drawing anything."
   - id: 2d.drawImage.zerocanvas
     previously: [ 10, "dw and dh" ]
-    text: "If the image argument is an HTMLCanvasElement object with either a horizontal dimension or a vertical dimension equal to zero, then the implementation *must* raise an INVALID_STATE_ERR exception<^>."
+    text: "If the image argument is an HTMLCanvasElement object with either a horizontal dimension or a vertical dimension equal to zero, then the implementation *must* return without drawing anything<^>."
   - id: 2d.drawImage.zerosource
-    text: "If one of the sw or sh arguments is zero<^>, the implementation *must* raise an INDEX_SIZE_ERR exception."
+    text: "If one of the sw or sh arguments is zero<^>, the implementation *must* return without drawing anything."
   - id: 2d.drawImage.paint
     text: "When drawImage() is invoked, the region of the image specified by the source rectangle *must* be painted on the region of the canvas specified by the destination rectangle<^>, after applying the current transformation matrix to the points of the destination rectangle."
   - id: 2d.drawImage.original

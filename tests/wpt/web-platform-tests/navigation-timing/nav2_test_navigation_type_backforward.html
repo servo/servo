@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script>
+
+            function onload_test()
+            {
+                // do this with a timeout to see the visuals of the navigations.
+                setTimeout("nav_frame();", 100);
+            }
+
+            var step = 1;
+            function nav_frame()
+            {
+                var navigation_frame = document.getElementById("frameContext").contentWindow;
+                switch (step)
+                {
+                    case 1:
+                    {
+                        navigation_frame.location.href = '/navigation-timing/resources/blank_page_green_with_onunload.html';
+                        step++;
+                        break;
+                    }
+                    case 2:
+                    {
+                        assert_equals(navigation_frame.performance.getEntriesByType("navigation")[0].type,
+                                "navigate",
+                                'Expected navigation type to be navigate.');
+                        navigation_frame.history.back();
+                        step++;
+                        break;
+                    }
+                    case 3:
+                    {
+                        assert_equals(navigation_frame.performance.getEntriesByType("navigation")[0].type,
+                                "back_forward",
+                                'Expected navigation type to be back_forward.');
+                        step++;
+                        navigation_frame.history.forward();
+                        break;
+                    }
+                    case 4:
+                    {
+                        assert_equals(navigation_frame.performance.getEntriesByType("navigation")[0].type,
+                                "back_forward",
+                                'Expected navigation type to be back_forward.');
+                        done();
+                        step++;
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }
+        </script>
+
+    </head>
+    <body>
+        <h1>
+            Description</h1>
+        <p>
+            This test validates the value of window.performance.getEntriesByType("navigation")[0].type with a forward
+            and back navigation.</p>
+
+        <p>This page should be loaded with a yellow background frame below.  It should turn green for a starting
+            navigation, back to yellow for a back navigation and then back to green again for a forward navigation.</p>
+
+        <p>Along the navigation timeline the window.performance.getEntriesByType("navigation")[0].type is checked for back_forward.</p>
+
+        <p>This test passes if all of the checks to the window.performance.getEntriesByType("navigation")[0].type are correct throughout the navigation
+            scenario and the frame below ends with a green background.  Otherwise, this test fails.</p>
+
+        <iframe id="frameContext" onload="onload_test();" src="resources/blank_page_yellow_with_onunload.html" style="width: 250px; height: 250px;"></iframe>
+    </body>
+</html>

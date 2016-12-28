@@ -10,7 +10,7 @@
 <input type=radio name=group1 id=radio2>
 
 <input type=radio name=groüp2 id=radio3>
-<input type=radio name=groÜp2 id=radio4>
+<input type=radio name=groüp2 id=radio4>
 
 <input type=radio id=radio5>
 <input type=radio id=radio6 disabled>
@@ -22,7 +22,6 @@
 <input type=radio name=group3 id=radio9>
 <input type=radio name=group4 id=radio10>
 <input type=radio name=group4 id=radio11 checked>
-
 
 <script>
   var radio1 = document.getElementById('radio1'),
@@ -64,7 +63,7 @@
     radio4.checked = true;
     assert_false(radio3.checked);
     assert_true(radio4.checked);
-  }, "radio inputs with name attributes groüp2 and groÜp2 belong to the same radio button group");
+  }, "radio inputs with non-ASCII name attributes belong to the same radio button group");
 
   test(function(){
     assert_true(radio8.checked);

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; default-src 'none'">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    var t = async_test('Makes sure that preload requests respect CSP');
+</script>
+<link rel=preload href="{{host}}:{{ports[http][1]}}/preload/resources/dummy.js" as=style>
+<link rel=preload href="resources/dummy.css" as=style>
+<link rel=preload href="resources/square.png" as=image>
+<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin>
+<link rel=preload href="/media/white.mp4" as=media>
+<link rel=preload href="/media/sound_5.oga" as=media>
+<link rel=preload href="/media/foo.vtt" as=media>
+<link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing>
+<link rel=preload href="resources/dummy.xml">
+<body>
+<script src="resources/dummy.js?pipe=trickle(d5)"></script>
+<script>
+    var assertRequestTerminated = function(url) {
+        var entries = performance.getEntriesByName(new URL(url, location.href).href);
+        assert_equals(entries.length, 0);
+    };
+    window.onload = t.step_func(function() {
+        assertRequestTerminated("{{host}}:{{ports[http][1]}}/preload/resources/dummy.js");
+        assertRequestTerminated("resources/dummy.css");
+        assertRequestTerminated("resources/square.png");
+        assertRequestTerminated("/fonts/CanvasTest.ttf");
+        assertRequestTerminated("/media/white.mp4");
+        assertRequestTerminated("/media/sound_5.oga");
+        assertRequestTerminated("/media/foo.vtt");
+        assertRequestTerminated("resources/dummy.xml");
+        t.done();
+    });
+</script>
+

@@ -3,6 +3,7 @@
 <title>Focus fixup rule one (no &lt;dialog>s involved)</title>
 <link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
 <link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#focus-fixup-rule-one">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#attr-fieldset-disabled">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -10,13 +11,16 @@
   <button id="button1">Button 1</button>
   <button id="button2">Button 2</button>
   <button id="button3">Button 3</button>
+  <fieldset id="fieldset1"><button id="button4">Button 4</button></fieldset>
+  <fieldset id="fieldset2" disabled><legend><button id="button5">Button 5</button></legend></fieldset>
   <div id="div" tabindex="0">Div</div>
+  <div id="editable" contenteditable=true>editor</div>
 </div>
 
 <script>
 "use strict";
 
-async_test(t => {
+test(() => {
   const button = document.querySelector("#button1");
   button.focus();
 
@@ -56,6 +60,30 @@ test(() => {
 }, "Removing the active element from the DOM");
 
 test(() => {
+  const fieldset = document.querySelector("#fieldset1");
+  const button = document.querySelector("#button4");
+  button.focus();
+  assert_equals(document.activeElement, button, "Sanity check: the button must start focused");
+
+  fieldset.disabled = true;
+
+  assert_not_equals(document.activeElement, button, "After disabling ancestor fieldset, the button must no longer be focused");
+  assert_equals(document.activeElement, document.body, "After disabling ancestor fieldset, the body must be focused");
+}, "Disabling <fieldset> affects its descendants");
+
+test(() => {
+  const fieldset = document.querySelector("#fieldset2");
+  const button = document.querySelector("#button5");
+  button.focus();
+  assert_equals(document.activeElement, button, "Sanity check: the button must start focused");
+
+  fieldset.insertBefore(document.createElement("legend"), fieldset.firstChild);
+
+  assert_not_equals(document.activeElement, button, "After changing a legend element, the button must no longer be focused");
+  assert_equals(document.activeElement, document.body, "After changing a legend element, the body must be focused");
+}, "Changing the first legend element in disabled <fieldset>");
+
+test(() => {
   const div = document.querySelector("#div");
   div.focus();
 
@@ -68,4 +96,14 @@ test(() => {
 
 }, "Removing the tabindex attribute from a div");
 
+test(() => {
+  const div = document.querySelector("#editable");
+  div.focus();
+  assert_equals(document.activeElement, div, "Sanity check: the div must start focused");
+
+  div.contentEditable = false;
+
+  assert_not_equals(document.activeElement, div, "After disabling contentEditable, the div must no longer be focused");
+  assert_equals(document.activeElement, document.body, "After disabling contentEditable, the body must be focused");
+}, "Disabling contenteditable");
 </script>

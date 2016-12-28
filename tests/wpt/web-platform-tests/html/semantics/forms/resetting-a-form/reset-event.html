@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Test aspects of the reset event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  async_test((t) => {
+    var form = document.createElement("form")
+    form.onreset = t.step_func_done((e) => {
+      assert_true(e.bubbles)
+      assert_true(e.cancelable)
+      assert_true(e.isTrusted)
+      assert_equals(e.target, form)
+    })
+    form.reset()
+    assert_unreached()
+  })
+</script>

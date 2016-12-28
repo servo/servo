@@ -1,0 +1,100 @@
+  <!DOCTYPE html>
+  <html>
+      <head>
+          <meta charset="utf-8" />
+          <title>Navigation Timing 2 WPT</title>
+          <link rel="author" title="Google" href="http://www.google.com/" />
+          <link rel="help" href="http://www.w3.org/TR/navigation-timing-2/#sec-PerformanceNavigationTiming"/>
+          <script src="/resources/testharness.js"></script>
+          <script src="/resources/testharnessreport.js"></script>
+          <script>
+              var navTiming2Attributes = [
+                  'connectEnd',
+                  'connectStart',
+                  'decodedBodySize',
+                  'domComplete',
+                  'domContentLoadedEventEnd',
+                  'domContentLoadedEventStart',
+                  'domInteractive',
+                  'domainLookupEnd',
+                  'domainLookupStart',
+                  'duration',
+                  'encodedBodySize',
+                  'entryType',
+                  'fetchStart',
+                  'initiatorType',
+                  'loadEventEnd',
+                  'loadEventStart',
+                  'name',
+                  'redirectCount',
+                  'redirectEnd',
+                  'redirectStart',
+                  'requestStart',
+                  'responseEnd',
+                  'responseStart',
+                  'secureConnectionStart',
+                  'transferSize',
+                  'type',
+                  'unloadEventEnd',
+                  'unloadEventStart',
+                  'workerStart'
+              ];
+
+              var originalTiming = {};
+              var didOpen = false;
+
+              function onload_test()
+              {
+                  if (!didOpen) {
+                      setTimeout(testTimingWithDocumentOpen, 0);
+                      didOpen = true;
+                  }
+              }
+
+              function testTimingWithDocumentOpen()
+              {
+                  var subcontentWindow = document.getElementById("frameContext").contentWindow;
+
+                  var timing = subcontentWindow.performance.getEntriesByType("navigation")[0];
+                  for (i in navTiming2Attributes) {
+                      originalTiming[navTiming2Attributes[i]] = timing[navTiming2Attributes[i]];
+                  }
+
+                  var subdocument = subcontentWindow.document;
+                  subdocument.open();
+                  subdocument.write('<!DOCTYPE HTML>');
+                  subdocument.write('<html>');
+                  subdocument.write('<head>');
+                  subdocument.write('<meta charset="utf-8" />');
+                  subdocument.write('<title><Green Test Page</title>');
+                  subdocument.write('</head>');
+                  subdocument.write('<body style="background-color:#00FF00;">');
+                  subdocument.write('</body>');
+                  subdocument.write('</html>');
+                  subdocument.close();
+
+                  setTimeout(function() {
+                      var timing = subcontentWindow.performance.getEntriesByType("navigation")[0];
+                      for (var i in navTiming2Attributes) {
+                          assert_equals(originalTiming[navTiming2Attributes[i]], timing[navTiming2Attributes[i]],
+                            navTiming2Attributes[i] + " is the same after document open.");
+                      }
+                      done();
+                  }, 0);
+              }
+          </script>
+      </head>
+      <body>
+          <h1>Description</h1>
+          <p>This test validates window.performance.getEntriesByType("navigation") remains constant when a
+          document is replaced using document.open.</p>
+
+          <p>This page should be loaded with a yellow frame below. It then replaces the
+          document in that frame with a green document.</p>
+
+          <p>The test passes if all of the checks to performance.getEntriesByType("navigation") are correct and
+          the frame below ends with a green background.</p>
+
+          <iframe id="frameContext" onload="onload_test();" src="resources/blank_page_yellow.html" style="width: 250px; height: 250px;"></iframe>
+      </body>
+  </html>

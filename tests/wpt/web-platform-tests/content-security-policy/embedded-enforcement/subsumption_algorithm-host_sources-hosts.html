@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - Host parts in host source expressions.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "Host must match.", 
+        "required_csp": "img-src http://c.com", 
+        "returned_csp": "img-src http://b.com",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Hosts without wildcards must match.", 
+        "required_csp": "img-src http://c.com:* http://inner.b.com", 
+        "returned_csp": "img-src http://b.com",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "More specific subdomain should not match.", 
+        "required_csp": "img-src http://c.com:* http://b.com", 
+        "returned_csp": "img-src http://inner.b.com",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Specified host should not match a wildcard host.", 
+        "required_csp": "img-src http://c.com:* http://inner.b.com", 
+        "returned_csp": "img-src http://*.b.com",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "A wildcard host should match a more specific host.", 
+        "required_csp": "img-src http://c.com:* http://*.b.com", 
+        "returned_csp": "img-src https://inner.b.com",
+        "expected": IframeLoad.EXPECT_LOAD },
+    ];
+
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

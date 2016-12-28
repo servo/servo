@@ -4,23 +4,16 @@
   "assertionType": "may",
   "expectedResult": "valid",
   "onUnexpectedResult" : "passAndContinue",
-  "errorMessage": "Valid Annotation Page-level modified key not found. Annotation Page may have zero or exactly one modified key value inherited from Collection.",
-  "title": "Implements Annotation Page-level **_modified_ key** which has a **single value** that is a **string of format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
-  "description": "True when the Annotation Page implements exactly one modified key value (Section 3.3.1, 5.2)",
-  "oneOf": [
-      { "allOf": [
-           { "$ref": "#/definitions/modifiedImplemented" },
-           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
-         ]
-      },
-      { "type": "object",
-        "properties":
-         {"first":
+  "errorMessage": "Valid Annotation Page-level modified key (i.e., in description of Collection included using partOf key) not found. Annotation Page may have zero or exactly one modified key value inherited from Collection.",
+  "title": "Implements Annotation Page-level **_modified_ key** (i.e., in description of Collection included using partOf key) which has a **single value** that is a **string of format date-time** - [model 3.3.1](https://www.w3.org/TR/annotation-model/#lifecycle-information)",
+  "description": "True when the Annotation Page implements exactly one modified key value (i.e., in description of Collection included using partOf key) (Section 3.3.1, 5.2)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
            { "$ref": "#/definitions/modifiedImplemented" }
-         },
-        "required": [ "first" ]
-      }
-  ],
+  },
+  "required": [ "partOf" ],
   "definitions":
   {
     "modifiedImplemented":

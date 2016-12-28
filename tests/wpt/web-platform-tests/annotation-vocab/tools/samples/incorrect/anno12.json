@@ -1,0 +1,8 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": ["http://example.org/1", "http://example.org/2"],
+  "type": "Annotation",
+  "label": "bad body",
+  "body": "this is not a uri",
+  "target": "http://example.org/post1",
+}

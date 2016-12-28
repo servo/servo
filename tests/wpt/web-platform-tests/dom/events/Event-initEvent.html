@@ -85,6 +85,7 @@ test(function() {
   var target = document.createElement("div")
   var called = false
   target.addEventListener("type", function() { called = true }, false)
+  assert_false(e.cancelBubble, "cancelBubble must be false")
   assert_true(target.dispatchEvent(e), "dispatchEvent must return true")
   assert_true(called, "Listener must be called")
 }, "Calling initEvent must unset the stop propagation flag.")

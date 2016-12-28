@@ -74,8 +74,8 @@
     </script>
     <script>
       var idlsArray = new IdlArray();
-      var idl = document.getElementById("body-idl").innerHTML
-      idl += document.getElementById("request-idl").innerHTML
+      var idl = document.getElementById("body-idl").textContent
+      idl += document.getElementById("request-idl").textContent
 
       idlsArray.add_idls(idl);
       idlsArray.add_untested_idls("interface Headers {};");

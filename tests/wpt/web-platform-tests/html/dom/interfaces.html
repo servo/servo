@@ -1017,15 +1017,20 @@ interface HTMLBaseElement : HTMLElement {
            attribute DOMString target;
 };
 
+[HTMLConstructor]
 interface HTMLLinkElement : HTMLElement {
-           attribute DOMString href;
-           attribute DOMString? crossOrigin;
-           attribute DOMString rel;
-  [PutForwards=value] readonly attribute DOMTokenList relList;
-           attribute DOMString media;
-           attribute DOMString hreflang;
-           attribute DOMString type;
-  [PutForwards=value] readonly attribute DOMTokenList sizes;
+  [CEReactions] attribute USVString href;
+  [CEReactions] attribute DOMString? crossOrigin;
+  [CEReactions] attribute DOMString rel;
+  // [CEReactions] attribute RequestDestination as; // (default "") XXX TODO
+  [CEReactions, SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
+  [CEReactions] attribute DOMString media;
+  [CEReactions] attribute DOMString nonce;
+  [CEReactions] attribute DOMString integrity;
+  [CEReactions] attribute DOMString hreflang;
+  [CEReactions] attribute DOMString type;
+  [CEReactions, SameObject, PutForwards=value] readonly attribute DOMTokenList sizes;
+  [CEReactions] attribute DOMString referrerPolicy;
 
   // also has obsolete members
 };
@@ -1098,16 +1103,21 @@ interface HTMLDivElement : HTMLElement {
   // also has obsolete members
 };
 
+[HTMLConstructor]
 interface HTMLAnchorElement : HTMLElement {
-  attribute DOMString target;
-  attribute DOMString download;
+  [CEReactions] attribute DOMString target;
+  [CEReactions] attribute DOMString download;
   [CEReactions] attribute USVString ping;
-  attribute DOMString rel;
-  [PutForwards=value] readonly attribute DOMTokenList relList;
-  attribute DOMString hreflang;
-  attribute DOMString type;
+  [CEReactions] attribute DOMString rel;
+  [CEReactions, SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
+  [CEReactions] attribute DOMString hreflang;
+  [CEReactions] attribute DOMString type;
 
-  attribute DOMString text;
+  [CEReactions] attribute DOMString text;
+
+  [CEReactions] attribute DOMString referrerPolicy;
+
+  // also has obsolete members
 };
 HTMLAnchorElement implements HTMLHyperlinkElementUtils;
 
@@ -1138,37 +1148,41 @@ partial interface HTMLSourceElement {
            attribute DOMString media;
 };
 
-[NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
+[HTMLConstructor, NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
 interface HTMLImageElement : HTMLElement {
-           attribute DOMString alt;
-           attribute DOMString src;
-           attribute DOMString srcset;
-           attribute DOMString sizes;
-           attribute DOMString? crossOrigin;
-           attribute DOMString useMap;
-           attribute boolean isMap;
-           attribute unsigned long width;
-           attribute unsigned long height;
+  [CEReactions] attribute DOMString alt;
+  [CEReactions] attribute USVString src;
+  [CEReactions] attribute USVString srcset;
+  [CEReactions] attribute DOMString sizes;
+  [CEReactions] attribute DOMString? crossOrigin;
+  [CEReactions] attribute DOMString useMap;
+  [CEReactions] attribute boolean isMap;
+  [CEReactions] attribute unsigned long width;
+  [CEReactions] attribute unsigned long height;
   readonly attribute unsigned long naturalWidth;
   readonly attribute unsigned long naturalHeight;
   readonly attribute boolean complete;
-  readonly attribute DOMString currentSrc;
+  readonly attribute USVString currentSrc;
+  [CEReactions] attribute DOMString referrerPolicy;
 
   // also has obsolete members
 };
 
+[HTMLConstructor]
 interface HTMLIFrameElement : HTMLElement {
-           attribute DOMString src;
-           attribute DOMString srcdoc;
-           attribute DOMString name;
-  [PutForwards=value] readonly attribute DOMTokenList sandbox;
-           attribute boolean allowFullscreen;
-           attribute DOMString width;
-           attribute DOMString height;
+  [CEReactions] attribute USVString src;
+  [CEReactions] attribute DOMString srcdoc;
+  [CEReactions] attribute DOMString name;
+  [CEReactions, SameObject, PutForwards=value] readonly attribute DOMTokenList sandbox;
+  [CEReactions] attribute boolean allowFullscreen;
+  [CEReactions] attribute boolean allowUserMedia;
+  [CEReactions] attribute boolean allowPaymentRequest;
+  [CEReactions] attribute DOMString width;
+  [CEReactions] attribute DOMString height;
+  [CEReactions] attribute DOMString referrerPolicy;
   readonly attribute Document? contentDocument;
   readonly attribute WindowProxy? contentWindow;
-
-  // also has obsolete members
+  Document? getSVGDocument();
 };
 
 interface HTMLEmbedElement : HTMLElement {
@@ -1416,16 +1430,19 @@ interface HTMLMapElement : HTMLElement {
   readonly attribute HTMLCollection areas;
 };
 
+[HTMLConstructor]
 interface HTMLAreaElement : HTMLElement {
-  attribute DOMString alt;
-  attribute DOMString coords;
-  attribute DOMString shape;
-  attribute DOMString target;
-  attribute DOMString download;
+  [CEReactions] attribute DOMString alt;
+  [CEReactions] attribute DOMString coords;
+  [CEReactions] attribute DOMString shape;
+  [CEReactions] attribute DOMString target;
+  [CEReactions] attribute DOMString download;
   [CEReactions] attribute USVString ping;
-  attribute DOMString rel;
-  [PutForwards=value] readonly attribute DOMTokenList relList;
-  // hreflang and type are not reflected
+  [CEReactions] attribute DOMString rel;
+  [CEReactions, SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
+  [CEReactions] attribute DOMString referrerPolicy;
+
+  // also has obsolete members
 };
 HTMLAreaElement implements HTMLHyperlinkElementUtils;
 
@@ -1835,8 +1852,8 @@ dictionary RelatedEventInit : EventInit {
 interface HTMLDialogElement : HTMLElement {
            attribute boolean open;
            attribute DOMString returnValue;
-  void show(optional (MouseEvent or Element) anchor);
-  void showModal(optional (MouseEvent or Element) anchor);
+  void show();
+  void showModal();
   void close(optional DOMString returnValue);
 };
 
@@ -2395,6 +2412,7 @@ typedef OnBeforeUnloadEventHandlerNonNull? OnBeforeUnloadEventHandler;
 [NoInterfaceObject]
 interface GlobalEventHandlers {
            attribute EventHandler onabort;
+           attribute EventHandler onauxclick;
            attribute EventHandler onblur;
            attribute EventHandler oncancel;
            attribute EventHandler oncanplay;
@@ -2969,24 +2987,24 @@ partial interface HTMLHtmlElement {
 };
 
 partial interface HTMLIFrameElement {
-           attribute DOMString align;
-           attribute DOMString scrolling;
-           attribute DOMString frameBorder;
-           attribute DOMString longDesc;
+  [CEReactions] attribute DOMString align;
+  [CEReactions] attribute DOMString scrolling;
+  [CEReactions] attribute DOMString frameBorder;
+  [CEReactions] attribute USVString longDesc;
 
-  [TreatNullAs=EmptyString] attribute DOMString marginHeight;
-  [TreatNullAs=EmptyString] attribute DOMString marginWidth;
+  [CEReactions, TreatNullAs=EmptyString] attribute DOMString marginHeight;
+  [CEReactions, TreatNullAs=EmptyString] attribute DOMString marginWidth;
 };
 
 partial interface HTMLImageElement {
-           attribute DOMString name;
-           attribute DOMString lowsrc;
-           attribute DOMString align;
-           attribute unsigned long hspace;
-           attribute unsigned long vspace;
-           attribute DOMString longDesc;
+  [CEReactions] attribute DOMString name;
+  [CEReactions] attribute USVString lowsrc;
+  [CEReactions] attribute DOMString align;
+  [CEReactions] attribute unsigned long hspace;
+  [CEReactions] attribute unsigned long vspace;
+  [CEReactions] attribute USVString longDesc;
 
-  [TreatNullAs=EmptyString] attribute DOMString border;
+  [CEReactions, TreatNullAs=EmptyString] attribute DOMString border;
 };
 
 partial interface HTMLInputElement {
@@ -3003,9 +3021,9 @@ partial interface HTMLLIElement {
 };
 
 partial interface HTMLLinkElement {
-           attribute DOMString charset;
-           attribute DOMString rev;
-           attribute DOMString target;
+  [CEReactions] attribute DOMString charset;
+  [CEReactions] attribute DOMString rev;
+  [CEReactions] attribute DOMString target;
 };
 
 partial interface HTMLMenuElement {

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>Element#requestFullscreen() twice</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<script>
+async_test(t => {
+  const div = document.querySelector("div");
+
+  document.onfullscreenchange = t.step_func(() => {
+    assert_equals(document.fullscreenElement, div);
+    // Done, but ensure that there's only one fullscreenchange event.
+    document.onfullscreenchange = t.unreached_func("second fullscreenchange event");
+    setTimeout(t.step_func_done(), 0);
+  });
+  document.onfullscreenerror = t.unreached_func("fullscreenerror event");
+
+  trusted_click(t.step_func(() => {
+    // Request fullscreen twice.
+    div.requestFullscreen();
+    assert_equals(document.fullscreenElement, null, "fullscreenElement after first requestFullscreen()");
+    div.requestFullscreen();
+    assert_equals(document.fullscreenElement, null, "fullscreenElement after second requestFullscreen()");
+  }), document.body);
+});
+</script>

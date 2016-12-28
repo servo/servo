@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - 'none' keyword.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "Empty required csp subsumes empty list of returned policies.", 
+        "required_csp": "", 
+        "returned_csp_1": "",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Empty required csp subsumes any list of policies.", 
+        "required_csp": "", 
+        "returned_csp_1": "img-src http://example.com",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Empty required csp subsumes a policy with `none`.", 
+        "required_csp": "", 
+        "returned_csp_1": "img-src 'none'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Required policy that allows `none` does not subsume empty list of policies.", 
+        "required_csp": "img-src ", 
+        "returned_csp_1": "",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Required csp with effective `none` does not subsume a host source expression.", 
+        "required_csp": "img-src ", 
+        "returned_csp_1": "img-src http://example.com",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Required csp with `none` does not subsume a host source expression.", 
+        "required_csp": "img-src 'none'", 
+        "returned_csp_1": "img-src http://example.com",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Required csp with effective `none` does not subsume `none` of another directive.", 
+        "required_csp": "img-src ", 
+        "returned_csp_1": "frame-src 'none'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Required csp with `none` does not subsume `none` of another directive.", 
+        "required_csp": "img-src 'none'", 
+        "returned_csp_1": "frame-src 'none'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Required csp with `none` does not subsume `none` of different directives.", 
+        "required_csp": "img-src ", 
+        "returned_csp_1": "img-src http://*.one.com",
+        "returned_csp_2": "frame-src https://two.com",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Required csp with `none` subsumes effective list of `none`.", 
+        "required_csp": "img-src ", 
+        "returned_csp_1": "img-src http://*.one.com",
+        "returned_csp_2": "img-src https://two.com",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Required csp with `none` subsumes effective list of `none` despite other keywords.", 
+        "required_csp": "img-src 'none'", 
+        "returned_csp_1": "img-src http://*.one.com",
+        "returned_csp_2": "img-src 'self'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Source list with exprssions other than `none` make `none` ineffective.", 
+        "required_csp": "img-src http://example.com 'none'", 
+        "returned_csp_1": "img-src http://example.com",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned csp with `none` is subsumed by any required csp.", 
+        "required_csp": "img-src http://example.com", 
+        "returned_csp_1": "img-src 'none'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned csp with effective `none` is subsumed by any required csp.", 
+        "required_csp": "img-src http://example.com", 
+        "returned_csp_1": "img-src http://example.com",
+        "returned_csp_2": "img-src http://non-example.com",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Both required and returned csp are `none`.", 
+        "required_csp": "img-src 'none'", 
+        "returned_csp_1": "img-src 'none'",
+        "returned_csp_2": "img-src http://non-example.com",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Both required and returned csp are `none` for only one directive.", 
+        "required_csp": "default-src 'none'", 
+        "returned_csp_1": "img-src 'none'",
+        "returned_csp_2": "script-src 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Both required and returned csp are empty.", 
+        "required_csp": "img-src ", 
+        "returned_csp_1": "img-src ",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Both required and returned csp are effectively 'none'.", 
+        "required_csp": "img-src ", 
+        "returned_csp_1": "img-src http://a.com",
+        "returned_csp_2": "img-src http://b.com",
+        "expected": IframeLoad.EXPECT_LOAD },
+    ];
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp_1);
+        if (test.returned_csp_2)
+          url.searchParams.append("policy2", test.returned_csp_2);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

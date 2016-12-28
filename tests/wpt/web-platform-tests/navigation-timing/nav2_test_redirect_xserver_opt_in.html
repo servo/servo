@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing-2/#sec-PerformanceNavigationTiming"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/utils.js"></script>
+        <script>
+
+            function verifyTimingEventOrder(eventOrder, timingEntry) {
+                for (var i = 0; i < eventOrder.length - 1; i++) {
+                    assert_true(timingEntry[eventOrder[i]] < timingEntry[eventOrder[i + 1]],
+                        "Expected " + eventOrder[i] + " to be no greater than " + eventOrder[i + 1] + ".");
+                }
+            }
+
+            function onload_test()
+            {
+                var frame_performance = document.getElementById("frameContext").contentWindow.performance;
+                assert_equals(frame_performance.getEntriesByType("navigation")[0].type,
+                        "navigate",
+                        "Expected navigation type  to be navigate.");
+                assert_equals(frame_performance.getEntriesByType("navigation")[0].redirectCount, 1, "Expected redirectCount to be 1.");
+
+                var timgingEvents = [
+                    'startTime',
+                    'redirectStart',
+                    'redirectEnd',
+                ];
+                verifyTimingEventOrder(timgingEvents, frame_performance.getEntriesByType("navigation")[0]);
+                done();
+            }
+        </script>
+
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates the values of the window.performance.getEntriesByType("navigation")[0].redirectCount and the
+           window.performance.getEntriesByType("navigation")[0].redirectStart/End times for a cross-origin server side redirect navigation when the redirect chooses to opt-in.</p>
+
+        <iframe id="frameContext" src="" style="width: 250px; height: 250px;"></iframe>
+        <script>
+            // combine the page origin and redirect origin into the IFRAME's src URL
+            var destUrl = make_absolute_url({subdomain: "www",
+                                             path: "/common/redirect-opt-in.py",
+                                             query: "location=" + make_absolute_url(
+                                                         {path: "/navigation-timing/resources/blank_page_green.html"})
+                                             });
+            var frameContext = document.getElementById("frameContext");
+            frameContext.onload = onload_test;
+            frameContext.src = destUrl;
+        </script>
+    </body>
+</html>

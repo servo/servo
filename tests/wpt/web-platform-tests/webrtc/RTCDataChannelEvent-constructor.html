@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>RTCDataChannelEvent constructor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    assert_equals(RTCDataChannelEvent.length, 2);
+    assert_throws(
+        new TypeError(),
+        function() { new RTCDataChannelEvent('type'); }
+    );
+}, 'RTCDataChannelEvent constructor without a required argument.');
+
+test(function() {
+    assert_throws(
+        new TypeError(),
+        function() { new RTCDataChannelEvent('type', { channel: null }); }
+    );
+}, 'RTCDataChannelEvent constructor with channel passed as null.');
+
+test(function() {
+    assert_throws(
+        new TypeError(),
+        function() { new RTCDataChannelEvent('type', { channel: undefined }); }
+    );
+}, 'RTCDataChannelEvent constructor with a channel passed as undefined.');
+
+test(function() {
+    var pc = new RTCPeerConnection();
+    var c = pc.createDataChannel('');
+    var e = new RTCDataChannelEvent('type', { channel: c });
+    assert_true(e instanceof RTCDataChannelEvent);
+    assert_equals(e.channel, c);
+}, 'RTCDataChannelEvent constructor with full arguments.');
+</script>

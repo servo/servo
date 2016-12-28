@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Element#requestFullscreen() on the current fullscreen element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+async_test(t => {
+  var target = document.getElementById("target");
+
+  document.onfullscreenchange = t.step_func(() => {
+    assert_equals(document.fullscreenElement, target);
+
+    // The next requestFullscreen() should fire no events due to "If element is
+    // doc's fullscreen element, terminate these subsubsteps."
+    document.onfullscreenchange = t.unreached_func("fullscreenchange event");
+
+    trusted_click(t.step_func(() => {
+      target.requestFullscreen();
+
+      // Wait until after the next animation frame.
+      requestAnimationFrame(t.step_func_done());
+    }), target);
+  });
+  document.onfullscreenerror = t.unreached_func("fullscreenerror event");
+
+  trusted_request(target);
+});
+</script>

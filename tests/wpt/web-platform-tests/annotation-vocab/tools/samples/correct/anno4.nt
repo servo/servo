@@ -1,0 +1,5 @@
+<http://example.org/anno4> <http://www.w3.org/ns/oa#hasBody> <http://example.org/description1> .
+<http://example.org/anno4> <http://www.w3.org/ns/oa#hasTarget> <http://example.com/image1#xywh=100,100,300,300> .
+<http://example.org/anno4> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
+<http://example.com/image1#xywh=100,100,300,300> <http://purl.org/dc/elements/1.1/format> "image/jpeg" .
+<http://example.com/image1#xywh=100,100,300,300> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/dc/dcmitype/StillImage> .

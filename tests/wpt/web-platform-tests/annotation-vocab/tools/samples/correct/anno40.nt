@@ -1,0 +1,5 @@
+<http://example.org/anno40> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
+<http://example.org/anno40> <http://www.w3.org/ns/oa#hasTarget> _:b0 .
+<http://example.org/anno40> <http://www.w3.org/ns/oa#hasBody> <http://example.org/note1> .
+_:b0 <http://www.w3.org/ns/oa#hasSource> <http://example.org/image1> .
+_:b0 <http://www.w3.org/ns/oa#hasScope> <http://example.org/page1> .

@@ -1307,7 +1307,7 @@
   code: |
     ctx.globalCompositeOperation = 'xor';
     ctx.globalCompositeOperation = 'clear';
-    @assert ctx.globalCompositeOperation === 'xor';
+    @assert ctx.globalCompositeOperation === 'clear';
 
 - name: 2d.composite.operation.highlight
   testing:
@@ -8772,7 +8772,7 @@
   expected: green
 
 - name: 2d.drawImage.zerosource
-  desc: drawImage with zero-sized source rectangle throws INDEX_SIZE_ERR
+  desc: drawImage with zero-sized source rectangle draws nothing without exception
   testing:
     - 2d.drawImage.zerosource
   images:
@@ -8780,9 +8780,9 @@
   code: |
     ctx.fillStyle = '#0f0';
     ctx.fillRect(0, 0, 100, 50);
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 10, 10, 0, 1, 0, 0, 100, 50);
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 10, 10, 1, 0, 0, 0, 100, 50);
-    @assert throws INDEX_SIZE_ERR ctx.drawImage(document.getElementById('red.png'), 10, 10, 0, 0, 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 10, 10, 0, 1, 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 10, 10, 1, 0, 0, 0, 100, 50);
+    ctx.drawImage(document.getElementById('red.png'), 10, 10, 0, 0, 0, 0, 100, 50);
     @assert pixel 50,25 ==~ 0,255,0,255;
   expected: green
 
@@ -9001,15 +9001,15 @@
     var canvas2 = document.createElement('canvas');
     canvas2.width = 0;
     canvas2.height = 10;
-    @assert throws INVALID_STATE_ERR ctx.drawImage(canvas2, 0, 0);
+    ctx.drawImage(canvas2, 0, 0);
 
     canvas2.width = 10;
     canvas2.height = 0;
-    @assert throws INVALID_STATE_ERR ctx.drawImage(canvas2, 0, 0);
+    ctx.drawImage(canvas2, 0, 0);
 
     canvas2.width = 0;
     canvas2.height = 0;
-    @assert throws INVALID_STATE_ERR ctx.drawImage(canvas2, 0, 0);
+    ctx.drawImage(canvas2, 0, 0);
 
     @assert pixel 50,25 ==~ 0,255,0,255;
   expected: green

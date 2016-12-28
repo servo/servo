@@ -1,0 +1,7 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": ["http://example.org/1", "http://example.org/2"],
+  "label": "no type",
+  "body": "http://example.org/post1",
+  "target": "http://example.com/page1"
+}

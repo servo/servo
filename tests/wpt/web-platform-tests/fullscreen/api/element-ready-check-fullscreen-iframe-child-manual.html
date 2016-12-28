@@ -8,21 +8,26 @@
 <script>
 // Verify that an iframe can itself go fullscreen, and that this doesn't
 // influence the iframe ancestor test of the element ready check.
-async_test(function(t)
-{
-    var iframe = document.querySelector("iframe");
-    document.onfullscreenchange = t.step_func(function()
-    {
-        assert_equals(document.fullscreenElement, iframe, "fullscreen element");
-        var div = document.createElement("div");
-        // This adds the div to the iframe element itself, not to the iframe's
-        // contentDocument. It's done here because the HTML parser treats the
-        // content of iframe as a text node.
-        iframe.appendChild(div);
-        trusted_request(div, iframe.contentDocument.body);
-        document.onfullscreenchange = t.unreached_func("second fullscreenchange event");
-        document.onfullscreenerror = t.step_func_done();
+async_test(t => {
+  var iframe = document.querySelector("iframe");
+
+  document.onfullscreenchange = t.step_func(() => {
+    assert_equals(document.fullscreenElement, iframe, "fullscreen element");
+
+    // This adds the div to the iframe element itself, not to the iframe's
+    // contentDocument. It's done here because the HTML parser treats the
+    // content of iframe as a text node.
+    var div = document.createElement("div");
+    iframe.appendChild(div);
+
+    document.onfullscreenchange = t.step_func_done(() => {
+      assert_equals(document.fullscreenElement, div);
     });
-    trusted_request(iframe);
+    document.onfullscreenerror = t.unreached_func("fullscreenerror event");
+
+    trusted_request(div, iframe.contentDocument.body);
+  });
+
+  trusted_request(iframe);
 });
 </script>

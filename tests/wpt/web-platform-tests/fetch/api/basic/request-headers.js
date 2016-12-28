@@ -6,7 +6,7 @@ if (this.document === undefined) {
 function checkContentType(contentType, body)
 {
     if (self.FormData && body instanceof self.FormData) {
-        assert_true(contentType.startsWith("multipart/form-data;boundary="), "Request should have header content-type starting with multipart/form-data;boundary=, but got " + contentType);
+        assert_true(contentType.startsWith("multipart/form-data; boundary="), "Request should have header content-type starting with multipart/form-data; boundary=, but got " + contentType);
         return;
     }
 
@@ -44,8 +44,8 @@ function requestHeaders(desc, url, method, body, expectedOrigin, expectedContent
 
 var url = RESOURCES_DIR + "inspect-headers.py"
 
-requestHeaders("Fetch with GET", url, "GET", null, location.origin, null);
-requestHeaders("Fetch with HEAD", url, "HEAD", null, location.origin, null);
+requestHeaders("Fetch with GET", url, "GET", null, null, null);
+requestHeaders("Fetch with HEAD", url, "HEAD", null, null, null);
 requestHeaders("Fetch with PUT without body", url, "POST", null, location.origin, "0");
 requestHeaders("Fetch with PUT with body", url, "PUT", "Request's body", location.origin, "14");
 requestHeaders("Fetch with POST without body", url, "POST", null, location.origin, "0");
@@ -62,5 +62,25 @@ requestHeaders("Fetch with POST with DataView body", url, "POST", new DataView(n
 requestHeaders("Fetch with POST with Blob body with mime type", url, "POST", new Blob(["Test"], { type: "text/maybe" }), location.origin, "4");
 requestHeaders("Fetch with Chicken", url, "Chicken", null, location.origin, null);
 requestHeaders("Fetch with Chicken with body", url, "Chicken", "Request's body", location.origin, "14");
+
+function requestOriginHeader(method, mode, needsOrigin) {
+  promise_test(function(test){
+    return fetch(url + "?headers=origin", {method:method, mode:mode}).then(function(resp) {
+      assert_equals(resp.status, 200, "HTTP status is 200");
+      assert_equals(resp.type , "basic", "Response's type is basic");
+      if(needsOrigin)
+        assert_equals(resp.headers.get("x-request-origin") , location.origin, "Request should have an Origin header with origin: " + location.origin);
+      else
+        assert_equals(resp.headers.get("x-request-origin"), null, "Request should not have an Origin header")
+    });
+  }, "Fetch with " + method + " and mode \"" + mode + "\" " + (needsOrigin ? "needs" : "does not need") + " an Origin header");
+}
+
+requestOriginHeader("GET", "cors", false);
+requestOriginHeader("POST", "same-origin", true);
+requestOriginHeader("POST", "no-cors", true);
+requestOriginHeader("PUT", "same-origin", true);
+requestOriginHeader("TacO", "same-origin", true);
+requestOriginHeader("TacO", "cors", true);
 
 done();

@@ -1,0 +1,12 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": ["http://example.org/1", "http://example.org/2"],
+  "type": "Annotation",
+  "label": "too many processing languages",
+  "body":   {
+    "id": "http://example.com/1",
+    "format": "text/plain",
+    "processingLanguage": ["en", "de"]
+  },
+  "target": "http://example.org/post1",
+}

@@ -17,6 +17,10 @@ function xpath_test(test_el) {
   /* note this func adopts the tree! */
   var new_doc = document.implementation.createDocument("", "");
   var xpath = find_child_element(test_el, "xpath");
+  var result = find_child_element(test_el, "result");
+  var namespace = find_child_element(result, "namespace");
+  var localname = find_child_element(result, "localname");
+  var nth = find_child_element(result, "nth");
   var tree = find_child_element(test_el, "tree");
   var actual_tree = new_doc.adoptNode(tree.firstElementChild);
   new_doc.appendChild(actual_tree);
@@ -32,6 +36,9 @@ function xpath_test(test_el) {
       matched.push(cur);
     }
     assert_equals(matched.length, 1, "Should match one node");
+    var similar = new_doc.getElementsByTagNameNS(namespace.textContent,
+                                                 localname.textContent);
+    assert_equals(matched[0], similar[nth.textContent]);
   });
 }
 

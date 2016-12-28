@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - Path parts in host source expressions.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "Returned CSP must specify a path.", 
+        "required_csp": "img-src http://c.com:* http://b.com/example.html", 
+        "returned_csp": "img-src http://b.com", 
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Returned CSP has a more specific path.", 
+        "required_csp": "img-src http://c.com:* http://b.com", 
+        "returned_csp": "img-src http://b.com/example.html", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Matching paths.", 
+        "required_csp": "img-src http://c.com:* http://b.com/example.html",
+        "returned_csp": "img-src http://b.com/example.html",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Empty path is not subsumed by specified paths.", 
+        "required_csp": "img-src http://b.com/page1.html http://b.com/page2.html http://b.com/page3.html",
+        "returned_csp": "img-src http://b.com/",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "All specific paths match except the order.", 
+        "required_csp": "img-src http://b.com/page1.html http://b.com/page2.html http://b.com/page3.html", 
+        "returned_csp": "img-src http://b.com/page2.html http://b.com/page3.html http://b.com/page1.html", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned CSP allows only one path.", 
+        "required_csp": "img-src http://b.com/page1.html http://b.com/page2.html http://b.com/page3.html", 
+        "returned_csp": "img-src http://b.com/page2.html", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "`/` path should be subsumed by an empty path.", 
+        "required_csp": "img-src http://b.com", 
+        "returned_csp": "img-src http://b.com/", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Unspecified path should be subsumed by `/`.", 
+        "required_csp": "img-src http://b.com/", 
+        "returned_csp": "img-src http://b.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "That should not be true when required csp specifies a specific page.", 
+        "required_csp": "img-src http://b.com/path.html", 
+        "returned_csp": "img-src http://b.com", 
+        "expected": IframeLoad.EXPECT_BLOCK },
+    ];
+
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>
