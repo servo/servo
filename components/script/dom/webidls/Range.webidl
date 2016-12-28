@@ -4,7 +4,7 @@
 /*
  * The origin of this IDL file is
  * https://dom.spec.whatwg.org/#range
- * https://domparsing.spec.whatwg.org/#dom-range-createcontextualfragment
+ * https://w3c.github.io/DOM-Parsing/#dom-range-createcontextualfragment
  * http://dvcs.w3.org/hg/csswg/raw-file/tip/cssom-view/Overview.html#extensions-to-the-range-interface
  */
 

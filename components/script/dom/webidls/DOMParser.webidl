@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://domparsing.spec.whatwg.org/#the-domparser-interface
+ * https://w3c.github.io/DOM-Parsing/#the-domparser-interface
  */
 
 enum SupportedType {
