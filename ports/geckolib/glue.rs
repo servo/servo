@@ -58,7 +58,7 @@ use style::string_cache::Atom;
 use style::stylesheets::{CssRule, CssRules, Origin, Stylesheet, StyleRule};
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{recalc_style_at, DomTraversal, PerLevelTraversalData};
+use style::traversal::{resolve_style, DomTraversal};
 use style_traits::ToCss;
 use stylesheet_loader::StylesheetLoader;
 
@@ -859,50 +859,13 @@ pub extern "C" fn Servo_CheckChangeHint(element: RawGeckoElementBorrowed) -> nsC
 
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                                     raw_data: RawServoStyleSetBorrowed,
-                                     consume: structs::ConsumeStyleBehavior,
-                                     compute: structs::LazyComputeBehavior) -> ServoComputedValuesStrong
+                                     consume: structs::ConsumeStyleBehavior)
+                                     -> ServoComputedValuesStrong
 {
     let element = GeckoElement(element);
-    debug!("Servo_ResolveStyle: {:?}, consume={:?}, compute={:?}", element, consume, compute);
+    debug!("Servo_ResolveStyle: {:?}, consume={:?}", element, consume);
 
     let mut data = unsafe { element.ensure_data() }.borrow_mut();
-
-    if compute == structs::LazyComputeBehavior::Allow {
-        let should_compute = !data.has_current_styles();
-        if should_compute {
-            debug!("Performing manual style computation");
-            if let Some(parent) = element.parent_element() {
-                if parent.borrow_data().map_or(true, |d| !d.has_current_styles()) {
-                    error!("Attempting manual style computation with unstyled parent");
-                    return Arc::new(ComputedValues::initial_values().clone()).into_strong();
-                }
-            }
-
-            let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-            let shared_style_context = create_shared_context(&per_doc_data);
-            let traversal = RecalcStyleOnly::new(shared_style_context);
-
-            let mut traversal_data = PerLevelTraversalData {
-                current_dom_depth: None,
-            };
-
-            let mut tlc = ThreadLocalStyleContext::new(traversal.shared_context());
-            let mut context = StyleContext {
-                shared: traversal.shared_context(),
-                thread_local: &mut tlc,
-            };
-
-            recalc_style_at(&traversal, &mut traversal_data, &mut context, element, &mut data);
-
-            // The element was either unstyled or needed restyle. If it was unstyled, it may have
-            // additional unstyled children that subsequent traversals won't find now that the style
-            // on this element is up-to-date. Mark dirty descendants in that case.
-            if element.first_child_element().is_some() {
-                unsafe { element.set_dirty_descendants() };
-            }
-        }
-    }
 
     if !data.has_current_styles() {
         error!("Resolving style on unstyled element with lazy computation forbidden.");
@@ -919,6 +882,63 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
 
     values.into_strong()
 }
+
+#[no_mangle]
+pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
+                                           pseudo_tag: *mut nsIAtom,
+                                           consume: structs::ConsumeStyleBehavior,
+                                           raw_data: RawServoStyleSetBorrowed)
+     -> ServoComputedValuesStrong
+{
+    let element = GeckoElement(element);
+    let doc_data = PerDocumentStyleData::from_ffi(raw_data);
+    let finish = |styles: &ElementStyles| -> Arc<ComputedValues> {
+        let maybe_pseudo = if !pseudo_tag.is_null() {
+            get_pseudo_style(element, pseudo_tag, styles, doc_data)
+        } else {
+            None
+        };
+        maybe_pseudo.unwrap_or_else(|| styles.primary.values.clone())
+    };
+
+    // In the common case we already have the style. Check that before setting
+    // up all the computation machinery.
+    let mut result = element.mutate_data()
+                            .and_then(|d| d.get_styles().map(&finish));
+    if result.is_some() {
+        if consume == structs::ConsumeStyleBehavior::Consume {
+            let mut d = element.mutate_data().unwrap();
+            if !d.is_persistent() {
+                // XXXheycam is it right to persist an ElementData::Restyle?
+                // Couldn't we lose restyle hints that would cause us to
+                // restyle descendants?
+                d.persist();
+            }
+        }
+        return result.unwrap().into_strong();
+    }
+
+    // We don't have the style ready. Go ahead and compute it as necessary.
+    let shared = create_shared_context(&mut doc_data.borrow_mut());
+    let mut tlc = ThreadLocalStyleContext::new(&shared);
+    let mut context = StyleContext {
+        shared: &shared,
+        thread_local: &mut tlc,
+    };
+    let ensure = |el: GeckoElement| { unsafe { el.ensure_data(); } };
+    let clear = |el: GeckoElement| el.clear_data();
+    resolve_style(&mut context, element, &ensure, &clear,
+                  |styles| result = Some(finish(styles)));
+
+    // Consume the style if requested, though it may not exist anymore if the
+    // element is in a display:none subtree.
+    if consume == structs::ConsumeStyleBehavior::Consume {
+        element.mutate_data().map(|mut d| d.persist());
+    }
+
+    result.unwrap().into_strong()
+}
+
 
 #[no_mangle]
 pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {

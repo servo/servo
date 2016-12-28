@@ -709,13 +709,13 @@ pub trait MatchMethods : TElement {
         }
     }
 
-    unsafe fn cascade_node(&self,
-                           context: &StyleContext<Self>,
-                           mut data: &mut AtomicRefMut<ElementData>,
-                           parent: Option<Self>,
-                           primary_rule_node: StrongRuleNode,
-                           pseudo_rule_nodes: PseudoRuleNodes,
-                           primary_is_shareable: bool)
+    fn cascade_node(&self,
+                    context: &StyleContext<Self>,
+                    mut data: &mut AtomicRefMut<ElementData>,
+                    parent: Option<Self>,
+                    primary_rule_node: StrongRuleNode,
+                    pseudo_rule_nodes: PseudoRuleNodes,
+                    primary_is_shareable: bool)
     {
         // Get our parent's style.
         let parent_data = parent.as_ref().map(|x| x.borrow_data().unwrap());
@@ -770,10 +770,12 @@ pub trait MatchMethods : TElement {
                                                         pseudo_rule_nodes,
                                                         &mut possibly_expired_animations);
 
-            self.as_node().set_can_be_fragmented(parent.map_or(false, |p| {
-                p.as_node().can_be_fragmented() ||
-                parent_style.unwrap().is_multicol()
-            }));
+            unsafe {
+                self.as_node().set_can_be_fragmented(parent.map_or(false, |p| {
+                    p.as_node().can_be_fragmented() ||
+                    parent_style.unwrap().is_multicol()
+                }));
+            }
 
             damage
         };
