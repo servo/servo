@@ -1319,7 +1319,9 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
 impl Drop for CanvasRenderingContext2D {
     fn drop(&mut self) {
-        self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)).unwrap();
+        if let Err(err) = self.ipc_renderer.send(CanvasMsg::Common(CanvasCommonMsg::Close)) {
+            warn!("Could not close canvas: {}", err)
+        }
     }
 }
 
