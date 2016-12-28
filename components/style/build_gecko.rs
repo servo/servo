@@ -224,7 +224,6 @@ mod bindings {
             "RawGecko.*",
             "mozilla::ServoElementSnapshot.*",
             "mozilla::ConsumeStyleBehavior",
-            "mozilla::LazyComputeBehavior",
             "mozilla::css::SheetParsingMode",
             "mozilla::TraversalRootBehavior",
             "mozilla::DisplayItemClip",  // Needed because bindgen generates
@@ -251,7 +250,6 @@ mod bindings {
             "GridNamedArea",
             "Image",
             "ImageURL",
-            "LazyComputeBehavior",
             "nsAttrName",
             "nsAttrValue",
             "nsBorderColors",
@@ -451,7 +449,6 @@ mod bindings {
             "ThreadSafeURIHolder",
             "ThreadSafePrincipalHolder",
             "ConsumeStyleBehavior",
-            "LazyComputeBehavior",
             "TraversalRootBehavior",
             "FontFamilyList",
             "FontFamilyType",

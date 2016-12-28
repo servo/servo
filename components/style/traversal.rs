@@ -6,7 +6,7 @@
 
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext};
-use data::{ElementData, StoredRestyleHint};
+use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{TElement, TNode};
 use matching::{MatchMethods, StyleSharingResult};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
@@ -265,40 +265,77 @@ pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
                           AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
 
-/// Handles lazy resolution of style in display:none subtrees. See the comment
-/// at the callsite in query.rs.
-pub fn style_element_in_display_none_subtree<E, F>(context: &StyleContext<E>,
-                                                   element: E, init_data: &F) -> E
+/// Helper for the function below.
+fn resolve_style_internal<E, F>(context: &StyleContext<E>, element: E, ensure_data: &F)
+                                -> Option<E>
     where E: TElement,
           F: Fn(E),
 {
-    // Check the base case.
-    if element.get_data().is_some() {
-        // See the comment on `cascade_node` for why we allow this on Gecko.
-        debug_assert!(cfg!(feature = "gecko") || element.borrow_data().unwrap().has_current_styles());
-        debug_assert!(element.borrow_data().unwrap().styles().is_display_none());
-        return element;
-    }
-
-    // Ensure the parent is styled.
-    let parent = element.parent_element().unwrap();
-    let display_none_root = style_element_in_display_none_subtree(context, parent, init_data);
-
-    // Initialize our data.
-    init_data(element);
-
-    // Resolve our style.
+    ensure_data(element);
     let mut data = element.mutate_data().unwrap();
-    let match_results = element.match_element(context, None);
-    unsafe {
+    let mut display_none_root = None;
+
+    // If the Element isn't styled, we need to compute its style.
+    if data.get_styles().is_none() {
+        // Compute the parent style if necessary.
+        if let Some(parent) = element.parent_element() {
+            display_none_root = resolve_style_internal(context, parent, ensure_data);
+        }
+
+        // Compute our style.
+        let match_results = element.match_element(context, None);
         let shareable = match_results.primary_is_shareable();
-        element.cascade_node(context, &mut data, Some(parent),
+        element.cascade_node(context, &mut data, element.parent_element(),
                              match_results.primary,
                              match_results.per_pseudo,
                              shareable);
+
+        // Conservatively mark us as having dirty descendants, since there might
+        // be other unstyled siblings we miss when walking straight up the parent
+        // chain.
+        unsafe { element.set_dirty_descendants() };
     }
 
-    display_none_root
+    // If we're display:none and none of our ancestors are, we're the root
+    // of a display:none subtree.
+    if display_none_root.is_none() && data.styles().is_display_none() {
+        display_none_root = Some(element);
+    }
+
+    return display_none_root
+}
+
+/// Manually resolve style by sequentially walking up the parent chain to the
+/// first styled Element, ignoring pending restyles. The resolved style is
+/// made available via a callback, and can be dropped by the time this function
+/// returns in the display:none subtree case.
+pub fn resolve_style<E, F, G, H>(context: &StyleContext<E>, element: E,
+                                 ensure_data: &F, clear_data: &G, callback: H)
+    where E: TElement,
+          F: Fn(E),
+          G: Fn(E),
+          H: FnOnce(&ElementStyles)
+{
+    // Resolve styles up the tree.
+    let display_none_root = resolve_style_internal(context, element, ensure_data);
+
+    // Make them available for the scope of the callback. The callee may use the
+    // argument, or perform any other processing that requires the styles to exist
+    // on the Element.
+    callback(element.borrow_data().unwrap().styles());
+
+    // Clear any styles in display:none subtrees to leave the tree in a valid state.
+    if let Some(root) = display_none_root {
+        let mut curr = element;
+        loop {
+            unsafe { curr.unset_dirty_descendants(); }
+            if curr == root {
+                break;
+            }
+            clear_data(curr);
+            curr = curr.parent_element().unwrap();
+        }
+    }
 }
 
 /// Calculates the style for a single node.

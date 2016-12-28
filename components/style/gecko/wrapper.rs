@@ -260,14 +260,6 @@ impl<'le> GeckoElement<'le> {
         }
     }
 
-    pub fn get_pseudo_style(&self, pseudo: &PseudoElement) -> Option<Arc<ComputedValues>> {
-        // FIXME(bholley): Gecko sometimes resolves pseudos after an element has
-        // already been marked for restyle. We should consider fixing this, and
-        // then assert has_current_styles here.
-        self.borrow_data().and_then(|data| data.styles().pseudos
-                                               .get(pseudo).map(|c| c.values.clone()))
-    }
-
     // Only safe to call with exclusive access to the element.
     pub unsafe fn ensure_data(&self) -> &AtomicRefCell<ElementData> {
         match self.get_data() {
