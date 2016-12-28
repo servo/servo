@@ -8,6 +8,8 @@ import re
 import os
 import sys
 
+from io import BytesIO
+
 
 PRELUDE = """
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -103,6 +105,39 @@ def collect_atoms(objdir):
     return atoms
 
 
+class FileAvoidWrite(BytesIO):
+    """File-like object that buffers output and only writes if content changed."""
+    def __init__(self, filename):
+        BytesIO.__init__(self)
+        self.name = filename
+
+    def write(self, buf):
+        if isinstance(buf, unicode):
+            buf = buf.encode('utf-8')
+        BytesIO.write(self, buf)
+
+    def close(self):
+        buf = self.getvalue()
+        BytesIO.close(self)
+        try:
+            with open(self.name, 'rb') as f:
+                old_content = f.read()
+                if old_content == buf:
+                    print("{} is not changed, skip".format(self.name))
+                    return
+        except IOError:
+            pass
+        with open(self.name, 'wb') as f:
+            f.write(buf)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        if not self.closed:
+            self.close()
+
+
 IMPORTS = ("\nuse gecko_bindings::structs::nsIAtom;"
            "\nuse string_cache::Atom;\n\n")
 
@@ -155,7 +190,7 @@ def write_atom_macro(atoms, file_name):
                                                link_name=func(atom),
                                                type=atom.type()) for atom in atoms])
 
-    with open(file_name, "wb") as f:
+    with FileAvoidWrite(file_name) as f:
         f.write(PRELUDE)
         f.write(IMPORTS)
 
@@ -208,7 +243,7 @@ PSEUDO_ELEMENT_MACRO_INVOCATION = """
 
 
 def write_pseudo_element_helper(atoms, target_filename):
-    with open(target_filename, "wb") as f:
+    with FileAvoidWrite(target_filename) as f:
         f.write(PRELUDE)
         f.write(PSEUDO_ELEMENT_HEADER)
         f.write("{\n")
