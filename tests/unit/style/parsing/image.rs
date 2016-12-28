@@ -2,10 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use cssparser::Parser;
+use euclid::size::Size2D;
 use media_queries::CSSErrorReporterTest;
+use std::f32::consts::PI;
 use style::parser::ParserContext;
 use style::stylesheets::Origin;
+use style::values::computed;
+use style::values::computed::{Angle, Context, ToComputedValue};
+use style::values::specified;
 use style::values::specified::image::*;
 use style_traits::ToCss;
 
@@ -32,6 +38,14 @@ fn test_linear_gradient() {
 
     // Parsing without <angle> and <side-or-corner>
     assert_roundtrip_with_context!(Image::parse, "linear-gradient(red, green)");
+
+    // AngleOrCorner::None should become AngleOrCorner::Angle(Angle(PI)) when parsed
+    // Note that Angle(PI) is correct for top-to-bottom rendering, whereas Angle(0) would render bottom-to-top.
+    // ref: https://developer.mozilla.org/en-US/docs/Web/CSS/angle
+    let container = Size2D::new(Au::default(), Au::default());
+    let specified_context = Context::initial(container, true);
+    assert_eq!(specified::AngleOrCorner::None.to_computed_value(&specified_context),
+               computed::AngleOrCorner::Angle(Angle(PI)));
 }
 
 #[test]
