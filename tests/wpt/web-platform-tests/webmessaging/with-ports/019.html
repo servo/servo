@@ -5,12 +5,14 @@
 <iframe src="../without-ports/019-1.html"></iframe>
 <div id=log></div>
 <script>
-async_test(function() {
-  window[0].postMessage('', location.protocol.toUpperCase() + '//' + location.host.toUpperCase() + '/', []);
-  window[0].onmessage = this.step_func(function(e) {
-    assert_equals(e.origin, location.protocol + '//' + location.host);
-    assert_array_equals(e.ports, []);
-    this.done();
+async_test(function(test) {
+  onload = test.step_func(function() {
+    window[0].postMessage('', location.protocol.toUpperCase() + '//' + location.host.toUpperCase() + '/', []);
+    window[0].onmessage = test.step_func(function(e) {
+      assert_equals(e.origin, location.protocol + '//' + location.host);
+      assert_array_equals(e.ports, []);
+      test.done();
+    });
   });
 });
 </script>

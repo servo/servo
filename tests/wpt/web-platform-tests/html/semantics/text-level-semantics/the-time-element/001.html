@@ -47,20 +47,21 @@ test(function () {
 //dateTime
 test(function () {
   assert_equals( makeTime('2000-02-01T03:04:05Z','2001-02-01T03:04:05Z').dateTime, '2000-02-01T03:04:05Z' );
-}, 'the datetime attribute should be reflected by the dateTime IDL property');
+}, 'the datetime attribute should be reflected by the .dateTime property');
 test(function () {
   assert_equals( typeof makeTime().dateTime, 'string', 'typeof test' );
   assert_equals( makeTime().dateTime, '', 'value test' );
 }, 'the dateTime IDL property should default to an empty string');
 test(function () {
   assert_equals( makeTime(false,false,'2000-02-01T03:04:05Z').dateTime, '2000-02-01T03:04:05Z' );
-}, 'the dateTime IDL property should be read/write');
+}, 'the dateTime property should be read/write');
 test(function () {
   assert_equals( makeTime('go fish').dateTime, 'go fish' );
 }, 'the datetime attribute should be reflected by the .dateTime property even if it is invalid');
-test(function() {
+test(function () {
   assert_equals( makeTime(false,'2000-02-01T03:04:05Z').dateTime, '' );
 }, 'the datetime attribute should not reflect the textContent');
+
     </script>
 
   </body>

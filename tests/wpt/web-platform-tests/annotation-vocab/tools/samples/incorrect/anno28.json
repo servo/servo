@@ -1,0 +1,9 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": ["http://example.org/1", "http://example.org/2"],
+  "type": "Annotation",
+  "label": "bad created",
+  "created": "yesterday",
+  "body": "http://example.org/post1",
+  "target": "http://example.com/page1"
+}

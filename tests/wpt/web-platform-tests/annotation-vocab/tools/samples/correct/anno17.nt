@@ -1,0 +1,6 @@
+<http://example.org/anno17> <http://www.w3.org/ns/oa#hasBody> <http://example.net/comment1> .
+<http://example.org/anno17> <http://www.w3.org/ns/oa#hasTarget> <http://example.com/video1> .
+<http://example.org/anno17> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
+<http://example.org/anno17> <http://www.w3.org/ns/oa#motivatedBy> <http://www.w3.org/ns/oa#commenting> .
+<http://example.com/video1> <http://schema.org/accessibilityFeature> "captions" .
+<http://example.com/video1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/dc/dcmitype/MovingImage> .

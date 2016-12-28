@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "id": "3.3.3-targAudience.json",
+    "assertionType": "may",
+    "expectedResult": "valid",
+    "onUnexpectedResult" : "passAndContinue",
+    "errorMessage": "The description of a target may include audience key which has one or more values with each audience instance described using schema.org/Audience classes and properties.",
+    "title": "Implements **target _audience_ key** which has one or more values with each audience instance described using **[schema.org/Audience](http://schema.org/Audience) classes and properties** - [model 3.3.3](https://www.w3.org/TR/annotation-model/#intended-audience)",
+    "description": "True when Annotation includes one or more targets, one or more of which include audience key which has one or more values with each audience instance described using schema.org/Audience classes and properties.. (Section 3.3.3)",
+    "type": "object",
+    "required": [ "target" ],
+    "properties":
+    {
+        "target":
+        {
+           "oneOf": [
+                      { "anyOf": [
+                        { "$ref": "otherProperties.json#/definitions/audiencePropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/itemAudiencePropertyFound" },
+                        { "$ref": "otherProperties.json#/definitions/sourceAudiencePropertyFound" }
+                        ]
+                      },
+                       { "not":
+                         { "items":
+                            { "not":
+                               { "anyOf": [
+                                  { "$ref": "otherProperties.json#/definitions/audiencePropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/itemAudiencePropertyFound" },
+                                  { "$ref": "otherProperties.json#/definitions/sourceAudiencePropertyFound" }
+                                 ]
+                               }
+                             }
+                         }
+                       }
+                     ]
+         }
+     }
+}

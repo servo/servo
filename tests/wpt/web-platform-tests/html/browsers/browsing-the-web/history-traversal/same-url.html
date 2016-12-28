@@ -1,0 +1,38 @@
+<title>Test same-URL navigation and its effects on history</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<iframe src=resources/a.html></iframe>
+<script>
+async_test((t) => {
+  let state = "begin"
+  self[0].frameElement.onload = t.step_func(() => {
+    if(state === "b first") {
+      assert_equals(history.length, 2)
+
+      state = "c first"
+      self[0].location = "resources/c.html"
+    } else if (state === "c first") {
+      assert_equals(history.length, 3)
+
+      state = "a second"
+      history.back(2)
+    } else if (state === "a second") {
+      assert_equals(history.length, 3)
+
+      state = "a third"
+      self[0].location.href = "resources/a.html"
+    } else if (state === "a third") {
+      assert_equals(history.length, 3)
+      t.done()
+    }
+  })
+  onload = t.step_func(() => {
+    assert_equals(state, "begin")
+    assert_equals(history.length, 1)
+
+    state = "b first"
+    self[0].location = "resources/b.html"
+  })
+})
+</script>

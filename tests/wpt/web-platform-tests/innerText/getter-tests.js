@@ -308,14 +308,13 @@ testText("<math>abc", undefined, "innerText not supported on MathML elements");
 
 /**** Ruby ****/
 
-testText("<div><ruby>abc<rp>(</rp><rt>def</rt><rp>)</rp></ruby>", "abc(def)", "<rp> rendered");
-testText("<div><rp>abc</rp>", "abc", "Lone <rp> rendered");
-testText("<div><rp style='visibility:hidden'>abc</rp>", "", "visibility:hidden <rp> not rendered");
-testText("<div><rp> abc </rp>", " abc ", "Lone <rp> rendered without whitespace trimming");
-testText("<div><rp style='display:block'>abc</rp>def", "abc\ndef", "display:block <rp> induces line breaks");
-testText("<div><rp style='display:block'> abc </rp>def", " abc \ndef", "display:block <rp> induces line breaks but doesn't trim whitespace");
-// XXX this is not desirable but the spec currently requires it.
-testText("<div><select class='poke-rp'></select>", "abc", "<rp> in a replaced element still renders");
+testText("<div><ruby>abc<rt>def</rt></ruby>", "abcdef", "<rt> and no <rp>");
+testText("<div><ruby>abc<rp>(</rp><rt>def</rt><rp>)</rp></ruby>", "abcdef", "<rp>");
+testText("<div><rp>abc</rp>", "", "Lone <rp>");
+testText("<div><rp style='visibility:hidden'>abc</rp>", "", "visibility:hidden <rp>");
+testText("<div><rp style='display:block'>abc</rp>def", "abc\ndef", "display:block <rp>");
+testText("<div><rp style='display:block'> abc </rp>def", "abc\ndef", "display:block <rp> with whitespace");
+testText("<div><select class='poke-rp'></select>", "", "<rp> in a <select>");
 
 /**** Shadow DOM ****/
 

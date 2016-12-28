@@ -9,7 +9,7 @@
 <script>
 async_test(function() {
   var quirksFrame = document.getElementById("quirksframe");
-  quirksFrame.onload = this.step_func(function() {
+  quirksFrame.onload = this.step_func_done(function() {
     var quirksDoc = quirksFrame.contentDocument;
     assert_equals(quirksDoc.compatMode, "BackCompat", "Should be in quirks mode.");
     assert_not_equals(quirksDoc.body, null, "Should have a body element");

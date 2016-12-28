@@ -1,0 +1,10 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": ["http://example.org/1", "http://example.org/2"],
+  "type": "Annotation",
+  "label": "Uninterpretable body (choice? list?)",
+  "body": {
+    "items": ["http://example.com/1", "http://example.com/2"]
+  },
+  "target": "http://example.org/post1",
+}

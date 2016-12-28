@@ -1,0 +1,7 @@
+_:b0 <http://www.w3.org/ns/oa#hasState> _:b1 .
+_:b0 <http://www.w3.org/ns/oa#hasSource> <http://example.org/resource1> .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#HttpRequestState> .
+_:b1 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "Accept: application/pdf" .
+<http://example.org/anno35> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .
+<http://example.org/anno35> <http://www.w3.org/ns/oa#hasTarget> _:b0 .
+<http://example.org/anno35> <http://www.w3.org/ns/oa#hasBody> <http://example.org/description1> .

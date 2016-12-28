@@ -194,7 +194,7 @@ test(function () {
 test(function () {
     var ctx = A_04_01_09.setup();
 
-    assert_nodelist_contents_equal_noorder(ctx.d.querySelectorAll('div:last-child'), [ctx.d_div2], 'd.querySelectorAll(\'div:last-child\') return wrong result');
+    assert_nodelist_contents_equal_noorder(ctx.d.querySelectorAll('div:last-child'), [ctx.d_div1, ctx.d_div2], 'd.querySelectorAll(\'div:last-child\') return wrong result');
     assert_nodelist_contents_equal_noorder(ctx.s1.querySelectorAll('div:last-child'), [ctx.s1_div1, ctx.s1_div2], 's1.querySelectorAll(\'div:last-child\') return wrong result');
     assert_nodelist_contents_equal_noorder(ctx.s2.querySelectorAll('div:last-child'), [ctx.s2_div1, ctx.s2_div2], 's2.querySelectorAll(\'div:last-child\') return wrong result');
 

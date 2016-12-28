@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Element#requestFullscreen() timing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<script>
+async_test(t => {
+  trusted_request(document.querySelector('div'));
+
+  // If fullscreenchange is an animation frame event, then animation frame
+  // callbacks should be run after it is fired, before the timer callback.
+  // The resize event should fire before the fullscreenchange event.
+  const events = [];
+  const callback = t.step_func(event => {
+    events.push(event.type);
+    if (event.type == 'fullscreenchange') {
+      setTimeout(t.unreached_func('timer callback'));
+      requestAnimationFrame(t.step_func_done(() => {
+        assert_array_equals(events, ['resize', 'fullscreenchange'], 'event order');
+      }));
+    }
+  });
+  document.onfullscreenchange = window.onresize = callback;
+}, 'Timing of fullscreenchange and resize events');
+
+async_test(t => {
+  document.createElement('a').requestFullscreen();
+
+  // If fullscreenerror is an animation frame event, then animation frame
+  // callbacks should be run after it is fired, before the timer callback.
+  document.onfullscreenerror = t.step_func(() => {
+    setTimeout(t.unreached_func('timer callback'));
+    requestAnimationFrame(t.step_func_done());
+  });
+}, 'Timing of fullscreenerror event');
+</script>

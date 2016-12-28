@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - Scheme parts in host source expressions.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "`https` is more restrictive than `http`.", 
+        "required_csp": "img-src http://c.com:* https://b.com", 
+        "returned_csp": "img-src http://b.com",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "The reverse allows iframe be to be loaded.", 
+        "required_csp": "img-src http://c.com:* http://b.com", 
+        "returned_csp": "img-src https://b.com",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Matching `https` protocols.", 
+        "required_csp": "img-src http://c.com:* https://b.com", 
+        "returned_csp": "img-src https://b.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "`http:` should subsume all host source expressions with this protocol.", 
+        "required_csp": "img-src http:", 
+        "returned_csp": "img-src http://c.com:* https://b.com http://c.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "`http:` should subsume all host source expressions with `https:`.", 
+        "required_csp": "img-src http:", 
+        "returned_csp": "img-src https://c.com:* https://b.com http://c.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "`http:` does not subsume other protocols.", 
+        "required_csp": "img-src http:", 
+        "returned_csp": "img-src https://c.com:* wss://b.com http://c.com", 
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "If scheme source is present in returned csp, it must be specified in required csp too.", 
+        "required_csp": "img-src https://c.com:* wss://b.com http://c.com", 
+        "returned_csp": "img-src http:", 
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "`http:` subsumes other `http:` source expression.", 
+        "required_csp": "img-src http:", 
+        "returned_csp": "img-src http: https://c.com:* https://b.com http://c.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "`http:` subsumes other `https:` source expression and expressions with `http:`.", 
+        "required_csp": "img-src http:", 
+        "returned_csp": "img-src https: https://c.com:* http://b.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "All scheme sources must be subsumed.", 
+        "required_csp": "img-src http: wss:", 
+        "returned_csp": "img-src https: ws:", 
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "All scheme sources are subsumed by their stronger variants.", 
+        "required_csp": "img-src http: wss:", 
+        "returned_csp": "img-src https: wss:", 
+        "expected": IframeLoad.EXPECT_LOAD },
+    ];
+
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    var t = async_test('Makes sure that preloaded resources trigger the onload event');
+    var scriptLoaded = false;
+    var styleLoaded = false;
+    var imageLoaded = false;
+    var fontLoaded = false;
+    var videoLoaded = false;
+    var audioLoaded = false;
+    var trackLoaded = false;
+    var gibberishLoaded = false;
+    var gibberishErrored = false;
+    var noTypeLoaded = false;
+</script>
+<link rel=preload href="resources/dummy.js" as=script onload="scriptLoaded = true;">
+<link rel=preload href="resources/dummy.css" as=style onload="styleLoaded = true;">
+<link rel=preload href="resources/square.png" as=image onload="imageLoaded = true;">
+<link rel=preload href="/fonts/CanvasTest.ttf" as=font crossorigin onload="fontLoaded = true;">
+<link rel=preload href="/media/white.mp4" as=media onload="videoLoaded = true;">
+<link rel=preload href="/media/sound_5.oga" as=media onload="audioLoaded = true;">
+<link rel=preload href="/media/foo.vtt" as=media onload="trackLoaded = true;">
+<link rel=preload href="resources/dummy.xml?foo=bar" as=foobarxmlthing onload="gibberishLoaded = true;" onerror="gibberishErrored = true;">
+<link rel=preload href="resources/dummy.xml" onload="noTypeLoaded = true;">
+<body>
+<script src="resources/dummy.js?pipe=trickle(d5)"></script>
+<script>
+    window.onload = t.step_func(function() {
+        assert_true(styleLoaded, "style triggered load event");
+        assert_true(scriptLoaded, "script triggered load event");
+        assert_true(imageLoaded, "image triggered load event");
+        assert_true(fontLoaded, "font triggered load event");
+        assert_true(videoLoaded, "video triggered load event");
+        assert_true(audioLoaded, "audio triggered load event");
+        assert_true(trackLoaded, "track triggered load event");
+        assert_false(gibberishLoaded, "gibberish as value triggered load event");
+        assert_true(gibberishErrored, "gibberish as value triggered error event");
+        assert_true(noTypeLoaded, "empty as triggered load event");
+        t.done();
+    });
+</script>
+</body>

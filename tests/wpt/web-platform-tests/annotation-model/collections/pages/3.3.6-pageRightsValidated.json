@@ -4,21 +4,13 @@
   "assertionType": "must",
   "expectedResult": "valid",
   "onUnexpectedResult" : "failAndContinue",
-  "errorMessage": "ERROR: Annotation page page has one or more values for the rights key that are not strings of format uri.",
-  "title": "If present the Annotation page page-level **_rights_ key** has values that are all **strings of format uri** - [model 3.3.6](https://www.w3.org/TR/annotation-model/#rights-information)",
-  "description": "True when no Annotation page page rights key present or when all values of rights key are strings of format uri (Section 3.3.6)",
+  "errorMessage": "ERROR: Annotation page page has one or more values for the rights key (i.e., in description of Collection included using partOf key) that are not strings of format uri.",
+  "title": "If present the Annotation page page-level **_rights_ key** (i.e., in description of Collection included using partOf key)has values that are all **strings of format uri** - [model 3.3.6](https://www.w3.org/TR/annotation-model/#rights-information)",
+  "description": "True when no Annotation page collection rights key present or when all values of rights key are strings of format uri (Section 3.3.6)",
   "type": "object",
-  "oneOf": [
-      { "allOf": [
-           { "$ref": "otherProperties.json#/definitions/rightsValidIfPresent" },
-           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
-         ]
-      },
-      { "properties":
-         {"first":
+  "properties":
+  {
+    "partOf":
            { "$ref": "otherProperties.json#/definitions/rightsValidIfPresent" }
-         },
-        "required": [ "first" ]
-      }
-  ]
+  }
 }

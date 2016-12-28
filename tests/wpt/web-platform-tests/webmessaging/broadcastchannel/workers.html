@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+async_test(t => {
+    let c1 = new BroadcastChannel('worker');
+    let c2 = new BroadcastChannel('worker');
+    let events = [];
+
+    c1.onmessage = e => events.push(e);
+    c2.onmessage = e => events.push(e);
+
+    let doneCount = 0;
+    c2.addEventListener('message', t.step_func(e => {
+        if (e.data == 'from worker') {
+          c2.postMessage('from c2');
+          c1.postMessage('done');
+        } else if (e.data == 'done') {
+          assert_equals(events.length, 4);
+          assert_equals(events[0].data, 'from worker');
+          assert_equals(events[0].target, c1);
+          assert_equals(events[1].data, 'from worker');
+          assert_equals(events[1].target, c2);
+          assert_equals(events[2].data, 'from c2');
+          assert_equals(events[3].data, 'done');
+          if (++doneCount == 2) t.done();
+        }
+      }));
+
+    let worker = new Worker('resources/worker.js');
+    worker.onmessage = t.step_func(e => {
+        assert_array_equals(e.data, ['from c2', 'done']);
+        if (++doneCount == 2) t.done();
+      });
+    worker.postMessage({channel: 'worker'});
+
+  }, 'BroadcastChannel works in workers');
+
+async_test(t => {
+    let c1 = new BroadcastChannel('shared worker');
+    let c2 = new BroadcastChannel('shared worker');
+    let events = [];
+
+    c1.onmessage = e => events.push(e);
+    c2.onmessage = e => events.push(e);
+
+    let doneCount = 0;
+    c2.addEventListener('message', t.step_func(e => {
+        if (e.data == 'from worker') {
+          c2.postMessage('from c2');
+          c1.postMessage('done');
+        } else if (e.data == 'done') {
+          assert_equals(events.length, 4);
+          assert_equals(events[0].data, 'from worker');
+          assert_equals(events[0].target, c1);
+          assert_equals(events[1].data, 'from worker');
+          assert_equals(events[1].target, c2);
+          assert_equals(events[2].data, 'from c2');
+          assert_equals(events[3].data, 'done');
+          if (++doneCount == 2) t.done();
+        }
+      }));
+
+    let worker = new SharedWorker('resources/worker.js');
+    worker.port.onmessage = t.step_func(e => {
+        assert_array_equals(e.data, ['from c2', 'done']);
+        if (++doneCount == 2) t.done();
+      });
+    worker.port.postMessage({channel: 'shared worker'});
+
+  }, 'BroadcastChannel works in shared workers');
+
+async_test(t => {
+    let c = new BroadcastChannel('worker-close');
+    let events = [];
+
+    c.onmessage = e => events.push('c1: ' + e.data);
+
+    let worker = new Worker('resources/worker.js');
+    worker.onmessage = t.step_func(e => {
+        assert_array_equals(events, ['c1: from worker', 'c2: echo'],
+                            'messages in document');
+        assert_array_equals(e.data, ['done'], 'messages in worker');
+        t.done();
+      });
+
+    c.addEventListener('message', e => {
+        if (e.data == 'from worker') {
+          c.close();
+          if (self.gc) self.gc();
+          window.setTimeout(() => {
+              let c2 = new BroadcastChannel('worker-close');
+              c2.onmessage = e => {
+                  events.push('c2: ' + e.data);
+                  c2.postMessage('done');
+                };
+              worker.postMessage({ping: 'echo'});
+            }, 1);
+        }
+      });
+
+    worker.postMessage({channel: 'worker-close'});
+
+  }, 'Closing and re-opening a channel works.');
+
+</script>

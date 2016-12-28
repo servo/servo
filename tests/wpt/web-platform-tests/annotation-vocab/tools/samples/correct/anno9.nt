@@ -1,0 +1,7 @@
+_:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#value> "tag1" .
+_:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#TextualBody> .
+<http://example.org/anno9> <http://www.w3.org/ns/oa#hasBody> <http://example.org/description1> .
+<http://example.org/anno9> <http://www.w3.org/ns/oa#hasBody> _:b0 .
+<http://example.org/anno9> <http://www.w3.org/ns/oa#hasTarget> <http://example.org/image2> .
+<http://example.org/anno9> <http://www.w3.org/ns/oa#hasTarget> <http://example.org/image1> .
+<http://example.org/anno9> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/oa#Annotation> .

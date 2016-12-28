@@ -4,28 +4,21 @@
   "assertionType": "may",
   "expectedResult": "valid",
   "onUnexpectedResult" : "passAndContinue",
-  "errorMessage": "Annotation Page rights key (inherited from Collection) having string value(s) of format uri not found. Annotation Page may may have zero or more rights key values.",
-  "title": "Implements Annotation Page **_rights_** key (inherited from Collection) which has one or more values, each of which is a **string of format uri** - [model 3.3.6](https://www.w3.org/TR/annotation-model/#rights-information)",
-  "description": "True when the Annotation Page implements rights key with with string(s) of format uri value(s) (Sections 5.1 and 3.3.6)",
-  "oneOf": [
-      { "allOf": [
+  "errorMessage": "Annotation Page rights key (i.e., in description of Collection included using partOf key) having string value(s) of format uri not found. Annotation Page may may have zero or more rights key values.",
+  "title": "Implements Annotation Page **_rights_** key (i.e., in description of Collection included using partOf key) which has one or more values, each of which is a **string of format uri** - [model 3.3.6](https://www.w3.org/TR/annotation-model/#rights-information)",
+  "description": "True when the Annotation Page implements collection rights key (i.e., in description of Collection included using partOf key) with with string(s) of format uri value(s) (Sections 5.1 and 3.3.6)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
+      { "allOf":
+        [
            { "$ref": "otherProperties.json#/definitions/rightsValidIfPresent" },
            { "type": "object",
-             "required": [ "rights" ]},
-           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
+             "required": [ "rights" ] }
          ]
-      },
-      { "type": "object",
-        "properties":
-         {"first":
-           { "allOf": [
-               { "$ref": "otherProperties.json#/definitions/rightsValidIfPresent" },
-               { "type": "object",
-                 "required": [ "rights" ]}
-              ]
-           }
-         },
-        "required": [ "first" ]
       }
-  ]
+  },
+  "required": [ "partOf" ]
+
 }

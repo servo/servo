@@ -4,23 +4,16 @@
   "assertionType": "may",
   "expectedResult": "valid",
   "onUnexpectedResult" : "passAndContinue",
-  "errorMessage": "Single nickname for Annotation Page Creator (Agent), inherited from Collection, not found for any Creator. Agents should have exactly one id of format uri.",
-  "title": "Implements Annotation Page-level creator (Agent), inherited from Collection, **_nickname_ key** with **single value** that is a **string of format uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
-  "description": "True when at least one Annotation Page Creator (Agent), inherited from Collection, has exactly one nickname (Section 3.3.2)",
-  "oneOf": [
-      { "allOf": [
-           { "$ref": "#/definitions/creatorAgentNicknameFound" },
-           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
-         ]
-      },
-      { "type": "object",
-        "properties":
-         {"first":
+  "errorMessage": "Single nickname for Annotation Page Creator (Agent) (i.e., in description of Collection included using partOf key) not found for any Creator. Agents should have exactly one id of format uri.",
+  "title": "Implements Annotation Page-level creator (Agent) (i.e., in description of Collection included using partOf key) **_nickname_ key** with **single value** that is a **string of format uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when at least one Annotation Page Creator (Agent) (i.e., in description of Collection included using partOf key) has exactly one nickname (Section 3.3.2)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
            { "$ref": "#/definitions/creatorAgentNicknameFound" }
-         },
-        "required": [ "first" ]
-      }
-  ],
+  },
+  "required": [ "partOf" ],
   "definitions": {
    "creatorAgentNicknameFound":
    {

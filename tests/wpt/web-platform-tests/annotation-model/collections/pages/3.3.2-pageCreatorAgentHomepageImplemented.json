@@ -4,23 +4,16 @@
   "assertionType": "may",
   "expectedResult": "valid",
   "onUnexpectedResult" : "passAndContinue",
-  "errorMessage": "Homepage for Annotation Page Creator (Agent), inherited from Collection, not found. Agents may have one or more homepage values.",
-  "title": "Implements Annotation Page-level creator (Agent), inherited from Collection, **_homepage_ key** with one or more values, each of which is a **string of format uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
-  "description": "True when one or more homepage values for Annotation Page Creator (Agent), inherited from Collection, is implemented (Section 3.3.2)",
-  "oneOf": [
-      { "allOf": [
-           { "$ref": "#/definitions/creatorAgentHomePageFound" },
-           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
-         ]
-      },
-      { "type": "object",
-        "properties":
-         {"first":
+  "errorMessage": "Homepage for Annotation Page Creator (Agent) (i.e., in description of Collection included using partOf key) not found. Agents may have one or more homepage values.",
+  "title": "Implements Annotation Page-level creator (Agent) (i.e., in description of Collection included using partOf key) **_homepage_ key** with one or more values, each of which is a **string of format uri** - [model 3.2.2](https://www.w3.org/TR/annotation-model/#agents)",
+  "description": "True when one or more homepage values for Annotation Page Creator (Agent) (i.e., in description of Collection included using partOf key) is implemented (Section 3.3.2)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
            { "$ref": "#/definitions/creatorAgentHomePageFound" }
-         },
-        "required": [ "first" ]
-      }
-  ],
+  },
+  "required": [ "partOf" ],
   "definitions": {
    "creatorAgentHomePageFound":
     {  "properties":

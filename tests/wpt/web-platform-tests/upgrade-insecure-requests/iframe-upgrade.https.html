@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Upgrade Insecure Requests: IFrames.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/testharness-helper.sub.js"></script>
+
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+</head>
+<body>
+<script>
+var tests = [
+  generateURL(Host.SAME_ORIGIN, Protocol.INSECURE, ResourceType.FRAME),
+  generateURL(Host.SAME_ORIGIN, Protocol.SECURE, ResourceType.FRAME),
+  generateURL(Host.CROSS_ORIGIN, Protocol.INSECURE, ResourceType.FRAME),
+  generateURL(Host.CROSS_ORIGIN, Protocol.SECURE, ResourceType.FRAME),
+];
+
+tests.forEach(test => {
+  async_test(t => assert_frame_loads(t, test.url), test.name);
+});
+</script>
+</body>
+</html>

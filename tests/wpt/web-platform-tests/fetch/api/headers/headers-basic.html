@@ -57,7 +57,7 @@
           assert_equals(headers.get(name), String(headerDict[name]),
             "name: " + name + " has value: " + headerDict[name]);
         }
-      }, "Create headers with OpenEndedDictionary");
+      }, "Create headers with record");
 
       test(function() {
         var headers = new Headers(headerDict);
@@ -67,6 +67,14 @@
             "name: " + name + " has value: " + headerDict[name]);
         }
       }, "Create headers with existing headers");
+
+      test(function() {
+        var headers = new Headers({test:"test"});
+        var headers2 = new Headers()
+        headers2[Symbol.iterator] = headers[Symbol.iterator]
+        var headers3 = new Headers(headers2)
+        assert_equals(headers3.get("test"), "test")
+      }, "Create headers with existing headers with custom iterator");
 
       test(function() {
         var headers = new Headers();

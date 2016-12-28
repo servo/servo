@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - Port parts in host source expressions.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "Specified ports must match.", 
+        "required_csp": "img-src http://c.com:* http://b.com:80", 
+        "returned_csp": "img-src http://b.com:36", 
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Returned CSP should be subsumed even if the port is not specified but is a default port for a scheme.", 
+        "required_csp": "img-src http://c.com:* http://b.com:80", 
+        "returned_csp": "img-src http://b.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned CSP should be subsumed even if the port is not specified but is a default port for a more secure scheme.", 
+        "required_csp": "img-src http://c.com:* http://b.com:80", 
+        "returned_csp": "img-src https://b.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "The same should hold for `ws` case.", 
+        "required_csp": "img-src http://c.com:* ws://b.com:80", 
+        "returned_csp": "img-src wss://b.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Unspecified ports must match if schemes match.", 
+        "required_csp": "img-src http://c.com:* http://b.com", 
+        "returned_csp": "img-src https://b.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned CSP should be subsumed if the port is specified.", 
+        "required_csp": "img-src http://c.com:* http://b.com", 
+        "returned_csp": "img-src http://b.com:80", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned CSP should be subsumed if the port is specified but the scheme is more secure.", 
+        "required_csp": "img-src http://c.com:* http://b.com", 
+        "returned_csp": "img-src https://b.com:443", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned CSP should be subsumed if the port is specified but is not default for a more secure scheme.", 
+        "required_csp": "img-src http://c.com:* http://b.com", 
+        "returned_csp": "img-src https://b.com:36", 
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Returned CSP should be subsumed if the ports match but schemes are not identical.", 
+        "required_csp": "img-src http://c.com:* http://b.com:36", 
+        "returned_csp": "img-src https://b.com:36", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned CSP should be subsumed if the ports match but schemes are not identical for `ws`.", 
+        "required_csp": "img-src http://c.com:* ws://b.com:36", 
+        "returned_csp": "img-src wss://b.com:36", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Wildcard port should match unspecified port.", 
+        "required_csp": "img-src http://c.com:* ws://b.com:*", 
+        "returned_csp": "img-src wss://b.com", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Wildcard port should match any specific port.", 
+        "required_csp": "img-src http://c.com:* ws://b.com:*", 
+        "returned_csp": "img-src wss://b.com:36", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Wildcard port should match a wildcard.", 
+        "required_csp": "img-src http://c.com:* ws://b.com:*", 
+        "returned_csp": "img-src wss://b.com:*", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Wildcard port should not be subsumed by a default port.", 
+        "required_csp": "img-src http://c.com:* ws://b.com", 
+        "returned_csp": "img-src ws://b.com:*", 
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Wildcard port should not be subsumed by a spcified port.", 
+        "required_csp": "img-src http://c.com:* ws://b.com:80", 
+        "returned_csp": "img-src ws://b.com:*", 
+        "expected": IframeLoad.EXPECT_BLOCK },
+    ];
+
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>

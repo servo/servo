@@ -1,0 +1,14 @@
+<!doctype html>
+<title>PaymentRequest &lt;iframe allowpaymentrequest> basic</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<iframe id="iframe" allowpaymentrequest></iframe>
+<script>
+async_test((t) => {
+  const paymentArgs = [[{supportedMethods: ['foo']}], {total: {label: 'label', amount: {currency: 'USD', value: '5.00'}}}];
+
+  onload = t.step_func_done(() => {
+    new window[0].PaymentRequest(...paymentArgs);
+  });
+});
+</script>

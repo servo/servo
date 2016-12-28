@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Navigation Timing 2 WPT</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <link rel="help" href="http://www.w3.org/TR/navigation-timing-2/#sec-PerformanceNavigationTiming"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/common/utils.js"></script>
+        <script>
+
+            var reload_frame;
+
+            function onload_test()
+            {
+                reload_frame = document.getElementById("frameContext");
+                reload_frame.onload = do_test;
+                setTimeout("reload_the_frame();", 100);
+            }
+
+            function reload_the_frame()
+            {
+                var destUrl = make_absolute_url({subdomain: "www",
+                                                 path: "/common/redirect.py",
+                                                 query: "location=" + make_absolute_url(
+                                                             {path: "/navigation-timing/resources/blank_page_yellow.html"})
+                                                 });
+                reload_frame.contentWindow.location.href = destUrl;
+            }
+
+            function do_test()
+            {
+                var newNavTiming = document.getElementById("frameContext").contentWindow.performance.getEntriesByType("navigation")[0];
+                assert_equals(newNavTiming.type, "navigate", "Expected navigation type to be navigate.");
+                assert_equals(newNavTiming.unloadEventStart, 0, "Expected unloadEventStart to be 0.");
+                assert_equals(newNavTiming.unloadEventEnd, 0, "Expected unloadEventEnd to be 0.");
+                done();
+            }
+        </script>
+    </head>
+    <body>
+        <h1>Description</h1>
+        <p>This test validates the value of window.performance.getEntriesByType("navigation")[0].(type/unloadEventEnd/unloadEventStart) with a reloaded navigation.</p>
+
+        <p>This page should be loaded with a green background frame below.  The frame will be automatically reloaded
+        and then verified that
+        <ul>
+            <li>The window.performance.getEntriesByType("navigation").type = "navigate"</li>
+            <li>The window.performance.getEntriesByType("navigation").unloadEventStart == 0</li>
+            <li>The window.performance.getEntriesByType("navigation").unloadEventEnd == 0</li>
+        </ul>
+        </p>
+
+        <iframe id="frameContext" onload="onload_test();" src="resources/blank_page_green.html" style="width: 250px; height: 250px;"></iframe>
+    </body>
+</html>

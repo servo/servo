@@ -36,6 +36,14 @@ property to true in Firefox.
   var gFirstConnection = null;
   var gSecondConnection = null;
 
+  // if the remote video gets video data that implies the negotiation
+  // as well as the ICE and DTLS connection are up.
+  document.getElementById('remote-view')
+      .addEventListener('loadedmetadata', function() {
+    // Call negotiated: done.
+    test.done();
+  });
+
   function getUserMediaOkCallback(localStream) {
     gFirstConnection = new RTCPeerConnection(null);
     gFirstConnection.onicecandidate = onIceCandidateToFirst;
@@ -78,22 +86,15 @@ property to true in Firefox.
     var parsedAnswer = new RTCSessionDescription({ type: 'answer',
                                                    sdp: answerSdp });
     gFirstConnection.setRemoteDescription(parsedAnswer);
-
-    // Call negotiated: done.
-    test.done();
   };
 
   var onIceCandidateToFirst = test.step_func(function(event) {
     // If event.candidate is null = no more candidates.
-    if (event.candidate) {
-      gSecondConnection.addIceCandidate(event.candidate);
-    }
+    gSecondConnection.addIceCandidate(event.candidate);
   });
 
   var onIceCandidateToSecond = test.step_func(function(event) {
-    if (event.candidate) {
-      gFirstConnection.addIceCandidate(event.candidate);
-    }
+    gFirstConnection.addIceCandidate(event.candidate);
   });
 
   var onRemoteStream = test.step_func(function(event) {

@@ -36,6 +36,30 @@ test(function() {
     desc: "blob2."
   });
 
+  test_blob(function() {
+    return new Blob().slice(0,0,null);
+  }, {
+    expected: "",
+    type: "null",
+    desc: "null type Blob slice"
+  });
+
+  test_blob(function() {
+    return new Blob().slice(0,0,undefined);
+  }, {
+    expected: "",
+    type: "",
+    desc: "undefined type Blob slice"
+  });
+
+  test_blob(function() {
+    return new Blob().slice(0,0);
+  }, {
+    expected: "",
+    type: "",
+    desc: "no type Blob slice"
+  });
+
   var arrayBuffer = new ArrayBuffer(16);
   var int8View = new Int8Array(arrayBuffer);
   for (var i = 0; i < 16; i++) {

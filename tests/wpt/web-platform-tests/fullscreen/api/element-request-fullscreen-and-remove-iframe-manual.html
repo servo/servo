@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Element#requestFullscreen() in iframe followed by removing the iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<iframe allowfullscreen></iframe>
+<script>
+async_test(t => {
+  const iframe = document.querySelector("iframe");
+  const iframeDocument = iframe.contentDocument;
+
+  document.onfullscreenchange = t.unreached_func("fullscreenchange event");
+  document.onfullscreenerror = t.unreached_func("fullscreenerror event");
+  iframeDocument.onfullscreenchange = t.unreached_func("iframe fullscreenchange event");
+  iframeDocument.onfullscreenerror = t.unreached_func("iframe fullscreenerror event");
+
+  trusted_click(t.step_func(() => {
+    iframeDocument.body.requestFullscreen();
+    iframe.remove();
+    // No events will be fired, end test after 100ms.
+    setTimeout(t.step_func_done(() => {
+      assert_equals(document.fullscreenElement, null);
+      assert_equals(iframeDocument.fullscreenElement, null);
+    }), 100);
+  }), document.body);
+});
+</script>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+    var t = async_test('Makes sure that preloaded resources are not downloaded again when used');
+</script>
+<div id=result></div>
+<link rel=preload href="resources/square.png" as=image>
+<script>
+    window.addEventListener("load", t.step_func(function() {
+        t.step_timeout(function() {
+            document.getElementById("result").innerHTML = "<image src='resources/square.png'>";
+            t.step_timeout(function() {
+                assert_equals(performance.getEntriesByType("resource").length, 3);
+                t.done();
+            }, 1000);
+        }, 1000);
+    }));
+</script>

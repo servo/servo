@@ -1,0 +1,12 @@
+{
+  "@context": "http://www.w3.org/ns/anno.jsonld",
+  "id": ["http://example.org/1", "http://example.org/2"],
+  "type": "Annotation",
+  "label": "bad text direction",
+  "body":   {
+    "id": "http://example.com/1",
+    "format": "text/plain",
+    "textDirection": ["ltr","rtl"]
+  },
+  "target": "http://example.org/post1",
+}

@@ -32,7 +32,6 @@ var mixinInterfaces = [
   "SVGFitToViewBox",
   "SVGTests",
   "SVGURIReference",
-  "SVGUnitTypes",
   "SVGZoomAndPan"
 ]
 for (var name of mixinInterfaces) {
@@ -80,5 +79,22 @@ for (var member of movedPathMembers) {
     assert_false(SVGPathElement.prototype.hasOwnProperty(member))
     assert_true(SVGGeometryElement.prototype.hasOwnProperty(member))
   }, "SVGPathElement.prototype." + member + " must be moved to SVGGeometryElement.prototype")
+}
+
+var implementedSVGUnitTypes =  [
+  "SVGClipPathElement",
+  "SVGFilterElement",
+  "SVGGradientElement",
+  "SVGMaskElement",
+  "SVGPatternElement"
+]
+for (var name of implementedSVGUnitTypes) {
+ test(function() {
+   assert_true(name in window);
+   var interfaceObject = window[name];
+   assert_false("SVG_UNIT_TYPE_UNKNOWN" in interfaceObject);
+   assert_false("SVG_UNIT_TYPE_USERSPACEONUSE" in interfaceObject);
+   assert_false("SVG_UNIT_TYPE_OBJECTBOUNDINGBOX" in interfaceObject);
+ }, name + " must not implement SVGUnitTypes")
 }
 </script>

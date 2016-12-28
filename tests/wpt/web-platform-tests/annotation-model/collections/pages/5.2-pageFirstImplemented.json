@@ -4,22 +4,15 @@
   "assertionType": "may",
   "expectedResult": "valid",
   "onUnexpectedResult" : "passAndContinue",
-  "errorMessage": "Annotation Page has no first key (inherited from Collection).",
-  "title": "Implements **Annotation Page _first_ key** (inherited from Collection) with valid value - [model 5.1](https://www.w3.org/TR/annotation-model/#annotation-collection)",
-  "oneOf": [
-      { "allOf": [
-           { "$ref": "collections.json#/definitions/firstFound" },
-           { "$ref": "collections.json#/definitions/annotationPageTypeValueFound"  }
-         ]
-      },
-      { "type": "object",
-        "properties":
-         {"first":
+  "errorMessage": "Annotation Page has no first key (i.e., in description of Collection included using partOf key).",
+  "title": "Implements **Annotation Page _first_ key** (i.e., in description of Collection included using partOf key) with valid value - [model 5.1](https://www.w3.org/TR/annotation-model/#annotation-collection)",
+  "type": "object",
+  "properties":
+  {
+    "partOf":
            { "$ref": "collections.json#/definitions/firstFound" }
-         },
-        "required": [ "first" ]
-      }
-  ]
+  },
+  "required": [ "partOf" ]
 }
 
 

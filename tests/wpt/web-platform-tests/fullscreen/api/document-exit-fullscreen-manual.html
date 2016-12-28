@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Document.exitFullscreen()</title>
+<title>Document#exitFullscreen()</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../trusted-click.js"></script>
@@ -9,7 +9,7 @@ async_test(function(t)
 {
     trusted_request(document.querySelector("div"));
 
-    document.addEventListener("fullscreenchange", t.step_func(function()
+    document.addEventListener("fullscreenchange", t.step_func(function(event)
     {
         if (document.fullscreenElement) {
             document.exitFullscreen();

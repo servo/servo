@@ -10,15 +10,16 @@
       this.onmessage = function (evt) {
         this.send(evt.data);
       };
+    };
   };
-  navigator.receiver.connectionList
+
+  navigator.presentation.receiver.connectionList
     .then(function(list) {
-      list.onconnectionavailable = function(connections) {
-        addConnection(connections[connections.length - 1]);
+      list.onconnectionavailable = function(evt) {
+        addConnection(evt.connection);
       };
       list.connections.map(function(connection) {
         addConnection(connection);
       });
     });
-  }
 </script>

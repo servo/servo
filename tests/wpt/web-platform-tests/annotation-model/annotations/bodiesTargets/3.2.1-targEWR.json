@@ -21,5 +21,6 @@
                       { "not": { "items": { "not": { "$ref": "bodyTarget.json#/definitions/itemEwrDetected" } } } }
                      ]
          }
-     }
+     },
+     "required": [ "target" ]
 }

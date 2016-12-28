@@ -540,7 +540,6 @@ interface SVGStringList {
   setter void (unsigned long index, DOMString newItem);
 };
 
-[NoInterfaceObject]
 interface SVGUnitTypes {
   // Unit Types
   const unsigned short SVG_UNIT_TYPE_UNKNOWN = 0;
@@ -921,7 +920,6 @@ interface SVGGradientElement : SVGElement {
 };
 
 SVGGradientElement implements SVGURIReference;
-SVGGradientElement implements SVGUnitTypes;
 
 interface SVGLinearGradientElement : SVGGradientElement {
   [SameObject] readonly attribute SVGAnimatedLength x1;
@@ -964,7 +962,6 @@ interface SVGPatternElement : SVGElement {
 
 SVGPatternElement implements SVGFitToViewBox;
 SVGPatternElement implements SVGURIReference;
-SVGPatternElement implements SVGUnitTypes;
 
 interface SVGHatchElement : SVGElement {
 };
@@ -1015,7 +1012,6 @@ interface SVGFilterElement : SVGElement {
 };
 
 SVGFilterElement implements SVGURIReference;
-SVGFilterElement implements SVGUnitTypes;
 
 [NoInterfaceObject]
 interface SVGFilterPrimitiveStandardAttributes {

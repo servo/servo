@@ -2,18 +2,8 @@
 <script src=/resources/testharnessreport.js></script>
 <div id=log></div>
 <script>
-  var fails = ["", "?type=", "?type=x", "?type=x/x"],
-      passes = ["?type=image/gif", "?type=image/png", "?type=image/png;blah"]
-
-  fails.forEach(function(urlpart) {
-    async_test(function(t) {
-      var img = document.createElement("img")
-      img.onerror = t.step_func_done(function(){})
-      img.onload = t.unreached_func("Unexpected load event")
-      img.src = "resources/image.py" + urlpart
-      document.body.appendChild(img)
-    }, "URL query: " + urlpart)
-  })
+  // Note: images get always sniffed, nosniff doesn't do anything
+  var passes = ["", "?type=", "?type=x", "?type=x/x", "?type=image/gif", "?type=image/png", "?type=image/png;blah"]
 
   passes.forEach(function(urlpart) {
     async_test(function(t) {

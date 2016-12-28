@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>RTCPeerConnectionIceEvent constructor</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  assert_equals(RTCPeerConnectionIceEvent.length, 1);
+  var e = new RTCPeerConnectionIceEvent('type');
+  assert_equals(e.candidate, null);
+  assert_false(e.bubbles);
+  assert_false(e.cancelable);
+}, 'RTCPeerConnectionIceEvent constructor with no candidate provided.');
+
+test(function() {
+  var e = new RTCPeerConnectionIceEvent('type', { candidate: null });
+  assert_equals(e.candidate, null);
+}, 'RTCPeerConnectionIceEvent constructor with candidate passed as null.');
+
+test(function() {
+  var e = new RTCPeerConnectionIceEvent('type', { candidate: undefined });
+  assert_equals(e.candidate, null);
+}, 'RTCPeerConnectionIceEvent constructor with candidate passed as undefined.');
+
+test(function() {
+  var c = new RTCIceCandidate({ candidate: 'candidate', sdpMid: 'sdpMid', sdpMLineIndex: 1 });
+  var e = new RTCPeerConnectionIceEvent('type', { candidate: c, url: 'url', bubbles: true, cancelable: true});
+  assert_equals(e.type, 'type');
+  assert_equals(e.candidate, c);
+  // assert_equals(e.url, 'url');
+  assert_true(e.bubbles);
+  assert_true(e.cancelable);
+}, 'RTCPeerConnectionIceEvent constructor with full arguments.');
+</script>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Embedded Enforcement: Subsumption Algorithm - 'unsafe-inline' keyword.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+  <script>
+    var tests = [
+      { "name": "'strict-dynamic' is ineffective for `style-src`.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-inline' 'strict-dynamic'", 
+        "returned_csp_1": "style-src 'unsafe-inline' http://example1.com/foo/bar.html",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'unsafe-inline' is properly subsumed in `style-src`.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-inline'", 
+        "returned_csp_1": "style-src http://example1.com/foo/ 'unsafe-inline'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'unsafe-inline' is only ineffective if the effective returned csp has nonces in `style-src`.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-inline'", 
+        "returned_csp_1": "style-src 'unsafe-inline' 'nonce-yay'",
+        "returned_csp_2": "style-src 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'unsafe-inline' is only ineffective if the effective returned csp has hashes in `style-src`.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-inline'", 
+        "returned_csp_1": "style-src 'unsafe-inline' 'sha256-abc123'",
+        "returned_csp_2": "style-src 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned csp does not have to allow 'unsafe-inline' in `style-src` to be subsumed.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-inline'", 
+        "returned_csp_1": "style-src 'self'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'unsafe-inline' does not matter if returned csp is effectively `none`.", 
+        "required_csp": "style-src 'unsafe-inline'", 
+        "returned_csp_1": "style-src ",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'unsafe-inline' is properly subsumed in `script-src`.", 
+        "required_csp": "script-src http://example1.com/foo/ 'self' 'unsafe-inline'", 
+        "returned_csp_1": "script-src http://example1.com/foo/ 'unsafe-inline'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Returned csp only loads 'unsafe-inline' scripts with 'nonce-abc'.", 
+        "required_csp": "script-src http://example1.com/foo/ 'self' 'unsafe-inline'", 
+        "returned_csp_1": "script-src 'nonce-abc'",
+        "returned_csp_2": "script-src 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'unsafe-inline' is ineffective when nonces are present.", 
+        "required_csp": "script-src http://example1.com/foo/ 'self' 'unsafe-inline'", 
+        "returned_csp_1": "script-src 'unsafe-inline' 'nonce-abc'",
+        "returned_csp_2": "script-src 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "'unsafe-inline' is only ineffective if the effective returned csp has hashes in `script-src`.", 
+        "required_csp": "script-src http://example1.com/foo/ 'self' 'unsafe-inline'", 
+        "returned_csp_1": "script-src 'unsafe-inline' 'sha256-abc123' 'nonce-abc'",
+        "returned_csp_2": "script-src 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Required csp allows `strict-dynamic`, but retuned csp does.", 
+        "required_csp": "script-src http://example1.com/foo/ 'unsafe-inline' 'strict-dynamic'", 
+        "returned_csp_1": "script-src 'unsafe-inline' http://example1.com/foo/bar.html",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Required csp does not allow `unsafe-inline`, but retuned csp does.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "style-src 'unsafe-inline'",
+        "returned_csp_2": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Returned csp whitelists a nonce.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-inline'", 
+        "returned_csp_1": "style-src 'unsafe-inline' 'nonce-abc'",
+        "returned_csp_2": "style-src 'nonce-abc'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Returned csp whitelists a hash.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-inline'", 
+        "returned_csp_1": "style-src 'unsafe-inline' 'sha256-abc123'",
+        "returned_csp_2": "style-src 'sha256-abc123'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Effective returned csp allows 'unsafe-inline'", 
+        "required_csp": "style-src http://example1.com/foo/ 'self'", 
+        "returned_csp_1": "style-src 'unsafe-inline' https://example.test/",
+        "returned_csp_2": "style-src 'unsafe-inline'",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Effective returned csp does not allow 'sha512-321cba' hash.", 
+        "required_csp": "style-src http://example1.com/foo/ 'self' 'unsafe-inline' 'sha512-321cba'", 
+        "returned_csp_1": "style-src http://example1.com/foo/ 'unsafe-inline' 'nonce-yay'",
+        "returned_csp_2": "style-src http://example1.com/foo/ 'unsafe-inline' 'sha512-321cba'",
+        "expected": IframeLoad.EXPECT_LOAD },
+    ];
+    tests.forEach(test => {
+      async_test(t =>  {
+        var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp_1);
+        if (test.returned_csp_2)
+          url.searchParams.append("policy2", test.returned_csp_2);
+        assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
+      }, test.name);
+    });
+  </script>
+</body>
+</html>
