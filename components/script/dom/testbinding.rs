@@ -773,6 +773,10 @@ impl TestBindingMethods for TestBinding {
     }
 
     fn Panic(&self) { panic!("explicit panic from script") }
+
+    fn EntryGlobal(&self) -> Root<GlobalScope> {
+        GlobalScope::entry()
+    }
 }
 
 impl TestBinding {

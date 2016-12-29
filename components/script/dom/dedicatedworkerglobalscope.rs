@@ -14,6 +14,7 @@ use dom::bindings::error::{ErrorInfo, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::settings_stack::AutoEntryScript;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::globalscope::GlobalScope;
@@ -231,6 +232,7 @@ impl DedicatedWorkerGlobalScope {
 
             {
                 let _ar = AutoWorkerReset::new(&global, worker);
+                let _aes = AutoEntryScript::new(global.upcast());
                 scope.execute_script(DOMString::from(source));
             }
 

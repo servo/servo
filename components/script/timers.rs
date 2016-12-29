@@ -495,7 +495,6 @@ impl JsTimerTask {
                 let global = this.global();
                 let cx = global.get_cx();
                 rooted!(in(cx) let mut rval = UndefinedValue());
-
                 global.evaluate_js_on_global_with_result(
                     code_str, rval.handle_mut());
             },

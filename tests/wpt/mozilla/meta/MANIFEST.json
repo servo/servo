@@ -8300,6 +8300,18 @@
             "url": "/_mozilla/mozilla/enabled_disabled_selectors.html"
           }
         ],
+        "mozilla/entry/entry.html": [
+          {
+            "path": "mozilla/entry/entry.html",
+            "url": "/_mozilla/mozilla/entry/entry.html"
+          }
+        ],
+        "mozilla/entry/entry.worker.js": [
+          {
+            "path": "mozilla/entry/entry.worker.js",
+            "url": "/_mozilla/mozilla/entry/entry.worker.html"
+          }
+        ],
         "mozilla/event_dispatch.html": [
           {
             "path": "mozilla/event_dispatch.html",

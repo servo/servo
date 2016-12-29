@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Entry page</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function() {
+  window.f = this.step_func_done(function() {
+    var entry = document.querySelector("#incumbent").contentWindow.g();
+    assert_equals(entry, window);
+  });
+});
+</script>
+<iframe id="incumbent" src="incumbent.html" onload="f()"></iframe>

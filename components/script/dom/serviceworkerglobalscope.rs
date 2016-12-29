@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding::ServiceWo
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::settings_stack::AutoEntryScript;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
@@ -199,6 +200,7 @@ impl ServiceWorkerGlobalScope {
                 JS_SetInterruptCallback(scope.runtime(), Some(interrupt_callback));
             }
 
+            let _aes = AutoEntryScript::new(global.upcast());
             scope.execute_script(DOMString::from(source));
             // Service workers are time limited
             thread::Builder::new().name("SWTimeoutThread".to_owned()).spawn(move || {
