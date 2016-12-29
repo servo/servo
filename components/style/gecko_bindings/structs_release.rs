@@ -3024,6 +3024,7 @@ pub mod root {
         pub struct StyleComplexColor {
             pub mColor: root::nscolor,
             pub mForegroundRatio: u8,
+            pub mIsAuto: bool,
         }
         #[test]
         fn bindgen_test_layout_StyleComplexColor() {
