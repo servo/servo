@@ -277,6 +277,19 @@ pub fn main_fetch(request: Rc<Request>,
 
         // Step 16
         // TODO this step (CSP/blocking)
+        if request.type_ == Type::Script {
+            if let Some(mime_type) = response.headers.get::<ContentType>() {
+                match *mime_type {
+                    ContentType(Mime(TopLevel::Audio, _, _)) |
+                    ContentType(Mime(TopLevel::Video, _, _)) |
+                    ContentType(Mime(TopLevel::Image, _, _)) |
+                    ContentType(Mime(TopLevel::Text, SubLevel::Plain, _)) => {
+                        return Response::network_error(NetworkError::Internal("Invalid repsonse mimetype".into()));
+                    },
+                    _ => {}
+                }
+            }
+        }
 
         // Step 17
         if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
