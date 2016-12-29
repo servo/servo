@@ -330,7 +330,7 @@ extern "C" {
 extern "C" {
     pub fn Gecko_LoadStyleSheet(loader: *mut Loader,
                                 parent: *mut ServoStyleSheet,
-                                import_rule: RawServoImportRuleStrong,
+                                import_rule: RawServoImportRuleBorrowed,
                                 url_bytes: *const u8, url_length: u32,
                                 media_bytes: *const u8, media_length: u32);
 }

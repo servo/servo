@@ -3,10 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use parking_lot::RwLock;
-use std::mem;
 use std::sync::Arc;
 use style::gecko_bindings::bindings::Gecko_LoadStyleSheet;
 use style::gecko_bindings::structs::{Loader, ServoStyleSheet};
+use style::gecko_bindings::sugar::ownership::HasArcFFI;
 use style::stylesheets::{ImportRule, StylesheetLoader as StyleStylesheetLoader};
 use style_traits::ToCss;
 
@@ -37,7 +37,7 @@ impl StyleStylesheetLoader for StylesheetLoader {
         unsafe {
             Gecko_LoadStyleSheet(self.0,
                                  self.1,
-                                 mem::transmute(import_rule.clone()),
+                                 HasArcFFI::arc_as_borrowed(import_rule),
                                  spec_bytes,
                                  spec_len as u32,
                                  media.as_bytes().as_ptr(),
