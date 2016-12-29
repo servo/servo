@@ -189,7 +189,15 @@ pub fn main_fetch(request: Rc<Request>,
     }
 
     // Step 9
-    // TODO this step (HSTS)
+    if !request.current_url().is_secure_scheme() && request.current_url().domain().is_some() {
+        if context.state
+            .hsts_list
+            .read()
+            .unwrap()
+            .is_host_secure(request.current_url().domain().unwrap()) {
+           request.url_list.borrow_mut().last_mut().unwrap().as_mut_url().unwrap().set_scheme("https").unwrap();
+        }
+    }
 
     // Step 10
     // this step is obsoleted by fetch_async
