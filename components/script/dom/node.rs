@@ -1720,6 +1720,8 @@ impl Node {
                 let loader = DocumentLoader::new(&*document.loader());
                 let document = Document::new(window, None,
                                              Some(document.url()),
+                                             // https://github.com/whatwg/dom/issues/378
+                                             document.origin().alias(),
                                              is_html_doc, None,
                                              None, DocumentSource::NotFromParser, loader,
                                              None, None);

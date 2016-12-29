@@ -168,7 +168,7 @@ impl HTMLIFrameElement {
                 layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
             };
 
-            ScriptThread::process_attach_layout(new_layout_info);
+            ScriptThread::process_attach_layout(new_layout_info, document.origin().alias());
         } else {
             let load_info = IFrameLoadInfoWithData {
                 info: load_info,
@@ -332,11 +332,9 @@ impl HTMLIFrameElement {
         self.pipeline_id.get()
             .and_then(|pipeline_id| ScriptThread::find_document(pipeline_id))
             .and_then(|document| {
-                // FIXME(#10964): this should use the Document's origin and the
-                //                origin of the incumbent settings object.
-                let contained_url = document.global().get_url();
-                if self.global().get_url().origin() == contained_url.origin() ||
-                   contained_url.as_str() == "about:blank" {
+                let current_global = GlobalScope::current();
+                let current_document = current_global.as_window().Document();
+                if document.origin().same_origin(current_document.origin()) {
                     Some(Root::from_ref(document.window()))
                 } else {
                     None

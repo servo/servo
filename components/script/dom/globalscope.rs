@@ -27,7 +27,7 @@ use js::jsapi::{HandleValue, Evaluate2, JSAutoCompartment, JSContext};
 use js::jsapi::{JSObject, JS_GetContext};
 use js::jsapi::{JS_GetObjectRuntime, MutableHandleValue};
 use js::panic::maybe_resume_unwind;
-use js::rust::{CompileOptionsWrapper, get_object_class};
+use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
 use libc;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
@@ -505,6 +505,19 @@ impl GlobalScope {
             return worker.file_reading_task_source();
         }
         unreachable!();
+    }
+
+    /// Returns the ["current"] global object.
+    ///
+    /// ["current"]: https://html.spec.whatwg.org/multipage/#current
+    #[allow(unsafe_code)]
+    pub fn current() -> Root<Self> {
+        unsafe {
+            let cx = Runtime::get();
+            assert!(!cx.is_null());
+            let global = CurrentGlobalOrNull(cx);
+            global_scope_from_global(global)
+        }
     }
 }
 
