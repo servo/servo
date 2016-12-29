@@ -13,6 +13,7 @@ import sys
 import os.path as path
 sys.path.append(path.join(path.dirname(sys.argv[0]), "components", "style", "properties", "Mako-0.9.1.zip"))
 
+import json
 import os
 import shutil
 import subprocess
@@ -78,7 +79,6 @@ def change_non_system_libraries_path(libraries, relative_path, binary):
 
 
 def copy_dependencies(binary_path, lib_path):
-
     relative_path = path.relpath(lib_path, path.dirname(binary_path)) + "/"
 
     # Update binary libraries
@@ -105,6 +105,31 @@ def copy_dependencies(binary_path, lib_path):
         need_checked.difference_update(checked)
 
 
+def change_prefs(resources_path, platform):
+    print("Swapping prefs")
+    prefs_path = path.join(resources_path, "prefs.json")
+    package_prefs_path = path.join(resources_path, "package-prefs.json")
+    os_type = "os:{}".format(platform)
+    with open(prefs_path) as prefs, open(package_prefs_path) as package_prefs:
+        prefs = json.load(prefs)
+        package_prefs = json.load(package_prefs)
+        for pref in package_prefs:
+            if os_type in pref:
+                prefs[pref.split(";")[1]] = package_prefs[pref]
+            if pref in prefs:
+                prefs[pref] = package_prefs[pref]
+        with open(prefs_path, "w") as out:
+            json.dump(prefs, out, sort_keys=True, indent=2)
+    delete(package_prefs_path)
+
+
+def get_browserhtml_path(binary_path):
+    browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
+    if browserhtml_path:
+        return path.join(browserhtml_path, "out")
+    sys.exit("Could not find browserhtml package; perhaps you haven't built Servo.")
+
+
 @CommandProvider
 class PackageCommands(CommandBase):
     @Command('package',
@@ -123,6 +148,8 @@ class PackageCommands(CommandBase):
         if android is None:
             android = self.config["build"]["android"]
         binary_path = self.get_binary_path(release, dev, android=android)
+        dir_to_root = self.get_top_dir()
+        target_dir = path.dirname(binary_path)
         if android:
             if dev:
                 env["NDK_DEBUG"] = "1"
@@ -132,56 +159,50 @@ class PackageCommands(CommandBase):
                 env["ANT_FLAVOR"] = "release"
                 dev_flag = ""
 
-            target_dir = path.dirname(binary_path)
             output_apk = "{}.apk".format(binary_path)
+
+            dir_to_apk = path.join(target_dir, "apk")
+            if path.exists(dir_to_apk):
+                print("Cleaning up from previous packaging")
+                delete(dir_to_apk)
+            shutil.copytree(path.join(dir_to_root, "support", "android", "apk"), dir_to_apk)
+
             blurdroid_path = find_dep_path_newest('blurdroid', binary_path)
             if blurdroid_path is None:
                 print("Could not find blurdroid package; perhaps you haven't built Servo.")
                 return 1
             else:
-                dir_to_libs = path.join("support", "android", "apk", "libs")
+                dir_to_libs = path.join(dir_to_apk, "libs")
                 if not path.exists(dir_to_libs):
                     os.makedirs(dir_to_libs)
                 shutil.copy2(blurdroid_path + '/out/blurdroid.jar', dir_to_libs)
             try:
                 with cd(path.join("support", "android", "build-apk")):
                     subprocess.check_call(["cargo", "run", "--", dev_flag, "-o", output_apk, "-t", target_dir,
-                                           "-r", self.get_top_dir()], env=env)
+                                           "-r", dir_to_root], env=env)
             except subprocess.CalledProcessError as e:
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
         elif is_macosx():
-
-            dir_to_build = path.dirname(binary_path)
-            dir_to_root = self.get_top_dir()
-
             print("Creating Servo.app")
-            dir_to_dmg = path.join(dir_to_build, 'dmg')
+            dir_to_dmg = path.join(target_dir, 'dmg')
             dir_to_app = path.join(dir_to_dmg, 'Servo.app')
             dir_to_resources = path.join(dir_to_app, 'Contents', 'Resources')
             if path.exists(dir_to_dmg):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_dmg)
-            browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
-            if browserhtml_path is None:
-                print("Could not find browserhtml package; perhaps you haven't built Servo.")
-                return 1
+            browserhtml_path = get_browserhtml_path(binary_path)
 
             print("Copying files")
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
-            shutil.copytree(browserhtml_path, path.join(dir_to_resources, path.basename(browserhtml_path)))
+            shutil.copytree(browserhtml_path, path.join(dir_to_resources, 'browserhtml'))
             shutil.copy2(path.join(dir_to_root, 'Info.plist'), path.join(dir_to_app, 'Contents', 'Info.plist'))
 
             content_dir = path.join(dir_to_app, 'Contents', 'MacOS')
             os.makedirs(content_dir)
             shutil.copy2(binary_path, content_dir)
 
-            print("Swapping prefs")
-            package_prefs_path = path.join(dir_to_resources, 'package-prefs.json')
-            prefs_path = path.join(dir_to_resources, 'prefs.json')
-            delete(prefs_path)
-            shutil.copy2(package_prefs_path, prefs_path)
-            delete(package_prefs_path)
+            change_prefs(dir_to_resources, "macosx")
 
             print("Finding dylibs and relinking")
             copy_dependencies(path.join(content_dir, 'servo'), content_dir)
@@ -205,19 +226,9 @@ class PackageCommands(CommandBase):
                     credits_file.write(template.render(version=version))
             delete(template_path)
 
-            print("Writing run-servo")
-            bhtml_path = path.join('${0%/*}', '..', 'Resources', path.basename(browserhtml_path), 'out', 'index.html')
-            runservo = os.open(
-                path.join(content_dir, 'run-servo'),
-                os.O_WRONLY | os.O_CREAT,
-                int("0755", 8)
-            )
-            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + bhtml_path)
-            os.close(runservo)
-
             print("Creating dmg")
             os.symlink('/Applications', path.join(dir_to_dmg, 'Applications'))
-            dmg_path = path.join(dir_to_build, "servo-tech-demo.dmg")
+            dmg_path = path.join(target_dir, "servo-tech-demo.dmg")
 
             try:
                 subprocess.check_call(['hdiutil', 'create', '-volname', 'Servo', dmg_path, '-srcfolder', dir_to_dmg])
@@ -229,8 +240,8 @@ class PackageCommands(CommandBase):
             print("Packaged Servo into " + dmg_path)
 
             print("Creating brew package")
-            dir_to_brew = path.join(dir_to_build, 'brew_tmp')
-            dir_to_tar = path.join(dir_to_build, 'brew')
+            dir_to_brew = path.join(target_dir, 'brew_tmp')
+            dir_to_tar = path.join(target_dir, 'brew')
             if not path.exists(dir_to_tar):
                 os.makedirs(dir_to_tar)
             tar_path = path.join(dir_to_tar, "servo.tar.gz")
@@ -250,29 +261,29 @@ class PackageCommands(CommandBase):
             archive_deterministically(dir_to_brew, tar_path, prepend_path='servo/')
             delete(dir_to_brew)
             print("Packaged Servo into " + tar_path)
-
         elif is_windows():
-            dir_to_package = path.dirname(binary_path)
-            dir_to_root = self.get_top_dir()
-            dir_to_msi = path.join(dir_to_package, 'msi')
+            dir_to_msi = path.join(target_dir, 'msi')
             if path.exists(dir_to_msi):
                 print("Cleaning up from previous packaging")
                 delete(dir_to_msi)
             os.makedirs(dir_to_msi)
-            top_path = dir_to_root
-            browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
-            if browserhtml_path is None:
-                print("Could not find browserhtml package; perhaps you haven't built Servo.")
-                return 1
-            browserhtml_path = path.join(browserhtml_path, "out")
+            browserhtml_path = get_browserhtml_path(binary_path)
+
+            print("Copying files")
+            dir_to_resources = path.join(dir_to_msi, 'resources')
+            shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
+
+            change_prefs(dir_to_resources, "windows")
+
             # generate Servo.wxs
             template_path = path.join(dir_to_root, "support", "windows", "Servo.wxs.mako")
             template = Template(open(template_path).read())
             wxs_path = path.join(dir_to_msi, "Servo.wxs")
             open(wxs_path, "w").write(template.render(
-                exe_path=dir_to_package,
-                top_path=top_path,
+                exe_path=target_dir,
+                resources_path=dir_to_resources,
                 browserhtml_path=browserhtml_path))
+
             # run candle and light
             print("Creating MSI")
             try:
@@ -291,11 +302,8 @@ class PackageCommands(CommandBase):
             msi_path = path.join(dir_to_msi, "Servo.msi")
             print("Packaged Servo into {}".format(msi_path))
         else:
-            dir_to_temp = path.join(path.dirname(binary_path), 'packaging-temp')
-            browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
-            if browserhtml_path is None:
-                print("Could not find browserhtml package; perhaps you haven't built Servo.")
-                return 1
+            dir_to_temp = path.join(target_dir, 'packaging-temp')
+            browserhtml_path = get_browserhtml_path(binary_path)
             if path.exists(dir_to_temp):
                 # TODO(aneeshusa): lock dir_to_temp to prevent simultaneous builds
                 print("Cleaning up from previous packaging")
@@ -303,24 +311,14 @@ class PackageCommands(CommandBase):
 
             print("Copying files")
             dir_to_resources = path.join(dir_to_temp, 'resources')
-            shutil.copytree(path.join(self.get_top_dir(), 'resources'), dir_to_resources)
+            shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
             shutil.copytree(browserhtml_path, path.join(dir_to_temp, 'browserhtml'))
             shutil.copy(binary_path, dir_to_temp)
 
-            print("Writing runservo.sh")
-            # TODO: deduplicate this arg list from post_build_commands
-            servo_args = ['-b',
-                          '--pref', 'dom.mozbrowser.enabled',
-                          '--pref', 'dom.forcetouch.enabled',
-                          '--pref', 'shell.builtin-key-shortcuts.enabled=false',
-                          path.join('./browserhtml', 'out', 'index.html')]
-
-            runservo = os.open(path.join(dir_to_temp, 'runservo.sh'), os.O_WRONLY | os.O_CREAT, int("0755", 8))
-            os.write(runservo, "#!/usr/bin/env sh\n./servo " + ' '.join(servo_args))
-            os.close(runservo)
+            change_prefs(dir_to_resources, "linux")
 
             print("Creating tarball")
-            tar_path = path.join(path.dirname(binary_path), 'servo-tech-demo.tar.gz')
+            tar_path = path.join(target_dir, 'servo-tech-demo.tar.gz')
 
             archive_deterministically(dir_to_temp, tar_path, prepend_path='servo/')
 

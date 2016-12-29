@@ -38,7 +38,6 @@
                           WorkingDirectory="INSTALLDIR"
                           Icon="Servo.ico"
                           IconIndex="0"
-                          Arguments="-w --pref dom.mozbrowser.enabled --pref shell.builtin-key-shortcuts.enabled=false browserhtml\index.html"
                           Advertise="yes"/>
               </File>
               <File Id="ServoManifest"
@@ -49,7 +48,7 @@
               ${include_dependencies()}
             </Component>
 
-            ${include_directory(path.join(top_path, "resources"), "resources")}
+            ${include_directory(resources_path, "resources")}
             ${include_directory(browserhtml_path, "browserhtml")}
           </Directory>
         </Directory>
@@ -77,7 +76,7 @@
       <ComponentRef Id="ProgramMenuDir"/>
     </Feature>
 
-    <Icon Id="Servo.ico" SourceFile="${windowize(top_path)}\resources\Servo.ico"/>
+    <Icon Id="Servo.ico" SourceFile="${windowize(resources_path)}\Servo.ico"/>
   </Product>
 </Wix>
 <%!
