@@ -66,7 +66,7 @@ kernel32-sys = "0.2"
 
 [build-dependencies]
 lazy_static = "0.2"
-libbindgen = {version = "0.1.1", optional = true}
+libbindgen = {version = "0.1.5", optional = true}
 phf_codegen = "0.7.20"
 regex = {version = "0.1", optional = true}
 walkdir = "0.1"
