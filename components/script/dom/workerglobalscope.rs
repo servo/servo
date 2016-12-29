@@ -13,6 +13,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::settings_stack::AutoEntryScript;
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -331,6 +332,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 impl WorkerGlobalScope {
     #[allow(unsafe_code)]
     pub fn execute_script(&self, source: DOMString) {
+        let _aes = AutoEntryScript::new(self.upcast());
         rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
         match self.runtime.evaluate_script(
             self.reflector().get_jsobject(), &source, self.worker_url.as_str(), 1, rval.handle_mut()) {

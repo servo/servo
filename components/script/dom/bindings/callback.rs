@@ -7,6 +7,7 @@
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
+use dom::bindings::settings_stack::AutoEntryScript;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Heap, MutableHandleObject};
 use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};
@@ -16,6 +17,7 @@ use js::jsapi::JS_GetProperty;
 use js::jsval::{JSVal, UndefinedValue};
 use std::default::Default;
 use std::ffi::CString;
+use std::mem::drop;
 use std::ptr;
 use std::rc::Rc;
 
@@ -156,6 +158,9 @@ pub struct CallSetup {
     old_compartment: *mut JSCompartment,
     /// The exception handling used for the call.
     handling: ExceptionHandling,
+    /// https://heycam.github.io/webidl/#es-invoking-callback-functions
+    /// steps 8 and 18.2.
+    entry_script: Option<AutoEntryScript>,
 }
 
 impl CallSetup {
@@ -167,11 +172,13 @@ impl CallSetup {
         let global = unsafe { GlobalScope::from_object(callback.callback()) };
         let cx = global.get_cx();
 
+        let aes = AutoEntryScript::new(&global);
         CallSetup {
             exception_global: global,
             cx: cx,
             old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
             handling: handling,
+            entry_script: Some(aes),
         }
     }
 
@@ -190,6 +197,7 @@ impl Drop for CallSetup {
                                                  self.exception_global.reflector().get_jsobject().get());
                 report_pending_exception(self.cx, true);
             }
+            drop(self.entry_script.take().unwrap());
         }
     }
 }

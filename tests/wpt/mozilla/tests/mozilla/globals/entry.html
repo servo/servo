@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Entry page</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var entry_test = async_test("Entry global");
+var loaded = function() {
+  entry_test.step(function() {
+    var entry = document.querySelector("#incumbent").contentWindow.get_entry();
+    assert_equals(entry, window);
+  });
+  entry_test.done();
+}
+</script>
+<iframe id="incumbent" src="incumbent.html" onload="loaded()"></iframe>
