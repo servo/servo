@@ -76,7 +76,10 @@ pub enum ImageOrMetadataAvailable {
 pub enum ImageCacheCommand {
     /// Synchronously check the state of an image in the cache. If the image is in a loading
     /// state and but its metadata has been made available, it will be sent as a response.
-    GetImageOrMetadataIfAvailable(ServoUrl, UsePlaceholder, IpcSender<Result<ImageOrMetadataAvailable, ImageState>>),
+    GetImageOrMetadataIfAvailable(ServoUrl,
+                                  UsePlaceholder,
+                                  CanRequestImages,
+                                  IpcSender<Result<ImageOrMetadataAvailable, ImageState>>),
 
     /// Add a new listener for the given pending image.
     AddListener(PendingImageId, ImageResponder),
@@ -91,6 +94,12 @@ pub enum ImageCacheCommand {
 
 #[derive(Copy, Clone, PartialEq, Hash, Eq, Deserialize, Serialize)]
 pub enum UsePlaceholder {
+    No,
+    Yes,
+}
+
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+pub enum CanRequestImages {
     No,
     Yes,
 }
@@ -117,10 +126,14 @@ impl ImageCacheThread {
     /// FIXME: We shouldn't do IPC for data uris!
     pub fn find_image_or_metadata(&self,
                                   url: ServoUrl,
-                                  use_placeholder: UsePlaceholder)
+                                  use_placeholder: UsePlaceholder,
+                                  can_request: CanRequestImages)
                                   -> Result<ImageOrMetadataAvailable, ImageState> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let msg = ImageCacheCommand::GetImageOrMetadataIfAvailable(url, use_placeholder, sender);
+        let msg = ImageCacheCommand::GetImageOrMetadataIfAvailable(url,
+                                                                   use_placeholder,
+                                                                   can_request,
+                                                                   sender);
         let _ = self.chan.send(msg);
         try!(receiver.recv().map_err(|_| ImageState::LoadError))
     }
