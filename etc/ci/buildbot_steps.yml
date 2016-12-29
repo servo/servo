@@ -4,7 +4,7 @@ mac-rel-wpt1:
   - ./mach test-wpt --release --processes 8 --total-chunks 2 --this-chunk 1 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
   - ./mach test-wpt --release --binary-arg=--multiprocess --processes 8 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
-  - ./mach build-cef --release
+  - ./mach build-cef --release --debug-mozjs
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
@@ -14,9 +14,9 @@ mac-rel-wpt2:
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
 
 mac-dev-unit:
-  - ./mach build --dev
+  - ./mach build --dev --debug-mozjs
   - ./mach test-unit
-  - ./mach build-cef
+  - ./mach build-cef --debug-mozjs
   - ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
@@ -47,10 +47,10 @@ mac-rel-intermittent:
 linux-dev:
   - ./mach test-tidy --no-progress --all
   - ./mach test-tidy --no-progress --self-test
-  - ./mach build --dev
+  - ./mach build --dev --debug-mozjs
   - ./mach test-compiletest
   - ./mach test-unit
-  - ./mach build-cef
+  - ./mach build-cef --debug-mozjs
   - ./mach build-geckolib
   - ./mach test-stylo
   - bash ./etc/ci/lockfile_changed.sh
@@ -68,7 +68,7 @@ linux-rel-css:
   - ./mach build --release --debug-mozjs --with-debug-assertions
   - ./mach test-css --release --processes 16 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
   - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
-  - ./mach build-cef --release --with-debug-assertions
+  - ./mach build-cef --release --debug-mozjs --with-debug-assertions
   - ./mach build-geckolib --release
   - ./mach test-stylo --release
   - bash ./etc/ci/lockfile_changed.sh
@@ -102,17 +102,17 @@ arm64:
   - bash ./etc/ci/manifest_changed.sh
 
 windows-dev:
-  - ./mach build --dev
+  - ./mach build --dev --debug-mozjs
   - ./mach test-unit
   - ./mach build-geckolib
 
 windows-gnu-dev:
-  - ./mach build --dev
+  - ./mach build --dev --debug-mozjs
   - ./mach test-unit
   - ./mach build-geckolib
 
 windows-msvc-dev:
-  - mach.bat build --dev
+  - mach.bat build --dev --debug-mozjs
   - mach.bat test-unit
   - mach.bat build-geckolib
 
