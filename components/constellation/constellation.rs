@@ -96,7 +96,7 @@ use profile_traits::time;
 use rand::{Rng, SeedableRng, StdRng, random};
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
-use script_traits::{DocumentState, LayoutControlMsg, LoadData};
+use script_traits::{DocumentState, LayoutControlMsg, LoadData, NewLayoutInfo};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
@@ -1346,7 +1346,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // parent_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
-        let (load_data, window_size, is_private) = {
+        let (load_data, window_size, is_private, event_loop) = {
             let old_pipeline = load_info.old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
 
@@ -1370,12 +1370,36 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
 
+            let event_loop = source_pipeline.event_loop.clone();
+
             if let Some(old_pipeline) = old_pipeline {
                 old_pipeline.freeze();
             }
 
-            (load_data, window_size, is_private)
+            (load_data, window_size, is_private, event_loop)
         };
+
+        // If this is an `about:blank` load, it must be treated as a same-origin load.
+        if load_data.url.as_str() == "about:blank" {
+            let (pipeline_chan, pipeline_port) = ipc::channel().expect("Pipeline main chan");
+            let new_layout_info = NewLayoutInfo {
+                parent_info: Some((load_info.info.parent_pipeline_id, load_info.info.frame_type)),
+                new_pipeline_id: load_info.info.new_pipeline_id,
+                frame_id: load_info.info.frame_id,
+                load_data: load_data,
+                window_size: None,
+                pipeline_port: pipeline_port,
+                content_process_shutdown_chan: None,
+                layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
+            };
+
+            if let Err(e) = event_loop.send(ConstellationControlMsg::AttachLayout(new_layout_info)) {
+                warn!("Sending to script during pipeline creation failed ({})", e);
+            }
+
+            self.load_about_blank_in_iframe(load_info.old_pipeline_id, load_info.info, pipeline_chan);
+            return;
+        }
 
         // Create the new pipeline, attached to the parent and push to pending frames
         self.new_pipeline(load_info.info.new_pipeline_id,
@@ -1397,6 +1421,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_script_loaded_about_blank_in_iframe_msg(&mut self,
                                                       load_info: IFrameLoadInfo,
                                                       layout_sender: IpcSender<LayoutControlMsg>) {
+        self.load_about_blank_in_iframe(None, load_info, layout_sender);
+    }
+
+    fn load_about_blank_in_iframe(&mut self,
+                                  old_pipeline_id: Option<PipelineId>,
+                                  load_info: IFrameLoadInfo,
+                                  layout_sender: IpcSender<LayoutControlMsg>) {
         let IFrameLoadInfo {
             parent_pipeline_id,
             new_pipeline_id,
@@ -1432,7 +1463,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         self.pending_frames.push(FrameChange {
             frame_id: frame_id,
-            old_pipeline_id: None,
+            old_pipeline_id: old_pipeline_id,
             new_pipeline_id: new_pipeline_id,
             replace: replace,
         });
