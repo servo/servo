@@ -1001,8 +1001,8 @@ impl ScriptThread {
                 self.handle_frame_load_event(parent_id, frame_id, child_id),
             ConstellationControlMsg::DispatchStorageEvent(pipeline_id, storage, url, key, old_value, new_value) =>
                 self.handle_storage_event(pipeline_id, storage, url, key, old_value, new_value),
-            ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, frame_id) =>
-                self.handle_framed_content_changed(parent_pipeline_id, frame_id),
+            ConstellationControlMsg::FramedContentChanged(parent_pipeline_id, pipeline_id, frame_id) =>
+                self.handle_framed_content_changed(parent_pipeline_id, pipeline_id, frame_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
@@ -1393,10 +1393,12 @@ impl ScriptThread {
 
     fn handle_framed_content_changed(&self,
                                      parent_pipeline_id: PipelineId,
+                                     pipeline_id: PipelineId,
                                      frame_id: FrameId) {
         let doc = self.documents.borrow().find_document(parent_pipeline_id).unwrap();
         let frame_element = doc.find_iframe(frame_id);
         if let Some(ref frame_element) = frame_element {
+            frame_element.update_pipeline_id(pipeline_id);
             frame_element.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             let window = doc.window();
             window.reflow(ReflowGoal::ForDisplay,

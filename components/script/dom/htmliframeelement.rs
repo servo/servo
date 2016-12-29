@@ -115,7 +115,6 @@ impl HTMLIFrameElement {
     pub fn generate_new_pipeline_id(&self) -> (Option<PipelineId>, PipelineId) {
         let old_pipeline_id = self.pipeline_id.get();
         let new_pipeline_id = PipelineId::new();
-        self.pipeline_id.set(Some(new_pipeline_id));
         debug!("Frame {} created pipeline {}.", self.frame_id, new_pipeline_id);
         (old_pipeline_id, new_pipeline_id)
     }
@@ -158,6 +157,8 @@ impl HTMLIFrameElement {
 
         match nav_type {
             NavigationType::InitialAboutBlank => {
+                // We update the pipeline id here because this load is synchronous.
+                self.pipeline_id.set(Some(new_pipeline_id));
                 let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
 
                 global_scope
