@@ -157,6 +157,10 @@ impl<'ln> TNode for GeckoNode<'ln> {
         unsafe { bindings::Gecko_GetParentNode(self.0).map(GeckoNode) }
     }
 
+    fn is_in_doc(&self) -> bool {
+        unsafe { bindings::Gecko_IsInDocument(self.0) }
+    }
+
     fn needs_dirty_on_viewport_size_changed(&self) -> bool {
         // Gecko's node doesn't have the DIRTY_ON_VIEWPORT_SIZE_CHANGE flag,
         // so we force them to be dirtied on viewport size change, regardless if

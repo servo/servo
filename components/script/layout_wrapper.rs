@@ -199,6 +199,10 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
             self.node.parent_node_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
+
+    fn is_in_doc(&self) -> bool {
+        unsafe { (*self.node.unsafe_get()).is_in_doc() }
+    }
 }
 
 pub struct ServoChildrenIterator<'a> {

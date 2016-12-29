@@ -268,6 +268,9 @@ extern "C" {
     pub fn Gecko_NodeIsElement(node: RawGeckoNodeBorrowed) -> bool;
 }
 extern "C" {
+    pub fn Gecko_IsInDocument(node: RawGeckoNodeBorrowed) -> bool;
+}
+extern "C" {
     pub fn Gecko_GetParentNode(node: RawGeckoNodeBorrowed)
      -> RawGeckoNodeBorrowedOrNull;
 }

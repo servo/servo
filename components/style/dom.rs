@@ -99,6 +99,8 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     unsafe fn set_can_be_fragmented(&self, value: bool);
 
     fn parent_node(&self) -> Option<Self>;
+
+    fn is_in_doc(&self) -> bool;
 }
 
 /// Wrapper to output the ElementData along with the node when formatting for
