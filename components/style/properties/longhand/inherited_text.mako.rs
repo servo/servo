@@ -1058,3 +1058,11 @@ ${helpers.single_keyword("ruby-align", "start center space-between space-around"
 
 ${helpers.single_keyword("ruby-position", "over under",
                          products="gecko", animatable=False)}
+
+// CSS Writing Modes Module Level 3
+// https://drafts.csswg.org/css-writing-modes-3/#text-combine-upright
+// The spec has "digits <integer>?" value in addition. But that value is
+// at-risk, and Gecko's layout code doesn't support that either. So we
+// can just take the easy way for now.
+${helpers.single_keyword("text-combine-upright", "none all",
+                         products="gecko", animatable=False)}
