@@ -495,7 +495,8 @@ impl LayoutThread {
     fn build_layout_context(&self,
                             rw_data: &LayoutThreadData,
                             screen_size_changed: bool,
-                            goal: ReflowGoal)
+                            goal: ReflowGoal,
+                            request_images: bool)
                             -> LayoutContext {
         let thread_local_style_context_creation_data =
             ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
@@ -521,7 +522,7 @@ impl LayoutThread {
             image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
-            pending_images: Mutex::new(vec![]),
+            pending_images: if request_images { Some(Mutex::new(vec![])) } else { None },
         }
     }
 
@@ -1115,7 +1116,8 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(&*rw_data,
                                                            viewport_size_changed,
-                                                           data.reflow_info.goal);
+                                                           data.reflow_info.goal,
+                                                           true);
 
         // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
         let traversal_driver = if self.parallel_flag && self.parallel_traversal.is_some() {
@@ -1196,8 +1198,11 @@ impl LayoutThread {
                                      query_type: &ReflowQueryType,
                                      rw_data: &mut LayoutThreadData,
                                      context: &mut LayoutContext) {
-        rw_data.pending_images =
-            std_mem::replace(&mut context.pending_images.lock().unwrap(), vec![]);
+        let pending_images = match context.pending_images {
+            Some(ref pending) => std_mem::replace(&mut *pending.lock().unwrap(), vec![]),
+            None => vec![],
+        };
+        rw_data.pending_images = pending_images;
 
         let mut root_flow = match self.root_flow.clone() {
             Some(root_flow) => root_flow,
@@ -1319,7 +1324,8 @@ impl LayoutThread {
 
         let mut layout_context = self.build_layout_context(&*rw_data,
                                                            false,
-                                                           reflow_info.goal);
+                                                           reflow_info.goal,
+                                                           false);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
@@ -1340,13 +1346,7 @@ impl LayoutThread {
                                                      &mut *rw_data,
                                                      &mut layout_context);
 
-        let mut pending_images = layout_context.pending_images.lock().unwrap();
-        if pending_images.len() > 0 {
-            //XXXjdm we drop all the images on the floor, but there's no guarantee that
-            //       the node references are valid since the script thread isn't paused.
-            //       need to figure out what to do here!
-            pending_images.truncate(0);
-        }
+        assert!(layout_context.pending_images.is_none());
     }
 
     fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
@@ -1360,7 +1360,8 @@ impl LayoutThread {
 
         let mut layout_context = self.build_layout_context(&*rw_data,
                                                            false,
-                                                           reflow_info.goal);
+                                                           reflow_info.goal,
+                                                           false);
 
         // No need to do a style recalc here.
         if self.root_flow.is_none() {

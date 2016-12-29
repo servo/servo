@@ -39,7 +39,7 @@ use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse, PendingImageId, ImageState};
-use net_traits::image_cache_thread::{UsePlaceholder, ImageOrMetadataAvailable};
+use net_traits::image_cache_thread::{UsePlaceholder, ImageOrMetadataAvailable, CanRequestImages};
 use net_traits::request::{RequestInit, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
@@ -293,7 +293,9 @@ impl HTMLImageElement {
 
                     let image_cache = window.image_cache_thread();
                     let response =
-                        image_cache.find_image_or_metadata(img_url_cloned.into(), UsePlaceholder::Yes);
+                        image_cache.find_image_or_metadata(img_url_cloned.into(),
+                                                           UsePlaceholder::Yes,
+                                                           CanRequestImages::Yes);
                     match response {
                         Ok(ImageOrMetadataAvailable::ImageAvailable(image)) => {
                             let event = box ImageResponseHandlerRunnable::new(

@@ -343,9 +343,10 @@ pub mod utils {
 
     pub fn request_image_from_cache(window: &Window, url: ServoUrl) -> ImageResponse {
         let image_cache = window.image_cache_thread();
-        //XXXjdm add a image cache mode that doesn't store anything for NotRequested?
         let response =
-            image_cache.find_image_or_metadata(url.into(), UsePlaceholder::No);
+            image_cache.find_image_or_metadata(url.into(),
+                                               UsePlaceholder::No,
+                                               CanRequestImages::No);
         match response {
             Ok(ImageOrMetadataAvailable::ImageAvailable(image)) =>
                 ImageResponse::Loaded(image),

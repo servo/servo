@@ -9,7 +9,7 @@ use net_traits::{NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache_thread::{ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
-use net_traits::image_cache_thread::{ImageResponder, PendingImageId};
+use net_traits::image_cache_thread::{ImageResponder, PendingImageId, CanRequestImages};
 use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
@@ -108,11 +108,12 @@ struct AllPendingLoads {
     keygen: LoadKeyGenerator,
 }
 
-// Result of accessing a cache.
-#[derive(Eq, PartialEq)]
-enum CacheResult {
-    Hit,  // The value was in the cache.
-    Miss, // The value was not in the cache and needed to be regenerated.
+/// Result of accessing a cache.
+enum CacheResult<'a> {
+    /// The value was in the cache.
+    Hit(LoadKey, &'a mut PendingLoad),
+    /// The value was not in the cache and needed to be regenerated.
+    Miss(Option<(LoadKey, &'a mut PendingLoad)>),
 }
 
 impl AllPendingLoads {
@@ -143,13 +144,18 @@ impl AllPendingLoads {
             })
     }
 
-    fn get_cached(&mut self, url: ServoUrl) -> (CacheResult, LoadKey, &mut PendingLoad) {
+    fn get_cached<'a>(&'a mut self, url: ServoUrl, can_request: CanRequestImages)
+                      -> CacheResult<'a> {
         match self.url_to_load_key.entry(url.clone()) {
             Occupied(url_entry) => {
                 let load_key = url_entry.get();
-                (CacheResult::Hit, *load_key, self.loads.get_mut(load_key).unwrap())
+                CacheResult::Hit(*load_key, self.loads.get_mut(load_key).unwrap())
             }
             Vacant(url_entry) => {
+                if can_request == CanRequestImages::No {
+                    return CacheResult::Miss(None);
+                }
+
                 let load_key = self.keygen.next();
                 url_entry.insert(load_key);
 
@@ -158,7 +164,7 @@ impl AllPendingLoads {
                     Occupied(_) => unreachable!(),
                     Vacant(load_entry) => {
                         let mut_load = load_entry.insert(pending_load);
-                        (CacheResult::Miss, load_key, mut_load)
+                        CacheResult::Miss(Some((load_key, mut_load)))
                     }
                 }
             }
@@ -362,8 +368,12 @@ impl ImageCache {
             ImageCacheCommand::AddListener(id, responder) => {
                 self.add_listener(id, responder);
             }
-            ImageCacheCommand::GetImageOrMetadataIfAvailable(url, use_placeholder, consumer) => {
-                let result = self.get_image_or_meta_if_available(url, use_placeholder);
+            ImageCacheCommand::GetImageOrMetadataIfAvailable(url,
+                                                             use_placeholder,
+                                                             can_request,
+                                                             consumer) => {
+                let result = self.get_image_or_meta_if_available(url, use_placeholder, can_request);
+                // TODO(#15501): look for opportunities to clean up cache if this send fails.
                 let _ = consumer.send(result);
             }
             ImageCacheCommand::StoreDecodeImage(id, image_vector) => {
@@ -495,7 +505,8 @@ impl ImageCache {
     /// of the complete load is not fully decoded or is unavailable.
     fn get_image_or_meta_if_available(&mut self,
                                       url: ServoUrl,
-                                      placeholder: UsePlaceholder)
+                                      placeholder: UsePlaceholder,
+                                      can_request: CanRequestImages)
                                       -> Result<ImageOrMetadataAvailable, ImageState> {
         match self.completed_loads.get(&url) {
             Some(completed_load) => {
@@ -512,15 +523,16 @@ impl ImageCache {
                 }
             }
             None => {
-                let (result, key, pl) = self.pending_loads.get_cached(url);
+                let result = self.pending_loads.get_cached(url, can_request);
                 match result {
-                    CacheResult::Hit => match pl.metadata {
+                    CacheResult::Hit(key, pl) => match pl.metadata {
                         Some(ref meta) =>
                             Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone())),
                         None =>
                             Err(ImageState::Pending(key)),
                     },
-                    CacheResult::Miss => Err(ImageState::NotRequested(key)),
+                    CacheResult::Miss(Some((key, _pl))) => Err(ImageState::NotRequested(key)),
+                    CacheResult::Miss(None) => Err(ImageState::LoadError),
                 }
             }
         }
