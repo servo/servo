@@ -27,11 +27,11 @@ const DEFAULT_CIPHERS: &'static str = concat!(
     "AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA"
 );
 
-pub fn create_http_connector() -> Arc<Pool<Connector>> {
+pub fn create_http_connector(certificate_file: &str) -> Arc<Pool<Connector>> {
     let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
     context.set_CA_file(&resources_dir_path()
                         .expect("Need certificate file to make network requests")
-                        .join("certs")).unwrap();
+                        .join(certificate_file)).unwrap();
     context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
     context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
     let connector = HttpsConnector::new(ServoSslClient {
