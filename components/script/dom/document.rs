@@ -2430,10 +2430,15 @@ impl DocumentMethods for Document {
             debug!("Not a valid element name");
             return Err(Error::InvalidCharacter);
         }
-        if self.is_html_document {
+
+        let ns = if self.is_html_document {
             local_name.make_ascii_lowercase();
-        }
-        let name = QualName::new(ns!(html), LocalName::from(local_name));
+            ns!(html)
+        } else {
+            ns!()
+        };
+
+        let name = QualName::new(ns, LocalName::from(local_name));
         Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
     }
 
