@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="UTF-8">
+  <link rel="match" href="table_rowspan_rowgroup_ref.html">
+  <link rel="spec" href="https://html.spec.whatwg.org/multipage/#attributes-common-to-td-and-th-elements">
+  <style>
+    td {
+      width: 100px;
+    }
+  </style>
+  <body>
+    <table border="1">
+      <tbody>
+        <tr><td rowspan="0">A</td><td>B</td></tr>
+        <tr><td>C</td></tr>
+        <tr><td>D</td></tr>
+      </tbody>
+      <tbody>
+        <tr><td>E</td><td>F</td></tr>
+      </tbody>
+    </table>
+  </body>
+</html>
+
