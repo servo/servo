@@ -324,16 +324,23 @@ pub fn resolve_style<E, F, G, H>(context: &StyleContext<E>, element: E,
     // on the Element.
     callback(element.borrow_data().unwrap().styles());
 
-    // Clear any styles in display:none subtrees to leave the tree in a valid state.
-    if let Some(root) = display_none_root {
+    // Clear any styles in display:none subtrees or subtrees not in the document,
+    // to leave the tree in a valid state.  For display:none subtrees, we leave
+    // the styles on the display:none root, but for subtrees not in the document,
+    // we clear styles all the way up to the root of the disconnected subtree.
+    let in_doc = element.as_node().is_in_doc();
+    if !in_doc || display_none_root.is_some() {
         let mut curr = element;
         loop {
             unsafe { curr.unset_dirty_descendants(); }
-            if curr == root {
+            if in_doc && curr == display_none_root.unwrap() {
                 break;
             }
             clear_data(curr);
-            curr = curr.parent_element().unwrap();
+            curr = match curr.parent_element() {
+                Some(parent) => parent,
+                None => break,
+            };
         }
     }
 }
