@@ -752,6 +752,7 @@ pub fn propagate_column_inline_sizes_to_child(
     // FIXME(pcwalton): This seems inefficient. Reference count it instead?
     match child_flow.class() {
         FlowClass::TableRowGroup => {
+            incoming_rowspan.clear();
             let child_table_rowgroup_flow = child_flow.as_mut_table_rowgroup();
             child_table_rowgroup_flow.spacing = *border_spacing;
             for kid in child_table_rowgroup_flow.block_flow.base.child_iter_mut() {
@@ -789,7 +790,11 @@ pub fn propagate_column_inline_sizes_to_child(
                         if incoming_rowspan.len() < col + 1 {
                             incoming_rowspan.resize(col + 1, 1);
                         }
-                        incoming_rowspan[col] = max(cell.row_span, incoming_rowspan[col]);
+                        // HTML § 4.9.11: For rowspan, the value 0 means the cell is to span all
+                        // the remaining rows in the rowgroup.
+                        if cell.row_span > incoming_rowspan[col] || cell.row_span == 0 {
+                            incoming_rowspan[col] = cell.row_span;
+                        }
                     }
                     col += 1;
                 }
