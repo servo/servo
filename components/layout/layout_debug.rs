@@ -5,9 +5,6 @@
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
-// for thread_local
-#![allow(unsafe_code)]
-
 use flow;
 use flow_ref::FlowRef;
 use serde_json::{to_string, to_value, Value};
