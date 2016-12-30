@@ -242,13 +242,10 @@ impl WindowMethods for Window {
 
     fn present(&self) {
         let browser = self.cef_browser.borrow();
-        match *browser {
-            None => {}
-            Some(ref browser) => {
-                if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
-                   check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_present) {
-                    browser.get_host().get_client().get_render_handler().on_present(browser.clone());
-                   }
+        if let Some(ref browser) = *browser {
+            if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+               check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_present) {
+                browser.get_host().get_client().get_render_handler().on_present(browser.clone());
             }
         }
     }
@@ -432,12 +429,10 @@ impl WindowMethods for Window {
            check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_title_change) {
             browser.get_host().get_client().get_display_handler().on_title_change((*browser).clone(), str.as_slice());
         }
-        match &mut *title_visitor {
-            &mut None => {},
-            &mut Some(ref mut visitor) => {
-                visitor.visit(&str);
-            }
-        };
+
+        if let Some(ref mut visitor) = *title_visitor {
+            visitor.visit(&str);
+        }
     }
 
     fn set_page_url(&self, url: ServoUrl) {
@@ -468,19 +463,16 @@ impl WindowMethods for Window {
     fn set_cursor(&self, cursor: Cursor) {
         use types::{CefCursorInfo,cef_point_t,cef_size_t};
         let browser = self.cef_browser.borrow();
-        match *browser {
-            None => {}
-            Some(ref browser) => {
-                let cursor_handle = self.cursor_handle_for_cursor(cursor);
-                let info = CefCursorInfo { hotspot: cef_point_t {x: 0, y: 0}, image_scale_factor: 0.0, buffer: 0 as *mut isize, size: cef_size_t { width: 0, height: 0 } };
-                if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
-                   check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_cursor_change) {
-                    browser.get_host()
-                           .get_client()
-                           .get_render_handler()
-                           .on_cursor_change(browser.clone(), cursor_handle,
-                             self.cursor_type_for_cursor(cursor), &info)
-                   }
+        if let Some(ref browser) = *browser {
+            let cursor_handle = self.cursor_handle_for_cursor(cursor);
+            let info = CefCursorInfo { hotspot: cef_point_t {x: 0, y: 0}, image_scale_factor: 0.0, buffer: 0 as *mut isize, size: cef_size_t { width: 0, height: 0 } };
+            if check_ptr_exist!(browser.get_host().get_client(), get_render_handler) &&
+               check_ptr_exist!(browser.get_host().get_client().get_render_handler(), on_cursor_change) {
+                browser.get_host()
+                       .get_client()
+                       .get_render_handler()
+                       .on_cursor_change(browser.clone(), cursor_handle,
+                                         self.cursor_type_for_cursor(cursor), &info);
             }
         }
     }

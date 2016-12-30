@@ -262,12 +262,11 @@ impl Profiler {
                     // send using the inner channel
                     // (using ProfilerChan.send() forces an unwrap and sometimes panics for this background profiler)
                     let ProfilerChan(ref c) = profiler_chan;
-                    match c.send(ProfilerMsg::Time((ProfilerCategory::ApplicationHeartbeat, None),
-                                                   (start_time, end_time),
-                                                   (start_energy, end_energy))) {
-                        Ok(_) => {},
-                        Err(_) => return,
-                    };
+                    if let Err(_) = c.send(ProfilerMsg::Time((ProfilerCategory::ApplicationHeartbeat, None),
+                                                             (start_time, end_time),
+                                                             (start_energy, end_energy))) {
+                        return;
+                    }
                     start_time = end_time;
                     start_energy = end_energy;
                 }
