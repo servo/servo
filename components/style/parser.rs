@@ -9,7 +9,7 @@ use error_reporting::ParseErrorReporter;
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use servo_url::ServoUrl;
-use stylesheets::Origin;
+use stylesheets::{MemoryHoleReporter, Origin};
 
 #[cfg(not(feature = "gecko"))]
 pub struct ParserContextExtraData;
@@ -57,6 +57,10 @@ impl<'a> ParserContext<'a> {
                -> ParserContext<'a> {
         let extra_data = ParserContextExtraData::default();
         ParserContext::new_with_extra_data(stylesheet_origin, base_url, error_reporter, extra_data)
+    }
+
+    pub fn new_for_cssom(base_url: &'a ServoUrl) -> ParserContext<'a> {
+        Self::new(Origin::User, base_url, Box::new(MemoryHoleReporter))
     }
 }
 
