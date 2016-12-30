@@ -41,7 +41,7 @@ fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaList, &str) {
 
 fn media_queries<F>(rules: &[CssRule], f: &mut F) where F: FnMut(&MediaList) {
     for rule in rules {
-        rule.with_nested_rules_and_mq(|rules, mq| {
+        rule.with_nested_rules_and_mq(|rules, mq, enabled| {
             if let Some(mq) = mq {
                 f(mq)
             }

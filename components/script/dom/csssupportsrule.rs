@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::CSSMediaRuleBinding;
-use dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
+use dom::bindings::codegen::Bindings::CSSSupportsRuleBinding;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -14,56 +13,49 @@ use dom::medialist::MediaList;
 use dom::window::Window;
 use parking_lot::RwLock;
 use std::sync::Arc;
-use style::stylesheets::MediaRule;
+use style::stylesheets::SupportsRule;
 use style_traits::ToCss;
 
 #[dom_struct]
-pub struct CSSMediaRule {
+pub struct CSSSupportsRule {
     cssrule: CSSConditionRule,
     #[ignore_heap_size_of = "Arc"]
-    mediarule: Arc<RwLock<MediaRule>>,
+    supportsrule: Arc<RwLock<SupportsRule>>,
     medialist: MutNullableJS<MediaList>,
 }
 
-impl CSSMediaRule {
-    fn new_inherited(parent_stylesheet: &CSSStyleSheet, mediarule: Arc<RwLock<MediaRule>>)
-                     -> CSSMediaRule {
-        let list = mediarule.read().rules.clone();
-        CSSMediaRule {
+impl CSSSupportsRule {
+    fn new_inherited(parent_stylesheet: &CSSStyleSheet, supportsrule: Arc<RwLock<SupportsRule>>)
+                     -> CSSSupportsRule {
+        let list = supportsrule.read().rules.clone();
+        CSSSupportsRule {
             cssrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
-            mediarule: mediarule,
+            supportsrule: supportsrule,
             medialist: MutNullableJS::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet,
-               mediarule: Arc<RwLock<MediaRule>>) -> Root<CSSMediaRule> {
-        reflect_dom_object(box CSSMediaRule::new_inherited(parent_stylesheet, mediarule),
+               supportsrule: Arc<RwLock<SupportsRule>>) -> Root<CSSSupportsRule> {
+        reflect_dom_object(box CSSSupportsRule::new_inherited(parent_stylesheet, supportsrule),
                            window,
-                           CSSMediaRuleBinding::Wrap)
+                           CSSSupportsRuleBinding::Wrap)
     }
 
     fn medialist(&self) -> Root<MediaList> {
         self.medialist.or_init(|| MediaList::new(self.global().as_window(),
-                                                 self.mediarule.read().media_queries.clone()))
+                                                 self.supportsrule.read().media_queries.clone()))
     }
 }
 
-impl SpecificCSSRule for CSSMediaRule {
+impl SpecificCSSRule for CSSSupportsRule {
     fn ty(&self) -> u16 {
         use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
-        CSSRuleConstants::MEDIA_RULE
+        CSSRuleConstants::SUPPORTS_RULE
     }
 
     fn get_css(&self) -> DOMString {
-        self.mediarule.read().to_css_string().into()
-    }
-}
-
-impl CSSMediaRuleMethods for CSSMediaRule {
-    // https://drafts.csswg.org/cssom/#dom-cssgroupingrule-media
-    fn Media(&self) -> Root<MediaList> {
-        self.medialist()
+        self.supportsrule.read().to_css_string().into()
     }
 }
