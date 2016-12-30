@@ -11,6 +11,7 @@ impl From<nscolor> for StyleComplexColor {
         StyleComplexColor {
             mColor: other,
             mForegroundRatio: 0,
+            mIsAuto: false,
         }
     }
 }
@@ -20,6 +21,7 @@ impl StyleComplexColor {
         StyleComplexColor {
             mColor: 0,
             mForegroundRatio: 255,
+            mIsAuto: false,
         }
     }
 }
