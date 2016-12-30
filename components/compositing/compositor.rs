@@ -449,13 +449,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         while self.port.try_recv_compositor_msg().is_some() {}
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
-        match ipc::channel() {
-            Ok((sender, receiver)) => {
-                self.time_profiler_chan.send(time::ProfilerMsg::Exit(sender));
-                let _ = receiver.recv();
-            },
-            Err(_) => {},
+        if let Ok((sender, receiver)) = ipc::channel() {
+            self.time_profiler_chan.send(time::ProfilerMsg::Exit(sender));
+            let _ = receiver.recv();
         }
+
         self.delayed_composition_timer.shutdown();
 
         self.shutdown_state = ShutdownState::FinishedShuttingDown;
