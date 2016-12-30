@@ -23,6 +23,7 @@ pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword
 pub use super::image::{SizeKeyword, VerticalDirection};
 
 const NUM_FONT_UNITS: usize = 4;
+const NUM_VIEWPORT_UNITS: usize = 4;
 
 #[repr(u8)]
 #[derive(Clone, PartialEq, Copy, Debug)]
@@ -54,6 +55,36 @@ impl ToCss for FontUnit {
     }
 }
 
+#[repr(u8)]
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum ViewportUnit {
+    Vw,
+    Vh,
+    Vmin,
+    Vmax,
+}
+
+impl ViewportUnit {
+    pub fn from_usize(i: usize) -> ViewportUnit {
+        assert!(i <= NUM_VIEWPORT_UNITS, "cannot convert {} to ViewportUnit", i);
+        unsafe { mem::transmute(i as u8) }
+    }
+}
+
+impl ToCss for ViewportUnit {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let unit = match *self {
+            ViewportUnit::Vw => "vw",
+            ViewportUnit::Vh => "vh",
+            ViewportUnit::Vmin => "vmin",
+            ViewportUnit::Vmax => "vmax",
+        };
+
+        dest.write_str(unit)
+    }
+}
+
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct FontRelativeLength {
@@ -63,7 +94,7 @@ pub struct FontRelativeLength {
 
 impl ToCss for FontRelativeLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        try!(write!(dest, "{}", self.value));
+        try!(self.value.to_css(dest));
         self.unit.to_css(dest)
     }
 }
@@ -177,11 +208,9 @@ impl NoViewportPercentage for FontRelativeLength {}
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum ViewportPercentageLength {
-    Vw(CSSFloat),
-    Vh(CSSFloat),
-    Vmin(CSSFloat),
-    Vmax(CSSFloat)
+pub struct ViewportPercentageLength {
+    value: CSSFloat,
+    unit: ViewportUnit,
 }
 
 impl HasViewportPercentage for ViewportPercentageLength {
@@ -192,28 +221,41 @@ impl HasViewportPercentage for ViewportPercentageLength {
 
 impl ToCss for ViewportPercentageLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            ViewportPercentageLength::Vw(length) => write!(dest, "{}vw", length),
-            ViewportPercentageLength::Vh(length) => write!(dest, "{}vh", length),
-            ViewportPercentageLength::Vmin(length) => write!(dest, "{}vmin", length),
-            ViewportPercentageLength::Vmax(length) => write!(dest, "{}vmax", length)
-        }
+        try!(self.value.to_css(dest));
+        self.unit.to_css(dest)
     }
 }
 
 impl ViewportPercentageLength {
-    pub fn to_computed_value(&self, context: &Context) -> Au {
-        let viewport_size = context.viewport_size();
-        let (length, scale_factor) = match *self {
-            ViewportPercentageLength::Vw(l) => (l, viewport_size.width),
-            ViewportPercentageLength::Vh(l) => (l, viewport_size.height),
-            ViewportPercentageLength::Vmin(l) =>
-                (l, cmp::min(viewport_size.width, viewport_size.height)),
-            ViewportPercentageLength::Vmax(l) =>
-                (l, cmp::max(viewport_size.width, viewport_size.height)),
+    pub fn new(value: CSSFloat, unit: ViewportUnit) -> ViewportPercentageLength {
+        ViewportPercentageLength {
+            value: value,
+            unit: unit,
+        }
+    }
+
+    pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<ViewportPercentageLength, ()> {
+        let unit = match_ignore_ascii_case!{ unit,
+            "vw" => ViewportUnit::Vw,
+            "vh" => ViewportUnit::Vh,
+            "vmin" => ViewportUnit::Vmin,
+            "vmax" => ViewportUnit::Vmax,
+            _ => return Err(())
         };
 
-        Au::from_f32_px(length * (scale_factor.to_f32_px() / 100.0))
+        Ok(ViewportPercentageLength { value: value, unit: unit })
+    }
+
+    pub fn to_computed_value(&self, context: &Context) -> Au {
+        let viewport_size = context.viewport_size();
+        let scale_factor = match self.unit {
+            ViewportUnit::Vw => viewport_size.width,
+            ViewportUnit::Vh => viewport_size.height,
+            ViewportUnit::Vmin => cmp::min(viewport_size.width, viewport_size.height),
+            ViewportUnit::Vmax => cmp::max(viewport_size.width, viewport_size.height),
+        };
+
+        Au::from_f32_px(self.value * (scale_factor.to_f32_px() / 100.0))
     }
 }
 
@@ -304,11 +346,9 @@ impl Mul<CSSFloat> for ViewportPercentageLength {
 
     #[inline]
     fn mul(self, scalar: CSSFloat) -> ViewportPercentageLength {
-        match self {
-            ViewportPercentageLength::Vw(v) => ViewportPercentageLength::Vw(v * scalar),
-            ViewportPercentageLength::Vh(v) => ViewportPercentageLength::Vh(v * scalar),
-            ViewportPercentageLength::Vmin(v) => ViewportPercentageLength::Vmin(v * scalar),
-            ViewportPercentageLength::Vmax(v) => ViewportPercentageLength::Vmax(v * scalar),
+        ViewportPercentageLength {
+            value: self.value * scalar,
+            unit: self.unit,
         }
     }
 }
@@ -354,30 +394,32 @@ impl Length {
             _ => Err(())
         }
     }
+
     pub fn parse_non_negative(input: &mut Parser) -> Result<Length, ()> {
         Length::parse_internal(input, AllowedNumericType::NonNegative)
     }
+
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
         if let Ok(f) = FontRelativeLength::parse_dimension(value, unit) {
             Ok(Length::FontRelative(f))
+        } else if let Ok(v) = ViewportPercentageLength::parse_dimension(value, unit) {
+            Ok(Length::ViewportPercentage(v))
         } else {
-            match_ignore_ascii_case! { unit,
-                "px" => Ok(Length::from_px(value)),
-                "in" => Ok(Length::Absolute(Au((value * AU_PER_IN) as i32))),
-                "cm" => Ok(Length::Absolute(Au((value * AU_PER_CM) as i32))),
-                "mm" => Ok(Length::Absolute(Au((value * AU_PER_MM) as i32))),
-                "q" => Ok(Length::Absolute(Au((value * AU_PER_Q) as i32))),
-                "pt" => Ok(Length::Absolute(Au((value * AU_PER_PT) as i32))),
-                "pc" => Ok(Length::Absolute(Au((value * AU_PER_PC) as i32))),
-                // viewport percentages
-                "vw" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vw(value))),
-                "vh" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vh(value))),
-                "vmin" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmin(value))),
-                "vmax" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmax(value))),
-                _ => Err(())
-            }
+            let scale_factor = match_ignore_ascii_case! { unit,
+                "px" => AU_PER_PX,
+                "in" => AU_PER_IN,
+                "cm" => AU_PER_CM,
+                "mm" => AU_PER_MM,
+                "q" => AU_PER_Q,
+                "pt" => AU_PER_PT,
+                "pc" => AU_PER_PC,
+                _ => return Err(())
+            };
+
+            Ok(Length::Absolute(Au((value * scale_factor) as i32)))
         }
     }
+
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> Length {
         Length::Absolute(Au((px_value * AU_PER_PX) as i32))
@@ -431,13 +473,11 @@ pub enum CalcUnit {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct CalcLengthOrPercentage {
     pub absolute: Option<Au>,
-    pub vw: Option<ViewportPercentageLength>,
-    pub vh: Option<ViewportPercentageLength>,
-    pub vmin: Option<ViewportPercentageLength>,
-    pub vmax: Option<ViewportPercentageLength>,
     /// Values with font-relative units. They're stored in an array with the units
     /// denoting the index of the value (as per the order of variants in `FontUnit`)
     pub font_values: [Option<CSSFloat>; NUM_FONT_UNITS],
+    /// Same as `font_values` (only difference is that this is for `ViewportUnit`)
+    pub viewport_values: [Option<CSSFloat>; NUM_VIEWPORT_UNITS],
     pub percentage: Option<Percentage>,
 }
 
@@ -613,11 +653,8 @@ impl CalcLengthOrPercentage {
         }
 
         let mut absolute = None;
-        let mut vw = None;
-        let mut vh = None;
-        let mut vmax = None;
-        let mut vmin = None;
         let mut font_values = [None; NUM_FONT_UNITS];
+        let mut viewport_values = [None; NUM_VIEWPORT_UNITS];
         let mut percentage = None;
 
         for value in simplified {
@@ -626,17 +663,10 @@ impl CalcLengthOrPercentage {
                     percentage = Some(percentage.unwrap_or(0.) + p),
                 SimplifiedValueNode::Length(Length::Absolute(Au(au))) =>
                     absolute = Some(absolute.unwrap_or(0) + au),
-                SimplifiedValueNode::Length(Length::ViewportPercentage(v)) =>
-                    match v {
-                        ViewportPercentageLength::Vw(val) =>
-                            vw = Some(vw.unwrap_or(0.) + val),
-                        ViewportPercentageLength::Vh(val) =>
-                            vh = Some(vh.unwrap_or(0.) + val),
-                        ViewportPercentageLength::Vmin(val) =>
-                            vmin = Some(vmin.unwrap_or(0.) + val),
-                        ViewportPercentageLength::Vmax(val) =>
-                            vmax = Some(vmax.unwrap_or(0.) + val),
-                    },
+                SimplifiedValueNode::Length(Length::ViewportPercentage(v)) => {
+                    let idx = v.unit as usize;
+                    viewport_values[idx] = Some(viewport_values[idx].unwrap_or(0.) + v.value);
+                },
                 SimplifiedValueNode::Length(Length::FontRelative(f)) => {
                     let idx = f.unit as usize;
                     font_values[idx] = Some(font_values[idx].unwrap_or(0.) + f.value);
@@ -648,11 +678,8 @@ impl CalcLengthOrPercentage {
 
         Ok(CalcLengthOrPercentage {
             absolute: absolute.map(Au),
-            vw: vw.map(ViewportPercentageLength::Vw),
-            vh: vh.map(ViewportPercentageLength::Vh),
-            vmax: vmax.map(ViewportPercentageLength::Vmax),
-            vmin: vmin.map(ViewportPercentageLength::Vmin),
             font_values: font_values,
+            viewport_values: viewport_values,
             percentage: percentage.map(Percentage),
         })
     }
@@ -717,64 +744,44 @@ impl CalcLengthOrPercentage {
 
 impl HasViewportPercentage for CalcLengthOrPercentage {
     fn has_viewport_percentage(&self) -> bool {
-        self.vw.is_some() || self.vh.is_some() ||
-            self.vmin.is_some() || self.vmax.is_some()
+        self.viewport_values.iter().any(|v| v.is_some())
     }
 }
 
 impl ToCss for CalcLengthOrPercentage {
-    #[allow(unused_assignments)]
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        macro_rules! count {
-            ( $( $val:ident ),* ) => {
-                {
-                    let mut count = 0;
-                    $(
-                        if let Some(_) = self.$val {
-                            count += 1;
-                        }
-                    )*
-                    count
-                 }
-            };
+        let mut first_value = true;
+        let count = self.font_values.iter()
+                                    .filter(|&v| v.is_some())
+                                    .zip(self.viewport_values.iter().filter(|&v| v.is_some()))
+                                    .count();
+        assert!(count > 0);
+        if count > 1 {
+            try!(dest.write_str("calc("));
         }
 
         macro_rules! serialize {
-            ( $( $val:ident ),* ) => {
-                {
-                    let mut first_value = true;
-                    $(
-                        if let Some(val) = self.$val {
-                            if !first_value {
-                                try!(write!(dest, " + "));
-                            } else {
-                                first_value = false;
-                            }
-                            try!(val.to_css(dest));
+            ($array: expr, $f: expr) => {
+                for (i, value) in $array.iter().enumerate() {
+                    if let Some(val) = *value {
+                        if !first_value {
+                            try!(dest.write_str(" + "));
+                        } else {
+                            first_value = false;
                         }
-                    )*
-                 }
-            };
-        }
 
-        let mut count = count!(absolute, vh, vmax, vmin, vw, percentage);
-        count += self.font_values.iter().filter(|&v| v.is_some()).count();
-        assert!(count > 0);
-
-        if count > 1 {
-           try!(write!(dest, "calc("));
-        }
-
-        serialize!(absolute, vh, vmax, vmin, vw, percentage);
-        for (i, v) in self.font_values.iter().enumerate() {
-            if let Some(val) = *v {
-                let val = FontRelativeLength::new(val, FontUnit::from_usize(i));
-                try!(val.to_css(dest));
+                        try!(val.to_css(dest));
+                        try!($f(i).to_css(dest));
+                    }
+                }
             }
         }
 
+        serialize!(self.font_values, FontUnit::from_usize);
+        serialize!(self.viewport_values, ViewportUnit::from_usize);
+
         if count > 1 {
-           try!(write!(dest, ")"));
+            try!(dest.write_str(")"));
         }
 
         Ok(())
