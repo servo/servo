@@ -26,6 +26,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ToCss;
 use stylist::FnvHashMap;
+use supports::SupportsCondition;
 use values::specified::url::SpecifiedUrl;
 use viewport::ViewportRule;
 
@@ -195,6 +196,7 @@ pub enum CssRule {
     FontFace(Arc<RwLock<FontFaceRule>>),
     Viewport(Arc<RwLock<ViewportRule>>),
     Keyframes(Arc<RwLock<KeyframesRule>>),
+    Supports(Arc<RwLock<SupportsRule>>),
 }
 
 pub enum CssRuleType {
@@ -251,6 +253,7 @@ impl CssRule {
             CssRule::Keyframes(_) => CssRuleType::Keyframes,
             CssRule::Namespace(_) => CssRuleType::Namespace,
             CssRule::Viewport(_)  => CssRuleType::Viewport,
+            CssRule::Supports(_)  => CssRuleType::Supports,
         }
     }
 
@@ -267,8 +270,10 @@ impl CssRule {
     ///
     /// Note that only some types of rules can contain rules. An empty slice is
     /// used for others.
+    ///
+    /// `enabled` is set to false for invalid @supports rules
     pub fn with_nested_rules_and_mq<F, R>(&self, mut f: F) -> R
-    where F: FnMut(&[CssRule], Option<&MediaList>) -> R {
+    where F: FnMut(&[CssRule], Option<&MediaList>, bool) -> R {
         match *self {
             CssRule::Import(ref lock) => {
                 let rule = lock.read();
@@ -276,20 +281,26 @@ impl CssRule {
                 let rules = rule.stylesheet.rules.read();
                 // FIXME(emilio): Include the nested rules if the stylesheet is
                 // loaded.
-                f(&rules.0, Some(&media))
+                f(&rules.0, Some(&media), true)
             }
             CssRule::Namespace(_) |
             CssRule::Style(_) |
             CssRule::FontFace(_) |
             CssRule::Viewport(_) |
             CssRule::Keyframes(_) => {
-                f(&[], None)
+                f(&[], None, true)
             }
             CssRule::Media(ref lock) => {
                 let media_rule = lock.read();
                 let mq = media_rule.media_queries.read();
                 let rules = &media_rule.rules.read().0;
-                f(rules, Some(&mq))
+                f(rules, Some(&mq), true)
+            }
+            CssRule::Supports(ref lock) => {
+                let supports_rule = lock.read();
+                let enabled = supports_rule.enabled;
+                let rules = &supports_rule.rules.read().0;
+                f(rules, None, enabled)
             }
         }
     }
@@ -342,6 +353,7 @@ impl ToCss for CssRule {
             CssRule::Viewport(ref lock) => lock.read().to_css(dest),
             CssRule::Keyframes(ref lock) => lock.read().to_css(dest),
             CssRule::Media(ref lock) => lock.read().to_css(dest),
+            CssRule::Supports(ref lock) => lock.read().to_css(dest),
         }
     }
 }
@@ -437,6 +449,21 @@ impl ToCss for MediaRule {
         dest.write_str(" }")
     }
 }
+
+
+#[derive(Debug)]
+pub struct SupportsRule {
+    pub condition: SupportsCondition,
+    pub rules: Arc<RwLock<CssRules>>,
+    pub enabled: bool,
+}
+
+impl ToCss for SupportsRule {
+    fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+        unimplemented!()
+    }
+}
+
 
 #[derive(Debug)]
 pub struct StyleRule {
@@ -625,7 +652,10 @@ impl Stylesheet {
 fn effective_rules<F>(rules: &[CssRule], device: &Device, f: &mut F) where F: FnMut(&CssRule) {
     for rule in rules {
         f(rule);
-        rule.with_nested_rules_and_mq(|rules, mq| {
+        rule.with_nested_rules_and_mq(|rules, mq, enabled| {
+            if !enabled {
+                return
+            }
             if let Some(media_queries) = mq {
                 if !media_queries.evaluate(device) {
                     return
@@ -659,6 +689,7 @@ rule_filter! {
     effective_font_face_rules(FontFace => FontFaceRule),
     effective_viewport_rules(Viewport => ViewportRule),
     effective_keyframes_rules(Keyframes => KeyframesRule),
+    effective_supports_rules(Supports => SupportsRule),
 }
 
 /// The stylesheet loader is the abstraction used to trigger network requests
@@ -704,6 +735,8 @@ enum AtRulePrelude {
     FontFace,
     /// A @media rule prelude, with its media queries.
     Media(Arc<RwLock<MediaList>>),
+    /// An @supports rule, with its conditional
+    Supports(SupportsCondition),
     /// A @viewport rule prelude.
     Viewport,
     /// A @keyframes rule, with its animation name.
@@ -859,6 +892,10 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 let media_queries = parse_media_query_list(input);
                 Ok(AtRuleType::WithBlock(AtRulePrelude::Media(Arc::new(RwLock::new(media_queries)))))
             },
+            "supports" => {
+                let cond = SupportsCondition::parse(input, true)?;
+                Ok(AtRuleType::WithBlock(AtRulePrelude::Supports(cond)))
+            },
             "font-face" => {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
             },
@@ -893,6 +930,14 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 Ok(CssRule::Media(Arc::new(RwLock::new(MediaRule {
                     media_queries: media_queries,
                     rules: self.parse_nested_rules(input),
+                }))))
+            }
+            AtRulePrelude::Supports(cond) => {
+                let enabled = cond.eval(self.context);
+                Ok(CssRule::Supports(Arc::new(RwLock::new(SupportsRule {
+                    condition: cond,
+                    rules: self.parse_nested_rules(input),
+                    enabled: enabled,
                 }))))
             }
             AtRulePrelude::Viewport => {
