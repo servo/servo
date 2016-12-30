@@ -3,8 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net_traits::IncludeSubdomains;
+use net_traits::pub_domains::reg_suffix;
 use rustc_serialize::json::decode;
 use servo_config::resource_files::read_resource_file;
+use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::from_utf8;
 use time;
@@ -36,7 +38,7 @@ impl HstsEntry {
         match (self.max_age, self.timestamp) {
             (Some(max_age), Some(timestamp)) => {
                 (time::get_time().sec as u64) - timestamp >= max_age
-            },
+            }
 
             _ => false
         }
@@ -53,21 +55,34 @@ impl HstsEntry {
 
 #[derive(RustcDecodable, RustcEncodable, Clone)]
 pub struct HstsList {
-    pub entries: Vec<HstsEntry>
+    pub entries_map: HashMap<String, Vec<HstsEntry>>,
 }
 
 impl HstsList {
     pub fn new() -> HstsList {
-        HstsList {
-            entries: vec![]
-        }
+        HstsList { entries_map: HashMap::new() }
     }
 
     /// Create an `HstsList` from the bytes of a JSON preload file.
     pub fn from_preload(preload_content: &[u8]) -> Option<HstsList> {
-        from_utf8(&preload_content)
+        #[derive(RustcDecodable)]
+        struct HstsEntries {
+            entries: Vec<HstsEntry>,
+        }
+
+        let hsts_entries: Option<HstsEntries> = from_utf8(&preload_content)
             .ok()
-            .and_then(|c| decode(c).ok())
+            .and_then(|c| decode(c).ok());
+
+        hsts_entries.map_or(None, |hsts_entries| {
+            let mut hsts_list: HstsList = HstsList::new();
+
+            for hsts_entry in hsts_entries.entries {
+                hsts_list.push(hsts_entry);
+            }
+
+            return Some(hsts_list);
+        })
     }
 
     pub fn from_servo_preload() -> HstsList {
@@ -78,40 +93,41 @@ impl HstsList {
     }
 
     pub fn is_host_secure(&self, host: &str) -> bool {
-        // TODO - Should this be faster than O(n)? The HSTS list is only a few
-        // hundred or maybe thousand entries...
-        //
-        // Could optimise by searching for exact matches first (via a map or
-        // something), then checking for subdomains.
-        self.entries.iter().any(|e| {
-            if e.include_subdomains {
-                e.matches_subdomain(host) || e.matches_domain(host)
-            } else {
-                e.matches_domain(host)
-            }
+        let base_domain = reg_suffix(host);
+        self.entries_map.get(base_domain).map_or(false, |entries| {
+            entries.iter().any(|e| {
+                if e.include_subdomains {
+                    e.matches_subdomain(host) || e.matches_domain(host)
+                } else {
+                    e.matches_domain(host)
+                }
+            })
         })
     }
 
-    fn has_domain(&self, host: &str) -> bool {
-        self.entries.iter().any(|e| {
-            e.matches_domain(&host)
+    fn has_domain(&self, host: &str, base_domain: &str) -> bool {
+        self.entries_map.get(base_domain).map_or(false, |entries| {
+            entries.iter().any(|e| e.matches_domain(&host))
         })
     }
 
-    fn has_subdomain(&self, host: &str) -> bool {
-        self.entries.iter().any(|e| {
-            e.matches_subdomain(host)
-        })
+    fn has_subdomain(&self, host: &str, base_domain: &str) -> bool {
+       self.entries_map.get(base_domain).map_or(false, |entries| {
+            entries.iter().any(|e| e.matches_subdomain(host))
+       })
     }
 
     pub fn push(&mut self, entry: HstsEntry) {
-        let have_domain = self.has_domain(&entry.host);
-        let have_subdomain = self.has_subdomain(&entry.host);
+        let host = entry.host.clone();
+        let base_domain = reg_suffix(&host);
+        let have_domain = self.has_domain(&entry.host, base_domain);
+        let have_subdomain = self.has_subdomain(&entry.host, base_domain);
 
+        let entries = self.entries_map.entry(base_domain.to_owned()).or_insert(vec![]);
         if !have_domain && !have_subdomain {
-            self.entries.push(entry);
+            entries.push(entry);
         } else if !have_subdomain {
-            for e in &mut self.entries {
+            for e in entries {
                 if e.matches_domain(&entry.host) {
                     e.include_subdomains = entry.include_subdomains;
                     e.max_age = entry.max_age;
