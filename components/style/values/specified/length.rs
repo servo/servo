@@ -9,6 +9,7 @@ use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
 use std::cmp;
 use std::fmt;
+use std::mem;
 use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
@@ -21,27 +22,72 @@ pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingSh
 pub use super::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::image::{SizeKeyword, VerticalDirection};
 
+const NUM_FONT_UNITS: usize = 4;
+
+#[repr(u8)]
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum FontRelativeLength {
-    Em(CSSFloat),
-    Ex(CSSFloat),
-    Ch(CSSFloat),
-    Rem(CSSFloat)
+pub enum FontUnit {
+    Em,
+    Ex,
+    Ch,
+    Rem,
+}
+
+impl FontUnit {
+    pub fn from_usize(i: usize) -> FontUnit {
+        assert!(i <= NUM_FONT_UNITS, "cannot convert {} to FontUnit", i);
+        unsafe { mem::transmute(i as u8) }
+    }
+}
+
+impl ToCss for FontUnit {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let unit = match *self {
+            FontUnit::Em => "em",
+            FontUnit::Ex => "ex",
+            FontUnit::Ch => "ch",
+            FontUnit::Rem => "rem",
+        };
+
+        dest.write_str(unit)
+    }
+}
+
+#[derive(Clone, PartialEq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct FontRelativeLength {
+    value: CSSFloat,
+    unit: FontUnit,
 }
 
 impl ToCss for FontRelativeLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        match *self {
-            FontRelativeLength::Em(length) => write!(dest, "{}em", length),
-            FontRelativeLength::Ex(length) => write!(dest, "{}ex", length),
-            FontRelativeLength::Ch(length) => write!(dest, "{}ch", length),
-            FontRelativeLength::Rem(length) => write!(dest, "{}rem", length)
-        }
+        try!(write!(dest, "{}", self.value));
+        self.unit.to_css(dest)
     }
 }
 
 impl FontRelativeLength {
+    pub fn new(value: CSSFloat, unit: FontUnit) -> FontRelativeLength {
+        FontRelativeLength {
+            value: value,
+            unit: unit,
+        }
+    }
+
+    pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<FontRelativeLength, ()> {
+        let unit = match_ignore_ascii_case! { unit,
+            "em" => FontUnit::Em,
+            "ex" => FontUnit::Ex,
+            "ch" => FontUnit::Ch,
+            "rem" => FontUnit::Rem,
+            _ => return Err(())
+        };
+
+        Ok(FontRelativeLength { value: value, unit: unit })
+    }
+
     pub fn find_first_available_font_metrics(context: &Context) -> Option<FontMetrics> {
         use font_metrics::FontMetricsQueryResult::*;
         if let Some(ref metrics_provider) = context.font_metrics_provider {
@@ -73,9 +119,9 @@ impl FontRelativeLength {
         };
 
         let root_font_size = context.style().root_font_size;
-        match *self {
-            FontRelativeLength::Em(length) => reference_font_size.scale_by(length),
-            FontRelativeLength::Ex(length) => {
+        match self.unit {
+            FontUnit::Em => reference_font_size.scale_by(self.value),
+            FontUnit::Ex => {
                 match Self::find_first_available_font_metrics(context) {
                     Some(metrics) => metrics.x_height,
                     // https://drafts.csswg.org/css-values/#ex
@@ -84,10 +130,10 @@ impl FontRelativeLength {
                     //     determine the x-height, a value of 0.5em must be
                     //     assumed.
                     //
-                    None => reference_font_size.scale_by(0.5 * length),
+                    None => reference_font_size.scale_by(0.5 * self.value),
                 }
             },
-            FontRelativeLength::Ch(length) => {
+            FontUnit::Ch => {
                 let wm = context.style().writing_mode;
 
                 // TODO(emilio, #14144): Compute this properly once we support
@@ -115,14 +161,14 @@ impl FontRelativeLength {
                     //
                     None => {
                         if vertical {
-                            reference_font_size.scale_by(length)
+                            reference_font_size.scale_by(self.value)
                         } else {
-                            reference_font_size.scale_by(0.5 * length)
+                            reference_font_size.scale_by(0.5 * self.value)
                         }
                     }
                 }
             }
-            FontRelativeLength::Rem(length) => root_font_size.scale_by(length)
+            FontUnit::Rem => root_font_size.scale_by(self.value)
         }
     }
 }
@@ -246,11 +292,9 @@ impl Mul<CSSFloat> for FontRelativeLength {
 
     #[inline]
     fn mul(self, scalar: CSSFloat) -> FontRelativeLength {
-        match self {
-            FontRelativeLength::Em(v) => FontRelativeLength::Em(v * scalar),
-            FontRelativeLength::Ex(v) => FontRelativeLength::Ex(v * scalar),
-            FontRelativeLength::Ch(v) => FontRelativeLength::Ch(v * scalar),
-            FontRelativeLength::Rem(v) => FontRelativeLength::Rem(v * scalar),
+        FontRelativeLength {
+            value: self.value * scalar,
+            unit: self.unit,
         }
     }
 }
@@ -290,8 +334,8 @@ impl Length {
             "xx-large" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 2),
 
             // https://github.com/servo/servo/issues/3423#issuecomment-56321664
-            "smaller" => Length::FontRelative(FontRelativeLength::Em(0.85)),
-            "larger" => Length::FontRelative(FontRelativeLength::Em(1.2)),
+            "smaller" => Length::FontRelative(FontRelativeLength::new(0.85, FontUnit::Em)),
+            "larger" => Length::FontRelative(FontRelativeLength::new(1.2, FontUnit::Em)),
             _ => return None
         })
     }
@@ -314,25 +358,24 @@ impl Length {
         Length::parse_internal(input, AllowedNumericType::NonNegative)
     }
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
-        match_ignore_ascii_case! { unit,
-            "px" => Ok(Length::from_px(value)),
-            "in" => Ok(Length::Absolute(Au((value * AU_PER_IN) as i32))),
-            "cm" => Ok(Length::Absolute(Au((value * AU_PER_CM) as i32))),
-            "mm" => Ok(Length::Absolute(Au((value * AU_PER_MM) as i32))),
-            "q" => Ok(Length::Absolute(Au((value * AU_PER_Q) as i32))),
-            "pt" => Ok(Length::Absolute(Au((value * AU_PER_PT) as i32))),
-            "pc" => Ok(Length::Absolute(Au((value * AU_PER_PC) as i32))),
-            // font-relative
-            "em" => Ok(Length::FontRelative(FontRelativeLength::Em(value))),
-            "ex" => Ok(Length::FontRelative(FontRelativeLength::Ex(value))),
-            "ch" => Ok(Length::FontRelative(FontRelativeLength::Ch(value))),
-            "rem" => Ok(Length::FontRelative(FontRelativeLength::Rem(value))),
-            // viewport percentages
-            "vw" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vw(value))),
-            "vh" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vh(value))),
-            "vmin" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmin(value))),
-            "vmax" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmax(value))),
-            _ => Err(())
+        if let Ok(f) = FontRelativeLength::parse_dimension(value, unit) {
+            Ok(Length::FontRelative(f))
+        } else {
+            match_ignore_ascii_case! { unit,
+                "px" => Ok(Length::from_px(value)),
+                "in" => Ok(Length::Absolute(Au((value * AU_PER_IN) as i32))),
+                "cm" => Ok(Length::Absolute(Au((value * AU_PER_CM) as i32))),
+                "mm" => Ok(Length::Absolute(Au((value * AU_PER_MM) as i32))),
+                "q" => Ok(Length::Absolute(Au((value * AU_PER_Q) as i32))),
+                "pt" => Ok(Length::Absolute(Au((value * AU_PER_PT) as i32))),
+                "pc" => Ok(Length::Absolute(Au((value * AU_PER_PC) as i32))),
+                // viewport percentages
+                "vw" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vw(value))),
+                "vh" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vh(value))),
+                "vmin" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmin(value))),
+                "vmax" => Ok(Length::ViewportPercentage(ViewportPercentageLength::Vmax(value))),
+                _ => Err(())
+            }
         }
     }
     #[inline]
@@ -392,10 +435,9 @@ pub struct CalcLengthOrPercentage {
     pub vh: Option<ViewportPercentageLength>,
     pub vmin: Option<ViewportPercentageLength>,
     pub vmax: Option<ViewportPercentageLength>,
-    pub em: Option<FontRelativeLength>,
-    pub ex: Option<FontRelativeLength>,
-    pub ch: Option<FontRelativeLength>,
-    pub rem: Option<FontRelativeLength>,
+    /// Values with font-relative units. They're stored in an array with the units
+    /// denoting the index of the value (as per the order of variants in `FontUnit`)
+    pub font_values: [Option<CSSFloat>; NUM_FONT_UNITS],
     pub percentage: Option<Percentage>,
 }
 
@@ -575,10 +617,7 @@ impl CalcLengthOrPercentage {
         let mut vh = None;
         let mut vmax = None;
         let mut vmin = None;
-        let mut em = None;
-        let mut ex = None;
-        let mut ch = None;
-        let mut rem = None;
+        let mut font_values = [None; NUM_FONT_UNITS];
         let mut percentage = None;
 
         for value in simplified {
@@ -598,17 +637,10 @@ impl CalcLengthOrPercentage {
                         ViewportPercentageLength::Vmax(val) =>
                             vmax = Some(vmax.unwrap_or(0.) + val),
                     },
-                SimplifiedValueNode::Length(Length::FontRelative(f)) =>
-                    match f {
-                        FontRelativeLength::Em(val) =>
-                            em = Some(em.unwrap_or(0.) + val),
-                        FontRelativeLength::Ex(val) =>
-                            ex = Some(ex.unwrap_or(0.) + val),
-                        FontRelativeLength::Ch(val) =>
-                            ch = Some(ch.unwrap_or(0.) + val),
-                        FontRelativeLength::Rem(val) =>
-                            rem = Some(rem.unwrap_or(0.) + val),
-                    },
+                SimplifiedValueNode::Length(Length::FontRelative(f)) => {
+                    let idx = f.unit as usize;
+                    font_values[idx] = Some(font_values[idx].unwrap_or(0.) + f.value);
+                },
                 // TODO Add support for top level number in calc(). See servo/servo#14421.
                 _ => return Err(()),
             }
@@ -620,10 +652,7 @@ impl CalcLengthOrPercentage {
             vh: vh.map(ViewportPercentageLength::Vh),
             vmax: vmax.map(ViewportPercentageLength::Vmax),
             vmin: vmin.map(ViewportPercentageLength::Vmin),
-            em: em.map(FontRelativeLength::Em),
-            ex: ex.map(FontRelativeLength::Ex),
-            ch: ch.map(FontRelativeLength::Ch),
-            rem: rem.map(FontRelativeLength::Rem),
+            font_values: font_values,
             percentage: percentage.map(Percentage),
         })
     }
@@ -728,18 +757,26 @@ impl ToCss for CalcLengthOrPercentage {
             };
         }
 
-        let count = count!(ch, em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
+        let mut count = count!(absolute, vh, vmax, vmin, vw, percentage);
+        count += self.font_values.iter().filter(|&v| v.is_some()).count();
         assert!(count > 0);
 
         if count > 1 {
            try!(write!(dest, "calc("));
         }
 
-        serialize!(ch, em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
+        serialize!(absolute, vh, vmax, vmin, vw, percentage);
+        for (i, v) in self.font_values.iter().enumerate() {
+            if let Some(val) = *v {
+                let val = FontRelativeLength::new(val, FontUnit::from_usize(i));
+                try!(val.to_css(dest));
+            }
+        }
 
         if count > 1 {
            try!(write!(dest, ")"));
         }
+
         Ok(())
      }
 }

@@ -592,7 +592,8 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // TODO(mttr) This should take scrollbar size into consideration.
             //
             // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-            let value = specified::Length::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
+            let value = specified::Length::FontRelative(
+                specified::FontRelativeLength::new(rows as CSSFloat, specified::FontUnit::Em));
             hints.push(from_declaration(
                 PropertyDeclaration::Height(DeclaredValue::Value(
                         specified::LengthOrPercentageOrAuto::Length(value)))));

@@ -94,6 +94,8 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     type ComputedValue = CalcLengthOrPercentage;
 
     fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
+        use self::specified::length::{FontRelativeLength, FontUnit};
+
         let mut length = self.absolute.unwrap_or(Au(0));
 
         let values = &[self.vw, self.vh, self.vmin, self.vmax];
@@ -101,8 +103,8 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
             length += val.to_computed_value(context);
         }
 
-        let values = &[self.ch, self.em, self.ex, self.rem];
-        for val in values.iter().filter_map(|v| *v) {
+        for (i, val) in self.font_values.iter().filter_map(|v| *v).enumerate() {
+            let val = FontRelativeLength::new(val, FontUnit::from_usize(i));
             length += val.to_computed_value(context);
         }
 

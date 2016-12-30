@@ -20,9 +20,10 @@ pub use self::grid::GridLine;
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use self::image::{SizeKeyword, VerticalDirection};
+pub use self::length::{CalcUnit, FontUnit};
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
-pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, CalcUnit};
+pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent};
 
 pub mod basic_shape;
 pub mod grid;
