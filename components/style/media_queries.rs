@@ -11,7 +11,8 @@ use app_units::Au;
 use cssparser::{Delimiter, Parser, Token};
 use euclid::size::{Size2D, TypedSize2D};
 use serialize_comma_separated_list;
-use std::fmt::{self, Write};
+use std::ascii::AsciiExt;
+use std::fmt;
 use style_traits::{ToCss, ViewportPx};
 use values::computed::{self, ToComputedValue};
 use values::specified;
@@ -85,6 +86,17 @@ pub enum Qualifier {
     Not,
 }
 
+impl ToCss for Qualifier {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write
+    {
+        match *self {
+            Qualifier::Not => write!(dest, "not"),
+            Qualifier::Only => write!(dest, "only"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaQuery {
@@ -94,6 +106,12 @@ pub struct MediaQuery {
 }
 
 impl MediaQuery {
+    /// Return a media query that never matches, used for when we fail to parse
+    /// a given media query.
+    fn never_matching() -> Self {
+        Self::new(Some(Qualifier::Not), MediaQueryType::All, vec![])
+    }
+
     pub fn new(qualifier: Option<Qualifier>, media_type: MediaQueryType,
                expressions: Vec<Expression>) -> MediaQuery {
         MediaQuery {
@@ -108,22 +126,35 @@ impl ToCss for MediaQuery {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write
     {
-        if self.qualifier == Some(Qualifier::Not) {
-            try!(write!(dest, "not "));
+        if let Some(qual) = self.qualifier {
+            try!(qual.to_css(dest));
+            try!(write!(dest, " "));
         }
 
-        let mut type_ = String::new();
         match self.media_type {
-            MediaQueryType::All => try!(write!(type_, "all")),
-            MediaQueryType::MediaType(MediaType::Screen) => try!(write!(type_, "screen")),
-            MediaQueryType::MediaType(MediaType::Print) => try!(write!(type_, "print")),
-            MediaQueryType::MediaType(MediaType::Unknown(ref desc)) => try!(write!(type_, "{}", desc)),
-        };
-        if self.expressions.is_empty() {
-            return write!(dest, "{}", type_)
-        } else if type_ != "all" || self.qualifier == Some(Qualifier::Not) {
-            try!(write!(dest, "{} and ", type_));
+            MediaQueryType::All => {
+                // We need to print "all" if there's a qualifier, or there's
+                // just an empty list of expressions.
+                //
+                // Otherwise, we'd serialize media queries like "(min-width:
+                // 40px)" in "all (min-width: 40px)", which is unexpected.
+                if self.qualifier.is_some() || self.expressions.is_empty() {
+                    try!(write!(dest, "all"));
+                }
+            },
+            MediaQueryType::Known(MediaType::Screen) => try!(write!(dest, "screen")),
+            MediaQueryType::Known(MediaType::Print) => try!(write!(dest, "print")),
+            MediaQueryType::Unknown(ref desc) => try!(write!(dest, "{}", desc)),
         }
+
+        if self.expressions.is_empty() {
+            return Ok(());
+        }
+
+        if self.media_type != MediaQueryType::All || self.qualifier.is_some() {
+            try!(write!(dest, " and "));
+        }
+
         for (i, &e) in self.expressions.iter().enumerate() {
             try!(write!(dest, "("));
             let (mm, l) = match e {
@@ -133,10 +164,9 @@ impl ToCss for MediaQuery {
             };
             try!(write!(dest, "{}width: ", mm));
             try!(l.to_css(dest));
-            if i == self.expressions.len() - 1 {
-                try!(write!(dest, ")"));
-            } else {
-                try!(write!(dest, ") and "));
+            try!(write!(dest, ")"));
+            if i != self.expressions.len() - 1 {
+                try!(write!(dest, " and "));
             }
         }
         Ok(())
@@ -148,7 +178,29 @@ impl ToCss for MediaQuery {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum MediaQueryType {
     All,  // Always true
-    MediaType(MediaType),
+    Known(MediaType),
+    Unknown(Atom),
+}
+
+impl MediaQueryType {
+    fn parse(ident: &str) -> Self {
+        if ident.eq_ignore_ascii_case("all") {
+            return MediaQueryType::All;
+        }
+
+        match MediaType::parse(ident) {
+            Some(media_type) => MediaQueryType::Known(media_type),
+            None => MediaQueryType::Unknown(Atom::from(ident)),
+        }
+    }
+
+    fn matches(&self, other: &MediaType) -> bool {
+        match *self {
+            MediaQueryType::All => true,
+            MediaQueryType::Known(ref known_type) => known_type == other,
+            MediaQueryType::Unknown(..) => false,
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -156,7 +208,16 @@ pub enum MediaQueryType {
 pub enum MediaType {
     Screen,
     Print,
-    Unknown(Atom),
+}
+
+impl MediaType {
+    fn parse(name: &str) -> Option<Self> {
+        Some(match_ignore_ascii_case! { name,
+            "screen" => MediaType::Screen,
+            "print" => MediaType::Print,
+            _ => return None
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -217,23 +278,20 @@ impl MediaQuery {
             None
         };
 
-        let media_type;
-        if let Ok(ident) = input.try(|input| input.expect_ident()) {
-            media_type = match_ignore_ascii_case! { ident,
-                "screen" => MediaQueryType::MediaType(MediaType::Screen),
-                "print" => MediaQueryType::MediaType(MediaType::Print),
-                "all" => MediaQueryType::All,
-                _ => MediaQueryType::MediaType(MediaType::Unknown(Atom::from(&*ident)))
+        let media_type = match input.try(|input| input.expect_ident()) {
+            Ok(ident) => MediaQueryType::parse(&*ident),
+            Err(()) => {
+                // Media type is only optional if qualifier is not specified.
+                if qualifier.is_some() {
+                    return Err(())
+                }
+
+                // Without a media type, require at least one expression.
+                expressions.push(try!(Expression::parse(input)));
+
+                MediaQueryType::All
             }
-        } else {
-            // Media type is only optional if qualifier is not specified.
-            if qualifier.is_some() {
-                return Err(())
-            }
-            media_type = MediaQueryType::All;
-            // Without a media type, require at least one expression
-            expressions.push(try!(Expression::parse(input)));
-        }
+        };
 
         // Parse any subsequent expressions
         loop {
@@ -253,10 +311,8 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
     let mut media_queries = vec![];
     loop {
         media_queries.push(
-            input.parse_until_before(Delimiter::Comma, MediaQuery::parse)
-                 .unwrap_or(MediaQuery::new(Some(Qualifier::Not),
-                                            MediaQueryType::All,
-                                            vec!())));
+            input.parse_until_before(Delimiter::Comma, MediaQuery::parse).ok()
+                 .unwrap_or_else(MediaQuery::never_matching));
         match input.next() {
             Ok(Token::Comma) => {},
             Ok(_) => unreachable!(),
@@ -275,12 +331,7 @@ impl MediaList {
         // Check if it is an empty media query list or any queries match (OR condition)
         // https://drafts.csswg.org/mediaqueries-4/#mq-list
         self.media_queries.is_empty() || self.media_queries.iter().any(|mq| {
-            // Check if media matches. Unknown media never matches.
-            let media_match = match mq.media_type {
-                MediaQueryType::MediaType(MediaType::Unknown(_)) => false,
-                MediaQueryType::MediaType(ref media_type) => *media_type == device.media_type,
-                MediaQueryType::All => true,
-            };
+            let media_match = mq.media_type.matches(&device.media_type);
 
             // Check if all conditions match (AND condition)
             let query_match = media_match && mq.expressions.iter().all(|expression| {
