@@ -10,6 +10,7 @@ use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, None_, Normal, specified};
+use values::specified::length::{FontRelativeLength, FontUnit};
 
 pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
@@ -106,8 +107,8 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
             length += val.to_computed_value(context);
         }
 
-        let values = &[self.ch, self.em, self.ex, self.rem];
-        for val in values.iter().filter_map(|v| *v) {
+        for (i, val) in self.font_values.iter().filter_map(|v| *v).enumerate() {
+            let val = FontRelativeLength::new(val, FontUnit::from_usize(i));
             length += val.to_computed_value(context);
         }
 
