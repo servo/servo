@@ -2,18 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::Parser;
 use dom::bindings::codegen::Bindings::CSSSupportsRuleBinding;
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssconditionrule::CSSConditionRule;
 use dom::cssrule::SpecificCSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
-use dom::medialist::MediaList;
 use dom::window::Window;
 use parking_lot::RwLock;
 use std::sync::Arc;
+use style::parser::ParserContext;
 use style::stylesheets::SupportsRule;
+use style::supports::SupportsCondition;
 use style_traits::ToCss;
 
 #[dom_struct]
@@ -21,7 +24,6 @@ pub struct CSSSupportsRule {
     cssrule: CSSConditionRule,
     #[ignore_heap_size_of = "Arc"]
     supportsrule: Arc<RwLock<SupportsRule>>,
-    medialist: MutNullableJS<MediaList>,
 }
 
 impl CSSSupportsRule {
@@ -31,7 +33,6 @@ impl CSSSupportsRule {
         CSSSupportsRule {
             cssrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
             supportsrule: supportsrule,
-            medialist: MutNullableJS::new(None),
         }
     }
 
@@ -43,9 +44,24 @@ impl CSSSupportsRule {
                            CSSSupportsRuleBinding::Wrap)
     }
 
-    fn medialist(&self) -> Root<MediaList> {
-        self.medialist.or_init(|| MediaList::new(self.global().as_window(),
-                                                 self.supportsrule.read().media_queries.clone()))
+    /// https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface
+    pub fn get_condition_text(&self) -> DOMString {
+        let rule = self.supportsrule.read();
+        rule.condition.to_css_string().into()
+    }
+
+    /// https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface
+    pub fn set_condition_text(&self, text: DOMString) {
+        let mut input = Parser::new(&text);
+        let cond = SupportsCondition::parse(&mut input, true);
+        if let Ok(cond) = cond {
+            let url = self.global().as_window().Document().url();
+            let context = ParserContext::new_for_cssom(&url);
+            let enabled = cond.eval(&context);
+            let mut rule = self.supportsrule.write();
+            rule.condition = cond;
+            rule.enabled = enabled;
+        }
     }
 }
 
