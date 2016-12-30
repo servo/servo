@@ -94,22 +94,16 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     type ComputedValue = CalcLengthOrPercentage;
 
     fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
-        let mut length = Au(0);
+        let mut length = self.absolute.unwrap_or(Au(0));
 
-        if let Some(absolute) = self.absolute {
-            length += absolute;
+        let values = &[self.vw, self.vh, self.vmin, self.vmax];
+        for val in values.iter().filter_map(|v| *v) {
+            length += val.to_computed_value(context);
         }
 
-        for val in &[self.vw, self.vh, self.vmin, self.vmax] {
-            if let Some(val) = *val {
-                length += val.to_computed_value(context.viewport_size());
-            }
-        }
-
-        for val in &[self.ch, self.em, self.ex, self.rem] {
-            if let Some(val) = *val {
-                length += val.to_computed_value(context, /* use inherited */ false);
-            }
+        let values = &[self.ch, self.em, self.ex, self.rem];
+        for val in values.iter().filter_map(|v| *v) {
+            length += val.to_computed_value(context);
         }
 
         CalcLengthOrPercentage {

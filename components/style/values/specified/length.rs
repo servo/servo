@@ -4,7 +4,6 @@
 
 use app_units::Au;
 use cssparser::{Parser, Token};
-use euclid::size::Size2D;
 use font_metrics::FontMetrics;
 use parser::{Parse, ParserContext};
 use std::ascii::AsciiExt;
@@ -14,7 +13,8 @@ use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
-use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
+use values::{Auto, Either, None_, Normal};
+use values::{CSSFloat, FONT_MEDIUM_PX, HasViewportPercentage, NoViewportPercentage};
 use values::computed::Context;
 
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
@@ -55,9 +55,17 @@ impl FontRelativeLength {
         None
     }
 
+    pub fn to_computed_value(&self, context: &Context) -> Au {
+        self.get_computed_value(context, false)
+    }
+
+    pub fn to_computed_value_inherited(&self, context: &Context) -> Au {
+        self.get_computed_value(context, true)
+    }
+
     // NB: The use_inherited flag is used to special-case the computation of
     // font-family.
-    pub fn to_computed_value(&self, context: &Context, use_inherited: bool) -> Au {
+    fn get_computed_value(&self, context: &Context, use_inherited: bool) -> Au {
         let reference_font_size = if use_inherited {
             context.inherited_style().get_font().clone_font_size()
         } else {
@@ -119,6 +127,8 @@ impl FontRelativeLength {
     }
 }
 
+impl NoViewportPercentage for FontRelativeLength {}
+
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum ViewportPercentageLength {
@@ -146,24 +156,18 @@ impl ToCss for ViewportPercentageLength {
 }
 
 impl ViewportPercentageLength {
-    pub fn to_computed_value(&self, viewport_size: Size2D<Au>) -> Au {
-        macro_rules! to_unit {
-            ($viewport_dimension:expr) => {
-                $viewport_dimension.to_f32_px() / 100.0
-            }
-        }
-
-        let value = match *self {
-            ViewportPercentageLength::Vw(length) =>
-                length * to_unit!(viewport_size.width),
-            ViewportPercentageLength::Vh(length) =>
-                length * to_unit!(viewport_size.height),
-            ViewportPercentageLength::Vmin(length) =>
-                length * to_unit!(cmp::min(viewport_size.width, viewport_size.height)),
-            ViewportPercentageLength::Vmax(length) =>
-                length * to_unit!(cmp::max(viewport_size.width, viewport_size.height)),
+    pub fn to_computed_value(&self, context: &Context) -> Au {
+        let viewport_size = context.viewport_size();
+        let (length, scale_factor) = match *self {
+            ViewportPercentageLength::Vw(l) => (l, viewport_size.width),
+            ViewportPercentageLength::Vh(l) => (l, viewport_size.height),
+            ViewportPercentageLength::Vmin(l) =>
+                (l, cmp::min(viewport_size.width, viewport_size.height)),
+            ViewportPercentageLength::Vmax(l) =>
+                (l, cmp::max(viewport_size.width, viewport_size.height)),
         };
-        Au::from_f32_px(value)
+
+        Au::from_f32_px(length * (scale_factor.to_f32_px() / 100.0))
     }
 }
 
