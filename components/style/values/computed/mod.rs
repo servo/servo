@@ -144,9 +144,9 @@ impl ToComputedValue for specified::Length {
             specified::Length::Absolute(length) => length,
             specified::Length::Calc(calc, range) => range.clamp(calc.to_computed_value(context).length()),
             specified::Length::FontRelative(length) =>
-                length.to_computed_value(context, /* use inherited */ false),
+                length.to_computed_value(context),
             specified::Length::ViewportPercentage(length) =>
-                length.to_computed_value(context.viewport_size()),
+                length.to_computed_value(context),
             specified::Length::ServoCharacterWidth(length) =>
                 length.to_computed_value(context.style().get_font().clone_font_size())
         }
