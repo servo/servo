@@ -179,14 +179,11 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         'outer: loop {
             match stream.read_json_packet() {
                 Ok(Some(json_packet)) => {
-                    match actors.lock().unwrap().handle_message(json_packet.as_object().unwrap(),
-                                                                &mut stream) {
-                        Ok(()) => {},
-                        Err(()) => {
-                            debug!("error: devtools actor stopped responding");
-                            let _ = stream.shutdown(Shutdown::Both);
-                            break 'outer
-                        }
+                    if let Err(()) = actors.lock().unwrap().handle_message(json_packet.as_object().unwrap(),
+                                                                           &mut stream) {
+                        debug!("error: devtools actor stopped responding");
+                        let _ = stream.shutdown(Shutdown::Both);
+                        break 'outer
                     }
                 }
                 Ok(None) => {

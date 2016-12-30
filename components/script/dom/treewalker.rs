@@ -286,13 +286,10 @@ impl TreeWalker {
                 NodeFilterConstants::FILTER_SKIP => {
                     // "1. Let child be node's first child if type is first,
                     //     and node's last child if type is last."
-                    match next_child(&node) {
+                    if let Some(child) = next_child(&node) {
                         // "2. If child is not null, set node to child and goto Main."
-                        Some(child) => {
-                            node = child;
-                            continue 'main
-                        },
-                        None => {}
+                        node = child;
+                        continue 'main
                     }
                 },
                 _ => {}
