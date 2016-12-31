@@ -5,10 +5,43 @@
 //! The style bloom filter is used as an optimization when matching deep
 //! descendant selectors.
 
+#![deny(missing_docs)]
+
 use dom::{SendElement, TElement};
 use matching::MatchMethods;
 use selectors::bloom::BloomFilter;
 
+/// A struct that allows us to fast-reject deep descendant selectors avoiding
+/// selector-matching.
+///
+/// This is implemented using a counting bloom filter, and it's a standard
+/// optimization. See Gecko's `AncestorFilter`, and Blink's and WebKit's
+/// `SelectorFilter`.
+///
+/// The constraints for Servo's style system are a bit different compared to
+/// traditional style systems given Servo does a parallel breadth-first
+/// traversal instead of a sequential depth-first traversal.
+///
+/// This implies that we need to track a bit more state than other browsers to
+/// ensure we're doing the correct thing during the traversal, and being able to
+/// apply this optimization effectively.
+///
+/// Concretely, we have a bloom filter instance per worker thread, and we track
+/// the current DOM depth in order to find a common ancestor when it doesn't
+/// match the previous element we've styled.
+///
+/// This is usually a pretty fast operation (we use to be one level deeper than
+/// the previous one), but in the case of work-stealing, we may needed to push
+/// and pop multiple elements.
+///
+/// See the `insert_parents_recovering`, where most of the magic happens.
+///
+/// Regarding thread-safety, this struct is safe because:
+///
+///  * We clear this after a restyle.
+///  * The DOM shape and attributes (and every other thing we access here) are
+///    immutable during a restyle.
+///
 pub struct StyleBloom<E: TElement> {
     /// The bloom filter per se.
     filter: Box<BloomFilter>,
@@ -18,6 +51,7 @@ pub struct StyleBloom<E: TElement> {
 }
 
 impl<E: TElement> StyleBloom<E> {
+    /// Create an empty `StyleBloom`.
     pub fn new() -> Self {
         StyleBloom {
             filter: Box::new(BloomFilter::new()),
@@ -25,19 +59,14 @@ impl<E: TElement> StyleBloom<E> {
         }
     }
 
+    /// Return the bloom filter used properly by the `selectors` crate.
     pub fn filter(&self) -> &BloomFilter {
         &*self.filter
     }
 
-    pub fn maybe_pop(&mut self, element: E) {
-        if self.elements.last().map(|el| **el) == Some(element) {
-            self.pop().unwrap();
-        }
-    }
-
     /// Push an element to the bloom filter, knowing that it's a child of the
     /// last element parent.
-    pub fn push(&mut self, element: E) {
+    fn push(&mut self, element: E) {
         if cfg!(debug_assertions) {
             if self.elements.is_empty() {
                 assert!(element.parent_element().is_none());
@@ -78,6 +107,8 @@ impl<E: TElement> StyleBloom<E> {
 
     /// In debug builds, asserts that all the parents of `element` are in the
     /// bloom filter.
+    ///
+    /// Goes away in release builds.
     pub fn assert_complete(&self, mut element: E) {
         if cfg!(debug_assertions) {
             let mut checked = 0;
@@ -96,7 +127,8 @@ impl<E: TElement> StyleBloom<E> {
     /// Gets the element depth in the dom, to make it efficient, or if not
     /// provided always rebuilds the filter from scratch.
     ///
-    /// Returns the new bloom filter depth.
+    /// Returns the new bloom filter depth, that the traversal code is
+    /// responsible to keep around if it wants to get an effective filter.
     pub fn insert_parents_recovering(&mut self,
                                      element: E,
                                      element_depth: Option<usize>)
