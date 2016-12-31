@@ -20,6 +20,8 @@
 //! easy to grep for. At the time of this writing, there is no other unsafe
 //! code in the parallel traversal.
 
+#![deny(missing_docs)]
+
 use dom::{OpaqueNode, SendNode, TElement, TNode};
 use rayon;
 use scoped_tls::ScopedTLS;
@@ -28,8 +30,12 @@ use std::sync::atomic::Ordering;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
 
+/// The chunk size used to split the parallel traversal nodes.
+///
+/// We send each `CHUNK_SIZE` nodes as a different work unit to the work queue.
 pub const CHUNK_SIZE: usize = 64;
 
+/// A parallel top down traversal, generic over `D`.
 #[allow(unsafe_code)]
 pub fn traverse_dom<N, D>(traversal: &D,
                           root: N::ConcreteElement,
@@ -37,7 +43,7 @@ pub fn traverse_dom<N, D>(traversal: &D,
                           token: PreTraverseToken,
                           queue: &rayon::ThreadPool)
     where N: TNode,
-          D: DomTraversal<N>
+          D: DomTraversal<N>,
 {
     if opts::get().style_sharing_stats {
         STYLE_SHARING_CACHE_HITS.store(0, Ordering::SeqCst);
@@ -181,7 +187,7 @@ fn bottom_up_dom<N, D>(traversal: &D,
                        root: OpaqueNode,
                        mut node: N)
     where N: TNode,
-          D: DomTraversal<N>
+          D: DomTraversal<N>,
 {
     loop {
         // Perform the appropriate operation.
