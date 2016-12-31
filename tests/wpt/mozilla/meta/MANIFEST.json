@@ -5292,6 +5292,18 @@
             "url": "/_mozilla/css/table_row_direction_a.html"
           }
         ],
+        "css/table_rowspan_rowgroup_a.html": [
+          {
+            "path": "css/table_rowspan_rowgroup_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_rowspan_rowgroup_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_rowspan_rowgroup_a.html"
+          }
+        ],
         "css/table_rowspan_simple_a.html": [
           {
             "path": "css/table_rowspan_simple_a.html",
@@ -20550,6 +20562,18 @@
           "url": "/_mozilla/css/table_row_direction_a.html"
         }
       ],
+      "css/table_rowspan_rowgroup_a.html": [
+        {
+          "path": "css/table_rowspan_rowgroup_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_rowspan_rowgroup_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_rowspan_rowgroup_a.html"
+        }
+      ],
       "css/table_rowspan_simple_a.html": [
         {
           "path": "css/table_rowspan_simple_a.html",
@@ -20560,18 +20584,6 @@
             ]
           ],
           "url": "/_mozilla/css/table_rowspan_simple_a.html"
-        }
-      ],
-      "css/table_rowspan_simple_ref.html": [
-        {
-          "path": "css/table_rowspan_simple_ref.html",
-          "references": [
-            [
-              "/_mozilla/css/table_rowspan_simple_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/_mozilla/css/table_rowspan_simple_ref.html"
         }
       ],
       "css/table_specified_width_a.html": [
