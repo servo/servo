@@ -18,23 +18,29 @@ use style_traits::ToCss;
 use values::NoViewportPercentage;
 use values::computed::ComputedValueAsSpecified;
 
+/// A set of data needed in Gecko to represent a URL.
 #[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Serialize, Deserialize, Eq))]
 pub struct UrlExtraData {
+    /// The base URI.
     #[cfg(feature = "gecko")]
     pub base: GeckoArcURI,
+    /// The referrer.
     #[cfg(feature = "gecko")]
     pub referrer: GeckoArcURI,
+    /// The principal that originated this URI.
     #[cfg(feature = "gecko")]
     pub principal: GeckoArcPrincipal,
 }
 
 impl UrlExtraData {
+    /// Constructs a `UrlExtraData`.
     #[cfg(feature = "servo")]
     pub fn make_from(_: &ParserContext) -> Option<UrlExtraData> {
         Some(UrlExtraData { })
     }
 
+    /// Constructs a `UrlExtraData`.
     #[cfg(feature = "gecko")]
     pub fn make_from(context: &ParserContext) -> Option<UrlExtraData> {
         match context.extra_data {
@@ -81,6 +87,11 @@ impl Parse for SpecifiedUrl {
 }
 
 impl SpecifiedUrl {
+    /// Try to parse a URL from a string value that is a valid CSS token for a
+    /// URL.
+    ///
+    /// Only returns `Err` for Gecko, in the case we can't construct a
+    /// `URLExtraData`.
     pub fn parse_from_string<'a>(url: Cow<'a, str>,
                                  context: &ParserContext)
                                  -> Result<Self, ()> {
@@ -104,14 +115,19 @@ impl SpecifiedUrl {
         })
     }
 
+    /// Get this URL's extra data.
     pub fn extra_data(&self) -> &UrlExtraData {
         &self.extra_data
     }
 
+    /// Returns the resolved url if it was valid.
     pub fn url(&self) -> Option<&ServoUrl> {
         self.resolved.as_ref()
     }
 
+    /// Return the resolved url as string, or the empty string if it's invalid.
+    ///
+    /// TODO(emilio): Should we return the original one if needed?
     pub fn as_str(&self) -> &str {
         match self.resolved {
             Some(ref url) => url.as_str(),
@@ -142,6 +158,7 @@ impl SpecifiedUrl {
         }
     }
 
+    /// Gets a new url from a string for unit tests.
     #[cfg(feature = "servo")]
     pub fn new_for_testing(url: &str) -> Self {
         SpecifiedUrl {

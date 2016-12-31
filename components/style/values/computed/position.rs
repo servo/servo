@@ -13,6 +13,7 @@ use values::computed::LengthOrPercentage;
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct Position {
     pub horizontal: LengthOrPercentage,
     pub vertical: LengthOrPercentage,
@@ -29,6 +30,7 @@ impl ToCss for Position {
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct HorizontalPosition(pub LengthOrPercentage);
 
 impl ToCss for HorizontalPosition {
@@ -39,6 +41,7 @@ impl ToCss for HorizontalPosition {
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct VerticalPosition(pub LengthOrPercentage);
 
 impl ToCss for VerticalPosition {
