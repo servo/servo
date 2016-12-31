@@ -1322,11 +1322,6 @@ impl ComputedValues {
         ))
     }
 
-    #[inline]
-    pub fn get_font_arc(&self) -> Arc<style_structs::Font> {
-        self.font.clone()
-    }
-
     // http://dev.w3.org/csswg/css-transforms/#grouping-property-values
     pub fn get_used_transform_style(&self) -> computed_values::transform_style::T {
         use computed_values::mix_blend_mode;

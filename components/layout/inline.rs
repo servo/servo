@@ -1089,7 +1089,7 @@ impl InlineFlow {
             return LineMetrics::new(Au(0), Au(0))
         }
 
-        let font_style = style.get_font_arc();
+        let font_style = style.clone_font();
         let font_metrics = text::font_metrics_for_style(font_context, font_style);
         let line_height = text::line_height_from_style(style, &font_metrics);
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
@@ -1112,7 +1112,7 @@ impl InlineFlow {
         for inline_context in fragments.iter()
                                        .filter_map(|fragment| fragment.inline_context.as_ref()) {
             for node in &inline_context.nodes {
-                let font_style = node.style.get_font_arc();
+                let font_style = node.style.clone_font();
                 let font_metrics = text::font_metrics_for_style(font_context, font_style);
                 let line_height = text::line_height_from_style(&*node.style, &font_metrics);
                 let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
