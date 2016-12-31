@@ -8,14 +8,17 @@ use super::ToCss;
 
 macro_rules! define_cursor {
     ($( $css: expr => $variant: ident = $value: expr, )+) => {
+        /// https://drafts.csswg.org/css-ui/#cursor
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         #[cfg_attr(feature = "servo", derive(Deserialize, Serialize, HeapSizeOf))]
         #[repr(u8)]
+        #[allow(missing_docs)]
         pub enum Cursor {
             $( $variant = $value ),+
         }
 
         impl Cursor {
+            /// Given a CSS keyword, get the corresponding cursor enum.
             pub fn from_css_keyword(keyword: &str) -> Result<Cursor, ()> {
                 match_ignore_ascii_case! { keyword,
                     $( concat!($css) => Ok(Cursor::$variant), )+

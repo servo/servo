@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Helper types for the `@viewport` rule.
+
 use {PagePx, ViewportPx};
 use cssparser::{Parser, ToCss};
 use euclid::scale_factor::ScaleFactor;
@@ -20,16 +22,25 @@ define_css_keyword_enum!(Orientation:
                          "landscape" => Landscape);
 
 
+/// A set of viewport descriptors:
+///
+/// https://drafts.csswg.org/css-device-adapt/#viewport-desc
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize, HeapSizeOf))]
 pub struct ViewportConstraints {
+    /// Width and height:
+    ///  * https://drafts.csswg.org/css-device-adapt/#width-desc
+    ///  * https://drafts.csswg.org/css-device-adapt/#height-desc
     pub size: TypedSize2D<f32, ViewportPx>,
-
+    /// https://drafts.csswg.org/css-device-adapt/#zoom-desc
     pub initial_zoom: ScaleFactor<f32, PagePx, ViewportPx>,
+    /// https://drafts.csswg.org/css-device-adapt/#min-max-width-desc
     pub min_zoom: Option<ScaleFactor<f32, PagePx, ViewportPx>>,
+    /// https://drafts.csswg.org/css-device-adapt/#min-max-width-desc
     pub max_zoom: Option<ScaleFactor<f32, PagePx, ViewportPx>>,
-
+    /// https://drafts.csswg.org/css-device-adapt/#user-zoom-desc
     pub user_zoom: UserZoom,
+    /// https://drafts.csswg.org/css-device-adapt/#orientation-desc
     pub orientation: Orientation
 }
 
@@ -53,19 +64,21 @@ impl ToCss for ViewportConstraints {
     }
 }
 
-/// Zoom is a number | percentage | auto
-/// See http://dev.w3.org/csswg/css-device-adapt/#descdef-viewport-zoom
+/// https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Zoom {
+    /// A number value.
     Number(f32),
+    /// A percentage value.
     Percentage(f32),
+    /// The `auto` keyword.
     Auto,
 }
 
 impl ToCss for Zoom {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
+        where W: fmt::Write,
     {
         match *self {
             Zoom::Number(number) => write!(dest, "{}", number),
@@ -76,6 +89,9 @@ impl ToCss for Zoom {
 }
 
 impl Zoom {
+    /// Parse a zoom value per:
+    ///
+    /// https://drafts.csswg.org/css-device-adapt/#descdef-viewport-zoom
     pub fn parse(input: &mut Parser) -> Result<Zoom, ()> {
         use cssparser::Token;
 
@@ -90,6 +106,8 @@ impl Zoom {
         }
     }
 
+    /// Get this zoom value as a float value. Returns `None` if the value is the
+    /// `auto` keyword.
     #[inline]
     pub fn to_f32(&self) -> Option<f32> {
         match *self {
