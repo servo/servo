@@ -73,16 +73,21 @@
                 use values::{computed, specified};
                 ${caller.body()}
             }
+
+            /// The definition of the computed value for ${name}.
             pub mod computed_value {
                 pub use super::single_value::computed_value as single_value;
                 pub use self::single_value::T as SingleComputedValue;
+                /// The computed value, effectively a list of single values.
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
                 pub struct T(pub Vec<single_value::T>);
             }
 
             impl ToCss for computed_value::T {
-                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                    where W: fmt::Write,
+                {
                     let mut iter = self.0.iter();
                     if let Some(val) = iter.next() {
                         try!(val.to_css(dest));
@@ -101,12 +106,15 @@
                 }
             }
 
+            /// The specified value of ${name}.
             #[derive(Debug, Clone, PartialEq)]
             #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
             pub struct SpecifiedValue(pub Vec<single_value::SpecifiedValue>);
 
             impl ToCss for SpecifiedValue {
-                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                    where W: fmt::Write,
+                {
                     let mut iter = self.0.iter();
                     if let Some(val) = iter.next() {
                         try!(val.to_css(dest));
@@ -405,7 +413,11 @@
         }
 
         impl<'a> LonghandsToSerialize<'a> {
-            pub fn from_iter<I: Iterator<Item=&'a PropertyDeclaration>>(iter: I) -> Result<Self, ()> {
+            /// Tries to get a serializable set of longhands given a set of
+            /// property declarations.
+            pub fn from_iter<I>(iter: I) -> Result<Self, ()>
+                where I: Iterator<Item=&'a PropertyDeclaration>,
+            {
                 // Define all of the expected variables that correspond to the shorthand
                 % for sub_property in shorthand.sub_properties:
                     let mut ${sub_property.ident} = None;
@@ -446,7 +458,9 @@
         }
 
         impl<'a> ToCss for LonghandsToSerialize<'a> {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
                 let mut all_flags = SerializeFlags::all();
                 let mut with_variables = false;
                 % for sub_property in shorthand.sub_properties:
@@ -477,7 +491,10 @@
         }
 
 
-        pub fn parse(context: &ParserContext, input: &mut Parser,
+        /// Parse the given shorthand and fill the result into the
+        /// `declarations` vector.
+        pub fn parse(context: &ParserContext,
+                     input: &mut Parser,
                      declarations: &mut Vec<PropertyDeclaration>)
                      -> Result<(), ()> {
             input.look_for_var_functions();

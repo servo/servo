@@ -72,9 +72,13 @@ pub trait ToComputedValue {
     fn from_computed_value(computed: &Self::ComputedValue) -> Self;
 }
 
+/// A marker trait to represent that the specified value is also the computed
+/// value.
 pub trait ComputedValueAsSpecified {}
 
-impl<T> ToComputedValue for T where T: ComputedValueAsSpecified + Clone {
+impl<T> ToComputedValue for T
+    where T: ComputedValueAsSpecified + Clone,
+{
     type ComputedValue = T;
 
     #[inline]

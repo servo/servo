@@ -46,7 +46,8 @@
 
         impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-            where W: ::std::fmt::Write {
+                where W: ::std::fmt::Write,
+            {
                 match *self {
                     % for value in values:
                         T::${to_rust_ident(value)} => dest.write_str("${value}"),
@@ -55,9 +56,14 @@
             }
         }
     }
-    #[inline] pub fn get_initial_value() -> computed_value::T {
+
+    /// The initial display value.
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
         computed_value::T::${to_rust_ident(values[0])}
     }
+
+    /// Parse a display value.
     pub fn parse(_context: &ParserContext, input: &mut Parser)
                  -> Result<SpecifiedValue, ()> {
         match_ignore_ascii_case! { try!(input.expect_ident()),
@@ -144,119 +150,128 @@ ${helpers.single_keyword("clear", "none left right both",
 
 </%helpers:longhand>
 
-<%helpers:longhand name="vertical-align"
-                   animatable="True">
-  use std::fmt;
-  use style_traits::ToCss;
-  use values::HasViewportPercentage;
+<%helpers:longhand name="vertical-align" animatable="True">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
 
-  <% vertical_align = data.longhands_by_name["vertical-align"] %>
-  <% vertical_align.keyword = Keyword("vertical-align",
-                                      "baseline sub super top text-top middle bottom text-bottom",
-                                      extra_gecko_values="middle-with-baseline") %>
-  <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
+    <% vertical_align = data.longhands_by_name["vertical-align"] %>
+    <% vertical_align.keyword = Keyword("vertical-align",
+                                        "baseline sub super top text-top middle bottom text-bottom",
+                                        extra_gecko_values="middle-with-baseline") %>
+    <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
 
-  impl HasViewportPercentage for SpecifiedValue {
-      fn has_viewport_percentage(&self) -> bool {
-          match *self {
-              SpecifiedValue::LengthOrPercentage(length) => length.has_viewport_percentage(),
-              _ => false
-          }
-      }
-  }
+    impl HasViewportPercentage for SpecifiedValue {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedValue::LengthOrPercentage(length) => length.has_viewport_percentage(),
+                _ => false
+            }
+        }
+    }
 
-  #[allow(non_camel_case_types)]
-  #[derive(Debug, Clone, PartialEq, Copy)]
-  #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-  pub enum SpecifiedValue {
-      % for keyword in vertical_align_keywords:
-          ${to_rust_ident(keyword)},
-      % endfor
-      LengthOrPercentage(specified::LengthOrPercentage),
-  }
+    /// The `vertical-align` value.
+    #[allow(non_camel_case_types)]
+    #[derive(Debug, Clone, PartialEq, Copy)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        % for keyword in vertical_align_keywords:
+            ${to_rust_ident(keyword)},
+        % endfor
+        LengthOrPercentage(specified::LengthOrPercentage),
+    }
 
-  impl ToCss for SpecifiedValue {
-      fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-          match *self {
-              % for keyword in vertical_align_keywords:
-                  SpecifiedValue::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
-              % endfor
-              SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
-          }
-      }
-  }
-  /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
-  /// | <percentage> | <length>
-  pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-      input.try(|i| specified::LengthOrPercentage::parse(context, i))
-      .map(SpecifiedValue::LengthOrPercentage)
-      .or_else(|()| {
-          match_ignore_ascii_case! { try!(input.expect_ident()),
-              % for keyword in vertical_align_keywords:
-                  "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
-              % endfor
-              _ => Err(())
-          }
-      })
-  }
-  pub mod computed_value {
-      use app_units::Au;
-      use std::fmt;
-      use style_traits::ToCss;
-      use values::{CSSFloat, computed};
-      #[allow(non_camel_case_types)]
-      #[derive(PartialEq, Copy, Clone, Debug)]
-      #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-      pub enum T {
-          % for keyword in vertical_align_keywords:
-              ${to_rust_ident(keyword)},
-          % endfor
-          LengthOrPercentage(computed::LengthOrPercentage),
-      }
-      impl ToCss for T {
-          fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-              match *self {
-                  % for keyword in vertical_align_keywords:
-                      T::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
-                  % endfor
-                  T::LengthOrPercentage(value) => value.to_css(dest),
-              }
-          }
-      }
-  }
-  #[inline]
-  pub fn get_initial_value() -> computed_value::T { computed_value::T::baseline }
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                % for keyword in vertical_align_keywords:
+                    SpecifiedValue::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
+                % endfor
+                SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
+            }
+        }
+    }
+    /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
+    /// | <percentage> | <length>
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        input.try(|i| specified::LengthOrPercentage::parse(context, i))
+        .map(SpecifiedValue::LengthOrPercentage)
+        .or_else(|_| {
+            match_ignore_ascii_case! { try!(input.expect_ident()),
+                % for keyword in vertical_align_keywords:
+                    "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
+                % endfor
+                _ => Err(())
+            }
+        })
+    }
 
-  impl ToComputedValue for SpecifiedValue {
-      type ComputedValue = computed_value::T;
+    /// The computed value for `vertical-align`.
+    pub mod computed_value {
+        use app_units::Au;
+        use std::fmt;
+        use style_traits::ToCss;
+        use values::{CSSFloat, computed};
 
-      #[inline]
-      fn to_computed_value(&self, context: &Context) -> computed_value::T {
-          match *self {
-              % for keyword in vertical_align_keywords:
-                  SpecifiedValue::${to_rust_ident(keyword)} => {
-                      computed_value::T::${to_rust_ident(keyword)}
-                  }
-              % endfor
-              SpecifiedValue::LengthOrPercentage(value) =>
-                  computed_value::T::LengthOrPercentage(value.to_computed_value(context)),
-          }
-      }
-      #[inline]
-      fn from_computed_value(computed: &computed_value::T) -> Self {
-          match *computed {
-              % for keyword in vertical_align_keywords:
-                  computed_value::T::${to_rust_ident(keyword)} => {
-                      SpecifiedValue::${to_rust_ident(keyword)}
-                  }
-              % endfor
-              computed_value::T::LengthOrPercentage(value) =>
-                  SpecifiedValue::LengthOrPercentage(
-                    ToComputedValue::from_computed_value(&value)
-                  ),
-          }
-      }
-  }
+        /// The keywords are the same, and the `LengthOrPercentage` is computed
+        /// here.
+        #[allow(non_camel_case_types)]
+        #[derive(PartialEq, Copy, Clone, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum T {
+            % for keyword in vertical_align_keywords:
+                ${to_rust_ident(keyword)},
+            % endfor
+            LengthOrPercentage(computed::LengthOrPercentage),
+        }
+        impl ToCss for T {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                match *self {
+                    % for keyword in vertical_align_keywords:
+                        T::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
+                    % endfor
+                    T::LengthOrPercentage(value) => value.to_css(dest),
+                }
+            }
+        }
+    }
+
+    /// The initial computed value for `vertical-align`.
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::baseline
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            match *self {
+                % for keyword in vertical_align_keywords:
+                    SpecifiedValue::${to_rust_ident(keyword)} => {
+                        computed_value::T::${to_rust_ident(keyword)}
+                    }
+                % endfor
+                SpecifiedValue::LengthOrPercentage(value) =>
+                    computed_value::T::LengthOrPercentage(value.to_computed_value(context)),
+            }
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                % for keyword in vertical_align_keywords:
+                    computed_value::T::${to_rust_ident(keyword)} => {
+                        SpecifiedValue::${to_rust_ident(keyword)}
+                    }
+                % endfor
+                computed_value::T::LengthOrPercentage(value) =>
+                    SpecifiedValue::LengthOrPercentage(
+                      ToComputedValue::from_computed_value(&value)
+                    ),
+            }
+        }
+    }
 </%helpers:longhand>
 
 
@@ -275,44 +290,51 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                          gecko_constant_prefix="NS_STYLE_OVERFLOW")}
 
 // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-<%helpers:longhand name="overflow-y"
-                   need_clone="True"
-                   animatable="False">
-  use super::overflow_x;
+<%helpers:longhand name="overflow-y" need_clone="True" animatable="False">
+    use super::overflow_x;
 
-  use std::fmt;
-  use style_traits::ToCss;
-  use values::computed::ComputedValueAsSpecified;
-  use values::NoViewportPercentage;
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::computed::ComputedValueAsSpecified;
+    use values::NoViewportPercentage;
 
-  pub use self::computed_value::T as SpecifiedValue;
+    pub use self::computed_value::T as SpecifiedValue;
 
-  impl NoViewportPercentage for SpecifiedValue {}
+    impl NoViewportPercentage for SpecifiedValue {}
 
-  impl ToCss for SpecifiedValue {
-      fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-          self.0.to_css(dest)
-      }
-  }
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.0.to_css(dest)
+        }
+    }
 
-  pub mod computed_value {
-      #[derive(Debug, Clone, Copy, PartialEq)]
-      #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-      pub struct T(pub super::super::overflow_x::computed_value::T);
-  }
 
-  impl ComputedValueAsSpecified for SpecifiedValue {}
+    /// The specified and computed value for overflow-y is a wrapper on top of
+    /// `overflow-x`, so we re-use the logic, but prevent errors from mistakenly
+    /// assign one to other.
+    ///
+    /// TODO(Manishearth, emilio): We may want to just use the same value.
+    pub mod computed_value {
+        #[derive(Debug, Clone, Copy, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T(pub super::super::overflow_x::computed_value::T);
+    }
 
-  pub fn get_initial_value() -> computed_value::T {
-      computed_value::T(overflow_x::get_initial_value())
-  }
+    impl ComputedValueAsSpecified for SpecifiedValue {}
 
-  pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-      overflow_x::parse(context, input).map(SpecifiedValue)
-  }
+    #[inline]
+    #[allow(missing_docs)]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(overflow_x::get_initial_value())
+    }
+
+    #[inline]
+    #[allow(missing_docs)]
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        overflow_x::parse(context, input).map(SpecifiedValue)
+    }
 </%helpers:longhand>
 
-// TODO(pcwalton): Multiple transitions.
 <%helpers:longhand name="transition-duration"
                    need_index="True"
                    animatable="False">
@@ -369,7 +391,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 </%helpers:longhand>
 
 // TODO(pcwalton): Lots more timing functions.
-// TODO(pcwalton): Multiple transitions.
 <%helpers:longhand name="transition-timing-function"
                    need_index="True"
                    animatable="False">
