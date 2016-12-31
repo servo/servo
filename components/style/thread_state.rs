@@ -8,32 +8,42 @@
 //! In release builds, `get` returns 0.  All of the other functions inline
 //! away to nothing.
 
+#![deny(missing_docs)]
+
 pub use self::imp::{enter, exit, get, initialize};
 
 bitflags! {
+    /// A thread state flag, used for multiple assertions.
     pub flags ThreadState: u32 {
+        /// Whether we're in a script thread.
         const SCRIPT          = 0x01,
+        /// Whether we're in a layout thread.
         const LAYOUT          = 0x02,
-        const PAINT           = 0x04,
 
+        /// Whether we're in a script worker thread (actual web workers), or in
+        /// a layout worker thread.
         const IN_WORKER       = 0x0100,
+
+        /// Whether the current thread is going through a GC.
         const IN_GC           = 0x0200,
-        const IN_HTML_PARSER  = 0x0400,
     }
 }
 
 macro_rules! thread_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
     impl ThreadState {
+        /// Whether the current thread is a worker thread.
         pub fn is_worker(self) -> bool {
             self.contains(IN_WORKER)
         }
 
         $(
             #[cfg(debug_assertions)]
+            #[allow(missing_docs)]
             pub fn $fun(self) -> bool {
                 self.contains($flag)
             }
             #[cfg(not(debug_assertions))]
+            #[allow(missing_docs)]
             pub fn $fun(self) -> bool {
                 true
             }
@@ -48,7 +58,6 @@ macro_rules! thread_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
 thread_types! {
     is_script = SCRIPT;
     is_layout = LAYOUT;
-    is_paint = PAINT;
 }
 
 #[cfg(debug_assertions)]
@@ -58,6 +67,7 @@ mod imp {
 
     thread_local!(static STATE: RefCell<Option<ThreadState>> = RefCell::new(None));
 
+    /// Initialize the current thread state.
     pub fn initialize(x: ThreadState) {
         STATE.with(|ref k| {
             if let Some(ref s) = *k.borrow() {
@@ -68,6 +78,7 @@ mod imp {
         get(); // check the assertion below
     }
 
+    /// Get the current thread state.
     pub fn get() -> ThreadState {
         let state = STATE.with(|ref k| {
             match *k.borrow() {
@@ -82,6 +93,7 @@ mod imp {
         state
     }
 
+    /// Enter into a given temporary state. Panics if re-entring.
     pub fn enter(x: ThreadState) {
         let state = get();
         assert!(!state.intersects(x));
@@ -90,6 +102,7 @@ mod imp {
         })
     }
 
+    /// Exit a given temporary state.
     pub fn exit(x: ThreadState) {
         let state = get();
         assert!(state.contains(x));
@@ -100,6 +113,7 @@ mod imp {
 }
 
 #[cfg(not(debug_assertions))]
+#[allow(missing_docs)]
 mod imp {
     use super::ThreadState;
     #[inline(always)] pub fn initialize(_: ThreadState) { }
