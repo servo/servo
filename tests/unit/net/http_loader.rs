@@ -327,7 +327,7 @@ fn test_redirected_request_to_devtools() {
         .. RequestInit::default()
     });
     let (devtools_chan, devtools_port) = mpsc::channel();
-    let response = fetch(request, Some(devtools_chan));
+    fetch(request, Some(devtools_chan));
 
     let _ = pre_server.close();
     let _ = post_server.close();
