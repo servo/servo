@@ -109,6 +109,12 @@ pub unsafe trait HasArcFFI : HasFFI {
         }
     }
 
+    fn arc_as_borrowed<'a>(arc: &'a Arc<Self>) -> &'a &Self::FFIType {
+        unsafe {
+            transmute::<&Arc<Self>, &&Self::FFIType>(arc)
+        }
+    }
+
     #[inline]
     fn arc_from_borrowed<'a>(ptr: &'a Option<&Self::FFIType>) -> Option<&'a Arc<Self>> {
         unsafe {

@@ -143,6 +143,8 @@ unsafe impl Send for nsStyleXUL {}
 unsafe impl Sync for nsStyleXUL {}
 use gecko_bindings::structs::nscoord;
 use gecko_bindings::structs::nsresult;
+use gecko_bindings::structs::Loader;
+use gecko_bindings::structs::ServoStyleSheet;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
 pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
@@ -169,6 +171,11 @@ pub type RawServoStyleRuleBorrowed<'a> = &'a RawServoStyleRule;
 pub type RawServoStyleRuleBorrowedOrNull<'a> = Option<&'a RawServoStyleRule>;
 enum RawServoStyleRuleVoid { }
 pub struct RawServoStyleRule(RawServoStyleRuleVoid);
+pub type RawServoImportRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoImportRule>;
+pub type RawServoImportRuleBorrowed<'a> = &'a RawServoImportRule;
+pub type RawServoImportRuleBorrowedOrNull<'a> = Option<&'a RawServoImportRule>;
+enum RawServoImportRuleVoid { }
+pub struct RawServoImportRule(RawServoImportRuleVoid);
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
 pub type RawServoStyleSetOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
@@ -235,6 +242,12 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_StyleRule_Release(ptr: RawServoStyleRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_ImportRule_AddRef(ptr: RawServoImportRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_ImportRule_Release(ptr: RawServoImportRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
@@ -313,6 +326,13 @@ extern "C" {
 extern "C" {
     pub fn Gecko_GetDocumentElement(document: RawGeckoDocumentBorrowed)
      -> RawGeckoElementBorrowedOrNull;
+}
+extern "C" {
+    pub fn Gecko_LoadStyleSheet(loader: *mut Loader,
+                                parent: *mut ServoStyleSheet,
+                                import_rule: RawServoImportRuleBorrowed,
+                                url_bytes: *const u8, url_length: u32,
+                                media_bytes: *const u8, media_length: u32);
 }
 extern "C" {
     pub fn Gecko_MaybeCreateStyleChildrenIterator(node: RawGeckoNodeBorrowed)
@@ -970,7 +990,10 @@ extern "C" {
      -> RawServoStyleSheetStrong;
 }
 extern "C" {
-    pub fn Servo_StyleSheet_FromUTF8Bytes(data: *const nsACString_internal,
+    pub fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
+                                          gecko_stylesheet:
+                                              *mut ServoStyleSheet,
+                                          data: *const nsACString_internal,
                                           parsing_mode: SheetParsingMode,
                                           base_url:
                                               *const nsACString_internal,
@@ -979,6 +1002,22 @@ extern "C" {
                                           principal:
                                               *mut ThreadSafePrincipalHolder)
      -> RawServoStyleSheetStrong;
+}
+extern "C" {
+    pub fn Servo_ImportRule_GetSheet(import_rule: RawServoImportRuleBorrowed)
+     -> RawServoStyleSheetStrong;
+}
+extern "C" {
+    pub fn Servo_StyleSheet_ClearAndUpdate(stylesheet:
+                                               RawServoStyleSheetBorrowed,
+                                           loader: *mut Loader,
+                                           gecko_stylesheet:
+                                               *mut ServoStyleSheet,
+                                           data: *const nsACString_internal,
+                                           base: *mut ThreadSafeURIHolder,
+                                           referrer: *mut ThreadSafeURIHolder,
+                                           principal:
+                                               *mut ThreadSafePrincipalHolder);
 }
 extern "C" {
     pub fn Servo_StyleSheet_HasRules(sheet: RawServoStyleSheetBorrowed)

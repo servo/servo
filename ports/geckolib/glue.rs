@@ -36,12 +36,15 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
+use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs;
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
+use style::gecko_bindings::structs::Loader;
+use style::gecko_bindings::structs::ServoStyleSheet;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
@@ -55,7 +58,8 @@ use style::restyle_hints::RestyleHint;
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
-use style::stylesheets::{CssRule, CssRules, Origin, Stylesheet, StyleRule};
+use style::stylesheets::{CssRule, CssRules, Origin, Stylesheet, StyleRule, ImportRule};
+use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{resolve_style, DomTraversal};
@@ -225,9 +229,8 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
         SheetParsingMode::eUserSheetFeatures => Origin::User,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
     };
-    let loader = StylesheetLoader::new();
     let sheet = Arc::new(Stylesheet::from_str(
-        "", url, origin, Default::default(), Some(&loader),
+        "", url, origin, Default::default(), None,
         Box::new(StdoutErrorReporter), extra_data));
     unsafe {
         transmute(sheet)
@@ -235,7 +238,9 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(data: *const nsACString,
+pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
+                                                 stylesheet: *mut ServoStyleSheet,
+                                                 data: *const nsACString,
                                                  mode: SheetParsingMode,
                                                  base_url: *const nsACString,
                                                  base: *mut ThreadSafeURIHolder,
@@ -257,13 +262,59 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(data: *const nsACString,
         referrer: Some(GeckoArcURI::new(referrer)),
         principal: Some(GeckoArcPrincipal::new(principal)),
     }};
-    let loader = StylesheetLoader::new();
+    let loader = if loader.is_null() {
+        None
+    } else {
+        Some(StylesheetLoader::new(loader, stylesheet))
+    };
+
+    // FIXME(emilio): loader.as_ref() doesn't typecheck for some reason?
+    let loader: Option<&StyleStylesheetLoader> = match loader {
+        None => None,
+        Some(ref s) => Some(s),
+    };
+
     let sheet = Arc::new(Stylesheet::from_str(
-        input, url, origin, Default::default(), Some(&loader),
+        input, url, origin, Default::default(), loader,
         Box::new(StdoutErrorReporter), extra_data));
     unsafe {
         transmute(sheet)
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheetBorrowed,
+                                                  loader: *mut Loader,
+                                                  gecko_stylesheet: *mut ServoStyleSheet,
+                                                  data: *const nsACString,
+                                                  base: *mut ThreadSafeURIHolder,
+                                                  referrer: *mut ThreadSafeURIHolder,
+                                                  principal: *mut ThreadSafePrincipalHolder)
+{
+    let input = unsafe { data.as_ref().unwrap().as_str_unchecked() };
+    let extra_data = unsafe { ParserContextExtraData {
+        base: Some(GeckoArcURI::new(base)),
+        referrer: Some(GeckoArcURI::new(referrer)),
+        principal: Some(GeckoArcPrincipal::new(principal)),
+    }};
+
+    let loader = if loader.is_null() {
+        None
+    } else {
+        Some(StylesheetLoader::new(loader, gecko_stylesheet))
+    };
+
+    // FIXME(emilio): loader.as_ref() doesn't typecheck for some reason?
+    let loader: Option<&StyleStylesheetLoader> = match loader {
+        None => None,
+        Some(ref s) => Some(s),
+    };
+
+    let sheet = Stylesheet::as_arc(&stylesheet);
+    sheet.rules.write().0.clear();
+
+    Stylesheet::update_from_str(&sheet, input, loader,
+                                Box::new(StdoutErrorReporter), extra_data);
 }
 
 #[no_mangle]
@@ -455,6 +506,16 @@ pub extern "C" fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed, re
 pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) -> () {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
     rule.read().selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ImportRule_AddRef(rule: RawServoImportRuleBorrowed) -> () {
+    unsafe { RwLock::<ImportRule>::addref(rule) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ImportRule_Release(rule: RawServoImportRuleBorrowed) -> () {
+    unsafe { RwLock::<ImportRule>::release(rule) };
 }
 
 #[no_mangle]
@@ -830,6 +891,14 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
     } else {
         debug!("(Element not styled, discarding hints)");
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ImportRule_GetSheet(import_rule:
+                                            RawServoImportRuleBorrowed)
+                                            -> RawServoStyleSheetStrong {
+    let import_rule = RwLock::<ImportRule>::as_arc(&import_rule);
+    unsafe { transmute(import_rule.read().stylesheet.clone()) }
 }
 
 #[no_mangle]

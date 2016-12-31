@@ -1005,6 +1005,7 @@ pub mod root {
     pub const NS_STYLE_DISPLAY_MODE_BROWSER: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_DISPLAY_MODE_MINIMAL_UI: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_DISPLAY_MODE_STANDALONE: ::std::os::raw::c_uint = 2;
+    pub const NS_STYLE_DISPLAY_MODE_FULLSCREEN: ::std::os::raw::c_uint = 3;
     pub const NS_STYLE_INHERIT_MASK: ::std::os::raw::c_uint = 16777215;
     pub const NS_STYLE_HAS_TEXT_DECORATION_LINES: ::std::os::raw::c_uint =
         16777216;
@@ -2362,6 +2363,14 @@ pub mod root {
             assert_eq!(::std::mem::size_of::<StyleSheet>() , 88usize);
             assert_eq!(::std::mem::align_of::<StyleSheet>() , 8usize);
         }
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct ServoStyleSheet {
+            pub _address: u8,
+        }
+        impl Clone for ServoStyleSheet {
+            fn clone(&self) -> Self { *self }
+        }
         #[repr(u32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum Side {
@@ -2593,7 +2602,7 @@ pub mod root {
  * The FramePropertyTable is optimized for storing 0 or 1 properties on
  * a given frame. Storing very large numbers of properties on a single
  * frame will not be efficient.
- * 
+ *
  * Property values are passed as void* but do not actually have to be
  * valid pointers. You can use NS_INT32_TO_PTR/NS_PTR_TO_INT32 to
  * store int32_t values. Null/zero values can be stored and retrieved.
