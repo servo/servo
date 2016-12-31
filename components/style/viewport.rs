@@ -7,6 +7,8 @@
 //! [at]: https://drafts.csswg.org/css-device-adapt/#atviewport-rule
 //! [meta]: https://drafts.csswg.org/css-device-adapt/#viewport-meta
 
+#![deny(missing_docs)]
+
 use app_units::Au;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use cssparser::ToCss as ParserToCss;
@@ -60,6 +62,7 @@ macro_rules! declare_viewport_descriptor_inner {
     ) => {
         #[derive(Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[allow(missing_docs)]
         pub enum ViewportDescriptor {
             $(
                 $assigned_variant($assigned_data),
@@ -69,6 +72,7 @@ macro_rules! declare_viewport_descriptor_inner {
         const VIEWPORT_DESCRIPTOR_VARIANTS: usize = $number_of_variants;
 
         impl ViewportDescriptor {
+            #[allow(missing_docs)]
             pub fn discriminant_value(&self) -> usize {
                 match *self {
                     $(
@@ -114,12 +118,13 @@ trait FromMeta: Sized {
     fn from_meta(value: &str) -> Option<Self>;
 }
 
-// ViewportLength is a length | percentage | auto | extend-to-zoom
-// See:
-// * http://dev.w3.org/csswg/css-device-adapt/#min-max-width-desc
-// * http://dev.w3.org/csswg/css-device-adapt/#extend-to-zoom
+/// ViewportLength is a length | percentage | auto | extend-to-zoom
+/// See:
+/// * http://dev.w3.org/csswg/css-device-adapt/#min-max-width-desc
+/// * http://dev.w3.org/csswg/css-device-adapt/#extend-to-zoom
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum ViewportLength {
     Specified(LengthOrPercentageOrAuto),
     ExtendToZoom
@@ -209,6 +214,7 @@ struct ViewportRuleParser<'a, 'b: 'a> {
 
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct ViewportDescriptorDeclaration {
     pub origin: Origin,
     pub descriptor: ViewportDescriptor,
@@ -216,6 +222,7 @@ pub struct ViewportDescriptorDeclaration {
 }
 
 impl ViewportDescriptorDeclaration {
+    #[allow(missing_docs)]
     pub fn new(origin: Origin,
                descriptor: ViewportDescriptor,
                important: bool) -> ViewportDescriptorDeclaration
@@ -313,9 +320,11 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
     }
 }
 
+/// A `@viewport` rule.
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ViewportRule {
+    /// The declarations contained in this @viewport rule.
     pub declarations: Vec<ViewportDescriptorDeclaration>
 }
 
@@ -333,6 +342,7 @@ fn is_whitespace_separator_or_equals(c: &char) -> bool {
 }
 
 impl ViewportRule {
+    #[allow(missing_docs)]
     pub fn parse(input: &mut Parser, context: &ParserContext)
                      -> Result<ViewportRule, ()>
     {
@@ -358,6 +368,7 @@ impl ViewportRule {
         Ok(ViewportRule { declarations: cascade.finish() })
     }
 
+    #[allow(missing_docs)]
     pub fn from_meta(content: &str) -> Option<ViewportRule> {
         let mut declarations = vec![None; VIEWPORT_DESCRIPTOR_VARIANTS];
         macro_rules! push_descriptor {
@@ -531,11 +542,13 @@ impl ViewportDescriptorDeclaration {
     }
 }
 
+#[allow(missing_docs)]
 pub struct Cascade {
     declarations: Vec<Option<(usize, ViewportDescriptorDeclaration)>>,
     count_so_far: usize,
 }
 
+#[allow(missing_docs)]
 impl Cascade {
     pub fn new() -> Self {
         Cascade {
