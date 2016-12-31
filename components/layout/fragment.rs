@@ -2005,7 +2005,7 @@ impl Fragment {
                 }
                 // See CSS 2.1 § 10.8.1.
                 let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
-                                                                self.style.get_font_arc());
+                                                                self.style.clone_font());
                 let line_height = text::line_height_from_style(&*self.style, &font_metrics);
                 InlineMetrics::from_font_metrics(&info.run.font_metrics, line_height)
             }
@@ -2085,7 +2085,7 @@ impl Fragment {
                 vertical_align::T::middle => {
                     let font_metrics =
                         text::font_metrics_for_style(&mut layout_context.font_context(),
-                                                     style.get_font_arc());
+                                                     style.clone_font());
                     offset += (content_inline_metrics.ascent -
                                content_inline_metrics.space_below_baseline -
                                font_metrics.x_height).scale_by(0.5)

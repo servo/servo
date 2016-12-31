@@ -315,7 +315,10 @@ ${helpers.single_keyword("font-variant-caps",
         use app_units::Au;
         pub type T = Au;
     }
-    #[inline] pub fn get_initial_value() -> computed_value::T {
+
+    #[inline]
+    #[allow(missing_docs)]
+    pub fn get_initial_value() -> computed_value::T {
         Au::from_px(FONT_MEDIUM_PX)
     }
 

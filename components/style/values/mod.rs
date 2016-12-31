@@ -6,6 +6,8 @@
 //!
 //! [values]: https://drafts.csswg.org/css-values/
 
+#![deny(missing_docs)]
+
 pub use cssparser::{RGBA, Parser};
 use parser::{Parse, ParserContext};
 use std::fmt::{self, Debug};
@@ -16,7 +18,7 @@ macro_rules! define_numbered_css_keyword_enum {
         define_numbered_css_keyword_enum!($name: $( $css => $variant = $value ),+);
     };
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+) => {
-        #[allow(non_camel_case_types)]
+        #[allow(non_camel_case_types, missing_docs)]
         #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Copy, RustcEncodable, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum $name {
@@ -24,6 +26,7 @@ macro_rules! define_numbered_css_keyword_enum {
         }
 
         impl $name {
+            #[allow(missing_docs)]
             pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
                     $( $css => Ok($name::$variant), )+
@@ -34,7 +37,8 @@ macro_rules! define_numbered_css_keyword_enum {
 
         impl ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-            where W: ::std::fmt::Write {
+                where W: ::std::fmt::Write,
+            {
                 match *self {
                     $( $name::$variant => dest.write_str($css) ),+
                 }
@@ -46,17 +50,26 @@ macro_rules! define_numbered_css_keyword_enum {
 pub mod computed;
 pub mod specified;
 
+/// A CSS float value.
 pub type CSSFloat = f32;
 
+/// The default font size.
 pub const FONT_MEDIUM_PX: i32 = 16;
 
+/// A trait used to query whether this value has viewport units.
 pub trait HasViewportPercentage {
+    /// Returns true if this value has viewport units.
     fn has_viewport_percentage(&self) -> bool;
 }
 
+/// A trait used as a marker to represent that a given type may never contain
+/// viewport units.
 pub trait NoViewportPercentage {}
 
-impl<T> HasViewportPercentage for T where T: NoViewportPercentage {
+impl<T> HasViewportPercentage for T
+    where T: NoViewportPercentage,
+{
+    #[inline]
     fn has_viewport_percentage(&self) -> bool {
         false
     }
@@ -68,6 +81,7 @@ macro_rules! define_keyword_type {
     ($name: ident, $css: expr) => {
         #[derive(Clone, PartialEq, Copy)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        #[allow(missing_docs)]
         pub struct $name;
 
         impl ::style_traits::ToCss for $name {
@@ -99,8 +113,11 @@ define_keyword_type!(Normal, "normal");
 
 #[derive(Clone, PartialEq, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A struct representing one of two kinds of values.
 pub enum Either<A, B> {
+    /// The first value.
     First(A),
+    /// The second kind of value.
     Second(B),
 }
 

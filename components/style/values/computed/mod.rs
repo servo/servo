@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Computed values.
+
 use app_units::Au;
 use euclid::size::Size2D;
 use font_metrics::FontMetricsProvider;
@@ -24,23 +26,41 @@ pub mod image;
 pub mod length;
 pub mod position;
 
+/// A `Context` is all the data a specified value could ever need to compute
+/// itself and be transformed to a computed value.
 pub struct Context<'a> {
+    /// Whether the current element is the root element.
     pub is_root_element: bool,
+
+    /// The current viewport size.
     pub viewport_size: Size2D<Au>,
+
+    /// The style we're inheriting from.
     pub inherited_style: &'a ComputedValues,
 
     /// Values access through this need to be in the properties "computed
     /// early": color, text-decoration, font-size, display, position, float,
     /// border-*-style, outline-style, font-family, writing-mode...
     pub style: ComputedValues,
+
+    /// A font metrics provider, used to access font metrics to implement
+    /// font-relative units.
+    ///
+    /// TODO(emilio): This should be required, see #14079.
     pub font_metrics_provider: Option<&'a FontMetricsProvider>,
 }
 
 impl<'a> Context<'a> {
+    /// Whether the current element is the root element.
     pub fn is_root_element(&self) -> bool { self.is_root_element }
+    /// The current viewport size.
     pub fn viewport_size(&self) -> Size2D<Au> { self.viewport_size }
+    /// The style we're inheriting from.
     pub fn inherited_style(&self) -> &ComputedValues { &self.inherited_style }
+    /// The current style. Note that only "eager" properties should be accessed
+    /// from here, see the comment in the member.
     pub fn style(&self) -> &ComputedValues { &self.style }
+    /// A mutable reference to the current style.
     pub fn mutate_style(&mut self) -> &mut ComputedValues { &mut self.style }
 
     /// Creates a dummy computed context for use in multiple places, like
@@ -58,11 +78,15 @@ impl<'a> Context<'a> {
     }
 }
 
+/// A trait to represent the conversion between computed and specified values.
 pub trait ToComputedValue {
+    /// The computed value type we're going to be converted to.
     type ComputedValue;
 
+    /// Convert a specified value to a computed value, using itself and the data
+    /// inside the `Context`.
     #[inline]
-    fn to_computed_value(&self, _context: &Context) -> Self::ComputedValue;
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue;
 
     #[inline]
     /// Convert a computed value to specified value form.
@@ -72,9 +96,13 @@ pub trait ToComputedValue {
     fn from_computed_value(computed: &Self::ComputedValue) -> Self;
 }
 
+/// A marker trait to represent that the specified value is also the computed
+/// value.
 pub trait ComputedValueAsSpecified {}
 
-impl<T> ToComputedValue for T where T: ComputedValueAsSpecified + Clone {
+impl<T> ToComputedValue for T
+    where T: ComputedValueAsSpecified + Clone,
+{
     type ComputedValue = T;
 
     #[inline]
@@ -133,9 +161,11 @@ impl ToComputedValue for specified::Length {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
 
 impl BorderRadiusSize {
+    #[allow(missing_docs)]
     pub fn zero() -> BorderRadiusSize {
         BorderRadiusSize(Size2D::new(LengthOrPercentage::Length(Au(0)), LengthOrPercentage::Length(Au(0))))
     }
@@ -169,6 +199,7 @@ impl ToCss for BorderRadiusSize {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct Shadow {
     pub offset_x: Au,
     pub offset_y: Au,
@@ -178,5 +209,8 @@ pub struct Shadow {
     pub inset: bool,
 }
 
+/// A `<number>` value.
 pub type Number = CSSFloat;
+
+/// A type used for opacity.
 pub type Opacity = CSSFloat;

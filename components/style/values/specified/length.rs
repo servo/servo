@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! [Length values][length].
+//!
+//! [length]: https://drafts.csswg.org/css-values/#lengths
+
 use app_units::Au;
 use cssparser::{Parser, Token};
 use euclid::size::Size2D;
@@ -23,15 +27,22 @@ pub use super::image::{SizeKeyword, VerticalDirection};
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A font relative length.
 pub enum FontRelativeLength {
+    /// A "em" value: https://drafts.csswg.org/css-values/#em
     Em(CSSFloat),
+    /// A "ex" value: https://drafts.csswg.org/css-values/#ex
     Ex(CSSFloat),
+    /// A "ch" value: https://drafts.csswg.org/css-values/#ch
     Ch(CSSFloat),
+    /// A "rem" value: https://drafts.csswg.org/css-values/#rem
     Rem(CSSFloat)
 }
 
 impl ToCss for FontRelativeLength {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write
+    {
         match *self {
             FontRelativeLength::Em(length) => write!(dest, "{}em", length),
             FontRelativeLength::Ex(length) => write!(dest, "{}ex", length),
@@ -42,6 +53,8 @@ impl ToCss for FontRelativeLength {
 }
 
 impl FontRelativeLength {
+    /// Gets the first available font metrics from the current context's
+    /// font-family list.
     pub fn find_first_available_font_metrics(context: &Context) -> Option<FontMetrics> {
         use font_metrics::FontMetricsQueryResult::*;
         if let Some(ref metrics_provider) = context.font_metrics_provider {
@@ -55,8 +68,8 @@ impl FontRelativeLength {
         None
     }
 
-    // NB: The use_inherited flag is used to special-case the computation of
-    // font-family.
+    /// Computes the font-relative length. We use the use_inherited flag to
+    /// special-case the computation of font-size.
     pub fn to_computed_value(&self, context: &Context, use_inherited: bool) -> Au {
         let reference_font_size = if use_inherited {
             context.inherited_style().get_font().clone_font_size()
@@ -121,10 +134,17 @@ impl FontRelativeLength {
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A viewport-relative length.
+///
+/// https://drafts.csswg.org/css-values/#viewport-relative-lengths
 pub enum ViewportPercentageLength {
+    /// A vw unit: https://drafts.csswg.org/css-values/#vw
     Vw(CSSFloat),
+    /// A vh unit: https://drafts.csswg.org/css-values/#vh
     Vh(CSSFloat),
+    /// https://drafts.csswg.org/css-values/#vmin
     Vmin(CSSFloat),
+    /// https://drafts.csswg.org/css-values/#vmax
     Vmax(CSSFloat)
 }
 
@@ -146,6 +166,7 @@ impl ToCss for ViewportPercentageLength {
 }
 
 impl ViewportPercentageLength {
+    /// Computes the given viewport-relative length for the given viewport size.
     pub fn to_computed_value(&self, viewport_size: Size2D<Au>) -> Au {
         macro_rules! to_unit {
             ($viewport_dimension:expr) => {
@@ -167,11 +188,13 @@ impl ViewportPercentageLength {
     }
 }
 
+/// HTML5 "character width", as defined in HTML5 § 14.5.4.
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct CharacterWidth(pub i32);
 
 impl CharacterWidth {
+    /// Computes the given character width.
     pub fn to_computed_value(&self, reference_font_size: Au) -> Au {
         // This applies the *converting a character width to pixels* algorithm as specified
         // in HTML5 § 14.5.4.
@@ -183,11 +206,23 @@ impl CharacterWidth {
     }
 }
 
+/// A length.
+///
+/// https://drafts.csswg.org/css-values/#lengths
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Length {
+    /// An absolute length: https://drafts.csswg.org/css-values/#absolute-length
     Absolute(Au),  // application units
+
+    /// A font-relative length:
+    ///
+    /// https://drafts.csswg.org/css-values/#font-relative-lengths
     FontRelative(FontRelativeLength),
+
+    /// A viewport-relative length.
+    ///
+    /// https://drafts.csswg.org/css-values/#viewport-relative-lengths
     ViewportPercentage(ViewportPercentageLength),
 
     /// HTML5 "character width", as defined in HTML5 § 14.5.4.
@@ -196,6 +231,12 @@ pub enum Length {
     /// `Stylist::synthesize_rules_for_legacy_attributes()`.
     ServoCharacterWidth(CharacterWidth),
 
+    /// A calc expression.
+    ///
+    /// https://drafts.csswg.org/css-values/#calc-notation
+    ///
+    /// TODO(emilio): We have more `Calc` variants around, we should only use
+    /// one.
     Calc(CalcLengthOrPercentage, AllowedNumericType),
 }
 
@@ -274,7 +315,7 @@ const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
 const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
 
 impl Length {
-    // https://drafts.csswg.org/css-fonts-3/#font-size-prop
+    /// https://drafts.csswg.org/css-fonts-3/#font-size-prop
     pub fn from_str(s: &str) -> Option<Length> {
         Some(match_ignore_ascii_case! { s,
             "xx-small" => Length::Absolute(Au::from_px(FONT_MEDIUM_PX) * 3 / 5),
@@ -306,9 +347,13 @@ impl Length {
             _ => Err(())
         }
     }
+
+    /// Parse a non-negative length
     pub fn parse_non_negative(input: &mut Parser) -> Result<Length, ()> {
         Length::parse_internal(input, AllowedNumericType::NonNegative)
     }
+
+    /// Parse a given absolute or relative dimension.
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
         match_ignore_ascii_case! { unit,
             "px" => Ok(Length::from_px(value)),
@@ -331,6 +376,8 @@ impl Length {
             _ => Err(())
         }
     }
+
+    /// Get an absolute length from a px values.
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> Length {
         Length::Absolute(Au((px_value * AU_PER_PX) as i32))
@@ -345,22 +392,29 @@ impl Parse for Length {
 
 impl<T> Either<Length, T> {
     #[inline]
+    #[allow(missing_docs)]
     pub fn parse_non_negative_length(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         Length::parse_internal(input, AllowedNumericType::NonNegative).map(Either::First)
     }
 }
 
+/// A calc sum expression node.
 #[derive(Clone, Debug)]
 pub struct CalcSumNode {
+    /// The products of this node.
     pub products: Vec<CalcProductNode>,
 }
 
+/// A calc product expression node.
 #[derive(Clone, Debug)]
 pub struct CalcProductNode {
+    /// The values inside this product node.
     values: Vec<CalcValueNode>
 }
 
+/// A value inside a `Calc` expression.
 #[derive(Clone, Debug)]
+#[allow(missing_docs)]
 pub enum CalcValueNode {
     Length(Length),
     Angle(Angle),
@@ -371,6 +425,7 @@ pub enum CalcValueNode {
 }
 
 #[derive(Clone, Copy, PartialEq)]
+#[allow(missing_docs)]
 pub enum CalcUnit {
     Number,
     Integer,
@@ -382,6 +437,7 @@ pub enum CalcUnit {
 
 #[derive(Clone, PartialEq, Copy, Debug, Default)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
     pub absolute: Option<Au>,
     pub vw: Option<ViewportPercentageLength>,
@@ -396,6 +452,7 @@ pub struct CalcLengthOrPercentage {
 }
 
 impl CalcLengthOrPercentage {
+    /// Parse a calc sum node.
     pub fn parse_sum(input: &mut Parser, expected_unit: CalcUnit) -> Result<CalcSumNode, ()> {
         let mut products = Vec::new();
         products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
@@ -516,6 +573,7 @@ impl CalcLengthOrPercentage {
         }
     }
 
+    #[allow(missing_docs)]
     pub fn simplify_product(node: &CalcProductNode) -> Result<SimplifiedValueNode, ()> {
         let mut multiplier = 1.;
         let mut node_with_unit = None;
@@ -554,6 +612,7 @@ impl CalcLengthOrPercentage {
         CalcLengthOrPercentage::parse(input, CalcUnit::LengthOrPercentage)
     }
 
+    #[allow(missing_docs)]
     pub fn parse(input: &mut Parser,
                  expected_unit: CalcUnit) -> Result<CalcLengthOrPercentage, ()> {
         let ast = try!(CalcLengthOrPercentage::parse_sum(input, expected_unit));
@@ -624,6 +683,7 @@ impl CalcLengthOrPercentage {
         })
     }
 
+    #[allow(missing_docs)]
     pub fn parse_time(input: &mut Parser) -> Result<Time, ()> {
         let ast = try!(CalcLengthOrPercentage::parse_sum(input, CalcUnit::Time));
 
@@ -651,6 +711,7 @@ impl CalcLengthOrPercentage {
         }
     }
 
+    #[allow(missing_docs)]
     pub fn parse_angle(input: &mut Parser) -> Result<Angle, ()> {
         let ast = try!(CalcLengthOrPercentage::parse_sum(input, CalcUnit::Angle));
 
@@ -740,9 +801,12 @@ impl ToCss for CalcLengthOrPercentage {
      }
 }
 
+/// A percentage value.
+///
+/// [0 .. 100%] maps to [0.0 .. 1.0]
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Percentage(pub CSSFloat); // [0 .. 100%] maps to [0.0 .. 1.0]
+pub struct Percentage(pub CSSFloat);
 
 impl ToCss for Percentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -762,8 +826,12 @@ impl Parse for Percentage {
     }
 }
 
+/// A length or a percentage value.
+///
+/// TODO(emilio): Does this make any sense vs. CalcLengthOrPercentage?
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum LengthOrPercentage {
     Length(Length),
     Percentage(Percentage),
@@ -790,6 +858,7 @@ impl ToCss for LengthOrPercentage {
     }
 }
 impl LengthOrPercentage {
+    /// Returns a `zero` length.
     pub fn zero() -> LengthOrPercentage {
         LengthOrPercentage::Length(Length::Absolute(Au(0)))
     }
@@ -812,6 +881,7 @@ impl LengthOrPercentage {
         }
     }
 
+    /// Parse a non-negative length.
     #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
         LengthOrPercentage::parse_internal(input, AllowedNumericType::NonNegative)
@@ -825,8 +895,11 @@ impl Parse for LengthOrPercentage {
     }
 }
 
+/// TODO(emilio): Do the Length and Percentage variants make any sense with
+/// CalcLengthOrPercentage?
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum LengthOrPercentageOrAuto {
     Length(Length),
     Percentage(Percentage),
@@ -875,6 +948,8 @@ impl LengthOrPercentageOrAuto {
             _ => Err(())
         }
     }
+
+    /// Parse a non-negative length, percentage, or auto.
     #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrAuto, ()> {
         LengthOrPercentageOrAuto::parse_internal(input, AllowedNumericType::NonNegative)
@@ -888,8 +963,11 @@ impl Parse for LengthOrPercentageOrAuto {
     }
 }
 
+/// TODO(emilio): Do the Length and Percentage variants make any sense with
+/// CalcLengthOrPercentage?
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum LengthOrPercentageOrNone {
     Length(Length),
     Percentage(Percentage),
@@ -937,6 +1015,7 @@ impl LengthOrPercentageOrNone {
             _ => Err(())
         }
     }
+    /// Parse a non-negative LengthOrPercentageOrNone.
     #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentageOrNone, ()> {
         LengthOrPercentageOrNone::parse_internal(input, AllowedNumericType::NonNegative)
@@ -950,19 +1029,31 @@ impl Parse for LengthOrPercentageOrNone {
     }
 }
 
+/// Either a `<length>` or the `none` keyword.
 pub type LengthOrNone = Either<Length, None_>;
 
+/// Either a `<length>` or the `normal` keyword.
 pub type LengthOrNormal = Either<Length, Normal>;
 
+/// Either a `<length>` or the `auto` keyword.
 pub type LengthOrAuto = Either<Length, Auto>;
 
+/// Either a `<length>` or a `<percentage>` or the `auto` keyword or the
+/// `content` keyword.
+///
+/// TODO(emilio): Do the Length and Percentage variants make any sense with
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LengthOrPercentageOrAutoOrContent {
+    /// A `<length>`.
     Length(Length),
+    /// A percentage.
     Percentage(Percentage),
+    /// A `calc` node.
     Calc(CalcLengthOrPercentage),
+    /// The `auto` keyword.
     Auto,
+    /// The `content` keyword.
     Content
 }
 
@@ -1011,9 +1102,11 @@ impl Parse for LengthOrPercentageOrAutoOrContent {
     }
 }
 
+/// Either a `<length>` or a `<number>`.
 pub type LengthOrNumber = Either<Length, Number>;
 
 impl LengthOrNumber {
+    /// Parse a non-negative LengthOrNumber.
     pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
         if let Ok(v) = input.try(Length::parse_non_negative) {
             Ok(Either::First(v))

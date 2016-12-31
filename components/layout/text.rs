@@ -154,7 +154,7 @@ impl TextRunScanner {
             let word_break;
             {
                 let in_fragment = self.clump.front().unwrap();
-                let font_style = in_fragment.style().get_font_arc();
+                let font_style = in_fragment.style().clone_font();
                 let inherited_text_style = in_fragment.style().get_inheritedtext();
                 fontgroup = font_context.layout_font_group_for_style(font_style);
                 compression = match in_fragment.white_space() {

@@ -32,14 +32,18 @@ use values::computed::ToComputedValue;
 
 
 
+/// A given transition property, that is either `All`, or an animatable
+/// property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
 #[derive(Copy, Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum TransitionProperty {
+    /// All, any animatable property changing should generate a transition.
     All,
     % for prop in data.longhands:
         % if prop.animatable:
+            /// ${prop.name}
             ${prop.camel_case},
         % endif
     % endfor
@@ -55,6 +59,7 @@ impl TransitionProperty {
         % endfor
     }
 
+    /// Parse a transition-property value.
     pub fn parse(input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "all" => Ok(TransitionProperty::All),
@@ -67,6 +72,7 @@ impl TransitionProperty {
         }
     }
 
+    /// Get a transition property from a property declaration.
     pub fn from_declaration(declaration: &PropertyDeclaration) -> Option<Self> {
         match *declaration {
             % for prop in data.longhands:
@@ -81,7 +87,9 @@ impl TransitionProperty {
 }
 
 impl ToCss for TransitionProperty {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         match *self {
             TransitionProperty::All => dest.write_str("all"),
             % for prop in data.longhands:
@@ -93,11 +101,14 @@ impl ToCss for TransitionProperty {
     }
 }
 
+/// An animated property interpolation between two computed values for that
+/// property.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AnimatedProperty {
     % for prop in data.longhands:
         % if prop.animatable:
+            /// ${prop.name}
             ${prop.camel_case}(longhands::${prop.ident}::computed_value::T,
                                longhands::${prop.ident}::computed_value::T),
         % endif
@@ -105,16 +116,19 @@ pub enum AnimatedProperty {
 }
 
 impl AnimatedProperty {
-    pub fn name(&self) -> String {
+    /// Get the name of this property.
+    pub fn name(&self) -> &'static str {
         match *self {
             % for prop in data.longhands:
                 % if prop.animatable:
-                    AnimatedProperty::${prop.camel_case}(..) => "${prop.name}".to_owned(),
+                    AnimatedProperty::${prop.camel_case}(..) => "${prop.name}",
                 % endif
             % endfor
         }
     }
 
+    /// Whether this interpolation does animate, that is, whether the start and
+    /// end values are different.
     pub fn does_animate(&self) -> bool {
         match *self {
             % for prop in data.longhands:
@@ -125,7 +139,8 @@ impl AnimatedProperty {
         }
     }
 
-    pub fn has_the_same_end_value_as(&self, other: &AnimatedProperty) -> bool {
+    /// Whether an animated property has the same end value as another.
+    pub fn has_the_same_end_value_as(&self, other: &Self) -> bool {
         match (self, other) {
             % for prop in data.longhands:
                 % if prop.animatable:
@@ -139,6 +154,8 @@ impl AnimatedProperty {
         }
     }
 
+    /// Update `style` with the proper computed style corresponding to this
+    /// animation at `progress`.
     pub fn update(&self, style: &mut ComputedValues, progress: f64) {
         match *self {
             % for prop in data.longhands:
@@ -153,6 +170,8 @@ impl AnimatedProperty {
         }
     }
 
+    /// Get an animatable value from a transition-property, an old style, and a
+    /// new style.
     pub fn from_transition_property(transition_property: &TransitionProperty,
                                     old_style: &ComputedValues,
                                     new_style: &ComputedValues)
@@ -188,12 +207,15 @@ impl AnimatedProperty {
 pub enum AnimationValue {
     % for prop in data.longhands:
         % if prop.animatable:
+            /// ${prop.name}
             ${prop.camel_case}(longhands::${prop.ident}::computed_value::T),
         % endif
     % endfor
 }
 
 impl AnimationValue {
+    /// "Uncompute" this animation value in order to be used inside the CSS
+    /// cascade.
     pub fn uncompute(&self) -> PropertyDeclaration {
         use properties::{longhands, DeclaredValue};
         match *self {
@@ -234,6 +256,7 @@ impl Interpolate for AnimationValue {
 ///
 /// [interpolated-types]: https://drafts.csswg.org/css-transitions/#interpolated-types
 pub trait Interpolate: Sized {
+    /// Interpolate a value with another for a given property.
     fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()>;
 }
 
@@ -249,6 +272,7 @@ impl<T: RepeatableListInterpolate> Interpolate for Vec<T> {
         }).collect()
     }
 }
+
 /// https://drafts.csswg.org/css-transitions/#animtype-number
 impl Interpolate for Au {
     #[inline]
@@ -257,7 +281,9 @@ impl Interpolate for Au {
     }
 }
 
-impl <T> Interpolate for Option<T> where T: Interpolate {
+impl <T> Interpolate for Option<T>
+    where T: Interpolate,
+{
     #[inline]
     fn interpolate(&self, other: &Option<T>, progress: f64) -> Result<Option<T>, ()> {
         match (self, other) {
@@ -431,7 +457,7 @@ impl Interpolate for CalcLengthOrPercentage {
                                other: Option<T>,
                                progress: f64)
                                -> Result<Option<T>, ()>
-            where T: Default + Interpolate
+            where T: Default + Interpolate,
         {
             match (this, other) {
                 (None, None) => Ok(None),
@@ -919,27 +945,36 @@ impl Interpolate for LengthOrNone {
         }
     }
 
+    /// A 2d matrix for interpolation.
     #[derive(Clone, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    #[allow(missing_docs)]
     pub struct InnerMatrix2D {
         pub m11: CSSFloat, pub m12: CSSFloat,
         pub m21: CSSFloat, pub m22: CSSFloat,
     }
 
+    /// A 2d translation function.
     #[derive(Clone, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Translate2D(f32, f32);
 
+    /// A 2d scale function.
     #[derive(Clone, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Scale2D(f32, f32);
 
+    /// A decomposed 2d matrix.
     #[derive(Clone, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct MatrixDecomposed2D {
+        /// The translation function.
         pub translate: Translate2D,
+        /// The scale function.
         pub scale: Scale2D,
+        /// The rotation angle.
         pub angle: f32,
+        /// The inner matrix.
         pub matrix: InnerMatrix2D,
     }
 
@@ -1143,33 +1178,44 @@ impl Interpolate for LengthOrNone {
         }
     }
 
+    /// A 3d translation.
     #[derive(Clone, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Translate3D(f32, f32, f32);
 
+    /// A 3d scale function.
     #[derive(Clone, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Scale3D(f32, f32, f32);
 
+    /// A 3d skew function.
     #[derive(Clone, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Skew(f32, f32, f32);
 
+    /// A 3d perspective transformation.
     #[derive(Clone, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Perspective(f32, f32, f32, f32);
 
+    /// A quaternion used to represent a rotation.
     #[derive(Clone, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct Quaternion(f32, f32, f32, f32);
 
+    /// A decomposed 3d matrix.
     #[derive(Clone, Copy, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct MatrixDecomposed3D {
+        /// A translation function.
         pub translate: Translate3D,
+        /// A scale function.
         pub scale: Scale3D,
+        /// The skew component of the transformation.
         pub skew: Skew,
+        /// The perspective component of the transformation.
         pub perspective: Perspective,
+        /// The quaternion used to represent the rotation.
         pub quaternion: Quaternion,
     }
 
@@ -1513,7 +1559,7 @@ impl Interpolate for LengthOrNone {
             self.m43 != 0.0 || self.m44 != 1.0
         }
 
-        pub fn determinant(&self) -> CSSFloat {
+        fn determinant(&self) -> CSSFloat {
             self.m14 * self.m23 * self.m32 * self.m41 -
             self.m13 * self.m24 * self.m32 * self.m41 -
             self.m14 * self.m22 * self.m33 * self.m41 +

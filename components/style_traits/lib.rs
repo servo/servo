@@ -9,7 +9,7 @@
 #![crate_name = "style_traits"]
 #![crate_type = "rlib"]
 
-#![deny(unsafe_code)]
+#![deny(unsafe_code, missing_docs)]
 
 #![cfg_attr(feature = "servo", feature(plugin))]
 #![cfg_attr(feature = "servo", feature(proc_macro))]

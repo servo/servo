@@ -7,8 +7,16 @@ use style_traits::ToCss;
 use values::specified::{BorderStyle, CSSColor};
 use std::fmt;
 
-pub fn serialize_four_sides<W, I>(dest: &mut W, top: &I, right: &I, bottom: &I, left: &I)
-    -> fmt::Result where W: fmt::Write, I: ToCss + PartialEq {
+#[allow(missing_docs)]
+pub fn serialize_four_sides<W, I>(dest: &mut W,
+                                  top: &I,
+                                  right: &I,
+                                  bottom: &I,
+                                  left: &I)
+                                  -> fmt::Result
+    where W: fmt::Write,
+          I: ToCss + PartialEq,
+{
 
     if left == right {
         let horizontal_value = left;
@@ -85,8 +93,10 @@ fn serialize_directional_border<W, I>(dest: &mut W,
 }
 
 
+#[allow(missing_docs)]
 pub fn is_overflow_shorthand<'a, I>(appendable_value: &AppendableValue<'a, I>) -> bool
-                                    where I: Iterator<Item=&'a PropertyDeclaration> {
+    where I: Iterator<Item=&'a PropertyDeclaration>
+{
     if let AppendableValue::DeclarationsForShorthand(shorthand, _) = *appendable_value {
         if let ShorthandId::Overflow = shorthand {
             return true;

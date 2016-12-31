@@ -158,7 +158,13 @@ pub mod shorthands {
     <%include file="/shorthand/text.mako.rs" />
 }
 
+/// A module with all the code related to animated properties.
+///
+/// This needs to be "included" by mako at least after all longhand modules,
+/// given they populate the global data.
 pub mod animated_properties {
+    #![deny(missing_docs)]
+
     <%include file="/helpers/animated_properties.mako.rs" />
 }
 
@@ -461,15 +467,21 @@ impl ShorthandId {
         }
     }
 
-    /// Serializes possible shorthand name with value to input buffer given a list of longhand declarations.
-    /// On success, returns true if shorthand value is written and false if no shorthand value is present.
+    /// Serializes the possible shorthand name with value to input buffer given
+    /// a list of longhand declarations.
+    ///
+    /// On success, returns true if the shorthand value is written, or false if
+    /// no shorthand value is present.
     pub fn serialize_shorthand_to_buffer<'a, W, I>(self,
                                                    dest: &mut W,
                                                    declarations: I,
                                                    is_first_serialization: &mut bool,
                                                    importance: Importance)
                                                    -> Result<bool, fmt::Error>
-    where W: Write, I: IntoIterator<Item=&'a PropertyDeclaration>, I::IntoIter: Clone {
+    where W: Write,
+          I: IntoIterator<Item=&'a PropertyDeclaration>,
+          I::IntoIter: Clone,
+    {
         match self.get_shorthand_appendable_value(declarations) {
             None => Ok(false),
             Some(appendable_value) => {
@@ -484,60 +496,73 @@ impl ShorthandId {
         }
     }
 
-    fn get_shorthand_appendable_value<'a, I>(self, declarations: I)
+    fn get_shorthand_appendable_value<'a, I>(self,
+                                             declarations: I)
                                              -> Option<AppendableValue<'a, I::IntoIter>>
-        where I: IntoIterator<Item=&'a PropertyDeclaration>, I::IntoIter: Clone {
-            let declarations = declarations.into_iter();
+        where I: IntoIterator<Item=&'a PropertyDeclaration>,
+              I::IntoIter: Clone,
+    {
+        let declarations = declarations.into_iter();
 
-            // Only cloning iterators (a few pointers each) not declarations.
-            let mut declarations2 = declarations.clone();
-            let mut declarations3 = declarations.clone();
+        // Only cloning iterators (a few pointers each) not declarations.
+        let mut declarations2 = declarations.clone();
+        let mut declarations3 = declarations.clone();
 
-            let first_declaration = match declarations2.next() {
-                Some(declaration) => declaration,
-                None => return None
-            };
+        let first_declaration = match declarations2.next() {
+            Some(declaration) => declaration,
+            None => return None
+        };
 
-            // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-            if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
-                if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
-                   return Some(AppendableValue::Css(css));
-               }
-               else {
-                   return None;
-               }
-            }
+        // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+        if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
+            if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
+               return Some(AppendableValue::Css(css));
+           }
+           return None;
+        }
 
-            if !declarations3.any(|d| d.with_variables()) {
-                return Some(AppendableValue::DeclarationsForShorthand(self, declarations));
-            }
+        if !declarations3.any(|d| d.with_variables()) {
+            return Some(AppendableValue::DeclarationsForShorthand(self, declarations));
+        }
 
-            None
+        None
     }
 }
 
+/// Servo's representation of a declared value for a given `T`, which is the
+/// declared value for that property.
 #[derive(Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum DeclaredValue<T> {
+    /// A known specified value from the stylesheet.
     Value(T),
+    /// A value that contained any css variables.
     WithVariables {
+        /// The css serialization for this value.
         css: String,
+        /// The first token type for this serialization.
         first_token_type: TokenSerializationType,
+        /// The base url.
         base_url: ServoUrl,
+        /// The shorthand this came from.
         from_shorthand: Option<ShorthandId>,
     },
+    /// The `initial` keyword.
     Initial,
+    /// The `inherit` keyword.
     Inherit,
+    /// The `unset` keyword.
     Unset,
 }
 
 impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
-            DeclaredValue::Value(ref v)
-                => v.has_viewport_percentage(),
-            DeclaredValue::WithVariables { .. }
-                => panic!("DeclaredValue::has_viewport_percentage without resolving variables!"),
+            DeclaredValue::Value(ref v) => v.has_viewport_percentage(),
+            DeclaredValue::WithVariables { .. } => {
+                panic!("DeclaredValue::has_viewport_percentage without \
+                        resolving variables!")
+            },
             DeclaredValue::Initial |
             DeclaredValue::Inherit |
             DeclaredValue::Unset => false,
@@ -615,7 +640,9 @@ impl fmt::Debug for PropertyId {
 }
 
 impl ToCss for PropertyId {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         match *self {
             PropertyId::Longhand(id) => dest.write_str(id.name()),
             PropertyId::Shorthand(id) => dest.write_str(id.name()),
@@ -1150,19 +1177,22 @@ pub struct ComputedValues {
     % endfor
     custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
     shareable: bool,
+    /// The writing mode of this computed values struct.
     pub writing_mode: WritingMode,
+    /// The root element's computed font size.
     pub root_font_size: Au,
 }
 
 #[cfg(feature = "servo")]
 impl ComputedValues {
+    /// Construct a `ComputedValues` instance.
     pub fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
-           shareable: bool,
-           writing_mode: WritingMode,
-           root_font_size: Au,
-        % for style_struct in data.active_style_structs():
-           ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
-        % endfor
+               shareable: bool,
+               writing_mode: WritingMode,
+               root_font_size: Au,
+            % for style_struct in data.active_style_structs():
+               ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
+            % endfor
     ) -> Self {
         ComputedValues {
             custom_properties: custom_properties,
@@ -1320,11 +1350,6 @@ impl ComputedValues {
             position_style.bottom,
             position_style.left,
         ))
-    }
-
-    #[inline]
-    pub fn get_font_arc(&self) -> Arc<style_structs::Font> {
-        self.font.clone()
     }
 
     // http://dev.w3.org/csswg/css-transforms/#grouping-property-values
@@ -1820,16 +1845,21 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
     }
 
     if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
-            seen.get_font_family() {
+       seen.get_font_family() {
         style.mutate_font().compute_font_hash();
     }
 
     style
 }
 
+/// Modifies the style for an anonymous flow so it resets all its non-inherited
+/// style structs, and set their borders and outlines to zero.
+///
+/// Also, it gets a new display value, which is honored except when it's
+/// `inline`.
 #[cfg(feature = "servo")]
 pub fn modify_style_for_anonymous_flow(style: &mut Arc<ComputedValues>,
-                                      new_display_value: longhands::display::computed_value::T) {
+                                       new_display_value: longhands::display::computed_value::T) {
     // The 'align-self' property needs some special treatment since
     // its value depends on the 'align-items' value of its parent.
     % if "align-items" in data.longhands_by_name:
@@ -1869,12 +1899,17 @@ pub fn modify_style_for_anonymous_flow(style: &mut Arc<ComputedValues>,
     outline.outline_width = Au(0);
 }
 
-/// Alters the given style to accommodate replaced content. This is called in flow construction. It
-/// handles cases like `<div style="position: absolute">foo bar baz</div>` (in which `foo`, `bar`,
-/// and `baz` must not be absolutely-positioned) and cases like `<sup>Foo</sup>` (in which the
-/// `vertical-align: top` style of `sup` must not propagate down into `Foo`).
+/// Alters the given style to accommodate replaced content. This is called in
+/// flow construction. It handles cases like:
 ///
-/// FIXME(#5625, pcwalton): It would probably be cleaner and faster to do this in the cascade.
+///     <div style="position: absolute">foo bar baz</div>
+///
+/// (in which `foo`, `bar`, and `baz` must not be absolutely-positioned) and
+/// cases like `<sup>Foo</sup>` (in which the `vertical-align: top` style of
+/// `sup` must not propagate down into `Foo`).
+///
+/// FIXME(#5625, pcwalton): It would probably be cleaner and faster to do this
+/// in the cascade.
 #[cfg(feature = "servo")]
 #[inline]
 pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
@@ -1907,11 +1942,11 @@ pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
     }
 }
 
-/// Adjusts borders as appropriate to account for a fragment's status as the first or last fragment
-/// within the range of an element.
+/// Adjusts borders as appropriate to account for a fragment's status as the
+/// first or last fragment within the range of an element.
 ///
-/// Specifically, this function sets border widths to zero on the sides for which the fragment is
-/// not outermost.
+/// Specifically, this function sets border widths to zero on the sides for
+/// which the fragment is not outermost.
 #[cfg(feature = "servo")]
 #[inline]
 pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
@@ -1963,7 +1998,8 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
     }
 }
 
-/// Adjusts the `position` property as necessary for the outer fragment wrapper of an inline-block.
+/// Adjusts the `position` property as necessary for the outer fragment wrapper
+/// of an inline-block.
 #[cfg(feature = "servo")]
 #[inline]
 pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValues>) {
@@ -1972,10 +2008,11 @@ pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValu
     box_style.position = longhands::position::computed_value::T::static_
 }
 
-/// Adjusts the `position` and `padding` properties as necessary to account for text.
+/// Adjusts the `position` and `padding` properties as necessary to account for
+/// text.
 ///
-/// Text is never directly relatively positioned; it's always contained within an element that is
-/// itself relatively positioned.
+/// Text is never directly relatively positioned; it's always contained within
+/// an element that is itself relatively positioned.
 #[cfg(feature = "servo")]
 #[inline]
 pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
@@ -2009,8 +2046,8 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
     }
 }
 
-/// Adjusts the `clip` property so that an inline absolute hypothetical fragment doesn't clip its
-/// children.
+/// Adjusts the `clip` property so that an inline absolute hypothetical fragment
+/// doesn't clip its children.
 #[cfg(feature = "servo")]
 pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ComputedValues>) {
     if style.get_effects().clip.0.is_some() {

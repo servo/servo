@@ -4,6 +4,8 @@
 
 //! Style sheets and their CSS rules.
 
+#![deny(missing_docs)]
+
 use {Atom, Prefix, Namespace};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
 use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
@@ -46,22 +48,27 @@ pub enum Origin {
     User,
 }
 
+/// A set of namespaces applying to a given stylesheet.
 #[derive(Default, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct Namespaces {
     pub default: Option<Namespace>,
     pub prefixes: FnvHashMap<Prefix , Namespace>,
 }
 
+/// A list of CSS rules.
 #[derive(Debug)]
 pub struct CssRules(pub Vec<CssRule>);
 
 impl CssRules {
+    /// Whether this CSS rules is empty.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 }
 
+#[allow(missing_docs)]
 pub enum RulesMutateError {
     Syntax,
     IndexSize,
@@ -79,6 +86,7 @@ impl From<SingleRuleParseError> for RulesMutateError {
 }
 
 impl CssRules {
+    #[allow(missing_docs)]
     pub fn new(rules: Vec<CssRule>) -> Arc<RwLock<CssRules>> {
         Arc::new(RwLock::new(CssRules(rules)))
     }
@@ -93,7 +101,7 @@ impl CssRules {
         })
     }
 
-    // https://drafts.csswg.org/cssom/#insert-a-css-rule
+    /// https://drafts.csswg.org/cssom/#insert-a-css-rule
     pub fn insert_rule(&mut self, rule: &str, parent_stylesheet: &Stylesheet, index: usize, nested: bool)
                        -> Result<CssRule, RulesMutateError> {
         // Step 1, 2
@@ -136,7 +144,7 @@ impl CssRules {
         Ok(new_rule)
     }
 
-    // https://drafts.csswg.org/cssom/#remove-a-css-rule
+    /// https://drafts.csswg.org/cssom/#remove-a-css-rule
     pub fn remove_rule(&mut self, index: usize) -> Result<(), RulesMutateError> {
         // Step 1, 2
         if index >= self.0.len() {
@@ -161,6 +169,7 @@ impl CssRules {
     }
 }
 
+/// The structure servo uses to represent a stylesheet.
 #[derive(Debug)]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
@@ -168,22 +177,33 @@ pub struct Stylesheet {
     pub rules: Arc<RwLock<CssRules>>,
     /// List of media associated with the Stylesheet.
     pub media: Arc<RwLock<MediaList>>,
+    /// The origin of this stylesheet.
     pub origin: Origin,
+    /// The base url this stylesheet should use.
     pub base_url: ServoUrl,
+    /// The namespaces that apply to this stylesheet.
     pub namespaces: RwLock<Namespaces>,
+    /// Whether this stylesheet would be dirty when the viewport size changes.
     pub dirty_on_viewport_size_change: AtomicBool,
+    /// Whether this stylesheet should be disabled.
     pub disabled: AtomicBool,
 }
 
 
 /// This structure holds the user-agent and user stylesheets.
 pub struct UserAgentStylesheets {
+    /// The user or user agent stylesheets.
     pub user_or_user_agent_stylesheets: Vec<Stylesheet>,
+    /// The quirks mode stylesheet.
     pub quirks_mode_stylesheet: Stylesheet,
 }
 
 
+/// A CSS rule.
+///
+/// TODO(emilio): Lots of spec links should be around.
 #[derive(Debug, Clone)]
+#[allow(missing_docs)]
 pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM
     // https://drafts.csswg.org/cssom/#changes-from-5-december-2013
@@ -197,6 +217,7 @@ pub enum CssRule {
     Keyframes(Arc<RwLock<KeyframesRule>>),
 }
 
+#[allow(missing_docs)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
     Style               = 1,
@@ -236,12 +257,14 @@ impl ParseErrorReporter for MemoryHoleReporter {
     }
 }
 
+#[allow(missing_docs)]
 pub enum SingleRuleParseError {
     Syntax,
     Hierarchy,
 }
 
 impl CssRule {
+    #[allow(missing_docs)]
     pub fn rule_type(&self) -> CssRuleType {
         match *self {
             CssRule::Style(_)     => CssRuleType::Style,
@@ -268,7 +291,8 @@ impl CssRule {
     /// Note that only some types of rules can contain rules. An empty slice is
     /// used for others.
     pub fn with_nested_rules_and_mq<F, R>(&self, mut f: F) -> R
-    where F: FnMut(&[CssRule], Option<&MediaList>) -> R {
+        where F: FnMut(&[CssRule], Option<&MediaList>) -> R
+    {
         match *self {
             CssRule::Import(ref lock) => {
                 let rule = lock.read();
@@ -296,6 +320,7 @@ impl CssRule {
 
     // input state is None for a nested rule
     // Returns a parsed CSS rule and the final state of the parser
+    #[allow(missing_docs)]
     pub fn parse(css: &str,
                  parent_stylesheet: &Stylesheet,
                  extra_data: ParserContextExtraData,
@@ -348,6 +373,7 @@ impl ToCss for CssRule {
 
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct NamespaceRule {
     /// `None` for the default Namespace
     pub prefix: Option<Prefix>,
@@ -374,6 +400,7 @@ impl ToCss for NamespaceRule {
 /// [import]: https://drafts.csswg.org/css-cascade-3/#at-import
 #[derive(Debug)]
 pub struct ImportRule {
+    /// The `<url>` this `@import` rule is loading.
     pub url: SpecifiedUrl,
 
     /// The stylesheet is always present.
@@ -396,9 +423,14 @@ impl ToCss for ImportRule {
     }
 }
 
+/// A [`@keyframes`][keyframes] rule.
+///
+/// [keyframes]: https://drafts.csswg.org/css-animations/#keyframes
 #[derive(Debug)]
 pub struct KeyframesRule {
+    /// The name of the current animation.
     pub name: Atom,
+    /// The keyframes specified for this CSS rule.
     pub keyframes: Vec<Arc<RwLock<Keyframe>>>,
 }
 
@@ -417,6 +449,7 @@ impl ToCss for KeyframesRule {
     }
 }
 
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub struct MediaRule {
     pub media_queries: Arc<RwLock<MediaList>>,
@@ -438,6 +471,7 @@ impl ToCss for MediaRule {
     }
 }
 
+#[allow(missing_docs)]
 #[derive(Debug)]
 pub struct StyleRule {
     pub selectors: SelectorList<SelectorImpl>,
@@ -465,6 +499,11 @@ impl ToCss for StyleRule {
 }
 
 impl Stylesheet {
+    /// Parse a stylesheet from a set of bytes, potentially received over the
+    /// network.
+    ///
+    /// Takes care of decoding the network bytes and forwards the resulting
+    /// string to `Stylesheet::from_str`.
     pub fn from_bytes(bytes: &[u8],
                       base_url: ServoUrl,
                       protocol_encoding_label: Option<&str>,
@@ -486,6 +525,8 @@ impl Stylesheet {
                              extra_data)
     }
 
+    /// Updates an empty stylesheet with a set of bytes that reached over the
+    /// network.
     pub fn update_from_bytes(existing: &Stylesheet,
                              bytes: &[u8],
                              protocol_encoding_label: Option<&str>,
@@ -493,7 +534,6 @@ impl Stylesheet {
                              stylesheet_loader: Option<&StylesheetLoader>,
                              error_reporter: Box<ParseErrorReporter + Send>,
                              extra_data: ParserContextExtraData) {
-        assert!(existing.rules.read().is_empty());
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
         Self::update_from_str(existing,
@@ -503,6 +543,7 @@ impl Stylesheet {
                               extra_data)
     }
 
+    /// Updates an empty stylesheet from a given string of text.
     pub fn update_from_str(existing: &Stylesheet,
                            css: &str,
                            stylesheet_loader: Option<&StylesheetLoader>,
@@ -545,7 +586,14 @@ impl Stylesheet {
             .store(input.seen_viewport_percentages(), Ordering::Release);
     }
 
-    pub fn from_str(css: &str, base_url: ServoUrl, origin: Origin,
+    /// Creates an empty stylesheet and parses it with a given base url, origin
+    /// and media.
+    ///
+    /// Effectively creates a new stylesheet and forwards the hard work to
+    /// `Stylesheet::update_from_str`.
+    pub fn from_str(css: &str,
+                    base_url: ServoUrl,
+                    origin: Origin,
                     media: MediaList,
                     stylesheet_loader: Option<&StylesheetLoader>,
                     error_reporter: Box<ParseErrorReporter + Send>,
@@ -569,6 +617,7 @@ impl Stylesheet {
         s
     }
 
+    /// Whether this stylesheet can be dirty on viewport size change.
     pub fn dirty_on_viewport_size_change(&self) -> bool {
         self.dirty_on_viewport_size_change.load(Ordering::SeqCst)
     }
@@ -607,16 +656,19 @@ impl Stylesheet {
         effective_rules(&self.rules.read().0, device, &mut f);
     }
 
-    /// Returns whether the stylesheet has been explicitly disabled through the CSSOM.
+    /// Returns whether the stylesheet has been explicitly disabled through the
+    /// CSSOM.
     pub fn disabled(&self) -> bool {
         self.disabled.load(Ordering::SeqCst)
     }
 
-    /// Records that the stylesheet has been explicitly disabled through the CSSOM.
+    /// Records that the stylesheet has been explicitly disabled through the
+    /// CSSOM.
+    ///
     /// Returns whether the the call resulted in a change in disabled state.
     ///
-    /// Disabled stylesheets remain in the document, but their rules are not added to
-    /// the Stylist.
+    /// Disabled stylesheets remain in the document, but their rules are not
+    /// added to the Stylist.
     pub fn set_disabled(&self, disabled: bool) -> bool {
         self.disabled.swap(disabled, Ordering::SeqCst) != disabled
     }
@@ -640,6 +692,7 @@ macro_rules! rule_filter {
     ($( $method: ident($variant:ident => $rule_type: ident), )+) => {
         impl Stylesheet {
             $(
+                #[allow(missing_docs)]
                 pub fn $method<F>(&self, device: &Device, mut f: F) where F: FnMut(&$rule_type) {
                     self.effective_rules(device, |rule| {
                         if let CssRule::$variant(ref lock) = *rule {
@@ -690,6 +743,7 @@ impl<'b> TopLevelRuleParser<'b> {
 }
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Copy, Clone)]
+#[allow(missing_docs)]
 pub enum State {
     Start = 1,
     Imports = 2,

@@ -5,6 +5,7 @@
 //! Types and traits used to access the DOM from style calculation.
 
 #![allow(unsafe_code)]
+#![deny(missing_docs)]
 
 use {Atom, Namespace, LocalName};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
@@ -48,15 +49,24 @@ impl OpaqueNode {
 /// We avoid exposing the full type id, since computing it in the general case
 /// would be difficult for Gecko nodes.
 pub trait NodeInfo {
+    /// Whether this node is an element.
     fn is_element(&self) -> bool;
+    /// Whether this node is a text node.
     fn is_text_node(&self) -> bool;
 
-    // Comments, doctypes, etc are ignored by layout algorithms.
+    /// Whether this node needs layout.
+    ///
+    /// Comments, doctypes, etc are ignored by layout algorithms.
     fn needs_layout(&self) -> bool { self.is_element() || self.is_text_node() }
 }
 
+/// A node iterator that only returns node that don't need layout.
 pub struct LayoutIterator<T>(pub T);
-impl<T, I> Iterator for LayoutIterator<T> where T: Iterator<Item=I>, I: NodeInfo {
+
+impl<T, I> Iterator for LayoutIterator<T>
+    where T: Iterator<Item=I>,
+          I: NodeInfo,
+{
     type Item = I;
     fn next(&mut self) -> Option<I> {
         loop {
@@ -69,11 +79,22 @@ impl<T, I> Iterator for LayoutIterator<T> where T: Iterator<Item=I>, I: NodeInfo
     }
 }
 
+/// The `TNode` trait. This is the main generic trait over which the style
+/// system can be implemented.
 pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
+    /// The concrete `TElement` type.
     type ConcreteElement: TElement<ConcreteNode = Self>;
+
+    /// A concrete children iterator type in order to iterate over the `Node`s.
+    ///
+    /// TODO(emilio): We should eventually replace this with the `impl Trait`
+    /// syntax.
     type ConcreteChildrenIterator: Iterator<Item = Self>;
 
+    /// Convert this node in an `UnsafeNode`.
     fn to_unsafe(&self) -> UnsafeNode;
+
+    /// Get a node back from an `UnsafeNode`.
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self;
 
     /// Returns an iterator over this node's children.
@@ -82,24 +103,35 @@ pub trait TNode : Sized + Copy + Clone + Debug + NodeInfo {
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
 
+    /// Get this node's parent element if present.
     fn parent_element(&self) -> Option<Self::ConcreteElement> {
         self.parent_node().and_then(|n| n.as_element())
     }
 
+    /// A debug id, only useful, mm... for debugging.
     fn debug_id(self) -> usize;
 
+    /// Get this node as an element, if it's one.
     fn as_element(&self) -> Option<Self::ConcreteElement>;
 
+    /// Whether this node needs to be laid out on viewport size change.
     fn needs_dirty_on_viewport_size_changed(&self) -> bool;
 
+    /// Mark this node as needing layout on viewport size change.
     unsafe fn set_dirty_on_viewport_size_changed(&self);
 
+    /// Whether this node can be fragmented. This is used for multicol, and only
+    /// for Servo.
     fn can_be_fragmented(&self) -> bool;
 
+    /// Set whether this node can be fragmented.
     unsafe fn set_can_be_fragmented(&self, value: bool);
 
+    /// Get this node's parent node.
     fn parent_node(&self) -> Option<Self>;
 
+    /// Whether this node is in the document right now needed to clear the
+    /// restyle data appropriately on some forced restyles.
     fn is_in_doc(&self) -> bool;
 }
 
@@ -187,14 +219,20 @@ fn fmt_subtree<F, N: TNode>(f: &mut fmt::Formatter, stringify: &F, n: N, indent:
     Ok(())
 }
 
+/// A trait used to synthesize presentational hints for HTML element attributes.
 pub trait PresentationalHintsSynthetizer {
+    /// Generate the proper applicable declarations due to presentational hints,
+    /// and insert them into `hints`.
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>;
 }
 
+/// The element trait, the main abstraction the style crate acts over.
 pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
+    /// The concrete node type.
     type ConcreteNode: TNode<ConcreteElement = Self>;
 
+    /// Get this element as a node.
     fn as_node(&self) -> Self::ConcreteNode;
 
     /// While doing a reflow, the element at the root has no parent, as far as we're
@@ -207,16 +245,25 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
         }
     }
 
+    /// Get this element's style attribute.
     fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>>;
 
+    /// Get this element's state, for non-tree-structural pseudos.
     fn get_state(&self) -> ElementState;
 
+    /// Whether this element has an attribute with a given namespace.
     fn has_attr(&self, namespace: &Namespace, attr: &LocalName) -> bool;
+
+    /// Whether an attribute value equals `value`.
     fn attr_equals(&self, namespace: &Namespace, attr: &LocalName, value: &Atom) -> bool;
 
-    /// XXX: It's a bit unfortunate we need to pass the current computed values
-    /// as an argument here, but otherwise Servo would crash due to double
-    /// borrows to return it.
+    /// Get the pre-existing style to calculate restyle damage (change hints).
+    ///
+    /// This needs to be generic since it varies between Servo and Gecko.
+    ///
+    /// XXX(emilio): It's a bit unfortunate we need to pass the current computed
+    /// values as an argument here, but otherwise Servo would crash due to
+    /// double borrows to return it.
     fn existing_style_for_restyle_damage<'a>(&'a self,
                                              current_computed_values: Option<&'a Arc<ComputedValues>>,
                                              pseudo: Option<&PseudoElement>)
@@ -270,11 +317,13 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 /// about our parallel traversal. However, there are certain situations
 /// (including but not limited to the traversal) where we need to send DOM
 /// objects to other threads.
-
+///
+/// That's the reason why `SendNode` exists.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SendNode<N: TNode>(N);
 unsafe impl<N: TNode> Send for SendNode<N> {}
 impl<N: TNode> SendNode<N> {
+    /// Unsafely construct a SendNode.
     pub unsafe fn new(node: N) -> Self {
         SendNode(node)
     }
@@ -286,10 +335,13 @@ impl<N: TNode> Deref for SendNode<N> {
     }
 }
 
+/// Same reason as for the existence of SendNode, SendElement does the proper
+/// things for a given `TElement`.
 #[derive(Debug, PartialEq)]
 pub struct SendElement<E: TElement>(E);
 unsafe impl<E: TElement> Send for SendElement<E> {}
 impl<E: TElement> SendElement<E> {
+    /// Unsafely construct a SendElement.
     pub unsafe fn new(el: E) -> Self {
         SendElement(el)
     }

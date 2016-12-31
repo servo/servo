@@ -4,14 +4,17 @@
 
 //! Implements sequential traversal over the DOM tree.
 
+#![deny(missing_docs)]
+
 use dom::{TElement, TNode};
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
+/// Do a sequential DOM traversal for layout or styling, generic over `D`.
 pub fn traverse_dom<N, D>(traversal: &D,
                           root: N::ConcreteElement,
                           token: PreTraverseToken)
     where N: TNode,
-          D: DomTraversal<N>
+          D: DomTraversal<N>,
 {
     debug_assert!(token.should_traverse());
 

@@ -24,6 +24,7 @@ use values::specified::url::SpecifiedUrl;
 /// shape-outside uses ShapeSource<ShapeBox>
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum ShapeSource<T> {
     Url(SpecifiedUrl),
     Shape(BasicShape, Option<T>),
@@ -55,6 +56,7 @@ impl<T: ToCss> ToCss for ShapeSource<T> {
 }
 
 impl<T: Parse + PartialEq + Copy> ShapeSource<T> {
+    #[allow(missing_docs)]
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         if let Ok(_) = input.try(|input| input.expect_ident_matching("none")) {
             Ok(ShapeSource::None)
@@ -129,6 +131,7 @@ impl<T: ToComputedValue> ToComputedValue for ShapeSource<T> {
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum BasicShape {
     Inset(InsetRect),
     Circle(Circle),
@@ -205,6 +208,7 @@ impl ToComputedValue for BasicShape {
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// https://drafts.csswg.org/css-shapes/#funcdef-inset
+#[allow(missing_docs)]
 pub struct InsetRect {
     pub top: LengthOrPercentage,
     pub right: LengthOrPercentage,
@@ -214,6 +218,7 @@ pub struct InsetRect {
 }
 
 impl InsetRect {
+    #[allow(missing_docs)]
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<InsetRect, ()> {
         let (t, r, b, l) = try!(parse_four_sides(input, |i| LengthOrPercentage::parse(context, i)));
         let mut rect = InsetRect {
@@ -373,12 +378,14 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// https://drafts.csswg.org/css-shapes/#funcdef-circle
+#[allow(missing_docs)]
 pub struct Circle {
     pub radius: ShapeRadius,
     pub position: Position,
 }
 
 impl Circle {
+    #[allow(missing_docs)]
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Circle, ()> {
         let radius = input.try(|i| ShapeRadius::parse(context, i)).ok().unwrap_or_else(Default::default);
         let position = if let Ok(_) = input.try(|input| input.expect_ident_matching("at")) {
@@ -450,6 +457,7 @@ impl ToComputedValue for Circle {
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// https://drafts.csswg.org/css-shapes/#funcdef-ellipse
+#[allow(missing_docs)]
 pub struct Ellipse {
     pub semiaxis_x: ShapeRadius,
     pub semiaxis_y: ShapeRadius,
@@ -458,6 +466,7 @@ pub struct Ellipse {
 
 
 impl Ellipse {
+    #[allow(missing_docs)]
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Ellipse, ()> {
         let (a, b) = input.try(|input| -> Result<_, ()> {
             Ok((try!(ShapeRadius::parse(context, input)), try!(ShapeRadius::parse(context, input))))
@@ -537,12 +546,14 @@ impl ToComputedValue for Ellipse {
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// https://drafts.csswg.org/css-shapes/#funcdef-polygon
+#[allow(missing_docs)]
 pub struct Polygon {
     pub fill: FillRule,
     pub coordinates: Vec<(LengthOrPercentage, LengthOrPercentage)>,
 }
 
 impl Polygon {
+    #[allow(missing_docs)]
     pub fn parse_function_arguments(context: &ParserContext, input: &mut Parser) -> Result<Polygon, ()> {
         let fill = input.try(|input| {
             let fill = FillRule::parse(context, input);
@@ -626,6 +637,7 @@ impl ToComputedValue for Polygon {
 /// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum ShapeRadius {
     Length(LengthOrPercentage),
     ClosestSide,
@@ -690,6 +702,7 @@ impl ToComputedValue for ShapeRadius {
 /// https://drafts.csswg.org/css-backgrounds-3/#border-radius
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct BorderRadius {
     pub top_left: BorderRadiusSize,
     pub top_right: BorderRadiusSize,
@@ -792,6 +805,7 @@ impl ToComputedValue for BorderRadius {
 /// https://drafts.csswg.org/css-shapes/#typedef-fill-rule
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum FillRule {
     NonZero,
     EvenOdd,
@@ -830,6 +844,7 @@ impl ToCss for FillRule {
 /// https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum GeometryBox {
     Fill,
     Stroke,
@@ -868,6 +883,7 @@ impl ComputedValueAsSpecified for GeometryBox {}
 // https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum ShapeBox {
     Margin,
     // https://drafts.csswg.org/css-backgrounds-3/#box
