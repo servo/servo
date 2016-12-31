@@ -1346,6 +1346,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // parent_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
+        let pending_loads = self.pending_frames.iter()
+            .filter(|frame_change| frame_change.frame_id == load_info.info.frame_id)
+            .map(|frame_change| frame_change.new_pipeline_id)
+            .collect::<Vec<_>>();
+
         let (load_data, window_size, is_private, event_loop) = {
             let old_pipeline = load_info.old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
@@ -1373,11 +1378,22 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let event_loop = source_pipeline.event_loop.clone();
 
             if let Some(old_pipeline) = old_pipeline {
-                old_pipeline.freeze();
+                // If there are other pending loads with the same old pipeline,
+                // the old pipeline has already been frozen.
+                if pending_loads.is_empty() {
+                    old_pipeline.freeze();
+                }
             }
 
             (load_data, window_size, is_private, event_loop)
         };
+
+        // Close any pending navigations for this iframe as specified by
+        // https://html.spec.whatwg.org/multipage/#navigate step 6
+        for pipeline_id in pending_loads {
+            debug!("Canceling loading pipeline {} while loading {}", pipeline_id, load_info.info.new_pipeline_id);
+            self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
+        }
 
         // If this is an `about:blank` load, it must be treated as a same-origin load.
         if load_data.url.as_str() == "about:blank" {
