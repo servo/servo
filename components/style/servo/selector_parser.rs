@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![deny(missing_docs)]
+
+//! Servo's selector parser.
+
 use {Atom, Prefix, Namespace, LocalName};
 use attr::{AttrIdentifier, AttrValue};
 use cssparser::ToCss;
@@ -15,9 +19,12 @@ use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
 
+/// A pseudo-element, both public and private.
+///
 /// NB: If you add to this list, be sure to update `each_pseudo_element` too.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum PseudoElement {
     Before,
     After,
@@ -55,6 +62,7 @@ impl ToCss for PseudoElement {
 
 
 impl PseudoElement {
+    /// Whether the current pseudo element is :before or :after.
     #[inline]
     pub fn is_before_or_after(&self) -> bool {
         match *self {
@@ -64,6 +72,9 @@ impl PseudoElement {
         }
     }
 
+    /// Returns which kind of cascade type has this pseudo.
+    ///
+    /// For more info on cascade types, see docs/components/style.md
     #[inline]
     pub fn cascade_type(&self) -> PseudoElementCascadeType {
         match *self {
@@ -83,8 +94,11 @@ impl PseudoElement {
     }
 }
 
+/// A non tree-structural pseudo-class.
+/// See https://drafts.csswg.org/selectors-4/#structural-pseudos
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum NonTSPseudoClass {
     AnyLink,
     Link,
@@ -129,6 +143,8 @@ impl ToCss for NonTSPseudoClass {
 }
 
 impl NonTSPseudoClass {
+    /// Gets a given state flag for this pseudo-class. This is used to do
+    /// selector matching, and it's set from the DOM.
     pub fn state_flag(&self) -> ElementState {
         use element_state::*;
         use self::NonTSPseudoClass::*;
@@ -153,6 +169,8 @@ impl NonTSPseudoClass {
     }
 }
 
+/// The abstract struct we implement the selector parser implementation on top
+/// of.
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SelectorImpl;
@@ -289,14 +307,17 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
 }
 
 impl SelectorImpl {
+    /// Returns the pseudo-element cascade type of the given `pseudo`.
     #[inline]
     pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         pseudo.cascade_type()
     }
 
+    /// Executes `fun` for each pseudo-element.
     #[inline]
     pub fn each_pseudo_element<F>(mut fun: F)
-        where F: FnMut(PseudoElement) {
+        where F: FnMut(PseudoElement),
+    {
         fun(PseudoElement::Before);
         fun(PseudoElement::After);
         fun(PseudoElement::DetailsContent);
@@ -311,11 +332,13 @@ impl SelectorImpl {
         fun(PseudoElement::ServoAnonymousBlock);
     }
 
+    /// Returns the pseudo-class state flag for selector matching.
     #[inline]
     pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
     }
 
+    /// Returns whether this pseudo is either :before or :after.
     #[inline]
     pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
         pseudo.is_before_or_after()
@@ -326,12 +349,16 @@ impl SelectorImpl {
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ServoElementSnapshot {
+    /// The stored state of the element.
     pub state: Option<ElementState>,
+    /// The set of stored attributes and its values.
     pub attrs: Option<Vec<(AttrIdentifier, AttrValue)>>,
+    /// Whether this element is an HTML element in an HTML document.
     pub is_html_element_in_html_document: bool,
 }
 
 impl ServoElementSnapshot {
+    /// Create an empty element snapshot.
     pub fn new(is_html_element_in_html_document: bool) -> Self {
         ServoElementSnapshot {
             state: None,
@@ -373,7 +400,7 @@ impl ElementSnapshot for ServoElementSnapshot {
     }
 
     fn each_class<F>(&self, mut callback: F)
-        where F: FnMut(&Atom)
+        where F: FnMut(&Atom),
     {
         if let Some(v) = self.get_attr(&ns!(), &local_name!("class")) {
             for class in v.as_tokens() {
