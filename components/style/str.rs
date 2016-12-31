@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! String utils for attributes and similar stuff.
+
+#![deny(missing_docs)]
+
 use num_traits::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -9,7 +13,10 @@ use std::convert::AsRef;
 use std::iter::{Filter, Peekable};
 use std::str::Split;
 
+/// A static slice of characters.
 pub type StaticCharVec = &'static [char];
+
+/// A static slice of `str`s.
 pub type StaticStringVec = &'static [&'static str];
 
 /// A "space character" according to:
@@ -23,23 +30,31 @@ pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
     '\u{000d}',
 ];
 
+/// Whether a character is a HTML whitespace character.
 #[inline]
 pub fn char_is_whitespace(c: char) -> bool {
     HTML_SPACE_CHARACTERS.contains(&c)
 }
 
+/// Whether all the string is HTML whitespace.
+#[inline]
 pub fn is_whitespace(s: &str) -> bool {
     s.chars().all(char_is_whitespace)
 }
 
+#[inline]
+fn not_empty(&split: &&str) -> bool { !split.is_empty() }
+
+/// Split a string on HTML whitespace.
+#[inline]
 pub fn split_html_space_chars<'a>(s: &'a str) ->
                                   Filter<Split<'a, StaticCharVec>, fn(&&str) -> bool> {
-    fn not_empty(&split: &&str) -> bool { !split.is_empty() }
     s.split(HTML_SPACE_CHARACTERS).filter(not_empty as fn(&&str) -> bool)
 }
 
+/// Split a string on commas.
+#[inline]
 pub fn split_commas<'a>(s: &'a str) -> Filter<Split<'a, char>, fn(&&str) -> bool> {
-    fn not_empty(&split: &&str) -> bool { !split.is_empty() }
     s.split(',').filter(not_empty as fn(&&str) -> bool)
 }
 
@@ -61,6 +76,7 @@ fn is_exponent_char(c: char) -> bool {
     }
 }
 
+/// Read a set of ascii digits and read them into a number.
 pub fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> (Option<i64>, usize) {
     match iter.peek() {
         Some(c) if is_ascii_digit(c) => (),
@@ -79,6 +95,7 @@ pub fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> (Option<i6
     })
 }
 
+/// Read a decimal fraction.
 pub fn read_fraction<I: Iterator<Item=char>>(mut iter: Peekable<I>,
                                              mut divisor: f64,
                                              value: f64) -> (f64, usize) {
@@ -92,11 +109,11 @@ pub fn read_fraction<I: Iterator<Item=char>>(mut iter: Peekable<I>,
         d as i64 - '0' as i64
     ).fold((value, 1), |accumulator, d| {
         divisor *= 10f64;
-        (accumulator.0 + d as f64 / divisor,
-            accumulator.1 + 1)
+        (accumulator.0 + d as f64 / divisor, accumulator.1 + 1)
     })
 }
 
+/// Reads an exponent from an iterator over chars, for example `e100`.
 pub fn read_exponent<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i32> {
     match iter.peek() {
         Some(c) if is_exponent_char(*c) => (),
@@ -118,8 +135,10 @@ pub fn read_exponent<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i3
     }
 }
 
+/// Join a set of strings with a given delimiter `join`.
 pub fn str_join<I, T>(strs: I, join: &str) -> String
-    where I: IntoIterator<Item=T>, T: AsRef<str>,
+    where I: IntoIterator<Item=T>,
+          T: AsRef<str>,
 {
     strs.into_iter().enumerate().fold(String::new(), |mut acc, (i, s)| {
         if i > 0 { acc.push_str(join); }
