@@ -3,6 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![allow(unsafe_code)]
+#![deny(missing_docs)]
+
+//! The rule tree.
 
 use arc_ptr_eq;
 #[cfg(feature = "servo")]
@@ -17,15 +20,40 @@ use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
 use stylesheets::StyleRule;
 use thread_state;
 
+/// The rule tree, the structure servo uses to preserve the results of selector
+/// matching.
+///
+/// This is organized as a tree of rules. When a node matches a set of rules,
+/// they're inserted in order in the tree, starting with the less specific one.
+///
+/// When a rule is inserted in the tree, other elements may share the path up to
+/// a given rule. If that's the case, we don't duplicate child nodes, but share
+/// them.
+///
+/// When the rule node refcount drops to zero, it doesn't get freed. It gets
+/// instead put into a free list, and it is potentially GC'd after a while in a
+/// single-threaded fashion.
+///
+/// That way, a rule node that represents a likely-to-match-again rule (like a
+/// :hover rule) can be reused if we haven't GC'd it yet.
 #[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct RuleTree {
     root: StrongRuleNode,
 }
 
+/// A style source for the rule node. It can either be a CSS style rule or a
+/// declaration block.
+///
+/// Note that, even though the declaration block from inside the style rule
+/// could be enough to implement the rule tree, keeping the whole rule provides
+/// more debuggability, and also the ability of show those selectors to
+/// devtools.
 #[derive(Debug, Clone)]
 pub enum StyleSource {
+    /// A style rule stable pointer.
     Style(Arc<RwLock<StyleRule>>),
+    /// A declaration block stable pointer.
     Declarations(Arc<RwLock<PropertyDeclarationBlock>>),
 }
 
@@ -34,8 +62,11 @@ type StyleSourceGuardHandle<'a> =
         RwLockReadGuard<'a, StyleRule>,
         RwLockReadGuard<'a, PropertyDeclarationBlock>>;
 
+/// A guard for a given style source.
 pub enum StyleSourceGuard<'a> {
+    /// A guard for a style rule.
     Style(StyleSourceGuardHandle<'a>),
+    /// A guard for a declaration block.
     Declarations(RwLockReadGuard<'a, PropertyDeclarationBlock>),
 }
 
@@ -71,6 +102,8 @@ impl StyleSource {
         let _ = write!(writer, "  -> {:?}", self.read().declarations);
     }
 
+    /// Read the style source guard, and obtain thus read access to the
+    /// underlying property declaration block.
     #[inline]
     pub fn read<'a>(&'a self) -> StyleSourceGuard<'a> {
         use self::StyleSource::*;
@@ -87,15 +120,19 @@ impl StyleSource {
 /// This value exists here so a node that pushes itself to the list can know
 /// that is in the free list by looking at is next pointer, and comparing it
 /// with null.
+///
+/// The root node doesn't have a null pointer in the free list, but this value.
 const FREE_LIST_SENTINEL: *mut RuleNode = 0x01 as *mut RuleNode;
 
 impl RuleTree {
+    /// Construct a new rule tree.
     pub fn new() -> Self {
         RuleTree {
             root: StrongRuleNode::new(Box::new(RuleNode::root())),
         }
     }
 
+    /// Get the root rule node.
     pub fn root(&self) -> StrongRuleNode {
         self.root.clone()
     }
@@ -105,13 +142,16 @@ impl RuleTree {
         self.root.get().dump(writer, 0);
     }
 
+    /// Dump the rule tree to stdout.
     pub fn dump_stdout(&self) {
         let mut stdout = io::stdout();
         self.dump(&mut stdout);
     }
 
+    /// Insert the given rules, that must be in proper order by specifity, and
+    /// return the corresponding rule node representing the last inserted one.
     pub fn insert_ordered_rules<'a, I>(&self, iter: I) -> StrongRuleNode
-        where I: Iterator<Item=(StyleSource, Importance)>
+        where I: Iterator<Item=(StyleSource, Importance)>,
     {
         let mut current = self.root.clone();
         for (source, importance) in iter {
@@ -294,6 +334,7 @@ struct WeakRuleNode {
     ptr: *mut RuleNode,
 }
 
+/// A strong reference to a rule node.
 #[derive(Debug)]
 pub struct StrongRuleNode {
     ptr: *mut RuleNode,
@@ -412,14 +453,19 @@ impl StrongRuleNode {
         unsafe { &*self.ptr }
     }
 
+    /// Get the style source corresponding to this rule node. May return `None`
+    /// if it's the root node, which means that the node hasn't matched any
+    /// rules.
     pub fn style_source(&self) -> Option<&StyleSource> {
         self.get().source.as_ref()
     }
 
+    /// Get the importance that this rule node represents.
     pub fn importance(&self) -> Importance {
         self.get().importance
     }
 
+    /// Get an iterator for this rule node and its ancestors.
     pub fn self_and_ancestors(&self) -> SelfAndAncestors {
         SelfAndAncestors {
             current: Some(self)
@@ -527,6 +573,7 @@ impl StrongRuleNode {
     }
 }
 
+/// An iterator over a rule node and its ancestors.
 #[derive(Clone)]
 pub struct SelfAndAncestors<'a> {
     current: Option<&'a StrongRuleNode>,
