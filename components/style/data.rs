@@ -4,6 +4,8 @@
 
 //! Per-node data used in style calculation.
 
+#![deny(missing_docs)]
+
 use dom::TElement;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
@@ -19,6 +21,9 @@ use std::sync::Arc;
 use stylist::Stylist;
 use thread_state;
 
+/// The structure that represents the result of style computation. This is
+/// effectively a tuple of rules and computed values, that is, the rule node,
+/// and the result of computing that rule node's rules, the `ComputedValues`.
 #[derive(Clone)]
 pub struct ComputedStyle {
     /// The rule node representing the ordered list of rules matched for this
@@ -31,6 +36,7 @@ pub struct ComputedStyle {
 }
 
 impl ComputedStyle {
+    /// Trivially construct a new `ComputedStyle`.
     pub fn new(rules: StrongRuleNode, values: Arc<ComputedValues>) -> Self {
         ComputedStyle {
             rules: rules,
@@ -49,10 +55,18 @@ impl fmt::Debug for ComputedStyle {
 
 type PseudoStylesInner = HashMap<PseudoElement, ComputedStyle,
                                  BuildHasherDefault<::fnv::FnvHasher>>;
+
+/// A set of styles for a given element's pseudo-elements.
+///
+/// This is a map from pseudo-element to `ComputedStyle`.
+///
+/// TODO(emilio): This should probably be a small array by default instead of a
+/// full-blown `HashMap`.
 #[derive(Clone, Debug)]
 pub struct PseudoStyles(PseudoStylesInner);
 
 impl PseudoStyles {
+    /// Construct an empty set of `PseudoStyles`.
     pub fn empty() -> Self {
         PseudoStyles(HashMap::with_hasher(Default::default()))
     }
@@ -71,11 +85,14 @@ impl DerefMut for PseudoStyles {
 /// pseudo-elements.
 #[derive(Clone, Debug)]
 pub struct ElementStyles {
+    /// The element's style.
     pub primary: ComputedStyle,
+    /// The map of styles for the element's pseudos.
     pub pseudos: PseudoStyles,
 }
 
 impl ElementStyles {
+    /// Trivially construct a new `ElementStyles`.
     pub fn new(primary: ComputedStyle) -> Self {
         ElementStyles {
             primary: primary,
@@ -83,6 +100,7 @@ impl ElementStyles {
         }
     }
 
+    /// Whether this element `display` value is `none`.
     pub fn is_display_none(&self) -> bool {
         self.primary.values.get_box().clone_display() == display::T::none
     }
@@ -127,7 +145,9 @@ impl DescendantRestyleHint {
 /// to provide more type safety while propagating restyle hints down the tree.
 #[derive(Clone, Debug)]
 pub struct StoredRestyleHint {
+    /// Whether this element should be restyled during the traversal.
     pub restyle_self: bool,
+    /// Whether the descendants of this element need to be restyled.
     pub descendants: DescendantRestyleHint,
 }
 
@@ -140,6 +160,7 @@ impl StoredRestyleHint {
         }
     }
 
+    /// Creates an empty `StoredRestyleHint`.
     pub fn empty() -> Self {
         StoredRestyleHint {
             restyle_self: false,
@@ -147,6 +168,8 @@ impl StoredRestyleHint {
         }
     }
 
+    /// Creates a restyle hint that forces the whole subtree to be restyled,
+    /// including the element.
     pub fn subtree() -> Self {
         StoredRestyleHint {
             restyle_self: true,
@@ -154,10 +177,12 @@ impl StoredRestyleHint {
         }
     }
 
+    /// Whether the restyle hint is empty (nothing requires to be restyled).
     pub fn is_empty(&self) -> bool {
         !self.restyle_self && self.descendants == DescendantRestyleHint::Empty
     }
 
+    /// Insert another restyle hint, effectively resulting in the union of both.
     pub fn insert(&mut self, other: &Self) {
         self.restyle_self = self.restyle_self || other.restyle_self;
         self.descendants = self.descendants.union(other.descendants);
@@ -185,11 +210,11 @@ impl From<RestyleHint> for StoredRestyleHint {
     }
 }
 
-// We really want to store an Option<Snapshot> here, but we can't drop Gecko
-// Snapshots off-main-thread. So we make a convenient little wrapper to provide
-// the semantics of Option<Snapshot>, while deferring the actual drop.
 static NO_SNAPSHOT: Option<Snapshot> = None;
 
+/// We really want to store an Option<Snapshot> here, but we can't drop Gecko
+/// Snapshots off-main-thread. So we make a convenient little wrapper to provide
+/// the semantics of Option<Snapshot>, while deferring the actual drop.
 #[derive(Debug)]
 pub struct SnapshotOption {
     snapshot: Option<Snapshot>,
@@ -197,6 +222,7 @@ pub struct SnapshotOption {
 }
 
 impl SnapshotOption {
+    /// An empty snapshot.
     pub fn empty() -> Self {
         SnapshotOption {
             snapshot: None,
@@ -204,11 +230,13 @@ impl SnapshotOption {
         }
     }
 
+    /// Destroy this snapshot.
     pub fn destroy(&mut self) {
         self.destroyed = true;
         debug_assert!(self.is_none());
     }
 
+    /// Ensure a snapshot is available and return a mutable reference to it.
     pub fn ensure<F: FnOnce() -> Snapshot>(&mut self, create: F) -> &mut Snapshot {
         debug_assert!(thread_state::get().is_layout());
         if self.is_none() {
@@ -234,7 +262,12 @@ impl Deref for SnapshotOption {
 /// Transient data used by the restyle algorithm. This structure is instantiated
 /// either before or during restyle traversal, and is cleared at the end of node
 /// processing.
+///
+/// TODO(emilio): Tell bholley to document this more accurately. I can try (and
+/// the fields are certainly mostly self-explanatory), but it's better if he
+/// does, to avoid any misconception.
 #[derive(Debug)]
+#[allow(missing_docs)]
 pub struct RestyleData {
     pub styles: ElementStyles,
     pub hint: StoredRestyleHint,
@@ -254,8 +287,8 @@ impl RestyleData {
         }
     }
 
-    /// Expands the snapshot (if any) into a restyle hint. Returns true if later siblings
-    /// must be restyled.
+    /// Expands the snapshot (if any) into a restyle hint. Returns true if later
+    /// siblings must be restyled.
     pub fn expand_snapshot<E: TElement>(&mut self, element: E, stylist: &Stylist) -> bool {
         if self.snapshot.is_none() {
             return false;
@@ -281,14 +314,17 @@ impl RestyleData {
         later_siblings
     }
 
+    /// Return if the element style's are up to date.
     pub fn has_current_styles(&self) -> bool {
         !(self.hint.restyle_self || self.recascade || self.snapshot.is_some())
     }
 
+    /// Returns the element styles.
     pub fn styles(&self) -> &ElementStyles {
         &self.styles
     }
 
+    /// Returns a mutable reference to the element styles.
     pub fn styles_mut(&mut self) -> &mut ElementStyles {
         &mut self.styles
     }
@@ -317,12 +353,18 @@ impl RestyleData {
 /// safety.
 #[derive(Debug)]
 pub enum ElementData {
+    /// This is the first styling for this element.
     Initial(Option<ElementStyles>),
+    /// This element has been restyled already, and all the relevant data is
+    /// inside the `RestyleData`.
     Restyle(RestyleData),
+    /// This element has already been restyled, and only keeps its styles
+    /// around.
     Persistent(ElementStyles),
 }
 
 impl ElementData {
+    /// Trivially construct an ElementData.
     pub fn new(existing: Option<ElementStyles>) -> Self {
         if let Some(s) = existing {
             ElementData::Persistent(s)
@@ -331,6 +373,7 @@ impl ElementData {
         }
     }
 
+    /// Return whether this data is from an initial restyle.
     pub fn is_initial(&self) -> bool {
         match *self {
             ElementData::Initial(_) => true,
@@ -338,6 +381,7 @@ impl ElementData {
         }
     }
 
+    /// Return whether this data is from an element that hasn't been restyled.
     pub fn is_unstyled_initial(&self) -> bool {
         match *self {
             ElementData::Initial(None) => true,
@@ -345,6 +389,8 @@ impl ElementData {
         }
     }
 
+    /// Return whether this data is from an element whose first restyle has just
+    /// been done.
     pub fn is_styled_initial(&self) -> bool {
         match *self {
             ElementData::Initial(Some(_)) => true,
@@ -352,6 +398,8 @@ impl ElementData {
         }
     }
 
+    /// Returns true if this element is being restyled and has been styled
+    /// before.
     pub fn is_restyle(&self) -> bool {
         match *self {
             ElementData::Restyle(_) => true,
@@ -359,6 +407,7 @@ impl ElementData {
         }
     }
 
+    /// Returns the `RestyleData` if it exists.
     pub fn as_restyle(&self) -> Option<&RestyleData> {
         match *self {
             ElementData::Restyle(ref x) => Some(x),
@@ -366,6 +415,7 @@ impl ElementData {
         }
     }
 
+    /// Returns a mutable reference to the RestyleData, if it exists.
     pub fn as_restyle_mut(&mut self) -> Option<&mut RestyleData> {
         match *self {
             ElementData::Restyle(ref mut x) => Some(x),
@@ -373,6 +423,7 @@ impl ElementData {
         }
     }
 
+    /// Returns whether this element's style is persistent.
     pub fn is_persistent(&self) -> bool {
         match *self {
             ElementData::Persistent(_) => true,
@@ -428,6 +479,7 @@ impl ElementData {
         *self = ElementData::Persistent(styles);
     }
 
+    /// Return the restyle damage (if any).
     pub fn damage(&self) -> RestyleDamage {
         use self::ElementData::*;
         match *self {
@@ -443,8 +495,8 @@ impl ElementData {
         }
     }
 
-    // A version of the above, with the assertions replaced with warnings to
-    // be more robust in corner-cases. This will go away soon.
+    /// A version of the above, with the assertions replaced with warnings to
+    /// be more robust in corner-cases. This will go away soon.
     #[cfg(feature = "gecko")]
     pub fn damage_sloppy(&self) -> RestyleDamage {
         use self::ElementData::*;
@@ -476,6 +528,7 @@ impl ElementData {
         }
     }
 
+    /// Get the element styles, if any.
     pub fn get_styles(&self) -> Option<&ElementStyles> {
         use self::ElementData::*;
         match *self {
@@ -485,10 +538,12 @@ impl ElementData {
         }
     }
 
+    /// Get the element styles. Panic if the element has never been styled.
     pub fn styles(&self) -> &ElementStyles {
         self.get_styles().expect("Calling styles() on unstyled ElementData")
     }
 
+    /// Get a mutable reference to the element styles, if any.
     pub fn get_styles_mut(&mut self) -> Option<&mut ElementStyles> {
         use self::ElementData::*;
         match *self {
@@ -498,10 +553,14 @@ impl ElementData {
         }
     }
 
+    /// Get a mutable reference to the element styles. Panic if the element has
+    /// never been styled.
     pub fn styles_mut(&mut self) -> &mut ElementStyles {
         self.get_styles_mut().expect("Calling styles_mut() on unstyled ElementData")
     }
 
+    /// Finishes the styling of the element, effectively setting the style in
+    /// the data.
     pub fn finish_styling(&mut self, styles: ElementStyles, damage: RestyleDamage) {
         use self::ElementData::*;
         match *self {
