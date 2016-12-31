@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! A property declaration block.
+
+#![deny(missing_docs)]
+
 use cssparser::{DeclarationListParser, parse_important};
 use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
@@ -13,7 +17,9 @@ use style_traits::ToCss;
 use stylesheets::Origin;
 use super::*;
 
-
+/// A declaration [importance][importance].
+///
+/// [importance]: https://drafts.csswg.org/css-cascade/#importance
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Importance {
@@ -25,6 +31,7 @@ pub enum Importance {
 }
 
 impl Importance {
+    /// Return whether this is an important declaration.
     pub fn important(self) -> bool {
         match self {
             Importance::Normal => false,
@@ -34,10 +41,12 @@ impl Importance {
 }
 
 /// Overridden declarations are skipped.
-// FIXME (https://github.com/servo/servo/issues/3426)
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PropertyDeclarationBlock {
+    /// The group of declarations, along with their importance.
+    ///
+    /// Only deduplicated declarations appear here.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
     pub declarations: Vec<(PropertyDeclaration, Importance)>,
 
@@ -64,6 +73,9 @@ impl PropertyDeclarationBlock {
         self.declarations.len() > self.important_count as usize
     }
 
+    /// Get a declaration for a given property.
+    ///
+    /// NOTE: This is linear time.
     pub fn get(&self, property: PropertyDeclarationId) -> Option< &(PropertyDeclaration, Importance)> {
         self.declarations.iter().find(|&&(ref decl, _)| decl.id() == property)
     }
@@ -72,7 +84,8 @@ impl PropertyDeclarationBlock {
     ///
     /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     pub fn property_value_to_css<W>(&self, property: &PropertyId, dest: &mut W) -> fmt::Result
-    where W: fmt::Write {
+        where W: fmt::Write,
+    {
         // Step 1: done when parsing a string to PropertyId
 
         // Step 2
@@ -149,7 +162,11 @@ impl PropertyDeclarationBlock {
         }
     }
 
-    pub fn set_parsed_declaration(&mut self, declaration: PropertyDeclaration, importance: Importance) {
+    /// Adds or overrides the declaration for a given property in this block,
+    /// without taking into account any kind of priority.
+    pub fn set_parsed_declaration(&mut self,
+                                  declaration: PropertyDeclaration,
+                                  importance: Importance) {
         for slot in &mut *self.declarations {
             if slot.0.id() == declaration.id() {
                 match (slot.1, importance) {
@@ -172,6 +189,7 @@ impl PropertyDeclarationBlock {
         }
     }
 
+    /// Set the declaration importance for a given property, if found.
     pub fn set_importance(&mut self, property: &PropertyId, new_importance: Importance) {
         for &mut (ref declaration, ref mut importance) in &mut self.declarations {
             if declaration.id().is_or_is_longhand_of(property) {
@@ -203,7 +221,8 @@ impl PropertyDeclarationBlock {
 
     /// Take a declaration block known to contain a single property and serialize it.
     pub fn single_value_to_css<W>(&self, property: &PropertyId, dest: &mut W) -> fmt::Result
-    where W: fmt::Write {
+        where W: fmt::Write,
+    {
         match property.as_shorthand() {
             Err(_longhand_or_custom) => {
                 if self.declarations.len() == 1 {
@@ -236,7 +255,9 @@ impl PropertyDeclarationBlock {
 
 impl ToCss for PropertyDeclarationBlock {
     // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         let mut is_first_serialization = true; // trailing serializations should have a prepended space
 
         // Step 1 -> dest = result list
@@ -356,15 +377,28 @@ impl ToCss for PropertyDeclarationBlock {
     }
 }
 
+/// A convenient enum to represent different kinds of stuff that can represent a
+/// _value_ in the serialization of a property declaration.
 pub enum AppendableValue<'a, I>
-where I: Iterator<Item=&'a PropertyDeclaration> {
+    where I: Iterator<Item=&'a PropertyDeclaration>,
+{
+    /// A given declaration, of which we'll serialize just the value.
     Declaration(&'a PropertyDeclaration),
+    /// A set of declarations for a given shorthand.
+    ///
+    /// FIXME: This needs more docs, where are the shorthands expanded? We print
+    /// the property name before-hand, don't we?
     DeclarationsForShorthand(ShorthandId, I),
+    /// A raw CSS string, coming for example from a property with CSS variables.
     Css(&'a str)
 }
 
-fn handle_first_serialization<W>(dest: &mut W, is_first_serialization: &mut bool) -> fmt::Result where W: fmt::Write {
-    // after first serialization(key: value;) add whitespace between the pairs
+/// Potentially appends whitespace after the first (property: value;) pair.
+fn handle_first_serialization<W>(dest: &mut W,
+                                 is_first_serialization: &mut bool)
+                                 -> fmt::Result
+    where W: fmt::Write,
+{
     if !*is_first_serialization {
         try!(write!(dest, " "));
     } else {
@@ -374,45 +408,48 @@ fn handle_first_serialization<W>(dest: &mut W, is_first_serialization: &mut bool
     Ok(())
 }
 
-pub fn append_declaration_value<'a, W, I>
-                           (dest: &mut W,
-                            appendable_value: AppendableValue<'a, I>,
-                            importance: Importance,
-                            is_overflow_with_name: bool)
-                            -> fmt::Result
-                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
-  match appendable_value {
-      AppendableValue::Css(css) => {
-          try!(write!(dest, "{}", css))
-      },
-      AppendableValue::Declaration(decl) => {
-          try!(decl.to_css(dest));
-       },
-       AppendableValue::DeclarationsForShorthand(shorthand, decls) => {
-          if is_overflow_with_name {
-            try!(shorthand.overflow_longhands_to_css(decls, dest));
-          } else {
-            try!(shorthand.longhands_to_css(decls, dest));
-          }
-       }
-  }
-
-  if importance.important() {
-      try!(write!(dest, " !important"));
-  }
-
-  Ok(())
-}
-
-pub fn append_serialization<'a, W, I, N>(dest: &mut W,
-                                  property_name: &N,
-                                  appendable_value: AppendableValue<'a, I>,
-                                  importance: Importance,
-                                  is_first_serialization: &mut bool)
-                                  -> fmt::Result
+/// Append a given kind of appendable value to a serialization.
+pub fn append_declaration_value<'a, W, I>(dest: &mut W,
+                                          appendable_value: AppendableValue<'a, I>,
+                                          importance: Importance,
+                                          is_overflow_with_name: bool)
+                                          -> fmt::Result
     where W: fmt::Write,
           I: Iterator<Item=&'a PropertyDeclaration>,
-          N: ToCss
+{
+    match appendable_value {
+        AppendableValue::Css(css) => {
+            try!(write!(dest, "{}", css))
+        },
+        AppendableValue::Declaration(decl) => {
+            try!(decl.to_css(dest));
+         },
+         AppendableValue::DeclarationsForShorthand(shorthand, decls) => {
+            if is_overflow_with_name {
+              try!(shorthand.overflow_longhands_to_css(decls, dest));
+            } else {
+              try!(shorthand.longhands_to_css(decls, dest));
+            }
+         }
+    }
+
+    if importance.important() {
+        try!(write!(dest, " !important"));
+    }
+
+    Ok(())
+}
+
+/// Append a given property and value pair to a serialization.
+pub fn append_serialization<'a, W, I, N>(dest: &mut W,
+                                         property_name: &N,
+                                         appendable_value: AppendableValue<'a, I>,
+                                         importance: Importance,
+                                         is_first_serialization: &mut bool)
+                                         -> fmt::Result
+    where W: fmt::Write,
+          I: Iterator<Item=&'a PropertyDeclaration>,
+          N: ToCss,
 {
     try!(handle_first_serialization(dest, is_first_serialization));
 
@@ -443,6 +480,8 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
     write!(dest, ";")
 }
 
+/// A helper to parse the style attribute of an element, in order for this to be
+/// shared between Servo and Gecko.
 pub fn parse_style_attribute(input: &str,
                              base_url: &ServoUrl,
                              error_reporter: StdBox<ParseErrorReporter + Send>,
@@ -452,6 +491,8 @@ pub fn parse_style_attribute(input: &str,
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
+/// Parse a given property declaration. Can result in multiple
+/// `PropertyDeclaration`s when expanding a longhand, for example.
 pub fn parse_one_declaration(id: PropertyId,
                              input: &str,
                              base_url: &ServoUrl,
@@ -466,6 +507,7 @@ pub fn parse_one_declaration(id: PropertyId,
     }
 }
 
+/// A struct to parse property declarations.
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
 }
@@ -479,6 +521,11 @@ impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
 
 
 impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
+    /// A single declaration may be expanded into multiple ones if it's a
+    /// shorthand for example, so that's why this is a vector.
+    ///
+    /// TODO(emilio): Seems like there's potentially a bunch of performance work
+    /// we could do here.
     type Declaration = (Vec<PropertyDeclaration>, Importance);
 
     fn parse_value(&mut self, name: &str, input: &mut Parser)
@@ -500,7 +547,10 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 }
 
 
-pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Parser)
+/// Parse a list of property declarations and return a property declaration
+/// block.
+pub fn parse_property_declaration_list(context: &ParserContext,
+                                       input: &mut Parser)
                                        -> PropertyDeclarationBlock {
     let mut declarations = Vec::new();
     let mut important_count = 0;
