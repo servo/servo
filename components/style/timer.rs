@@ -1,14 +1,19 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#![deny(missing_docs)]
+
+//! A timer module, used to define a `Timer` type, that is controlled by script.
+
 use time;
 
-/// The `TimerMode` is used to determine what time should the `Timer` return,
-/// either a fixed value (in the `Test` mode), or the actual time (in the
-/// `Current` mode).
+/// The `TimerMode` is used to determine what time should the `Timer` return.
 #[derive(Debug, Clone)]
 enum TimerMode {
+    /// The timer should return a fixed value.
     Test(f64),
+    /// The timer should return the actual time.
     Current,
 }
 
