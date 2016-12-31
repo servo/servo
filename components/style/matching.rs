@@ -5,6 +5,7 @@
 //! High-level interface to CSS selector matching.
 
 #![allow(unsafe_code)]
+#![deny(missing_docs)]
 
 use {Atom, LocalName};
 use animation::{self, Animation, PropertyAnimation};
@@ -49,11 +50,22 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
     flags
 }
 
+/// The rule nodes for each of the pseudo-elements of an element.
+///
+/// TODO(emilio): Probably shouldn't be a `HashMap` by default, but a smaller
+/// array.
 type PseudoRuleNodes = HashMap<PseudoElement, StrongRuleNode,
                                BuildHasherDefault<::fnv::FnvHasher>>;
+
+/// The results of selector matching on an element.
 pub struct MatchResults {
+    /// The rule node reference that represents the rules matched by the
+    /// element.
     pub primary: StrongRuleNode,
+    /// A set of style relations (different hints about what rules matched or
+    /// could have matched).
     pub relations: StyleRelations,
+    /// The results of selector-matching the pseudo-elements.
     pub per_pseudo: PseudoRuleNodes,
 }
 
@@ -65,7 +77,11 @@ impl MatchResults {
     }
 }
 
-/// Information regarding a candidate.
+/// Information regarding a style sharing candidate.
+///
+/// Note that this information is stored in TLS and cleared after the traversal,
+/// and once here, the style information of the element is immutable, so it's
+/// safe to access.
 ///
 /// TODO: We can stick a lot more info here.
 #[derive(Debug)]
@@ -75,7 +91,7 @@ struct StyleSharingCandidate<E: TElement> {
     element: SendElement<E>,
     /// The cached common style affecting attribute info.
     common_style_affecting_attributes: Option<CommonStyleAffectingAttributes>,
-    /// the cached class names.
+    /// The cached class names.
     class_attributes: Option<Vec<Atom>>,
 }
 
@@ -95,20 +111,39 @@ pub struct StyleSharingCandidateCache<E: TElement> {
     cache: LRUCache<StyleSharingCandidate<E>, ()>,
 }
 
+/// A cache miss result.
 #[derive(Clone, Debug)]
 pub enum CacheMiss {
+    /// The parents don't match.
     Parent,
+    /// The local name of the element and the candidate don't match.
     LocalName,
+    /// The namespace of the element and the candidate don't match.
     Namespace,
+    /// One of the element or the candidate was a link, but the other one
+    /// wasn't.
     Link,
+    /// The element and the candidate match different kind of rules. This can
+    /// only happen in Gecko.
     UserAndAuthorRules,
+    /// The element and the candidate are in a different state.
     State,
+    /// The element had an id attribute, which qualifies for a unique style.
     IdAttr,
+    /// The element had a style attribute, which qualifies for a unique style.
     StyleAttr,
+    /// The element and the candidate class names didn't match.
     Class,
+    /// The element and the candidate common style affecting attributes didn't
+    /// match.
     CommonStyleAffectingAttributes,
+    /// The presentation hints didn't match.
     PresHints,
+    /// The element and the candidate didn't match the same set of
+    /// sibling-affecting rules.
     SiblingRules,
+    /// The element and the candidate didn't match the same set of non-common
+    /// style affecting attribute selectors.
     NonCommonAttrRules,
 }
 
@@ -213,27 +248,43 @@ fn have_same_presentational_hints<E: TElement>(element: &E, candidate: &E) -> bo
 }
 
 bitflags! {
+    /// A set of common style-affecting attributes we check separately to
+    /// optimize the style sharing cache.
     pub flags CommonStyleAffectingAttributes: u8 {
+        /// The `hidden` attribute.
         const HIDDEN_ATTRIBUTE = 0x01,
+        /// The `nowrap` attribute.
         const NO_WRAP_ATTRIBUTE = 0x02,
+        /// The `align="left"` attribute.
         const ALIGN_LEFT_ATTRIBUTE = 0x04,
+        /// The `align="center"` attribute.
         const ALIGN_CENTER_ATTRIBUTE = 0x08,
+        /// The `align="right"` attribute.
         const ALIGN_RIGHT_ATTRIBUTE = 0x10,
     }
 }
 
+/// The information of how to match a given common-style affecting attribute.
 pub struct CommonStyleAffectingAttributeInfo {
+    /// The attribute name.
     pub attr_name: LocalName,
+    /// The matching mode for the attribute.
     pub mode: CommonStyleAffectingAttributeMode,
 }
 
+/// How should we match a given common style-affecting attribute?
 #[derive(Clone)]
 pub enum CommonStyleAffectingAttributeMode {
+    /// Just for presence?
     IsPresent(CommonStyleAffectingAttributes),
+    /// For presence and equality with a given value.
     IsEqual(Atom, CommonStyleAffectingAttributes),
 }
 
-// NB: This must match the order in `selectors::matching::CommonStyleAffectingAttributes`.
+/// The common style affecting attribute array.
+///
+/// TODO: This should be a `const static` or similar, but couldn't be because
+/// `Atom`s have destructors.
 #[inline]
 pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo; 5] {
     [
@@ -260,9 +311,14 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
     ]
 }
 
-/// Attributes that, if present, disable style sharing. All legacy HTML attributes must be in
-/// either this list or `common_style_affecting_attributes`. See the comment in
+/// Attributes that, if present, disable style sharing. All legacy HTML
+/// attributes must be in either this list or
+/// `common_style_affecting_attributes`. See the comment in
 /// `synthesize_presentational_hints_for_legacy_attributes`.
+///
+/// TODO(emilio): This is not accurate now, we don't disable style sharing for
+/// this now since we check for attribute selectors in the stylesheet. Consider
+/// removing this.
 pub fn rare_style_affecting_attributes() -> [LocalName; 4] {
     [local_name!("bgcolor"), local_name!("border"), local_name!("colspan"), local_name!("rowspan")]
 }
@@ -301,6 +357,7 @@ fn match_same_sibling_affecting_rules<E: TElement>(element: &E,
 static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 8;
 
 impl<E: TElement> StyleSharingCandidateCache<E> {
+    /// Create a new style sharing candidate cache.
     pub fn new() -> Self {
         StyleSharingCandidateCache {
             cache: LRUCache::new(STYLE_SHARING_CANDIDATE_CACHE_SIZE),
@@ -311,6 +368,9 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         self.cache.iter_mut()
     }
 
+    /// Tries to insert an element in the style sharing cache.
+    ///
+    /// Fails if we know it should never be in the cache.
     pub fn insert_if_possible(&mut self,
                               element: &E,
                               style: &Arc<ComputedValues>,
@@ -353,10 +413,12 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         }, ());
     }
 
+    /// Touch a given index in the style sharing candidate cache.
     pub fn touch(&mut self, index: usize) {
         self.cache.touch(index);
     }
 
+    /// Clear the style sharing candidate cache.
     pub fn clear(&mut self) {
         self.cache.evict_all()
     }
@@ -367,16 +429,14 @@ pub enum StyleSharingResult {
     /// We didn't find anybody to share the style with.
     CannotShare,
     /// The node's style can be shared. The integer specifies the index in the
-    /// LRU cache that was hit and the damage that was done, and the restyle
-    /// result the original result of the candidate's styling, that is, whether
-    /// it should stop the traversal or not.
+    /// LRU cache that was hit and the damage that was done.
     StyleWasShared(usize),
 }
 
-// Callers need to pass several boolean flags to cascade_node_pseudo_element.
-// We encapsulate them in this struct to avoid mixing them up.
-//
-// FIXME(pcwalton): Unify with `CascadeFlags`, perhaps?
+/// Callers need to pass several boolean flags to cascade_node_pseudo_element.
+/// We encapsulate them in this struct to avoid mixing them up.
+///
+/// FIXME(pcwalton): Unify with `CascadeFlags`, perhaps?
 struct CascadeBooleans {
     shareable: bool,
     animate: bool,
@@ -511,7 +571,9 @@ fn compute_rule_node<E: TElement>(context: &StyleContext<E>,
 
 impl<E: TElement> PrivateMatchMethods for E {}
 
+/// The public API that elements expose for selector matching.
 pub trait MatchMethods : TElement {
+    /// Runs selector matching of this element, and returns the result.
     fn match_element(&self, context: &StyleContext<Self>, parent_bf: Option<&BloomFilter>)
                      -> MatchResults
     {
@@ -556,9 +618,10 @@ pub trait MatchMethods : TElement {
         }
     }
 
-    /// Attempts to share a style with another node. This method is unsafe because it depends on
-    /// the `style_sharing_candidate_cache` having only live nodes in it, and we have no way to
-    /// guarantee that at the type system level yet.
+    /// Attempts to share a style with another node. This method is unsafe
+    /// because it depends on the `style_sharing_candidate_cache` having only
+    /// live nodes in it, and we have no way to guarantee that at the type
+    /// system level yet.
     unsafe fn share_style_if_possible(&self,
                                       style_sharing_candidate_cache:
                                         &mut StyleSharingCandidateCache<Self>,
@@ -671,6 +734,9 @@ pub trait MatchMethods : TElement {
         self.each_class(|class| bf.remove(class));
     }
 
+    /// Given the old and new style of this element, and whether it's a
+    /// pseudo-element, compute the restyle damage used to determine which
+    /// kind of layout or painting operations we'll need.
     fn compute_restyle_damage(&self,
                               old_style: Option<&Arc<ComputedValues>>,
                               new_style: &Arc<ComputedValues>,
@@ -709,6 +775,8 @@ pub trait MatchMethods : TElement {
         }
     }
 
+    /// Given the results of selector matching, run the CSS cascade and style
+    /// the node, potentially starting any new transitions or animations.
     fn cascade_node(&self,
                     context: &StyleContext<Self>,
                     mut data: &mut AtomicRefMut<ElementData>,
@@ -783,6 +851,7 @@ pub trait MatchMethods : TElement {
         data.finish_styling(new_styles, damage);
     }
 
+    /// Given the old and new styling results, compute the final restyle damage.
     fn compute_damage_and_cascade_pseudos(
             &self,
             old_primary: Option<&Arc<ComputedValues>>,
