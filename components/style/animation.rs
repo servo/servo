@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! CSS transitions and animations.
+#![deny(missing_docs)]
 
 use Atom;
 use bezier::Bezier;
@@ -28,8 +29,9 @@ use values::computed::Time;
 /// have to keep track the current iteration and the max iteration count.
 #[derive(Debug, Clone)]
 pub enum KeyframesIterationState {
+    /// Infinite iterations, so no need to track a state.
     Infinite,
-    // current, max
+    /// Current and max iterations.
     Finite(u32, u32),
 }
 
@@ -192,6 +194,7 @@ pub enum Animation {
 }
 
 impl Animation {
+    /// Mark this animation as expired.
     #[inline]
     pub fn mark_as_expired(&mut self) {
         debug_assert!(!self.is_expired());
@@ -201,6 +204,7 @@ impl Animation {
         }
     }
 
+    /// Whether this animation is expired.
     #[inline]
     pub fn is_expired(&self) -> bool {
         match *self {
@@ -209,6 +213,7 @@ impl Animation {
         }
     }
 
+    /// The opaque node that owns the animation.
     #[inline]
     pub fn node(&self) -> &OpaqueNode {
         match *self {
@@ -217,6 +222,7 @@ impl Animation {
         }
     }
 
+    /// Whether this animation is paused. A transition can never be paused.
     #[inline]
     pub fn is_paused(&self) -> bool {
         match *self {
@@ -237,6 +243,7 @@ pub struct AnimationFrame {
     pub duration: f64,
 }
 
+/// Represents an animation for a given property.
 #[derive(Debug, Clone)]
 pub struct PropertyAnimation {
     property: AnimatedProperty,
@@ -245,13 +252,15 @@ pub struct PropertyAnimation {
 }
 
 impl PropertyAnimation {
-    pub fn property_name(&self) -> String {
+    /// Returns the given property name.
+    pub fn property_name(&self) -> &'static str {
         self.property.name()
     }
 
-    /// Creates a new property animation for the given transition index and old and new styles.
-    /// Any number of animations may be returned, from zero (if the property did not animate) to
-    /// one (for a single transition property) to arbitrarily many (for `all`).
+    /// Creates a new property animation for the given transition index and old
+    /// and new styles.  Any number of animations may be returned, from zero (if
+    /// the property did not animate) to one (for a single transition property)
+    /// to arbitrarily many (for `all`).
     pub fn from_transition(transition_index: usize,
                            old_style: &ComputedValues,
                            new_style: &mut ComputedValues)
@@ -312,6 +321,7 @@ impl PropertyAnimation {
         }
     }
 
+    /// Update the given animation at a given point of progress.
     pub fn update(&self, style: &mut ComputedValues, time: f64) {
         let progress = match self.timing_function {
             TransitionTimingFunction::CubicBezier(p1, p2) => {
@@ -336,8 +346,9 @@ impl PropertyAnimation {
         self.property.does_animate() && self.duration != Time(0.0)
     }
 
+    /// Whether this animation has the same end value as another one.
     #[inline]
-    pub fn has_the_same_end_value_as(&self, other: &PropertyAnimation) -> bool {
+    pub fn has_the_same_end_value_as(&self, other: &Self) -> bool {
         self.property.has_the_same_end_value_as(&other.property)
     }
 }
@@ -428,6 +439,8 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
     }
 }
 
+/// Triggers animations for a given node looking at the animation property
+/// values.
 pub fn maybe_start_animations(context: &SharedStyleContext,
                               new_animations_sender: &Sender<Animation>,
                               node: OpaqueNode,
