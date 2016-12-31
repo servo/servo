@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Specified values.
+//!
+//! TODO(emilio): Enhance docs.
+
 use app_units::Au;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
@@ -35,6 +39,7 @@ impl NoViewportPercentage for i32 {}  // For PropertyDeclaration::Order
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct CSSColor {
     pub parsed: cssparser::Color,
     pub authored: Option<String>,
@@ -68,6 +73,7 @@ impl ToCss for CSSColor {
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct CSSRGBA {
     pub parsed: cssparser::RGBA,
     pub authored: Option<String>,
@@ -85,6 +91,7 @@ impl ToCss for CSSRGBA {
 }
 
 #[derive(Clone, Debug)]
+#[allow(missing_docs)]
 pub struct SimplifiedSumNode {
     values: Vec<SimplifiedValueNode>,
 }
@@ -100,6 +107,7 @@ impl<'a> Mul<CSSFloat> for &'a SimplifiedSumNode {
 }
 
 #[derive(Clone, Debug)]
+#[allow(missing_docs)]
 pub enum SimplifiedValueNode {
     Length(Length),
     Angle(Angle),
@@ -127,6 +135,7 @@ impl<'a> Mul<CSSFloat> for &'a SimplifiedValueNode {
     }
 }
 
+#[allow(missing_docs)]
 pub fn parse_integer(input: &mut Parser) -> Result<i32, ()> {
     match try!(input.next()) {
         Token::Number(ref value) => value.int_value.ok_or(()),
@@ -152,6 +161,7 @@ pub fn parse_integer(input: &mut Parser) -> Result<i32, ()> {
     }
 }
 
+#[allow(missing_docs)]
 pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
     match try!(input.next()) {
         Token::Number(ref value) => Ok(value.value),
@@ -179,20 +189,24 @@ pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
 
 impl NoViewportPercentage for BorderRadiusSize {}
 
 impl BorderRadiusSize {
+    #[allow(missing_docs)]
     pub fn zero() -> BorderRadiusSize {
         let zero = LengthOrPercentage::Length(Length::Absolute(Au(0)));
             BorderRadiusSize(Size2D::new(zero, zero))
     }
 
+    #[allow(missing_docs)]
     pub fn new(width: LengthOrPercentage, height: LengthOrPercentage) -> BorderRadiusSize {
         BorderRadiusSize(Size2D::new(width, height))
     }
 
+    #[allow(missing_docs)]
     pub fn circle(radius: LengthOrPercentage) -> BorderRadiusSize {
         BorderRadiusSize(Size2D::new(radius, radius))
     }
@@ -228,11 +242,13 @@ impl ToCss for Angle {
 
 impl Angle {
     #[inline]
+    #[allow(missing_docs)]
     pub fn radians(self) -> f32 {
         self.0
     }
 
     #[inline]
+    #[allow(missing_docs)]
     pub fn from_radians(r: f32) -> Self {
         Angle(r)
     }
@@ -257,6 +273,7 @@ impl Parse for Angle {
 }
 
 impl Angle {
+    #[allow(missing_docs)]
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Angle, ()> {
         match_ignore_ascii_case! { unit,
             "deg" => Ok(Angle(value * RAD_PER_DEG)),
@@ -268,20 +285,22 @@ impl Angle {
     }
 }
 
+#[allow(missing_docs)]
 pub fn parse_border_radius(context: &ParserContext, input: &mut Parser) -> Result<BorderRadiusSize, ()> {
-    input.try(|i| BorderRadiusSize::parse(context, i)).or_else(|()| {
-            match_ignore_ascii_case! { try!(input.expect_ident()),
-                "thin" => Ok(BorderRadiusSize::circle(
-                                 LengthOrPercentage::Length(Length::from_px(1.)))),
-                "medium" => Ok(BorderRadiusSize::circle(
-                                   LengthOrPercentage::Length(Length::from_px(3.)))),
-                "thick" => Ok(BorderRadiusSize::circle(
-                                  LengthOrPercentage::Length(Length::from_px(5.)))),
-                _ => Err(())
-            }
-        })
+    input.try(|i| BorderRadiusSize::parse(context, i)).or_else(|_| {
+        match_ignore_ascii_case! { try!(input.expect_ident()),
+            "thin" => Ok(BorderRadiusSize::circle(
+                             LengthOrPercentage::Length(Length::from_px(1.)))),
+            "medium" => Ok(BorderRadiusSize::circle(
+                               LengthOrPercentage::Length(Length::from_px(3.)))),
+            "thick" => Ok(BorderRadiusSize::circle(
+                              LengthOrPercentage::Length(Length::from_px(5.)))),
+            _ => Err(())
+        }
+    })
 }
 
+#[allow(missing_docs)]
 pub fn parse_border_width(input: &mut Parser) -> Result<Length, ()> {
     input.try(Length::parse_non_negative).or_else(|()| {
         match_ignore_ascii_case! { try!(input.expect_ident()),
@@ -295,6 +314,7 @@ pub fn parse_border_width(input: &mut Parser) -> Result<Length, ()> {
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum BorderWidth {
     Thin,
     Medium,
@@ -317,6 +337,7 @@ impl Parse for BorderWidth {
 }
 
 impl BorderWidth {
+    #[allow(missing_docs)]
     pub fn from_length(length: Length) -> Self {
         BorderWidth::Width(length)
     }
@@ -382,6 +403,7 @@ define_numbered_css_keyword_enum! { BorderStyle:
 impl NoViewportPercentage for BorderStyle {}
 
 impl BorderStyle {
+    /// Whether this border style is either none or hidden.
     pub fn none_or_hidden(&self) -> bool {
         matches!(*self, BorderStyle::none | BorderStyle::hidden)
     }
@@ -435,6 +457,7 @@ impl ToCss for Time {
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct Number(pub CSSFloat);
 
 impl NoViewportPercentage for Number {}
@@ -453,10 +476,12 @@ impl Number {
         }
     }
 
+    #[allow(missing_docs)]
     pub fn parse_non_negative(input: &mut Parser) -> Result<Number, ()> {
         Number::parse_with_minimum(input, 0.0)
     }
 
+    #[allow(missing_docs)]
     pub fn parse_at_least_one(input: &mut Parser) -> Result<Number, ()> {
         Number::parse_with_minimum(input, 1.0)
     }
@@ -482,6 +507,7 @@ impl ToCss for Number {
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct Opacity(pub CSSFloat);
 
 impl NoViewportPercentage for Opacity {}
@@ -518,10 +544,12 @@ impl ToCss for Opacity {
     }
 }
 
+#[allow(missing_docs)]
 pub type UrlOrNone = Either<SpecifiedUrl, None_>;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub struct Shadow {
     pub offset_x: Length,
     pub offset_y: Length,
@@ -573,6 +601,7 @@ impl ToComputedValue for Shadow {
 
 impl Shadow {
     // disable_spread_and_inset is for filter: drop-shadow(...)
+    #[allow(missing_docs)]
     pub fn parse(context:  &ParserContext, input: &mut Parser, disable_spread_and_inset: bool) -> Result<Shadow, ()> {
         use app_units::Au;
         let length_count = if disable_spread_and_inset { 3 } else { 4 };

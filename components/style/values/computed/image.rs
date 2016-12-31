@@ -51,6 +51,7 @@ impl ToComputedValue for specified::Image {
 /// https://drafts.csswg.org/css-images/#image-values
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum Image {
     Url(SpecifiedUrl),
     Gradient(Gradient),
@@ -174,6 +175,7 @@ impl ToComputedValue for specified::Gradient {
 /// https://drafts.csswg.org/css-images/#gradients
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum GradientKind {
     Linear(AngleOrCorner),
     Radial(EndingShape, Position),
@@ -271,6 +273,7 @@ impl ToComputedValue for specified::ColorStop {
 /// https://drafts.csswg.org/css-images/#valdef-radial-gradient-ending-shape
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum EndingShape {
     Circle(LengthOrKeyword),
     Ellipse(LengthOrPercentageOrKeyword),
@@ -336,6 +339,7 @@ impl ToComputedValue for specified::GradientEndingShape {
 /// https://drafts.csswg.org/css-images/#valdef-radial-gradient-size
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum LengthOrKeyword {
     Length(Length),
     Keyword(SizeKeyword),
@@ -394,6 +398,7 @@ impl ToComputedValue for specified::LengthOrKeyword {
 /// https://drafts.csswg.org/css-images/#valdef-radial-gradient-size
 #[derive(Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum LengthOrPercentageOrKeyword {
     LengthOrPercentage(LengthOrPercentage, LengthOrPercentage),
     Keyword(SizeKeyword),
@@ -458,6 +463,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrKeyword {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
 pub enum AngleOrCorner {
     Angle(Angle),
     Corner(HorizontalDirection, VerticalDirection)
