@@ -4,6 +4,8 @@
 
 //! Traversing the DOM tree; the bloom filter.
 
+#![deny(missing_docs)]
+
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
@@ -18,14 +20,23 @@ use std::mem;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use stylist::Stylist;
 
-/// Style sharing candidate cache stats. These are only used when
+/// Style sharing candidate cache hits. These are only used when
 /// `-Z style-sharing-stats` is given.
 pub static STYLE_SHARING_CACHE_HITS: AtomicUsize = ATOMIC_USIZE_INIT;
+
+/// Style sharing candidate cache misses.
 pub static STYLE_SHARING_CACHE_MISSES: AtomicUsize = ATOMIC_USIZE_INIT;
 
-// NB: Keep this as small as possible, please!
+/// A per-traversal-level chunk of data. This is sent down by the traversal, and
+/// currently only holds the dom depth for the bloom filter.
+///
+/// NB: Keep this as small as possible, please!
 #[derive(Clone, Debug)]
 pub struct PerLevelTraversalData {
+    /// The current dom depth, if known, or `None` otherwise.
+    ///
+    /// This is kept with cooperation from the traversal code and the bloom
+    /// filter.
     pub current_dom_depth: Option<usize>,
 }
 
@@ -37,10 +48,12 @@ pub struct PreTraverseToken {
 }
 
 impl PreTraverseToken {
+    /// Whether we should traverse children.
     pub fn should_traverse(&self) -> bool {
         self.traverse
     }
 
+    /// Whether we should traverse only unstyled children.
     pub fn traverse_unstyled_children_only(&self) -> bool {
         self.unstyled_children_only
     }
@@ -48,15 +61,22 @@ impl PreTraverseToken {
 
 /// Enum to prevent duplicate logging.
 pub enum LogBehavior {
+    /// We should log.
     MayLog,
+    /// We shouldn't log.
     DontLog,
 }
 use self::LogBehavior::*;
 impl LogBehavior {
-    fn allow(&self) -> bool { match *self { MayLog => true, DontLog => false, } }
+    fn allow(&self) -> bool { matches!(*self, MayLog) }
 }
 
+/// A DOM Traversal trait, that is used to generically implement styling for
+/// Gecko and Servo.
 pub trait DomTraversal<N: TNode> : Sync {
+    /// The thread-local context, used to store non-thread-safe stuff that needs
+    /// to be used in the traversal, and of which we use one per worker, like
+    /// the bloom filter, for example.
     type ThreadLocalContext: Send;
 
     /// Process `node` on the way down, before its children have been processed.
@@ -249,8 +269,10 @@ pub trait DomTraversal<N: TNode> : Sync {
     /// children of |element|.
     unsafe fn clear_element_data(element: &N::ConcreteElement);
 
+    /// Return the shared style context common to all worker threads.
     fn shared_context(&self) -> &SharedStyleContext;
 
+    /// Create a thread-local context.
     fn create_thread_local_context(&self) -> Self::ThreadLocalContext;
 }
 
@@ -529,6 +551,7 @@ fn preprocess_children<E, D>(traversal: &D,
     }
 }
 
+/// Clear style data for all the subtree under `el`.
 pub fn clear_descendant_data<E: TElement, F: Fn(E)>(el: E, clear_data: &F) {
     for kid in el.as_node().children() {
         if let Some(kid) = kid.as_element() {
