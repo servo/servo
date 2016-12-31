@@ -88,7 +88,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
             if let Animation::Transition(_, unsafe_node, _, ref frame, _) = running_animation {
                 script_chan.send(ConstellationControlMsg::TransitionEnd(unsafe_node,
                                                                         frame.property_animation
-                                                                             .property_name(),
+                                                                             .property_name().into(),
                                                                         frame.duration))
                            .unwrap();
             }

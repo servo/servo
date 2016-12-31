@@ -158,7 +158,13 @@ pub mod shorthands {
     <%include file="/shorthand/text.mako.rs" />
 }
 
+/// A module with all the code related to animated properties.
+///
+/// This needs to be loaded at least after all longhand modules, given they
+/// populate the global data.
 pub mod animated_properties {
+    #![deny(missing_docs)]
+
     <%include file="/helpers/animated_properties.mako.rs" />
 }
 
