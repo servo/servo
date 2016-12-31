@@ -268,7 +268,8 @@ impl CssRule {
     /// Note that only some types of rules can contain rules. An empty slice is
     /// used for others.
     pub fn with_nested_rules_and_mq<F, R>(&self, mut f: F) -> R
-    where F: FnMut(&[CssRule], Option<&MediaList>) -> R {
+        where F: FnMut(&[CssRule], Option<&MediaList>) -> R
+    {
         match *self {
             CssRule::Import(ref lock) => {
                 let rule = lock.read();

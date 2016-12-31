@@ -23,15 +23,22 @@ pub use super::image::{SizeKeyword, VerticalDirection};
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A font relative length.
 pub enum FontRelativeLength {
+    /// A "em" value: https://drafts.csswg.org/css-values/#em
     Em(CSSFloat),
+    /// A "ex" value: https://drafts.csswg.org/css-values/#ex
     Ex(CSSFloat),
+    /// A "ch" value: https://drafts.csswg.org/css-values/#ch
     Ch(CSSFloat),
+    /// A "rem" value: https://drafts.csswg.org/css-values/#rem
     Rem(CSSFloat)
 }
 
 impl ToCss for FontRelativeLength {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write
+    {
         match *self {
             FontRelativeLength::Em(length) => write!(dest, "{}em", length),
             FontRelativeLength::Ex(length) => write!(dest, "{}ex", length),

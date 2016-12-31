@@ -95,11 +95,12 @@ macro_rules! __define_css_keyword_enum__actual {
 
         impl ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-                where W: ::std::fmt::Write {
-                    match *self {
-                        $( $name::$variant => dest.write_str($css) ),+
-                    }
+                where W: ::std::fmt::Write
+            {
+                match *self {
+                    $( $name::$variant => dest.write_str($css) ),+
                 }
+            }
         }
     }
 }

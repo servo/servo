@@ -127,7 +127,7 @@ pub enum ViewportLength {
 
 impl ToCss for ViewportLength {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
+        where W: fmt::Write,
     {
         match *self {
             ViewportLength::Specified(length) => length.to_css(dest),
@@ -545,7 +545,9 @@ impl Cascade {
     }
 
     pub fn from_stylesheets<'a, I>(stylesheets: I, device: &Device) -> Self
-    where I: IntoIterator, I::Item: AsRef<Stylesheet> {
+        where I: IntoIterator,
+              I::Item: AsRef<Stylesheet>,
+    {
         let mut cascade = Self::new();
         for stylesheet in stylesheets {
             stylesheet.as_ref().effective_viewport_rules(device, |rule| {
@@ -581,10 +583,13 @@ impl Cascade {
     }
 }
 
+/// Just a helper trait to be able to implement methods on ViewportConstraints.
 pub trait MaybeNew {
+    /// Create a ViewportConstraints from a viewport size and a `@viewport`
+    /// rule.
     fn maybe_new(initial_viewport: TypedSize2D<f32, ViewportPx>,
-                     rule: &ViewportRule)
-                     -> Option<ViewportConstraints>;
+                 rule: &ViewportRule)
+                 -> Option<ViewportConstraints>;
 }
 
 impl MaybeNew for ViewportConstraints {

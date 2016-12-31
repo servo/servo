@@ -34,7 +34,8 @@ macro_rules! define_numbered_css_keyword_enum {
 
         impl ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-            where W: ::std::fmt::Write {
+                where W: ::std::fmt::Write,
+            {
                 match *self {
                     $( $name::$variant => dest.write_str($css) ),+
                 }
@@ -46,17 +47,26 @@ macro_rules! define_numbered_css_keyword_enum {
 pub mod computed;
 pub mod specified;
 
+/// A CSS float value.
 pub type CSSFloat = f32;
 
+/// The default font size.
 pub const FONT_MEDIUM_PX: i32 = 16;
 
+/// A trait used to represent whether this value has viewport units.
 pub trait HasViewportPercentage {
+    /// Returns true if this value has viewport units.
     fn has_viewport_percentage(&self) -> bool;
 }
 
+/// A trait used as a marker to represent that a given value has no viewport
+/// units.
 pub trait NoViewportPercentage {}
 
-impl<T> HasViewportPercentage for T where T: NoViewportPercentage {
+impl<T> HasViewportPercentage for T
+    where T: NoViewportPercentage,
+{
+    #[inline]
     fn has_viewport_percentage(&self) -> bool {
         false
     }

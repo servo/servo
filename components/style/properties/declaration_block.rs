@@ -405,9 +405,10 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
                                   importance: Importance,
                                   is_first_serialization: &mut bool)
                                   -> fmt::Result
-                                  where W: fmt::Write,
-                                        I: Iterator<Item=&'a PropertyDeclaration>,
-                                        N: ToCss {
+    where W: fmt::Write,
+          I: Iterator<Item=&'a PropertyDeclaration>,
+          N: ToCss
+{
     try!(handle_first_serialization(dest, is_first_serialization));
 
     // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
@@ -525,4 +526,3 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
     super::deduplicate_property_declarations(&mut block);
     block
 }
-

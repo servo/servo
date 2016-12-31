@@ -182,15 +182,24 @@ pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
     (a as *const T) == (b as *const T)
 }
 
-pub fn serialize_comma_separated_list<W, T>(dest: &mut W, list: &[T])
-                                            -> fmt::Result where W: fmt::Write, T: ToCss {
-    if list.len() > 0 {
-        for item in &list[..list.len()-1] {
-            try!(item.to_css(dest));
-            try!(write!(dest, ", "));
-        }
-        list[list.len()-1].to_css(dest)
-    } else {
-        Ok(())
+/// Serializes as CSS a comma-separated list of any `T` that supports being
+/// serialized as CSS.
+pub fn serialize_comma_separated_list<W, T>(dest: &mut W,
+                                            list: &[T])
+                                            -> fmt::Result
+    where W: fmt::Write,
+          T: ToCss,
+{
+    if list.is_empty() {
+        return Ok(());
     }
+
+    try!(list[0].to_css(dest));
+
+    for item in list.iter().skip(1) {
+        try!(write!(dest, ", "));
+        try!(item.to_css(dest));
+    }
+
+    Ok(())
 }
