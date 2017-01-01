@@ -14,7 +14,7 @@ use flate2::write::{DeflateEncoder, GzEncoder};
 use hyper::LanguageTag;
 use hyper::header::{Accept, AcceptEncoding, ContentEncoding, ContentLength, Cookie as CookieHeader};
 use hyper::header::{AcceptLanguage, Authorization, Basic, Date};
-use hyper::header::{Encoding, Headers, Host, Location, Quality, QualityItem, SetCookie, qitem};
+use hyper::header::{Encoding, Headers, Host, Location, Origin, Quality, QualityItem, SetCookie, qitem};
 use hyper::header::{StrictTransportSecurity, UserAgent};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -28,15 +28,17 @@ use net::cookie_storage::CookieStorage;
 use net::resource_thread::AuthCacheEntry;
 use net_traits::{CookieSource, NetworkError};
 use net_traits::hosts::replace_host_table;
-use net_traits::request::{Request, RequestInit, CredentialsMode, Destination};
+use net_traits::request::{Request, RequestInit, RequestMode, CredentialsMode, Destination};
 use net_traits::response::ResponseBody;
 use new_fetch_context;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::io::{Read, Write};
+use std::str::FromStr;
 use std::sync::{Arc, Mutex, RwLock, mpsc};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
+use url::Url;
 
 fn read_response(reader: &mut Read) -> String {
     let mut buf = vec![0; 1024];
@@ -146,8 +148,13 @@ fn test_check_default_headers_loaded_in_every_request() {
     assert!(response.status.unwrap().is_success());
 
     // Testing for method.POST
-    headers.set(ContentLength(0 as u64));
-    *expected_headers.lock().unwrap() = Some(headers.clone());
+    let mut post_headers = headers.clone();
+    post_headers.set(ContentLength(0 as u64));
+    let url_str = url.as_str();
+    // request gets header "Origin: http://example.com" but expected_headers has
+    // "Origin: http://example.com/" which do not match for equality so strip trailing '/'
+    post_headers.set(Origin::from_str(&url_str[..url_str.len()-1]).unwrap());
+    *expected_headers.lock().unwrap() = Some(post_headers);
     let request = Request::from_init(RequestInit {
         url: url.clone(),
         method: Method::Post,
@@ -1192,4 +1199,59 @@ fn test_cookies_blocked() {
     let _ = server.close();
 
     assert!(response.status.unwrap().is_success());
+}
+
+#[test]
+fn test_origin_set() {
+    let origin_header = Arc::new(Mutex::new(None));
+    let origin_header_clone = origin_header.clone();
+    let handler = move |request: HyperRequest, _: HyperResponse| {
+        let origin_header_clone = origin_header.clone();
+        match request.headers.get::<Origin>() {
+            None => assert_eq!(origin_header_clone.lock().unwrap().take(), None),
+            Some(h) => assert_eq!(*h, origin_header_clone.lock().unwrap().take().unwrap()),
+        }
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = Origin::new(url.scheme(), url.host_str().unwrap(), url.port());
+    *origin_header_clone.lock().unwrap() = Some(origin.clone());
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Post,
+        body: None,
+        origin: url.clone(),
+        .. RequestInit::default()
+    });
+    let response = fetch(request, None);
+    assert!(response.status.unwrap().is_success());
+
+    // Test Origin header is set on Get request with CORS mode
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Get,
+        mode: RequestMode::CorsMode,
+        body: None,
+        origin: url.clone(),
+        .. RequestInit::default()
+    });
+
+    *origin_header_clone.lock().unwrap() = Some(origin.clone());
+    let response = fetch(request, None);
+    assert!(response.status.unwrap().is_success());
+
+    // Test Origin header is not set on method Head
+    let request = Request::from_init(RequestInit {
+        url: url.clone(),
+        method: Method::Head,
+        body: None,
+        origin: url.clone(),
+        .. RequestInit::default()
+    });
+
+    *origin_header_clone.lock().unwrap() = None;
+    let response = fetch(request, None);
+    assert!(response.status.unwrap().is_success());
+
+    let _ = server.close();
 }

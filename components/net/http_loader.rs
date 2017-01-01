@@ -23,6 +23,7 @@ use hyper::header::{Authorization, Basic, CacheControl, CacheDirective, ContentE
 use hyper::header::{ContentLength, Encoding, Header, Headers, Host, IfMatch, IfRange};
 use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, Pragma, Quality};
 use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
+use hyper::header::Origin as HyperOrigin;
 use hyper::method::Method;
 use hyper::net::Fresh;
 use hyper::status::StatusCode;
@@ -788,6 +789,15 @@ fn http_redirect_fetch(request: Rc<Request>,
     main_fetch(request, cache, cors_flag, true, target, done_chan, context)
 }
 
+fn try_url_origin_to_hyper_origin(url_origin: UrlOrigin) -> Option<HyperOrigin> {
+    match url_origin {
+        // TODO Set "Origin: null" when hyper supports it
+        UrlOrigin::Opaque(_) => None,
+        UrlOrigin::Tuple(scheme, host, port) =>
+            Some(HyperOrigin::new(scheme, host.to_string(), Some(port)))
+    }
+}
+
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
 fn http_network_or_cache_fetch(request: Rc<Request>,
                                credentials_flag: bool,
@@ -837,8 +847,19 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
     // Step 7
     if http_request.omit_origin_header.get() == false {
-        // TODO update this when https://github.com/hyperium/hyper/pull/691 is finished
-        // http_request.headers.borrow_mut().set_raw("origin", origin);
+        let method = http_request.method.borrow();
+        if (http_request.mode == RequestMode::CorsMode) ||
+            (*method != Method::Get && *method != Method::Head) {
+            match *http_request.origin.borrow() {
+                Origin::Origin(ref url_origin) =>
+                    match try_url_origin_to_hyper_origin(url_origin.clone()) {
+                        Some(hyper_origin) => http_request.headers.borrow_mut().set(hyper_origin),
+                        None => (),
+                    },
+                // TODO Set origin to client origin when request has client object
+                Origin::Client => (),
+            }
+        }
     }
 
     // Step 8
