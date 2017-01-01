@@ -1246,7 +1246,7 @@ impl ScriptThread {
     }
 
     fn handle_loads_complete(&self, pipeline_id: PipelineId, initial_about_blank: bool) {
-        let doc = match self.documents.borrow().find_document(pipeline_id) {
+        let doc = match { self.documents.borrow().find_document(pipeline_id) } {
             Some(doc) => doc,
             None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };

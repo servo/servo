@@ -93,10 +93,6 @@ pub struct FrameChange {
     /// The frame to change.
     pub frame_id: FrameId,
 
-    /// The pipeline that was currently active at the time the change started.
-    /// TODO: can this field be removed?
-    pub old_pipeline_id: Option<PipelineId>,
-
     /// The pipeline for the document being loaded.
     pub new_pipeline_id: PipelineId,
 

@@ -889,7 +889,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        load_info.info.parent_pipeline_id,
-                       load_info.old_pipeline_id,
+                       load_info.info.frame_id,
                        load_info.info.new_pipeline_id);
                 self.handle_script_loaded_url_in_iframe_msg(load_info);
             }
@@ -1251,7 +1251,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.new_pipeline(new_pipeline_id, top_level_frame_id, parent_info, window_size, load_data, sandbox, false);
         self.pending_frames.push(FrameChange {
             frame_id: top_level_frame_id,
-            old_pipeline_id: pipeline_id,
             new_pipeline_id: new_pipeline_id,
             replace: false,
         });
@@ -1284,7 +1283,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.handle_load_start_msg(root_pipeline_id);
         self.pending_frames.push(FrameChange {
             frame_id: self.root_frame_id,
-            old_pipeline_id: None,
             new_pipeline_id: root_pipeline_id,
             replace: false,
         });
@@ -1352,8 +1350,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .collect::<Vec<_>>();
 
         let (load_data, window_size, is_private, event_loop) = {
-            let old_pipeline = load_info.old_pipeline_id
-                .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
+            let frame = match self.frames.get(&load_info.info.frame_id) {
+                Some(frame) => frame,
+                None => return warn!("Script loaded url in closed iframe {}.", load_info.info.frame_id),
+            };
+
+            let old_pipeline = self.pipelines.get(&frame.current.pipeline_id);
 
             let source_pipeline = match self.pipelines.get(&load_info.info.parent_pipeline_id) {
                 Some(source_pipeline) => source_pipeline,
@@ -1413,7 +1415,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 warn!("Sending to script during pipeline creation failed ({})", e);
             }
 
-            self.load_about_blank_in_iframe(load_info.old_pipeline_id, load_info.info, pipeline_chan);
+            self.handle_script_loaded_about_blank_in_iframe_msg(load_info.info, pipeline_chan);
             return;
         }
 
@@ -1428,7 +1430,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         self.pending_frames.push(FrameChange {
             frame_id: load_info.info.frame_id,
-            old_pipeline_id: load_info.old_pipeline_id,
             new_pipeline_id: load_info.info.new_pipeline_id,
             replace: load_info.info.replace,
         });
@@ -1437,13 +1438,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_script_loaded_about_blank_in_iframe_msg(&mut self,
                                                       load_info: IFrameLoadInfo,
                                                       layout_sender: IpcSender<LayoutControlMsg>) {
-        self.load_about_blank_in_iframe(None, load_info, layout_sender);
-    }
-
-    fn load_about_blank_in_iframe(&mut self,
-                                  old_pipeline_id: Option<PipelineId>,
-                                  load_info: IFrameLoadInfo,
-                                  layout_sender: IpcSender<LayoutControlMsg>) {
         let IFrameLoadInfo {
             parent_pipeline_id,
             new_pipeline_id,
@@ -1479,7 +1473,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         self.pending_frames.push(FrameChange {
             frame_id: frame_id,
-            old_pipeline_id: old_pipeline_id,
             new_pipeline_id: new_pipeline_id,
             replace: replace,
         });
@@ -1586,13 +1579,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 Some(source_id)
             }
             None => {
+                // TODO(cbrewster): Cancel old loads and initiate new load
                 // Make sure no pending page would be overridden.
-                for frame_change in &self.pending_frames {
-                    if frame_change.old_pipeline_id == Some(source_id) {
-                        // id that sent load msg is being changed already; abort
-                        return None;
-                    }
-                }
+                // for frame_change in &self.pending_frames {
+                //     if frame_change.old_pipeline_id == Some(source_id) {
+                //         // id that sent load msg is being changed already; abort
+                //         return None;
+                //     }
+                // }
 
                 if !self.pipeline_is_in_current_frame(source_id) {
                     // Disregard this load if the navigating pipeline is not actually
@@ -1614,7 +1608,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.new_pipeline(new_pipeline_id, root_frame_id, None, window_size, load_data, sandbox, false);
                 self.pending_frames.push(FrameChange {
                     frame_id: root_frame_id,
-                    old_pipeline_id: Some(source_id),
                     new_pipeline_id: new_pipeline_id,
                     replace: replace,
                 });
@@ -1782,12 +1775,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let frame_id = frame_id.unwrap_or(self.root_frame_id);
         let current_pipeline_id = self.frames.get(&frame_id)
             .map(|frame| frame.current.pipeline_id);
-        let current_pipeline_id_loaded = current_pipeline_id
-            .map(|id| id);
+        // TODO(cbrewster): Should we really be sending back a pending non-mature pipeline?
         let pipeline_id_loaded = self.pending_frames.iter().rev()
-            .find(|x| x.old_pipeline_id == current_pipeline_id)
+            .find(|x| x.frame_id == frame_id)
             .map(|x| x.new_pipeline_id)
-            .or(current_pipeline_id_loaded);
+            .or(current_pipeline_id);
         if let Err(e) = resp_chan.send(pipeline_id_loaded) {
             warn!("Failed get_pipeline response ({}).", e);
         }
@@ -2090,12 +2082,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If the currently focused pipeline is the one being changed (or a child
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
-        if let Some(old_pipeline_id) = frame_change.old_pipeline_id {
-            if let Some(old_frame_id) = self.pipelines.get(&old_pipeline_id).map(|pipeline| pipeline.frame_id) {
-                if self.focused_pipeline_in_tree(old_frame_id) {
-                    self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
-                }
-            }
+        if self.focused_pipeline_in_tree(frame_change.frame_id) {
+            self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
         }
 
         if self.frames.contains_key(&frame_change.frame_id) {

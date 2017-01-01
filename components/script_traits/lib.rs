@@ -518,8 +518,6 @@ pub struct IFrameLoadInfoWithData {
     pub info: IFrameLoadInfo,
     /// Load data containing the url to load
     pub load_data: Option<LoadData>,
-    /// The old pipeline ID for this iframe, if a page was previously loaded.
-    pub old_pipeline_id: Option<PipelineId>,
     /// Sandbox type of this iframe
     pub sandbox: IFrameSandboxState,
 }

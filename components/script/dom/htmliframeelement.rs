@@ -112,11 +112,10 @@ impl HTMLIFrameElement {
         }).unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
     }
 
-    pub fn generate_new_pipeline_id(&self) -> (Option<PipelineId>, PipelineId) {
-        let old_pipeline_id = self.pipeline_id.get();
+    pub fn generate_new_pipeline_id(&self) -> PipelineId {
         let new_pipeline_id = PipelineId::new();
         debug!("Frame {} created pipeline {}.", self.frame_id, new_pipeline_id);
-        (old_pipeline_id, new_pipeline_id)
+        new_pipeline_id
     }
 
     pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>, nav_type: NavigationType) {
@@ -141,7 +140,7 @@ impl HTMLIFrameElement {
         }
 
         let window = window_from_node(self);
-        let (old_pipeline_id, new_pipeline_id) = self.generate_new_pipeline_id();
+        let new_pipeline_id = self.generate_new_pipeline_id();
         let private_iframe = self.privatebrowsing();
         let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
@@ -183,7 +182,6 @@ impl HTMLIFrameElement {
                 let load_info = IFrameLoadInfoWithData {
                     info: load_info,
                     load_data: load_data,
-                    old_pipeline_id: old_pipeline_id,
                     sandbox: sandboxed,
                 };
                 global_scope
@@ -308,6 +306,7 @@ impl HTMLIFrameElement {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
         if Some(loaded_pipeline) != self.pipeline_id() { return; }
+        // self.pipeline_id.set(Some(loaded_pipeline));
 
         // TODO A cross-origin child document would not be easily accessible
         //      from this script thread. It's unclear how to implement
