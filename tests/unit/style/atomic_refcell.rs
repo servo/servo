@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use style::atomic_refcell::{AtomicRef, AtomicRefCell};
+use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use test::Bencher;
 
 struct Foo {
@@ -17,6 +17,60 @@ impl Default for Bar {
     fn default() -> Self {
         Bar { f: Foo { u: 42 } }
     }
+}
+
+// FIXME(bholley): Add tests to exercise this in concurrent scenarios.
+
+#[test]
+fn immutable() {
+    let a = AtomicRefCell::new(Bar::default());
+    let _first = a.borrow();
+    let _second = a.borrow();
+}
+
+#[test]
+fn mutable() {
+    let a = AtomicRefCell::new(Bar::default());
+    let _ = a.borrow_mut();
+}
+
+#[test]
+fn interleaved() {
+    let a = AtomicRefCell::new(Bar::default());
+    {
+        let _ = a.borrow_mut();
+    }
+    {
+        let _first = a.borrow();
+        let _second = a.borrow();
+    }
+    {
+        let _ = a.borrow_mut();
+    }
+}
+
+#[test]
+#[should_panic(expected = "already immutably borrowed")]
+fn immutable_then_mutable() {
+    let a = AtomicRefCell::new(Bar::default());
+    let _first = a.borrow();
+    let _second = a.borrow_mut();
+}
+
+#[test]
+#[should_panic(expected = "already mutably borrowed")]
+fn mutable_then_immutable() {
+    let a = AtomicRefCell::new(Bar::default());
+    let _first = a.borrow_mut();
+    let _second = a.borrow();
+}
+
+#[test]
+#[should_panic(expected = "already mutably borrowed")]
+fn double_mutable() {
+    let a = AtomicRefCell::new(Bar::default());
+    let _first = a.borrow_mut();
+    let _second = a.borrow_mut();
 }
 
 #[test]
@@ -57,19 +111,17 @@ fn mutable_borrow(b: &mut Bencher) {
     b.iter(|| a.borrow_mut());
 }
 
-/* FIXME(bholley): Enable once we have AtomicRefMut::map(), which is blocked on
- * https://github.com/Kimundi/owning-ref-rs/pull/16
 #[test]
 fn map_mut() {
-    let a = AtomicRefCell::new(Bar { f: Foo { u: 42 } });
+    let a = AtomicRefCell::new(Bar::default());
     let mut b = a.borrow_mut();
     assert_eq!(b.f.u, 42);
     b.f.u = 43;
-    let mut c = AtomicRefMut::map(b, |x| &x.f);
+    let mut c = AtomicRefMut::map(b, |x| &mut x.f);
     assert_eq!(c.u, 43);
     c.u = 44;
-    let mut d = AtomicRefMut::map(c, |x| &x.u);
+    let mut d = AtomicRefMut::map(c, |x| &mut x.u);
     assert_eq!(*d, 44);
-    *d. = 45;
+    *d = 45;
     assert_eq!(*d, 45);
-}*/
+}
