@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! The context within which style is calculated.
+#![deny(missing_docs)]
 
 use animation::Animation;
 use app_units::Au;
@@ -24,6 +25,7 @@ pub struct ThreadLocalStyleContextCreationInfo {
 }
 
 impl ThreadLocalStyleContextCreationInfo {
+    /// Trivially constructs a `ThreadLocalStyleContextCreationInfo`.
     pub fn new(animations_sender: Sender<Animation>) -> Self {
         ThreadLocalStyleContextCreationInfo {
             new_animations_sender: animations_sender,
@@ -31,14 +33,24 @@ impl ThreadLocalStyleContextCreationInfo {
     }
 }
 
+/// Which quirks mode is this document in.
+///
+/// See: https://quirks.spec.whatwg.org/
 #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum QuirksMode {
+    /// Quirks mode.
     Quirks,
+    /// Limited quirks mode.
     LimitedQuirks,
+    /// No quirks mode.
     NoQuirks,
 }
 
+/// A shared style context.
+///
+/// There's exactly one of these during a given restyle traversal, and it's
+/// shared among the worker threads.
 pub struct SharedStyleContext {
     /// The current viewport size.
     pub viewport_size: Size2D<Au>,
@@ -72,8 +84,15 @@ pub struct SharedStyleContext {
     pub quirks_mode: QuirksMode,
 }
 
+/// A thread-local style context.
+///
+/// This context contains data that needs to be used during restyling, but is
+/// not required to be unique among worker threads, so we create one per worker
+/// thread in order to be able to mutate it without locking.
 pub struct ThreadLocalStyleContext<E: TElement> {
+    /// A cache to share style among siblings.
     pub style_sharing_candidate_cache: StyleSharingCandidateCache<E>,
+    /// The bloom filter used to fast-reject selector-matching.
     pub bloom_filter: StyleBloom<E>,
     /// A channel on which new animations that have been triggered by style
     /// recalculation can be sent.
@@ -81,6 +100,7 @@ pub struct ThreadLocalStyleContext<E: TElement> {
 }
 
 impl<E: TElement> ThreadLocalStyleContext<E> {
+    /// Create a new `ThreadLocalStyleContext` from a shared one.
     pub fn new(shared: &SharedStyleContext) -> Self {
         ThreadLocalStyleContext {
             style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
@@ -90,8 +110,12 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
     }
 }
 
+/// A `StyleContext` is just a simple container for a immutable reference to a
+/// shared style context, and a mutable reference to a local one.
 pub struct StyleContext<'a, E: TElement + 'a> {
+    /// The shared style context reference.
     pub shared: &'a SharedStyleContext,
+    /// The thread-local style context (mutable) reference.
     pub thread_local: &'a mut ThreadLocalStyleContext<E>,
 }
 
