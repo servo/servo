@@ -150,9 +150,8 @@ pub fn str_join<I, T>(strs: I, join: &str) -> String
 /// Like AsciiExt::to_ascii_lowercase, but avoids allocating when the input is already lower-case.
 pub fn cow_into_ascii_lowercase<'a, S: Into<Cow<'a, str>>>(s: S) -> Cow<'a, str> {
     let mut cow = s.into();
-    match cow.bytes().position(|byte| byte >= b'A' && byte <= b'Z') {
-        Some(first_uppercase) => cow.to_mut()[first_uppercase..].make_ascii_lowercase(),
-        None => {}
+    if let Some(first_uppercase) = cow.bytes().position(|byte| byte >= b'A' && byte <= b'Z') {
+        cow.to_mut()[first_uppercase..].make_ascii_lowercase();
     }
     cow
 }
