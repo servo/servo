@@ -90,6 +90,7 @@ extern crate unicode_segmentation;
 pub mod animation;
 #[allow(missing_docs)] // TODO: Under a rewrite.
 pub mod atomic_refcell;
+#[allow(missing_docs)] // TODO.
 pub mod attr;
 pub mod bezier;
 pub mod bloom;
