@@ -26,6 +26,7 @@ from servo.command_base import (
     CommandBase,
     call, check_call, find_dep_path_newest,
     is_windows, is_macosx, set_osmesa_env,
+    get_browserhtml_path,
 )
 
 
@@ -97,11 +98,7 @@ class PostBuildCommands(CommandBase):
         args = [self.get_binary_path(release, dev)]
 
         if browserhtml:
-            browserhtml_path = find_dep_path_newest('browserhtml', args[0])
-            if browserhtml_path is None:
-                print("Could not find browserhtml package; perhaps you haven't built Servo.")
-                return 1
-
+            browserhtml_path = get_browserhtml_path('browserhtml', args[0])
             if is_macosx():
                 # Enable borderless on OSX
                 args = args + ['-b']
