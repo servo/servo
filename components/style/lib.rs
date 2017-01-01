@@ -107,6 +107,7 @@ pub mod font_metrics;
 pub mod keyframes;
 pub mod logical_geometry;
 pub mod matching;
+#[allow(missing_docs)]
 pub mod media_queries;
 pub mod owning_handle;
 pub mod parallel;
