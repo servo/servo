@@ -88,6 +88,7 @@ extern crate time;
 extern crate unicode_segmentation;
 
 pub mod animation;
+#[allow(missing_docs)] // TODO: Under a rewrite.
 pub mod atomic_refcell;
 pub mod attr;
 pub mod bezier;
