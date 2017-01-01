@@ -4,13 +4,16 @@
 
 //! Restyle hints: an optimization to avoid unnecessarily matching selectors.
 
+#![deny(missing_docs)]
+
 use Atom;
+use dom::TElement;
 use element_state::*;
 #[cfg(feature = "gecko")]
 use gecko_bindings::structs::nsRestyleHint;
 #[cfg(feature = "servo")]
 use heapsize::HeapSizeOf;
-use selector_parser::{AttrValue, ElementExt, NonTSPseudoClass, Snapshot, SelectorImpl};
+use selector_parser::{AttrValue, NonTSPseudoClass, Snapshot, SelectorImpl};
 use selectors::{Element, MatchAttr};
 use selectors::matching::{MatchingReason, StyleRelations};
 use selectors::matching::matches_complex_selector;
@@ -18,13 +21,14 @@ use selectors::parser::{AttrSelector, Combinator, ComplexSelector, SimpleSelecto
 use std::clone::Clone;
 use std::sync::Arc;
 
-/// When the ElementState of an element (like IN_HOVER_STATE) changes, certain
-/// pseudo-classes (like :hover) may require us to restyle that element, its
-/// siblings, and/or its descendants. Similarly, when various attributes of an
-/// element change, we may also need to restyle things with id, class, and
-/// attribute selectors. Doing this conservatively is expensive, and so we use
-/// RestyleHints to short-circuit work we know is unnecessary.
 bitflags! {
+    /// When the ElementState of an element (like IN_HOVER_STATE) changes,
+    /// certain pseudo-classes (like :hover) may require us to restyle that
+    /// element, its siblings, and/or its descendants. Similarly, when various
+    /// attributes of an element change, we may also need to restyle things with
+    /// id, class, and attribute selectors. Doing this conservatively is
+    /// expensive, and so we use RestyleHints to short-circuit work we know is
+    /// unnecessary.
     pub flags RestyleHint: u32 {
         #[doc = "Rerun selector matching on the element."]
         const RESTYLE_SELF = 0x01,
@@ -99,26 +103,28 @@ pub trait ElementSnapshot : Sized + MatchAttr<Impl=SelectorImpl> {
 }
 
 struct ElementWrapper<'a, E>
-    where E: ElementExt
+    where E: TElement,
 {
     element: E,
     snapshot: Option<&'a Snapshot>,
 }
 
 impl<'a, E> ElementWrapper<'a, E>
-    where E: ElementExt
+    where E: TElement,
 {
+    /// Trivially constructs an `ElementWrapper` without a snapshot.
     pub fn new(el: E) -> ElementWrapper<'a, E> {
         ElementWrapper { element: el, snapshot: None }
     }
 
+    /// Trivially constructs an `ElementWrapper` with a snapshot.
     pub fn new_with_snapshot(el: E, snapshot: &'a Snapshot) -> ElementWrapper<'a, E> {
         ElementWrapper { element: el, snapshot: Some(snapshot) }
     }
 }
 
 impl<'a, E> MatchAttr for ElementWrapper<'a, E>
-    where E: ElementExt,
+    where E: TElement,
 {
     type Impl = SelectorImpl;
 
@@ -202,7 +208,7 @@ impl<'a, E> MatchAttr for ElementWrapper<'a, E>
 }
 
 impl<'a, E> Element for ElementWrapper<'a, E>
-    where E: ElementExt<Impl=SelectorImpl>
+    where E: TElement,
 {
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
         let flag = SelectorImpl::pseudo_class_state_flag(&pseudo_class);
@@ -393,6 +399,7 @@ impl DependencySet {
         }
     }
 
+    /// Create an empty `DependencySet`.
     pub fn new() -> Self {
         DependencySet {
             state_deps: vec![],
@@ -401,10 +408,13 @@ impl DependencySet {
         }
     }
 
+    /// Return the total number of dependencies that this set contains.
     pub fn len(&self) -> usize {
         self.common_deps.len() + self.attr_deps.len() + self.state_deps.len()
     }
 
+    /// Create the needed dependencies that a given selector creates, and add
+    /// them to the set.
     pub fn note_selector(&mut self, selector: &Arc<ComplexSelector<SelectorImpl>>) {
         let mut cur = selector;
         let mut combinator: Option<Combinator> = None;
@@ -434,18 +444,22 @@ impl DependencySet {
         }
     }
 
+    /// Clear this dependency set.
     pub fn clear(&mut self) {
         self.common_deps.clear();
         self.attr_deps.clear();
         self.state_deps.clear();
     }
 
-    pub fn compute_hint<E>(&self, el: &E,
-                           snapshot: &Snapshot,
-                           current_state: ElementState)
+    /// Compute a restyle hint given an element and a snapshot, per the rules
+    /// explained in the rest of the documentation.
+    pub fn compute_hint<E>(&self,
+                           el: &E,
+                           snapshot: &Snapshot)
                            -> RestyleHint
-        where E: ElementExt + Clone
+        where E: TElement + Clone,
     {
+        let current_state = el.get_state();
         let state_changes = snapshot.state()
                                     .map_or_else(ElementState::empty, |old_state| current_state ^ old_state);
         let attrs_changed = snapshot.has_attrs();
@@ -483,7 +497,7 @@ impl DependencySet {
                                state_changes: &ElementState,
                                attrs_changed: bool,
                                hint: &mut RestyleHint)
-        where E: ElementExt
+        where E: TElement,
     {
         if hint.is_all() {
             return;

@@ -295,10 +295,8 @@ impl RestyleData {
         }
 
         // Compute the hint.
-        let state = element.get_state();
         let mut hint = stylist.compute_restyle_hint(&element,
-                                                    self.snapshot.as_ref().unwrap(),
-                                                    state);
+                                                    self.snapshot.as_ref().unwrap());
 
         // If the hint includes a directive for later siblings, strip it out and
         // notify the caller to modify the base hint for future siblings.

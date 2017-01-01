@@ -8,8 +8,7 @@
 
 use {Atom, LocalName};
 use data::ComputedStyle;
-use dom::PresentationalHintsSynthetizer;
-use element_state::*;
+use dom::{PresentationalHintsSynthetizer, TElement};
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::{Device, MediaType};
@@ -662,16 +661,11 @@ impl Stylist {
     /// restyle we need to do.
     pub fn compute_restyle_hint<E>(&self,
                                    element: &E,
-                                   snapshot: &Snapshot,
-                                   // NB: We need to pass current_state as an argument because
-                                   // selectors::Element doesn't provide access to ElementState
-                                   // directly, and computing it from the ElementState would be
-                                   // more expensive than getting it directly from the caller.
-                                   current_state: ElementState)
+                                   snapshot: &Snapshot)
                                    -> RestyleHint
-        where E: ElementExt + Clone,
+        where E: TElement,
     {
-        self.state_deps.compute_hint(element, snapshot, current_state)
+        self.state_deps.compute_hint(element, snapshot)
     }
 }
 
