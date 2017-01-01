@@ -211,7 +211,7 @@ impl FetchResponseListener for ScriptContext {
         elem.ready_to_be_parser_executed.set(true);
 
         let document = document_from_node(&*elem);
-        document.finish_load(LoadType::Script(self.url.clone()));
+        document.finish_load(LoadType::Script(self.url.clone()), false);
     }
 }
 

@@ -152,7 +152,7 @@ impl FetchResponseListener for HTMLMediaElementContext {
         }
 
         let document = document_from_node(&*elem);
-        document.finish_load(LoadType::Media(self.url.clone()));
+        document.finish_load(LoadType::Media(self.url.clone()), false);
     }
 }
 

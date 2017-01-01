@@ -1563,7 +1563,7 @@ impl Document {
         loader.fetch_async(load, request, fetch_target);
     }
 
-    pub fn finish_load(&self, load: LoadType) {
+    pub fn finish_load(&self, load: LoadType, initial_about_blank: bool) {
         debug!("Document got finish_load: {:?}", load);
         // The parser might need the loader, so restrict the lifetime of the borrow.
         {
@@ -1600,7 +1600,7 @@ impl Document {
             debug!("Document loads are complete.");
             let win = self.window();
             let msg = MainThreadScriptMsg::DocumentLoadsComplete(
-                win.upcast::<GlobalScope>().pipeline_id());
+                win.upcast::<GlobalScope>().pipeline_id(), initial_about_blank);
             win.main_thread_script_chan().send(msg).unwrap();
         }
     }
@@ -3285,13 +3285,15 @@ pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
 }
 
 pub struct DocumentProgressHandler {
-    addr: Trusted<Document>
+    addr: Trusted<Document>,
+    initial_about_blank: bool,
 }
 
 impl DocumentProgressHandler {
-     pub fn new(addr: Trusted<Document>) -> DocumentProgressHandler {
+     pub fn new(addr: Trusted<Document>, initial_about_blank: bool) -> DocumentProgressHandler {
         DocumentProgressHandler {
-            addr: addr
+            addr: addr,
+            initial_about_blank: initial_about_blank,
         }
     }
 
@@ -3336,7 +3338,9 @@ impl Runnable for DocumentProgressHandler {
         let window = document.window();
         if window.is_alive() {
             self.set_ready_state_complete();
-            self.dispatch_load();
+            if !self.initial_about_blank {
+                self.dispatch_load();
+            }
         }
     }
 }

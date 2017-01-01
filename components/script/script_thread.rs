@@ -238,7 +238,7 @@ pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
     /// Notify a document that all pending loads are complete.
-    DocumentLoadsComplete(PipelineId),
+    DocumentLoadsComplete(PipelineId, bool),
     /// Notifies the script that a window associated with a particular pipeline
     /// should be closed (only dispatched to ScriptThread).
     ExitWindow(PipelineId),
@@ -1024,8 +1024,8 @@ impl ScriptThread {
                 self.handle_navigate(parent_pipeline_id, None, load_data, replace),
             MainThreadScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
-            MainThreadScriptMsg::DocumentLoadsComplete(id) =>
-                self.handle_loads_complete(id),
+            MainThreadScriptMsg::DocumentLoadsComplete(id, initial_about_blank) =>
+                self.handle_loads_complete(id, initial_about_blank),
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
                 // The category of the runnable is ignored by the pattern, however
                 // it is still respected by profiling (see categorize_msg).
@@ -1245,10 +1245,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_loads_complete(&self, pipeline: PipelineId) {
-        let doc = match { self.documents.borrow().find_document(pipeline) } {
+    fn handle_loads_complete(&self, pipeline_id: PipelineId, initial_about_blank: bool) {
+        let doc = match self.documents.borrow().find_document(pipeline_id) {
             Some(doc) => doc,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline),
+            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
         };
         if doc.loader().is_blocked() {
             debug!("Script thread got loads complete while loader is blocked.");
@@ -1260,7 +1260,7 @@ impl ScriptThread {
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         // Schedule a task to fire a "load" event (if no blocking loads have arrived in the mean time)
         // NOTE: we can end up executing this code more than once, in case more blocking loads arrive.
-        let handler = box DocumentProgressHandler::new(Trusted::new(&doc));
+        let handler = box DocumentProgressHandler::new(Trusted::new(&doc), initial_about_blank);
         self.dom_manipulation_task_source.queue(handler, doc.window().upcast()).unwrap();
 
         if let Some(fragment) = doc.url().fragment() {
@@ -2141,7 +2141,7 @@ impl ScriptThread {
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let url = ServoUrl::parse("about:blank").unwrap();
-        let mut context = ParserContext::new(id, url.clone());
+        let mut context = ParserContext::new_initial(id, url.clone());
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime!(Text / Html)));

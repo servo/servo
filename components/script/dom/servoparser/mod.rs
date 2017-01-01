@@ -412,6 +412,8 @@ pub struct ParserContext {
     id: PipelineId,
     /// The URL for this document.
     url: ServoUrl,
+    /// Whether this is the initial about:blank load for an iframe
+    initial_about_blank: bool,
 }
 
 impl ParserContext {
@@ -421,6 +423,17 @@ impl ParserContext {
             is_synthesized_document: false,
             id: id,
             url: url,
+            initial_about_blank: false,
+        }
+    }
+
+    pub fn new_initial(id: PipelineId, url: ServoUrl) -> ParserContext {
+        ParserContext {
+            parser: None,
+            is_synthesized_document: false,
+            id: id,
+            url: url,
+            initial_about_blank: true,
         }
     }
 }
@@ -544,7 +557,7 @@ impl FetchResponseListener for ParserContext {
         }
 
         parser.document
-            .finish_load(LoadType::PageSource(self.url.clone()));
+            .finish_load(LoadType::PageSource(self.url.clone()), self.initial_about_blank);
 
         parser.last_chunk_received.set(true);
         if !parser.suspended.get() {

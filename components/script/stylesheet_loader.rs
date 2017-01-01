@@ -168,7 +168,7 @@ impl FetchResponseListener for StylesheetContext {
         }
 
         let url = self.source.url();
-        document.finish_load(LoadType::Stylesheet(url));
+        document.finish_load(LoadType::Stylesheet(url), false);
 
         if let Some(any_failed) = owner.load_finished(successful) {
             let event = if any_failed { atom!("error") } else { atom!("load") };
