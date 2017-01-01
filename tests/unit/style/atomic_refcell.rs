@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use style::atomic_refcell::{AtomicRef, AtomicRefCell};
+use test::Bencher;
 
 struct Foo {
     u: u32,
@@ -12,15 +13,48 @@ struct Bar {
     f: Foo,
 }
 
+impl Default for Bar {
+    fn default() -> Self {
+        Bar { f: Foo { u: 42 } }
+    }
+}
+
 #[test]
 fn map() {
-    let a = AtomicRefCell::new(Bar { f: Foo { u: 42 } });
+    let a = AtomicRefCell::new(Bar::default());
     let b = a.borrow();
     assert_eq!(b.f.u, 42);
     let c = AtomicRef::map(b, |x| &x.f);
     assert_eq!(c.u, 42);
     let d = AtomicRef::map(c, |x| &x.u);
     assert_eq!(*d, 42);
+}
+
+#[bench]
+fn immutable_borrow(b: &mut Bencher) {
+    let a = AtomicRefCell::new(Bar::default());
+    b.iter(|| a.borrow());
+}
+
+#[bench]
+fn immutable_second_borrow(b: &mut Bencher) {
+    let a = AtomicRefCell::new(Bar::default());
+    let _first = a.borrow();
+    b.iter(|| a.borrow());
+}
+
+#[bench]
+fn immutable_third_borrow(b: &mut Bencher) {
+    let a = AtomicRefCell::new(Bar::default());
+    let _first = a.borrow();
+    let _second = a.borrow();
+    b.iter(|| a.borrow());
+}
+
+#[bench]
+fn mutable_borrow(b: &mut Bencher) {
+    let a = AtomicRefCell::new(Bar::default());
+    b.iter(|| a.borrow_mut());
 }
 
 /* FIXME(bholley): Enable once we have AtomicRefMut::map(), which is blocked on
