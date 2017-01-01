@@ -1691,60 +1691,58 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
     //
     // To improve i-cache behavior, we outline the individual functions and use
     // virtual dispatch instead.
-    ComputedValues::do_cascade_property(|cascade_property| {
-        % for category_to_cascade_now in ["early", "other"]:
-            for declaration in iter_declarations() {
-                let longhand_id = match declaration.id() {
-                    PropertyDeclarationId::Longhand(id) => id,
-                    PropertyDeclarationId::Custom(..) => continue,
-                };
+    % for category_to_cascade_now in ["early", "other"]:
+        for declaration in iter_declarations() {
+            let longhand_id = match declaration.id() {
+                PropertyDeclarationId::Longhand(id) => id,
+                PropertyDeclarationId::Custom(..) => continue,
+            };
 
-                // The computed value of some properties depends on the
-                // (sometimes computed) value of *other* properties.
-                //
-                // So we classify properties into "early" and "other", such that
-                // the only dependencies can be from "other" to "early".
-                //
-                // We iterate applicable_declarations twice, first cascading
-                // "early" properties then "other".
-                //
-                // Unfortunately, it’s not easy to check that this
-                // classification is correct.
-                let is_early_property = matches!(*declaration,
-                    PropertyDeclaration::FontSize(_) |
-                    PropertyDeclaration::FontFamily(_) |
-                    PropertyDeclaration::Color(_) |
-                    PropertyDeclaration::Position(_) |
-                    PropertyDeclaration::Float(_) |
-                    PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_) |
-                    PropertyDeclaration::WritingMode(_) |
-                    PropertyDeclaration::Direction(_) |
-                    PropertyDeclaration::TextOrientation(_)
-                );
-                if
-                    % if category_to_cascade_now == "early":
-                        !
-                    % endif
-                    is_early_property
-                {
-                    continue
-                }
-
-                let discriminant = longhand_id as usize;
-                (cascade_property[discriminant])(declaration,
-                                                 inherited_style,
-                                                 &mut context,
-                                                 &mut seen,
-                                                 &mut cacheable,
-                                                 &mut cascade_info,
-                                                 &mut error_reporter);
+            // The computed value of some properties depends on the
+            // (sometimes computed) value of *other* properties.
+            //
+            // So we classify properties into "early" and "other", such that
+            // the only dependencies can be from "other" to "early".
+            //
+            // We iterate applicable_declarations twice, first cascading
+            // "early" properties then "other".
+            //
+            // Unfortunately, it’s not easy to check that this
+            // classification is correct.
+            let is_early_property = matches!(*declaration,
+                PropertyDeclaration::FontSize(_) |
+                PropertyDeclaration::FontFamily(_) |
+                PropertyDeclaration::Color(_) |
+                PropertyDeclaration::Position(_) |
+                PropertyDeclaration::Float(_) |
+                PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_) |
+                PropertyDeclaration::WritingMode(_) |
+                PropertyDeclaration::Direction(_) |
+                PropertyDeclaration::TextOrientation(_)
+            );
+            if
+                % if category_to_cascade_now == "early":
+                    !
+                % endif
+                is_early_property
+            {
+                continue
             }
-            % if category_to_cascade_now == "early":
-                let mode = get_writing_mode(context.style.get_inheritedbox());
-                context.style.set_writing_mode(mode);
-            % endif
-        % endfor
-    });
+
+            let discriminant = longhand_id as usize;
+            (CASCADE_PROPERTY[discriminant])(declaration,
+                                             inherited_style,
+                                             &mut context,
+                                             &mut seen,
+                                             &mut cacheable,
+                                             &mut cascade_info,
+                                             &mut error_reporter);
+        }
+        % if category_to_cascade_now == "early":
+            let mode = get_writing_mode(context.style.get_inheritedbox());
+            context.style.set_writing_mode(mode);
+        % endif
+    % endfor
 
     let mut style = context.style;
 
