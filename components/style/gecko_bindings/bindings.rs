@@ -1267,6 +1267,12 @@ extern "C" {
      -> ServoComputedValuesStrong;
 }
 extern "C" {
+    pub fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
+                                    pseudo_tag: *mut nsIAtom, is_probe: bool,
+                                    set: RawServoStyleSetBorrowed)
+     -> ServoComputedValuesStrong;
+}
+extern "C" {
     pub fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                  set: RawServoStyleSetBorrowed,
                                  root_behavior: TraversalRootBehavior);
