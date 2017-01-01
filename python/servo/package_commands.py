@@ -38,7 +38,7 @@ from servo.command_base import (
     is_windows,
     get_browserhtml_path,
 )
-from servo.post_build_commands import find_dep_path_newest
+from servo.command_base import find_dep_path_newest
 
 
 def delete(path):

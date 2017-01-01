@@ -24,7 +24,7 @@ from mach.decorators import (
 
 from servo.command_base import (
     CommandBase,
-    call, check_call, find_dep_path_newest,
+    call, check_call,
     is_windows, is_macosx, set_osmesa_env,
     get_browserhtml_path,
 )
