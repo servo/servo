@@ -252,25 +252,6 @@ impl Stylist {
                 _ => {}
             }
         });
-
-        debug!("Stylist stats:");
-        debug!(" - Got {} sibling-affecting selectors",
-               self.sibling_affecting_selectors.len());
-        debug!(" - Got {} non-common-style-attribute-affecting selectors",
-               self.non_common_style_affecting_attributes_selectors.len());
-        debug!(" - Got {} deps for style-hint calculation",
-               self.state_deps.len());
-
-        SelectorImpl::each_precomputed_pseudo_element(|pseudo| {
-            // TODO: Consider not doing this and just getting the rules on the
-            // fly. It should be a bit slower, but we'd take rid of the
-            // extra field, and avoid this precomputation entirely.
-            if let Some(map) = self.pseudos_map.remove(&pseudo) {
-                let mut declarations = vec![];
-                map.user_agent.get_universal_rules(&mut declarations);
-                self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
-            }
-        });
     }
 
 
