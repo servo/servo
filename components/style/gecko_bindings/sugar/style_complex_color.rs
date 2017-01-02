@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Rust helpers to interact with Gecko's StyleComplexColor.
+
 use cssparser::Color;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::structs::{nscolor, StyleComplexColor};
@@ -17,6 +19,7 @@ impl From<nscolor> for StyleComplexColor {
 }
 
 impl StyleComplexColor {
+    /// Create a `StyleComplexColor` value that represents `currentColor`.
     pub fn current_color() -> Self {
         StyleComplexColor {
             mColor: 0,
@@ -25,6 +28,7 @@ impl StyleComplexColor {
         }
     }
 
+    /// Create a `StyleComplexColor` value that represents `auto`.
     pub fn auto() -> Self {
         StyleComplexColor {
             mColor: 0,
