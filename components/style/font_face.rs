@@ -6,6 +6,8 @@
 //!
 //! [ff]: https://drafts.csswg.org/css-fonts/#at-font-face-rule
 
+#![deny(missing_docs)]
+
 use computed_values::font_family::FontFamily;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error, Parse};
@@ -15,15 +17,20 @@ use std::iter;
 use style_traits::ToCss;
 use values::specified::url::SpecifiedUrl;
 
+/// A source for a font-face rule.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub enum Source {
+    /// A `url()` source.
     Url(UrlSource),
+    /// A `local()` source.
     Local(FontFamily),
 }
 
 impl ToCss for Source {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         match *self {
             Source::Url(ref url) => {
                 try!(dest.write_str("url(\""));
@@ -38,29 +45,45 @@ impl ToCss for Source {
     }
 }
 
+/// A `UrlSource` represents a font-face source that has been specified with a
+/// `url()` function.
+///
+/// https://drafts.csswg.org/css-fonts/#src-desc
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
 pub struct UrlSource {
+    /// The specified url.
     pub url: SpecifiedUrl,
+    /// The format hints specified with the `format()` function.
     pub format_hints: Vec<String>,
 }
 
 impl ToCss for UrlSource {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         dest.write_str(self.url.as_str())
     }
 }
 
+/// A `@font-face` rule.
+///
+/// https://drafts.csswg.org/css-fonts/#font-face-rule
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct FontFaceRule {
+    /// The font family specified with the `font-family` property declaration.
     pub family: FontFamily,
+    /// The list of sources specified with the different `src` property
+    /// declarations.
     pub sources: Vec<Source>,
 }
 
 impl ToCss for FontFaceRule {
     // Serialization of FontFaceRule is not specced.
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         try!(dest.write_str("@font-face { font-family: "));
         try!(self.family.to_css(dest));
         try!(dest.write_str(";"));
@@ -80,6 +103,9 @@ impl ToCss for FontFaceRule {
     }
 }
 
+/// Parse the block inside a `@font-face` rule.
+///
+/// Note that the prelude parsing code lives in the `stylesheets` module.
 pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
                              -> Result<FontFaceRule, ()> {
     let mut family = None;
@@ -112,6 +138,7 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
     }
 }
 
+/// A list of effective sources that we send over through IPC to the font cache.
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct EffectiveSources(Vec<Source>);
