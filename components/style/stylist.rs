@@ -450,7 +450,6 @@ impl Stylist {
     ///
     /// The returned `StyleRelations` indicate hints about which kind of rules
     /// have matched.
-    #[allow(unsafe_code)]
     pub fn push_applicable_declarations<E, V>(
                                         &self,
                                         element: &E,
@@ -856,7 +855,6 @@ impl SelectorMap {
 
     /// Append to `rule_list` all universal Rules (rules with selector `*|*`) in
     /// `self` sorted by specifity and source order.
-    #[allow(unsafe_code)]
     pub fn get_universal_rules<V>(&self,
                                   matching_rules_list: &mut V)
         where V: VecLike<ApplicableDeclarationBlock>
@@ -913,7 +911,6 @@ impl SelectorMap {
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
-    #[allow(unsafe_code)]
     fn get_matching_rules<E, V>(element: &E,
                                 parent_bf: Option<&BloomFilter>,
                                 rules: &[Rule],
