@@ -8,9 +8,11 @@
 
 ${helpers.predefined_type("background-color", "CSSColor",
     "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */",
+    spec="https://drafts.csswg.org/css-backgrounds/#background-color",
     animatable=True, complex_color=True)}
 
 <%helpers:vector_longhand name="background-image" animatable="False"
+                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-image"
                           has_uncacheable_values="${product == 'gecko'}">
     use std::fmt;
     use style_traits::ToCss;
@@ -86,7 +88,8 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position-x" animatable="True">
+<%helpers:vector_longhand name="background-position-x" animatable="True"
+                          spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-x">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
@@ -135,7 +138,8 @@ ${helpers.predefined_type("background-color", "CSSColor",
     }
 </%helpers:vector_longhand>
 
-<%helpers:vector_longhand name="background-position-y" animatable="True">
+<%helpers:vector_longhand name="background-position-y" animatable="True"
+                          spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-y">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
@@ -188,24 +192,29 @@ ${helpers.predefined_type("background-color", "CSSColor",
 ${helpers.single_keyword("background-repeat",
                          "repeat repeat-x repeat-y space round no-repeat",
                          vector=True,
+                         spec="https://drafts.csswg.org/css-backgrounds/#the-background-repeat",
                          animatable=False)}
 
 ${helpers.single_keyword("background-attachment",
                          "scroll fixed" + (" local" if product == "gecko" else ""),
                          vector=True,
+                         spec="https://drafts.csswg.org/css-backgrounds/#the-background-attachment",
                          animatable=False)}
 
 ${helpers.single_keyword("background-clip",
                          "border-box padding-box content-box",
                          vector=True,
+                         spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
                          animatable=False)}
 
 ${helpers.single_keyword("background-origin",
                          "padding-box border-box content-box",
                          vector=True,
+                         spec="https://drafts.csswg.org/css-backgrounds/#the-background-origin",
                          animatable=False)}
 
-<%helpers:vector_longhand name="background-size" animatable="True">
+<%helpers:vector_longhand name="background-size" animatable="True"
+                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-size">
     use cssparser::Token;
     use std::ascii::AsciiExt;
     use std::fmt;
@@ -406,4 +415,5 @@ ${helpers.single_keyword("background-blend-mode",
                          """normal multiply screen overlay darken lighten color-dodge
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""",
-                         vector="true", products="gecko", animatable=False)}
+                         vector="true", products="gecko", animatable=False,
+                         spec="https://drafts.fxtf.org/compositing/#background-blend-mode")}
