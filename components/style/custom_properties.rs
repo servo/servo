@@ -329,41 +329,43 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedSpec
                    seen: &mut HashSet<&'a Name>,
                    name: &'a Name,
                    specified_value: &'a DeclaredValue<SpecifiedValue>) {
-    let was_not_already_present = seen.insert(name);
-    if was_not_already_present {
-        let map = match *custom_properties {
-            Some(ref mut map) => map,
-            None => {
-                *custom_properties = Some(match *inherited {
-                    Some(ref inherited) => inherited.iter().map(|(key, inherited_value)| {
-                        (key, BorrowedSpecifiedValue {
-                            css: &inherited_value.css,
-                            first_token_type: inherited_value.first_token_type,
-                            last_token_type: inherited_value.last_token_type,
-                            references: None
-                        })
-                    }).collect(),
-                    None => HashMap::new(),
-                });
-                custom_properties.as_mut().unwrap()
-            }
-        };
-        match *specified_value {
-            DeclaredValue::Value(ref specified_value) => {
-                map.insert(name, BorrowedSpecifiedValue {
-                    css: &specified_value.css,
-                    first_token_type: specified_value.first_token_type,
-                    last_token_type: specified_value.last_token_type,
-                    references: Some(&specified_value.references),
-                });
-            },
-            DeclaredValue::WithVariables { .. } => unreachable!(),
-            DeclaredValue::Initial => {
-                map.remove(&name);
-            }
-            DeclaredValue::Unset | // Custom properties are inherited by default.
-            DeclaredValue::Inherit => {}  // The inherited value is what we already have.
+    let was_already_present = !seen.insert(name);
+    if was_already_present {
+        return;
+    }
+
+    let map = match *custom_properties {
+        Some(ref mut map) => map,
+        None => {
+            *custom_properties = Some(match *inherited {
+                Some(ref inherited) => inherited.iter().map(|(key, inherited_value)| {
+                    (key, BorrowedSpecifiedValue {
+                        css: &inherited_value.css,
+                        first_token_type: inherited_value.first_token_type,
+                        last_token_type: inherited_value.last_token_type,
+                        references: None
+                    })
+                }).collect(),
+                None => HashMap::new(),
+            });
+            custom_properties.as_mut().unwrap()
         }
+    };
+    match *specified_value {
+        DeclaredValue::Value(ref specified_value) => {
+            map.insert(name, BorrowedSpecifiedValue {
+                css: &specified_value.css,
+                first_token_type: specified_value.first_token_type,
+                last_token_type: specified_value.last_token_type,
+                references: Some(&specified_value.references),
+            });
+        },
+        DeclaredValue::WithVariables { .. } => unreachable!(),
+        DeclaredValue::Initial => {
+            map.remove(&name);
+        }
+        DeclaredValue::Unset | // Custom properties are inherited by default.
+        DeclaredValue::Inherit => {}  // The inherited value is what we already have.
     }
 }
 
