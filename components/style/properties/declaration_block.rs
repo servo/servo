@@ -492,7 +492,7 @@ pub fn parse_style_attribute(input: &str,
 }
 
 /// Parse a given property declaration. Can result in multiple
-/// `PropertyDeclaration`s when expanding a longhand, for example.
+/// `PropertyDeclaration`s when expanding a shorthand, for example.
 pub fn parse_one_declaration(id: PropertyId,
                              input: &str,
                              base_url: &ServoUrl,
