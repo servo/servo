@@ -48,7 +48,6 @@ use gecko::values::convert_nscolor_to_rgba;
 use gecko::values::convert_rgba_to_nscolor;
 use gecko::values::GeckoStyleCoordConvertible;
 use gecko::values::round_border_to_device_pixels;
-use gecko::values::StyleCoordHelpers;
 use logical_geometry::WritingMode;
 use properties::longhands;
 use std::fmt::{self, Debug};

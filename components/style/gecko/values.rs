@@ -14,20 +14,20 @@ use values::computed::{Angle, LengthOrPercentageOrNone, Number};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::basic_shape::ShapeRadius;
 
-pub trait StyleCoordHelpers {
-    fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T);
+/// A trait that defines an interface to convert from and to `nsStyleCoord`s.
+pub trait GeckoStyleCoordConvertible : Sized {
+    /// Convert this to a `nsStyleCoord`.
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T);
+    /// Given a `nsStyleCoord`, try to get a value of this type..
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self>;
 }
 
-impl StyleCoordHelpers for nsStyleCoord {
+impl nsStyleCoord {
     #[inline]
-    fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T) {
+    /// Set this `nsStyleCoord` value to `val`.
+    pub fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T) {
         val.to_gecko_style_coord(self);
     }
-}
-
-pub trait GeckoStyleCoordConvertible : Sized {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T);
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self>;
 }
 
 impl<A: GeckoStyleCoordConvertible, B: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Either<A, B> {
