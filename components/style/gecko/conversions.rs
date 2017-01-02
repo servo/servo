@@ -9,7 +9,7 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use gecko::values::{convert_rgba_to_nscolor, StyleCoordHelpers};
+use gecko::values::convert_rgba_to_nscolor;
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
 use gecko_bindings::bindings::{RawServoStyleSheet, RawServoDeclarationBlock, RawServoStyleRule, RawServoImportRule};
 use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
