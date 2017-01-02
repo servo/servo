@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! A rust helper to ease the use of Gecko's refcounted types.
+
 use gecko_bindings::structs;
 use heapsize::HeapSizeOf;
 use std::{mem, ptr};
@@ -11,37 +13,39 @@ use std::ops::{Deref, DerefMut};
 /// Trait for all objects that have Addref() and Release
 /// methods and can be placed inside RefPtr<T>
 pub unsafe trait RefCounted {
+    /// Bump the reference count.
     fn addref(&self);
+    /// Decrease the reference count.
     unsafe fn release(&self);
 }
 
-/// Trait for types which can be shared across threads in RefPtr
+/// Trait for types which can be shared across threads in RefPtr.
 pub unsafe trait ThreadSafeRefCounted: RefCounted {}
 
+/// A custom RefPtr implementation to take into account Drop semantics and
+/// a bit less-painful memory management.
 #[derive(Debug)]
 pub struct RefPtr<T: RefCounted> {
     ptr: *mut T,
     _marker: PhantomData<T>,
 }
 
-/// A RefPtr that we know is uniquely owned
+/// A RefPtr that we know is uniquely owned.
 ///
-/// This is basically Box<T>, with the additional
-/// guarantee that the box can be safely interpreted
-/// as a RefPtr<T> (with refcount 1)
+/// This is basically Box<T>, with the additional guarantee that the box can be
+/// safely interpreted as a RefPtr<T> (with refcount 1)
 ///
-/// This is useful when you wish to create a refptr
-/// and mutate it temporarily, while it is still
-/// uniquely owned.
+/// This is useful when you wish to create a refptr and mutate it temporarily,
+/// while it is still uniquely owned.
 pub struct UniqueRefPtr<T: RefCounted>(RefPtr<T>);
 
 // There is no safe conversion from &T to RefPtr<T> (like Gecko has)
 // because this lets you break UniqueRefPtr's guarantee
 
 impl<T: RefCounted> RefPtr<T> {
-    /// Create a new RefPtr from an already addrefed
-    /// pointer obtained from FFI. Pointer
-    /// must be valid, non-null and have been addrefed
+    /// Create a new RefPtr from an already addrefed pointer obtained from FFI.
+    ///
+    /// The pointer must be valid, non-null and have been addrefed.
     pub unsafe fn from_addrefed(ptr: *mut T) -> Self {
         debug_assert!(!ptr.is_null());
         RefPtr {
@@ -50,8 +54,10 @@ impl<T: RefCounted> RefPtr<T> {
         }
     }
 
-    /// Create a new RefPtr from a pointer obtained
-    /// from FFI. Pointer must be valid and non null.
+    /// Create a new RefPtr from a pointer obtained from FFI.
+    ///
+    /// The pointer must be valid and non null.
+    ///
     /// This method calls addref() internally
     pub unsafe fn new(ptr: *mut T) -> Self {
         debug_assert!(!ptr.is_null());
@@ -63,8 +69,7 @@ impl<T: RefCounted> RefPtr<T> {
         ret
     }
 
-    /// Produces an FFI-compatible RefPtr that can be stored in
-    /// style structs.
+    /// Produces an FFI-compatible RefPtr that can be stored in style structs.
     ///
     /// structs::RefPtr does not have a destructor, so this may leak
     pub fn forget(self) -> structs::RefPtr<T> {
@@ -75,36 +80,36 @@ impl<T: RefCounted> RefPtr<T> {
         ret
     }
 
-    /// Returns the raw inner pointer
-    /// to be fed back into FFI
+    /// Returns the raw inner pointer to be fed back into FFI.
     pub fn get(&self) -> *mut T {
         self.ptr
     }
 
-    /// Addref the inner data
-    ///
-    /// Leaky on its own
+    /// Addref the inner data, obviously leaky on its own.
     pub fn addref(&self) {
         unsafe { (*self.ptr).addref(); }
     }
 
-    /// Release the inner data
+    /// Release the inner data.
     ///
-    /// Call only when the data actuall needs releasing
+    /// Call only when the data actually needs releasing.
     pub unsafe fn release(&self) {
         (*self.ptr).release();
     }
 }
 
 impl<T: RefCounted> UniqueRefPtr<T> {
-    /// Create a unique refptr from an already addrefed
-    /// pointer obtained from FFI. The refcount must be one.
+    /// Create a unique refptr from an already addrefed pointer obtained from
+    /// FFI.
+    ///
+    /// The refcount must be one.
+    ///
     /// The pointer must be valid and non null
     pub unsafe fn from_addrefed(ptr: *mut T) -> Self {
         UniqueRefPtr(RefPtr::from_addrefed(ptr))
     }
 
-    /// Convert to a RefPtr so that it can be used
+    /// Convert to a RefPtr so that it can be used.
     pub fn get(self) -> RefPtr<T> {
         self.0
     }
@@ -131,9 +136,9 @@ impl<T: RefCounted> DerefMut for UniqueRefPtr<T> {
 }
 
 impl<T: RefCounted> structs::RefPtr<T> {
-    /// Produces a Rust-side RefPtr from an FFI RefPtr, bumping the refcount
+    /// Produces a Rust-side RefPtr from an FFI RefPtr, bumping the refcount.
     ///
-    /// Must be called on a valid, non-null structs::RefPtr<T>
+    /// Must be called on a valid, non-null structs::RefPtr<T>.
     pub unsafe fn to_safe(&self) -> RefPtr<T> {
         debug_assert!(!self.mRawPtr.is_null());
         let r = RefPtr {
@@ -143,7 +148,8 @@ impl<T: RefCounted> structs::RefPtr<T> {
         r.addref();
         r
     }
-    /// Produces a Rust-side RefPtr, consuming the existing one (and not bumping the refcount)
+    /// Produces a Rust-side RefPtr, consuming the existing one (and not bumping
+    /// the refcount).
     pub unsafe fn into_safe(self) -> RefPtr<T> {
         debug_assert!(!self.mRawPtr.is_null());
         RefPtr {
@@ -152,9 +158,13 @@ impl<T: RefCounted> structs::RefPtr<T> {
         }
     }
 
-    /// Replace a structs::RefPtr<T> with a different one, appropriately addref/releasing
+    /// Replace a structs::RefPtr<T> with a different one, appropriately
+    /// addref/releasing.
     ///
-    /// Both `self` and `other` must be valid, but can be null
+    /// Both `self` and `other` must be valid, but can be null.
+    ///
+    /// Safe when called on an aliased pointer because the refcount in that case
+    /// needs to be at least two.
     pub unsafe fn set(&mut self, other: &Self) {
         self.clear();
         if !other.mRawPtr.is_null() {
@@ -163,9 +173,9 @@ impl<T: RefCounted> structs::RefPtr<T> {
     }
 
     /// Clear an instance of the structs::RefPtr<T>, by releasing
-    /// it and setting its contents to null
+    /// it and setting its contents to null.
     ///
-    /// `self` must be valid, but can be null
+    /// `self` must be valid, but can be null.
     pub unsafe fn clear(&mut self) {
         if !self.mRawPtr.is_null() {
             (*self.mRawPtr).release();
@@ -177,7 +187,7 @@ impl<T: RefCounted> structs::RefPtr<T> {
     /// consuming the `RefPtr<T>`, and releasing the old
     /// value in `self` if necessary.
     ///
-    /// `self` must be valid, possibly null
+    /// `self` must be valid, possibly null.
     pub fn set_move(&mut self, other: RefPtr<T>) {
         if !self.mRawPtr.is_null() {
             unsafe { (*self.mRawPtr).release(); }
@@ -215,9 +225,9 @@ impl<T: RefCounted> PartialEq for RefPtr<T> {
 unsafe impl<T: ThreadSafeRefCounted> Send for RefPtr<T> {}
 unsafe impl<T: ThreadSafeRefCounted> Sync for RefPtr<T> {}
 
-// Companion of NS_DECL_THREADSAFE_FFI_REFCOUNTING
+// Companion of NS_DECL_THREADSAFE_FFI_REFCOUNTING.
 //
-// Gets you a free RefCounted impl
+// Gets you a free RefCounted impl implemented via FFI.
 macro_rules! impl_threadsafe_refcount {
     ($t:ty, $addref:ident, $release:ident) => (
         unsafe impl RefCounted for $t {
@@ -244,5 +254,10 @@ impl_threadsafe_refcount!(::gecko_bindings::structs::nsStyleQuoteValues,
 impl_threadsafe_refcount!(::gecko_bindings::structs::nsCSSValueSharedList,
                           Gecko_AddRefCSSValueSharedListArbitraryThread,
                           Gecko_ReleaseCSSValueSharedListArbitraryThread);
+/// A Gecko `ThreadSafePrincipalHolder` wrapped in a safe refcounted pointer, to
+/// use during stylesheet parsing and style computation.
 pub type GeckoArcPrincipal = RefPtr<::gecko_bindings::structs::ThreadSafePrincipalHolder>;
+
+/// A Gecko `ThreadSafeURIHolder` wrapped in a safe refcounted pointer, to use
+/// during stylesheet parsing and style computation.
 pub type GeckoArcURI = RefPtr<::gecko_bindings::structs::ThreadSafeURIHolder>;
