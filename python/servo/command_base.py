@@ -61,6 +61,13 @@ def find_dep_path_newest(package, bin_path):
     return None
 
 
+def get_browserhtml_path(binary_path):
+    browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
+    if browserhtml_path:
+        return path.join(browserhtml_path, "out")
+    sys.exit("Could not find browserhtml package; perhaps you haven't built Servo.")
+
+
 def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
     """Create a .tar.gz archive in a deterministic (reproducible) manner.
 

@@ -36,8 +36,9 @@ from servo.command_base import (
     CommandBase,
     is_macosx,
     is_windows,
+    get_browserhtml_path,
 )
-from servo.post_build_commands import find_dep_path_newest
+from servo.command_base import find_dep_path_newest
 
 
 def delete(path):
@@ -121,13 +122,6 @@ def change_prefs(resources_path, platform):
         with open(prefs_path, "w") as out:
             json.dump(prefs, out, sort_keys=True, indent=2)
     delete(package_prefs_path)
-
-
-def get_browserhtml_path(binary_path):
-    browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
-    if browserhtml_path:
-        return path.join(browserhtml_path, "out")
-    sys.exit("Could not find browserhtml package; perhaps you haven't built Servo.")
 
 
 @CommandProvider
