@@ -45847,6 +45847,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "cssom/CSS.html": [
+          {
+            "path": "cssom/CSS.html",
+            "url": "/cssom/CSS.html"
+          }
+        ],
         "cssom/CSSKeyframeRule.html": [
           {
             "path": "cssom/CSSKeyframeRule.html",
