@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! The restyle damage is a hint that tells layout which kind of operations may
+//! be needed in presence of incremental style changes.
+
+#![deny(missing_docs)]
+
 use computed_values::display;
 use heapsize::HeapSizeOf;
 use properties::ServoComputedValues;
@@ -53,6 +58,8 @@ impl HeapSizeOf for ServoRestyleDamage {
 }
 
 impl ServoRestyleDamage {
+    /// Compute the appropriate restyle damage for a given style change between
+    /// `old` and `new`.
     pub fn compute(old: &Arc<ServoComputedValues>,
                    new: &Arc<ServoComputedValues>) -> ServoRestyleDamage {
         compute_damage(old, new)
@@ -60,10 +67,6 @@ impl ServoRestyleDamage {
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and
     /// reflowed.
-    ///
-    /// Use this instead of `ServoRestyleDamage::all()` because
-    /// `ServoRestyleDamage::all()` will result in unnecessary sequential resolution
-    /// of generated content.
     pub fn rebuild_and_reflow() -> ServoRestyleDamage {
         REPAINT | REPOSITION | STORE_OVERFLOW | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW |
             RECONSTRUCT_FLOW
@@ -81,8 +84,8 @@ impl ServoRestyleDamage {
         }
     }
 
-    /// Supposing the *parent* of a flow with the given `position` property has this damage,
-    /// returns the damage that we should add to this flow.
+    /// Supposing the *parent* of a flow with the given `position` property has
+    /// this damage, returns the damage that we should add to this flow.
     pub fn damage_for_child(self,
                             parent_is_absolutely_positioned: bool,
                             child_is_absolutely_positioned: bool)

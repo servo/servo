@@ -17,10 +17,14 @@ use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
 
-// Does not include the `--` prefix
+/// A custom property name is just an `Atom`.
+///
+/// Note that this does not include the `--` prefix
 pub type Name = Atom;
 
-// https://drafts.csswg.org/css-variables/#typedef-custom-property-name
+/// Parse a custom property name.
+///
+/// https://drafts.csswg.org/css-variables/#typedef-custom-property-name
 pub fn parse_name(s: &str) -> Result<&str, ()> {
     if s.starts_with("--") {
         Ok(&s[2..])
@@ -29,6 +33,10 @@ pub fn parse_name(s: &str) -> Result<&str, ()> {
     }
 }
 
+/// A specified value for a custom property is just a set of tokens.
+///
+/// We preserve the original CSS for serialization, and also the variable
+/// references to other custom property names.
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SpecifiedValue {
@@ -47,6 +55,7 @@ impl ::values::HasViewportPercentage for SpecifiedValue {
     }
 }
 
+/// This struct is a cheap borrowed version of a `SpecifiedValue`.
 pub struct BorrowedSpecifiedValue<'a> {
     css: &'a str,
     first_token_type: TokenSerializationType,
@@ -54,6 +63,8 @@ pub struct BorrowedSpecifiedValue<'a> {
     references: Option<&'a HashSet<Name>>,
 }
 
+/// A computed value is just a set of tokens as well, until we resolve variables
+/// properly.
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct ComputedValue {
@@ -63,17 +74,23 @@ pub struct ComputedValue {
 }
 
 impl ToCss for SpecifiedValue {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         dest.write_str(&self.css)
     }
 }
 
 impl ToCss for ComputedValue {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
         dest.write_str(&self.css)
     }
 }
 
+/// A map from CSS variable names to CSS variable computed values, used for
+/// resolving.
 pub type ComputedValuesMap = HashMap<Name, ComputedValue>;
 
 impl ComputedValue {
@@ -172,8 +189,8 @@ fn parse_declaration_value<'i, 't>
     })
 }
 
-/// Like parse_declaration_value,
-/// but accept `!` and `;` since they are only invalid at the top level
+/// Like parse_declaration_value, but accept `!` and `;` since they are only
+/// invalid at the top level
 fn parse_declaration_value_block(input: &mut Parser,
                                  references: &mut Option<HashSet<Name>>,
                                  missing_closing_characters: &mut String)
@@ -275,11 +292,10 @@ fn parse_declaration_value_block(input: &mut Parser,
         };
 
         token_start = input.position();
-        token = if let Ok(token) = input.next_including_whitespace_and_comments() {
-            token
-        } else {
-            return Ok((first_token_type, last_token_type))
-        }
+        token = match input.next_including_whitespace_and_comments() {
+            Ok(token) => token,
+            Err(..) => return Ok((first_token_type, last_token_type)),
+        };
     }
 }
 
@@ -306,51 +322,59 @@ fn parse_var_function<'i, 't>(input: &mut Parser<'i, 't>,
     Ok(())
 }
 
-/// Add one custom property declaration to a map,
-/// unless another with the same name was already there.
+/// Add one custom property declaration to a map, unless another with the same
+/// name was already there.
 pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedSpecifiedValue<'a>>>,
                    inherited: &'a Option<Arc<HashMap<Name, ComputedValue>>>,
                    seen: &mut HashSet<&'a Name>,
                    name: &'a Name,
                    specified_value: &'a DeclaredValue<SpecifiedValue>) {
-    let was_not_already_present = seen.insert(name);
-    if was_not_already_present {
-        let map = match *custom_properties {
-            Some(ref mut map) => map,
-            None => {
-                *custom_properties = Some(match *inherited {
-                    Some(ref inherited) => inherited.iter().map(|(key, inherited_value)| {
-                        (key, BorrowedSpecifiedValue {
-                            css: &inherited_value.css,
-                            first_token_type: inherited_value.first_token_type,
-                            last_token_type: inherited_value.last_token_type,
-                            references: None
-                        })
-                    }).collect(),
-                    None => HashMap::new(),
-                });
-                custom_properties.as_mut().unwrap()
-            }
-        };
-        match *specified_value {
-            DeclaredValue::Value(ref specified_value) => {
-                map.insert(name, BorrowedSpecifiedValue {
-                    css: &specified_value.css,
-                    first_token_type: specified_value.first_token_type,
-                    last_token_type: specified_value.last_token_type,
-                    references: Some(&specified_value.references),
-                });
-            },
-            DeclaredValue::WithVariables { .. } => unreachable!(),
-            DeclaredValue::Initial => {
-                map.remove(&name);
-            }
-            DeclaredValue::Unset | // Custom properties are inherited by default.
-            DeclaredValue::Inherit => {}  // The inherited value is what we already have.
+    let was_already_present = !seen.insert(name);
+    if was_already_present {
+        return;
+    }
+
+    let map = match *custom_properties {
+        Some(ref mut map) => map,
+        None => {
+            *custom_properties = Some(match *inherited {
+                Some(ref inherited) => inherited.iter().map(|(key, inherited_value)| {
+                    (key, BorrowedSpecifiedValue {
+                        css: &inherited_value.css,
+                        first_token_type: inherited_value.first_token_type,
+                        last_token_type: inherited_value.last_token_type,
+                        references: None
+                    })
+                }).collect(),
+                None => HashMap::new(),
+            });
+            custom_properties.as_mut().unwrap()
         }
+    };
+    match *specified_value {
+        DeclaredValue::Value(ref specified_value) => {
+            map.insert(name, BorrowedSpecifiedValue {
+                css: &specified_value.css,
+                first_token_type: specified_value.first_token_type,
+                last_token_type: specified_value.last_token_type,
+                references: Some(&specified_value.references),
+            });
+        },
+        DeclaredValue::WithVariables { .. } => unreachable!(),
+        DeclaredValue::Initial => {
+            map.remove(&name);
+        }
+        DeclaredValue::Unset | // Custom properties are inherited by default.
+        DeclaredValue::Inherit => {}  // The inherited value is what we already have.
     }
 }
 
+/// Returns the final map of applicable custom properties.
+///
+/// If there was any specified property, we've created a new map and now we need
+/// to remove any potential cycles, and wrap it in an arc.
+///
+/// Otherwise, just use the inherited custom properties map.
 pub fn finish_cascade(specified_values_map: Option<HashMap<&Name, BorrowedSpecifiedValue>>,
                       inherited: &Option<Arc<HashMap<Name, ComputedValue>>>)
                       -> Option<Arc<HashMap<Name, ComputedValue>>> {
@@ -363,7 +387,9 @@ pub fn finish_cascade(specified_values_map: Option<HashMap<&Name, BorrowedSpecif
 }
 
 /// https://drafts.csswg.org/css-variables/#cycles
-/// The initial value of a custom property is represented by this property not being in the map.
+///
+/// The initial value of a custom property is represented by this property not
+/// being in the map.
 fn remove_cycles(map: &mut HashMap<&Name, BorrowedSpecifiedValue>) {
     let mut to_remove = HashSet::new();
     {
@@ -514,10 +540,9 @@ fn substitute_block<F>(input: &mut Parser,
             });
             set_position_at_next_iteration = false;
         }
-        let token = if let Ok(token) = next {
-            token
-        } else {
-            break
+        let token = match next {
+            Ok(token) => token,
+            Err(..) => break,
         };
         match token {
             Token::Function(ref name) if name.eq_ignore_ascii_case("var") => {

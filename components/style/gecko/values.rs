@@ -4,6 +4,8 @@
 
 #![allow(unsafe_code)]
 
+//! Different kind of helpers to interact with Gecko values.
+
 use app_units::Au;
 use cssparser::RGBA;
 use gecko_bindings::structs::{nsStyleCoord, StyleShapeRadius};
@@ -14,20 +16,20 @@ use values::computed::{Angle, LengthOrPercentageOrNone, Number};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::basic_shape::ShapeRadius;
 
-pub trait StyleCoordHelpers {
-    fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T);
+/// A trait that defines an interface to convert from and to `nsStyleCoord`s.
+pub trait GeckoStyleCoordConvertible : Sized {
+    /// Convert this to a `nsStyleCoord`.
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T);
+    /// Given a `nsStyleCoord`, try to get a value of this type..
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self>;
 }
 
-impl StyleCoordHelpers for nsStyleCoord {
+impl nsStyleCoord {
     #[inline]
-    fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T) {
+    /// Set this `nsStyleCoord` value to `val`.
+    pub fn set<T: GeckoStyleCoordConvertible>(&mut self, val: T) {
         val.to_gecko_style_coord(self);
     }
-}
-
-pub trait GeckoStyleCoordConvertible : Sized {
-    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T);
-    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self>;
 }
 
 impl<A: GeckoStyleCoordConvertible, B: GeckoStyleCoordConvertible> GeckoStyleCoordConvertible for Either<A, B> {
@@ -221,6 +223,7 @@ impl GeckoStyleCoordConvertible for None_ {
     }
 }
 
+/// Convert a given RGBA value to `nscolor`.
 pub fn convert_rgba_to_nscolor(rgba: &RGBA) -> u32 {
     (((rgba.alpha * 255.0).round() as u32) << 24) |
     (((rgba.blue  * 255.0).round() as u32) << 16) |
@@ -228,6 +231,7 @@ pub fn convert_rgba_to_nscolor(rgba: &RGBA) -> u32 {
      ((rgba.red   * 255.0).round() as u32)
 }
 
+/// Convert a given `nscolor` to a Servo RGBA value.
 pub fn convert_nscolor_to_rgba(color: u32) -> RGBA {
     RGBA {
         red:    ((color        & 0xff) as f32) / 255.0,
@@ -237,11 +241,11 @@ pub fn convert_nscolor_to_rgba(color: u32) -> RGBA {
     }
 }
 
+/// Round `width` down to the nearest device pixel, but any non-zero value that
+/// would round down to zero is clamped to 1 device pixel.  Used for storing
+/// computed values of border-*-width and outline-width.
 #[inline]
 pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
-    // Round width down to the nearest device pixel, but any non-zero value that
-    // would round down to zero is clamped to 1 device pixel.  Used for storing
-    // computed values of border-*-width and outline-width.
     if width == Au(0) {
         Au(0)
     } else {

@@ -9,7 +9,7 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use gecko::values::{convert_rgba_to_nscolor, StyleCoordHelpers};
+use gecko::values::convert_rgba_to_nscolor;
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
 use gecko_bindings::bindings::{RawServoStyleSheet, RawServoDeclarationBlock, RawServoStyleRule, RawServoImportRule};
 use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
@@ -99,6 +99,7 @@ impl From<LengthOrPercentage> for nsStyleCoord_CalcValue {
 }
 
 impl LengthOrPercentageOrAuto {
+    /// Convert this value in an appropriate `nsStyleCoord::CalcValue`.
     pub fn to_calc_value(&self) -> Option<nsStyleCoord_CalcValue> {
         match *self {
             LengthOrPercentageOrAuto::Length(au) => {
@@ -132,6 +133,7 @@ impl From<nsStyleCoord_CalcValue> for LengthOrPercentage {
 }
 
 impl nsStyleImage {
+    /// Set a given Servo `Image` value into this `nsStyleImage`.
     pub fn set(&mut self, image: Image, with_url: bool, cacheable: &mut bool) {
         match image {
             Image::Gradient(gradient) => {
@@ -154,6 +156,9 @@ impl nsStyleImage {
                 // the applicable declarations cache is not per document, but
                 // global, and the imgRequestProxy objects we store in the style
                 // structs don't like to be tracked by more than one document.
+                //
+                // FIXME(emilio): With the scoped TLS thing this is no longer
+                // true, remove this line in a follow-up!
                 *cacheable = false;
             },
             _ => (),
@@ -326,6 +331,8 @@ impl nsStyleImage {
 }
 
 pub mod basic_shape {
+    //! Conversions from and to CSS shape representations.
+
     use euclid::size::Size2D;
     use gecko::values::GeckoStyleCoordConvertible;
     use gecko_bindings::structs;
@@ -418,6 +425,7 @@ pub mod basic_shape {
     // Can't be a From impl since we need to set an existing
     // nsStyleCorners, not create a new one
     impl BorderRadius {
+        /// Set this `BorderRadius` into a given `nsStyleCoord`.
         pub fn set_corners(&self, other: &mut nsStyleCorners) {
             let mut set_corner = |field: &BorderRadiusSize, index| {
                 field.0.width.to_gecko_style_coord(&mut other.data_at_mut(index));

@@ -48,9 +48,7 @@ use gecko::values::convert_nscolor_to_rgba;
 use gecko::values::convert_rgba_to_nscolor;
 use gecko::values::GeckoStyleCoordConvertible;
 use gecko::values::round_border_to_device_pixels;
-use gecko::values::StyleCoordHelpers;
 use logical_geometry::WritingMode;
-use properties::CascadePropertyFn;
 use properties::longhands;
 use std::fmt::{self, Debug};
 use std::mem::{transmute, zeroed};
@@ -144,11 +142,6 @@ impl ComputedValues {
         debug_assert!(!raw_initial_values().is_null());
         let _ = Box::from_raw(raw_initial_values());
         set_raw_initial_values(ptr::null_mut());
-    }
-
-    #[inline]
-    pub fn do_cascade_property<F: FnOnce(&[CascadePropertyFn])>(f: F) {
-        f(&CASCADE_PROPERTY)
     }
 
     % for style_struct in data.style_structs:
@@ -2663,9 +2656,3 @@ unsafe fn raw_initial_values() -> *mut ComputedValues {
 unsafe fn set_raw_initial_values(v: *mut ComputedValues) {
     INITIAL_VALUES_STORAGE.store(v as usize, Ordering::Relaxed);
 }
-
-static CASCADE_PROPERTY: [CascadePropertyFn; ${len(data.longhands)}] = [
-    % for property in data.longhands:
-        longhands::${property.ident}::cascade_property,
-    % endfor
-];

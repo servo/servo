@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Gecko-specific bits for selector-parsing.
+
 use cssparser::ToCss;
 use element_state::ElementState;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
@@ -11,11 +13,16 @@ use std::borrow::Cow;
 use std::fmt;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 
-/// NOTE: The boolean field represents whether this element is an anonymous box.
+/// A representation of a CSS pseudo-element.
 ///
-/// This is just for convenience, instead of recomputing it. Also, note that
-/// Atom is always a static atom, so if space is a concern, we can use the
-/// raw pointer and use the lower bit to represent it without space overhead.
+/// In Gecko, we represent pseudo-elements as plain `Atom`s.
+///
+/// The boolean field represents whether this element is an anonymous box. This
+/// is just for convenience, instead of recomputing it.
+///
+/// Also, note that the `Atom` member is always a static atom, so if space is a
+/// concern, we can use the raw pointer and use the lower bit to represent it
+/// without space overhead.
 ///
 /// FIXME(emilio): we know all these atoms are static. Patches are starting to
 /// pile up, but a further potential optimisation is generating bindings without
@@ -32,16 +39,22 @@ use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 pub struct PseudoElement(Atom, bool);
 
 impl PseudoElement {
+    /// Get the pseudo-element as an atom.
     #[inline]
     pub fn as_atom(&self) -> &Atom {
         &self.0
     }
 
+    /// Whether this pseudo-element is an anonymous box.
     #[inline]
     fn is_anon_box(&self) -> bool {
         self.1
     }
 
+    /// Construct a pseudo-element from an `Atom`, receiving whether it is also
+    /// an anonymous box, and don't check it on release builds.
+    ///
+    /// On debug builds we assert it's the result we expect.
     #[inline]
     pub fn from_atom_unchecked(atom: Atom, is_anon_box: bool) -> Self {
         if cfg!(debug_assertions) {
@@ -73,6 +86,13 @@ impl PseudoElement {
         None
     }
 
+    /// Constructs an atom from a string of text, and whether we're in a
+    /// user-agent stylesheet.
+    ///
+    /// If we're not in a user-agent stylesheet, we will never parse anonymous
+    /// box pseudo-elements.
+    ///
+    /// Returns `None` if the pseudo-element is not recognised.
     #[inline]
     fn from_slice(s: &str, in_ua_stylesheet: bool) -> Option<Self> {
         use std::ascii::AsciiExt;
@@ -102,20 +122,36 @@ impl ToCss for PseudoElement {
     }
 }
 
+/// Our representation of a non tree-structural pseudo-class.
+///
+/// FIXME(emilio): Find a way to autogenerate this.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum NonTSPseudoClass {
+    /// :any-link
     AnyLink,
+    /// :link
     Link,
+    /// :visited
     Visited,
+    /// :active
     Active,
+    /// :focus
     Focus,
+    /// :fullscreen
     Fullscreen,
+    /// :hover
     Hover,
+    /// :enabled
     Enabled,
+    /// :disabled
     Disabled,
+    /// :checked
     Checked,
+    /// :indeterminate
     Indeterminate,
+    /// :read-write
     ReadWrite,
+    /// :read-only
     ReadOnly,
 }
 
@@ -141,6 +177,7 @@ impl ToCss for NonTSPseudoClass {
 }
 
 impl NonTSPseudoClass {
+    /// Get the state flag associated with a pseudo-class, if any.
     pub fn state_flag(&self) -> ElementState {
         use element_state::*;
         use self::NonTSPseudoClass::*;
@@ -162,6 +199,7 @@ impl NonTSPseudoClass {
     }
 }
 
+/// The dummy struct we use to implement our selector parsing.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SelectorImpl;
 
@@ -231,6 +269,13 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
 
 impl SelectorImpl {
     #[inline]
+    /// Returns the kind of cascade type that a given pseudo is going to use.
+    ///
+    /// In Gecko we only compute ::before and ::after eagerly. We save the rules
+    /// for anonymous boxes separately, so we resolve them as precomputed
+    /// pseudos.
+    ///
+    /// We resolve the others lazily, see `Servo_ResolvePseudoStyle`.
     pub fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         if Self::pseudo_is_before_or_after(pseudo) {
             return PseudoElementCascadeType::Eager
@@ -244,8 +289,9 @@ impl SelectorImpl {
     }
 
     #[inline]
+    /// Executes a function for each pseudo-element.
     pub fn each_pseudo_element<F>(mut fun: F)
-        where F: FnMut(PseudoElement)
+        where F: FnMut(PseudoElement),
     {
         macro_rules! pseudo_element {
             ($pseudo_str_with_colon:expr, $atom:expr, $is_anon_box:expr) => {{
@@ -257,12 +303,15 @@ impl SelectorImpl {
     }
 
     #[inline]
+    /// Returns whether the given pseudo-element is `::before` or `::after`.
     pub fn pseudo_is_before_or_after(pseudo: &PseudoElement) -> bool {
         *pseudo.as_atom() == atom!(":before") ||
         *pseudo.as_atom() == atom!(":after")
     }
 
     #[inline]
+    /// Returns the relevant state flag for a given non-tree-structural
+    /// pseudo-class.
     pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
     }

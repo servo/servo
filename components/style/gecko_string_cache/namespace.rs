@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! A type to represent a namespace.
+
 use gecko_bindings::structs::nsIAtom;
 use std::borrow::{Borrow, Cow};
 use std::fmt;
@@ -13,9 +15,11 @@ macro_rules! ns {
     () => { $crate::string_cache::Namespace(atom!("")) }
 }
 
+/// A Gecko namespace is just a wrapped atom.
 #[derive(Debug, PartialEq, Eq, Clone, Default, Hash)]
 pub struct Namespace(pub Atom);
 
+/// A Gecko WeakNamespace is a wrapped WeakAtom.
 #[derive(Hash)]
 pub struct WeakNamespace(WeakAtom);
 
@@ -51,11 +55,14 @@ impl Borrow<WeakNamespace> for Namespace {
 }
 
 impl WeakNamespace {
+    /// Trivially construct a WeakNamespace.
     #[inline]
     pub unsafe fn new<'a>(atom: *mut nsIAtom) -> &'a Self {
         &*(atom as *const WeakNamespace)
     }
 
+    /// Clone this WeakNamespace to obtain a strong reference to the same
+    /// underlying namespace.
     #[inline]
     pub fn clone(&self) -> Namespace {
         Namespace(self.0.clone())

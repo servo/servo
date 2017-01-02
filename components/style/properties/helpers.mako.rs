@@ -405,7 +405,8 @@
             % endfor
         }
 
-        /// Represents a serializable set of all of the longhand properties that correspond to a shorthand
+        /// Represents a serializable set of all of the longhand properties that
+        /// correspond to a shorthand.
         pub struct LonghandsToSerialize<'a> {
             % for sub_property in shorthand.sub_properties:
                 pub ${sub_property.ident}: &'a DeclaredValue<longhands::${sub_property.ident}::SpecifiedValue>,
@@ -617,16 +618,22 @@
 </%def>
 
 <%def name="logical_setter(name, need_clone=False)">
+    /// Set the appropriate physical property for ${name} given a writing mode.
     pub fn set_${to_rust_ident(name)}(&mut self,
-                                 v: longhands::${to_rust_ident(name)}::computed_value::T,
-                                 wm: WritingMode) {
+                                      v: longhands::${to_rust_ident(name)}::computed_value::T,
+                                      wm: WritingMode) {
         <%self:logical_setter_helper name="${name}">
             <%def name="inner(physical_ident)">
                 self.set_${physical_ident}(v)
             </%def>
         </%self:logical_setter_helper>
     }
-    pub fn copy_${to_rust_ident(name)}_from(&mut self, other: &Self, wm: WritingMode) {
+
+    /// Copy the appropriate physical property from another struct for ${name}
+    /// given a writing mode.
+    pub fn copy_${to_rust_ident(name)}_from(&mut self,
+                                            other: &Self,
+                                            wm: WritingMode) {
         <%self:logical_setter_helper name="${name}">
             <%def name="inner(physical_ident)">
                 self.copy_${physical_ident}_from(other)
@@ -634,6 +641,8 @@
         </%self:logical_setter_helper>
     }
     % if need_clone:
+        /// Get the computed value for the appropriate physical property for
+        /// ${name} given a writing mode.
         pub fn clone_${to_rust_ident(name)}(&self, wm: WritingMode)
             -> longhands::${to_rust_ident(name)}::computed_value::T {
         <%self:logical_setter_helper name="${name}">

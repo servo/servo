@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Data needed to style a Gecko document.
+
 use animation::Animation;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom::OpaqueNode;
@@ -21,6 +23,8 @@ use style_traits::ViewportPx;
 use stylesheets::Stylesheet;
 use stylist::Stylist;
 
+/// The container for data that a Servo-backed Gecko document needs to style
+/// itself.
 pub struct PerDocumentStyleDataImpl {
     /// Rule processor.
     pub stylist: Arc<Stylist>,
@@ -32,20 +36,33 @@ pub struct PerDocumentStyleDataImpl {
     pub stylesheets_changed: bool,
 
     // FIXME(bholley): Hook these up to something.
+    /// Unused. Will go away when we actually implement transitions and
+    /// animations properly.
     pub new_animations_sender: Sender<Animation>,
+    /// Unused. Will go away when we actually implement transitions and
+    /// animations properly.
     pub new_animations_receiver: Receiver<Animation>,
+    /// Unused. Will go away when we actually implement transitions and
+    /// animations properly.
     pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
+    /// Unused. Will go away when we actually implement transitions and
+    /// animations properly.
     pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
-    // FIXME(bholley): This shouldn't be per-document.
+    /// The worker thread pool.
+    /// FIXME(bholley): This shouldn't be per-document.
     pub work_queue: Option<rayon::ThreadPool>,
 
+    /// The number of threads of the work queue.
     pub num_threads: usize,
 }
 
+/// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
+/// and unexpected races while trying to mutate it.
 pub struct PerDocumentStyleData(AtomicRefCell<PerDocumentStyleDataImpl>);
 
 lazy_static! {
+    /// The number of layout threads, computed statically.
     pub static ref NUM_THREADS: usize = {
         match env::var("STYLO_THREADS").map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS")) {
             Ok(num) => num,
@@ -55,6 +72,7 @@ lazy_static! {
 }
 
 impl PerDocumentStyleData {
+    /// Create a dummy `PerDocumentStyleData`.
     pub fn new() -> Self {
         // FIXME(bholley): Real window size.
         let window_size: TypedSize2D<f32, ViewportPx> = TypedSize2D::new(800.0, 600.0);
@@ -81,16 +99,19 @@ impl PerDocumentStyleData {
         }))
     }
 
+    /// Get an immutable reference to this style data.
     pub fn borrow(&self) -> AtomicRef<PerDocumentStyleDataImpl> {
         self.0.borrow()
     }
 
+    /// Get an mutable reference to this style data.
     pub fn borrow_mut(&self) -> AtomicRefMut<PerDocumentStyleDataImpl> {
         self.0.borrow_mut()
     }
 }
 
 impl PerDocumentStyleDataImpl {
+    /// Recreate the style data if the stylesheets have changed.
     pub fn flush_stylesheets(&mut self) {
         // The stylist wants to be flushed if either the stylesheets change or the
         // device dimensions change. When we add support for media queries, we'll
