@@ -36,7 +36,7 @@ use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CssRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
 use viewport::{self, MaybeNew, ViewportRule};
 
-pub type FnvHashMap<K, V> = HashMap<K, V, BuildHasherDefault<::fnv::FnvHasher>>;
+pub use ::fnv::FnvHashMap;
 
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
