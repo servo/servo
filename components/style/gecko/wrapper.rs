@@ -4,6 +4,15 @@
 
 #![allow(unsafe_code)]
 
+//! Wrapper definitions on top of Gecko types in order to be used in the style
+//! system.
+//!
+//! This really follows the Servo pattern in
+//! `components/script/layout_wrapper.rs`.
+//!
+//! This theoretically should live in its own crate, but now it lives in the
+//! style system it's kind of pointless in the Stylo case, and only Servo forces
+//! the separation between the style system implementation and everything else.
 
 use atomic_refcell::AtomicRefCell;
 use data::ElementData;
@@ -42,11 +51,14 @@ use std::sync::Arc;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use stylist::ApplicableDeclarationBlock;
 
-// Important: We don't currently refcount the DOM, because the wrapper lifetime
-// magic guarantees that our LayoutFoo references won't outlive the root, and
-// we don't mutate any of the references on the Gecko side during restyle. We
-// could implement refcounting if need be (at a potentially non-trivial
-// performance cost) by implementing Drop and making LayoutFoo non-Copy.
+/// A simple wrapper over a non-null Gecko node (`nsINode`) pointer.
+///
+/// Important: We don't currently refcount the DOM, because the wrapper lifetime
+/// magic guarantees that our LayoutFoo references won't outlive the root, and
+/// we don't mutate any of the references on the Gecko side during restyle.
+///
+/// We could implement refcounting if need be (at a potentially non-trivial
+/// performance cost) by implementing Drop and making LayoutFoo non-Copy.
 #[derive(Clone, Copy)]
 pub struct GeckoNode<'ln>(pub &'ln RawGeckoNode);
 
@@ -173,11 +185,23 @@ impl<'ln> TNode for GeckoNode<'ln> {
     unsafe fn set_dirty_on_viewport_size_changed(&self) {}
 }
 
-// We generally iterate children by traversing the siblings of the first child
-// like Servo does. However, for nodes with anonymous children, we use a custom
-// (heavier-weight) Gecko-implemented iterator.
+/// A wrapper on top of two kind of iterators, depending on the parent being
+/// iterated.
+///
+/// We generally iterate children by traversing the light-tree siblings of the
+/// first child like Servo does.
+///
+/// However, for nodes with anonymous children, we use a custom (heavier-weight)
+/// Gecko-implemented iterator.
+///
+/// FIXME(emilio): If we take into account shadow DOM, we're going to need the
+/// flat tree pretty much always. We can try to optimize the case where there's
+/// no shadow root sibling, probably.
 pub enum GeckoChildrenIterator<'a> {
+    /// A simple iterator that tracks the current node being iterated and
+    /// replaces it with the next sibling when requested.
     Current(Option<GeckoNode<'a>>),
+    /// A Gecko-implemented iterator we need to drop appropriately.
     GeckoIterator(bindings::StyleChildrenIteratorOwned),
 }
 
@@ -207,6 +231,7 @@ impl<'a> Iterator for GeckoChildrenIterator<'a> {
     }
 }
 
+/// A simple wrapper over a non-null Gecko `Element` pointer.
 #[derive(Clone, Copy)]
 pub struct GeckoElement<'le>(pub &'le RawGeckoElement);
 
@@ -221,6 +246,7 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 }
 
 impl<'le> GeckoElement<'le> {
+    /// Parse the style attribute of an element.
     pub fn parse_style_attribute(value: &str) -> PropertyDeclarationBlock {
         // FIXME(bholley): Real base URL and error reporter.
         let base_url = &*DUMMY_BASE_URL;
@@ -250,6 +276,7 @@ impl<'le> GeckoElement<'le> {
         unsafe { Gecko_UnsetNodeFlags(self.as_node().0, flags) }
     }
 
+    /// Clear the element data for a given element.
     pub fn clear_data(&self) {
         let ptr = self.0.mServoData.get();
         if !ptr.is_null() {
@@ -264,7 +291,11 @@ impl<'le> GeckoElement<'le> {
         }
     }
 
-    // Only safe to call with exclusive access to the element.
+    /// Ensures the element has data, returning the existing data or allocating
+    /// it.
+    ///
+    /// Only safe to call with exclusive access to the element, given otherwise
+    /// it could race to allocate and leak.
     pub unsafe fn ensure_data(&self) -> &AtomicRefCell<ElementData> {
         match self.get_data() {
             Some(x) => x,
@@ -284,6 +315,9 @@ impl<'le> GeckoElement<'le> {
 }
 
 lazy_static! {
+    /// A dummy base url in order to get it where we don't have any available.
+    ///
+    /// We need to get rid of this sooner than later.
     pub static ref DUMMY_BASE_URL: ServoUrl = {
         ServoUrl::parse("http://www.example.org").unwrap()
     };
@@ -387,7 +421,7 @@ impl<'le> PartialEq for GeckoElement<'le> {
 
 impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
     fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
-        where V: Push<ApplicableDeclarationBlock>
+        where V: Push<ApplicableDeclarationBlock>,
     {
         // FIXME(bholley) - Need to implement this.
     }
@@ -522,8 +556,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 }
 
+/// A few helpers to help with attribute selectors and snapshotting.
 pub trait AttrSelectorHelpers {
+    /// Returns the namespace of the selector, or null otherwise.
     fn ns_or_null(&self) -> *mut nsIAtom;
+    /// Returns the proper selector name depending on whether the requesting
+    /// element is an HTML element in an HTML document or not.
     fn select_name(&self, is_html_element_in_html_document: bool) -> *mut nsIAtom;
 }
 
