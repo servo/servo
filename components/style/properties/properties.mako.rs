@@ -483,7 +483,7 @@ impl ShorthandId {
         }
     }
 
-    /// Trie to serialize the given declarations as this shorthand, or return an
+    /// Try to serialize the given declarations as this shorthand, or return an
     /// error otherwise.
     pub fn longhands_to_css<'a, W, I>(&self, declarations: I, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
@@ -668,7 +668,7 @@ impl<'a> ToCss for PropertyDeclarationId<'a> {
 }
 
 impl<'a> PropertyDeclarationId<'a> {
-    /// Whether a given declaration id is either the same as `other`,  or a
+    /// Whether a given declaration id is either the same as `other`, or a
     /// longhand of it.
     pub fn is_or_is_longhand_of(&self, other: &PropertyId) -> bool {
         match *self {
