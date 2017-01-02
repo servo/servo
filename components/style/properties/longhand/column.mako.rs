@@ -12,11 +12,13 @@ ${helpers.predefined_type("column-width",
                           "Either::Second(Auto)",
                           parse_method="parse_non_negative_length",
                           animatable=False,
-                          experimental=True)}
+                          experimental=True,
+                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
 
 
 // FIXME: This prop should be animatable.
-<%helpers:longhand name="column-count" experimental="True" animatable="False">
+<%helpers:longhand name="column-count" experimental="True" animatable="False"
+                   spec="https://drafts.csswg.org/css-multicol/#propdef-column-count">
     use std::fmt;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
@@ -101,13 +103,16 @@ ${helpers.predefined_type("column-gap",
                           "Either::Second(Normal)",
                           parse_method='parse_non_negative_length',
                           experimental=True,
-                          animatable=False)}
+                          animatable=False,
+                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
 ${helpers.single_keyword("column-fill", "auto balance",
-                         products="gecko", animatable=False)}
+                         products="gecko", animatable=False,
+                         spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
 // https://drafts.csswg.org/css-multicol-1/#propdef-column-rule-width
-<%helpers:longhand name="column-rule-width" products="gecko" animatable="True">
+<%helpers:longhand name="column-rule-width" products="gecko" animatable="True"
+                   spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-width">
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
@@ -140,15 +145,17 @@ ${helpers.single_keyword("column-fill", "auto balance",
 ${helpers.predefined_type("column-rule-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
                           products="gecko", animatable=True,
-                          complex_color=True, need_clone=True)}
+                          complex_color=True, need_clone=True,
+                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-color")}
 
 // It's not implemented in servo or gecko yet.
-// https://drafts.csswg.org/css-multicol-1/#column-span
 ${helpers.single_keyword("column-span", "none all",
-                         products="none", animatable=False)}
+                         products="none", animatable=False,
+                         spec="https://drafts.csswg.org/css-multicol/#propdef-column-span")}
 
 ${helpers.single_keyword("column-rule-style",
                          "none hidden dotted dashed solid double groove ridge inset outset",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_BORDER_STYLE",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-style")}

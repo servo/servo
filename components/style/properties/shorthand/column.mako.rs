@@ -4,7 +4,8 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="columns" sub_properties="column-count column-width" experimental="True">
+<%helpers:shorthand name="columns" sub_properties="column-count column-width" experimental="True"
+                    spec="https://drafts.csswg.org/css-multicol/#propdef-columns">
     use properties::longhands::{column_count, column_width};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
@@ -58,9 +59,9 @@
     }
 </%helpers:shorthand>
 
-// https://drafts.csswg.org/css-multicol/#column-rule
 <%helpers:shorthand name="column-rule" products="gecko"
-    sub_properties="column-rule-width column-rule-style column-rule-color">
+    sub_properties="column-rule-width column-rule-style column-rule-color"
+    spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule">
     use properties::longhands::{column_rule_width, column_rule_style};
     use properties::longhands::column_rule_color;
 
