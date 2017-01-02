@@ -185,6 +185,7 @@
         if property is None:
             return ""
     %>
+    /// ${property.spec}
     pub mod ${property.ident} {
         #![allow(unused_imports)]
         % if not property.derived_from:
@@ -389,6 +390,7 @@
                                        **kwargs)
 %>
     % if shorthand:
+    /// ${shorthand.spec}
     pub mod ${shorthand.ident} {
         #[allow(unused_imports)]
         use cssparser::Parser;
