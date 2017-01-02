@@ -123,7 +123,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
                 cx: &LateContext<'a, 'tcx>,
                 kind: visit::FnKind,
                 decl: &'tcx hir::FnDecl,
-                body: &'tcx hir::Expr,
+                body: &'tcx hir::Body,
                 span: codemap::Span,
                 id: ast::NodeId) {
         let in_new_function = match kind {
@@ -140,7 +140,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
 
             for (arg, ty) in decl.inputs.iter().zip(ty.fn_args().0.iter()) {
                 if is_unrooted_ty(cx, ty, false) {
-                    cx.span_lint(UNROOTED_MUST_ROOT, arg.ty.span, "Type must be rooted")
+                    cx.span_lint(UNROOTED_MUST_ROOT, arg.span, "Type must be rooted")
                 }
             }
 
@@ -155,7 +155,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
             cx: cx,
             in_new_function: in_new_function,
         };
-        visit::walk_expr(&mut visitor, body);
+        visit::walk_expr(&mut visitor, &body.value);
     }
 }
 
@@ -215,7 +215,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
     }
 
     fn visit_fn(&mut self, kind: visit::FnKind<'tcx>, decl: &'tcx hir::FnDecl,
-                body: hir::ExprId, span: codemap::Span, id: ast::NodeId) {
+                body: hir::BodyId, span: codemap::Span, id: ast::NodeId) {
         if let visit::FnKind::Closure(_) = kind {
             visit::walk_fn(self, kind, decl, body, span, id);
         }
