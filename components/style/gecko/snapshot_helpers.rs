@@ -8,8 +8,12 @@ use gecko_bindings::structs::nsIAtom;
 use std::{ptr, slice};
 use string_cache::Atom;
 
+/// A function that, given an element of type `T`, allows you to get a single
+/// class or a class list.
 pub type ClassOrClassList<T> = unsafe extern fn (T, *mut *mut nsIAtom, *mut *mut *mut nsIAtom) -> u32;
 
+/// Given an item `T`, a class name, and a getter function, return whether that
+/// element has the class that `name` represents.
 pub fn has_class<T>(item: T,
                     name: &Atom,
                     getter: ClassOrClassList<T>) -> bool
@@ -30,6 +34,8 @@ pub fn has_class<T>(item: T,
 }
 
 
+/// Given an item, a callback, and a getter, execute `callback` for each class
+/// this `item` has.
 pub fn each_class<F, T>(item: T,
                         mut callback: F,
                         getter: ClassOrClassList<T>)
