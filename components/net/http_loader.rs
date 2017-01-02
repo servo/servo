@@ -579,6 +579,7 @@ pub fn http_fetch(request: Rc<Request>,
             => true,
         _ => false
     };
+
     // Step 5
     if response.is_none() {
         // Substep 1
@@ -606,8 +607,8 @@ pub fn http_fetch(request: Rc<Request>,
         request.skip_service_worker.set(true);
 
         // Substep 3
-        let fetch_result = http_network_or_cache_fetch(request.clone(), credentials, authentication_fetch_flag,
-                                                       done_chan, context);
+        let fetch_result = http_network_or_cache_fetch(request.clone(), authentication_fetch_flag,
+                                                       cors_flag, done_chan, context);
 
         // Substep 4
         if cors_flag && cors_check(request.clone(), &fetch_result).is_err() {
@@ -790,8 +791,8 @@ fn http_redirect_fetch(request: Rc<Request>,
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
 fn http_network_or_cache_fetch(request: Rc<Request>,
-                               credentials_flag: bool,
                                authentication_fetch_flag: bool,
+                               cors_flag: bool,
                                done_chan: &mut DoneChannel,
                                context: &FetchContext)
                                -> Response {
@@ -806,25 +807,35 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         Rc::new((*request).clone())
     };
 
+    // Step 2
+    let credentials_flag = match http_request.credentials_mode {
+        CredentialsMode::Include => true,
+        CredentialsMode::CredentialsSameOrigin if http_request.response_tainting.get() == ResponseTainting::Basic
+            => true,
+        _ => false
+    };
+
     let content_length_value = match *http_request.body.borrow() {
         None =>
             match *http_request.method.borrow() {
-                // Step 3
-                Method::Head | Method::Post | Method::Put =>
+                // Step 4
+                Method::Post | Method::Put =>
                     Some(0),
-                // Step 2
+                // Step 3
                 _ => None
             },
-        // Step 4
+        // Step 5
         Some(ref http_request_body) => Some(http_request_body.len() as u64)
     };
 
-    // Step 5
+    // Step 6
     if let Some(content_length_value) = content_length_value {
         http_request.headers.borrow_mut().set(ContentLength(content_length_value));
     }
 
-    // Step 6
+    // Step 7 TODO
+
+    // Step 8
     match *http_request.referrer.borrow() {
         Referrer::NoReferrer => (),
         Referrer::ReferrerUrl(ref http_request_referrer) =>
@@ -835,31 +846,32 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             unreachable!()
     };
 
-    // Step 7
-    if http_request.omit_origin_header.get() == false {
+    // Step 9
+    if cors_flag ||
+      (*http_request.method.borrow() != Method::Get && *http_request.method.borrow() != Method::Head) {
         // TODO update this when https://github.com/hyperium/hyper/pull/691 is finished
         // http_request.headers.borrow_mut().set_raw("origin", origin);
     }
 
-    // Step 8
+    // Step 10
     if !http_request.headers.borrow().has::<UserAgent>() {
         let user_agent = context.user_agent.clone().into_owned();
         http_request.headers.borrow_mut().set(UserAgent(user_agent));
     }
 
     match http_request.cache_mode.get() {
-        // Step 9
+        // Step 11
         CacheMode::Default if is_no_store_cache(&http_request.headers.borrow()) => {
             http_request.cache_mode.set(CacheMode::NoStore);
         },
 
-        // Step 10
+        // Step 12
         CacheMode::NoCache if !http_request.headers.borrow().has::<CacheControl>() => {
             http_request.headers.borrow_mut().set(CacheControl(vec![CacheDirective::MaxAge(0)]));
         },
 
-        // Step 11
-        CacheMode::Reload => {
+        // Step 13
+        CacheMode::Reload | CacheMode::NoStore => {
             // Substep 1
             if !http_request.headers.borrow().has::<Pragma>() {
                 http_request.headers.borrow_mut().set(Pragma::NoCache);
@@ -874,13 +886,8 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         _ => {}
     }
 
+    // Step 14
     let current_url = http_request.current_url();
-    // Step 12
-    // todo: pass referrer url and policy
-    // this can only be uncommented when the referrer header is set, else it crashes
-    // in the meantime, we manually set the headers in the block below
-    // modify_request_headers(&mut http_request.headers.borrow_mut(), &current_url,
-    //                        None, None, None);
     {
         let headers = &mut *http_request.headers.borrow_mut();
         let host = Host {
@@ -893,7 +900,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         set_default_accept_encoding(headers);
     }
 
-    // Step 13
+    // Step 15
     // TODO some of this step can't be implemented yet
     if credentials_flag {
         // Substep 1
@@ -931,20 +938,21 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         }
     }
 
-    // Step 14
-    // TODO this step can't be implemented yet
+    // Step 16
+    // TODO If there’s a proxy-authentication entry, use it as appropriate.
 
-    // Step 15
+    // Step 17
     let mut response: Option<Response> = None;
 
-    // Step 16
+    // Step 18
     // TODO have a HTTP cache to check for a completed response
     let complete_http_response_from_cache: Option<Response> = None;
     if http_request.cache_mode.get() != CacheMode::NoStore &&
         http_request.cache_mode.get() != CacheMode::Reload &&
         complete_http_response_from_cache.is_some() {
         // Substep 1
-        if http_request.cache_mode.get() == CacheMode::ForceCache {
+        if http_request.cache_mode.get() == CacheMode::ForceCache ||
+           http_request.cache_mode.get() == CacheMode::OnlyIfCached {
             // TODO pull response from HTTP cache
             // response = http_request
         }
@@ -967,46 +975,99 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             // TODO this substep
         }
 
-    // Step 17
+    // Step 19
     // TODO have a HTTP cache to check for a partial response
     } else if http_request.cache_mode.get() == CacheMode::Default ||
         http_request.cache_mode.get() == CacheMode::ForceCache {
         // TODO this substep
     }
 
-    // Step 18
+    // Step 20
     if response.is_none() {
+        if http_request.cache_mode.get() == CacheMode::OnlyIfCached {
+            return Response::network_error(NetworkError::Internal("Couldn't find response in cache".into()))
+        }
         response = Some(http_network_fetch(http_request.clone(), credentials_flag,
                                            done_chan, context));
     }
     let response = response.unwrap();
 
-    // Step 19
     if let Some(status) = response.status {
-        if status == StatusCode::NotModified &&
-            (http_request.cache_mode.get() == CacheMode::Default ||
-            http_request.cache_mode.get() == CacheMode::NoCache) {
-            // Substep 1
-            // TODO this substep
-            // let cached_response: Option<Response> = None;
+        match status {
+            StatusCode::NotModified => {
+                // Step 21
+                if http_request.cache_mode.get() == CacheMode::Default ||
+                   http_request.cache_mode.get() == CacheMode::NoCache {
+                    // Substep 1
+                    // TODO this substep
+                    // let cached_response: Option<Response> = None;
 
-            // Substep 2
-            // if cached_response.is_none() {
-            //     return Response::network_error();
-            // }
+                    // Substep 2
+                    // if cached_response.is_none() {
+                    //     return Response::network_error();
+                    // }
 
-            // Substep 3
+                    // Substep 3
 
-            // Substep 4
-            // response = cached_response;
+                    // Substep 4
+                    // response = cached_response;
 
-            // Substep 5
-            // TODO cache_state is immutable?
-            // response.cache_state = CacheState::Validated;
+                    // Substep 5
+                    // TODO cache_state is immutable?
+                    // response.cache_state = CacheState::Validated;
+                }
+            },
+            StatusCode::Unauthorized => {
+                // Step 22
+                // FIXME: Figure out what to do with request window objects
+                if cors_flag && !credentials_flag {
+                    return response;
+                }
+
+                // Step 1
+                // TODO: Spec says requires testing on multiple WWW-Authenticate headers
+
+                // Step 2
+                if !http_request.use_url_credentials || authentication_fetch_flag {
+                    // TODO: Prompt the user for username and password from the window
+                    // Wrong, but will have to do until we are able to prompt the user
+                    // otherwise this creates an infinite loop
+                    // We basically pretend that the user declined to enter credentials
+                    return response;
+                }
+
+                // Step 3
+                return http_network_or_cache_fetch(http_request, true, cors_flag, done_chan, context);
+            },
+            StatusCode::ProxyAuthenticationRequired => {
+                // Step 23
+                // Step 1
+                // TODO: Figure out what to do with request window objects
+
+                // Step 2
+                // TODO: Spec says requires testing on Proxy-Authenticate headers
+
+                // Step 3
+                // TODO: Prompt the user for proxy authentication credentials
+                // Wrong, but will have to do until we are able to prompt the user
+                // otherwise this creates an infinite loop
+                // We basically pretend that the user declined to enter credentials
+                return response;
+
+                // Step 4
+                // return http_network_or_cache_fetch(request, authentication_fetch_flag,
+                //                                    cors_flag, done_chan, context);
+            },
+            _ => {}
         }
     }
 
-    // Step 20
+    // Step 24
+    if authentication_fetch_flag {
+        // TODO Create the authentication entry for request and the given realm
+    }
+
+    // Step 25
     response
 }
 
