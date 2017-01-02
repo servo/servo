@@ -26,7 +26,7 @@
 #![cfg_attr(feature = "servo", feature(proc_macro))]
 
 #![deny(warnings)]
-#![cfg_attr(feature = "servo", deny(missing_docs))]
+#![deny(missing_docs)]
 
 // FIXME(bholley): We need to blanket-allow unsafe code in order to make the
 // gecko atom!() macro work. When Rust 1.14 is released [1], we can uncomment
@@ -150,7 +150,7 @@ use style_traits::ToCss;
 #[cfg(feature = "servo")] pub use html5ever_atoms::Namespace;
 
 /// The CSS properties supported by the style system.
-// Generated from the properties.mako.rs template by build.rs
+/// Generated from the properties.mako.rs template by build.rs
 #[macro_use]
 #[allow(unsafe_code)]
 #[deny(missing_docs)]
@@ -159,7 +159,7 @@ pub mod properties {
 }
 
 #[cfg(feature = "gecko")]
-#[allow(unsafe_code)]
+#[allow(unsafe_code, missing_docs)]
 pub mod gecko_properties {
     include!(concat!(env!("OUT_DIR"), "/gecko_properties.rs"));
 }
