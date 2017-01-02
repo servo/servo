@@ -44,7 +44,8 @@ impl Default for ParserContextExtraData {
 
 /// The data that the parser needs from outside in order to parse a stylesheet.
 pub struct ParserContext<'a> {
-    /// The `Origin` of the stylesheet.
+    /// The `Origin` of the stylesheet, whether it's a user, author or
+    /// user-agent stylesheet.
     pub stylesheet_origin: Origin,
     /// The base url we're parsing this stylesheet as.
     pub base_url: &'a ServoUrl,
