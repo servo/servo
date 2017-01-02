@@ -552,7 +552,7 @@ impl WebGLRenderingContext {
         match cap {
             constants::BLEND | constants::CULL_FACE | constants::DEPTH_TEST | constants::DITHER |
             constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
-            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST => true,
+            constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST | constants::STENCIL_TEST => true,
             _ => {
                 self.webgl_error(InvalidEnum);
                 false
