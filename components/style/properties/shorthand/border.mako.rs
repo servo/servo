@@ -87,11 +87,16 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     if any { Ok((color, style, width)) } else { Err(()) }
 }
 
-% for side in map(lambda x: x[0], ALL_SIDES):
+% for side, logical in ALL_SIDES:
+    <%
+        spec = "https://drafts.csswg.org/css-backgrounds/#border-%s" % side
+        if logical:
+            spec = "https://drafts.csswg.org/css-logical-props/#propdef-border-%s" % side
+    %>
     <%helpers:shorthand name="border-${side}" sub_properties="${' '.join(
         'border-%s-%s' % (side, prop)
         for prop in ['color', 'style', 'width']
-    )}">
+    )}" spec="${spec}">
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let (color, style, width) = try!(super::parse_border(context, input));
@@ -120,7 +125,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     'border-%s-%s' % (side, prop)
     for side in ['top', 'right', 'bottom', 'left']
     for prop in ['color', 'style', 'width']
-)}">
+)}" spec="https://drafts.csswg.org/css-backgrounds/#border">
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let (color, style, width) = try!(super::parse_border(context, input));
@@ -151,7 +156,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 <%helpers:shorthand name="border-radius" sub_properties="${' '.join(
     'border-%s-radius' % (corner)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
-)}">
+)}" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
     use values::specified::basic_shape::BorderRadius;
     use parser::Parse;
 
@@ -184,9 +189,9 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     }
 </%helpers:shorthand>
 
-// https://drafts.csswg.org/css-backgrounds-3/#border-image
 <%helpers:shorthand name="border-image" products="gecko" sub_properties="border-image-outset
-    border-image-repeat border-image-slice border-image-source border-image-width">
+    border-image-repeat border-image-slice border-image-source border-image-width"
+    spec="https://drafts.csswg.org/css-backgrounds-3/#border-image">
     use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
     use properties::longhands::{border_image_source, border_image_width};
 

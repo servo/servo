@@ -8,10 +8,17 @@
 <% data.new_style_struct("Border", inherited=False,
                    additional_methods=[Method("border_" + side + "_has_nonzero_width",
                                               "bool") for side in ["top", "right", "bottom", "left"]]) %>
-
+<%
+    def maybe_logical_spec(side, kind):
+        if side[1]: # if it is logical
+            return "https://drafts.csswg.org/css-logical-props/#propdef-border-%s-%s" % (side[0], kind)
+        else:
+            return "https://drafts.csswg.org/css-backgrounds/#border-%s-%s" % (side[0], kind)
+%>
 % for side in ALL_SIDES:
     ${helpers.predefined_type("border-%s-color" % side[0], "CSSColor",
                               "::cssparser::Color::CurrentColor",
+                              spec=maybe_logical_spec(side, "color"),
                               animatable=True, logical = side[1])}
 % endfor
 
@@ -19,11 +26,13 @@
     ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
                               "specified::BorderStyle::none",
                               needs_context=False, need_clone=True,
+                              spec=maybe_logical_spec(side, "style"),
                               animatable=False, logical = side[1])}
 % endfor
 
 % for side in ALL_SIDES:
-    <%helpers:longhand name="border-${side[0]}-width" animatable="True" logical="${side[1]}">
+    <%helpers:longhand name="border-${side[0]}-width" animatable="True" logical="${side[1]}"
+                       spec="${maybe_logical_spec(side, 'width')}">
         use app_units::Au;
         use std::fmt;
         use style_traits::ToCss;
@@ -53,12 +62,14 @@
     ${helpers.predefined_type("border-" + corner + "-radius", "BorderRadiusSize",
                               "computed::BorderRadiusSize::zero()",
                               "parse",
+                              spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               animatable=True)}
 % endfor
 
 ${helpers.single_keyword("box-decoration-break", "slice clone",
                          gecko_enum_prefix="StyleBoxDecorationBreak",
                          gecko_inexhaustive=True,
+                         spec="https://drafts.csswg.org/css-break/#propdef-box-decoration-break",
                          products="gecko", animatable=False)}
 
 ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
@@ -66,10 +77,11 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          gecko_enum_prefix="StyleFloatEdge",
                          gecko_inexhaustive=True,
                          products="gecko",
+                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
                          animatable=False)}
 
-// https://drafts.csswg.org/css-backgrounds-3/#border-image-source
-<%helpers:longhand name="border-image-source" products="gecko" animatable="False">
+<%helpers:longhand name="border-image-source" products="gecko" animatable="False"
+                   spec="https://drafts.csswg.org/css-backgrounds/#border-image-source">
     use std::fmt;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
@@ -144,8 +156,8 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-// https://drafts.csswg.org/css-backgrounds-3/#border-image-outset
-<%helpers:longhand name="border-image-outset" products="gecko" animatable="False">
+<%helpers:longhand name="border-image-outset" products="gecko" animatable="False"
+                   spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
@@ -260,8 +272,8 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-// https://drafts.csswg.org/css-backgrounds-3/#border-image-repeat
-<%helpers:longhand name="border-image-repeat" products="gecko" animatable="False">
+<%helpers:longhand name="border-image-repeat" products="gecko" animatable="False"
+                   spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use std::fmt;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
@@ -338,8 +350,8 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-// https://drafts.csswg.org/css-backgrounds-3/#border-image-width
-<%helpers:longhand name="border-image-width" products="gecko" animatable="False">
+<%helpers:longhand name="border-image-width" products="gecko" animatable="False"
+                   spec="https://drafts.csswg.org/css-backgrounds/#border-image-width">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
@@ -538,8 +550,8 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-// https://drafts.csswg.org/css-backgrounds-3/#border-image-slice
-<%helpers:longhand name="border-image-slice" products="gecko" animatable="False">
+<%helpers:longhand name="border-image-slice" products="gecko" animatable="False"
+                   spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice">
     use std::fmt;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
