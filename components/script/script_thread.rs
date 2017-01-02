@@ -612,7 +612,7 @@ impl ScriptThread {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
                 script_thread.profile_event(ScriptThreadEventCategory::AttachLayout, || {
-                    script_thread.handle_new_layout(new_layout_info, origin);
+                    script_thread.handle_new_layout(new_layout_info, origin, true);
                 })
             }
         });
@@ -784,7 +784,7 @@ impl ScriptThread {
                         new_layout_info)) => {
                     self.profile_event(ScriptThreadEventCategory::AttachLayout, || {
                         let origin = Origin::new(&new_layout_info.load_data.url);
-                        self.handle_new_layout(new_layout_info, origin);
+                        self.handle_new_layout(new_layout_info, origin, false);
                     })
                 }
                 FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
@@ -1195,7 +1195,7 @@ impl ScriptThread {
         window.set_scroll_offsets(scroll_offsets)
     }
 
-    fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: Origin) {
+    fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: Origin, initial_about_blank: bool) {
         let NewLayoutInfo {
             parent_info,
             new_pipeline_id,
@@ -1239,7 +1239,7 @@ impl ScriptThread {
                                            layout_chan, window_size,
                                            load_data.url.clone(), origin);
         if load_data.url.as_str() == "about:blank" {
-            self.start_page_load_about_blank(new_load);
+            self.start_page_load_about_blank(new_load, initial_about_blank);
         } else {
             self.start_page_load(new_load, load_data);
         }
@@ -2135,13 +2135,17 @@ impl ScriptThread {
 
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`
     /// argument until a notification is received that the fetch is complete.
-    fn start_page_load_about_blank(&self, incomplete: InProgressLoad) {
+    fn start_page_load_about_blank(&self, incomplete: InProgressLoad, initial_about_blank: bool) {
         let id = incomplete.pipeline_id;
 
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let url = ServoUrl::parse("about:blank").unwrap();
-        let mut context = ParserContext::new_initial(id, url.clone());
+        let mut context = if initial_about_blank {
+            ParserContext::new_initial(id, url.clone())
+        } else {
+            ParserContext::new(id, url.clone())
+        };
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime!(Text / Html)));
