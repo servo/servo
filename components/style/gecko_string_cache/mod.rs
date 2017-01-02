@@ -4,6 +4,8 @@
 
 #![allow(unsafe_code)]
 
+//! A drop-in replacement for string_cache, but backed by Gecko `nsIAtom`s.
+
 use gecko_bindings::bindings::Gecko_AddRefAtom;
 use gecko_bindings::bindings::Gecko_Atomize;
 use gecko_bindings::bindings::Gecko_ReleaseAtom;
@@ -19,7 +21,7 @@ use std::ops::Deref;
 use std::slice;
 
 #[macro_use]
-#[allow(improper_ctypes, non_camel_case_types)]
+#[allow(improper_ctypes, non_camel_case_types, missing_docs)]
 pub mod atom_macro;
 #[macro_use]
 pub mod namespace;
@@ -40,6 +42,8 @@ pub struct Atom(*mut WeakAtom);
 /// where `'a` is the lifetime of something that holds a strong reference to that atom.
 pub struct WeakAtom(nsIAtom);
 
+/// A BorrowedAtom for Gecko is just a weak reference to a `nsIAtom`, that
+/// hasn't been bumped.
 pub type BorrowedAtom<'a> = &'a WeakAtom;
 
 impl Deref for Atom {
@@ -75,21 +79,26 @@ unsafe impl Sync for Atom {}
 unsafe impl Sync for WeakAtom {}
 
 impl WeakAtom {
+    /// Construct a `WeakAtom` from a raw `nsIAtom`.
     #[inline]
     pub unsafe fn new<'a>(atom: *mut nsIAtom) -> &'a mut Self {
         &mut *(atom as *mut WeakAtom)
     }
 
+    /// Clone this atom, bumping the refcount if the atom is not static.
     #[inline]
     pub fn clone(&self) -> Atom {
         Atom::from(self.as_ptr())
     }
 
+    /// Get the atom hash.
     #[inline]
     pub fn get_hash(&self) -> u32 {
         self.0.mHash
     }
 
+    /// Get the atom as a slice of utf-16 chars.
+    #[inline]
     pub fn as_slice(&self) -> &[u16] {
         unsafe {
             slice::from_raw_parts((*self.as_ptr()).mString, self.len() as usize)
@@ -101,20 +110,29 @@ impl WeakAtom {
         char::decode_utf16(self.as_slice().iter().cloned())
     }
 
+    /// Execute `cb` with the string that this atom represents.
+    ///
+    /// Find alternatives to this function when possible, please, since it's
+    /// pretty slow.
     pub fn with_str<F, Output>(&self, cb: F) -> Output
         where F: FnOnce(&str) -> Output
     {
         // FIXME(bholley): We should measure whether it makes more sense to
         // cache the UTF-8 version in the Gecko atom table somehow.
-        let owned = String::from_utf16(self.as_slice()).unwrap();
+        let owned = self.to_string();
         cb(&owned)
     }
 
+    /// Convert this Atom into a string, decoding the UTF-16 bytes.
+    ///
+    /// Find alternatives to this function when possible, please, since it's
+    /// pretty slow.
     #[inline]
     pub fn to_string(&self) -> String {
         String::from_utf16(self.as_slice()).unwrap()
     }
 
+    /// Returns whether this atom is static.
     #[inline]
     pub fn is_static(&self) -> bool {
         unsafe {
@@ -122,6 +140,7 @@ impl WeakAtom {
         }
     }
 
+    /// Returns the length of the atom string.
     #[inline]
     pub fn len(&self) -> u32 {
         unsafe {
@@ -129,6 +148,7 @@ impl WeakAtom {
         }
     }
 
+    /// Returns the atom as a mutable pointer.
     #[inline]
     pub fn as_ptr(&self) -> *mut nsIAtom {
         let const_ptr: *const nsIAtom = &self.0;
@@ -152,6 +172,7 @@ impl fmt::Display for WeakAtom {
 }
 
 impl Atom {
+    /// Execute a callback with the atom represented by `ptr`.
     pub unsafe fn with<F>(ptr: *mut nsIAtom, callback: &mut F) where F: FnMut(&Atom) {
         let atom = Atom(WeakAtom::new(ptr));
         callback(&atom);
