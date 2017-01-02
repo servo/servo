@@ -338,7 +338,7 @@
     </%call>
 </%def>
 
-<%def name="single_keyword_computed(name, values, vector=False, **kwargs)">
+<%def name="single_keyword_computed(name, values, vector=False, extra_specified=None, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix', 'gecko_enum_prefix',
@@ -348,7 +348,16 @@
     %>
 
     <%def name="inner_body()">
-        pub use self::computed_value::T as SpecifiedValue;
+        % if extra_specified:
+            use style_traits::ToCss;
+            define_css_keyword_enum! { SpecifiedValue:
+                % for value in data.longhands_by_name[name].keyword.values_for(product) + extra_specified.split():
+                    "${value}" => ${to_rust_ident(value)},
+                % endfor
+            }
+        % else:
+            pub use self::computed_value::T as SpecifiedValue;
+        % endif
         pub mod computed_value {
             use style_traits::ToCss;
             define_css_keyword_enum! { T:
@@ -363,12 +372,12 @@
         }
         #[inline]
         pub fn get_initial_specified_value() -> SpecifiedValue {
-            get_initial_value()
+            SpecifiedValue::${to_rust_ident(values.split()[0])}
         }
         #[inline]
         pub fn parse(_context: &ParserContext, input: &mut Parser)
                      -> Result<SpecifiedValue, ()> {
-            computed_value::T::parse(input)
+            SpecifiedValue::parse(input)
         }
     </%def>
     % if vector:
