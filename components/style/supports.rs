@@ -173,9 +173,9 @@ impl ToCss for SupportsCondition {
 /// A possibly-invalid property declaration
 pub struct Declaration {
     /// The property name
-    prop: String,
+    pub prop: String,
     /// The property value
-    val: String,
+    pub val: String,
 }
 
 impl ToCss for Declaration {
