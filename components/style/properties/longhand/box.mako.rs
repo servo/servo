@@ -98,9 +98,10 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                          need_clone=True, extra_gecko_values="sticky", animatable=False,
                          spec="https://drafts.csswg.org/css-position/#position-property")}
 
-// TODO add support for logical values inline-start and inline-end (https://drafts.csswg.org/css-logical-props/#float-clear)
 <%helpers:single_keyword_computed name="float"
                                   values="none left right"
+                                  // https://drafts.csswg.org/css-logical-props/#float-clear
+                                  extra_specified="inline-start inline-end"
                                   animatable="False"
                                   need_clone="True"
                                   gecko_enum_prefix="StyleFloat"
@@ -118,23 +119,69 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
                 longhands::position::SpecifiedValue::absolute |
                 longhands::position::SpecifiedValue::fixed);
             if positioned {
-                SpecifiedValue::none
+                computed_value::T::none
             } else {
-                *self
+                let ltr = context.style().writing_mode.is_bidi_ltr();
+                // https://drafts.csswg.org/css-logical-props/#float-clear
+                match *self {
+                    SpecifiedValue::inline_start if ltr => computed_value::T::left,
+                    SpecifiedValue::inline_start => computed_value::T::right,
+                    SpecifiedValue::inline_end if ltr => computed_value::T::right,
+                    SpecifiedValue::inline_end => computed_value::T::left,
+                    % for value in "none left right".split():
+                        SpecifiedValue::${value} => computed_value::T::${value},
+                    % endfor
+                }
             }
         }
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
-          *computed
+            match *computed {
+                % for value in "none left right".split():
+                    computed_value::T::${value} => SpecifiedValue::${value},
+                % endfor
+            }
         }
     }
-
 </%helpers:single_keyword_computed>
 
-${helpers.single_keyword("clear", "none left right both",
-                         animatable=False, gecko_ffi_name="mBreakType",
-                         gecko_enum_prefix="StyleClear",
-                         spec="https://www.w3.org/TR/CSS2/visuren.html#flow-control")}
+<%helpers:single_keyword_computed name="clear"
+                                  values="none left right both"
+                                  // https://drafts.csswg.org/css-logical-props/#float-clear
+                                  extra_specified="inline-start inline-end"
+                                  animatable="False"
+                                  gecko_enum_prefix="StyleClear"
+                                  gecko_ffi_name="mBreakType"
+                                  spec="https://www.w3.org/TR/CSS2/visuren.html#flow-control">
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, context: &Context) -> computed_value::T {
+            let ltr = context.style().writing_mode.is_bidi_ltr();
+            // https://drafts.csswg.org/css-logical-props/#float-clear
+            match *self {
+                SpecifiedValue::inline_start if ltr => computed_value::T::left,
+                SpecifiedValue::inline_start => computed_value::T::right,
+                SpecifiedValue::inline_end if ltr => computed_value::T::right,
+                SpecifiedValue::inline_end => computed_value::T::left,
+                % for value in "none left right both".split():
+                    SpecifiedValue::${value} => computed_value::T::${value},
+                % endfor
+            }
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
+            match *computed {
+                % for value in "none left right both".split():
+                    computed_value::T::${value} => SpecifiedValue::${value},
+                % endfor
+            }
+        }
+    }
+</%helpers:single_keyword_computed>
 
 <%helpers:longhand name="-servo-display-for-hypothetical-box"
                    animatable="False"
