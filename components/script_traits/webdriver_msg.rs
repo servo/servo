@@ -14,12 +14,10 @@ use servo_url::ServoUrl;
 
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
-    AddCookie(
-        #[serde(deserialize_with = "::hyper_serde::deserialize",
-                serialize_with = "::hyper_serde::serialize")]
-        Cookie,
-        IpcSender<Result<(), WebDriverCookieError>>
-    ),
+    AddCookie(#[serde(deserialize_with = "::hyper_serde::deserialize",
+                      serialize_with = "::hyper_serde::serialize")]
+              Cookie,
+              IpcSender<Result<(), WebDriverCookieError>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementCSS(String, IpcSender<Result<Option<String>, ()>>),
