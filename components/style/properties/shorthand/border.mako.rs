@@ -5,15 +5,18 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 <% from data import to_rust_ident, ALL_SIDES %>
 
-${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse")}
+${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse",
+                               spec="https://drafts.csswg.org/css-backgrounds/#border-color")}
 
 ${helpers.four_sides_shorthand("border-style", "border-%s-style",
                                "specified::BorderStyle::parse",
-                               needs_context=False)}
+                               needs_context=False,
+                               spec="https://drafts.csswg.org/css-backgrounds/#border-style")}
 
 <%helpers:shorthand name="border-width" sub_properties="${
         ' '.join('border-%s-width' % side
-                 for side in ['top', 'right', 'bottom', 'left'])}">
+                 for side in ['top', 'right', 'bottom', 'left'])}"
+    spec="https://drafts.csswg.org/css-backgrounds/#border-width">
     use super::parse_four_sides;
     use parser::Parse;
     use values::specified;
