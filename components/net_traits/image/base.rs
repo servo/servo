@@ -8,10 +8,14 @@ use webrender_traits;
 
 #[derive(Clone, Copy, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
 pub enum PixelFormat {
-    K8,         // Luminance channel only
-    KA8,        // Luminance + alpha
-    RGB8,       // RGB, 8 bits per channel
-    RGBA8,      // RGB + alpha, 8 bits per channel
+    /// Luminance channel only
+    K8,
+    /// Luminance + alpha
+    KA8,
+    /// RGB, 8 bits per channel
+    RGB8,
+    /// RGB + alpha, 8 bits per channel
+    RGBA8,
 }
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
