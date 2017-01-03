@@ -316,12 +316,10 @@ pub enum WebSocketDomAction {
 
 #[derive(Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
-    ConnectionEstablished(
-        #[serde(deserialize_with = "::hyper_serde::deserialize",
-                serialize_with = "::hyper_serde::serialize")]
-        header::Headers,
-        Vec<String>
-    ),
+    ConnectionEstablished(#[serde(deserialize_with = "::hyper_serde::deserialize",
+                                  serialize_with = "::hyper_serde::serialize")]
+                          header::Headers,
+                          Vec<String>),
     MessageReceived(MessageData),
     Close(Option<u16>, String),
     Fail,
@@ -346,13 +344,11 @@ pub enum CoreResourceMsg {
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a cookie for a given originating URL
-    SetCookieForUrl(
-        ServoUrl,
-        #[serde(deserialize_with = "::hyper_serde::deserialize",
-                serialize_with = "::hyper_serde::serialize")]
-        Cookie,
-        CookieSource
-    ),
+    SetCookieForUrl(ServoUrl,
+                    #[serde(deserialize_with = "::hyper_serde::deserialize",
+                            serialize_with = "::hyper_serde::serialize")]
+                    Cookie,
+                    CookieSource),
     /// Store cookies for a given originating URL
     SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie>>, CookieSource),
     /// Retrieve the stored cookies for a given URL
