@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("Pointing", inherited=True, gecko_name="UserInterface") %>
 
-<%helpers:longhand name="cursor" animatable="False">
+<%helpers:longhand name="cursor" animatable="False" spec="https://drafts.csswg.org/css-ui/#cursor">
     pub use self::computed_value::T as SpecifiedValue;
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
@@ -146,23 +146,27 @@
 // NB: `pointer-events: auto` (and use of `pointer-events` in anything that isn't SVG, in fact)
 // is nonstandard, slated for CSS4-UI.
 // TODO(pcwalton): SVG-only values.
-${helpers.single_keyword("pointer-events", "auto none", animatable=False)}
+${helpers.single_keyword("pointer-events", "auto none", animatable=False,
+                         spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty")}
 
 ${helpers.single_keyword("-moz-user-input", "none enabled disabled",
                          products="gecko", gecko_ffi_name="mUserInput",
                          gecko_enum_prefix="StyleUserInput",
                          gecko_inexhaustive=True,
-                         animatable=False)}
+                         animatable=False,
+                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-input)")}
 
 ${helpers.single_keyword("-moz-user-modify", "read-only read-write write-only",
                          products="gecko", gecko_ffi_name="mUserModify",
                          gecko_enum_prefix="StyleUserModify",
                          gecko_inexhaustive=True,
-                         animatable=False)}
+                         animatable=False,
+                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-modify)")}
 
 ${helpers.single_keyword("-moz-user-focus",
                          "ignore normal select-after select-before select-menu select-same select-all none",
                          products="gecko", gecko_ffi_name="mUserFocus",
                          gecko_enum_prefix="StyleUserFocus",
                          gecko_inexhaustive=True,
-                         animatable=False)}
+                         animatable=False,
+                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-focus)")}
