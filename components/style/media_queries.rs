@@ -18,6 +18,7 @@ pub use servo::media_queries::{Device, Expression};
 #[cfg(feature = "gecko")]
 pub use gecko::media_queries::{Device, Expression};
 
+/// A type that encapsulates a media query list.
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaList {
@@ -39,11 +40,15 @@ impl Default for MediaList {
     }
 }
 
-/// http://dev.w3.org/csswg/mediaqueries-3/#media0
+/// https://drafts.csswg.org/mediaqueries/#mq-prefix
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Qualifier {
+    /// Hide a media query from legacy UAs:
+    /// https://drafts.csswg.org/mediaqueries/#mq-only
     Only,
+    /// Negate a media query:
+    /// https://drafts.csswg.org/mediaqueries/#mq-not
     Not,
 }
 
@@ -167,10 +172,13 @@ impl MediaQueryType {
     }
 }
 
+/// https://drafts.csswg.org/mediaqueries/#media-types
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum MediaType {
+    /// The "screen" media type.
     Screen,
+    /// The "print" media type.
     Print,
 }
 
@@ -223,6 +231,12 @@ impl MediaQuery {
     }
 }
 
+/// Parse a media query list from CSS.
+///
+/// Always returns a media query list. If any invalid media query is found, the
+/// media query list is only filled with the equivalent of "not all", see:
+///
+/// https://drafts.csswg.org/mediaqueries/#error-handling
 pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
     if input.is_exhausted() {
         return Default::default()
@@ -252,7 +266,7 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
 }
 
 impl MediaList {
-    /// Evaluate a whole medialist.
+    /// Evaluate a whole `MediaList` against `Device`.
     pub fn evaluate(&self, device: &Device) -> bool {
         // Check if it is an empty media query list or any queries match (OR condition)
         // https://drafts.csswg.org/mediaqueries-4/#mq-list
@@ -273,6 +287,7 @@ impl MediaList {
         })
     }
 
+    /// Whether this `MediaList` contains no media queries.
     pub fn is_empty(&self) -> bool {
         self.media_queries.is_empty()
     }
