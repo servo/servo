@@ -551,10 +551,9 @@
     % endif
 </%def>
 
-<%def name="four_sides_shorthand(name, sub_property_pattern, parser_function, needs_context=True)">
-    <%self:shorthand name="${name}" sub_properties="${
-            ' '.join(sub_property_pattern % side
-                     for side in ['top', 'right', 'bottom', 'left'])}">
+<%def name="four_sides_shorthand(name, sub_property_pattern, parser_function, needs_context=True, **kwargs)">
+    <% sub_properties=' '.join(sub_property_pattern % side for side in ['top', 'right', 'bottom', 'left']) %>
+    <%call expr="self.shorthand(name, sub_properties=sub_properties, **kwargs)">
         #[allow(unused_imports)]
         use parser::Parse;
         use super::parse_four_sides;
@@ -586,7 +585,7 @@
                 )
             }
         }
-    </%self:shorthand>
+    </%call>
 </%def>
 
 <%def name="logical_setter_helper(name)">
