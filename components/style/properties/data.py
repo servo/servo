@@ -90,6 +90,8 @@ class Longhand(object):
                  allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
                  has_uncacheable_values=False, logical=False):
         self.name = name
+        if not spec:
+            raise TypeError("Spec should be specified for %s" %name)
         self.spec = spec
         self.keyword = keyword
         self.predefined_type = predefined_type
@@ -134,6 +136,8 @@ class Shorthand(object):
     def __init__(self, name, sub_properties, spec="NO SPEC", experimental=False, internal=False,
                  allowed_in_keyframe_block=True):
         self.name = name
+        if not spec:
+            raise TypeError("Spec should be specified for %s" %name)
         self.spec = spec
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
