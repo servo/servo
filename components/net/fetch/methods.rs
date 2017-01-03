@@ -1,7 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
 use blob_loader::load_blob_sync;
 use data_loader::decode;
 use devtools_traits::DevtoolsControlMsg;
@@ -18,6 +17,8 @@ use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
+use openssl::crypto::hash::{hash, Type as MessageDigest};
+use rustc_serialize::base64::{STANDARD, ToBase64};
 use std::borrow::Cow;
 use std::fs::File;
 use std::io::Read;
@@ -268,6 +269,7 @@ pub fn main_fetch(request: Rc<Request>,
         response
     };
 
+    let mut response_loaded = false;
     {
         // Step 14
         let network_error_res;
@@ -297,50 +299,36 @@ pub fn main_fetch(request: Rc<Request>,
             let mut body = internal_response.body.lock().unwrap();
             *body = ResponseBody::Empty;
         }
-
-        // Step 18
-        // TODO be able to compare response integrity against request integrity metadata
-        // if !response.is_network_error() {
-
-        //     // Substep 1
-        //     response.wait_until_done();
-
-        //     // Substep 2
-        //     if response.termination_reason.is_none() {
-        //         response = Response::network_error();
-        //         internal_response = Response::network_error();
-        //     }
-        // }
     }
+     // Step 18
+    let response = if !response.is_network_error() && *request.integrity_metadata.borrow() != "" {
+         // Substep 1
+         wait_for_response(&response, target, done_chan);
+         response_loaded = true;
+
+         // Substep 2
+         let ref integrity_metadata = *request.integrity_metadata.borrow();
+         if response.termination_reason.is_none() && !is_response_integrity_valid(integrity_metadata, &response) {
+            let mut response = Response::network_error(
+                NetworkError::Internal("Sub-resource integrity validation failed".into()));
+            response.internal_response = Some(Box::new(
+                Response::network_error(response.get_network_error().unwrap().clone())));
+            response
+         } else {
+             response
+         }
+     } else {
+         response
+     };
 
     // Step 19
     if request.synchronous {
         // process_response is not supposed to be used
         // by sync fetch, but we overload it here for simplicity
         target.process_response(&response);
-
-        if let Some(ref ch) = *done_chan {
-            loop {
-                match ch.1.recv()
-                        .expect("fetch worker should always send Done before terminating") {
-                    Data::Payload(vec) => {
-                        target.process_response_chunk(vec);
-                    }
-                    Data::Done => break,
-                }
-            }
-        } else {
-            let body = response.body.lock().unwrap();
-            if let ResponseBody::Done(ref vec) = *body {
-                // in case there was no channel to wait for, the body was
-                // obtained synchronously via basic_fetch for data/file/about/etc
-                // We should still send the body across as a chunk
-                target.process_response_chunk(vec.clone());
-            } else {
-                assert!(*body == ResponseBody::Empty)
-            }
+        if !response_loaded {
+            wait_for_response(&response, target, done_chan);
         }
-
         // overloaded similarly to process_response
         target.process_response_eof(&response);
         return response;
@@ -360,13 +348,25 @@ pub fn main_fetch(request: Rc<Request>,
     target.process_response(&response);
 
     // Step 22
+    if !response_loaded {
+       wait_for_response(&response, target, done_chan);
+    }
+
+    // Step 24
+    target.process_response_eof(&response);
+
+    // TODO remove this line when only asynchronous fetches are used
+    return response;
+}
+
+fn wait_for_response(response: &Response, target: Target, done_chan: &mut DoneChannel) {
     if let Some(ref ch) = *done_chan {
         loop {
             match ch.1.recv()
                     .expect("fetch worker should always send Done before terminating") {
                 Data::Payload(vec) => {
                     target.process_response_chunk(vec);
-                }
+                },
                 Data::Done => break,
             }
         }
@@ -381,12 +381,6 @@ pub fn main_fetch(request: Rc<Request>,
             assert!(*body == ResponseBody::Empty)
         }
     }
-
-    // Step 24
-    target.process_response_eof(&response);
-
-    // TODO remove this line when only asynchronous fetches are used
-    return response;
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
@@ -516,5 +510,27 @@ fn is_null_body_status(status: &Option<StatusCode>) -> bool {
             _ => false
         },
         _ => false
+    }
+}
+
+fn is_response_integrity_valid(integrity_metadata: &str, response: &Response) -> bool {
+    let data: Vec<&str> = integrity_metadata.split("-").collect();
+    let algorithm = data[0];
+    let digest = data[1];
+
+    let body = response.body.lock().unwrap();
+    if let ResponseBody::Done(ref vec) = *body {
+        let message_digest =  match algorithm {
+             "sha256" => MessageDigest::SHA256,
+             "sha384" => MessageDigest::SHA384,
+             "sha512" => MessageDigest::SHA512,
+             _ => return true
+         };
+
+        let response_digest = hash(message_digest, vec);
+        let encoded_digest = response_digest.to_base64(STANDARD);
+        encoded_digest == digest
+    } else {
+        false
     }
 }
