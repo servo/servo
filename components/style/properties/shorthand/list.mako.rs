@@ -5,7 +5,8 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="list-style"
-                    sub_properties="list-style-image list-style-position list-style-type">
+                    sub_properties="list-style-image list-style-position list-style-type"
+                    spec="https://drafts.csswg.org/css-lists/#propdef-list-style">
     use properties::longhands::{list_style_image, list_style_position, list_style_type};
     use values::{Either, None_};
 
