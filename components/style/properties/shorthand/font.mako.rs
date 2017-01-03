@@ -5,7 +5,8 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="font" sub_properties="font-style font-variant font-weight
-                                                font-size line-height font-family">
+                                                font-size line-height font-family"
+                    spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use properties::longhands::{font_style, font_variant, font_weight, font_size,
                                 line_height, font_family};
 
