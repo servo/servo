@@ -98,7 +98,7 @@ class PostBuildCommands(CommandBase):
         args = [self.get_binary_path(release, dev)]
 
         if browserhtml:
-            browserhtml_path = get_browserhtml_path('browserhtml', args[0])
+            browserhtml_path = get_browserhtml_path(args[0])
             if is_macosx():
                 # Enable borderless on OSX
                 args = args + ['-b']
@@ -109,7 +109,7 @@ class PostBuildCommands(CommandBase):
             args = args + ['--pref', 'dom.mozbrowser.enabled',
                            '--pref', 'dom.forcetouch.enabled',
                            '--pref', 'shell.builtin-key-shortcuts.enabled=false',
-                           path.join(browserhtml_path, 'out', 'index.html')]
+                           path.join(browserhtml_path, 'index.html')]
 
         if headless:
             set_osmesa_env(args[0], env)
