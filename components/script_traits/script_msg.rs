@@ -57,7 +57,7 @@ pub enum LogEntry {
     /// Error, with a reason
     Error(String),
     /// warning, with a reason
-    Warn(String)
+    Warn(String),
 }
 
 /// Messages from the script to the constellation.
@@ -148,7 +148,7 @@ pub enum ScriptMsg {
     /// Enter or exit fullscreen
     SetFullscreenState(bool),
     /// Requests that the compositor shut down.
-    Exit
+    Exit,
 }
 
 /// Entities required to spawn service workers
@@ -175,7 +175,7 @@ pub struct SWManagerSenders {
     /// sender for communicating with constellation
     pub swmanager_sender: IpcSender<SWManagerMsg>,
     /// sender for communicating with resource thread
-    pub resource_sender: IpcSender<CoreResourceMsg>
+    pub resource_sender: IpcSender<CoreResourceMsg>,
 }
 
 /// Messages sent to Service Worker Manager thread
@@ -195,6 +195,5 @@ pub enum ServiceWorkerMsg {
 #[derive(Deserialize, Serialize)]
 pub enum SWManagerMsg {
     /// Provide the constellation with a means of communicating with the Service Worker Manager
-    OwnSender(IpcSender<ServiceWorkerMsg>)
-
+    OwnSender(IpcSender<ServiceWorkerMsg>),
 }

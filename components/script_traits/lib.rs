@@ -18,7 +18,8 @@ extern crate devtools_traits;
 extern crate euclid;
 extern crate gfx_traits;
 extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
+#[macro_use]
+extern crate heapsize_derive;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate ipc_channel;
@@ -252,7 +253,7 @@ pub enum ConstellationControlMsg {
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
-    Reload(PipelineId)
+    Reload(PipelineId),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -284,7 +285,7 @@ impl fmt::Debug for ConstellationControlMsg {
             DispatchStorageEvent(..) => "DispatchStorageEvent",
             FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
-            Reload(..) => "Reload"
+            Reload(..) => "Reload",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }
@@ -384,10 +385,7 @@ pub enum TouchpadPressurePhase {
 
 /// Requests a TimerEvent-Message be sent after the given duration.
 #[derive(Deserialize, Serialize)]
-pub struct TimerEventRequest(pub IpcSender<TimerEvent>,
-                             pub TimerSource,
-                             pub TimerEventId,
-                             pub MsDuration);
+pub struct TimerEventRequest(pub IpcSender<TimerEvent>, pub TimerSource, pub TimerEventId, pub MsDuration);
 
 /// Notifies the script thread to fire due timers.
 /// `TimerSource` must be `FromWindow` when dispatched to `ScriptThread` and
@@ -479,9 +477,7 @@ pub trait ScriptThreadFactory {
     /// Type of message sent from script to layout.
     type Message;
     /// Create a `ScriptThread`.
-    fn create(state: InitialScriptState,
-              load_data: LoadData)
-              -> (Sender<Self::Message>, Receiver<Self::Message>);
+    fn create(state: InitialScriptState, load_data: LoadData) -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
 /// Whether the sandbox attribute is present for an iframe element
@@ -490,7 +486,7 @@ pub enum IFrameSandboxState {
     /// Sandbox attribute is present
     IFrameSandboxed,
     /// Sandbox attribute is not present
-    IFrameUnsandboxed
+    IFrameUnsandboxed,
 }
 
 /// Specifies the information required to load an iframe.
@@ -744,5 +740,5 @@ pub struct WorkerScriptLoadOrigin {
     /// the referrer policy which is used
     pub referrer_policy: Option<ReferrerPolicy>,
     /// the pipeline id of the entity requesting the load
-    pub pipeline_id: Option<PipelineId>
+    pub pipeline_id: Option<PipelineId>,
 }
