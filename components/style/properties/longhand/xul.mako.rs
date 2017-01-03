@@ -12,9 +12,11 @@ ${helpers.single_keyword("-moz-box-align", "stretch start center baseline end",
                          products="gecko", gecko_ffi_name="mBoxAlign",
                          gecko_enum_prefix="StyleBoxAlign",
                          gecko_inexhaustive=True,
-                         animatable=False)}
+                         animatable=False,
+                         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-align)")}
 
 ${helpers.predefined_type("-moz-box-flex", "Number", "0.0", "parse_non_negative",
                           products="gecko", gecko_ffi_name="mBoxFlex",
                           needs_context=False,
-                          animatable=False)}
+                          animatable=False,
+                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-flex)")}
