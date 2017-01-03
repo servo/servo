@@ -172,6 +172,7 @@ impl Response {
 
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     pub fn to_filtered(self, filter_type: ResponseType) -> Response {
         match filter_type {
             ResponseType::Default | ResponseType::Error(..) => panic!(),
