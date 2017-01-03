@@ -32,7 +32,9 @@ lazy_static! {
 }
 
 impl<'a> FromIterator<&'a str> for PubDomainRules {
-    fn from_iter<T>(iter: T) -> Self where T: IntoIterator<Item=&'a str> {
+    fn from_iter<T>(iter: T) -> Self
+        where T: IntoIterator<Item = &'a str>,
+    {
         let mut result = PubDomainRules::new();
         for item in iter {
             if item.starts_with("!") {
@@ -96,9 +98,10 @@ impl PubDomainRules {
         let domain = domain.trim_left_matches(".");
         match domain.find(".") {
             None => !domain.is_empty(),
-            Some(index) => !self.exceptions.contains(domain) &&
-                self.wildcards.contains(&domain[index + 1..]) ||
-                self.rules.contains(domain),
+            Some(index) => {
+                !self.exceptions.contains(domain) && self.wildcards.contains(&domain[index + 1..]) ||
+                self.rules.contains(domain)
+            },
         }
     }
     pub fn is_registrable_suffix(&self, domain: &str) -> bool {
@@ -108,19 +111,18 @@ impl PubDomainRules {
         let domain = domain.trim_left_matches(".");
         match domain.find(".") {
             None => false,
-            Some(index) => self.exceptions.contains(domain) ||
-                !self.wildcards.contains(&domain[index + 1..]) &&
-                !self.rules.contains(domain) &&
-                self.is_public_suffix(&domain[index + 1..]),
+            Some(index) => {
+                self.exceptions.contains(domain) ||
+                !self.wildcards.contains(&domain[index + 1..]) && !self.rules.contains(domain) &&
+                self.is_public_suffix(&domain[index + 1..])
+            },
         }
     }
 }
 
 fn load_pub_domains() -> PubDomainRules {
-    let content = read_resource_file("public_domains.txt")
-        .expect("Could not find public suffix list file");
-    let content = from_utf8(&content)
-        .expect("Could not read public suffix list file");
+    let content = read_resource_file("public_domains.txt").expect("Could not find public suffix list file");
+    let content = from_utf8(&content).expect("Could not read public suffix list file");
     PubDomainRules::parse(content)
 }
 
