@@ -258,7 +258,7 @@ pub enum ConstellationControlMsg {
 impl fmt::Debug for ConstellationControlMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ConstellationControlMsg::*;
-        write!(formatter, "ConstellationMsg::{}", match *self {
+        let variant = match *self {
             AttachLayout(..) => "AttachLayout",
             Resize(..) => "Resize",
             ResizeInactive(..) => "ResizeInactive",
@@ -285,7 +285,8 @@ impl fmt::Debug for ConstellationControlMsg {
             FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload"
-        })
+        };
+        write!(formatter, "ConstellationMsg::{}", variant)
     }
 }
 
