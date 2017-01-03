@@ -23,9 +23,9 @@
     }
 </%helpers:shorthand>
 
-// https://drafts.csswg.org/css-text-decor-3/#text-emphasis-property
 <%helpers:shorthand name="text-emphasis" products="gecko" sub_properties="text-emphasis-color
-    text-emphasis-style">
+    text-emphasis-style"
+    spec="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-property">
     use properties::longhands::{text_emphasis_color, text_emphasis_style};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
