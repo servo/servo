@@ -4,13 +4,18 @@
 
 //! Gecko-specific style-system bits.
 
+pub mod conversions;
 pub mod data;
+
+// TODO(emilio): Implement Gecko media query parsing and evaluation using
+// nsMediaFeatures.
+#[path = "../servo/media_queries.rs"]
+pub mod media_queries;
+
 pub mod restyle_damage;
+pub mod selector_parser;
 pub mod snapshot;
 pub mod snapshot_helpers;
 pub mod traversal;
-pub mod wrapper;
-
-pub mod conversions;
-pub mod selector_parser;
 pub mod values;
+pub mod wrapper;
