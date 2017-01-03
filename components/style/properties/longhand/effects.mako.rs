@@ -10,7 +10,8 @@
 ${helpers.predefined_type("opacity",
                           "Opacity",
                           "1.0",
-                          animatable=True)}
+                          animatable=True,
+                          spec="https://drafts.csswg.org/css-color/#opacity")}
 
 <%helpers:vector_longhand name="box-shadow" allow_empty="True" animatable="True"
                           spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
