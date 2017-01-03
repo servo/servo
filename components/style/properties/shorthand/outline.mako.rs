@@ -4,7 +4,8 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="outline" sub_properties="outline-color outline-style outline-width">
+<%helpers:shorthand name="outline" sub_properties="outline-color outline-style outline-width"
+                    spec="https://drafts.csswg.org/css-ui/#propdef-outline">
     use properties::longhands::outline_width;
     use values::specified;
     use parser::Parse;
@@ -75,7 +76,7 @@
 <%helpers:shorthand name="-moz-outline-radius" sub_properties="${' '.join(
     '-moz-outline-radius-%s' % corner
     for corner in ['topleft', 'topright', 'bottomright', 'bottomleft']
-)}" products="gecko">
+)}" products="gecko" spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)">
     use properties::shorthands;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
