@@ -15,6 +15,7 @@ use dom::cssmediarule::CSSMediaRule;
 use dom::cssnamespacerule::CSSNamespaceRule;
 use dom::cssstylerule::CSSStyleRule;
 use dom::cssstylesheet::CSSStyleSheet;
+use dom::csssupportsrule::CSSSupportsRule;
 use dom::cssviewportrule::CSSViewportRule;
 use dom::window::Window;
 use std::cell::Cell;
@@ -59,6 +60,8 @@ impl CSSRule {
             rule as &SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSImportRule>() {
             rule as &SpecificCSSRule
+        } else if let Some(rule) = self.downcast::<CSSSupportsRule>() {
+            rule as &SpecificCSSRule
         } else {
             unreachable!()
         }
@@ -77,6 +80,7 @@ impl CSSRule {
             StyleCssRule::Media(s) => Root::upcast(CSSMediaRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Namespace(s) => Root::upcast(CSSNamespaceRule::new(window, parent_stylesheet, s)),
             StyleCssRule::Viewport(s) => Root::upcast(CSSViewportRule::new(window, parent_stylesheet, s)),
+            StyleCssRule::Supports(s) => Root::upcast(CSSSupportsRule::new(window, parent_stylesheet, s)),
         }
     }
 

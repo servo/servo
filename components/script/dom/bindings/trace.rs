@@ -99,6 +99,7 @@ use style::media_queries::MediaList;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::stylesheets::{CssRules, KeyframesRule, MediaRule, NamespaceRule, StyleRule, ImportRule};
+use style::stylesheets::SupportsRule;
 use style::values::specified::Length;
 use style::viewport::ViewportRule;
 use time::Duration;
@@ -526,6 +527,12 @@ unsafe impl JSTraceable for RwLock<KeyframesRule> {
 }
 
 unsafe impl JSTraceable for RwLock<ImportRule> {
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
+unsafe impl JSTraceable for RwLock<SupportsRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
     }
