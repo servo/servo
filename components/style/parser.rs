@@ -11,7 +11,7 @@ use error_reporting::ParseErrorReporter;
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use servo_url::ServoUrl;
-use stylesheets::Origin;
+use stylesheets::{MemoryHoleReporter, Origin};
 
 /// Extra data that the style backend may need to parse stylesheets.
 #[cfg(not(feature = "gecko"))]
@@ -77,6 +77,11 @@ impl<'a> ParserContext<'a> {
                -> ParserContext<'a> {
         let extra_data = ParserContextExtraData::default();
         Self::new_with_extra_data(stylesheet_origin, base_url, error_reporter, extra_data)
+    }
+
+    /// Create a parser context for on-the-fly parsing in CSSOM
+    pub fn new_for_cssom(base_url: &'a ServoUrl) -> ParserContext<'a> {
+        Self::new(Origin::User, base_url, Box::new(MemoryHoleReporter))
     }
 }
 

@@ -31,3 +31,7 @@ partial interface CSSRule {
     const unsigned short VIEWPORT_RULE = 15;
 };
 
+// https://drafts.csswg.org/css-conditional-3/#extentions-to-cssrule-interface
+partial interface CSSRule {
+    const unsigned short SUPPORTS_RULE = 12;
+};
