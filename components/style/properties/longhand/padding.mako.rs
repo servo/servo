@@ -7,10 +7,16 @@
 <% data.new_style_struct("Padding", inherited=False) %>
 
 % for side in ALL_SIDES:
+    <%
+        spec = "https://drafts.csswg.org/css-box/#propdef-padding-%s" % side[0]
+        if side[1]:
+            spec = "https://drafts.csswg.org/css-logical-props/#propdef-padding-%s" % side[1]
+    %>
     ${helpers.predefined_type("padding-%s" % side[0], "LengthOrPercentage",
                                "computed::LengthOrPercentage::Length(Au(0))",
                                "parse_non_negative",
                                needs_context=False,
                                animatable=True,
-                               logical = side[1])}
+                               logical = side[1],
+                               spec = spec)}
 % endfor
