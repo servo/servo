@@ -193,12 +193,14 @@ class MachCommands(CommandBase):
     @Command('test-unit',
              description='Run unit tests',
              category='testing')
+    @CommandArgument('test_name', nargs=argparse.REMAINDER,
+                     help="Only run tests that match this pattern or file path")
     @CommandArgument('--package', '-p', default=None, help="Specific package to test")
     @CommandArgument('--bench', default=False, action="store_true",
                      help="Run in bench mode")
-    @CommandArgument('test_name', nargs=argparse.REMAINDER,
-                     help="Only run tests that match this pattern or file path")
-    def test_unit(self, test_name=None, package=None, bench=False):
+    @CommandArgument('--nocapture', default=False, action="store_true",
+                     help="Run tests with nocapture ( show test stdout )")
+    def test_unit(self, test_name=None, package=None, bench=False, nocapture=False):
         if test_name is None:
             test_name = []
 
@@ -259,6 +261,10 @@ class MachCommands(CommandBase):
 
             if features:
                 args += ["--features", "%s" % ' '.join(features)]
+
+            if nocapture:
+                args += ["--", "--nocapture"]
+
             err = call(args, env=env, cwd=self.servo_crate())
             if err is not 0:
                 return err
