@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! A gecko snapshot, that stores the element attributes and state before they
+//! change in order to properly calculate restyle hints.
+
 use element_state::ElementState;
 use gecko::snapshot_helpers;
 use gecko::wrapper::{AttrSelectorHelpers, GeckoElement};
@@ -14,6 +17,10 @@ use selectors::parser::AttrSelector;
 use std::ptr;
 use string_cache::Atom;
 
+/// A snapshot of a Gecko element.
+///
+/// This is really a Gecko type (see `ServoElementSnapshot.h` in Gecko) we wrap
+/// here.
 #[derive(Debug)]
 pub struct GeckoElementSnapshot(bindings::ServoElementSnapshotOwned);
 
@@ -30,14 +37,17 @@ impl Drop for GeckoElementSnapshot {
 }
 
 impl GeckoElementSnapshot {
+    /// Create a new snapshot of the given element.
     pub fn new<'le>(el: GeckoElement<'le>) -> Self {
         unsafe { GeckoElementSnapshot(bindings::Gecko_CreateElementSnapshot(el.0)) }
     }
 
+    /// Get a mutable reference to the snapshot.
     pub fn borrow_mut_raw(&mut self) -> bindings::ServoElementSnapshotBorrowedMut {
         &mut *self.0
     }
 
+    /// Get the pointer to the actual snapshot.
     pub fn ptr(&self) -> *const ServoElementSnapshot {
         &*self.0
     }
@@ -152,7 +162,6 @@ impl ElementSnapshot for GeckoElementSnapshot {
         }
     }
 
-    // TODO: share logic with Element::{has_class, each_class}?
     fn has_class(&self, name: &Atom) -> bool {
         snapshot_helpers::has_class(self.ptr(),
                                     name,

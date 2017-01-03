@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Rust helpers for Gecko's `nsCSSShadowArray`.
+
 use gecko_bindings::bindings::Gecko_AddRefCSSShadowArrayArbitraryThread;
 use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
 use gecko_bindings::bindings::Gecko_ReleaseCSSShadowArrayArbitraryThread;
@@ -10,6 +12,7 @@ use std::{ptr, slice};
 use std::ops::{Deref, DerefMut};
 
 impl RefPtr<nsCSSShadowArray> {
+    /// Replaces the current `nsCSSShadowArray` with a new one of len `len`.
     pub fn replace_with_new(&mut self, len: u32) {
         unsafe {
             if !self.mRawPtr.is_null() {
@@ -23,6 +26,12 @@ impl RefPtr<nsCSSShadowArray> {
             }
         }
     }
+
+    /// Sets the value to other `nsCSSShadowArray`, bumping and decreasing
+    /// refcounts as needed.
+    ///
+    /// TODO(emilio): Seems like this could move to `refptr.rs`, and be more
+    /// generic.
     pub fn copy_from(&mut self, other: &Self) {
         unsafe {
             if !self.mRawPtr.is_null() {

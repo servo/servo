@@ -1054,27 +1054,24 @@ impl LayoutThread {
         let device = Device::new(MediaType::Screen, initial_viewport);
         Arc::get_mut(&mut rw_data.stylist).unwrap().set_device(device, &data.document_stylesheets);
 
-        let constraints = rw_data.stylist.viewport_constraints().clone();
-        self.viewport_size = match constraints {
-            Some(ref constraints) => {
+        self.viewport_size =
+            rw_data.stylist.viewport_constraints().map_or(current_screen_size, |constraints| {
                 debug!("Viewport constraints: {:?}", constraints);
 
                 // other rules are evaluated against the actual viewport
                 Size2D::new(Au::from_f32_px(constraints.size.width),
                             Au::from_f32_px(constraints.size.height))
-            }
-            None => current_screen_size,
-        };
+            });
 
         // Handle conditions where the entire flow tree is invalid.
         let mut needs_dirtying = false;
 
         let viewport_size_changed = self.viewport_size != old_viewport_size;
         if viewport_size_changed {
-            if let Some(constraints) = constraints {
+            if let Some(constraints) = rw_data.stylist.viewport_constraints() {
                 // let the constellation know about the viewport constraints
                 rw_data.constellation_chan
-                       .send(ConstellationMsg::ViewportConstrained(self.id, constraints))
+                       .send(ConstellationMsg::ViewportConstrained(self.id, constraints.clone()))
                        .unwrap();
             }
             if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change()) {

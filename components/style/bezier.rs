@@ -12,7 +12,7 @@ use euclid::point::Point2D;
 
 const NEWTON_METHOD_ITERATIONS: u8 = 8;
 
-/// A Bézier curve.
+/// A unit cubic Bézier curve, used for timing functions in CSS transitions and animations.
 pub struct Bezier {
     ax: f64,
     bx: f64,
@@ -23,7 +23,13 @@ pub struct Bezier {
 }
 
 impl Bezier {
-    /// Create a Bézier curve from two control points.
+    /// Create a unit cubic Bézier curve from the two middle control points.
+    ///
+    /// X coordinate is time, Y coordinate is function advancement.
+    /// The nominal range for both is 0 to 1.
+    ///
+    /// The start and end points are always (0, 0) and (1, 1) so that a transition or animation
+    /// starts at 0% and ends at 100%.
     #[inline]
     pub fn new(p1: Point2D<f64>, p2: Point2D<f64>) -> Bezier {
         let cx = 3.0 * p1.x;

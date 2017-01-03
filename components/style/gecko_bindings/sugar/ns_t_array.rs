@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Rust helpers for Gecko's nsTArray.
+
 use gecko_bindings::bindings;
 use gecko_bindings::structs::{nsTArray, nsTArrayHeader};
 use std::mem;
@@ -78,10 +80,12 @@ impl<T> nsTArray<T> {
         unsafe { self.clear() }
     }
 
-    // unsafe because the array may contain uninits
-    // This will not call constructors, either manually
-    // add bindings or run the typed ensurecapacity call
-    // on the gecko side
+    /// Resize and set the length of the array to `len`.
+    ///
+    /// unsafe because the array may contain uninitialized members.
+    ///
+    /// This will not call constructors, if you need that, either manually add
+    /// bindings or run the typed `EnsureCapacity` call on the gecko side.
     pub unsafe fn set_len(&mut self, len: u32) {
         // this can leak
         debug_assert!(len >= self.len() as u32);

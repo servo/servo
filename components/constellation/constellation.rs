@@ -1735,12 +1735,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let frame_id = frame_id.unwrap_or(self.root_frame_id);
         let current_pipeline_id = self.frames.get(&frame_id)
             .map(|frame| frame.current.pipeline_id);
-        let current_pipeline_id_loaded = current_pipeline_id
-            .map(|id| id);
         let pipeline_id_loaded = self.pending_frames.iter().rev()
             .find(|x| x.old_pipeline_id == current_pipeline_id)
             .map(|x| x.new_pipeline_id)
-            .or(current_pipeline_id_loaded);
+            .or(current_pipeline_id);
         if let Err(e) = resp_chan.send(pipeline_id_loaded) {
             warn!("Failed get_pipeline response ({}).", e);
         }
