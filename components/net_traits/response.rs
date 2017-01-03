@@ -21,7 +21,7 @@ pub enum ResponseType {
     Default,
     Error(NetworkError),
     Opaque,
-    OpaqueRedirect
+    OpaqueRedirect,
 }
 
 /// [Response termination reason](https://fetch.spec.whatwg.org/#concept-response-termination-reason)
@@ -29,7 +29,7 @@ pub enum ResponseType {
 pub enum TerminationReason {
     EndUserAbort,
     Fatal,
-    Timeout
+    Timeout,
 }
 
 /// The response body can still be pushed to after fetch
@@ -45,7 +45,8 @@ impl ResponseBody {
     pub fn is_done(&self) -> bool {
         match *self {
             ResponseBody::Done(..) => true,
-            ResponseBody::Empty | ResponseBody::Receiving(..) => false
+            ResponseBody::Empty |
+            ResponseBody::Receiving(..) => false,
         }
     }
 }
@@ -57,7 +58,7 @@ pub enum CacheState {
     None,
     Local,
     Validated,
-    Partial
+    Partial,
 }
 
 /// [Https state](https://fetch.spec.whatwg.org/#concept-response-https-state)
@@ -65,13 +66,13 @@ pub enum CacheState {
 pub enum HttpsState {
     None,
     Deprecated,
-    Modern
+    Modern,
 }
 
 pub enum ResponseMsg {
     Chunk(Vec<u8>),
     Finished,
-    Errored
+    Errored,
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
@@ -114,7 +115,7 @@ impl Response {
             https_state: HttpsState::None,
             referrer: None,
             internal_response: None,
-            return_internal: Cell::new(true)
+            return_internal: Cell::new(true),
         }
     }
 
@@ -132,7 +133,7 @@ impl Response {
             https_state: HttpsState::None,
             referrer: None,
             internal_response: None,
-            return_internal: Cell::new(true)
+            return_internal: Cell::new(true),
         }
     }
 
@@ -143,7 +144,7 @@ impl Response {
     pub fn is_network_error(&self) -> bool {
         match self.response_type {
             ResponseType::Error(..) => true,
-            _ => false
+            _ => false,
         }
     }
 
@@ -172,9 +173,11 @@ impl Response {
 
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
+    #[cfg_attr(rustfmt, rustfmt_skip)]
     pub fn to_filtered(self, filter_type: ResponseType) -> Response {
         match filter_type {
-            ResponseType::Default | ResponseType::Error(..) => panic!(),
+            ResponseType::Default |
+            ResponseType::Error(..) => panic!(),
             _ => (),
         }
 
@@ -190,7 +193,8 @@ impl Response {
         response.response_type = filter_type;
 
         match response.response_type {
-            ResponseType::Default | ResponseType::Error(..) => unreachable!(),
+            ResponseType::Default |
+            ResponseType::Error(..) => unreachable!(),
 
             ResponseType::Basic => {
                 let headers = old_headers.iter().filter(|header| {
@@ -235,7 +239,7 @@ impl Response {
                 response.status = None;
                 response.body = Arc::new(Mutex::new(ResponseBody::Empty));
                 response.cache_state = CacheState::None;
-            }
+            },
         }
 
         response
@@ -246,7 +250,7 @@ impl Response {
             let mut metadata = Metadata::default(url.clone());
             metadata.set_content_type(match response.headers.get() {
                 Some(&ContentType(ref mime)) => Some(mime),
-                None => None
+                None => None,
             });
             metadata.headers = Some(Serde(response.headers.clone()));
             metadata.status = response.raw_status.clone();
@@ -269,12 +273,12 @@ impl Response {
                     Ok(FetchMetadata::Filtered {
                         filtered: match metadata {
                             Some(m) => FilteredMetadata::Transparent(m),
-                            None => FilteredMetadata::Opaque
+                            None => FilteredMetadata::Opaque,
                         },
-                        unsafe_: unsafe_metadata
+                        unsafe_: unsafe_metadata,
                     })
-                }
-                None => Err(NetworkError::Internal("No url found in unsafe response".to_owned()))
+                },
+                None => Err(NetworkError::Internal("No url found in unsafe response".to_owned())),
             }
         } else {
             Ok(FetchMetadata::Unfiltered(metadata.unwrap()))

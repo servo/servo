@@ -14,12 +14,10 @@ use servo_url::ServoUrl;
 
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
-    AddCookie(
-        #[serde(deserialize_with = "::hyper_serde::deserialize",
+    AddCookie(#[serde(deserialize_with = "::hyper_serde::deserialize",
                 serialize_with = "::hyper_serde::serialize")]
-        Cookie,
-        IpcSender<Result<(), WebDriverCookieError>>
-    ),
+              Cookie,
+              IpcSender<Result<(), WebDriverCookieError>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
     FindElementCSS(String, IpcSender<Result<Option<String>, ()>>),
@@ -37,13 +35,13 @@ pub enum WebDriverScriptCommand {
     GetUrl(IpcSender<ServoUrl>),
     IsEnabled(String, IpcSender<Result<bool, ()>>),
     IsSelected(String, IpcSender<Result<bool, ()>>),
-    GetTitle(IpcSender<String>)
+    GetTitle(IpcSender<String>),
 }
 
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverCookieError {
     InvalidDomain,
-    UnableToSetCookie
+    UnableToSetCookie,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -52,8 +50,7 @@ pub enum WebDriverJSValue {
     Null,
     Boolean(bool),
     Number(f64),
-    String(String),
-    // TODO: Object and WebElement
+    String(String), // TODO: Object and WebElement
 }
 
 #[derive(Deserialize, Serialize)]
@@ -62,7 +59,7 @@ pub enum WebDriverJSError {
     UnknownType,
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
-    BrowsingContextNotFound
+    BrowsingContextNotFound,
 }
 
 pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
@@ -71,7 +68,7 @@ pub type WebDriverJSResult = Result<WebDriverJSValue, WebDriverJSError>;
 pub enum WebDriverFrameId {
     Short(u16),
     Element(String),
-    Parent
+    Parent,
 }
 
 impl ToJson for WebDriverJSValue {
@@ -81,7 +78,7 @@ impl ToJson for WebDriverJSValue {
             WebDriverJSValue::Null => Json::Null,
             WebDriverJSValue::Boolean(ref x) => x.to_json(),
             WebDriverJSValue::Number(ref x) => x.to_json(),
-            WebDriverJSValue::String(ref x) => x.to_json()
+            WebDriverJSValue::String(ref x) => x.to_json(),
         }
     }
 }
@@ -89,5 +86,5 @@ impl ToJson for WebDriverJSValue {
 #[derive(Deserialize, Serialize)]
 pub enum LoadStatus {
     LoadComplete,
-    LoadTimeout
+    LoadTimeout,
 }

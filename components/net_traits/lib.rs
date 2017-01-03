@@ -11,7 +11,8 @@
 
 extern crate cookie as cookie_rs;
 extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
+#[macro_use]
+extern crate heapsize_derive;
 extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
@@ -93,12 +94,16 @@ pub struct CustomResponse {
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
     pub raw_status: RawStatus,
-    pub body: Vec<u8>
+    pub body: Vec<u8>,
 }
 
 impl CustomResponse {
     pub fn new(headers: Headers, raw_status: RawStatus, body: Vec<u8>) -> CustomResponse {
-        CustomResponse { headers: headers, raw_status: raw_status, body: body }
+        CustomResponse {
+            headers: headers,
+            raw_status: raw_status,
+            body: body,
+        }
     }
 }
 
@@ -169,7 +174,7 @@ pub trait FetchTaskTarget {
 #[derive(Serialize, Deserialize)]
 pub enum FilteredMetadata {
     Opaque,
-    Transparent(Metadata)
+    Transparent(Metadata),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -177,8 +182,8 @@ pub enum FetchMetadata {
     Unfiltered(Metadata),
     Filtered {
         filtered: FilteredMetadata,
-        unsafe_: Metadata
-    }
+        unsafe_: Metadata,
+    },
 }
 
 pub trait FetchResponseListener {
@@ -209,8 +214,8 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     fn process_response_eof(&mut self, response: &Response) {
         if response.is_network_error() {
             // todo: finer grained errors
-            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(
-                              Err(NetworkError::Internal("Network error".into()))));
+            let _ =
+                self.send(FetchResponseMsg::ProcessResponseEOF(Err(NetworkError::Internal("Network error".into()))));
         } else {
             let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(())));
         }
@@ -243,7 +248,9 @@ pub type IpcSendResult = Result<(), IOError>;
 /// Abstraction of the ability to send a particular type of message,
 /// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
 /// XXX: If this trait will be used more in future, some auto derive might be appealing
-pub trait IpcSend<T> where T: serde::Serialize + serde::Deserialize {
+pub trait IpcSend<T>
+    where T: serde::Serialize + serde::Deserialize,
+{
     /// send message T
     fn send(&self, T) -> IpcSendResult;
     /// get underlying sender
@@ -262,8 +269,7 @@ pub struct ResourceThreads {
 }
 
 impl ResourceThreads {
-    pub fn new(c: CoreResourceThread,
-               s: IpcSender<StorageThreadMsg>) -> ResourceThreads {
+    pub fn new(c: CoreResourceThread, s: IpcSender<StorageThreadMsg>) -> ResourceThreads {
         ResourceThreads {
             core_thread: c,
             storage_thread: s,
@@ -293,13 +299,15 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 
 // Ignore the sub-fields
 impl HeapSizeOf for ResourceThreads {
-    fn heap_size_of_children(&self) -> usize { 0 }
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
 }
 
 #[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
 pub enum IncludeSubdomains {
     Included,
-    NotIncluded
+    NotIncluded,
 }
 
 #[derive(HeapSizeOf, Deserialize, Serialize)]
@@ -316,12 +324,10 @@ pub enum WebSocketDomAction {
 
 #[derive(Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
-    ConnectionEstablished(
-        #[serde(deserialize_with = "::hyper_serde::deserialize",
-                serialize_with = "::hyper_serde::serialize")]
-        header::Headers,
-        Vec<String>
-    ),
+    ConnectionEstablished(#[serde(deserialize_with = "::hyper_serde::deserialize",
+                                  serialize_with = "::hyper_serde::serialize")]
+                          header::Headers,
+                          Vec<String>),
     MessageReceived(MessageData),
     Close(Option<u16>, String),
     Fail,
@@ -346,13 +352,11 @@ pub enum CoreResourceMsg {
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a cookie for a given originating URL
-    SetCookieForUrl(
-        ServoUrl,
-        #[serde(deserialize_with = "::hyper_serde::deserialize",
-                serialize_with = "::hyper_serde::serialize")]
-        Cookie,
-        CookieSource
-    ),
+    SetCookieForUrl(ServoUrl,
+                    #[serde(deserialize_with = "::hyper_serde::deserialize",
+                            serialize_with = "::hyper_serde::serialize")]
+                    Cookie,
+                    CookieSource),
     /// Store cookies for a given originating URL
     SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie>>, CookieSource),
     /// Retrieve the stored cookies for a given URL
@@ -373,15 +377,12 @@ pub enum CoreResourceMsg {
 }
 
 /// Instruct the resource thread to make a new request.
-pub fn fetch_async<F>(request: RequestInit,
-                      core_resource_thread: &CoreResourceThread,
-                      f: F)
-    where F: Fn(FetchResponseMsg) + Send + 'static
+pub fn fetch_async<F>(request: RequestInit, core_resource_thread: &CoreResourceThread, f: F)
+    where F: Fn(FetchResponseMsg) + Send + 'static,
 {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-        f(message.to().unwrap());
-    });
+    ROUTER.add_route(action_receiver.to_opaque(),
+                     box move |message| f(message.to().unwrap()));
     core_resource_thread.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
 }
 
@@ -424,9 +425,9 @@ impl Metadata {
     /// Metadata with defaults for everything optional.
     pub fn default(url: ServoUrl) -> Self {
         Metadata {
-            final_url:    url,
+            final_url: url,
             content_type: None,
-            charset:      None,
+            charset: None,
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
             status: Some((200, b"OK".to_vec())),
@@ -470,7 +471,7 @@ pub fn load_whole_resource(request: RequestInit,
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     core_resource_thread.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
 
-    let mut buf = vec!();
+    let mut buf = vec![];
     let mut metadata = None;
     loop {
         match action_receiver.recv().unwrap() {
@@ -479,13 +480,13 @@ pub fn load_whole_resource(request: RequestInit,
             FetchResponseMsg::ProcessResponse(Ok(m)) => {
                 metadata = Some(match m {
                     FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
                 })
             },
             FetchResponseMsg::ProcessResponseChunk(data) => buf.extend_from_slice(&data),
             FetchResponseMsg::ProcessResponseEOF(Ok(())) => return Ok((metadata.unwrap(), buf)),
             FetchResponseMsg::ProcessResponse(Err(e)) |
-            FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e)
+            FetchResponseMsg::ProcessResponseEOF(Err(e)) => return Err(e),
         }
     }
 }
@@ -516,16 +517,14 @@ pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
 
     loop {
         match slice.split_first() {
-            Some((first, remainder)) if HTTP_WS_BYTES.contains(first) =>
-                slice = remainder,
+            Some((first, remainder)) if HTTP_WS_BYTES.contains(first) => slice = remainder,
             _ => break,
         }
     }
 
     loop {
         match slice.split_last() {
-            Some((last, remainder)) if HTTP_WS_BYTES.contains(last) =>
-                slice = remainder,
+            Some((last, remainder)) if HTTP_WS_BYTES.contains(last) => slice = remainder,
             _ => break,
         }
     }

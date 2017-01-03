@@ -8,10 +8,14 @@ use webrender_traits;
 
 #[derive(Clone, Copy, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
 pub enum PixelFormat {
-    K8,         // Luminance channel only
-    KA8,        // Luminance + alpha
-    RGB8,       // RGB, 8 bits per channel
-    RGBA8,      // RGB + alpha, 8 bits per channel
+    /// Luminance channel only
+    K8,
+    /// Luminance + alpha
+    KA8,
+    /// RGB, 8 bits per channel
+    RGB8,
+    /// RGB + alpha, 8 bits per channel
+    RGBA8,
 }
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
@@ -59,13 +63,13 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
         Err(msg) => {
             debug!("{}", msg);
             None
-        }
+        },
         Ok(_) => {
             match piston_image::load_from_memory(buffer) {
                 Ok(image) => {
                     let mut rgba = match image {
                         DynamicImage::ImageRgba8(rgba) => rgba,
-                        image => image.to_rgba()
+                        image => image.to_rgba(),
                     };
                     byte_swap_and_premultiply(&mut *rgba);
                     Some(Image {
@@ -75,31 +79,38 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                         bytes: IpcSharedMemory::from_bytes(&*rgba),
                         id: None,
                     })
-                }
+                },
                 Err(e) => {
                     debug!("Image decoding error: {:?}", e);
                     None
-                }
+                },
             }
-        }
+        },
     }
 }
 
 
 // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img
 pub fn detect_image_format(buffer: &[u8]) -> Result<ImageFormat, &str> {
-    if is_gif(buffer)         { Ok(ImageFormat::GIF)
-    } else if is_jpeg(buffer) { Ok(ImageFormat::JPEG)
-    } else if is_png(buffer)  { Ok(ImageFormat::PNG)
-    } else if is_bmp(buffer)  { Ok(ImageFormat::BMP)
-    } else if is_ico(buffer)  { Ok(ImageFormat::ICO)
-    } else { Err("Image Format Not Supported") }
+    if is_gif(buffer) {
+        Ok(ImageFormat::GIF)
+    } else if is_jpeg(buffer) {
+        Ok(ImageFormat::JPEG)
+    } else if is_png(buffer) {
+        Ok(ImageFormat::PNG)
+    } else if is_bmp(buffer) {
+        Ok(ImageFormat::BMP)
+    } else if is_ico(buffer) {
+        Ok(ImageFormat::ICO)
+    } else {
+        Err("Image Format Not Supported")
+    }
 }
 
 fn is_gif(buffer: &[u8]) -> bool {
     match buffer {
-        &[b'G', b'I', b'F', b'8', n, b'a', ..] if n == b'7' || n == b'9' => true,
-        _ => false
+        &[b'G', b'I', b'F', b'8', n, b'a', _..] if n == b'7' || n == b'9' => true,
+        _ => false,
     }
 }
 

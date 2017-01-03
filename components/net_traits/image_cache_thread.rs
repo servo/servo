@@ -46,7 +46,7 @@ pub enum ImageResponse {
     /// The requested image failed to load, so a placeholder was loaded instead.
     PlaceholderLoaded(Arc<Image>),
     /// Neither the requested image nor the placeholder could be loaded.
-    None
+    None,
 }
 
 /// Indicating either entire image or just metadata availability
@@ -123,10 +123,7 @@ impl ImageCacheThread {
     }
 
     /// Asynchronously request an image. See ImageCacheCommand::RequestImage.
-    pub fn request_image(&self,
-                         url: ServoUrl,
-                         result_chan: ImageCacheChan,
-                         responder: Option<ImageResponder>) {
+    pub fn request_image(&self, url: ServoUrl, result_chan: ImageCacheChan, responder: Option<ImageResponder>) {
         let msg = ImageCacheCommand::RequestImage(url, result_chan, responder);
         let _ = self.chan.send(msg);
     }
@@ -142,8 +139,7 @@ impl ImageCacheThread {
     }
 
     /// Get the current state of an image. See ImageCacheCommand::GetImageIfAvailable.
-    pub fn find_image(&self, url: ServoUrl, use_placeholder: UsePlaceholder)
-                                  -> Result<Arc<Image>, ImageState> {
+    pub fn find_image(&self, url: ServoUrl, use_placeholder: UsePlaceholder) -> Result<Arc<Image>, ImageState> {
         let (sender, receiver) = ipc::channel().unwrap();
         let msg = ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, sender);
         let _ = self.chan.send(msg);
@@ -154,7 +150,9 @@ impl ImageCacheThread {
     /// See ImageCacheCommand::GetImageOrMetadataIfAvailable.
     ///
     /// FIXME: We shouldn't do IPC for data uris!
-    pub fn find_image_or_metadata(&self, url: ServoUrl, use_placeholder: UsePlaceholder)
+    pub fn find_image_or_metadata(&self,
+                                  url: ServoUrl,
+                                  use_placeholder: UsePlaceholder)
                                   -> Result<ImageOrMetadataAvailable, ImageState> {
         let (sender, receiver) = ipc::channel().unwrap();
         let msg = ImageCacheCommand::GetImageOrMetadataIfAvailable(url, use_placeholder, sender);
@@ -163,9 +161,7 @@ impl ImageCacheThread {
     }
 
     /// Decode the given image bytes and cache the result for the given URL.
-    pub fn store_complete_image_bytes(&self,
-                                      url: ServoUrl,
-                                      image_data: Vec<u8>) {
+    pub fn store_complete_image_bytes(&self, url: ServoUrl, image_data: Vec<u8>) {
         let msg = ImageCacheCommand::StoreDecodeImage(url, image_data);
         let _ = self.chan.send(msg);
     }

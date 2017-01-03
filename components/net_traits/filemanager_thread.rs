@@ -54,7 +54,7 @@ impl RelativePos {
                 (Some(old_end), Some(rel_end)) => Some(old_end + rel_end),
                 (old, None) => old,
                 (None, rel) => rel,
-            }
+            },
         }
     }
 
@@ -78,7 +78,7 @@ impl RelativePos {
                 } else {
                     min(rel_end, size)
                 }
-            }
+            },
             None => size,
         };
 
@@ -148,7 +148,7 @@ pub enum FileManagerThreadMsg {
 pub enum ReadFileProgress {
     Meta(BlobBuf),
     Partial(Vec<u8>),
-    EOF
+    EOF,
 }
 
 pub type FileManagerResult<T> = Result<T, FileManagerThreadError>;

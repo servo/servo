@@ -8,7 +8,7 @@ use servo_url::ServoUrl;
 #[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum StorageType {
     Session,
-    Local
+    Local,
 }
 
 /// Request operations on the storage data associated with a particular url
@@ -36,5 +36,5 @@ pub enum StorageThreadMsg {
     Clear(IpcSender<bool>, ServoUrl, StorageType),
 
     /// send a reply when done cleaning up thread resources and then shut it down
-    Exit(IpcSender<()>)
+    Exit(IpcSender<()>),
 }
