@@ -8,7 +8,7 @@
 
 ${helpers.predefined_type("background-color", "CSSColor",
     "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */",
-    animatable=True)}
+    animatable=True, complex_color=True)}
 
 <%helpers:vector_longhand name="background-image" animatable="False"
                           has_uncacheable_values="${product == 'gecko'}">
