@@ -60,8 +60,8 @@ ${helpers.single_keyword("image-rendering",
 <%helpers:longhand name="image-orientation"
                    products="None"
                    animatable="False"
-                   spec="https://drafts.csswg.org/css-images/#propdef-image-orientation, \
-                         additional values in https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation">
+    spec="https://drafts.csswg.org/css-images/#propdef-image-orientation, \
+      /// additional values in https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation">
     use std::fmt;
     use style_traits::ToCss;
     use values::specified::Angle;
