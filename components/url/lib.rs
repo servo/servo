@@ -185,3 +185,9 @@ impl Index<Range<Position>> for ServoUrl {
         &self.0[range]
     }
 }
+
+impl From<Url> for ServoUrl {
+    fn from(url: Url) -> Self {
+        ServoUrl::from_url(url)
+    }
+}
