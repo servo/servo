@@ -6,7 +6,8 @@
 
 <% data.new_style_struct("List", inherited=True) %>
 
-${helpers.single_keyword("list-style-position", "outside inside", animatable=False)}
+${helpers.single_keyword("list-style-position", "outside inside", animatable=False,
+                         spec="https://drafts.csswg.org/css-lists/#propdef-list-style-position")}
 
 // TODO(pcwalton): Implement the full set of counter styles per CSS-COUNTER-STYLES [1] 6.1:
 //
@@ -24,12 +25,15 @@ ${helpers.single_keyword("list-style-type", """
                            cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana
                            katakana-iroha lower-alpha upper-alpha""",
     gecko_constant_prefix="NS_STYLE_LIST_STYLE",
-    animatable=False)}
+    animatable=False,
+    spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 
 ${helpers.predefined_type("list-style-image", "UrlOrNone", "Either::Second(None_)",
-                          animatable="False")}
+                          animatable="False",
+                          spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image")}
 
-<%helpers:longhand name="quotes" animatable="False">
+<%helpers:longhand name="quotes" animatable="False"
+                   spec="https://drafts.csswg.org/css-content/#propdef-quotes">
     use cssparser::Token;
     use std::borrow::Cow;
     use std::fmt;
