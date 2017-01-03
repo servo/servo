@@ -6,7 +6,8 @@
 
 <%helpers:shorthand name="mask" products="gecko"
                     sub_properties="mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position
-                                    mask-size mask-image">
+                                    mask-size mask-image"
+                    spec="https://drafts.fxtf.org/css-masking/#propdef-mask">
     use properties::longhands::{mask_mode, mask_repeat, mask_clip, mask_origin, mask_composite, mask_position};
     use properties::longhands::{mask_size, mask_image};
 
