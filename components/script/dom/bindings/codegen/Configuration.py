@@ -399,6 +399,8 @@ class Descriptor(DescriptorProvider):
 
     def shouldHaveGetConstructorObjectMethod(self):
         assert self.interface.hasInterfaceObject()
+        if self.interface.getExtendedAttribute("Inline"):
+            return False
         return self.interface.isCallback() or self.interface.isNamespace() or self.hasDescendants()
 
     def isExposedConditionally(self):
