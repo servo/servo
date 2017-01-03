@@ -379,9 +379,8 @@ pub fn fetch_async<F>(request: RequestInit,
     where F: Fn(FetchResponseMsg) + Send + 'static
 {
     let (action_sender, action_receiver) = ipc::channel().unwrap();
-    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-        f(message.to().unwrap());
-    });
+    ROUTER.add_route(action_receiver.to_opaque(),
+                     box move |message| f(message.to().unwrap()));
     core_resource_thread.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
 }
 
