@@ -937,9 +937,14 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         ConstructionResult::ConstructionItem(construction_item)
     }
 
-    fn build_fragment_for_inline_block(&mut self, node: &ConcreteThreadSafeLayoutNode)
-                                       -> ConstructionResult {
-        let block_flow_result = self.build_flow_for_block(node, None);
+    /// Build the fragment for an inline-block or inline-flex, based on the `display` flag
+    fn build_fragment_for_inline_block_or_inline_flex(&mut self, node: &ConcreteThreadSafeLayoutNode,
+                                                      display: display::T) -> ConstructionResult {
+        let block_flow_result = match display {
+            display::T::inline_block => self.build_flow_for_block(node, None),
+            display::T::inline_flex => self.build_flow_for_flex(node, None),
+            _ => panic!("The flag should be inline-block or inline-flex")
+        };
         let (block_flow, abs_descendants) = match block_flow_result {
             ConstructionResult::Flow(block_flow, abs_descendants) => (block_flow, abs_descendants),
             _ => unreachable!()
@@ -1548,7 +1553,8 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
 
             // Inline-block items contribute inline fragment construction results.
             (display::T::inline_block, float::T::none, _) => {
-                let construction_result = self.build_fragment_for_inline_block(node);
+                let construction_result = self.build_fragment_for_inline_block_or_inline_flex(node,
+                                                                                              display::T::inline_block);
                 self.set_flow_construction_result(node, construction_result)
             }
 
@@ -1594,6 +1600,12 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
             (display::T::flex, float_value, _) => {
                 let float_kind = FloatKind::from_property(float_value);
                 let construction_result = self.build_flow_for_flex(node, float_kind);
+                self.set_flow_construction_result(node, construction_result)
+            }
+
+            (display::T::inline_flex, _, _) => {
+                let construction_result = self.build_fragment_for_inline_block_or_inline_flex(node,
+                                                                                              display::T::inline_flex);
                 self.set_flow_construction_result(node, construction_result)
             }
 
