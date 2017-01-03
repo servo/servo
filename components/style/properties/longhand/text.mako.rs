@@ -12,7 +12,8 @@
                                              Method("has_overline", "bool"),
                                              Method("has_line_through", "bool")]) %>
 
-<%helpers:longhand name="text-overflow" animatable="False">
+<%helpers:longhand name="text-overflow" animatable="False"
+                   spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow">
     use std::fmt;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
@@ -93,13 +94,15 @@
 
 ${helpers.single_keyword("unicode-bidi",
                          "normal embed isolate bidi-override isolate-override plaintext",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi")}
 
 // FIXME: This prop should be animatable.
 <%helpers:longhand name="${'text-decoration' if product == 'servo' else 'text-decoration-line'}"
                    custom_cascade="${product == 'servo'}"
                    animatable="False"
-                   disable_when_testing="True">
+                   disable_when_testing="True",
+                   spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line">
     use std::fmt;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
@@ -200,11 +203,13 @@ ${helpers.single_keyword("unicode-bidi",
 ${helpers.single_keyword("text-decoration-style",
                          "solid double dotted dashed wavy -moz-none",
                          products="gecko",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-style")}
 
 ${helpers.predefined_type(
     "text-decoration-color", "CSSColor",
     "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
     complex_color=True,
     products="gecko",
-    animatable=True)}
+    animatable=True,
+    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color")}
