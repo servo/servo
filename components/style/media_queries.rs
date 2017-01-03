@@ -7,22 +7,22 @@
 //! [mq]: https://drafts.csswg.org/mediaqueries/
 
 use Atom;
-use app_units::Au;
 use cssparser::{Delimiter, Parser, Token};
-use euclid::size::{Size2D, TypedSize2D};
-use properties::ComputedValues;
 use serialize_comma_separated_list;
 use std::ascii::AsciiExt;
 use std::fmt;
-#[cfg(feature = "gecko")]
-use std::sync::Arc;
-use style_traits::{ToCss, ViewportPx};
-use values::computed::{self, ToComputedValue};
-use values::specified;
+use style_traits::ToCss;
 
+#[cfg(feature = "servo")]
+pub use servo::media_queries::{Device, Expression};
+#[cfg(feature = "gecko")]
+pub use gecko::media_queries::{Device, Expression};
+
+/// A type that encapsulates a media query list.
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaList {
+    /// The list of media queries.
     pub media_queries: Vec<MediaQuery>
 }
 
@@ -40,59 +40,15 @@ impl Default for MediaList {
     }
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Range<T> {
-    Min(T),
-    Max(T),
-    Eq(T),
-}
-
-impl Range<specified::Length> {
-    fn to_computed_range(&self, viewport_size: Size2D<Au>, default_values: &ComputedValues) -> Range<Au> {
-        // http://dev.w3.org/csswg/mediaqueries3/#units
-        // em units are relative to the initial font-size.
-        let context = computed::Context {
-            is_root_element: false,
-            viewport_size: viewport_size,
-            inherited_style: default_values,
-            // This cloning business is kind of dumb.... It's because Context
-            // insists on having an actual ComputedValues inside itself.
-            style: default_values.clone(),
-            font_metrics_provider: None
-        };
-
-        match *self {
-            Range::Min(ref width) => Range::Min(width.to_computed_value(&context)),
-            Range::Max(ref width) => Range::Max(width.to_computed_value(&context)),
-            Range::Eq(ref width) => Range::Eq(width.to_computed_value(&context))
-        }
-    }
-}
-
-impl<T: Ord> Range<T> {
-    fn evaluate(&self, value: T) -> bool {
-        match *self {
-            Range::Min(ref width) => { value >= *width },
-            Range::Max(ref width) => { value <= *width },
-            Range::Eq(ref width) => { value == *width },
-        }
-    }
-}
-
-/// http://dev.w3.org/csswg/mediaqueries-3/#media1
-#[derive(PartialEq, Copy, Clone, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub enum Expression {
-    /// http://dev.w3.org/csswg/mediaqueries-3/#width
-    Width(Range<specified::Length>),
-}
-
-/// http://dev.w3.org/csswg/mediaqueries-3/#media0
+/// https://drafts.csswg.org/mediaqueries/#mq-prefix
 #[derive(PartialEq, Eq, Copy, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Qualifier {
+    /// Hide a media query from legacy UAs:
+    /// https://drafts.csswg.org/mediaqueries/#mq-only
     Only,
+    /// Negate a media query:
+    /// https://drafts.csswg.org/mediaqueries/#mq-not
     Not,
 }
 
@@ -107,11 +63,17 @@ impl ToCss for Qualifier {
     }
 }
 
+/// A [media query][mq].
+///
+/// [mq]: https://drafts.csswg.org/mediaqueries/
 #[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct MediaQuery {
+    /// The qualifier for this query.
     pub qualifier: Option<Qualifier>,
+    /// The media type for this query, that can be known, unknown, or "all".
     pub media_type: MediaQueryType,
+    /// The set of expressions that this media query contains.
     pub expressions: Vec<Expression>,
 }
 
@@ -122,7 +84,9 @@ impl MediaQuery {
         Self::new(Some(Qualifier::Not), MediaQueryType::All, vec![])
     }
 
-    pub fn new(qualifier: Option<Qualifier>, media_type: MediaQueryType,
+    /// Trivially constructs a new media query.
+    pub fn new(qualifier: Option<Qualifier>,
+               media_type: MediaQueryType,
                expressions: Vec<Expression>) -> MediaQuery {
         MediaQuery {
             qualifier: qualifier,
@@ -134,7 +98,7 @@ impl MediaQuery {
 
 impl ToCss for MediaQuery {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write
+        where W: fmt::Write,
     {
         if let Some(qual) = self.qualifier {
             try!(qual.to_css(dest));
@@ -165,19 +129,11 @@ impl ToCss for MediaQuery {
             try!(write!(dest, " and "));
         }
 
-        for (i, &e) in self.expressions.iter().enumerate() {
-            try!(write!(dest, "("));
-            let (mm, l) = match e {
-                Expression::Width(Range::Min(ref l)) => ("min-", l),
-                Expression::Width(Range::Max(ref l)) => ("max-", l),
-                Expression::Width(Range::Eq(ref l)) => ("", l),
-            };
-            try!(write!(dest, "{}width: ", mm));
-            try!(l.to_css(dest));
-            try!(write!(dest, ")"));
-            if i != self.expressions.len() - 1 {
-                try!(write!(dest, " and "));
-            }
+        try!(self.expressions[0].to_css(dest));
+
+        for expr in self.expressions.iter().skip(1) {
+            try!(write!(dest, " and "));
+            try!(expr.to_css(dest));
         }
         Ok(())
     }
@@ -187,8 +143,11 @@ impl ToCss for MediaQuery {
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum MediaQueryType {
-    All,  // Always true
+    /// A media type that matches every device.
+    All,
+    /// A known media type, that we parse and understand.
     Known(MediaType),
+    /// An unknown media type.
     Unknown(Atom),
 }
 
@@ -204,19 +163,22 @@ impl MediaQueryType {
         }
     }
 
-    fn matches(&self, other: &MediaType) -> bool {
+    fn matches(&self, other: MediaType) -> bool {
         match *self {
             MediaQueryType::All => true,
-            MediaQueryType::Known(ref known_type) => known_type == other,
+            MediaQueryType::Known(ref known_type) => *known_type == other,
             MediaQueryType::Unknown(..) => false,
         }
     }
 }
 
+/// https://drafts.csswg.org/mediaqueries/#media-types
 #[derive(PartialEq, Eq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum MediaType {
+    /// The "screen" media type.
     Screen,
+    /// The "print" media type.
     Print,
 }
 
@@ -229,77 +191,10 @@ impl MediaType {
         })
     }
 }
-
-#[derive(Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct Device {
-    pub media_type: MediaType,
-    pub viewport_size: TypedSize2D<f32, ViewportPx>,
-    #[cfg(feature = "gecko")]
-    pub default_values: Arc<ComputedValues>,
-}
-
-impl Device {
-    #[cfg(feature = "servo")]
-    pub fn new(media_type: MediaType, viewport_size: TypedSize2D<f32, ViewportPx>) -> Device {
-        Device {
-            media_type: media_type,
-            viewport_size: viewport_size,
-        }
-    }
-
-    #[cfg(feature = "servo")]
-    pub fn default_values(&self) -> &ComputedValues {
-        ComputedValues::initial_values()
-    }
-
-    #[cfg(feature = "gecko")]
-    pub fn new(media_type: MediaType, viewport_size: TypedSize2D<f32, ViewportPx>,
-               default_values: &Arc<ComputedValues>) -> Device {
-        Device {
-            media_type: media_type,
-            viewport_size: viewport_size,
-            default_values: default_values.clone(),
-        }
-    }
-
-    #[cfg(feature = "gecko")]
-    pub fn default_values(&self) -> &ComputedValues {
-        &*self.default_values
-    }
-
-    #[inline]
-    pub fn au_viewport_size(&self) -> Size2D<Au> {
-        Size2D::new(Au::from_f32_px(self.viewport_size.width),
-                    Au::from_f32_px(self.viewport_size.height))
-    }
-
-}
-
-impl Expression {
-    fn parse(input: &mut Parser) -> Result<Expression, ()> {
-        try!(input.expect_parenthesis_block());
-        input.parse_nested_block(|input| {
-            let name = try!(input.expect_ident());
-            try!(input.expect_colon());
-            // TODO: Handle other media features
-            match_ignore_ascii_case! { name,
-                "min-width" => {
-                    Ok(Expression::Width(Range::Min(try!(specified::Length::parse_non_negative(input)))))
-                },
-                "max-width" => {
-                    Ok(Expression::Width(Range::Max(try!(specified::Length::parse_non_negative(input)))))
-                },
-                "width" => {
-                    Ok(Expression::Width(Range::Eq(try!(specified::Length::parse_non_negative(input)))))
-                },
-                _ => Err(())
-            }
-        })
-    }
-}
-
 impl MediaQuery {
+    /// Parse a media query given css input.
+    ///
+    /// Returns an error if any of the expressions is unknown.
     pub fn parse(input: &mut Parser) -> Result<MediaQuery, ()> {
         let mut expressions = vec![];
 
@@ -336,43 +231,61 @@ impl MediaQuery {
     }
 }
 
+/// Parse a media query list from CSS.
+///
+/// Always returns a media query list. If any invalid media query is found, the
+/// media query list is only filled with the equivalent of "not all", see:
+///
+/// https://drafts.csswg.org/mediaqueries/#error-handling
 pub fn parse_media_query_list(input: &mut Parser) -> MediaList {
     if input.is_exhausted() {
         return Default::default()
     }
 
     let mut media_queries = vec![];
+    let mut found_invalid = false;
     loop {
-        media_queries.push(
-            input.parse_until_before(Delimiter::Comma, MediaQuery::parse).ok()
-                 .unwrap_or_else(MediaQuery::never_matching));
+        match input.parse_until_before(Delimiter::Comma, MediaQuery::parse) {
+            Ok(mq) => if !found_invalid {
+                media_queries.push(mq);
+            },
+            Err(..) => if !found_invalid {
+                media_queries.clear();
+                media_queries.push(MediaQuery::never_matching());
+                // Consume the rest of the input as if they were valid
+                // expressions (they might be, they might not), but ignore the
+                // result, this allows correctly parsing invalid media queries.
+                found_invalid = true;
+            },
+        }
+
         match input.next() {
             Ok(Token::Comma) => {},
             Ok(_) => unreachable!(),
             Err(()) => break,
         }
     }
+
+    debug_assert!(!found_invalid || media_queries.len() == 1);
+
     MediaList {
         media_queries: media_queries,
     }
 }
 
 impl MediaList {
+    /// Evaluate a whole `MediaList` against `Device`.
     pub fn evaluate(&self, device: &Device) -> bool {
-        let viewport_size = device.au_viewport_size();
-
         // Check if it is an empty media query list or any queries match (OR condition)
         // https://drafts.csswg.org/mediaqueries-4/#mq-list
         self.media_queries.is_empty() || self.media_queries.iter().any(|mq| {
-            let media_match = mq.media_type.matches(&device.media_type);
+            let media_match = mq.media_type.matches(device.media_type());
 
             // Check if all conditions match (AND condition)
-            let query_match = media_match && mq.expressions.iter().all(|expression| {
-                match *expression {
-                    Expression::Width(ref value) =>
-                        value.to_computed_range(viewport_size, device.default_values()).evaluate(viewport_size.width),
-                }
-            });
+            let query_match =
+                media_match &&
+                mq.expressions.iter()
+                    .all(|expression| expression.matches(&device));
 
             // Apply the logical NOT qualifier to the result
             match mq.qualifier {
@@ -382,6 +295,7 @@ impl MediaList {
         })
     }
 
+    /// Whether this `MediaList` contains no media queries.
     pub fn is_empty(&self) -> bool {
         self.media_queries.is_empty()
     }
