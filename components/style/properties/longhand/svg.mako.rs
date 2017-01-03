@@ -11,10 +11,12 @@ ${helpers.single_keyword("dominant-baseline",
                  """auto use-script no-change reset-size ideographic alphabetic hanging
                     mathematical central middle text-after-edge text-before-edge""",
                  products="gecko",
-                 animatable=False)}
+                 animatable=False,
+                 spec="https://www.w3.org/TR/SVG11/text.html#DominantBaselineProperty")}
 
 ${helpers.single_keyword("vector-effect", "none non-scaling-stroke",
-                         products="gecko", animatable=False)}
+                         products="gecko", animatable=False,
+                         spec="https://www.w3.org/TR/SVGTiny12/painting.html#VectorEffectProperty")}
 
 // Section 13 - Gradients and Patterns
 
@@ -22,11 +24,13 @@ ${helpers.predefined_type(
     "stop-color", "CSSColor",
     "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
     products="gecko",
-    animatable=False)}
+    animatable=False,
+    spec="https://www.w3.org/TR/SVGTiny12/painting.html#StopColorProperty")}
 
 ${helpers.predefined_type("stop-opacity", "Opacity", "1.0",
                           products="gecko",
-                          animatable=False)}
+                          animatable=False,
+                          spec="https://www.w3.org/TR/SVGTiny12/painting.html#propdef-stop-opacity")}
 
 // Section 15 - Filter Effects
 
@@ -34,23 +38,28 @@ ${helpers.predefined_type(
     "flood-color", "CSSColor",
     "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
     products="gecko",
-    animatable=False)}
+    animatable=False,
+    spec="https://www.w3.org/TR/SVG/filters.html#FloodColorProperty")}
 
 ${helpers.predefined_type("flood-opacity", "Opacity",
-                          "1.0", products="gecko", animatable=False)}
+                          "1.0", products="gecko", animatable=False,
+                          spec="https://www.w3.org/TR/SVG/filters.html#FloodOpacityProperty")}
 
 ${helpers.predefined_type(
     "lighting-color", "CSSColor",
     "CSSParserColor::RGBA(RGBA { red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0 })",
     products="gecko",
-    animatable=False)}
+    animatable=False,
+    spec="https://www.w3.org/TR/SVG/filters.html#LightingColorProperty")}
 
 // CSS Masking Module Level 1
-// https://www.w3.org/TR/css-masking-1/
+// https://drafts.fxtf.org/css-masking
 ${helpers.single_keyword("mask-type", "luminance alpha",
-                         products="gecko", animatable=False)}
+                         products="gecko", animatable=False,
+                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type")}
 
-<%helpers:longhand name="clip-path" animatable="False" products="gecko">
+<%helpers:longhand name="clip-path" animatable="False" products="gecko"
+                   spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path">
     use std::fmt;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
@@ -81,7 +90,8 @@ ${helpers.single_keyword("mask-mode",
                          "alpha luminance match-source",
                          vector=True,
                          products="gecko",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-mode")}
 
 // TODO implement all of repeat-style for background and mask
 // https://drafts.csswg.org/css-backgrounds-3/#repeat-style
@@ -89,9 +99,11 @@ ${helpers.single_keyword("mask-repeat",
                          "repeat repeat-x repeat-y space round no-repeat",
                          vector=True,
                          products="gecko",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat")}
 
-<%helpers:vector_longhand name="mask-position" products="gecko" animatable="True">
+<%helpers:vector_longhand name="mask-position" products="gecko" animatable="True"
+                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
@@ -151,7 +163,8 @@ ${helpers.single_keyword("mask-clip",
                          "content-box padding-box border-box",
                          vector=True,
                          products="gecko",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip")}
 
 // missing: margin-box fill-box stroke-box view-box
 // (gecko doesn't implement these)
@@ -159,9 +172,11 @@ ${helpers.single_keyword("mask-origin",
                          "content-box padding-box border-box",
                          vector=True,
                          products="gecko",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-origin")}
 
-<%helpers:longhand name="mask-size" products="gecko" animatable="True">
+<%helpers:longhand name="mask-size" products="gecko" animatable="True"
+                   spec="https://drafts.fxtf.org/css-masking/#propdef-mask-size">
     use properties::longhands::background_size;
     pub use ::properties::longhands::background_size::SpecifiedValue;
     pub use ::properties::longhands::background_size::single_value as single_value;
@@ -181,10 +196,12 @@ ${helpers.single_keyword("mask-composite",
                          "add subtract intersect exclude",
                          vector=True,
                          products="gecko",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.fxtf.org/css-masking/#propdef-mask-composite")}
 
 <%helpers:vector_longhand name="mask-image" products="gecko" animatable="False"
-                          has_uncacheable_values="${product == 'gecko'}">
+                          has_uncacheable_values="${product == 'gecko'}",
+                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image">
     use std::fmt;
     use style_traits::ToCss;
     use std::sync::Arc;
