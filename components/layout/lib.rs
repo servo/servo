@@ -16,6 +16,7 @@
 #![plugin(plugins)]
 
 extern crate app_units;
+extern crate atomic_refcell;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;

@@ -11,6 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 app_units = "0.3"
+atomic_refcell = "0.1"
 bitflags = "0.7"
 canvas_traits = {path = "../canvas_traits"}
 cssparser = {version = "0.7", features = ["heap_size", "serde-serialization"]}

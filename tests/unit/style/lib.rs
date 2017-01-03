@@ -23,7 +23,6 @@ extern crate style_traits;
 extern crate test;
 
 mod animated_properties;
-mod atomic_refcell;
 mod attr;
 mod cache;
 mod logical_geometry;

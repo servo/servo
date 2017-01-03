@@ -23,6 +23,7 @@ testing = []
 
 [dependencies]
 app_units = "0.3"
+atomic_refcell = "0.1"
 bitflags = "0.7"
 cfg-if = "0.1.0"
 cssparser = "0.7"

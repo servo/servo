@@ -40,6 +40,7 @@
 #![recursion_limit = "500"]  // For define_css_keyword_enum! in -moz-appearance
 
 extern crate app_units;
+extern crate atomic_refcell;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
@@ -89,7 +90,6 @@ extern crate time;
 extern crate unicode_segmentation;
 
 pub mod animation;
-pub mod atomic_refcell;
 #[allow(missing_docs)] // TODO.
 pub mod attr;
 pub mod bezier;
