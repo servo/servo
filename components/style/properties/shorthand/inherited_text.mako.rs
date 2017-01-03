@@ -6,7 +6,8 @@
 
 // Per CSS-TEXT 6.2, "for legacy reasons, UAs must treat `word-wrap` as an alternate name for
 // the `overflow-wrap` property, as if it were a shorthand of `overflow-wrap`."
-<%helpers:shorthand name="word-wrap" sub_properties="overflow-wrap">
+<%helpers:shorthand name="word-wrap" sub_properties="overflow-wrap"
+                    spec="https://drafts.csswg.org/css-text/#propdef-word-wrap">
     use properties::longhands::overflow_wrap;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
@@ -22,9 +23,9 @@
     }
 </%helpers:shorthand>
 
-// https://drafts.csswg.org/css-text-decor-3/#text-emphasis-property
 <%helpers:shorthand name="text-emphasis" products="gecko" sub_properties="text-emphasis-color
-    text-emphasis-style">
+    text-emphasis-style"
+    spec="https://drafts.csswg.org/css-text-decor-3/#text-emphasis-property">
     use properties::longhands::{text_emphasis_color, text_emphasis_style};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
@@ -80,11 +81,12 @@
 </%helpers:shorthand>
 
 // CSS Compatibility
-// https://compat.spec.whatwg.org/#the-webkit-text-stroke
+// https://compat.spec.whatwg.org/
 <%helpers:shorthand name="-webkit-text-stroke"
                     sub_properties="-webkit-text-stroke-color
                                     -webkit-text-stroke-width"
-                    products="gecko">
+                    products="gecko"
+                    spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke">
     use cssparser::Color as CSSParserColor;
     use properties::longhands::{_webkit_text_stroke_color, _webkit_text_stroke_width};
     use values::specified::CSSColor;

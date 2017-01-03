@@ -6,22 +6,25 @@
 
 <% data.new_style_struct("InheritedBox", inherited=True, gecko_name="Visibility") %>
 
-${helpers.single_keyword("direction", "ltr rtl", need_clone=True, animatable=False)}
-
 // TODO: collapse. Well, do tables first.
 ${helpers.single_keyword("visibility",
                          "visible hidden",
                          extra_gecko_values="collapse",
                          gecko_ffi_name="mVisible",
-                         animatable=True)}
+                         animatable=True,
+                         spec="https://drafts.csswg.org/css-box/#propdef-visibility")}
 
 // CSS Writing Modes Level 3
-// http://dev.w3.org/csswg/css-writing-modes/
+// https://drafts.csswg.org/css-writing-modes-3
 ${helpers.single_keyword("writing-mode",
                          "horizontal-tb vertical-rl vertical-lr",
                          experimental=True,
                          need_clone=True,
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode")}
+
+${helpers.single_keyword("direction", "ltr rtl", need_clone=True, animatable=False,
+                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-direction")}
 
 // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
 // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
@@ -32,13 +35,15 @@ ${helpers.single_keyword("text-orientation",
                          need_clone=True,
                          extra_gecko_values="mixed upright",
                          extra_servo_values="sideways-right sideways-left",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation")}
 
 // CSS Color Module Level 4
 // https://drafts.csswg.org/css-color/
 ${helpers.single_keyword("color-adjust",
                          "economy exact", products="gecko",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-color/#propdef-color-adjust")}
 
 <% image_rendering_custom_consts = { "crisp-edges": "CRISPEDGES" } %>
 // According to to CSS-IMAGES-3, `optimizespeed` and `optimizequality` are synonyms for `auto`
@@ -48,13 +53,15 @@ ${helpers.single_keyword("image-rendering",
                          extra_gecko_values="optimizespeed optimizequality",
                          extra_servo_values="pixelated",
                          custom_consts=image_rendering_custom_consts,
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-images/#propdef-image-rendering")}
 
 // Image Orientation
-// https://drafts.csswg.org/css-images/#the-image-orientation
 <%helpers:longhand name="image-orientation"
                    products="None"
-                   animatable="False">
+                   animatable="False"
+    spec="https://drafts.csswg.org/css-images/#propdef-image-orientation, \
+      /// additional values in https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation">
     use std::fmt;
     use style_traits::ToCss;
     use values::specified::Angle;
@@ -188,7 +195,8 @@ ${helpers.single_keyword("image-rendering",
 <%helpers:longhand name="-servo-under-display-none"
                    derived_from="display"
                    products="servo"
-                   animatable="False">
+                   animatable="False"
+                   spec="Nonstandard (internal layout use only)">
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;

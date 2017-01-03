@@ -6,7 +6,8 @@
 
 <% data.new_style_struct("Color", inherited=True) %>
 
-<%helpers:raw_longhand name="color" need_clone="True" animatable="True">
+<%helpers:raw_longhand name="color" need_clone="True" animatable="True"
+                       spec="https://drafts.csswg.org/css-color/#color">
     use cssparser::Color as CSSParserColor;
     use cssparser::RGBA;
     use values::specified::{CSSColor, CSSRGBA};

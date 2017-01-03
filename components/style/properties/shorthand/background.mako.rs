@@ -8,7 +8,8 @@
 <%helpers:shorthand name="background"
                     sub_properties="background-color background-position-x background-position-y background-repeat
                                     background-attachment background-image background-size background-origin
-                                    background-clip">
+                                    background-clip"
+                    spec="https://drafts.csswg.org/css-backgrounds/#the-background">
     use properties::longhands::{background_color, background_position_x, background_position_y, background_repeat};
     use properties::longhands::{background_attachment, background_image, background_size, background_origin};
     use properties::longhands::background_clip;
@@ -252,7 +253,8 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="background-position"
-                    sub_properties="background-position-x background-position-y">
+                    sub_properties="background-position-x background-position-y"
+                    spec="https://drafts.csswg.org/css-backgrounds-4/#the-background-position">
     use properties::longhands::{background_position_x,background_position_y};
     use values::specified::position::Position;
     use parser::Parse;

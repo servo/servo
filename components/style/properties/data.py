@@ -84,12 +84,15 @@ def arg_to_bool(arg):
 
 
 class Longhand(object):
-    def __init__(self, style_struct, name, animatable=None, derived_from=None, keyword=None,
+    def __init__(self, style_struct, name, spec=None, animatable=None, derived_from=None, keyword=None,
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
                  allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
                  has_uncacheable_values=False, logical=False):
         self.name = name
+        if not spec:
+            raise TypeError("Spec should be specified for %s" % name)
+        self.spec = spec
         self.keyword = keyword
         self.predefined_type = predefined_type
         self.ident = to_rust_ident(name)
@@ -130,9 +133,12 @@ class Longhand(object):
 
 
 class Shorthand(object):
-    def __init__(self, name, sub_properties, experimental=False, internal=False,
+    def __init__(self, name, sub_properties, spec=None, experimental=False, internal=False,
                  allowed_in_keyframe_block=True):
         self.name = name
+        if not spec:
+            raise TypeError("Spec should be specified for %s" % name)
+        self.spec = spec
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.derived_from = None

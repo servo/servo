@@ -9,7 +9,8 @@
                                     text-decoration-line
                                     text-decoration-style"
                     products="gecko"
-                    disable_when_testing="True">
+                    disable_when_testing="True"
+                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration">
     use cssparser::Color as CSSParserColor;
     use properties::longhands::{text_decoration_color, text_decoration_line, text_decoration_style};
     use values::specified::CSSColor;

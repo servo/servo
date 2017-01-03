@@ -4,8 +4,8 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-// https://drafts.csswg.org/css-flexbox/#flex-flow-property
-<%helpers:shorthand name="flex-flow" sub_properties="flex-direction flex-wrap">
+<%helpers:shorthand name="flex-flow" sub_properties="flex-direction flex-wrap"
+                    spec="https://drafts.csswg.org/css-flexbox/#flex-flow-property">
     use properties::longhands::{flex_direction, flex_wrap};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
@@ -54,8 +54,8 @@
     }
 </%helpers:shorthand>
 
-// https://drafts.csswg.org/css-flexbox/#flex-property
-<%helpers:shorthand name="flex" sub_properties="flex-grow flex-shrink flex-basis">
+<%helpers:shorthand name="flex" sub_properties="flex-grow flex-shrink flex-basis"
+                    spec="https://drafts.csswg.org/css-flexbox/#flex-property">
     use parser::Parse;
     use app_units::Au;
     use values::specified::{Number, Length, LengthOrPercentageOrAutoOrContent};

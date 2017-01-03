@@ -12,16 +12,18 @@
 % for side in PHYSICAL_SIDES:
     ${helpers.predefined_type(side, "LengthOrPercentageOrAuto",
                               "computed::LengthOrPercentageOrAuto::Auto",
+                              spec="https://www.w3.org/TR/CSS2/visuren.html#propdef-%s" % side,
                               animatable=True)}
 % endfor
 // offset-* logical properties, map to "top" / "left" / "bottom" / "right"
 % for side in LOGICAL_SIDES:
-    ${helpers.predefined_type("offset-" + side, "LengthOrPercentageOrAuto",
+    ${helpers.predefined_type("offset-%s" % side, "LengthOrPercentageOrAuto",
                               "computed::LengthOrPercentageOrAuto::Auto",
+                              spec="https://drafts.csswg.org/css-logical-props/#propdef-offset-%s" % side,
                               animatable=True, logical=True)}
 % endfor
 
-<%helpers:longhand name="z-index" animatable="True">
+<%helpers:longhand name="z-index" spec="https://www.w3.org/TR/CSS2/visuren.html#z-index" animatable="True">
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
@@ -75,9 +77,11 @@
 
 // Flex container properties
 ${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse",
+                         spec="https://drafts.csswg.org/css-flexbox/#flex-direction-property",
                          animatable=False)}
 
 ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
+                         spec="https://drafts.csswg.org/css-flexbox/#flex-wrap-property",
                          animatable=False)}
 
 // FIXME(stshine): The type of 'justify-content' and 'align-content' is uint16_t in gecko
@@ -85,6 +89,7 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
 ${helpers.single_keyword("justify-content", "flex-start flex-end center space-between space-around",
                          gecko_constant_prefix="NS_STYLE_JUSTIFY",
                          products="servo",
+                         spec="https://drafts.csswg.org/css-flexbox/#justify-content-property",
                          animatable=False)}
 
 // https://drafts.csswg.org/css-flexbox/#propdef-align-items
@@ -93,21 +98,25 @@ ${helpers.single_keyword("align-items", "stretch flex-start flex-end center base
                          else "normal stretch flex-start flex-end center baseline",
                          need_clone=True,
                          gecko_constant_prefix="NS_STYLE_ALIGN",
+                         spec="https://drafts.csswg.org/css-flexbox/#align-items-property",
                          animatable=False)}
 
 ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
                          gecko_constant_prefix="NS_STYLE_ALIGN",
                          products="servo",
+                         spec="https://drafts.csswg.org/css-flexbox/#align-content-property",
                          animatable=False)}
 
 // Flex item properties
 ${helpers.predefined_type("flex-grow", "Number",
                           "0.0", "parse_non_negative",
+                          spec="https://drafts.csswg.org/css-flexbox/#flex-grow-property",
                           needs_context=False,
                           animatable=True)}
 
 ${helpers.predefined_type("flex-shrink", "Number",
                           "1.0", "parse_non_negative",
+                          spec="https://drafts.csswg.org/css-flexbox/#flex-shrink-property",
                           needs_context=False,
                           animatable=True)}
 
@@ -117,10 +126,12 @@ ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center 
                          need_clone=True,
                          extra_gecko_values="normal",
                          gecko_constant_prefix="NS_STYLE_ALIGN",
+                         spec="https://drafts.csswg.org/css-flexbox/#propdef-align-self",
                          animatable=False)}
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
-<%helpers:longhand name="order" animatable="True">
+<%helpers:longhand name="order" animatable="True"
+                   spec="https://drafts.csswg.org/css-flexbox/#order-property">
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -145,15 +156,22 @@ ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center 
 ${helpers.predefined_type("flex-basis",
                           "LengthOrPercentageOrAutoOrContent",
                           "computed::LengthOrPercentageOrAutoOrContent::Auto",
+                          spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
                           animatable=False)}
 
 % for (size, logical) in ALL_SIZES:
+    <%
+      spec = "https://drafts.csswg.org/css-box/#propdef-%s"
+      if logical:
+        spec = "https://drafts.csswg.org/css-logical-props/#propdef-%s"
+    %>
     // width, height, block-size, inline-size
     ${helpers.predefined_type("%s" % size,
                               "LengthOrPercentageOrAuto",
                               "computed::LengthOrPercentageOrAuto::Auto",
                               "parse_non_negative",
                               needs_context=False,
+                              spec=spec % size,
                               animatable=True, logical = logical)}
 
     // min-width, min-height, min-block-size, min-inline-size
@@ -162,6 +180,7 @@ ${helpers.predefined_type("flex-basis",
                               "computed::LengthOrPercentage::Length(Au(0))",
                               "parse_non_negative",
                               needs_context=False,
+                              spec=spec % ("min-%s" % size),
                               animatable=True, logical = logical)}
 
     // max-width, max-height, max-block-size, max-inline-size
@@ -170,19 +189,19 @@ ${helpers.predefined_type("flex-basis",
                               "computed::LengthOrPercentageOrNone::None",
                               "parse_non_negative",
                               needs_context=False,
+                              spec=spec % ("max-%s" % size),
                               animatable=True, logical = logical)}
 % endfor
 
 ${helpers.single_keyword("box-sizing",
                          "content-box border-box",
+                         spec="https://drafts.csswg.org/css-ui/#propdef-box-sizing",
                          animatable=False)}
 
-// CSS Image Values and Replaced Content Module Level 3
-// https://drafts.csswg.org/css-images-3/
 ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
-                         products="gecko", animatable=False)}
+                         products="gecko", animatable=False,
+                         spec="https://drafts.csswg.org/css-images/#propdef-object-fit")}
 
-// https://drafts.csswg.org/css-grid/#propdef-grid-row-start
 <% grid_longhands = ["grid-row-start", "grid-row-end", "grid-column-start", "grid-column-end"] %>
 
 % for longhand in grid_longhands:
@@ -190,5 +209,6 @@ ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
                               "GridLine",
                               "Default::default()",
                               animatable=False,
+                              spec="https://drafts.csswg.org/css-grid/#propdef-%s" % longhand,
                               products="gecko")}
 % endfor

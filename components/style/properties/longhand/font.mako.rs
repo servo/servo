@@ -8,7 +8,8 @@
 <% data.new_style_struct("Font",
                          inherited=True,
                          additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
-<%helpers:longhand name="font-family" animatable="False" need_index="True">
+<%helpers:longhand name="font-family" animatable="False" need_index="True"
+                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use self::computed_value::FontFamily;
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
@@ -134,10 +135,12 @@ ${helpers.single_keyword("font-style",
                          "normal italic oblique",
                          gecko_constant_prefix="NS_FONT_STYLE",
                          gecko_ffi_name="mFont.style",
+                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-style",
                          animatable=False)}
 
 ${helpers.single_keyword("font-variant",
                          "normal small-caps",
+                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant",
                          animatable=False)}
 
 
@@ -152,10 +155,12 @@ ${helpers.single_keyword("font-variant-caps",
                          gecko_constant_prefix="NS_FONT_VARIANT_CAPS",
                          gecko_ffi_name="mFont.variantCaps",
                          products="gecko",
+                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-caps",
                          custom_consts=font_variant_caps_custom_consts,
                          animatable=False)}
 
-<%helpers:longhand name="font-weight" need_clone="True" animatable="True">
+<%helpers:longhand name="font-weight" need_clone="True" animatable="True"
+                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-weight">
     use std::fmt;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
@@ -288,7 +293,8 @@ ${helpers.single_keyword("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="font-size" need_clone="True" animatable="True">
+<%helpers:longhand name="font-size" need_clone="True" animatable="True"
+                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-size">
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
@@ -370,8 +376,8 @@ ${helpers.single_keyword("font-variant-caps",
     }
 </%helpers:longhand>
 
-// https://www.w3.org/TR/css-fonts-3/#font-size-adjust-prop
-<%helpers:longhand products="gecko" name="font-size-adjust" animatable="True">
+<%helpers:longhand products="gecko" name="font-size-adjust" animatable="True"
+                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-size-adjust">
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     use values::specified::Number;
@@ -430,7 +436,8 @@ ${helpers.single_keyword("font-variant-caps",
     }
 </%helpers:longhand>
 
-<%helpers:longhand products="gecko" name="font-synthesis" animatable="False">
+<%helpers:longhand products="gecko" name="font-synthesis" animatable="False"
+                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-synthesis">
     use std::fmt;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
@@ -500,6 +507,7 @@ ${helpers.single_keyword("font-stretch",
                          gecko_ffi_name="mFont.stretch",
                          gecko_constant_prefix="NS_FONT_STRETCH",
                          cast_type='i16',
+                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
                          animatable=False)}
 
 ${helpers.single_keyword("font-kerning",
@@ -507,6 +515,7 @@ ${helpers.single_keyword("font-kerning",
                          products="gecko",
                          gecko_ffi_name="mFont.kerning",
                          gecko_constant_prefix="NS_FONT_KERNING",
+                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-stretch",
                          animatable=False)}
 
 ${helpers.single_keyword("font-variant-position",
@@ -514,9 +523,11 @@ ${helpers.single_keyword("font-variant-position",
                          products="gecko",
                          gecko_ffi_name="mFont.variantPosition",
                          gecko_constant_prefix="NS_FONT_VARIANT_POSITION",
+                         spec="https://drafts.csswg.org/css-fonts/#propdef-font-variant-position",
                          animatable=False)}
 
-<%helpers:longhand name="font-feature-settings" products="none" animatable="False">
+<%helpers:longhand name="font-feature-settings" products="none" animatable="False"
+                   spec="https://drafts.csswg.org/css-fonts/#propdef-font-feature-settings">
     use std::fmt;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
@@ -626,7 +637,8 @@ ${helpers.single_keyword("font-variant-position",
 </%helpers:longhand>
 
 // https://www.w3.org/TR/css-fonts-3/#propdef-font-language-override
-<%helpers:longhand name="font-language-override" products="none" animatable="False">
+<%helpers:longhand name="font-language-override" products="none" animatable="False"
+                   spec="https://drafts.csswg.org/css-fonts-3/#propdef-font-language-override">
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;

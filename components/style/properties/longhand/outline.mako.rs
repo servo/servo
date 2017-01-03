@@ -11,9 +11,11 @@
 
 // TODO(pcwalton): `invert`
 ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor",
-                          animatable=True, complex_color=True, need_clone=True)}
+                          animatable=True, complex_color=True, need_clone=True,
+                          spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
 
-<%helpers:longhand name="outline-style" need_clone="True" animatable="False">
+<%helpers:longhand name="outline-style" need_clone="True" animatable="False"
+                   spec="https://drafts.csswg.org/css-ui/#propdef-outline-style">
     pub use values::specified::BorderStyle as SpecifiedValue;
     pub fn get_initial_value() -> SpecifiedValue { SpecifiedValue::none }
     pub mod computed_value {
@@ -27,7 +29,8 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="outline-width" animatable="True">
+<%helpers:longhand name="outline-width" animatable="True"
+                   spec="https://drafts.csswg.org/css-ui/#propdef-outline-width">
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
@@ -77,9 +80,11 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
 // TODO: Should they animate?
 % for corner in ["topleft", "topright", "bottomright", "bottomleft"]:
     ${helpers.predefined_type("-moz-outline-radius-" + corner, "BorderRadiusSize",
-                              "computed::BorderRadiusSize::zero()",
-                              "parse", products="gecko",
-                              animatable=False)}
+        "computed::BorderRadiusSize::zero()",
+        "parse", products="gecko",
+        animatable=False,
+        spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
 % endfor
 
-${helpers.predefined_type("outline-offset", "Length", "Au(0)", products="servo", animatable=True)}
+${helpers.predefined_type("outline-offset", "Length", "Au(0)", products="servo", animatable=True,
+                          spec="https://drafts.csswg.org/css-ui/#propdef-outline-offset")}

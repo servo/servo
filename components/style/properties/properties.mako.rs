@@ -1891,7 +1891,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
     let positioned = matches!(style.get_box().clone_position(),
         longhands::position::SpecifiedValue::absolute |
         longhands::position::SpecifiedValue::fixed);
-    let floated = style.get_box().clone_float() != longhands::float::SpecifiedValue::none;
+    let floated = style.get_box().clone_float() != longhands::float::computed_value::T::none;
     // FIXME(heycam): We should look past any display:contents ancestors to
     // determine if we are a flex or grid item, but we don't have access to
     // grandparent or higher style here.

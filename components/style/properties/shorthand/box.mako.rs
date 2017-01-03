@@ -4,7 +4,8 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="overflow" sub_properties="overflow-x overflow-y">
+<%helpers:shorthand name="overflow" sub_properties="overflow-x overflow-y"
+                    spec="https://drafts.csswg.org/css-overflow/#propdef-overflow">
     use properties::longhands::{overflow_x, overflow_y};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
@@ -96,7 +97,8 @@ macro_rules! try_parse_one {
 <%helpers:shorthand name="transition"
                     sub_properties="transition-property transition-duration
                                     transition-timing-function
-                                    transition-delay">
+                                    transition-delay"
+                    spec="https://drafts.csswg.org/css-transitions/#propdef-transition">
     use parser::Parse;
     use properties::longhands::{transition_delay, transition_duration, transition_property};
     use properties::longhands::{transition_timing_function};
@@ -185,7 +187,8 @@ macro_rules! try_parse_one {
                                     animation-timing-function animation-delay
                                     animation-iteration-count animation-direction
                                     animation-fill-mode animation-play-state"
-                    allowed_in_keyframe_block="False">
+                    allowed_in_keyframe_block="False"
+                    spec="https://drafts.csswg.org/css-animations/#propdef-animation">
     use parser::Parse;
     use properties::longhands::{animation_name, animation_duration, animation_timing_function};
     use properties::longhands::{animation_delay, animation_iteration_count, animation_direction};
@@ -332,7 +335,8 @@ macro_rules! try_parse_one {
 </%helpers:shorthand>
 
 <%helpers:shorthand name="scroll-snap-type" products="gecko"
-                    sub_properties="scroll-snap-type-x scroll-snap-type-y">
+                    sub_properties="scroll-snap-type-x scroll-snap-type-y"
+                    spec="https://drafts.csswg.org/css-scroll-snap/#propdef-scroll-snap-type">
     use properties::longhands::scroll_snap_type_x;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
