@@ -8,15 +8,19 @@
 
 ${helpers.single_keyword("border-collapse", "separate collapse",
                          gecko_constant_prefix="NS_STYLE_BORDER",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-tables/#propdef-border-collapse")}
 ${helpers.single_keyword("empty-cells", "show hide",
                          gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-tables/#propdef-empty-cells")}
 ${helpers.single_keyword("caption-side", "top bottom",
                          extra_gecko_values="right left top-outside bottom-outside",
-                         animatable=False)}
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-tables/#propdef-caption-side")}
 
-<%helpers:longhand name="border-spacing" animatable="False">
+<%helpers:longhand name="border-spacing" animatable="False"
+                   spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
     use app_units::Au;
     use std::fmt;
     use style_traits::ToCss;
