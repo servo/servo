@@ -530,13 +530,11 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
 // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
 impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     fn process(&mut self, fragment: &Fragment, level: i32, border_box: &Rect<Au>) {
-        match self.node_offset_box {
-            Some(_) => {  }, // We've already found the node, so we already have its parent.
-            None => {
-                // Remove all nodes at this level or higher, as they can't be parents of this node.
-                self.parent_nodes.truncate(level as usize);
-                assert!(self.parent_nodes.len() == level as usize);
-            },
+        if self.node_offset_box.is_none() {
+            // We haven't found the node yet, so we're still looking for its parent.
+            // Remove all nodes at this level or higher, as they can't be parents of this node.
+            self.parent_nodes.truncate(level as usize);
+            assert!(self.parent_nodes.len() == level as usize);
         }
 
         if fragment.node == self.node_address {
@@ -572,7 +570,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             // TODO: `position: fixed` on inline elements doesn't seem to work
             // as of Sep 25, 2016, so I don't know how one will check if an
             // inline element has it when it does.
-        } else if let Some(_) = self.node_offset_box {
+        } else if self.node_offset_box.is_some() {
             // We've been processing fragments within the node, but now
             // we've found one outside it. That means we're done.
             // Hopefully.
