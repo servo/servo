@@ -78,7 +78,7 @@ pub struct ComputedValues {
 }
 
 impl ComputedValues {
-    pub fn inherit_from(parent: &Arc<Self>) -> Arc<Self> {
+    pub fn inherit_from(parent: &Arc<Self>, default: &Arc<Self>) -> Arc<Self> {
         Arc::new(ComputedValues {
             custom_properties: parent.custom_properties.clone(),
             shareable: parent.shareable,
@@ -88,7 +88,7 @@ impl ComputedValues {
             % if style_struct.inherited:
             ${style_struct.ident}: parent.${style_struct.ident}.clone(),
             % else:
-            ${style_struct.ident}: Self::initial_values().${style_struct.ident}.clone(),
+            ${style_struct.ident}: default.${style_struct.ident}.clone(),
             % endif
             % endfor
         })
@@ -111,13 +111,6 @@ impl ComputedValues {
             ${style_struct.ident}: ${style_struct.ident},
             % endfor
         }
-    }
-
-    pub fn style_for_child_text_node(parent: &Arc<Self>) -> Arc<Self> {
-        // Gecko expects text nodes to be styled as if they were elements that
-        // matched no rules (that is, inherited style structs are inherited and
-        // non-inherited style structs are set to their initial values).
-        ComputedValues::inherit_from(parent)
     }
 
     pub fn initial_values() -> &'static Self {

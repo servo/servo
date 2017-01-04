@@ -581,13 +581,16 @@ fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_Inherit(parent_style: ServoComputedValuesBorrowedOrNull)
+pub extern "C" fn Servo_ComputedValues_Inherit(
+  raw_data: RawServoStyleSetBorrowed,
+  parent_style: ServoComputedValuesBorrowedOrNull)
      -> ServoComputedValuesStrong {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let maybe_arc = ComputedValues::arc_from_borrowed(&parent_style);
     let style = if let Some(reference) = maybe_arc.as_ref() {
-        ComputedValues::inherit_from(reference)
+        ComputedValues::inherit_from(reference, &data.default_computed_values)
     } else {
-        Arc::new(ComputedValues::initial_values().clone())
+        data.default_computed_values.clone()
     };
     style.into_strong()
 }

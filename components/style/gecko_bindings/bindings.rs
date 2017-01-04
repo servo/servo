@@ -1361,7 +1361,8 @@ extern "C" {
      -> ServoComputedValuesStrong;
 }
 extern "C" {
-    pub fn Servo_ComputedValues_Inherit(parent_style:
+    pub fn Servo_ComputedValues_Inherit(set: RawServoStyleSetBorrowed,
+                                        parent_style:
                                             ServoComputedValuesBorrowedOrNull)
      -> ServoComputedValuesStrong;
 }
