@@ -15,7 +15,6 @@ use custom_properties::ComputedValuesMap;
 use gecko_bindings::bindings;
 % for style_struct in data.style_structs:
 use gecko_bindings::structs::${style_struct.gecko_ffi_name};
-use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Construct_Default_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
@@ -394,14 +393,6 @@ def set_gecko_property(ffi_name, expr):
 
 <%def name="impl_style_struct(style_struct)">
 impl ${style_struct.gecko_struct_name} {
-    #[allow(dead_code, unused_variables)]
-    pub fn initial() -> Arc<Self> {
-        let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } });
-        unsafe {
-            Gecko_Construct_${style_struct.gecko_ffi_name}(&mut Arc::get_mut(&mut result).unwrap().gecko);
-        }
-        result
-    }
     #[allow(dead_code, unused_variables)]
     pub fn default(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
         let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } });

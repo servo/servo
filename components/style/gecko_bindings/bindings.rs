@@ -733,9 +733,6 @@ extern "C" {
                                                               *mut nsCSSValueSharedList);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(ptr: *mut nsStyleFont,
                                                pres_context:
                                                    RawGeckoPresContextBorrowed);
@@ -746,9 +743,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleFont(ptr: *mut nsStyleFont);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStyleColor(ptr: *mut nsStyleColor);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleColor(ptr: *mut nsStyleColor,
@@ -763,9 +757,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleColor(ptr: *mut nsStyleColor);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleList(ptr: *mut nsStyleList);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleList(ptr: *mut nsStyleList,
                                                pres_context:
                                                    RawGeckoPresContextBorrowed);
@@ -776,9 +767,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleList(ptr: *mut nsStyleList);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStyleText(ptr: *mut nsStyleText);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleText(ptr: *mut nsStyleText,
@@ -793,9 +781,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleText(ptr: *mut nsStyleText);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleVisibility(ptr: *mut nsStyleVisibility);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleVisibility(ptr:
                                                          *mut nsStyleVisibility,
                                                      pres_context:
@@ -808,10 +793,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleVisibility(ptr: *mut nsStyleVisibility);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStyleUserInterface(ptr:
-                                                    *mut nsStyleUserInterface);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleUserInterface(ptr:
@@ -829,9 +810,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleUserInterface(ptr: *mut nsStyleUserInterface);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleTableBorder(ptr: *mut nsStyleTableBorder);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleTableBorder(ptr:
                                                           *mut nsStyleTableBorder,
                                                       pres_context:
@@ -847,9 +825,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleTableBorder(ptr: *mut nsStyleTableBorder);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleSVG(ptr: *mut nsStyleSVG);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleSVG(ptr: *mut nsStyleSVG,
                                               pres_context:
                                                   RawGeckoPresContextBorrowed);
@@ -860,9 +835,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleSVG(ptr: *mut nsStyleSVG);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStyleVariables(ptr: *mut nsStyleVariables);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleVariables(ptr:
@@ -879,9 +851,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleVariables(ptr: *mut nsStyleVariables);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleBackground(ptr: *mut nsStyleBackground);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleBackground(ptr:
                                                          *mut nsStyleBackground,
                                                      pres_context:
@@ -896,9 +865,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleBackground(ptr: *mut nsStyleBackground);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStylePosition(ptr: *mut nsStylePosition);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStylePosition(ptr: *mut nsStylePosition,
                                                    pres_context:
                                                        RawGeckoPresContextBorrowed);
@@ -909,9 +875,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStylePosition(ptr: *mut nsStylePosition);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStyleTextReset(ptr: *mut nsStyleTextReset);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleTextReset(ptr:
@@ -928,9 +891,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleTextReset(ptr: *mut nsStyleTextReset);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleDisplay(ptr: *mut nsStyleDisplay);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleDisplay(ptr: *mut nsStyleDisplay,
                                                   pres_context:
                                                       RawGeckoPresContextBorrowed);
@@ -941,9 +901,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleDisplay(ptr: *mut nsStyleDisplay);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStyleContent(ptr: *mut nsStyleContent);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleContent(ptr: *mut nsStyleContent,
@@ -958,9 +915,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleContent(ptr: *mut nsStyleContent);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleUIReset(ptr: *mut nsStyleUIReset);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleUIReset(ptr: *mut nsStyleUIReset,
                                                   pres_context:
                                                       RawGeckoPresContextBorrowed);
@@ -971,9 +925,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleUIReset(ptr: *mut nsStyleUIReset);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStyleTable(ptr: *mut nsStyleTable);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleTable(ptr: *mut nsStyleTable,
@@ -988,9 +939,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleTable(ptr: *mut nsStyleTable);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleMargin(ptr: *mut nsStyleMargin);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleMargin(ptr: *mut nsStyleMargin,
                                                  pres_context:
                                                      RawGeckoPresContextBorrowed);
@@ -1001,9 +949,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleMargin(ptr: *mut nsStyleMargin);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStylePadding(ptr: *mut nsStylePadding);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStylePadding(ptr: *mut nsStylePadding,
@@ -1018,9 +963,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStylePadding(ptr: *mut nsStylePadding);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleBorder(ptr: *mut nsStyleBorder);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleBorder(ptr: *mut nsStyleBorder,
                                                  pres_context:
                                                      RawGeckoPresContextBorrowed);
@@ -1031,9 +973,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleBorder(ptr: *mut nsStyleBorder);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStyleOutline(ptr: *mut nsStyleOutline);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleOutline(ptr: *mut nsStyleOutline,
@@ -1048,9 +987,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleOutline(ptr: *mut nsStyleOutline);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleXUL(ptr: *mut nsStyleXUL);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleXUL(ptr: *mut nsStyleXUL,
                                               pres_context:
                                                   RawGeckoPresContextBorrowed);
@@ -1061,9 +997,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleXUL(ptr: *mut nsStyleXUL);
-}
-extern "C" {
-    pub fn Gecko_Construct_nsStyleSVGReset(ptr: *mut nsStyleSVGReset);
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleSVGReset(ptr: *mut nsStyleSVGReset,
@@ -1078,9 +1011,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleSVGReset(ptr: *mut nsStyleSVGReset);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleColumn(ptr: *mut nsStyleColumn);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleColumn(ptr: *mut nsStyleColumn,
                                                  pres_context:
                                                      RawGeckoPresContextBorrowed);
@@ -1093,9 +1023,6 @@ extern "C" {
     pub fn Gecko_Destroy_nsStyleColumn(ptr: *mut nsStyleColumn);
 }
 extern "C" {
-    pub fn Gecko_Construct_nsStyleEffects(ptr: *mut nsStyleEffects);
-}
-extern "C" {
     pub fn Gecko_Construct_Default_nsStyleEffects(ptr: *mut nsStyleEffects,
                                                   pres_context:
                                                       RawGeckoPresContextBorrowed);
@@ -1106,6 +1033,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_Destroy_nsStyleEffects(ptr: *mut nsStyleEffects);
+}
+extern "C" {
+    pub fn Gecko_Construct_nsStyleVariables(ptr: *mut nsStyleVariables);
 }
 extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
