@@ -6474,6 +6474,18 @@
             "url": "/_mozilla/mozilla/sslfail.html"
           }
         ],
+        "mozilla/stylesheet-adopt-panic.html": [
+          {
+            "path": "mozilla/stylesheet-adopt-panic.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/stylesheet-adopt-panic-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/stylesheet-adopt-panic.html"
+          }
+        ],
         "mozilla/svg/svg.html": [
           {
             "path": "mozilla/svg/svg.html",
@@ -21754,6 +21766,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/sslfail.html"
+        }
+      ],
+      "mozilla/stylesheet-adopt-panic.html": [
+        {
+          "path": "mozilla/stylesheet-adopt-panic.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/stylesheet-adopt-panic-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/stylesheet-adopt-panic.html"
         }
       ],
       "mozilla/svg/svg.html": [

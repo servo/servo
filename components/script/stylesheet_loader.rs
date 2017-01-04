@@ -6,6 +6,7 @@ use document_loader::LoadType;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
+use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
@@ -78,6 +79,8 @@ pub struct StylesheetContext {
     metadata: Option<Metadata>,
     /// The response body received to date.
     data: Vec<u8>,
+    /// The node document for elem when the load was initiated.
+    document: Trusted<Document>,
 }
 
 impl PreInvoke for StylesheetContext {}
@@ -103,7 +106,7 @@ impl FetchResponseListener for StylesheetContext {
 
     fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
         let elem = self.elem.root();
-        let document = document_from_node(&*elem);
+        let document = self.document.root();
         let mut successful = false;
 
         if status.is_ok() {
@@ -192,14 +195,14 @@ impl<'a> StylesheetLoader<'a> {
 impl<'a> StylesheetLoader<'a> {
     pub fn load(&self, source: StylesheetContextSource) {
         let url = source.url();
+        let document = document_from_node(self.elem);
         let context = Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
             source: source,
             metadata: None,
             data: vec![],
+            document: Trusted::new(&*document),
         }));
-
-        let document = document_from_node(self.elem);
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
