@@ -1161,6 +1161,12 @@ extern "C" {
      -> RawServoStyleSetOwned;
 }
 extern "C" {
+    pub fn Servo_StyleSet_RecomputeDefaultStyles(set:
+                                                     RawServoStyleSetBorrowed,
+                                                 pres_context:
+                                                     RawGeckoPresContextBorrowed);
+}
+extern "C" {
     pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowed,
                                            sheet: RawServoStyleSheetBorrowed,
                                            flush: bool);

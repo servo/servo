@@ -609,6 +609,14 @@ pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextBorrowed)
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_StyleSet_RecomputeDefaultStyles(
+  raw_data: RawServoStyleSetBorrowed,
+  pres_context: RawGeckoPresContextBorrowed) {
+    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    data.default_computed_values = ComputedValues::default_values(pres_context);
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) -> () {
     let _ = data.into_box::<PerDocumentStyleData>();
 }
