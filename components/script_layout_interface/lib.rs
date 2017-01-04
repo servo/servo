@@ -14,6 +14,7 @@
 #![plugin(plugins)]
 
 extern crate app_units;
+extern crate atomic_refcell;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
@@ -44,12 +45,12 @@ pub mod reporter;
 pub mod rpc;
 pub mod wrapper_traits;
 
+use atomic_refcell::AtomicRefCell;
 use canvas_traits::CanvasMsg;
 use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
 use std::sync::atomic::AtomicIsize;
-use style::atomic_refcell::AtomicRefCell;
 use style::data::ElementData;
 
 pub struct PartialPersistentLayoutData {

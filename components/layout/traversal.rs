@@ -4,6 +4,7 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
+use atomic_refcell::AtomicRefCell;
 use construct::FlowConstructor;
 use context::{LayoutContext, ScopedThreadLocalLayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
@@ -11,7 +12,6 @@ use flow::{self, PreorderFlowTraversal};
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
-use style::atomic_refcell::AtomicRefCell;
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{TElement, TNode};

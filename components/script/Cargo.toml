@@ -24,6 +24,7 @@ tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
 angle = {git = "https://github.com/servo/angle", branch = "servo"}
 app_units = "0.3"
 audio-video-metadata = "0.1.2"
+atomic_refcell = "0.1"
 bitflags = "0.7"
 bluetooth_traits = {path = "../bluetooth_traits"}
 canvas_traits = {path = "../canvas_traits"}

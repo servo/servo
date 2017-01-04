@@ -30,6 +30,7 @@
 
 #![allow(unsafe_code)]
 
+use atomic_refcell::AtomicRefCell;
 use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::LayoutJS;
@@ -58,7 +59,6 @@ use std::marker::PhantomData;
 use std::mem::transmute;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use style::atomic_refcell::AtomicRefCell;
 use style::attr::AttrValue;
 use style::computed_values::display;
 use style::context::{QuirksMode, SharedStyleContext};

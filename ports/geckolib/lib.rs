@@ -6,6 +6,7 @@
 
 #[macro_use]extern crate style;
 extern crate app_units;
+extern crate atomic_refcell;
 extern crate cssparser;
 extern crate env_logger;
 extern crate euclid;

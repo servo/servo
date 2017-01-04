@@ -28,6 +28,7 @@
 
 extern crate angle;
 extern crate app_units;
+extern crate atomic_refcell;
 extern crate audio_video_metadata;
 #[allow(unused_extern_crates)]
 #[macro_use]

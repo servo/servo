@@ -30,12 +30,12 @@
 
 #![allow(unsafe_code)]
 
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use core::nonzero::NonZero;
 use data::{LayoutDataFlags, PersistentLayoutData};
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::wrapper_traits::GetLayoutData;
-use style::atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use style::computed_values::content::{self, ContentItem};
 
 pub type NonOpaqueStyleAndLayoutData = AtomicRefCell<PersistentLayoutData>;
