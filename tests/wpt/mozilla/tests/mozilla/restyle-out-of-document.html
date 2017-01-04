@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verify that dirtying an element and removing it from the document before it's restyled doesn't mess up layout</title>
+<link rel='match' href='restyle-out-of-document-ref.html'>
+<div><strong>Removed content.</strong></div>
+<span>Visible content.</span>
+<script>
+  addEventListener('load', function() {
+    var d = document.querySelector('div');
+    d.firstChild.style.display = "none";
+    d.remove();
+  }, true);
+</script>
