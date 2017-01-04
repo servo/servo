@@ -16,6 +16,7 @@ use gecko_bindings::bindings;
 % for style_struct in data.style_structs:
 use gecko_bindings::structs::${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
+use gecko_bindings::bindings::Gecko_Construct_Default_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
@@ -40,6 +41,7 @@ use gecko_bindings::bindings::Gecko_SetMozBinding;
 use gecko_bindings::bindings::Gecko_SetNullImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
+use gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use gecko_bindings::structs;
 use gecko_bindings::structs::nsStyleVariables;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
@@ -123,6 +125,18 @@ impl ComputedValues {
             debug_assert!(!raw_initial_values().is_null());
             &*raw_initial_values()
         }
+    }
+
+    pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
+        Arc::new(ComputedValues {
+            custom_properties: None,
+            shareable: true,
+            writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
+            root_font_size: longhands::font_size::get_initial_value(), // FIXME(bz): Also seems dubious?
+            % for style_struct in data.style_structs:
+                ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
+            % endfor
+        })
     }
 
     pub unsafe fn initialize() {
@@ -419,6 +433,15 @@ impl ${style_struct.gecko_struct_name} {
         let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } });
         unsafe {
             Gecko_Construct_${style_struct.gecko_ffi_name}(&mut Arc::get_mut(&mut result).unwrap().gecko);
+        }
+        result
+    }
+    #[allow(dead_code, unused_variables)]
+    pub fn default(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
+        let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } });
+        unsafe {
+            Gecko_Construct_Default_${style_struct.gecko_ffi_name}(&mut Arc::get_mut(&mut result).unwrap().gecko,
+                                                                   pres_context);
         }
         result
     }

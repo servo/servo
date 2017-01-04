@@ -14,6 +14,7 @@ use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use media_queries::{Device, MediaType};
 use num_cpus;
 use parking_lot::RwLock;
+use properties::ComputedValues;
 use rayon;
 use std::cmp;
 use std::collections::HashMap;
@@ -56,6 +57,9 @@ pub struct PerDocumentStyleDataImpl {
 
     /// The number of threads of the work queue.
     pub num_threads: usize,
+
+    /// Default computed values for this document.
+    pub default_computed_values: Arc<ComputedValues>
 }
 
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
@@ -74,7 +78,6 @@ lazy_static! {
 
 impl PerDocumentStyleData {
     /// Create a dummy `PerDocumentStyleData`.
-    #[allow(unused_variables)] // temporary until we make use of the ctor arg.
     pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
         // FIXME(bholley): Real window size.
         let window_size: TypedSize2D<f32, ViewportPx> = TypedSize2D::new(800.0, 600.0);
@@ -98,6 +101,7 @@ impl PerDocumentStyleData {
                 rayon::ThreadPool::new(configuration).ok()
             },
             num_threads: *NUM_THREADS,
+            default_computed_values: ComputedValues::default_values(pres_context),
         }))
     }
 
