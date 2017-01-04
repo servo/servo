@@ -623,6 +623,7 @@ pub extern "C" fn Servo_StyleSet_RecomputeDefaultStyles(
   pres_context: RawGeckoPresContextBorrowed) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     data.default_computed_values = ComputedValues::default_values(pres_context);
+    // FIXME(bz): We need to update our Stylist's Device's computed values, but how?
 }
 
 #[no_mangle]

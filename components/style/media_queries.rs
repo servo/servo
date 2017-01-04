@@ -10,13 +10,15 @@ use Atom;
 use app_units::Au;
 use cssparser::{Delimiter, Parser, Token};
 use euclid::size::{Size2D, TypedSize2D};
+use properties::ComputedValues;
 use serialize_comma_separated_list;
 use std::ascii::AsciiExt;
 use std::fmt;
+#[cfg(feature = "gecko")]
+use std::sync::Arc;
 use style_traits::{ToCss, ViewportPx};
 use values::computed::{self, ToComputedValue};
 use values::specified;
-
 
 #[derive(Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -47,10 +49,18 @@ pub enum Range<T> {
 }
 
 impl Range<specified::Length> {
-    fn to_computed_range(&self, viewport_size: Size2D<Au>) -> Range<Au> {
+    fn to_computed_range(&self, viewport_size: Size2D<Au>, default_values: &ComputedValues) -> Range<Au> {
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
-        let context = computed::Context::initial(viewport_size, false);
+        let context = computed::Context {
+            is_root_element: false,
+            viewport_size: viewport_size,
+            inherited_style: default_values,
+            // This cloning business is kind of dumb.... It's because Context
+            // insists on having an actual ComputedValues inside itself.
+            style: default_values.clone(),
+            font_metrics_provider: None
+        };
 
         match *self {
             Range::Min(ref width) => Range::Min(width.to_computed_value(&context)),
@@ -225,14 +235,37 @@ impl MediaType {
 pub struct Device {
     pub media_type: MediaType,
     pub viewport_size: TypedSize2D<f32, ViewportPx>,
+    #[cfg(feature = "gecko")]
+    pub default_values: Arc<ComputedValues>,
 }
 
 impl Device {
+    #[cfg(feature = "servo")]
     pub fn new(media_type: MediaType, viewport_size: TypedSize2D<f32, ViewportPx>) -> Device {
         Device {
             media_type: media_type,
             viewport_size: viewport_size,
         }
+    }
+
+    #[cfg(feature = "servo")]
+    pub fn default_values(&self) -> &ComputedValues {
+        ComputedValues::initial_values()
+    }
+
+    #[cfg(feature = "gecko")]
+    pub fn new(media_type: MediaType, viewport_size: TypedSize2D<f32, ViewportPx>,
+               default_values: &Arc<ComputedValues>) -> Device {
+        Device {
+            media_type: media_type,
+            viewport_size: viewport_size,
+            default_values: default_values.clone(),
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    pub fn default_values(&self) -> &ComputedValues {
+        &*self.default_values
     }
 
     #[inline]
@@ -337,7 +370,7 @@ impl MediaList {
             let query_match = media_match && mq.expressions.iter().all(|expression| {
                 match *expression {
                     Expression::Width(ref value) =>
-                        value.to_computed_range(viewport_size).evaluate(viewport_size.width),
+                        value.to_computed_range(viewport_size, device.default_values()).evaluate(viewport_size.width),
                 }
             });
 

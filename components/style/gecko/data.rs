@@ -81,7 +81,12 @@ impl PerDocumentStyleData {
     pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
         // FIXME(bholley): Real window size.
         let window_size: TypedSize2D<f32, ViewportPx> = TypedSize2D::new(800.0, 600.0);
-        let device = Device::new(MediaType::Screen, window_size);
+        let default_computed_values = ComputedValues::default_values(pres_context);
+
+        // FIXME(bz): We're going to need to either update the computed values
+        // in the Stylist's Device or give the Stylist a new Device when our
+        // default_computed_values changes.
+        let device = Device::new(MediaType::Screen, window_size, &default_computed_values);
 
         let (new_anims_sender, new_anims_receiver) = channel();
 
@@ -101,7 +106,7 @@ impl PerDocumentStyleData {
                 rayon::ThreadPool::new(configuration).ok()
             },
             num_threads: *NUM_THREADS,
-            default_computed_values: ComputedValues::default_values(pres_context),
+            default_computed_values: default_computed_values,
         }))
     }
 
