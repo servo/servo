@@ -835,12 +835,11 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
         -> OffsetParentResponse {
     let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    // If we didn't find the node, something went wrong. Unwrap it.
-    let node_offset_box = iterator.node_offset_box.unwrap();
 
+    let node_offset_box = iterator.node_offset_box;
     let parent_info_index = iterator.parent_nodes.iter().rposition(|info| info.is_some());
-    match parent_info_index {
-        Some(parent_info_index) => {
+    match (node_offset_box, parent_info_index) {
+        (Some(node_offset_box), Some(parent_info_index)) => {
             let parent = iterator.parent_nodes[parent_info_index].as_ref().unwrap();
             let origin = node_offset_box.offset - parent.border_box.origin;
             let size = node_offset_box.rectangle.size;
@@ -849,7 +848,7 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
                 rect: Rect::new(origin, size),
             }
         }
-        None => {
+        _ => {
             OffsetParentResponse::empty()
         }
     }
