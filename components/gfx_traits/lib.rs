@@ -44,24 +44,6 @@ const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
 #[derive(Copy, Clone, RustcEncodable, Debug)]
 pub enum DevicePixel {}
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum LayerKind {
-    NoTransform,
-    HasTransform,
-}
-
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf)]
-pub enum LayerType {
-    /// A layer for the fragment body itself.
-    FragmentBody,
-    /// An extra layer created for a DOM fragments with overflow:scroll.
-    OverflowScroll,
-    /// A layer created to contain ::before pseudo-element content.
-    BeforePseudoContent,
-    /// A layer created to contain ::after pseudo-element content.
-    AfterPseudoContent,
-}
-
 /// The scrolling policy of a layer.
 #[derive(Clone, PartialEq, Eq, Copy, Deserialize, Serialize, Debug, HeapSizeOf)]
 pub enum ScrollPolicy {
