@@ -467,7 +467,11 @@ class CGMethodCall(CGThing):
 
             # Check for Date objects
             # XXXbz Do we need to worry about security wrappers around the Date?
-            pickFirstSignature("%s.get().is_object() && JS_ObjectIsDate(cx, &%s.get().to_object())" %
+            pickFirstSignature("%s.get().is_object() && "
+                               "{ rooted!(in(cx) let obj = %s.get().to_object()); "
+                               "let mut is_date = false; "
+                               "JS_ObjectIsDate(cx, obj.handle(), &mut is_date); "
+                               "is_date }" %
                                (distinguishingArg, distinguishingArg),
                                lambda s: (s[1][distinguishingIndex].type.isDate() or
                                           s[1][distinguishingIndex].type.isObject()))
@@ -5468,6 +5472,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::JS_NewObject',
         'js::jsapi::JS_NewObjectWithGivenProto',
         'js::jsapi::JS_NewObjectWithoutMetadata',
+        'js::jsapi::JS_ObjectIsDate',
         'js::jsapi::JS_SetImmutablePrototype',
         'js::jsapi::JS_SetProperty',
         'js::jsapi::JS_SetReservedSlot',
