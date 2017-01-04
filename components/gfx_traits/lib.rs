@@ -44,13 +44,6 @@ const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
 #[derive(Copy, Clone, RustcEncodable, Debug)]
 pub enum DevicePixel {}
 
-/// One pixel in layer coordinate space.
-///
-/// This unit corresponds to a "pixel" in layer coordinate space, which after scaling and
-/// transformation becomes a device pixel.
-#[derive(Copy, Clone, RustcEncodable, Debug)]
-pub enum LayerPixel {}
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LayerKind {
     NoTransform,
