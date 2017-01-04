@@ -489,7 +489,6 @@ interface WebGLRenderingContextBase
                            GLenum srcAlpha, GLenum dstAlpha);
 
     // typedef (ArrayBuffer or ArrayBufferView) BufferDataSource;
-    //void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
     // FIXME(dmarcos) The function below is the original function in the webIdl:
     // void bufferData(GLenum target, BufferDataSource? data, GLenum usage);
     // The Code generator doesn't handle BufferDataSource so we're using 'object?'
@@ -497,6 +496,10 @@ interface WebGLRenderingContextBase
     // the type error from inside.
     [Throws]
     void bufferData(GLenum target, object? data, GLenum usage);
+    // FIXME: Codegen requires that this have [Throws] to match the other one.
+    [Throws]
+    void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
+
     //void bufferSubData(GLenum target, GLintptr offset, BufferDataSource? data);
     [Throws]
     void bufferSubData(GLenum target, GLintptr offset, object? data);
