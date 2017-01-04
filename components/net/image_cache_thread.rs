@@ -10,7 +10,6 @@ use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memor
 use net_traits::image_cache_thread::{ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
 use net_traits::image_cache_thread::{ImageResponder, PendingImageId, CanRequestImages};
-use net_traits::request::{Destination, RequestInit, Type as RequestType};
 use servo_config::resource_files::resources_dir_path;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
