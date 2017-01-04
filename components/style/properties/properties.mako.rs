@@ -842,17 +842,7 @@ impl fmt::Debug for PropertyDeclaration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         try!(self.id().to_css(f));
         try!(f.write_str(": "));
-        match *self {
-            % for property in data.longhands:
-                % if not property.derived_from:
-                    PropertyDeclaration::${property.camel_case}(ref value) => value.to_css(f),
-                % endif
-            % endfor
-            PropertyDeclaration::Custom(_, ref value) => value.to_css(f),
-            % if any(property.derived_from for property in data.longhands):
-                _ => Err(fmt::Error),
-            % endif
-        }
+        self.to_css(f)
     }
 }
 
