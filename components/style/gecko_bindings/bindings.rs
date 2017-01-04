@@ -1387,6 +1387,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
+                              set: RawServoStyleSetBorrowed,
                               consume: ConsumeStyleBehavior)
      -> ServoComputedValuesStrong;
 }

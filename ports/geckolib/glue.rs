@@ -544,6 +544,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
 {
     let element = GeckoElement(element);
     let data = unsafe { element.ensure_data() }.borrow_mut();
+    let doc_data = PerDocumentStyleData::from_ffi(raw_data);
 
     // FIXME(bholley): Assert against this.
     if data.get_styles().is_none() {
@@ -551,11 +552,10 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
         return if is_probe {
             Strong::null()
         } else {
-            Arc::new(ComputedValues::initial_values().clone()).into_strong()
+            doc_data.borrow().default_computed_values.clone().into_strong()
         };
     }
 
-    let doc_data = PerDocumentStyleData::from_ffi(raw_data);
     match get_pseudo_style(element, pseudo_tag, data.styles(), doc_data) {
         Some(values) => values.into_strong(),
         None if !is_probe => data.styles().primary.values.clone().into_strong(),
@@ -942,6 +942,7 @@ pub extern "C" fn Servo_CheckChangeHint(element: RawGeckoElementBorrowed) -> nsC
 
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
+                                     raw_data: RawServoStyleSetBorrowed,
                                      consume: structs::ConsumeStyleBehavior)
                                      -> ServoComputedValuesStrong
 {
@@ -949,10 +950,11 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
     debug!("Servo_ResolveStyle: {:?}, consume={:?}", element, consume);
 
     let mut data = unsafe { element.ensure_data() }.borrow_mut();
+    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     if !data.has_current_styles() {
         error!("Resolving style on unstyled element with lazy computation forbidden.");
-        return Arc::new(ComputedValues::initial_values().clone()).into_strong();
+        return per_doc_data.default_computed_values.clone().into_strong();
     }
 
     let values = data.styles().primary.values.clone();
