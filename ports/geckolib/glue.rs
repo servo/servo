@@ -531,7 +531,8 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 
 
     let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
-    let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent, false)
+    let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent,
+                                                                  &data.default_computed_values, false)
                            .map(|styles| styles.values);
     new_computed.map_or(Strong::null(), |c| c.into_strong())
 }
@@ -574,7 +575,7 @@ fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
         PseudoElementCascadeType::Lazy => {
             let d = doc_data.borrow_mut();
             let base = &styles.primary.values;
-            d.stylist.lazily_compute_pseudo_element_style(&element, &pseudo, base)
+            d.stylist.lazily_compute_pseudo_element_style(&element, &pseudo, base, &d.default_computed_values)
                      .map(|s| s.values.clone())
         },
     }

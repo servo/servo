@@ -1714,13 +1714,14 @@ bitflags! {
 pub fn cascade(viewport_size: Size2D<Au>,
                rule_node: &StrongRuleNode,
                parent_style: Option<<&ComputedValues>,
+               default_style: &Arc<ComputedValues>,
                cascade_info: Option<<&mut CascadeInfo>,
                error_reporter: StdBox<ParseErrorReporter + Send>,
                flags: CascadeFlags)
                -> ComputedValues {
     let (is_root_element, inherited_style) = match parent_style {
         Some(parent_style) => (false, parent_style),
-        None => (true, ComputedValues::initial_values()),
+        None => (true, &**default_style),
     };
     // Hold locks until after the apply_declarations() call returns.
     // Use filter_map because the root node has no style source.

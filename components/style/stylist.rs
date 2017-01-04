@@ -274,6 +274,7 @@ impl Stylist {
     pub fn precomputed_values_for_pseudo(&self,
                                          pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>,
+                                         default: &Arc<ComputedValues>,
                                          inherit_all: bool)
                                          -> Option<ComputedStyle> {
         debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
@@ -293,6 +294,7 @@ impl Stylist {
                 properties::cascade(self.device.au_viewport_size(),
                                     &rule_node,
                                     parent.map(|p| &**p),
+                                    default,
                                     None,
                                     Box::new(StdoutErrorReporter),
                                     flags);
@@ -306,7 +308,8 @@ impl Stylist {
     #[cfg(feature = "servo")]
     pub fn style_for_anonymous_box(&self,
                                    pseudo: &PseudoElement,
-                                   parent_style: &Arc<ComputedValues>)
+                                   parent_style: &Arc<ComputedValues>,
+                                   default_style: &Arc<ComputedValues>)
                                    -> Arc<ComputedValues> {
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
         let inherit_all = match *pseudo {
@@ -325,7 +328,7 @@ impl Stylist {
                 unreachable!("That pseudo doesn't represent an anonymous box!")
             }
         };
-        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), inherit_all)
+        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), default_style, inherit_all)
             .expect("style_for_anonymous_box(): No precomputed values for that pseudo!")
             .values
     }
@@ -340,7 +343,8 @@ impl Stylist {
     pub fn lazily_compute_pseudo_element_style<E>(&self,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
-                                                  parent: &Arc<ComputedValues>)
+                                                  parent: &Arc<ComputedValues>,
+                                                  default: &Arc<ComputedValues>)
                                                   -> Option<ComputedStyle>
         where E: ElementExt +
                  fmt::Debug +
@@ -368,6 +372,7 @@ impl Stylist {
             properties::cascade(self.device.au_viewport_size(),
                                 &rule_node,
                                 Some(&**parent),
+                                default,
                                 None,
                                 Box::new(StdoutErrorReporter),
                                 CascadeFlags::empty());

@@ -470,6 +470,7 @@ trait PrivateMatchMethods: TElement {
                 cascade(shared_context.viewport_size,
                         rule_node,
                         Some(&***parent_style),
+                        &shared_context.default_computed_values,
                         Some(&mut cascade_info),
                         shared_context.error_reporter.clone(),
                         cascade_flags)
@@ -478,6 +479,7 @@ trait PrivateMatchMethods: TElement {
                 cascade(shared_context.viewport_size,
                         rule_node,
                         None,
+                        &shared_context.default_computed_values,
                         Some(&mut cascade_info),
                         shared_context.error_reporter.clone(),
                         cascade_flags)
