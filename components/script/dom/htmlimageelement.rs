@@ -261,6 +261,8 @@ impl HTMLImageElement {
                 if let Ok(img_url) = img_url {
                     self.current_request.borrow_mut().parsed_url = Some(img_url.clone());
                     self.current_request.borrow_mut().source_url = Some(src);
+
+                    LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
                     self.current_request.borrow_mut().blocker =
                         Some(LoadBlocker::new(&*document, LoadType::Image(img_url.clone())));
 
