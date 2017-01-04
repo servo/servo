@@ -29,7 +29,7 @@ environment:
     C:\\Program Files\\Git\\usr\\bin;\
     C:\\Program Files\\AppVeyor\\BuildAgent;"
   matrix:
-  - TARGET: nightly-x86_64-pc-windows-msvc
+  #- TARGET: nightly-x86_64-pc-windows-msvc
   - TARGET: nightly-x86_64-pc-windows-gnu
 
 branches:
@@ -38,7 +38,7 @@ branches:
 
 cache:
   - .servo -> rust-nightly-date, cargo-commit-hash
-  #- .cargo -> rust-nightly-date, cargo-commit-hash
+  - .cargo -> rust-nightly-date, cargo-commit-hash
   - .ccache
 
 install:
