@@ -88,15 +88,6 @@ impl Epoch {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
-pub struct FrameTreeId(pub u32);
-
-impl FrameTreeId {
-    pub fn next(&mut self) {
-        self.0 += 1;
-    }
-}
-
 /// A unique ID for every stacking context.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
 pub struct StackingContextId(
