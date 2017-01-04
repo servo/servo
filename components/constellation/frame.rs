@@ -4,11 +4,11 @@
 
 use msg::constellation_msg::{FrameId, PipelineId};
 use pipeline::Pipeline;
+use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::iter::once;
 use std::mem::replace;
 use std::time::Instant;
-use servo_url::ServoUrl;
 
 /// A frame in the frame tree.
 /// Each frame is the constrellation's view of a browsing context.
