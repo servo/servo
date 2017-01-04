@@ -16,12 +16,16 @@ function roundtrip(property, vals) {
   }
 }
 
-var img = document.createElement('img');
-img.src = '../2x2.png';
-var pattern = ctx.createPattern(img, 'repeat');
+async_test(function(t) {
+  var img = document.createElement('img');
+  img.src = '../2x2.png';
+  img.onload = t.step_func_done(function() {
+    var pattern = ctx.createPattern(img, 'repeat');
 
-var gradient = ctx.createLinearGradient(0.0, 0.0, 1.0, 1.0);
+    var gradient = ctx.createLinearGradient(0.0, 0.0, 1.0, 1.0);
 
-roundtrip('strokeStyle', ['#ff0000', gradient, pattern]);
-roundtrip('fillStyle', ['#ff0000', gradient, pattern]);
+    roundtrip('strokeStyle', ['#ff0000', gradient, pattern]);
+    roundtrip('fillStyle', ['#ff0000', gradient, pattern]);
+  });
+});
 </script>
