@@ -55,7 +55,6 @@ use properties::longhands;
 use std::fmt::{self, Debug};
 use std::mem::{transmute, zeroed};
 use std::ptr;
-use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::cmp;
 
@@ -113,13 +112,6 @@ impl ComputedValues {
         }
     }
 
-    pub fn initial_values() -> &'static Self {
-        unsafe {
-            debug_assert!(!raw_initial_values().is_null());
-            &*raw_initial_values()
-        }
-    }
-
     pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
         Arc::new(ComputedValues {
             custom_properties: None,
@@ -130,25 +122,6 @@ impl ComputedValues {
                 ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
             % endfor
         })
-    }
-
-    pub unsafe fn initialize() {
-        debug_assert!(raw_initial_values().is_null());
-        set_raw_initial_values(Box::into_raw(Box::new(ComputedValues {
-            % for style_struct in data.style_structs:
-               ${style_struct.ident}: style_structs::${style_struct.name}::initial(),
-            % endfor
-            custom_properties: None,
-            shareable: true,
-            writing_mode: WritingMode::empty(),
-            root_font_size: longhands::font_size::get_initial_value(),
-        })));
-    }
-
-    pub unsafe fn shutdown() {
-        debug_assert!(!raw_initial_values().is_null());
-        let _ = Box::from_raw(raw_initial_values());
-        set_raw_initial_values(ptr::null_mut());
     }
 
     % for style_struct in data.style_structs:
@@ -2662,13 +2635,3 @@ pub unsafe extern "C" fn Servo_GetStyleVariables(_cv: ServoComputedValuesBorrowe
     &*EMPTY_VARIABLES_STRUCT
 }
 
-// To avoid UB, we store the initial values as a atomic. It would be nice to
-// store them as AtomicPtr, but we can't have static AtomicPtr without const
-// fns, which aren't in stable Rust.
-static INITIAL_VALUES_STORAGE: AtomicUsize = ATOMIC_USIZE_INIT;
-unsafe fn raw_initial_values() -> *mut ComputedValues {
-    INITIAL_VALUES_STORAGE.load(Ordering::Relaxed) as *mut ComputedValues
-}
-unsafe fn set_raw_initial_values(v: *mut ComputedValues) {
-    INITIAL_VALUES_STORAGE.store(v as usize, Ordering::Relaxed);
-}

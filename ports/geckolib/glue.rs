@@ -82,17 +82,12 @@ pub extern "C" fn Servo_Initialize() -> () {
     // See https://doc.rust-lang.org/log/env_logger/index.html for instructions.
     env_logger::init().unwrap();
 
-    // Allocate our default computed values.
-    unsafe { ComputedValues::initialize(); }
-
     // Pretend that we're a Servo Layout thread, to make some assertions happy.
     thread_state::initialize(thread_state::LAYOUT);
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_Shutdown() -> () {
-    // Destroy our default computed values.
-    unsafe { ComputedValues::shutdown(); }
 }
 
 fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyleContext {
@@ -118,15 +113,6 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
 
 fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
                     unstyled_children_only: bool) {
-    // Force the creation of our lazily-constructed initial computed values on
-    // the main thread, since it's not safe to call elsewhere.
-    //
-    // FIXME(bholley): this should move into Servo_Initialize as soon as we get
-    // rid of the HackilyFindSomeDeviceContext stuff that happens during
-    // initial_values computation, since that stuff needs to be called further
-    // along in startup than the sensible place to call Servo_Initialize.
-    ComputedValues::initial_values();
-
     // When new content is inserted in a display:none subtree, we will call into
     // servo to try to style it. Detect that here and bail out.
     if let Some(parent) = element.parent_element() {
