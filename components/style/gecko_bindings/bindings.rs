@@ -6,6 +6,7 @@ type nsAString_internal = nsAString;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoNode;
+use gecko_bindings::structs::RawGeckoPresContext;
 use gecko_bindings::structs::ThreadSafeURIHolder;
 use gecko_bindings::structs::ThreadSafePrincipalHolder;
 use gecko_bindings::structs::ConsumeStyleBehavior;
@@ -206,6 +207,8 @@ pub type RawGeckoDocumentBorrowed<'a> = &'a RawGeckoDocument;
 pub type RawGeckoDocumentBorrowedOrNull<'a> = Option<&'a RawGeckoDocument>;
 pub type RawServoDeclarationBlockStrongBorrowed<'a> = &'a RawServoDeclarationBlockStrong;
 pub type RawServoDeclarationBlockStrongBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlockStrong>;
+pub type RawGeckoPresContextBorrowed<'a> = &'a RawGeckoPresContext;
+pub type RawGeckoPresContextBorrowedOrNull<'a> = Option<&'a RawGeckoPresContext>;
 pub type nsCSSValueBorrowed<'a> = &'a nsCSSValue;
 pub type nsCSSValueBorrowedOrNull<'a> = Option<&'a nsCSSValue>;
 pub type nsCSSValueBorrowedMut<'a> = &'a mut nsCSSValue;
@@ -1028,7 +1031,8 @@ extern "C" {
      -> ServoCssRulesStrong;
 }
 extern "C" {
-    pub fn Servo_StyleSet_Init() -> RawServoStyleSetOwned;
+    pub fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextBorrowed)
+     -> RawServoStyleSetOwned;
 }
 extern "C" {
     pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowed,

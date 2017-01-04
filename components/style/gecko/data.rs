@@ -8,6 +8,7 @@ use animation::Animation;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom::OpaqueNode;
 use euclid::size::TypedSize2D;
+use gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use gecko_bindings::bindings::RawServoStyleSet;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use media_queries::{Device, MediaType};
@@ -73,7 +74,8 @@ lazy_static! {
 
 impl PerDocumentStyleData {
     /// Create a dummy `PerDocumentStyleData`.
-    pub fn new() -> Self {
+    #[allow(unused_variables)] // temporary until we make use of the ctor arg.
+    pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
         // FIXME(bholley): Real window size.
         let window_size: TypedSize2D<f32, ViewportPx> = TypedSize2D::new(800.0, 600.0);
         let device = Device::new(MediaType::Screen, window_size);

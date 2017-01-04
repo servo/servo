@@ -36,6 +36,7 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
+use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
@@ -601,8 +602,9 @@ pub extern "C" fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_Init() -> RawServoStyleSetOwned {
-    let data = Box::new(PerDocumentStyleData::new());
+pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextBorrowed)
+  -> RawServoStyleSetOwned {
+    let data = Box::new(PerDocumentStyleData::new(pres_context));
     data.into_ffi()
 }
 
