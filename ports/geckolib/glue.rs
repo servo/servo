@@ -112,6 +112,7 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
         timer: Timer::new(),
         // FIXME Find the real QuirksMode information for this document
         quirks_mode: QuirksMode::NoQuirks,
+        default_computed_values: per_doc_data.default_computed_values.clone(),
     }
 }
 
