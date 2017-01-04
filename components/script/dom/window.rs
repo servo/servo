@@ -334,7 +334,7 @@ impl Window {
         //       obtain the same data.
         let mut images = self.pending_layout_images.borrow_mut();
         let nodes = images.entry(response.id);
-        let mut nodes = match nodes {
+        let nodes = match nodes {
             Entry::Occupied(nodes) => nodes,
             Entry::Vacant(_) => return,
         };
@@ -1153,7 +1153,7 @@ impl Window {
             let node = from_untrusted_node_address(js_runtime.rt(), image.node);
 
             if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &*node, self.image_cache_thread.clone(), id);
+                fetch_image_for_layout(url.clone(), &*node, id);
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
@@ -1802,7 +1802,6 @@ impl Runnable for PostMessageHandler {
 struct LayoutImageContext {
     node: Trusted<Node>,
     data: Vec<u8>,
-    image_cache: ImageCacheThread,
     id: PendingImageId,
     url: ServoUrl,
 }
@@ -1828,11 +1827,10 @@ impl FetchResponseListener for LayoutImageContext {
 
 impl PreInvoke for LayoutImageContext {}
 
-fn fetch_image_for_layout(url: ServoUrl, node: &Node, image_cache: ImageCacheThread, id: PendingImageId) {
+fn fetch_image_for_layout(url: ServoUrl, node: &Node, id: PendingImageId) {
     let context = Arc::new(Mutex::new(LayoutImageContext {
         node: Trusted::new(node),
         data: vec![],
-        image_cache: image_cache,
         id: id,
         url: url.clone(),
     }));

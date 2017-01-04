@@ -583,38 +583,6 @@ impl LayoutThread {
         }
     }
 
-    /// Repaint the scene, without performing style matching. This is typically
-    /// used when an image arrives asynchronously and triggers a relayout and
-    /// repaint.
-    /// TODO: In the future we could detect if the image size hasn't changed
-    /// since last time and avoid performing a complete layout pass.
-    fn repaint<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
-        let mut rw_data = possibly_locked_rw_data.lock();
-
-        if let Some(mut root_flow) = self.root_flow.clone() {
-            let flow = flow::mut_base(FlowRef::deref_mut(&mut root_flow));
-            flow.restyle_damage.insert(REPAINT);
-        }
-
-        let reflow_info = Reflow {
-            goal: ReflowGoal::ForDisplay,
-            page_clip_rect: max_rect(),
-        };
-        let mut layout_context = self.build_shared_layout_context(&*rw_data,
-                                                                  false,
-                                                                  reflow_info.goal,
-                                                                  true);
-
-        self.perform_post_style_recalc_layout_passes(&reflow_info,
-                                                     None,
-                                                     None,
-                                                     &mut *rw_data,
-                                                     &mut layout_context);
-
-
-        true
-    }
-
     /// Receives and dispatches messages from other threads.
     fn handle_request_helper<'a, 'b>(&mut self,
                                      request: Msg,

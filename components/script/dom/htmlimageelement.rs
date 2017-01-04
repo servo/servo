@@ -24,7 +24,7 @@ use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use html5ever_atoms::LocalName;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
 use net_traits::image::base::{Image, ImageMetadata};
@@ -271,7 +271,6 @@ impl HTMLImageElement {
                     let task_source = window.networking_task_source();
                     let wrapper = window.get_runnable_wrapper();
                     let img_url_cloned = img_url.clone();
-                    let responder_sender_cloned = responder_sender.clone();
                     let trusted_node_clone = trusted_node.clone();
                     ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                         // Return the image via a message to the script thread, which marks the element

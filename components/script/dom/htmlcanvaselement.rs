@@ -337,7 +337,6 @@ impl<'a> From<&'a WebGLContextAttributes> for GLContextAttributes {
 
 pub mod utils {
     use dom::window::Window;
-    use ipc_channel::ipc;
     use net_traits::image_cache_thread::CanRequestImages;
     use net_traits::image_cache_thread::{ImageResponse, UsePlaceholder, ImageOrMetadataAvailable};
     use servo_url::ServoUrl;
