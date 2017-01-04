@@ -540,6 +540,10 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
         if fragment.node == self.node_address {
             // Found the fragment in the flow tree that matches the
             // DOM node being looked for.
+
+            // If self.node_offset_box is Some, we were treating this as an inline node!
+            assert!(self.node_offset_box.is_none());
+
             self.has_processed_node = true;
             self.node_offset_box = Some(NodeOffsetBoxInfo {
                 offset: border_box.origin,
