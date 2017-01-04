@@ -398,7 +398,7 @@ class CGMethodCall(CGThing):
                 return False
 
             # First check for null or undefined
-            pickFirstSignature("%s.isNullOrUndefined()" % distinguishingArg,
+            pickFirstSignature("%s.get().is_null_or_undefined()" % distinguishingArg,
                                lambda s: (s[1][distinguishingIndex].type.nullable() or
                                           s[1][distinguishingIndex].type.isDictionary()))
 
