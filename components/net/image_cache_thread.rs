@@ -18,7 +18,6 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::fs::File;
 use std::io::{self, Read};
-use std::mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
@@ -215,8 +214,6 @@ struct ResourceLoadInfo {
 
 /// Implementation of the image cache
 struct ImageCache {
-    progress_sender: Sender<ResourceLoadInfo>,
-
     decoder_sender: Sender<DecoderMsg>,
 
     // Worker threads for decoding images.
@@ -244,7 +241,6 @@ struct DecoderMsg {
 struct Receivers {
     cmd_receiver: Receiver<ImageCacheCommand>,
     decoder_receiver: Receiver<DecoderMsg>,
-    progress_receiver: Receiver<ResourceLoadInfo>,
 }
 
 impl Receivers {
@@ -252,16 +248,12 @@ impl Receivers {
     fn recv(&self) -> SelectResult {
         let cmd_receiver = &self.cmd_receiver;
         let decoder_receiver = &self.decoder_receiver;
-        let progress_receiver = &self.progress_receiver;
         select! {
             msg = cmd_receiver.recv() => {
                 SelectResult::Command(msg.unwrap())
             },
             msg = decoder_receiver.recv() => {
                 SelectResult::Decoder(msg.unwrap())
-            },
-            msg = progress_receiver.recv() => {
-                SelectResult::Progress(msg.unwrap())
             }
         }
     }
@@ -270,7 +262,6 @@ impl Receivers {
 /// The types of messages that the main image cache thread receives.
 enum SelectResult {
     Command(ImageCacheCommand),
-    Progress(ResourceLoadInfo),
     Decoder(DecoderMsg),
 }
 
@@ -312,10 +303,8 @@ impl ImageCache {
         // Ask the router to proxy messages received over IPC to us.
         let cmd_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_command_receiver);
 
-        let (progress_sender, progress_receiver) = channel();
         let (decoder_sender, decoder_receiver) = channel();
         let mut cache = ImageCache {
-            progress_sender: progress_sender,
             decoder_sender: decoder_sender,
             thread_pool: ThreadPool::new(4),
             pending_loads: AllPendingLoads::new(),
@@ -327,7 +316,6 @@ impl ImageCache {
         let receivers = Receivers {
             cmd_receiver: cmd_receiver,
             decoder_receiver: decoder_receiver,
-            progress_receiver: progress_receiver,
         };
 
         let mut exit_sender: Option<IpcSender<()>> = None;
@@ -336,9 +324,6 @@ impl ImageCache {
             match receivers.recv() {
                 SelectResult::Command(cmd) => {
                     exit_sender = cache.handle_cmd(cmd);
-                }
-                SelectResult::Progress(msg) => {
-                    cache.handle_progress(msg);
                 }
                 SelectResult::Decoder(msg) => {
                     cache.handle_decoder(msg);
@@ -406,15 +391,11 @@ impl ImageCache {
                     Ok(()) => {
                         let pending_load = self.pending_loads.get_by_key_mut(&msg.key).unwrap();
                         pending_load.result = Some(result);
-                        let bytes = mem::replace(&mut pending_load.bytes, vec!());
+                        let bytes = pending_load.bytes.clone();
                         let sender = self.decoder_sender.clone();
 
                         self.thread_pool.execute(move || {
-                            let image = load_from_memory(&bytes);
-                            let msg = DecoderMsg {
-                                key: key,
-                                image: image
-                            };
+                            let msg = decode_bytes_sync(key, &bytes);
                             sender.send(msg).unwrap();
                         });
                     }
@@ -443,7 +424,10 @@ impl ImageCache {
 
     // Change state of a url from pending -> loaded.
     fn complete_load(&mut self, key: LoadKey, mut load_result: LoadResult) {
-        let pending_load = self.pending_loads.remove(&key).unwrap();
+        let pending_load = match self.pending_loads.remove(&key) {
+            Some(load) => load,
+            None => return,
+        };
 
         match load_result {
             LoadResult::Loaded(ref mut image) => {
@@ -492,38 +476,60 @@ impl ImageCache {
         warn!("Couldn't find cached entry for listener {:?}", id);
     }
 
+    fn get_completed_image_if_available(&self,
+                                      url: &ServoUrl,
+                                      placeholder: UsePlaceholder)
+                                      -> Option<Result<ImageOrMetadataAvailable, ImageState>> {
+        self.completed_loads.get(url).map(|completed_load| {
+            match (completed_load.image_response.clone(), placeholder) {
+                (ImageResponse::Loaded(image), _) |
+                (ImageResponse::PlaceholderLoaded(image), UsePlaceholder::Yes) => {
+                    Ok(ImageOrMetadataAvailable::ImageAvailable(image))
+                }
+                (ImageResponse::PlaceholderLoaded(_), UsePlaceholder::No) |
+                (ImageResponse::None, _) |
+                (ImageResponse::MetadataLoaded(_), _) => {
+                    Err(ImageState::LoadError)
+                }
+            }
+        })
+    }
+
     fn get_image_or_meta_if_available(&mut self,
                                       url: ServoUrl,
                                       placeholder: UsePlaceholder,
                                       can_request: CanRequestImages)
                                       -> Result<ImageOrMetadataAvailable, ImageState> {
-        match self.completed_loads.get(&url) {
-            Some(completed_load) => {
-                match (completed_load.image_response.clone(), placeholder) {
-                    (ImageResponse::Loaded(image), _) |
-                    (ImageResponse::PlaceholderLoaded(image), UsePlaceholder::Yes) => {
-                        Ok(ImageOrMetadataAvailable::ImageAvailable(image))
-                    }
-                    (ImageResponse::PlaceholderLoaded(_), UsePlaceholder::No) |
-                    (ImageResponse::None, _) |
-                    (ImageResponse::MetadataLoaded(_), _) => {
-                        Err(ImageState::LoadError)
-                    }
-                }
+        if let Some(result) = self.get_completed_image_if_available(&url, placeholder) {
+            return result;
+        }
+
+        let decoded = {
+            let result = self.pending_loads.get_cached(url.clone(), can_request);
+            match result {
+                CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
+                    (&Some(Ok(_)), _) =>
+                        decode_bytes_sync(key, &pl.bytes),
+                    (&None, &Some(ref meta)) =>
+                        return Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone())),
+                    (&Some(Err(_)), _) | (&None, &None) =>
+                        return Err(ImageState::Pending(key)),
+                },
+                CacheResult::Miss(Some((key, _pl))) =>
+                    return Err(ImageState::NotRequested(key)),
+                CacheResult::Miss(None) =>
+                    return Err(ImageState::LoadError),
             }
-            None => {
-                let result = self.pending_loads.get_cached(url, can_request);
-                match result {
-                    CacheResult::Hit(key, pl) => match pl.metadata {
-                        Some(ref meta) =>
-                            Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone())),
-                        None =>
-                            Err(ImageState::Pending(key)),
-                    },
-                    CacheResult::Miss(Some((key, _pl))) => Err(ImageState::NotRequested(key)),
-                    CacheResult::Miss(None) => Err(ImageState::LoadError),
-                }
-            }
+        };
+
+        // In the case where a decode is ongoing (or waiting in a queue) but we have the
+        // full response available, we decode the bytes synchronously and ignore the
+        // async decode when it finishes later.
+        // TODO: make this behaviour configurable according to the caller's needs.
+        self.handle_decoder(decoded);
+        match self.get_completed_image_if_available(&url, placeholder) {
+            Some(result) => result,
+            None => Err(ImageState::LoadError),
         }
     }
 
@@ -531,12 +537,12 @@ impl ImageCache {
                           id: PendingImageId,
                           loaded_bytes: Vec<u8>) {
         let action = FetchResponseMsg::ProcessResponseChunk(loaded_bytes);
-        let _ = self.progress_sender.send(ResourceLoadInfo {
+        self.handle_progress(ResourceLoadInfo {
             action: action,
             key: id,
         });
         let action = FetchResponseMsg::ProcessResponseEOF(Ok(()));
-        let _ = self.progress_sender.send(ResourceLoadInfo {
+        self.handle_progress(ResourceLoadInfo {
             action: action,
             key: id,
         });
@@ -552,4 +558,12 @@ pub fn new_image_cache_thread(webrender_api: webrender_traits::RenderApi) -> Ima
     }).expect("Thread spawning failed");
 
     ImageCacheThread::new(ipc_command_sender)
+}
+
+fn decode_bytes_sync(key: LoadKey, bytes: &[u8]) -> DecoderMsg {
+    let image = load_from_memory(bytes);
+    DecoderMsg {
+        key: key,
+        image: image
+    }
 }
