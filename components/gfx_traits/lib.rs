@@ -128,36 +128,10 @@ impl StackingContextId {
         }
     }
 
-    /// Returns an ID for the stacking context that forms the outer stacking context of an element
-    /// with `overflow: scroll`.
-    #[inline(always)]
-    pub fn new_outer(fragment_type: FragmentType) -> StackingContextId {
-        StackingContextId(StackingContextId::next_special_id() | (fragment_type as usize))
-    }
-
-    #[inline]
-    pub fn fragment_type(&self) -> FragmentType {
-        FragmentType::from_usize(self.0 & 3)
-    }
-
-    #[inline]
-    pub fn id(&self) -> usize {
-        self.0 & !3
-    }
-
     /// Returns the stacking context ID for the outer document/layout root.
     #[inline]
     pub fn root() -> StackingContextId {
         StackingContextId(0)
-    }
-
-    /// Returns true if this is a special stacking context.
-    ///
-    /// A special stacking context is a stacking context that is one of (a) the outer stacking
-    /// context of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
-    #[inline]
-    pub fn is_special(&self) -> bool {
-        (self.0 & !SPECIAL_STACKING_CONTEXT_ID_MASK) == 0
     }
 }
 
