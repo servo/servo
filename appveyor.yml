@@ -37,7 +37,7 @@ branches:
     - master
 
 cache:
-  - %APPVEYOR_BUILD_FOLDER%\.ccache
+  - '%APPVEYOR_BUILD_FOLDER%\.ccache'
   - .servo -> rust-nightly-date, cargo-commit-hash
   - .cargo -> rust-nightly-date, cargo-commit-hash
 
