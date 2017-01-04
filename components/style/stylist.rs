@@ -11,7 +11,9 @@ use data::ComputedStyle;
 use dom::{PresentationalHintsSynthetizer, TElement};
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
-use media_queries::{Device, MediaType};
+use media_queries::Device;
+#[cfg(feature = "servo")]
+use media_queries::MediaType;
 use parking_lot::RwLock;
 use properties::{self, CascadeFlags, ComputedValues, INHERIT_ALL, Importance};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -34,6 +36,7 @@ use std::slice;
 use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CssRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
+#[cfg(feature = "servo")]
 use viewport::{self, MaybeNew, ViewportRule};
 
 pub use ::fnv::FnvHashMap;
@@ -385,6 +388,10 @@ impl Stylist {
     ///
     /// This means that we may need to rebuild style data even if the
     /// stylesheets haven't changed.
+    ///
+    /// Viewport_Constraints::maybe_new is servo-only (see the comment above it
+    /// explaining why), so we need to be servo-only too, since we call it.
+    #[cfg(feature = "servo")]
     pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = ViewportRule {
             declarations: viewport::Cascade::from_stylesheets(stylesheets, &device).finish(),
