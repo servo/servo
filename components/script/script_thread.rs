@@ -1346,7 +1346,7 @@ impl ScriptThread {
     fn handle_freeze_msg(&self, id: PipelineId) {
         let window = self.documents.borrow().find_window(id);
         if let Some(window) = window {
-            window.upcast::<GlobalScope>().suspend();
+            window.freeze();
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();

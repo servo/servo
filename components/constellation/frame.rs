@@ -4,6 +4,7 @@
 
 use msg::constellation_msg::{FrameId, PipelineId};
 use pipeline::Pipeline;
+use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::iter::once;
 use std::mem::replace;
@@ -22,11 +23,17 @@ pub struct Frame {
     /// The frame id.
     pub id: FrameId,
 
+    /// The timestamp for the current session history entry
+    pub instant: Instant,
+
+    /// The pipeline for the current session history entry
+    pub pipeline_id: PipelineId,
+
+    /// The URL for the current session history entry
+    pub url: ServoUrl,
+
     /// The past session history, ordered chronologically.
     pub prev: Vec<FrameState>,
-
-    /// The currently active session history entry.
-    pub current: FrameState,
 
     /// The future session history, ordered reverse chronologically.
     pub next: Vec<FrameState>,
@@ -35,29 +42,39 @@ pub struct Frame {
 impl Frame {
     /// Create a new frame.
     /// Note this just creates the frame, it doesn't add it to the frame tree.
-    pub fn new(id: FrameId, pipeline_id: PipelineId) -> Frame {
+    pub fn new(id: FrameId, pipeline_id: PipelineId, url: ServoUrl) -> Frame {
         Frame {
             id: id,
+            pipeline_id: pipeline_id,
+            instant: Instant::now(),
+            url: url,
             prev: vec!(),
-            current: FrameState::new(pipeline_id, id),
             next: vec!(),
         }
     }
 
+    /// Get the current frame state.
+    pub fn current(&self) -> FrameState {
+        FrameState {
+            instant: self.instant,
+            frame_id: self.id,
+            pipeline_id: Some(self.pipeline_id),
+            url: self.url.clone(),
+        }
+    }
+
     /// Set the current frame entry, and push the current frame entry into the past.
-    pub fn load(&mut self, pipeline_id: PipelineId) {
-        self.prev.push(self.current.clone());
-        self.current = FrameState::new(pipeline_id, self.id);
+    pub fn load(&mut self, pipeline_id: PipelineId, url: ServoUrl) {
+        let current = self.current();
+        self.prev.push(current);
+        self.instant = Instant::now();
+        self.pipeline_id = pipeline_id;
+        self.url = url;
     }
 
     /// Set the future to be empty.
     pub fn remove_forward_entries(&mut self) -> Vec<FrameState> {
         replace(&mut self.next, vec!())
-    }
-
-    /// Set the current frame entry, and drop the current frame entry.
-    pub fn replace_current(&mut self, pipeline_id: PipelineId) -> FrameState {
-        replace(&mut self.current, FrameState::new(pipeline_id, self.id))
     }
 }
 
@@ -70,21 +87,16 @@ impl Frame {
 pub struct FrameState {
     /// The timestamp for when the session history entry was created
     pub instant: Instant,
-    /// The pipeline for the document in the session history
-    pub pipeline_id: PipelineId,
+
+    /// The pipeline for the document in the session history,
+    /// None if the entry has been discarded
+    pub pipeline_id: Option<PipelineId>,
+
+    /// The URL for this entry, used to reload the pipeline if it has been discarded
+    pub url: ServoUrl,
+
     /// The frame that this session history entry is part of
     pub frame_id: FrameId,
-}
-
-impl FrameState {
-    /// Create a new session history entry.
-    fn new(pipeline_id: PipelineId, frame_id: FrameId) -> FrameState {
-        FrameState {
-            instant: Instant::now(),
-            pipeline_id: pipeline_id,
-            frame_id: frame_id,
-        }
-    }
 }
 
 /// Represents a pending change in the frame tree, that will be applied
@@ -100,9 +112,12 @@ pub struct FrameChange {
     /// The pipeline for the document being loaded.
     pub new_pipeline_id: PipelineId,
 
+    /// The URL for the document being loaded.
+    pub url: ServoUrl,
+
     /// Is the new document replacing the current document (e.g. a reload)
     /// or pushing it into the session history (e.g. a navigation)?
-    pub replace: bool,
+    pub replace: Option<FrameState>,
 }
 
 /// An iterator over a frame tree, returning the fully active frames in
@@ -137,14 +152,14 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
                     continue;
                 },
             };
-            let pipeline = match self.pipelines.get(&frame.current.pipeline_id) {
+            let pipeline = match self.pipelines.get(&frame.pipeline_id) {
                 Some(pipeline) => pipeline,
                 None => {
-                    warn!("Pipeline {:?} iterated after closure.", frame.current.pipeline_id);
+                    warn!("Pipeline {:?} iterated after closure.", frame.pipeline_id);
                     continue;
                 },
             };
-            self.stack.extend(pipeline.children.iter().map(|&c| c));
+            self.stack.extend(pipeline.children.iter());
             return Some(frame)
         }
     }
@@ -169,6 +184,7 @@ pub struct FullFrameTreeIterator<'a> {
 impl<'a> Iterator for FullFrameTreeIterator<'a> {
     type Item = &'a Frame;
     fn next(&mut self) -> Option<&'a Frame> {
+        let pipelines = self.pipelines;
         loop {
             let frame_id = match self.stack.pop() {
                 Some(frame_id) => frame_id,
@@ -181,11 +197,12 @@ impl<'a> Iterator for FullFrameTreeIterator<'a> {
                     continue;
                 },
             };
-            for entry in frame.prev.iter().chain(frame.next.iter()).chain(once(&frame.current)) {
-                if let Some(pipeline) = self.pipelines.get(&entry.pipeline_id) {
-                    self.stack.extend(pipeline.children.iter().map(|&c| c));
-                }
-            }
+            let child_frame_ids = frame.prev.iter().chain(frame.next.iter())
+                .filter_map(|entry| entry.pipeline_id)
+                .chain(once(frame.pipeline_id))
+                .filter_map(|pipeline_id| pipelines.get(&pipeline_id))
+                .flat_map(|pipeline| pipeline.children.iter());
+            self.stack.extend(child_frame_ids);
             return Some(frame)
         }
     }

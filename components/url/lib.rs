@@ -24,7 +24,7 @@ use std::path::Path;
 use std::sync::Arc;
 use url::{Url, Origin, Position};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Serialize, Deserialize))]
 pub struct ServoUrl(Arc<Url>);
 
