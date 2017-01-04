@@ -131,16 +131,8 @@ impl<'a> LayoutContext<'a> {
 }
 
 impl<'a> LayoutContext<'a> {
-    // FIXME(bholley): The following two methods are identical and should be merged.
-    // shared_context() is the appropriate name, but it involves renaming a lot of
-    // calls.
     #[inline(always)]
     pub fn shared_context(&self) -> &SharedStyleContext {
-        &self.shared.style_context
-    }
-
-    #[inline(always)]
-    pub fn style_context(&self) -> &SharedStyleContext {
         &self.shared.style_context
     }
 

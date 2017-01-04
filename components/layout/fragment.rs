@@ -642,8 +642,8 @@ pub struct TruncatedFragmentInfo {
 impl Fragment {
     /// Constructs a new `Fragment` instance.
     pub fn new<N: ThreadSafeLayoutNode>(node: &N, specific: SpecificFragmentInfo, ctx: &LayoutContext) -> Fragment {
-        let style_context = ctx.style_context();
-        let style = node.style(style_context);
+        let shared_context = ctx.shared_context();
+        let style = node.style(shared_context);
         let writing_mode = style.writing_mode;
 
         let mut restyle_damage = node.restyle_damage();

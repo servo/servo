@@ -333,7 +333,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
     #[inline]
     fn style_context(&self) -> &SharedStyleContext {
-        self.layout_context.style_context()
+        self.layout_context.shared_context()
     }
 
     #[inline]
