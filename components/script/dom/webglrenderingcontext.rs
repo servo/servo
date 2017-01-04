@@ -991,6 +991,38 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         Ok(())
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    fn BufferData_(&self, target: u32, size: i64, usage: u32) -> Fallible<()> {
+        let bound_buffer = match target {
+            constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
+            constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
+            _ => return Ok(self.webgl_error(InvalidEnum)),
+        };
+
+        let bound_buffer = match bound_buffer {
+            Some(bound_buffer) => bound_buffer,
+            None => return Ok(self.webgl_error(InvalidValue)),
+        };
+
+        if size < 0 {
+            return Ok(self.webgl_error(InvalidValue));
+        }
+
+        match usage {
+            constants::STREAM_DRAW |
+            constants::STATIC_DRAW |
+            constants::DYNAMIC_DRAW => (),
+            _ => return Ok(self.webgl_error(InvalidEnum)),
+        }
+
+        // FIXME: Allocating a buffer based on user-requested size is
+        // not great, but we don't have a fallible allocation to try.
+        let data = vec![0u8; size as usize];
+        handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data, usage));
+
+        Ok(())
+    }
+
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     unsafe fn BufferSubData(&self, _cx: *mut JSContext, target: u32, offset: i64, data: *mut JSObject) -> Fallible<()> {
