@@ -1668,6 +1668,7 @@ mod lazy_static_module {
 pub type CascadePropertyFn =
     extern "Rust" fn(declaration: &PropertyDeclaration,
                      inherited_style: &ComputedValues,
+                     default_style: &Arc<ComputedValues>,
                      context: &mut computed::Context,
                      seen: &mut PropertyBitField,
                      cacheable: &mut bool,
@@ -1875,6 +1876,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
             let discriminant = longhand_id as usize;
             (CASCADE_PROPERTY[discriminant])(declaration,
                                              inherited_style,
+                                             default_style,
                                              &mut context,
                                              &mut seen,
                                              &mut cacheable,
