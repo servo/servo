@@ -6438,6 +6438,18 @@
             "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
           }
         ],
+        "mozilla/restyle-out-of-document.html": [
+          {
+            "path": "mozilla/restyle-out-of-document.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/restyle-out-of-document-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/restyle-out-of-document.html"
+          }
+        ],
         "mozilla/scrolling_div_background_borders.html": [
           {
             "path": "mozilla/scrolling_div_background_borders.html",
@@ -21730,6 +21742,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
+        }
+      ],
+      "mozilla/restyle-out-of-document.html": [
+        {
+          "path": "mozilla/restyle-out-of-document.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/restyle-out-of-document-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/restyle-out-of-document.html"
         }
       ],
       "mozilla/scrolling_div_background_borders.html": [

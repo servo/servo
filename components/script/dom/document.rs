@@ -66,7 +66,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
 use dom::messageevent::MessageEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node};
+use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node, IS_IN_DOC, LayoutNodeHelpers};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::pagetransitionevent::PageTransitionEvent;
@@ -1788,7 +1788,12 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     #[allow(unrooted_must_root)]
     unsafe fn drain_pending_restyles(&self) -> Vec<(LayoutJS<Element>, PendingRestyle)> {
         let mut elements = (*self.unsafe_get()).pending_restyles.borrow_mut_for_layout();
-        let result = elements.drain().map(|(k, v)| (k.to_layout(), v)).collect();
+        // Elements were in a document when they were adding to this list, but that
+        // may no longer be true when the next layout occurs.
+        let result = elements.drain()
+            .map(|(k, v)| (k.to_layout(), v))
+            .filter(|&(ref k, _)| k.upcast::<Node>().get_flag(IS_IN_DOC))
+            .collect();
         result
     }
 
