@@ -1248,7 +1248,8 @@ extern "C" {
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
-    pub fn Servo_RestyleWithAddedDeclaration(declarations:
+    pub fn Servo_RestyleWithAddedDeclaration(set: RawServoStyleSetBorrowed,
+                                             declarations:
                                                  RawServoDeclarationBlockBorrowed,
                                              previous_style:
                                                  ServoComputedValuesBorrowed)

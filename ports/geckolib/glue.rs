@@ -170,7 +170,8 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: RawServoDeclarationBlockBorrowed,
+pub extern "C" fn Servo_RestyleWithAddedDeclaration(raw_data: RawServoStyleSetBorrowed,
+                                                    declarations: RawServoDeclarationBlockBorrowed,
                                                     previous_style: ServoComputedValuesBorrowed)
   -> ServoComputedValuesStrong
 {
@@ -183,11 +184,14 @@ pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: RawServoDeclar
         guard.declarations.iter().rev().map(|&(ref decl, _importance)| decl)
     };
 
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+
     // FIXME (bug 1303229): Use the actual viewport size here
     let computed = apply_declarations(Size2D::new(Au(0), Au(0)),
                                       /* is_root_element = */ false,
                                       declarations,
                                       previous_style,
+                                      &data.default_computed_values,
                                       None,
                                       Box::new(StdoutErrorReporter),
                                       None,
