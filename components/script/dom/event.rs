@@ -77,6 +77,28 @@ impl From<bool> for EventCancelable {
     }
 }
 
+/// An enum to indicate whether the default action of an event is allowed.
+///
+/// This should've been a bool. Instead, it's an enum, because, aside from the allowed/canceled
+/// states, we also need something to stop the event from being handled again (without cancelling
+/// the event entirely). For example, an Up/Down `KeyEvent` inside a `textarea` element will
+/// trigger the cursor to go up/down if the text inside the element spans multiple lines. This enum
+/// helps us to prevent such events from being [sent to the constellation][msg] where it will be
+/// handled once again for page scrolling (which is definitely not what we'd want).
+///
+/// [msg]: https://doc.servo.org/script_traits/enum.ConstellationMsg.html#variant.KeyEvent
+///
+#[derive(JSTraceable, HeapSizeOf, Copy, Clone, PartialEq)]
+pub enum EventDefault {
+    /// The default action of the event is allowed (constructor's default)
+    Allowed,
+    /// The default action has been prevented by calling `PreventDefault`
+    Prevented,
+    /// The event has been handled somewhere in the DOM, and it should be prevented from being
+    /// re-handled elsewhere. This doesn't affect the judgement of `DefaultPrevented`
+    Handled,
+}
+
 #[dom_struct]
 pub struct Event {
     reflector_: Reflector,
@@ -84,7 +106,7 @@ pub struct Event {
     target: MutNullableJS<EventTarget>,
     type_: DOMRefCell<Atom>,
     phase: Cell<EventPhase>,
-    canceled: Cell<bool>,
+    canceled: Cell<EventDefault>,
     stop_propagation: Cell<bool>,
     stop_immediate: Cell<bool>,
     cancelable: Cell<bool>,
@@ -103,7 +125,7 @@ impl Event {
             target: Default::default(),
             type_: DOMRefCell::new(atom!("")),
             phase: Cell::new(EventPhase::None),
-            canceled: Cell::new(false),
+            canceled: Cell::new(EventDefault::Allowed),
             stop_propagation: Cell::new(false),
             stop_immediate: Cell::new(false),
             cancelable: Cell::new(false),
@@ -146,7 +168,7 @@ impl Event {
         self.initialized.set(true);
         self.stop_propagation.set(false);
         self.stop_immediate.set(false);
-        self.canceled.set(false);
+        self.canceled.set(EventDefault::Allowed);
         self.trusted.set(false);
         self.target.set(None);
         *self.type_.borrow_mut() = type_;
@@ -229,6 +251,16 @@ impl Event {
     pub fn type_(&self) -> Atom {
         self.type_.borrow().clone()
     }
+
+    #[inline]
+    pub fn mark_as_handled(&self) {
+        self.canceled.set(EventDefault::Handled);
+    }
+
+    #[inline]
+    pub fn get_cancel_state(&self) -> EventDefault {
+        self.canceled.get()
+    }
 }
 
 impl EventMethods for Event {
@@ -254,13 +286,13 @@ impl EventMethods for Event {
 
     // https://dom.spec.whatwg.org/#dom-event-defaultprevented
     fn DefaultPrevented(&self) -> bool {
-        self.canceled.get()
+        self.canceled.get() == EventDefault::Prevented
     }
 
     // https://dom.spec.whatwg.org/#dom-event-preventdefault
     fn PreventDefault(&self) {
         if self.cancelable.get() {
-            self.canceled.set(true)
+            self.canceled.set(EventDefault::Prevented)
         }
     }
 
