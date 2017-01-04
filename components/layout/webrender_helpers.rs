@@ -11,7 +11,7 @@ use app_units::Au;
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
-use gfx_traits::{FragmentType, ScrollPolicy, ScrollRootId};
+use gfx_traits::{FragmentType, ScrollRootId};
 use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode};
 use style::computed_values::filter::{self, Filter};
@@ -337,16 +337,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let stacking_context = &item.stacking_context;
                 debug_assert!(stacking_context.context_type == StackingContextType::Real);
 
-                let webrender_scroll_policy = match stacking_context.scroll_policy {
-                    ScrollPolicy::Scrollable => webrender_traits::ScrollPolicy::Scrollable,
-                    ScrollPolicy::FixedPosition => webrender_traits::ScrollPolicy::Fixed,
-                };
-
                 let clip = builder.new_clip_region(&stacking_context.overflow.to_rectf(),
                                                    vec![],
                                                    None);
 
-                builder.push_stacking_context(webrender_scroll_policy,
+                builder.push_stacking_context(stacking_context.scroll_policy,
                                               stacking_context.bounds.to_rectf(),
                                               clip,
                                               stacking_context.z_index,
