@@ -1,7 +1,7 @@
 version: 1.0.{build}
 
 environment:
-  CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.ccache"
+  CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.servo\\.ccache"
   RUST_BACKTRACE: 1
   # The appveyor image we use has a pretty huge set of things installed... we make the
   # initial PATH something sane so we know what to expect
@@ -37,7 +37,6 @@ branches:
     - master
 
 cache:
-  - '%APPVEYOR_BUILD_FOLDER%\.ccache'
   - .servo -> rust-nightly-date, cargo-commit-hash
   - .cargo -> rust-nightly-date, cargo-commit-hash
 
