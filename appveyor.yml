@@ -38,7 +38,7 @@ branches:
 
 cache:
   - .servo -> rust-nightly-date, cargo-commit-hash
-  - .cargo -> rust-nightly-date, cargo-commit-hash
+  #- .cargo -> rust-nightly-date, cargo-commit-hash
   - .ccache
 
 install:
