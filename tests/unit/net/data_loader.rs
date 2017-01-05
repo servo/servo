@@ -32,7 +32,7 @@ fn assert_parse(url:          &'static str,
             assert_eq!(header_content_type, content_type.as_ref());
 
             let metadata = match response.metadata() {
-                Ok(FetchMetadata::Filtered { filtered: FilteredMetadata::Transparent(m), .. }) => m,
+                Ok(FetchMetadata::Filtered { filtered: FilteredMetadata::Basic(m), .. }) => m,
                 result => panic!(result),
             };
             assert_eq!(metadata.content_type.map(Serde::into_inner), content_type);
