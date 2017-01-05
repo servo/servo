@@ -483,7 +483,6 @@ fn clamp_duration(nesting_level: u32, unclamped: MsDuration) -> MsDuration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    #[allow(unsafe_code)]
     pub fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers) {
         // step 4.1 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
@@ -492,7 +491,7 @@ impl JsTimerTask {
         timers.nesting_level.set(self.nesting_level);
 
         // step 4.2
-        match *&self.callback {
+        match self.callback {
             InternalTimerCallback::StringTimerCallback(ref code_str) => {
                 let global = this.global();
                 let cx = global.get_cx();
@@ -502,11 +501,7 @@ impl JsTimerTask {
                     code_str, rval.handle_mut());
             },
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
-                let arguments: Vec<JSVal> = arguments.iter().map(|arg| arg.get()).collect();
-                let arguments = arguments.iter().by_ref().map(|arg| unsafe {
-                    HandleValue::from_marked_location(arg)
-                }).collect();
-
+                let arguments = arguments.iter().map(|arg| arg.handle()).collect();
                 let _ = function.Call_(this, arguments, Report);
             },
         };
