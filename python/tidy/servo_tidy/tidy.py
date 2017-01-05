@@ -111,11 +111,19 @@ def progress_wrapper(iterator):
 
 
 class FileList(object):
-    def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True):
+    def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True, stylo=False):
         self.directory = directory
         self.excluded = exclude_dirs
-        iterator = self._git_changed_files() if only_changed_files else \
-            self._filter_excluded() if exclude_dirs else self._default_walk()
+        iterator = self._filter_excluded() if exclude_dirs else self._default_walk()
+        if only_changed_files and not stylo:
+            try:
+                # Fall back if git doesn't work
+                newiter = self._git_changed_files()
+                obj = next(newiter)
+                iterator = itertools.chain((obj,), newiter)
+            except subprocess.CalledProcessError:
+                pass
+
         # Raise `StopIteration` if the iterator is empty
         obj = next(iterator)
         self.generator = itertools.chain((obj,), iterator)
@@ -160,9 +168,10 @@ def filter_file(file_name):
     return True
 
 
-def filter_files(start_dir, only_changed_files, progress):
+def filter_files(start_dir, only_changed_files, progress, stylo):
     file_iter = FileList(start_dir, only_changed_files=only_changed_files,
-                         exclude_dirs=config["ignore"]["directories"], progress=progress)
+                         exclude_dirs=config["ignore"]["directories"], progress=progress,
+                         stylo=stylo)
     for file_name in file_iter:
         base_name = os.path.basename(file_name)
         if not any(fnmatch.fnmatch(base_name, pattern) for pattern in FILE_PATTERNS_TO_CHECK):
@@ -978,11 +987,12 @@ def check_dep_license_errors(filenames, progress=True):
 
 
 class LintRunner(object):
-    def __init__(self, lint_path=None, only_changed_files=True, exclude_dirs=[], progress=True):
+    def __init__(self, lint_path=None, only_changed_files=True, exclude_dirs=[], progress=True, stylo=False):
         self.only_changed_files = only_changed_files
         self.exclude_dirs = exclude_dirs
         self.progress = progress
         self.path = lint_path
+        self.stylo = stylo
 
     def check(self):
         if not os.path.exists(self.path):
@@ -996,7 +1006,8 @@ class LintRunner(object):
         module = imp.load_source(filename[:-3], self.path)
         if hasattr(module, 'Lint'):
             if issubclass(module.Lint, LintRunner):
-                lint = module.Lint(self.path, self.only_changed_files, self.exclude_dirs, self.progress)
+                lint = module.Lint(self.path, self.only_changed_files,
+                                   self.exclude_dirs, self.progress, stylo=self.stylo)
                 for error in lint.run():
                     if not hasattr(error, '__iter__'):
                         yield (self.path, 1, "errors should be a tuple of (path, line, reason)")
@@ -1017,8 +1028,8 @@ class LintRunner(object):
         yield (self.path, 0, "class 'Lint' should implement 'run' method")
 
 
-def run_lint_scripts(only_changed_files=False, progress=True):
-    runner = LintRunner(only_changed_files=only_changed_files, progress=progress)
+def run_lint_scripts(only_changed_files=False, progress=True, stylo=False):
+    runner = LintRunner(only_changed_files=only_changed_files, progress=progress, stylo=stylo)
     for path in config['lint-scripts']:
         runner.path = path
         for error in runner.check():
@@ -1040,13 +1051,13 @@ def check_commits(path='.'):
     raise StopIteration
 
 
-def scan(only_changed_files=False, progress=True):
+def scan(only_changed_files=False, progress=True, stylo=False):
     # check config file for errors
     config_errors = check_config_file(CONFIG_FILE_PATH)
     # check directories contain expected files
     directory_errors = check_directory_files(config['check_ext'])
     # standard checks
-    files_to_check = filter_files('.', only_changed_files, progress)
+    files_to_check = filter_files('.', only_changed_files, progress, stylo)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json, check_yaml)
     line_checking_functions = (check_license, check_by_line, check_toml, check_shell,
                                check_rust, check_spec, check_modeline)
@@ -1054,12 +1065,12 @@ def scan(only_changed_files=False, progress=True):
     # check dependecy licenses
     dep_license_errors = check_dep_license_errors(get_dep_toml_files(only_changed_files), progress)
     # other lint checks
-    lint_errors = run_lint_scripts(only_changed_files, progress)
+    lint_errors = run_lint_scripts(only_changed_files, progress, stylo=stylo)
     # check commits for WIP
-    commit_errors = check_commits()
+    commit_errors = [] if stylo else check_commits()
     # chain all the iterators
-    errors = itertools.chain(config_errors, directory_errors, file_errors, dep_license_errors, lint_errors,
-                             commit_errors)
+    errors = itertools.chain(config_errors, directory_errors, lint_errors,
+                             file_errors, dep_license_errors, commit_errors)
 
     error = None
     for error in errors:

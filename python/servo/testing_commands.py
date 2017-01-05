@@ -381,11 +381,13 @@ class MachCommands(CommandBase):
                      help="Don't show progress for tidy")
     @CommandArgument('--self-test', default=False, action="store_true",
                      help="Run unit tests for tidy")
-    def test_tidy(self, all_files, no_progress, self_test):
+    @CommandArgument('--stylo', default=False, action="store_true",
+                     help="Only handle files in the stylo tree")
+    def test_tidy(self, all_files, no_progress, self_test, stylo):
         if self_test:
             return test_tidy.do_tests()
         else:
-            return tidy.scan(not all_files, not no_progress)
+            return tidy.scan(not all_files, not no_progress, stylo=stylo)
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
