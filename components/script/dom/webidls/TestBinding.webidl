@@ -524,6 +524,7 @@ interface TestBinding {
   void panic();
 
   GlobalScope entryGlobal();
+  GlobalScope incumbentGlobal();
 };
 
 callback SimpleCallback = void(any value);

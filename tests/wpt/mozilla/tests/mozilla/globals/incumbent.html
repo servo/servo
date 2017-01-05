@@ -10,4 +10,11 @@ function get_entry() {
 
   return current.TestBinding.prototype.entryGlobal.call(new relevant.TestBinding());
 }
+
+function get_incumbent() {
+  var current = document.querySelector("#current").contentWindow;
+  var relevant = document.querySelector("#relevant").contentWindow;
+
+  return current.TestBinding.prototype.incumbentGlobal.call(new relevant.TestBinding());
+}
 </script>
