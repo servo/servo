@@ -26,6 +26,8 @@ class Lint(LintRunner):
                 yield f[len(working_dir):]
 
     def run(self):
+        if self.stylo:
+            return
         wpt_working_dir = os.path.abspath(os.path.join(WPT_PATH, "web-platform-tests"))
         for suite in SUITES:
             files = self._get_wpt_files(suite)
