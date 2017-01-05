@@ -89,7 +89,7 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
     let handler = Handler::new(constellation_chan);
     thread::Builder::new().name("WebdriverHttpServer".to_owned()).spawn(move || {
         let address = SocketAddrV4::new("0.0.0.0".parse().unwrap(), port);
-        match server::start(SocketAddr::V4(address), handler, extension_routes()) {
+        match server::start(SocketAddr::V4(address), handler, &extension_routes()) {
             Ok(listening) => info!("WebDriver server listening on {}", listening.socket),
             Err(_) => panic!("Unable to start WebDriver HTTPD server"),
          }
