@@ -14,6 +14,7 @@ use flow::{self, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, ScrollOffsetMap};
 use gfx_traits::ScrollRootId;
+use inline::LAST_FRAGMENT_OF_ELEMENT;
 use ipc_channel::ipc::IpcSender;
 use opaque_node::OpaqueNodeMethods;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
@@ -554,16 +555,33 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             if fragment.style.get_box().position == computed_values::position::T::fixed {
                 self.parent_nodes.clear();
             }
-        } else if fragment.contains_node(self.node_address) {
-            // Found a fragment in the flow tree that matches a child
-            // of the DOM node being looked for.
-            // Since we haven't found an exact match, the node must be
-            // inline. Hopefully.
+        } else if let Some((inline_context, node_position)) = fragment.inline_context.as_ref().and_then(|inline_context| {
+            inline_context.nodes.iter().position(|node| node.address == self.node_address).map(|node_position| {
+                (inline_context, node_position)
+            })
+        }) {
+            // TODO: Handle cases where the `offsetParent` is an inline
+            // element. This will likely be impossible until
+            // https://github.com/servo/servo/issues/13982 is fixed. It would
+            // have been much easier to just use find() instead of position(),
+            // but node_position will be needed later in order to handle those
+            // cases.
+
+            let node = &inline_context.nodes[node_position];
+
+            // Found a fragment in the flow tree whose inline context contains
+            // the DOM node we're looking for, i.e. the node is inline and
+            // contains this fragment.
             match self.node_offset_box {
                 Some(NodeOffsetBoxInfo { ref mut rectangle, .. }) => {
                     *rectangle = rectangle.union(border_box);
                 },
                 None => {
+                    // https://github.com/servo/servo/issues/13982 will cause
+                    // this assertion to fail sometimes, so it's commented out
+                    // for now.
+                    //assert!(node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT));
+
                     self.node_offset_box = Some(NodeOffsetBoxInfo {
                         offset: border_box.origin,
                         rectangle: *border_box,
@@ -571,15 +589,14 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 },
             }
 
+            if node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
+                self.has_processed_node = true;
+            }
+
             // TODO: `position: fixed` on inline elements doesn't seem to work
             // as of Sep 25, 2016, so I don't know how one will check if an
             // inline element has it when it does.
-        } else if self.node_offset_box.is_some() {
-            // We've been processing fragments within the node, but now
-            // we've found one outside it. That means we're done.
-            // Hopefully.
-            self.has_processed_node = true;
-        } else {
+        } else if self.node_offset_box.is_none() {
             // TODO(gw): Is there a less fragile way of checking whether this
             // fragment is the body element, rather than just checking that
             // it's at level 1 (above the root node)?
