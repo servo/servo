@@ -889,14 +889,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     prefs::add_user_prefs();
 
     for pref in opt_match.opt_strs("pref").iter() {
-        let split: Vec<&str> = pref.splitn(2, '=').collect();
-        let pref_name = split[0];
-        let value = split.get(1);
-        match value {
-            Some(&"false") => PREFS.set(pref_name, PrefValue::Boolean(false)),
-            Some(&"true") | None => PREFS.set(pref_name, PrefValue::Boolean(true)),
-            _ => PREFS.set(pref_name, PrefValue::String(value.unwrap().to_string()))
-        };
+        parse_opt_prefs(pref);
     }
 
     if let Some(layout_threads) = layout_threads {
@@ -944,6 +937,22 @@ pub fn set_defaults(opts: Opts) {
         let box_opts = Box::new(opts);
         DEFAULT_OPTIONS = Box::into_raw(box_opts);
     }
+}
+
+pub fn parse_opt_prefs(pref: &str) {
+    let split: Vec<&str> = pref.splitn(2, '=').collect();
+    let pref_name = split[0];
+    let value = split.get(1);
+    match value {
+        Some(&"false") => PREFS.set(pref_name, PrefValue::Boolean(false)),
+        Some(&"true") | None => PREFS.set(pref_name, PrefValue::Boolean(true)),
+        _ => {
+            match value.unwrap().parse::<f64>() {
+                Ok(v) => PREFS.set(pref_name, PrefValue::Number(v)),
+                Err(_) => PREFS.set(pref_name, PrefValue::String(value.unwrap().to_string()))
+            }
+        }
+    };
 }
 
 #[inline]
