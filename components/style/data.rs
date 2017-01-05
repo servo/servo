@@ -15,7 +15,6 @@ use selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::BuildHasherDefault;
-use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use stylist::Stylist;
@@ -262,31 +261,37 @@ impl Deref for SnapshotOption {
 /// Transient data used by the restyle algorithm. This structure is instantiated
 /// either before or during restyle traversal, and is cleared at the end of node
 /// processing.
-///
-/// TODO(emilio): Tell bholley to document this more accurately. I can try (and
-/// the fields are certainly mostly self-explanatory), but it's better if he
-/// does, to avoid any misconception.
 #[derive(Debug)]
-#[allow(missing_docs)]
 pub struct RestyleData {
-    pub styles: ElementStyles,
+    /// The restyle hint, which indicates whether selectors need to be rematched
+    /// for this element, its children, and its descendants.
     pub hint: StoredRestyleHint,
+
+    /// Whether we need to recascade.
+    /// FIXME(bholley): This should eventually become more fine-grained.
     pub recascade: bool,
+
+    /// The restyle damage, indicating what kind of layout changes are required
+    /// afte restyling.
     pub damage: RestyleDamage,
+
+    /// An optional snapshot of the original state and attributes of the element,
+    /// from which we may compute additional restyle hints at traversal time.
     pub snapshot: SnapshotOption,
 }
 
-impl RestyleData {
-    fn new(styles: ElementStyles) -> Self {
+impl Default for RestyleData {
+    fn default() -> Self {
         RestyleData {
-            styles: styles,
             hint: StoredRestyleHint::default(),
             recascade: false,
             damage: RestyleDamage::empty(),
             snapshot: SnapshotOption::empty(),
         }
     }
+}
 
+impl RestyleData {
     /// Expands the snapshot (if any) into a restyle hint. Returns true if later
     /// siblings must be restyled.
     pub fn expand_snapshot<E: TElement>(&mut self, element: E, stylist: &Stylist) -> bool {
@@ -312,263 +317,116 @@ impl RestyleData {
         later_siblings
     }
 
-    /// Return if the element style's are up to date.
-    pub fn has_current_styles(&self) -> bool {
-        !(self.hint.restyle_self || self.recascade || self.snapshot.is_some())
-    }
-
-    /// Returns the element styles.
-    pub fn styles(&self) -> &ElementStyles {
-        &self.styles
-    }
-
-    /// Returns a mutable reference to the element styles.
-    pub fn styles_mut(&mut self) -> &mut ElementStyles {
-        &mut self.styles
-    }
-
-    fn finish_styling(&mut self, styles: ElementStyles, damage: RestyleDamage) {
-        debug_assert!(!self.has_current_styles());
-        debug_assert!(self.snapshot.is_none(), "Traversal should have expanded snapshots");
-        self.styles = styles;
-        self.damage |= damage;
-        // The hint and recascade bits get cleared by the traversal code. This
-        // is a bit confusing, and we should simplify it when we separate matching
-        // from cascading.
+    /// Returns true if this RestyleData might invalidate the current style.
+    pub fn has_invalidations(&self) -> bool {
+        self.hint.restyle_self || self.recascade || self.snapshot.is_some()
     }
 }
 
-/// Style system data associated with a node.
+/// Style system data associated with an Element.
 ///
-/// In Gecko, this hangs directly off a node, but is dropped when the frame takes
-/// ownership of the computed style data.
-///
-/// In Servo, this is embedded inside of layout data, which itself hangs directly
-/// off the node. Servo does not currently implement ownership transfer of the
-/// computed style data to the frame.
-///
-/// In both cases, it is wrapped inside an AtomicRefCell to ensure thread
-/// safety.
+/// In Gecko, this hangs directly off the Element. Servo, this is embedded
+/// inside of layout data, which itself hangs directly off the Element. In
+/// both cases, it is wrapped inside an AtomicRefCell to ensure thread safety.
 #[derive(Debug)]
-pub enum ElementData {
-    /// This is the first styling for this element.
-    Initial(Option<ElementStyles>),
-    /// This element has been restyled already, and all the relevant data is
-    /// inside the `RestyleData`.
-    Restyle(RestyleData),
-    /// This element has already been restyled, and only keeps its styles
-    /// around.
-    Persistent(ElementStyles),
+pub struct ElementData {
+    /// The computed styles for the element and its pseudo-elements.
+    styles: Option<ElementStyles>,
+
+    /// Restyle tracking. We separate this into a separate allocation so that
+    /// we can drop it when no restyles are pending on the elemnt.
+    restyle: Option<Box<RestyleData>>,
 }
 
 impl ElementData {
     /// Trivially construct an ElementData.
     pub fn new(existing: Option<ElementStyles>) -> Self {
-        if let Some(s) = existing {
-            ElementData::Persistent(s)
-        } else {
-            ElementData::Initial(None)
+        ElementData {
+            styles: existing,
+            restyle: None,
         }
     }
 
-    /// Return whether this data is from an initial restyle.
-    pub fn is_initial(&self) -> bool {
-        match *self {
-            ElementData::Initial(_) => true,
-            _ => false,
-        }
-    }
-
-    /// Return whether this data is from an element that hasn't been restyled.
-    pub fn is_unstyled_initial(&self) -> bool {
-        match *self {
-            ElementData::Initial(None) => true,
-            _ => false,
-        }
-    }
-
-    /// Return whether this data is from an element whose first restyle has just
-    /// been done.
-    pub fn is_styled_initial(&self) -> bool {
-        match *self {
-            ElementData::Initial(Some(_)) => true,
-            _ => false,
-        }
-    }
-
-    /// Returns true if this element is being restyled and has been styled
-    /// before.
-    pub fn is_restyle(&self) -> bool {
-        match *self {
-            ElementData::Restyle(_) => true,
-            _ => false,
-        }
-    }
-
-    /// Returns the `RestyleData` if it exists.
-    pub fn as_restyle(&self) -> Option<&RestyleData> {
-        match *self {
-            ElementData::Restyle(ref x) => Some(x),
-            _ => None,
-        }
-    }
-
-    /// Returns a mutable reference to the RestyleData, if it exists.
-    pub fn as_restyle_mut(&mut self) -> Option<&mut RestyleData> {
-        match *self {
-            ElementData::Restyle(ref mut x) => Some(x),
-            _ => None,
-        }
-    }
-
-    /// Returns whether this element's style is persistent.
-    pub fn is_persistent(&self) -> bool {
-        match *self {
-            ElementData::Persistent(_) => true,
-            _ => false,
-        }
-    }
-
-    /// Sets an element up for restyle, returning None for an unstyled element.
-    pub fn restyle(&mut self) -> Option<&mut RestyleData> {
-        if self.is_unstyled_initial() {
-            return None;
-        }
-
-        // If the caller never consumed the initial style, make sure that the
-        // change hint represents the delta from zero, rather than a delta from
-        // a previous style that was never observed. Ideally this shouldn't
-        // happen, but we handle it for robustness' sake.
-        let damage_override = if self.is_styled_initial() {
-            RestyleDamage::rebuild_and_reflow()
-        } else {
-            RestyleDamage::empty()
-        };
-
-        if !self.is_restyle() {
-            // Play some tricks to reshape the enum without cloning ElementStyles.
-            let old = mem::replace(self, ElementData::new(None));
-            let styles = match old {
-                ElementData::Initial(Some(s)) => s,
-                ElementData::Persistent(s) => s,
-                _ => unreachable!()
-            };
-            *self = ElementData::Restyle(RestyleData::new(styles));
-        }
-
-        let restyle = self.as_restyle_mut().unwrap();
-        restyle.damage |= damage_override;
-        Some(restyle)
-    }
-
-    /// Converts Initial and Restyle to Persistent. No-op for Persistent.
-    pub fn persist(&mut self) {
-        if self.is_persistent() {
-            return;
-        }
-
-        // Play some tricks to reshape the enum without cloning ElementStyles.
-        let old = mem::replace(self, ElementData::new(None));
-        let styles = match old {
-            ElementData::Initial(i) => i.unwrap(),
-            ElementData::Restyle(r) => r.styles,
-            ElementData::Persistent(_) => unreachable!(),
-        };
-        *self = ElementData::Persistent(styles);
-    }
-
-    /// Return the restyle damage (if any).
-    pub fn damage(&self) -> RestyleDamage {
-        use self::ElementData::*;
-        match *self {
-            Initial(ref s) => {
-                debug_assert!(s.is_some());
-                RestyleDamage::rebuild_and_reflow()
-            },
-            Restyle(ref r) => {
-                debug_assert!(r.has_current_styles());
-                r.damage
-            },
-            Persistent(_) => RestyleDamage::empty(),
-        }
-    }
-
-    /// A version of the above, with the assertions replaced with warnings to
-    /// be more robust in corner-cases. This will go away soon.
-    #[cfg(feature = "gecko")]
-    pub fn damage_sloppy(&self) -> RestyleDamage {
-        use self::ElementData::*;
-        match *self {
-            Initial(ref s) => {
-                if s.is_none() {
-                    error!("Accessing damage on unstyled element");
-                }
-                RestyleDamage::rebuild_and_reflow()
-            },
-            Restyle(ref r) => {
-                if !r.has_current_styles() {
-                    error!("Accessing damage on dirty element");
-                }
-                r.damage
-            },
-            Persistent(_) => RestyleDamage::empty(),
-        }
+    /// Returns true if this element has a computed styled.
+    pub fn has_styles(&self) -> bool {
+        self.styles.is_some()
     }
 
     /// Returns true if this element's style is up-to-date and has no potential
     /// invalidation.
     pub fn has_current_styles(&self) -> bool {
-        use self::ElementData::*;
-        match *self {
-            Initial(ref x) => x.is_some(),
-            Restyle(ref x) => x.has_current_styles(),
-            Persistent(_) => true,
-        }
+        self.has_styles() &&
+        self.restyle.as_ref().map_or(true, |r| !r.has_invalidations())
     }
 
-    /// Get the element styles, if any.
+    /// Gets the element styles, if any.
     pub fn get_styles(&self) -> Option<&ElementStyles> {
-        use self::ElementData::*;
-        match *self {
-            Initial(ref x) => x.as_ref(),
-            Restyle(ref x) => Some(x.styles()),
-            Persistent(ref x) => Some(x),
-        }
+        self.styles.as_ref()
     }
 
-    /// Get the element styles. Panic if the element has never been styled.
+    /// Gets the element styles. Panic if the element has never been styled.
     pub fn styles(&self) -> &ElementStyles {
-        self.get_styles().expect("Calling styles() on unstyled ElementData")
+        self.styles.as_ref().expect("Calling styles() on unstyled ElementData")
     }
 
-    /// Get a mutable reference to the element styles, if any.
+    /// Gets a mutable reference to the element styles, if any.
     pub fn get_styles_mut(&mut self) -> Option<&mut ElementStyles> {
-        use self::ElementData::*;
-        match *self {
-            Initial(ref mut x) => x.as_mut(),
-            Restyle(ref mut x) => Some(x.styles_mut()),
-            Persistent(ref mut x) => Some(x),
-        }
+        self.styles.as_mut()
     }
 
-    /// Get a mutable reference to the element styles. Panic if the element has
+    /// Gets a mutable reference to the element styles. Panic if the element has
     /// never been styled.
     pub fn styles_mut(&mut self) -> &mut ElementStyles {
-        self.get_styles_mut().expect("Calling styles_mut() on unstyled ElementData")
+        self.styles.as_mut().expect("Caling styles_mut() on unstyled ElementData")
     }
 
-    /// Finishes the styling of the element, effectively setting the style in
-    /// the data.
-    pub fn finish_styling(&mut self, styles: ElementStyles, damage: RestyleDamage) {
-        use self::ElementData::*;
-        match *self {
-            Initial(ref mut x) => {
-                debug_assert!(x.is_none());
-                debug_assert!(damage == RestyleDamage::rebuild_and_reflow());
-                *x = Some(styles);
-            },
-            Restyle(ref mut x) => x.finish_styling(styles, damage),
-            Persistent(_) => panic!("Calling finish_styling on Persistent ElementData"),
-        };
+    /// Sets the computed element styles.
+    pub fn set_styles(&mut self, styles: ElementStyles) {
+        debug_assert!(self.get_restyle().map_or(true, |r| r.snapshot.is_none()),
+                      "Traversal should have expanded snapshots");
+        self.styles = Some(styles);
+    }
+
+    /// Returns true if the Element has a RestyleData.
+    pub fn has_restyle(&self) -> bool {
+        self.restyle.is_some()
+    }
+
+    /// Drops any RestyleData.
+    pub fn clear_restyle(&mut self) {
+        self.restyle = None;
+    }
+
+    /// Creates a RestyleData if one doesn't exist.
+    ///
+    /// Asserts that the Element has been styled.
+    pub fn ensure_restyle(&mut self) -> &mut RestyleData {
+        debug_assert!(self.styles.is_some(), "restyling unstyled element");
+        if self.restyle.is_none() {
+            self.restyle = Some(Box::new(RestyleData::default()));
+        }
+        self.restyle.as_mut().unwrap()
+    }
+
+    /// Gets a reference to the restyle data, if any.
+    pub fn get_restyle(&self) -> Option<&RestyleData> {
+        self.restyle.as_ref().map(|r| &**r)
+    }
+
+    /// Gets a reference to the restyle data. Panic if the element does not
+    /// have restyle data.
+    pub fn restyle(&self) -> &RestyleData {
+        self.get_restyle().expect("Calling restyle without RestyleData")
+    }
+
+    /// Gets a mutable reference to the restyle data, if any.
+    pub fn get_restyle_mut(&mut self) -> Option<&mut RestyleData> {
+        self.restyle.as_mut().map(|r| &mut **r)
+    }
+
+    /// Gets a mutable reference to the restyle data. Panic if the element does
+    /// not have restyle data.
+    pub fn restyle_mut(&mut self) -> &mut RestyleData {
+        self.get_restyle_mut().expect("Calling restyle_mut without RestyleData")
     }
 }

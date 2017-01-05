@@ -119,7 +119,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // we will drop on the floor. To prevent missed restyles, we assert against
         // restyling a root with later siblings.
         if let Some(mut data) = root.mutate_data() {
-            if let Some(r) = data.as_restyle_mut() {
+            if let Some(r) = data.get_restyle_mut() {
                 debug_assert!(root.next_sibling_element().is_none());
                 let _later_siblings = r.expand_snapshot(root, stylist);
             }
@@ -162,25 +162,31 @@ pub trait DomTraversal<E: TElement> : Sync {
                     None => return true,
                 };
 
-                // Check what kind of element data we have. If it's Initial or Persistent,
-                // we're done.
-                let restyle = match *data {
-                    ElementData::Initial(ref i) => return i.is_none(),
-                    ElementData::Persistent(_) => return false,
-                    ElementData::Restyle(ref r) => r,
-                };
-
-                // Check whether we have any selector matching or re-cascading to
-                // do in this subtree.
-                debug_assert!(restyle.snapshot.is_none(), "Snapshots should already be expanded");
-                if !restyle.hint.is_empty() || restyle.recascade {
+                // If we don't have any style data, we need to visit the element.
+                if !data.has_styles() {
                     return true;
+                }
+
+                // Check the restyle data.
+                if let Some(r) = data.get_restyle() {
+                    // If we have a restyle hint or need to recascade, we need to
+                    // visit the element.
+                    //
+                    // Note that this is different than checking has_current_styles(),
+                    // since that can return true even if we have a restyle hint
+                    // indicating that the element's descendants (but not necessarily
+                    // the element) need restyling.
+                    if !r.hint.is_empty() || r.recascade {
+                        return true;
+                    }
                 }
 
                 // Servo uses the post-order traversal for flow construction, so
                 // we need to traverse any element with damage so that we can perform
                 // fixup / reconstruction on our way back up the tree.
-                if cfg!(feature = "servo") && restyle.damage != RestyleDamage::empty() {
+                if cfg!(feature = "servo") &&
+                   data.get_restyle().map_or(false, |r| r.damage != RestyleDamage::empty())
+                {
                     return true;
                 }
 
@@ -258,7 +264,7 @@ pub trait DomTraversal<E: TElement> : Sync {
             if Self::node_needs_traversal(kid) {
                 let el = kid.as_element();
                 if el.as_ref().and_then(|el| el.borrow_data())
-                              .map_or(false, |d| d.is_restyle())
+                              .map_or(false, |d| d.has_styles())
                 {
                     unsafe { parent.set_dirty_descendants(); }
                 }
@@ -380,7 +386,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
           D: DomTraversal<E>
 {
     context.thread_local.begin_element(element, &data);
-    debug_assert!(data.as_restyle().map_or(true, |r| r.snapshot.is_none()),
+    debug_assert!(data.get_restyle().map_or(true, |r| r.snapshot.is_none()),
                   "Snapshots should be expanded by the caller");
 
     let compute_self = !data.has_current_styles();
@@ -397,7 +403,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
     // Now that matching and cascading is done, clear the bits corresponding to
     // those operations and compute the propagated restyle hint.
     let empty_hint = StoredRestyleHint::empty();
-    let propagated_hint = match data.as_restyle_mut() {
+    let propagated_hint = match data.get_restyle_mut() {
         None => empty_hint,
         Some(r) => {
             r.recascade = false;
@@ -523,14 +529,21 @@ fn preprocess_children<E, D>(traversal: &D,
         };
 
         let mut child_data = unsafe { D::ensure_element_data(&child).borrow_mut() };
-        if child_data.is_unstyled_initial() {
+
+        // If the child is unstyled, we don't need to set up any restyling.
+        if !child_data.has_styles() {
             continue;
         }
 
-        let mut restyle_data = match child_data.restyle() {
-            Some(d) => d,
-            None => continue,
-        };
+        // If the child doesn't have pre-existing RestyleData and we don't have
+        // any reason to create one, avoid the useless allocation and move on to
+        // the next child.
+        if propagated_hint.is_empty() && !parent_inherited_style_changed &&
+           !child_data.has_restyle()
+        {
+            continue;
+        }
+        let mut restyle_data = child_data.ensure_restyle();
 
         // Propagate the parent and sibling restyle hint.
         if !propagated_hint.is_empty() {

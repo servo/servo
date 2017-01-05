@@ -140,7 +140,6 @@ fn construct_flows_at<'a, N>(context: &LayoutContext<'a>,
     }
 
     if let Some(el) = node.as_element() {
-        el.mutate_data().unwrap().persist();
         unsafe { el.unset_dirty_descendants(); }
     }
 }

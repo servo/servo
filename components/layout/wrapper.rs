@@ -172,7 +172,7 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
         }
 
         let data = node.borrow_layout_data().unwrap();
-        if let Some(r) = data.base.style_data.as_restyle() {
+        if let Some(r) = data.base.style_data.get_restyle() {
             // We're reflowing a node that just got a restyle, and so the
             // damage has been computed and stored in the RestyleData.
             r.damage

@@ -9,7 +9,6 @@ use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawGeckoPresContext;
 use gecko_bindings::structs::ThreadSafeURIHolder;
 use gecko_bindings::structs::ThreadSafePrincipalHolder;
-use gecko_bindings::structs::ConsumeStyleBehavior;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::TraversalRootBehavior;
 use gecko_bindings::structs::FontFamilyList;
@@ -1323,13 +1322,12 @@ extern "C" {
                                    change_hint: nsChangeHint);
 }
 extern "C" {
-    pub fn Servo_CheckChangeHint(element: RawGeckoElementBorrowed)
+    pub fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed)
      -> nsChangeHint;
 }
 extern "C" {
     pub fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                              set: RawServoStyleSetBorrowed,
-                              consume: ConsumeStyleBehavior)
+                              set: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong;
 }
 extern "C" {
@@ -1341,7 +1339,6 @@ extern "C" {
 extern "C" {
     pub fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
                                     pseudo_tag: *mut nsIAtom,
-                                    consume: ConsumeStyleBehavior,
                                     set: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong;
 }

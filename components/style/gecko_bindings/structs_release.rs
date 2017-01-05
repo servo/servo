@@ -2447,9 +2447,6 @@ pub mod root {
         }
         #[repr(i32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum ConsumeStyleBehavior { Consume = 0, DontConsume = 1, }
-        #[repr(i32)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum TraversalRootBehavior {
             Normal = 0,
             UnstyledChildrenOnly = 1,

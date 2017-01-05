@@ -135,7 +135,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
         debug_assert!(self.current_element_info.is_none());
         self.current_element_info = Some(CurrentElementInfo {
             element: element.as_node().opaque(),
-            is_initial_style: data.is_unstyled_initial(),
+            is_initial_style: !data.has_styles(),
         });
     }
 
