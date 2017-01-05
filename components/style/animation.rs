@@ -32,7 +32,7 @@ pub enum KeyframesIterationState {
     /// Infinite iterations, so no need to track a state.
     Infinite,
     /// Current and max iterations.
-    Finite(u32, u32),
+    Finite(f32, f32),
 }
 
 /// This structure represents wether an animation is actually running.
@@ -92,7 +92,7 @@ impl KeyframesAnimationState {
         }
 
         if let KeyframesIterationState::Finite(ref mut current, ref max) = self.iteration_state {
-            *current += 1;
+            *current += 1.0;
             // NB: This prevent us from updating the direction, which might be
             // needed for the correct handling of animation-fill-mode.
             if *current >= *max {
@@ -474,7 +474,7 @@ pub fn maybe_start_animations(context: &SharedStyleContext,
             let duration = box_style.animation_duration_mod(i).seconds();
             let iteration_state = match box_style.animation_iteration_count_mod(i) {
                 AnimationIterationCount::Infinite => KeyframesIterationState::Infinite,
-                AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0, n),
+                AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0.0, n),
             };
 
             let animation_direction = box_style.animation_direction_mod(i);
