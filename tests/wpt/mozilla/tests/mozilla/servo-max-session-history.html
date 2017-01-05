@@ -1,0 +1,36 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body></body>
+<script>
+  // This test goes forward by X pages, then back by Y pages,
+  // then checks to see if that triggered a reload.
+  // If it did, the document must have been discarded,
+
+  // The current page number (stored in the URL search string)
+  var page_number = location.search.substring(1) | 0;
+
+  // The number of pages to go forward by.
+  // This should be more than go_back_by, to ensure that
+  // we actually do more than one back traversal.
+  var go_forward_by = 24;
+
+  // The number of pages to go back by.
+  // This should be more than the default --max-session-history,
+  // to ensure that going back reloads the page.
+  var go_back_by = Math.min(page_number, 20);
+
+  if (history.length < go_forward_by) {
+    // Keep loading new pages until we have loaded enough of them.
+    location.assign("?" + (page_number + 1));
+  } else if (page_number === 0) {
+    // If we got back to the beginning, we must have triggered reloads.
+    test(function() {}, "Forward then back triggered a reload.");
+  } else {
+    // Otherwise, go back.
+    history.go(-go_back_by);
+  }
+</script>
+</html>
