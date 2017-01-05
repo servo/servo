@@ -94,9 +94,52 @@
 
 </%helpers:longhand>
 
-${helpers.single_keyword("position", "static absolute relative fixed",
-                         need_clone=True, extra_gecko_values="sticky", animatable=False,
-                         spec="https://drafts.csswg.org/css-position/#position-property")}
+${helpers.single_keyword("-moz-top-layer", "none top",
+                         gecko_constant_prefix="NS_STYLE_TOP_LAYER",
+                         gecko_ffi_name="mTopLayer", need_clone=True,
+                         products="gecko", animatable=False, internal=True,
+                         spec="Internal (not web-exposed)")}
+
+<%helpers:single_keyword_computed name="position"
+                                  values="static absolute relative fixed"
+                                  need_clone="True"
+                                  extra_gecko_values="sticky"
+                                  animatable="False"
+                                  spec="https://drafts.csswg.org/css-position/#position-property">
+    impl SpecifiedValue {
+        pub fn is_absolutely_positioned_style(&self) -> bool {
+            matches!(*self, SpecifiedValue::absolute | SpecifiedValue::fixed)
+        }
+    }
+
+    use values::NoViewportPercentage;
+    impl NoViewportPercentage for SpecifiedValue {}
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+            % if product == "gecko":
+                // https://fullscreen.spec.whatwg.org/#new-stacking-layer
+                // Any position value other than 'absolute' and 'fixed' are
+                // computed to 'absolute' if the element is in a top layer.
+                if !self.is_absolutely_positioned_style() &&
+                   matches!(_context.style().get_box().clone__moz_top_layer(),
+                            longhands::_moz_top_layer::SpecifiedValue::top) {
+                    SpecifiedValue::absolute
+                } else {
+                    *self
+                }
+            % else:
+                *self
+            % endif
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
+            *computed
+        }
+    }
+</%helpers:single_keyword_computed>
 
 <%helpers:single_keyword_computed name="float"
                                   values="none left right"
@@ -115,10 +158,7 @@ ${helpers.single_keyword("position", "static absolute relative fixed",
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            let positioned = matches!(context.style().get_box().clone_position(),
-                longhands::position::SpecifiedValue::absolute |
-                longhands::position::SpecifiedValue::fixed);
-            if positioned {
+            if context.style().get_box().clone_position().is_absolutely_positioned_style() {
                 computed_value::T::none
             } else {
                 let ltr = context.style().writing_mode.is_bidi_ltr();
