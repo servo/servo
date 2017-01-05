@@ -555,20 +555,12 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             if fragment.style.get_box().position == computed_values::position::T::fixed {
                 self.parent_nodes.clear();
             }
-        } else if let Some((inline_context, node_position)) =
-            fragment.inline_context.as_ref().and_then(|inline_context| {
-                inline_context.nodes.iter().position(|node| node.address == self.node_address).map(|node_position| {
-                    (inline_context, node_position)
-                })
-            }) {
+        } else if let Some(node) = fragment.inline_context.as_ref().and_then(|inline_context| {
+            inline_context.nodes.iter().find(|node| node.address == self.node_address)
+        }) {
             // TODO: Handle cases where the `offsetParent` is an inline
             // element. This will likely be impossible until
-            // https://github.com/servo/servo/issues/13982 is fixed. It would
-            // have been much easier to just use find() instead of position(),
-            // but node_position will be needed later in order to handle those
-            // cases.
-
-            let node = &inline_context.nodes[node_position];
+            // https://github.com/servo/servo/issues/13982 is fixed.
 
             // Found a fragment in the flow tree whose inline context contains
             // the DOM node we're looking for, i.e. the node is inline and
