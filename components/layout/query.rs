@@ -564,11 +564,12 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             if fragment.style.get_box().position == computed_values::position::T::fixed {
                 self.parent_nodes.clear();
             }
-        } else if let Some((inline_context, node_position)) = fragment.inline_context.as_ref().and_then(|inline_context| {
-            inline_context.nodes.iter().position(|node| node.address == self.node_address).map(|node_position| {
-                (inline_context, node_position)
-            })
-        }) {
+        } else if let Some((inline_context, node_position)) =
+            fragment.inline_context.as_ref().and_then(|inline_context| {
+                inline_context.nodes.iter().position(|node| node.address == self.node_address).map(|node_position| {
+                    (inline_context, node_position)
+                })
+            }) {
             // TODO: Handle cases where the `offsetParent` is an inline
             // element. This will likely be impossible until
             // https://github.com/servo/servo/issues/13982 is fixed. It would
