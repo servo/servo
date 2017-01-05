@@ -126,6 +126,16 @@ pub enum LayoutControlMsg {
     GetWebFontLoadState(IpcSender<bool>),
 }
 
+
+/// Used to indicate whether the load is a normal load or an initial about:blank load
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
+pub enum NavigationType {
+    /// Indicates that this is an initial about:blank load.
+    InitialAboutBlank,
+    /// Indicates that this is a normal load.
+    Normal,
+}
+
 /// can be passed to `LoadUrl` to load a page with GET/POST
 /// parameters or headers
 #[derive(Clone, Deserialize, Serialize)]
@@ -146,6 +156,8 @@ pub struct LoadData {
     pub referrer_policy: Option<ReferrerPolicy>,
     /// The referrer URL.
     pub referrer_url: Option<ServoUrl>,
+    /// A flag to determine if this is the initial about blank load
+    pub navigation_type: NavigationType,
 }
 
 impl LoadData {
@@ -158,6 +170,22 @@ impl LoadData {
             data: None,
             referrer_policy: referrer_policy,
             referrer_url: referrer_url,
+            navigation_type: NavigationType::Normal,
+        }
+    }
+
+    /// Create a new `LoadData` object for an initial about:blank load
+    pub fn new_initial_about_blank(url: ServoUrl,
+                                   referrer_policy: Option<ReferrerPolicy>,
+                                   referrer_url: Option<ServoUrl>) -> LoadData {
+        LoadData {
+            url: url,
+            method: Method::Get,
+            headers: Headers::new(),
+            data: None,
+            referrer_policy: referrer_policy,
+            referrer_url: referrer_url,
+            navigation_type: NavigationType::InitialAboutBlank,
         }
     }
 }

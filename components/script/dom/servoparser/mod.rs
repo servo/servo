@@ -412,6 +412,8 @@ pub struct ParserContext {
     id: PipelineId,
     /// The URL for this document.
     url: ServoUrl,
+    /// Whether this is an initial about:blank document
+    initial_about_blank: bool,
 }
 
 impl ParserContext {
@@ -421,6 +423,17 @@ impl ParserContext {
             is_synthesized_document: false,
             id: id,
             url: url,
+            initial_about_blank: false,
+        }
+    }
+
+    pub fn new_initial(id: PipelineId, url: ServoUrl) -> ParserContext {
+        ParserContext {
+            parser: None,
+            is_synthesized_document: false,
+            id: id,
+            url: url,
+            initial_about_blank: true,
         }
     }
 }
@@ -543,6 +556,9 @@ impl FetchResponseListener for ParserContext {
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
 
+        if self.initial_about_blank {
+            parser.document.set_as_initial_about_blank();
+        }
         parser.document
             .finish_load(LoadType::PageSource(self.url.clone()));
 

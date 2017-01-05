@@ -46,7 +46,7 @@ use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
-use dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -85,7 +85,7 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, Enq
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx, PromiseJobQueue};
 use script_traits::{CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, EventResult};
 use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
-use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
+use script_traits::{NavigationType, NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
@@ -1239,7 +1239,7 @@ impl ScriptThread {
                                            layout_chan, window_size,
                                            load_data.url.clone(), origin);
         if load_data.url.as_str() == "about:blank" {
-            self.start_page_load_about_blank(new_load);
+            self.start_page_load_about_blank(new_load, load_data.navigation_type);
         } else {
             self.start_page_load(new_load, load_data);
         }
@@ -2142,13 +2142,16 @@ impl ScriptThread {
 
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`
     /// argument until a notification is received that the fetch is complete.
-    fn start_page_load_about_blank(&self, incomplete: InProgressLoad) {
+    fn start_page_load_about_blank(&self, incomplete: InProgressLoad, nav_type: NavigationType) {
         let id = incomplete.pipeline_id;
 
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let url = ServoUrl::parse("about:blank").unwrap();
-        let mut context = ParserContext::new(id, url.clone());
+        let mut context = match nav_type {
+            NavigationType::Normal => ParserContext::new(id, url.clone()),
+            NavigationType::InitialAboutBlank => ParserContext::new_initial(id, url.clone()),
+        };
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime!(Text / Html)));

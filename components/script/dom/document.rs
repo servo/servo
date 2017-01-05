@@ -295,6 +295,8 @@ pub struct Document {
     dom_count: Cell<u32>,
     /// Entry node for fullscreen.
     fullscreen_element: MutNullableJS<Element>,
+    /// Whether this is an initial about:blank document.
+    initial_about_blank: Cell<bool>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1921,6 +1923,7 @@ impl Document {
             ignore_destructive_writes_counter: Default::default(),
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableJS::new(None),
+            initial_about_blank: Cell::new(false),
         }
     }
 
@@ -1971,6 +1974,10 @@ impl Document {
             node.set_owner_doc(&document);
         }
         document
+    }
+
+    pub fn set_as_initial_about_blank(&self) {
+        self.initial_about_blank.set(true);
     }
 
     fn create_node_list<F: Fn(&Node) -> bool>(&self, callback: F) -> Root<NodeList> {
@@ -3336,7 +3343,9 @@ impl Runnable for DocumentProgressHandler {
         let window = document.window();
         if window.is_alive() {
             self.set_ready_state_complete();
-            self.dispatch_load();
+            if !document.initial_about_blank.get() {
+                self.dispatch_load();
+            }
         }
     }
 }

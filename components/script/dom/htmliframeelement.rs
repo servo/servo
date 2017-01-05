@@ -43,7 +43,7 @@ use msg::constellation_msg::{FrameType, FrameId, PipelineId, TraversalDirection}
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::{ScriptThread, Runnable};
-use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData};
+use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, LoadData, NavigationType};
 use script_traits::{MozBrowserEvent, NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_atoms::Atom;
@@ -72,12 +72,6 @@ bitflags! {
 enum ProcessingMode {
     FirstTime,
     NotFirstTime,
-}
-
-#[derive(PartialEq)]
-pub enum NavigationType {
-    InitialAboutBlank,
-    Normal,
 }
 
 #[dom_struct]
@@ -235,9 +229,9 @@ impl HTMLIFrameElement {
         // Synchronously create a new context and navigate it to about:blank.
         let url = ServoUrl::parse("about:blank").unwrap();
         let document = document_from_node(self);
-        let load_data = LoadData::new(url,
-                                      document.get_referrer_policy(),
-                                      Some(document.url().clone()));
+        let load_data = LoadData::new_initial_about_blank(url,
+                                                          document.get_referrer_policy(),
+                                                          Some(document.url().clone()));
         self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::InitialAboutBlank, false);
     }
 
