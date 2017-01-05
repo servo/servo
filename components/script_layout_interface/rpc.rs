@@ -39,6 +39,8 @@ pub trait LayoutRPC {
     fn margin_style(&self) -> MarginStyleResponse;
 
     fn nodes_from_point(&self, page_point: Point2D<f32>, client_point: Point2D<f32>) -> Vec<UntrustedNodeAddress>;
+
+    fn text_index(&self) -> TextIndexResponse;
 }
 
 pub struct ContentBoxResponse(pub Rect<Au>);
@@ -92,3 +94,6 @@ impl MarginStyleResponse {
         }
     }
 }
+
+#[derive(Clone)]
+pub struct TextIndexResponse(pub Option<usize>);

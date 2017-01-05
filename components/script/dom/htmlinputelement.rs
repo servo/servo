@@ -11,6 +11,8 @@ use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
+use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS, Root, RootedReference};
@@ -27,6 +29,7 @@ use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, FormDatum, FormDatumValue, FormSubmitter, HTMLFormElement};
 use dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use dom::keyboardevent::KeyboardEvent;
+use dom::mouseevent::MouseEvent;
 use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
@@ -39,6 +42,7 @@ use mime_guess;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::get_blob_origin;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FilterPattern};
+use script_layout_interface::rpc::TextIndexResponse;
 use script_traits::ScriptMsg as ConstellationMsg;
 use servo_atoms::Atom;
 use std::borrow::ToOwned;
@@ -1088,6 +1092,33 @@ impl VirtualMethods for HTMLInputElement {
             //TODO: set the editing position for text inputs
 
             document_from_node(self).request_focus(self.upcast());
+            if (self.input_type.get() == InputType::InputText ||
+                self.input_type.get() == InputType::InputPassword) &&
+                // Check if we display a placeholder. Layout doesn't know about this.
+                !self.textinput.borrow().is_empty() {
+                    if let Some(mouse_event) = event.downcast::<MouseEvent>() {
+                        // dispatch_key_event (document.rs) triggers a click event when releasing
+                        // the space key. There's no nice way to catch this so let's use this for
+                        // now.
+                        if !(mouse_event.ScreenX() == 0 && mouse_event.ScreenY() == 0 &&
+                            mouse_event.GetRelatedTarget().is_none()) {
+                                let window = window_from_node(self);
+                                let translated_x = mouse_event.ClientX() + window.PageXOffset();
+                                let translated_y = mouse_event.ClientY() + window.PageYOffset();
+                                let TextIndexResponse(index) = window.text_index_query(
+                                    self.upcast::<Node>().to_trusted_node_address(),
+                                    translated_x,
+                                    translated_y
+                                );
+                                if let Some(i) = index {
+                                    self.textinput.borrow_mut().edit_point.index = i as usize;
+                                    // trigger redraw
+                                    self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                                    event.PreventDefault();
+                                }
+                            }
+                    }
+                }
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() &&
             (self.input_type.get() == InputType::InputText ||
              self.input_type.get() == InputType::InputPassword) {
