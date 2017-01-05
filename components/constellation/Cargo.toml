@@ -28,12 +28,12 @@ net_traits = {path = "../net_traits"}
 offscreen_gl_context = "0.5.0"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
-rand = "0.3"
 script_traits = {path = "../script_traits"}
 serde = "0.8"
 serde_derive = "0.8"
 style_traits = {path = "../style_traits"}
 servo_config = {path = "../config", features = ["servo"]}
+servo_rand = {path = "../rand"}
 servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url", features = ["servo"]}
 

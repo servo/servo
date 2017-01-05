@@ -93,7 +93,6 @@ use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
-use rand::{Rng, SeedableRng, StdRng, random};
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
 use script_traits::{DocumentState, LayoutControlMsg, LoadData};
@@ -104,6 +103,7 @@ use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, W
 use script_traits::{SWManagerMsg, ScopeThings, WindowSizeType};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
+use servo_rand::{Rng, SeedableRng, ServoRng, random};
 use servo_remutex::ReentrantMutex;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
@@ -276,7 +276,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// The random number generator and probability for closing pipelines.
     /// This is for testing the hardening of the constellation.
-    random_pipeline_closure: Option<(StdRng, f32)>,
+    random_pipeline_closure: Option<(ServoRng, f32)>,
 
     /// Phantom data that keeps the Rust type system happy.
     phantom: PhantomData<(Message, LTF, STF)>,
@@ -530,7 +530,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 handled_warnings: VecDeque::new(),
                 random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(|prob| {
                     let seed = opts::get().random_pipeline_closure_seed.unwrap_or_else(random);
-                    let rng = StdRng::from_seed(&[seed]);
+                    let rng = ServoRng::from_seed(&[seed]);
                     warn!("Randomly closing pipelines.");
                     info!("Using seed {} for random pipeline closure.", seed);
                     (rng, prob)

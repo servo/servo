@@ -12,23 +12,23 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::{JS_GetArrayBufferViewType, Type};
-use rand::{OsRng, Rng};
+use servo_rand::{ServoRng, Rng};
 
-unsafe_no_jsmanaged_fields!(OsRng);
+unsafe_no_jsmanaged_fields!(ServoRng);
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto
 #[dom_struct]
 pub struct Crypto {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in rand"]
-    rng: DOMRefCell<OsRng>,
+    rng: DOMRefCell<ServoRng>,
 }
 
 impl Crypto {
     fn new_inherited() -> Crypto {
         Crypto {
             reflector_: Reflector::new(),
-            rng: DOMRefCell::new(OsRng::new().unwrap()),
+            rng: DOMRefCell::new(ServoRng::new()),
         }
     }
 

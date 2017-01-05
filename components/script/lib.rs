@@ -73,7 +73,6 @@ extern crate parking_lot;
 extern crate phf;
 #[macro_use]
 extern crate profile_traits;
-extern crate rand;
 extern crate range;
 extern crate ref_filter_map;
 extern crate ref_slice;
@@ -86,6 +85,7 @@ extern crate serde;
 #[macro_use] extern crate servo_atoms;
 #[macro_use] extern crate servo_config;
 extern crate servo_geometry;
+extern crate servo_rand;
 extern crate servo_url;
 extern crate smallvec;
 #[macro_use]
