@@ -432,6 +432,10 @@ impl Pipeline {
         self.notify_visibility();
     }
 
+    /// Returns true if this page is `about:blank`
+    pub fn is_about_blank(&self) -> bool {
+        self.url.as_str() == "about:blank"
+    }
 }
 
 /// Creating a new pipeline may require creating a new event loop.

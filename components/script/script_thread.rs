@@ -45,7 +45,7 @@ use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::htmlanchorelement::HTMLAnchorElement;
-use dom::htmliframeelement::HTMLIFrameElement;
+use dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
 use dom::mutationobserver::MutationObserver;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
@@ -1258,7 +1258,7 @@ impl ScriptThread {
         window.set_scroll_offsets(scroll_offsets)
     }
 
-    fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
+    pub fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
         let NewLayoutInfo {
             parent_info,
             new_pipeline_id,
@@ -2064,7 +2064,7 @@ impl ScriptThread {
             Some(frame_id) => {
                 let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, frame_id);
                 if let Some(iframe) = iframe {
-                    iframe.navigate_or_reload_child_browsing_context(Some(load_data), replace);
+                    iframe.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::Normal, replace);
                 }
             }
             None => {

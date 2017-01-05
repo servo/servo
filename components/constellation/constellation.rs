@@ -2192,7 +2192,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(evicted_id) = evicted_id {
-            self.close_pipeline(evicted_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+            // Do not evict an `about:blank` pipeline as it will not be reloaded in the
+            // same event loop as the parent pipeline and it will not share the same mutable
+            // origin.
+            if self.pipelines.get(&evicted_id).map_or(true, |pipeline| !pipeline.is_about_blank()) {
+                self.close_pipeline(evicted_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+            }
         }
 
         if new_frame {
