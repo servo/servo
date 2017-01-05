@@ -60,7 +60,6 @@ phf = "0.7.18"
 phf_macros = "0.7.18"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
-rand = "0.3"
 range = {path = "../range"}
 ref_filter_map = "1.0.1"
 ref_slice = "1.0"
@@ -73,6 +72,7 @@ serde = "0.8"
 servo_atoms = {path = "../atoms"}
 servo_config = {path = "../config", features = ["servo"] }
 servo_geometry = {path = "../geometry" }
+servo_rand = {path = "../rand"}
 servo_url = {path = "../url", features = ["servo"] }
 smallvec = "0.1"
 style = {path = "../style"}
