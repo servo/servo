@@ -5,9 +5,9 @@
 //! Base classes to work with IDL callbacks.
 
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::settings_stack::AutoEntryScript;
+use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Heap, MutableHandleObject};
 use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};
@@ -18,6 +18,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use std::default::Default;
 use std::ffi::CString;
 use std::mem::drop;
+use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
 
@@ -30,19 +31,33 @@ pub enum ExceptionHandling {
     Rethrow,
 }
 
-
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[derive(Default, JSTraceable)]
+#[must_root]
 pub struct CallbackObject {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
+
+    /// The ["callback context"], that is, the global to use as incumbent
+    /// global when calling the callback.
+    ///
+    /// Looking at the WebIDL standard, it appears as though there would always
+    /// be a value here, but [sometimes] callback functions are created by
+    /// hand-waving without defining the value of the callback context, and
+    /// without any JavaScript code on the stack to grab an incumbent global
+    /// from.
+    ///
+    /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
+    /// [sometimes]: https://github.com/whatwg/html/issues/2248
+    incumbent: Option<JS<GlobalScope>>
 }
 
 impl CallbackObject {
     fn new() -> CallbackObject {
         CallbackObject {
             callback: Heap::default(),
+            incumbent: GlobalScope::incumbent().map(|i| JS::from_ref(&*i)),
         }
     }
 
@@ -69,11 +84,19 @@ pub trait CallbackContainer {
     fn callback(&self) -> *mut JSObject {
         self.callback_holder().get()
     }
+    /// Returns the ["callback context"], that is, the global to use as
+    /// incumbent global when calling the callback.
+    ///
+    /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
+    fn incumbent(&self) -> Option<&GlobalScope> {
+        self.callback_holder().incumbent.as_ref().map(JS::deref)
+    }
 }
 
 
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
+#[must_root]
 pub struct CallbackFunction {
     object: CallbackObject,
 }
@@ -101,6 +124,7 @@ impl CallbackFunction {
 
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
+#[must_root]
 pub struct CallbackInterface {
     object: CallbackObject,
 }
@@ -175,6 +199,9 @@ pub struct CallSetup {
     /// https://heycam.github.io/webidl/#es-invoking-callback-functions
     /// steps 8 and 18.2.
     entry_script: Option<AutoEntryScript>,
+    /// https://heycam.github.io/webidl/#es-invoking-callback-functions
+    /// steps 9 and 18.1.
+    incumbent_script: Option<AutoIncumbentScript>,
 }
 
 impl CallSetup {
@@ -187,12 +214,14 @@ impl CallSetup {
         let cx = global.get_cx();
 
         let aes = AutoEntryScript::new(&global);
+        let ais = callback.incumbent().map(AutoIncumbentScript::new);
         CallSetup {
             exception_global: global,
             cx: cx,
             old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
             handling: handling,
             entry_script: Some(aes),
+            incumbent_script: ais,
         }
     }
 
@@ -211,6 +240,7 @@ impl Drop for CallSetup {
                                                  self.exception_global.reflector().get_jsobject().get());
                 report_pending_exception(self.cx, true);
             }
+            drop(self.incumbent_script.take());
             drop(self.entry_script.take().unwrap());
         }
     }

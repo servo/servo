@@ -777,6 +777,9 @@ impl TestBindingMethods for TestBinding {
     fn EntryGlobal(&self) -> Root<GlobalScope> {
         GlobalScope::entry()
     }
+    fn IncumbentGlobal(&self) -> Root<GlobalScope> {
+        GlobalScope::incumbent().unwrap()
+    }
 }
 
 impl TestBinding {
