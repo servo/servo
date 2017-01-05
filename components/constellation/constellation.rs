@@ -587,20 +587,27 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => self.root_frame_id,
         };
 
-        let (event_loop, host) = match sandbox {
-            IFrameSandboxState::IFrameSandboxed => (None, None),
-            IFrameSandboxState::IFrameUnsandboxed => match reg_host(&load_data.url) {
-                None => (None, None),
-                Some(host) => {
-                    let event_loop = self.event_loops.get(&top_level_frame_id)
-                        .and_then(|map| map.get(host))
-                        .and_then(|weak| weak.upgrade());
-                    match event_loop {
-                        None => (None, Some(String::from(host))),
-                        Some(event_loop) => (Some(event_loop.clone()), None),
-                    }
+        // Treat about:blank as a same-origin load
+        let (event_loop, host) = if load_data.url.as_str() == "about:blank" {
+            let event_loop = parent_info.and_then(|(pipeline_id, _)| self.pipelines.get(&pipeline_id))
+                .map(|pipeline| pipeline.event_loop.clone());
+            (event_loop, None)
+        } else {
+            match sandbox {
+                IFrameSandboxState::IFrameSandboxed => (None, None),
+                IFrameSandboxState::IFrameUnsandboxed => match reg_host(&load_data.url) {
+                    None => (None, None),
+                    Some(host) => {
+                        let event_loop = self.event_loops.get(&top_level_frame_id)
+                            .and_then(|map| map.get(host))
+                            .and_then(|weak| weak.upgrade());
+                        match event_loop {
+                            None => (None, Some(String::from(host))),
+                            Some(event_loop) => (Some(event_loop.clone()), None),
+                        }
+                    },
                 },
-            },
+            }
         };
 
         let resource_threads = if is_private {
@@ -1382,8 +1389,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
         let (load_data, window_size, is_private) = {
-            let old_pipeline = load_info.old_pipeline_id
-                .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
+            let old_pipeline = self.frames.get(&load_info.info.frame_id)
+                .and_then(|frame| self.pipelines.get(&frame.pipeline_id));
 
             let source_pipeline = match self.pipelines.get(&load_info.info.parent_pipeline_id) {
                 Some(source_pipeline) => source_pipeline,
