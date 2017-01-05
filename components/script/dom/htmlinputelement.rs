@@ -85,6 +85,7 @@ pub struct HTMLInputElement {
     checked_changed: Cell<bool>,
     placeholder: DOMRefCell<DOMString>,
     value_changed: Cell<bool>,
+    value_on_focus: DOMRefCell<DOMString>,
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
@@ -137,6 +138,7 @@ impl HTMLInputElement {
                                                       local_name, prefix, document),
             input_type: Cell::new(InputType::InputText),
             placeholder: DOMRefCell::new(DOMString::new()),
+            value_on_focus: DOMRefCell::new(DOMString::new()),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
@@ -986,8 +988,9 @@ impl VirtualMethods for HTMLInputElement {
             },
             &local_name!("value") if !self.value_changed.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
-                self.textinput.borrow_mut().set_content(
-                    value.map_or(DOMString::new(), DOMString::from));
+                let stringValue = value.map_or(DOMString::new(), DOMString::from);
+                self.textinput.borrow_mut().set_content(stringValue.clone());
+                *self.value_on_focus.borrow_mut() = stringValue;
                 self.update_placeholder_shown_state();
             },
             &local_name!("name") if self.input_type.get() == InputType::InputRadio => {
@@ -1073,6 +1076,24 @@ impl VirtualMethods for HTMLInputElement {
             el.check_ancestors_disabled_state_for_form_control();
         } else {
             el.check_disabled_attribute();
+        }
+    }
+
+    fn before_handle_event(&self, event: &Event) {
+        if let Some(s) = self.super_type() {
+            s.before_handle_event(event);
+        }
+
+        if event.type_() == Atom::from("blur") {
+            if *self.value_on_focus.borrow() == self.Value() {
+                return;
+            }
+
+            *self.value_on_focus.borrow_mut() = self.Value();
+            let target = self.upcast::<EventTarget>();
+            target.fire_event("change",
+                              EventBubbles::Bubbles,
+                              EventCancelable::NotCancelable);
         }
     }
 
