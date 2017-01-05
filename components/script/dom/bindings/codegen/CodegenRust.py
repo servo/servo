@@ -6275,11 +6275,7 @@ class CGCallback(CGClass):
         args.insert(0, Argument(None, "&self"))
         argsWithoutThis.insert(0, Argument(None, "&self"))
 
-        setupCall = ("let mut s_ec = RootedObject::new_unrooted(ptr::null_mut());\n"
-                     "let s = CallSetup::new(&mut s_ec, self, aExceptionHandling);\n"
-                     "if s.get_context().is_null() {\n"
-                     "    return Err(JSFailed);\n"
-                     "}\n")
+        setupCall = "let s = CallSetup::new(self, aExceptionHandling);\n"
 
         bodyWithThis = string.Template(
             setupCall +
