@@ -15,7 +15,7 @@ use custom_properties::ComputedValuesMap;
 use gecko_bindings::bindings;
 % for style_struct in data.style_structs:
 use gecko_bindings::structs::${style_struct.gecko_ffi_name};
-use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
+use gecko_bindings::bindings::Gecko_Construct_Default_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
@@ -40,6 +40,7 @@ use gecko_bindings::bindings::Gecko_SetMozBinding;
 use gecko_bindings::bindings::Gecko_SetNullImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
+use gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use gecko_bindings::structs;
 use gecko_bindings::structs::nsStyleVariables;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordData, CoordDataMut};
@@ -53,7 +54,6 @@ use properties::longhands;
 use std::fmt::{self, Debug};
 use std::mem::{transmute, zeroed};
 use std::ptr;
-use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::cmp;
 
@@ -76,7 +76,7 @@ pub struct ComputedValues {
 }
 
 impl ComputedValues {
-    pub fn inherit_from(parent: &Arc<Self>) -> Arc<Self> {
+    pub fn inherit_from(parent: &Arc<Self>, default: &Arc<Self>) -> Arc<Self> {
         Arc::new(ComputedValues {
             custom_properties: parent.custom_properties.clone(),
             shareable: parent.shareable,
@@ -86,7 +86,7 @@ impl ComputedValues {
             % if style_struct.inherited:
             ${style_struct.ident}: parent.${style_struct.ident}.clone(),
             % else:
-            ${style_struct.ident}: Self::initial_values().${style_struct.ident}.clone(),
+            ${style_struct.ident}: default.${style_struct.ident}.clone(),
             % endif
             % endfor
         })
@@ -111,37 +111,16 @@ impl ComputedValues {
         }
     }
 
-    pub fn style_for_child_text_node(parent: &Arc<Self>) -> Arc<Self> {
-        // Gecko expects text nodes to be styled as if they were elements that
-        // matched no rules (that is, inherited style structs are inherited and
-        // non-inherited style structs are set to their initial values).
-        ComputedValues::inherit_from(parent)
-    }
-
-    pub fn initial_values() -> &'static Self {
-        unsafe {
-            debug_assert!(!raw_initial_values().is_null());
-            &*raw_initial_values()
-        }
-    }
-
-    pub unsafe fn initialize() {
-        debug_assert!(raw_initial_values().is_null());
-        set_raw_initial_values(Box::into_raw(Box::new(ComputedValues {
-            % for style_struct in data.style_structs:
-               ${style_struct.ident}: style_structs::${style_struct.name}::initial(),
-            % endfor
+    pub fn default_values(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
+        Arc::new(ComputedValues {
             custom_properties: None,
             shareable: true,
-            writing_mode: WritingMode::empty(),
-            root_font_size: longhands::font_size::get_initial_value(),
-        })));
-    }
-
-    pub unsafe fn shutdown() {
-        debug_assert!(!raw_initial_values().is_null());
-        let _ = Box::from_raw(raw_initial_values());
-        set_raw_initial_values(ptr::null_mut());
+            writing_mode: WritingMode::empty(), // FIXME(bz): This seems dubious
+            root_font_size: longhands::font_size::get_initial_value(), // FIXME(bz): Also seems dubious?
+            % for style_struct in data.style_structs:
+                ${style_struct.ident}: style_structs::${style_struct.name}::default(pres_context),
+            % endfor
+        })
     }
 
     % for style_struct in data.style_structs:
@@ -415,10 +394,11 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_style_struct(style_struct)">
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
-    pub fn initial() -> Arc<Self> {
+    pub fn default(pres_context: RawGeckoPresContextBorrowed) -> Arc<Self> {
         let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } });
         unsafe {
-            Gecko_Construct_${style_struct.gecko_ffi_name}(&mut Arc::get_mut(&mut result).unwrap().gecko);
+            Gecko_Construct_Default_${style_struct.gecko_ffi_name}(&mut Arc::get_mut(&mut result).unwrap().gecko,
+                                                                   pres_context);
         }
         result
     }
@@ -2646,13 +2626,3 @@ pub unsafe extern "C" fn Servo_GetStyleVariables(_cv: ServoComputedValuesBorrowe
     &*EMPTY_VARIABLES_STRUCT
 }
 
-// To avoid UB, we store the initial values as a atomic. It would be nice to
-// store them as AtomicPtr, but we can't have static AtomicPtr without const
-// fns, which aren't in stable Rust.
-static INITIAL_VALUES_STORAGE: AtomicUsize = ATOMIC_USIZE_INIT;
-unsafe fn raw_initial_values() -> *mut ComputedValues {
-    INITIAL_VALUES_STORAGE.load(Ordering::Relaxed) as *mut ComputedValues
-}
-unsafe fn set_raw_initial_values(v: *mut ComputedValues) {
-    INITIAL_VALUES_STORAGE.store(v as usize, Ordering::Relaxed);
-}

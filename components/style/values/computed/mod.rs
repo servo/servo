@@ -62,20 +62,6 @@ impl<'a> Context<'a> {
     pub fn style(&self) -> &ComputedValues { &self.style }
     /// A mutable reference to the current style.
     pub fn mutate_style(&mut self) -> &mut ComputedValues { &mut self.style }
-
-    /// Creates a dummy computed context for use in multiple places, like
-    /// evaluating media queries.
-    pub fn initial(viewport_size: Size2D<Au>, is_root_element: bool) -> Self {
-        let initial_style = ComputedValues::initial_values();
-        // FIXME: Enforce a font metrics provider.
-        Context {
-            is_root_element: is_root_element,
-            viewport_size: viewport_size,
-            inherited_style: initial_style,
-            style: initial_style.clone(),
-            font_metrics_provider: None,
-        }
-    }
 }
 
 /// A trait to represent the conversion between computed and specified values.

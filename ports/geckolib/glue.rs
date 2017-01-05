@@ -36,6 +36,7 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
+use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
@@ -81,17 +82,12 @@ pub extern "C" fn Servo_Initialize() -> () {
     // See https://doc.rust-lang.org/log/env_logger/index.html for instructions.
     env_logger::init().unwrap();
 
-    // Allocate our default computed values.
-    unsafe { ComputedValues::initialize(); }
-
     // Pretend that we're a Servo Layout thread, to make some assertions happy.
     thread_state::initialize(thread_state::LAYOUT);
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_Shutdown() -> () {
-    // Destroy our default computed values.
-    unsafe { ComputedValues::shutdown(); }
 }
 
 fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyleContext {
@@ -111,20 +107,12 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
         timer: Timer::new(),
         // FIXME Find the real QuirksMode information for this document
         quirks_mode: QuirksMode::NoQuirks,
+        default_computed_values: per_doc_data.default_computed_values.clone(),
     }
 }
 
 fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
                     unstyled_children_only: bool) {
-    // Force the creation of our lazily-constructed initial computed values on
-    // the main thread, since it's not safe to call elsewhere.
-    //
-    // FIXME(bholley): this should move into Servo_Initialize as soon as we get
-    // rid of the HackilyFindSomeDeviceContext stuff that happens during
-    // initial_values computation, since that stuff needs to be called further
-    // along in startup than the sensible place to call Servo_Initialize.
-    ComputedValues::initial_values();
-
     // When new content is inserted in a display:none subtree, we will call into
     // servo to try to style it. Detect that here and bail out.
     if let Some(parent) = element.parent_element() {
@@ -168,7 +156,8 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: RawServoDeclarationBlockBorrowed,
+pub extern "C" fn Servo_RestyleWithAddedDeclaration(raw_data: RawServoStyleSetBorrowed,
+                                                    declarations: RawServoDeclarationBlockBorrowed,
                                                     previous_style: ServoComputedValuesBorrowed)
   -> ServoComputedValuesStrong
 {
@@ -181,11 +170,14 @@ pub extern "C" fn Servo_RestyleWithAddedDeclaration(declarations: RawServoDeclar
         guard.declarations.iter().rev().map(|&(ref decl, _importance)| decl)
     };
 
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+
     // FIXME (bug 1303229): Use the actual viewport size here
     let computed = apply_declarations(Size2D::new(Au(0), Au(0)),
                                       /* is_root_element = */ false,
                                       declarations,
                                       previous_style,
+                                      &data.default_computed_values,
                                       None,
                                       Box::new(StdoutErrorReporter),
                                       None,
@@ -529,7 +521,8 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 
 
     let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
-    let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent, false)
+    let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent,
+                                                                  &data.default_computed_values, false)
                            .map(|styles| styles.values);
     new_computed.map_or(Strong::null(), |c| c.into_strong())
 }
@@ -542,6 +535,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
 {
     let element = GeckoElement(element);
     let data = unsafe { element.ensure_data() }.borrow_mut();
+    let doc_data = PerDocumentStyleData::from_ffi(raw_data);
 
     // FIXME(bholley): Assert against this.
     if data.get_styles().is_none() {
@@ -549,11 +543,10 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
         return if is_probe {
             Strong::null()
         } else {
-            Arc::new(ComputedValues::initial_values().clone()).into_strong()
+            doc_data.borrow().default_computed_values.clone().into_strong()
         };
     }
 
-    let doc_data = PerDocumentStyleData::from_ffi(raw_data);
     match get_pseudo_style(element, pseudo_tag, data.styles(), doc_data) {
         Some(values) => values.into_strong(),
         None if !is_probe => data.styles().primary.values.clone().into_strong(),
@@ -572,20 +565,23 @@ fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
         PseudoElementCascadeType::Lazy => {
             let d = doc_data.borrow_mut();
             let base = &styles.primary.values;
-            d.stylist.lazily_compute_pseudo_element_style(&element, &pseudo, base)
+            d.stylist.lazily_compute_pseudo_element_style(&element, &pseudo, base, &d.default_computed_values)
                      .map(|s| s.values.clone())
         },
     }
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_Inherit(parent_style: ServoComputedValuesBorrowedOrNull)
+pub extern "C" fn Servo_ComputedValues_Inherit(
+  raw_data: RawServoStyleSetBorrowed,
+  parent_style: ServoComputedValuesBorrowedOrNull)
      -> ServoComputedValuesStrong {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let maybe_arc = ComputedValues::arc_from_borrowed(&parent_style);
     let style = if let Some(reference) = maybe_arc.as_ref() {
-        ComputedValues::inherit_from(reference)
+        ComputedValues::inherit_from(reference, &data.default_computed_values)
     } else {
-        Arc::new(ComputedValues::initial_values().clone())
+        data.default_computed_values.clone()
     };
     style.into_strong()
 }
@@ -601,9 +597,19 @@ pub extern "C" fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_Init() -> RawServoStyleSetOwned {
-    let data = Box::new(PerDocumentStyleData::new());
+pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextBorrowed)
+  -> RawServoStyleSetOwned {
+    let data = Box::new(PerDocumentStyleData::new(pres_context));
     data.into_ffi()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_RecomputeDefaultStyles(
+  raw_data: RawServoStyleSetBorrowed,
+  pres_context: RawGeckoPresContextBorrowed) {
+    let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    data.default_computed_values = ComputedValues::default_values(pres_context);
+    // FIXME(bz): We need to update our Stylist's Device's computed values, but how?
 }
 
 #[no_mangle]
@@ -928,6 +934,7 @@ pub extern "C" fn Servo_CheckChangeHint(element: RawGeckoElementBorrowed) -> nsC
 
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
+                                     raw_data: RawServoStyleSetBorrowed,
                                      consume: structs::ConsumeStyleBehavior)
                                      -> ServoComputedValuesStrong
 {
@@ -935,10 +942,11 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
     debug!("Servo_ResolveStyle: {:?}, consume={:?}", element, consume);
 
     let mut data = unsafe { element.ensure_data() }.borrow_mut();
+    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     if !data.has_current_styles() {
         error!("Resolving style on unstyled element with lazy computation forbidden.");
-        return Arc::new(ComputedValues::initial_values().clone()).into_strong();
+        return per_doc_data.default_computed_values.clone().into_strong();
     }
 
     let values = data.styles().primary.values.clone();

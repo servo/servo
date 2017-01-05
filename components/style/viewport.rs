@@ -9,13 +9,18 @@
 
 #![deny(missing_docs)]
 
+#[cfg(feature = "servo")]
 use app_units::Au;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use cssparser::ToCss as ParserToCss;
+#[cfg(feature = "servo")]
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::{Size2D, TypedSize2D};
+#[cfg(feature = "servo")]
+use euclid::size::Size2D;
+use euclid::size::TypedSize2D;
 use media_queries::Device;
 use parser::{ParserContext, log_css_error};
+#[cfg(feature = "servo")]
 use properties::ComputedValues;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -25,6 +30,7 @@ use std::str::Chars;
 use style_traits::{ToCss, ViewportPx};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::{Stylesheet, Origin};
+#[cfg(feature = "servo")]
 use values::computed::{Context, ToComputedValue};
 use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
@@ -605,6 +611,11 @@ pub trait MaybeNew {
                  -> Option<ViewportConstraints>;
 }
 
+/// MaybeNew for ViewportConstraints uses ComputedValues::initial_values which
+/// is servo-only (not present in gecko).  Once it has been changed to properly
+/// use per-document initial computed values, or not use the initial computed
+/// values at all, it can go back to being compiled unconditionally.
+#[cfg(feature = "servo")]
 impl MaybeNew for ViewportConstraints {
     fn maybe_new(initial_viewport: TypedSize2D<f32, ViewportPx>,
                  rule: &ViewportRule)

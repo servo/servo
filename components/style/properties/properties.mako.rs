@@ -1658,6 +1658,7 @@ mod lazy_static_module {
 pub type CascadePropertyFn =
     extern "Rust" fn(declaration: &PropertyDeclaration,
                      inherited_style: &ComputedValues,
+                     default_style: &Arc<ComputedValues>,
                      context: &mut computed::Context,
                      seen: &mut PropertyBitField,
                      cacheable: &mut bool,
@@ -1704,13 +1705,14 @@ bitflags! {
 pub fn cascade(viewport_size: Size2D<Au>,
                rule_node: &StrongRuleNode,
                parent_style: Option<<&ComputedValues>,
+               default_style: &Arc<ComputedValues>,
                cascade_info: Option<<&mut CascadeInfo>,
                error_reporter: StdBox<ParseErrorReporter + Send>,
                flags: CascadeFlags)
                -> ComputedValues {
     let (is_root_element, inherited_style) = match parent_style {
         Some(parent_style) => (false, parent_style),
-        None => (true, ComputedValues::initial_values()),
+        None => (true, &**default_style),
     };
     // Hold locks until after the apply_declarations() call returns.
     // Use filter_map because the root node has no style source.
@@ -1735,6 +1737,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                        is_root_element,
                        iter_declarations,
                        inherited_style,
+                       default_style,
                        cascade_info,
                        error_reporter,
                        None,
@@ -1747,6 +1750,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                                     is_root_element: bool,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
+                                    default_style: &Arc<ComputedValues>,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
                                     mut error_reporter: StdBox<ParseErrorReporter + Send>,
                                     font_metrics_provider: Option<<&FontMetricsProvider>,
@@ -1773,8 +1777,6 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         ::custom_properties::finish_cascade(
             custom_properties, &inherited_custom_properties);
 
-    let initial_values = ComputedValues::initial_values();
-
     let starting_style = if !flags.contains(INHERIT_ALL) {
         ComputedValues::new(custom_properties,
                             flags.contains(SHAREABLE),
@@ -1784,7 +1786,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                                 % if style_struct.inherited:
                                     inherited_style.clone_${style_struct.name_lower}(),
                                 % else:
-                                    initial_values.clone_${style_struct.name_lower}(),
+                                    default_style.clone_${style_struct.name_lower}(),
                                 % endif
                             % endfor
                             )
@@ -1864,6 +1866,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
             let discriminant = longhand_id as usize;
             (CASCADE_PROPERTY[discriminant])(declaration,
                                              inherited_style,
+                                             default_style,
                                              &mut context,
                                              &mut seen,
                                              &mut cacheable,

@@ -8,11 +8,13 @@ use animation::Animation;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom::OpaqueNode;
 use euclid::size::TypedSize2D;
+use gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use gecko_bindings::bindings::RawServoStyleSet;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use media_queries::{Device, MediaType};
 use num_cpus;
 use parking_lot::RwLock;
+use properties::ComputedValues;
 use rayon;
 use std::cmp;
 use std::collections::HashMap;
@@ -55,6 +57,9 @@ pub struct PerDocumentStyleDataImpl {
 
     /// The number of threads of the work queue.
     pub num_threads: usize,
+
+    /// Default computed values for this document.
+    pub default_computed_values: Arc<ComputedValues>
 }
 
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
@@ -73,10 +78,15 @@ lazy_static! {
 
 impl PerDocumentStyleData {
     /// Create a dummy `PerDocumentStyleData`.
-    pub fn new() -> Self {
+    pub fn new(pres_context: RawGeckoPresContextBorrowed) -> Self {
         // FIXME(bholley): Real window size.
         let window_size: TypedSize2D<f32, ViewportPx> = TypedSize2D::new(800.0, 600.0);
-        let device = Device::new(MediaType::Screen, window_size);
+        let default_computed_values = ComputedValues::default_values(pres_context);
+
+        // FIXME(bz): We're going to need to either update the computed values
+        // in the Stylist's Device or give the Stylist a new Device when our
+        // default_computed_values changes.
+        let device = Device::new(MediaType::Screen, window_size, &default_computed_values);
 
         let (new_anims_sender, new_anims_receiver) = channel();
 
@@ -96,6 +106,7 @@ impl PerDocumentStyleData {
                 rayon::ThreadPool::new(configuration).ok()
             },
             num_threads: *NUM_THREADS,
+            default_computed_values: default_computed_values,
         }))
     }
 
