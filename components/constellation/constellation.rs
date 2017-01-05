@@ -1410,6 +1410,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // parent_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
+        // Cancel any in progress loads for this frame
+        // https://html.spec.whatwg.org/multipage/#navigate step 6
+        self.clear_pending_loads_for_frame(load_info.info.frame_id);
+
         let (load_data, window_size, is_private) = {
             let old_pipeline = self.frames.get(&load_info.info.frame_id)
                 .and_then(|frame| self.pipelines.get(&frame.pipeline_id));
@@ -1622,15 +1626,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 Some(source_id)
             }
             None => {
-                let root_frame_id = self.root_frame_id;
-
-                // Make sure no pending page would be overridden.
-                for frame_change in &self.pending_frames {
-                    if frame_change.frame_id == root_frame_id {
-                        // id that sent load msg is being changed already; abort
-                        return None;
-                    }
-                }
+                // Cancel any in progress loads for this frame
+                // https://html.spec.whatwg.org/multipage/#navigate step 6
+                self.clear_pending_loads_for_frame(frame_id);
 
                 if !self.pipeline_is_in_current_frame(source_id) {
                     // Disregard this load if the navigating pipeline is not actually
@@ -2442,6 +2440,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     /// Update the current activity of a pipeline.
     fn update_activity(&self, pipeline_id: PipelineId) {
         self.set_activity(pipeline_id, self.get_activity(pipeline_id));
+    }
+
+    fn clear_pending_loads_for_frame(&mut self, frame_id: FrameId) {
+        let pending_pipelines = self.pending_frames.iter()
+            .filter(|frame_change| frame_change.frame_id == frame_id)
+            .map(|frame_change| frame_change.new_pipeline_id)
+            .collect::<Vec<_>>();
+
+        for pipeline_id in pending_pipelines.into_iter() {
+            self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+        }
     }
 
     fn clear_joint_session_future(&mut self, frame_id: FrameId) {
