@@ -521,7 +521,7 @@ pub fn default_opts() -> Opts {
         userscripts: None,
         user_stylesheets: Vec::new(),
         output_file: None,
-        max_session_history: 16,
+        max_session_history: 20,
         replace_surrogates: false,
         gc_profile: false,
         load_webfonts_synchronously: false,
@@ -615,7 +615,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                 "Probability of randomly closing a pipeline (for testing constellation hardening).",
                 "0.0");
     opts.optopt("", "random-pipeline-closure-seed", "A fixed seed for repeatbility of random pipeline closure.", "");
-    opts.optopt("", "max-session-history", "Maximum amount of session history to store in each tab.", "16");
+    opts.optopt("", "max-session-history", "Maximum amount of session history to store in each tab.", "20");
     opts.optmulti("Z", "debug",
                   "A comma-separated string of debug options. Pass help to show available options.", "");
     opts.optflag("h", "help", "Print this message");
@@ -786,7 +786,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let max_session_history = opt_match.opt_str("max-session-history").map(|max| {
         max.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --max-session-history ({})", err)))
-    }).unwrap_or(16);
+    }).unwrap_or(20);
 
     if opt_match.opt_present("M") {
         MULTIPROCESS.store(true, Ordering::SeqCst)
