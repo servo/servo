@@ -95,7 +95,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext};
-use script_traits::{DocumentState, LayoutControlMsg, LoadData};
+use script_traits::{DocumentState, LayoutControlMsg, LoadData, NewLayoutInfo};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
@@ -1347,9 +1347,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // parent_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
-        let (load_data, window_size, is_private) = {
-            let old_pipeline = load_info.old_pipeline_id
-                .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
+        let (load_data, window_size, is_private, source_event_loop) = {
+            let old_pipeline = self.frames.get(&load_info.info.frame_id)
+                .and_then(|frame| self.pipelines.get(&frame.pipeline_id));
 
             let source_pipeline = match self.pipelines.get(&load_info.info.parent_pipeline_id) {
                 Some(source_pipeline) => source_pipeline,
@@ -1371,12 +1371,40 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
 
+            let source_event_loop = source_pipeline.event_loop.clone();
+
             if let Some(old_pipeline) = old_pipeline {
                 old_pipeline.freeze();
             }
 
-            (load_data, window_size, is_private)
+            (load_data, window_size, is_private, source_event_loop)
         };
+
+        // Treat about:blank as a same-origin navigation
+        if load_data.url.as_str() == "about:blank" {
+            let (pipeline_chan, pipeline_port) = ipc::channel().expect("Pipeline main chan");
+            let new_layout_info = NewLayoutInfo {
+                parent_info: Some((load_info.info.parent_pipeline_id, load_info.info.frame_type)),
+                new_pipeline_id: load_info.info.new_pipeline_id,
+                frame_id: load_info.info.frame_id,
+                load_data: load_data,
+                window_size: None,
+                pipeline_port: pipeline_port,
+                // TODO(cbrewster): Should we have a content_process_shutdown_chan?
+                content_process_shutdown_chan: None,
+                layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
+            };
+
+            if let Err(e) = source_event_loop.send(ConstellationControlMsg::AttachLayout(new_layout_info)) {
+                warn!("Sending to script during pipeline creation failed ({})", e);
+            }
+
+            // TODO(cbrewster): Should we call handle_script_loaded_about_blank_in_iframe_msg or
+            // should we create another method that is not prefixed by handle and is used here and in the
+            // handle method?
+            self.handle_script_loaded_about_blank_in_iframe_msg(load_info.info, pipeline_chan);
+            return;
+        }
 
         let replace = if load_info.info.replace {
             self.frames.get(&load_info.info.frame_id).map(|frame| frame.current())
