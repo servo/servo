@@ -5,16 +5,15 @@
 //! Base classes to work with IDL callbacks.
 
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
+use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
 use dom::globalscope::GlobalScope;
-use js::jsapi::{Heap, MutableHandleObject, RootedObject};
+use js::jsapi::{Heap, MutableHandleObject};
 use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};
 use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment};
-use js::jsapi::GetGlobalForObjectCrossCompartment;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JS_GetProperty;
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::RootedGuard;
 use std::default::Default;
 use std::ffi::CString;
 use std::ptr;
@@ -147,9 +146,10 @@ pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
 
 /// A class that performs whatever setup we need to safely make a call while
 /// this class is on the stack. After `new` returns, the call is safe to make.
-pub struct CallSetup<'a> {
-    /// The compartment for reporting exceptions.
-    exception_compartment: RootedGuard<'a, *mut JSObject>,
+pub struct CallSetup {
+    /// The global for reporting exceptions. This is the global object of the
+    /// (possibly wrapped) callback object.
+    exception_global: Root<GlobalScope>,
     /// The `JSContext` used for the call.
     cx: *mut JSContext,
     /// The compartment we were in before the call.
@@ -158,21 +158,17 @@ pub struct CallSetup<'a> {
     handling: ExceptionHandling,
 }
 
-impl<'a> CallSetup<'a> {
+impl CallSetup {
     /// Performs the setup needed to make a call.
     #[allow(unrooted_must_root)]
-    pub fn new<T: CallbackContainer>(exception_compartment: &'a mut RootedObject,
-                                     callback: &T,
+    pub fn new<T: CallbackContainer>(callback: &T,
                                      handling: ExceptionHandling)
-                                     -> CallSetup<'a> {
+                                     -> CallSetup {
         let global = unsafe { GlobalScope::from_object(callback.callback()) };
         let cx = global.get_cx();
 
-        exception_compartment.ptr = unsafe {
-            GetGlobalForObjectCrossCompartment(callback.callback())
-        };
         CallSetup {
-            exception_compartment: RootedGuard::new(cx, exception_compartment),
+            exception_global: global,
             cx: cx,
             old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
             handling: handling,
@@ -185,12 +181,13 @@ impl<'a> CallSetup<'a> {
     }
 }
 
-impl<'a> Drop for CallSetup<'a> {
+impl Drop for CallSetup {
     fn drop(&mut self) {
         unsafe {
             JS_LeaveCompartment(self.cx, self.old_compartment);
             if self.handling == ExceptionHandling::Report {
-                let _ac = JSAutoCompartment::new(self.cx, *self.exception_compartment);
+                let _ac = JSAutoCompartment::new(self.cx,
+                                                 self.exception_global.reflector().get_jsobject().get());
                 report_pending_exception(self.cx, true);
             }
         }
