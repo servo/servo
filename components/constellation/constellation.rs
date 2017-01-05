@@ -617,7 +617,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         Some(event_loop) => (Some(event_loop.clone()), None),
                     }
                 },
-            },
+            }
         };
 
         let resource_threads = if is_private {
@@ -1408,8 +1408,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfoWithData) {
         let (load_data, window_size, is_private) = {
-            let old_pipeline = load_info.old_pipeline_id
-                .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
+            let old_pipeline = self.frames.get(&load_info.info.frame_id)
+                .and_then(|frame| self.pipelines.get(&frame.pipeline_id));
 
             let source_pipeline = match self.pipelines.get(&load_info.info.parent_pipeline_id) {
                 Some(source_pipeline) => source_pipeline,
