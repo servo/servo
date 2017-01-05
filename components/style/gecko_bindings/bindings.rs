@@ -349,7 +349,7 @@ extern "C" {
      -> RawGeckoNodeBorrowedOrNull;
 }
 extern "C" {
-    pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u8;
+    pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u16;
 }
 extern "C" {
     pub fn Gecko_IsHTMLElementInHTMLDocument(element: RawGeckoElementBorrowed)

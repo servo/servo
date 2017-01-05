@@ -337,7 +337,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn get_state(&self) -> ElementState {
         unsafe {
-            ElementState::from_bits_truncate(Gecko_ElementState(self.0) as u16)
+            ElementState::from_bits_truncate(Gecko_ElementState(self.0))
         }
     }
 
