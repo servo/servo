@@ -338,7 +338,8 @@ impl HTMLIFrameElement {
             .and_then(|document| {
                 let current_global = GlobalScope::current();
                 let current_document = current_global.as_window().Document();
-                if document.origin().same_origin(current_document.origin()) {
+                if document.origin().same_origin(current_document.origin()) ||
+                    document.global().get_url().as_str() == "about:blank" {
                     Some(Root::from_ref(document.window()))
                 } else {
                     None
