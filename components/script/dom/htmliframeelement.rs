@@ -75,6 +75,12 @@ enum ProcessingMode {
     NotFirstTime,
 }
 
+#[derive(PartialEq)]
+pub enum NavigationType {
+    InitialAboutBlank,
+    Normal,
+}
+
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
@@ -113,7 +119,9 @@ impl HTMLIFrameElement {
         (old_pipeline_id, new_pipeline_id)
     }
 
-    pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>, replace: bool) {
+    pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>,
+                                                     nav_type: NavigationType,
+                                                     replace: bool) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {
@@ -149,37 +157,40 @@ impl HTMLIFrameElement {
             replace: replace,
         };
 
-        if load_data.as_ref().map_or(false, |d| d.url.as_str() == "about:blank") {
-            let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
+        match nav_type {
+            NavigationType::InitialAboutBlank => {
+                let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
 
-            global_scope
-                  .constellation_chan()
-                  .send(ConstellationMsg::ScriptLoadedAboutBlankInIFrame(load_info, pipeline_sender))
-                  .unwrap();
+                global_scope
+                    .constellation_chan()
+                    .send(ConstellationMsg::ScriptLoadedAboutBlankInIFrame(load_info, pipeline_sender))
+                    .unwrap();
 
-            let new_layout_info = NewLayoutInfo {
-                parent_info: Some((global_scope.pipeline_id(), frame_type)),
-                new_pipeline_id: new_pipeline_id,
-                frame_id: self.frame_id,
-                load_data: load_data.unwrap(),
-                pipeline_port: pipeline_receiver,
-                content_process_shutdown_chan: None,
-                window_size: None,
-                layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
-            };
+                let new_layout_info = NewLayoutInfo {
+                    parent_info: Some((global_scope.pipeline_id(), frame_type)),
+                    new_pipeline_id: new_pipeline_id,
+                    frame_id: self.frame_id,
+                    load_data: load_data.unwrap(),
+                    pipeline_port: pipeline_receiver,
+                    content_process_shutdown_chan: None,
+                    window_size: None,
+                    layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
+                };
 
-            ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
-        } else {
-            let load_info = IFrameLoadInfoWithData {
-                info: load_info,
-                load_data: load_data,
-                old_pipeline_id: old_pipeline_id,
-                sandbox: sandboxed,
-            };
-            global_scope
-                  .constellation_chan()
-                  .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
-                  .unwrap();
+                ScriptThread::process_attach_layout(new_layout_info, document.origin().alias());
+            },
+            NavigationType::Normal => {
+                let load_info = IFrameLoadInfoWithData {
+                    info: load_info,
+                    load_data: load_data,
+                    old_pipeline_id: old_pipeline_id,
+                    sandbox: sandboxed,
+                };
+                global_scope
+                    .constellation_chan()
+                    .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
+                    .unwrap();
+            }
         }
 
         if PREFS.is_mozbrowser_enabled() {
@@ -206,8 +217,8 @@ impl HTMLIFrameElement {
         // TODO: check ancestor browsing contexts for same URL
 
         let document = document_from_node(self);
-        self.navigate_or_reload_child_browsing_context(
-            Some(LoadData::new(url, document.get_referrer_policy(), Some(document.url()))), false);
+        self.navigate_or_reload_child_browsing_context(Some(LoadData::new(
+            url, document.get_referrer_policy(), Some(document.url()))), NavigationType::Normal, false);
     }
 
     #[allow(unsafe_code)]
@@ -228,7 +239,7 @@ impl HTMLIFrameElement {
         let load_data = LoadData::new(url,
                                       document.get_referrer_policy(),
                                       Some(document.url().clone()));
-        self.navigate_or_reload_child_browsing_context(Some(load_data), false);
+        self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::InitialAboutBlank, false);
     }
 
     pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId) {
@@ -565,7 +576,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     fn Reload(&self, _hard_reload: bool) -> ErrorResult {
         if self.Mozbrowser() {
             if self.upcast::<Node>().is_in_doc_with_browsing_context() {
-                self.navigate_or_reload_child_browsing_context(None, true);
+                self.navigate_or_reload_child_browsing_context(None, NavigationType::Normal, true);
             }
             Ok(())
         } else {
