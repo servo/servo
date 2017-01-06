@@ -15832,10 +15832,6 @@
         "url": "/cssom-view/negativeMargins.html"
       },
       {
-        "path": "cssom-view/offsetPropertiesInline.html",
-        "url": "/cssom-view/offsetPropertiesInline.html"
-      },
-      {
         "path": "cssom-view/scrolling-no-browsing-context.html",
         "url": "/cssom-view/scrolling-no-browsing-context.html"
       },
