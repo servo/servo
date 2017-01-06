@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::Blue
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::Error::{self, InvalidModification, Network, Security};
-use dom::bindings::js::{MutJS, Root};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetooth::{AsyncBluetoothListener, response_async};
@@ -28,7 +28,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct BluetoothRemoteGATTDescriptor {
     reflector_: Reflector,
-    characteristic: MutJS<BluetoothRemoteGATTCharacteristic>,
+    characteristic: JS<BluetoothRemoteGATTCharacteristic>,
     uuid: DOMString,
     value: DOMRefCell<Option<ByteString>>,
     instance_id: String,
@@ -41,7 +41,7 @@ impl BluetoothRemoteGATTDescriptor {
                          -> BluetoothRemoteGATTDescriptor {
         BluetoothRemoteGATTDescriptor {
             reflector_: Reflector::new(),
-            characteristic: MutJS::new(characteristic),
+            characteristic: JS::from_ref(characteristic),
             uuid: uuid,
             value: DOMRefCell::new(None),
             instance_id: instance_id,
@@ -72,7 +72,7 @@ impl BluetoothRemoteGATTDescriptor {
 impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-characteristic
     fn Characteristic(&self) -> Root<BluetoothRemoteGATTCharacteristic> {
-       self.characteristic.get()
+       Root::from_ref(&self.characteristic)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-uuid
