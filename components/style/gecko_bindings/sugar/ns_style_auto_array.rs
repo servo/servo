@@ -4,6 +4,7 @@
 
 //! Rust helpers for Gecko's `nsStyleAutoArray`.
 
+use gecko_bindings::bindings::Gecko_EnsureStyleAnimationArrayLength;
 use gecko_bindings::structs::nsStyleAutoArray;
 use std::iter::{once, Chain, Once, IntoIterator};
 use std::ops::Index;
@@ -39,6 +40,14 @@ impl<T> nsStyleAutoArray<T> {
     /// member fields that contain the length, which must be kept in sync.
     pub fn len(&self) -> usize {
         1 + self.mOtherElements.len()
+    }
+
+    /// Ensures that the array has length at least the given length.
+    pub fn ensure_len(&mut self, len: usize) {
+        unsafe {
+            Gecko_EnsureStyleAnimationArrayLength(self as *mut nsStyleAutoArray<T> as *mut _,
+                                                  len);
+        }
     }
 }
 
