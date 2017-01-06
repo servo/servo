@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![cfg_attr(feature = "servo", feature(plugin))]
-#![cfg_attr(feature = "servo", feature(proc_macro))]
 #![cfg_attr(feature = "servo", plugin(plugins))]
 
 #![deny(unsafe_code)]

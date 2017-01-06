@@ -12,7 +12,6 @@
 #![deny(unsafe_code, missing_docs)]
 
 #![cfg_attr(feature = "servo", feature(plugin))]
-#![cfg_attr(feature = "servo", feature(proc_macro))]
 
 extern crate app_units;
 #[macro_use]

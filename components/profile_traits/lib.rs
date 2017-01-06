@@ -7,7 +7,7 @@
 //! modules won't have to depend on `profile`.
 
 #![feature(box_syntax)]
-#![feature(plugin, proc_macro)]
+#![feature(plugin)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]

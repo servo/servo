@@ -10,7 +10,6 @@
 #![feature(box_syntax)]
 #![feature(nonzero)]
 #![feature(plugin)]
-#![feature(proc_macro)]
 #![plugin(plugins)]
 
 extern crate app_units;

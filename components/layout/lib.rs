@@ -7,7 +7,6 @@
 #![feature(conservative_impl_trait)]
 #![feature(nonzero)]
 #![feature(plugin)]
-#![feature(proc_macro)]
 #![feature(raw)]
 #![feature(step_by)]
 

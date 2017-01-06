@@ -5,7 +5,6 @@
 #![feature(box_syntax)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
-#![feature(proc_macro)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]

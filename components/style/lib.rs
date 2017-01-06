@@ -23,8 +23,6 @@
 //! [cssparser]: ../cssparser/index.html
 //! [selectors]: ../selectors/index.html
 
-#![cfg_attr(feature = "servo", feature(proc_macro))]
-
 #![deny(warnings)]
 #![deny(missing_docs)]
 

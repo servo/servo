@@ -5,7 +5,6 @@
 #![crate_name = "canvas_traits"]
 #![crate_type = "rlib"]
 #![feature(plugin)]
-#![feature(proc_macro)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]

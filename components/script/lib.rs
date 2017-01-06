@@ -12,7 +12,6 @@
 #![feature(on_unimplemented)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
-#![feature(proc_macro)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 #![feature(try_from)]
