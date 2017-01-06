@@ -59,8 +59,8 @@ use js::jsapi::{JS_GC, JS_GetRuntime};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{FrameType, PipelineId};
+use net_traits::{FetchResponseMsg, NetworkError};
 use net_traits::{ResourceThreads, ReferrerPolicy, FetchResponseListener, FetchMetadata};
-use net_traits::NetworkError;
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
 use net_traits::image_cache_thread::{PendingImageResponse, ImageCacheThread, PendingImageId};
 use net_traits::request::{Type as RequestType, RequestInit as FetchRequestInit};
@@ -1207,7 +1207,7 @@ impl Window {
             let node = from_untrusted_node_address(js_runtime.rt(), image.node);
 
             if let PendingImageState::Unrequested(ref url) = image.state {
-                fetch_image_for_layout(url.clone(), &*node, id);
+                fetch_image_for_layout(url.clone(), &*node, id, self.image_cache_thread.clone());
             }
 
             let mut images = self.pending_layout_images.borrow_mut();
@@ -1897,38 +1897,43 @@ impl Runnable for PostMessageHandler {
 
 struct LayoutImageContext {
     node: Trusted<Node>,
-    data: Vec<u8>,
     id: PendingImageId,
     url: ServoUrl,
+    cache: ImageCacheThread,
 }
 
 impl FetchResponseListener for LayoutImageContext {
     fn process_request_body(&mut self) {}
     fn process_request_eof(&mut self) {}
-    fn process_response(&mut self, _metadata: Result<FetchMetadata, NetworkError>) {/*XXXjdm*/}
-
-    fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
-        self.data.append(&mut payload);
+    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
+        self.cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponse(metadata));
     }
 
-    fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
+    fn process_response_chunk(&mut self, payload: Vec<u8>) {
+        self.cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseChunk(payload));
+    }
+
+    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
         let node = self.node.root();
         let document = document_from_node(&*node);
-        let window = document.window();
-        let image_cache = window.image_cache_thread();
-        image_cache.store_complete_image_bytes(self.id, self.data.clone());
+        self.cache.notify_pending_response(self.id,
+                                           FetchResponseMsg::ProcessResponseEOF(response));
         document.finish_load(LoadType::Image(self.url.clone()));
     }
 }
 
 impl PreInvoke for LayoutImageContext {}
 
-fn fetch_image_for_layout(url: ServoUrl, node: &Node, id: PendingImageId) {
+fn fetch_image_for_layout(url: ServoUrl, node: &Node, id: PendingImageId, cache: ImageCacheThread) {
     let context = Arc::new(Mutex::new(LayoutImageContext {
         node: Trusted::new(node),
-        data: vec![],
         id: id,
         url: url.clone(),
+        cache: cache,
     }));
 
     let document = document_from_node(node);

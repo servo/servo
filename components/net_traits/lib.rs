@@ -192,7 +192,7 @@ pub trait FetchTaskTarget {
     fn process_response_eof(&mut self, response: &Response);
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum FilteredMetadata {
     Basic(Metadata),
     Cors(Metadata),
@@ -200,7 +200,7 @@ pub enum FilteredMetadata {
     OpaqueRedirect
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum FetchMetadata {
     Unfiltered(Metadata),
     Filtered {
