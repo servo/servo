@@ -40,16 +40,11 @@
                           IconIndex="0"
                           Advertise="yes"/>
               </File>
-              <File Id="ServoManifest"
-                    Name="servo.exe.manifest"
-                    Source="${windowize(exe_path)}\servo.exe.manifest"
-                    DiskId="1"/>
-
               ${include_dependencies()}
             </Component>
 
             ${include_directory(resources_path, "resources")}
-            ${include_directory(browserhtml_path, "browserhtml")}
+            ${include_directory(path.join(dir_to_temp, "browserhtml"), "browserhtml")}
           </Directory>
         </Directory>
       </Directory>
@@ -87,9 +82,7 @@ import uuid
 from servo.command_base import host_triple
 
 def make_id(s):
-    s = s.replace(os.getcwd(), "").replace("-", "_").replace("/", "_").replace("\\", "_")
-    if "browserhtml" in s:
-        s = "browserhtml_" + s[s.index("out") + 4:]
+    s = s.replace("-", "_").replace("/", "_").replace("\\", "_")
     return "Id{}".format(s)
 
 def listfiles(directory):
@@ -100,30 +93,8 @@ def listdirs(directory):
     return [f for f in os.listdir(directory)
             if path.isdir(path.join(directory, f))]
 
-def listdeps(exe_path):
-    if "msvc" in host_triple():
-        return [path.join(windowize(exe_path), d) for d in ["libeay32md.dll", "ssleay32md.dll"]]
-    elif "gnu" in host_triple():
-        deps = [
-            "libstdc++-6.dll",
-            "libwinpthread-1.dll",
-            "libbz2-1.dll",
-            "libgcc_s_seh-1.dll",
-            "libexpat-1.dll",
-            "zlib1.dll",
-            "libpng16-16.dll",
-            "libiconv-2.dll",
-            "libglib-2.0-0.dll",
-            "libgraphite2.dll",
-            "libfreetype-6.dll",
-            "libfontconfig-1.dll",
-            "libintl-8.dll",
-            "libpcre-1.dll",
-            "libeay32.dll",
-            "ssleay32.dll",
-            "libharfbuzz-0.dll",
-        ]
-        return [path.join("C:\\msys64\\mingw64\\bin", d) for d in deps]
+def listdeps(temp_dir):
+    return [path.join(temp_dir, f) for f in os.listdir(temp_dir) if os.path.isfile(path.join(temp_dir, f)) and f != "servo.exe"]
 
 def windowize(p):
     if not p.startswith("/"):
@@ -134,7 +105,7 @@ components = []
 %>
 
 <%def name="include_dependencies()">
-% for f in listdeps(exe_path):
+% for f in listdeps(dir_to_temp):
               <File Id="${make_id(path.basename(f)).replace(".","").replace("+","x")}"
                     Name="${path.basename(f)}"
                     Source="${f}"
@@ -150,7 +121,7 @@ components = []
     <CreateFolder/>
     <% components.append(make_id(path.basename(d))) %>
     % for f in listfiles(d):
-    <File Id="${make_id(path.join(d, f))}"
+    <File Id="${make_id(path.join(d, f).replace(dir_to_temp, ""))}"
           Name="${f}"
           Source="${windowize(path.join(d, f))}"
           DiskId="1"/>
