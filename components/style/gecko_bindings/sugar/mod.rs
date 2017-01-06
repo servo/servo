@@ -9,6 +9,7 @@ mod ns_css_shadow_array;
 mod ns_style_auto_array;
 pub mod ns_style_coord;
 mod ns_t_array;
+mod ns_timing_function;
 pub mod ownership;
 pub mod refptr;
 mod style_complex_color;
