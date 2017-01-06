@@ -26,8 +26,9 @@ use dom::window::Window;
 use html5ever_atoms::LocalName;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError};
+use net_traits::{FetchResponseListener, FetchMetadata, NetworkError, FetchResponseMsg};
 use net_traits::image::base::{Image, ImageMetadata};
+use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse, PendingImageId, ImageState};
 use net_traits::image_cache_thread::{UsePlaceholder, ImageOrMetadataAvailable, CanRequestImages};
 use net_traits::request::{RequestInit, Type as RequestType};
@@ -101,8 +102,6 @@ impl Runnable for ImageRequestRunnable {
 
         let context = Arc::new(Mutex::new(ImageContext {
             elem: trusted_node,
-            data: vec!(),
-            metadata: None,
             url: this.img_url.clone(),
             status: Ok(()),
             id: this.id,
@@ -189,10 +188,6 @@ impl Runnable for ImageResponseHandlerRunnable {
 struct ImageContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLImageElement>,
-    /// The response body received to date.
-    data: Vec<u8>,
-    /// The response metadata received to date.
-    metadata: Option<Metadata>,
     /// The initial URL requested.
     url: ServoUrl,
     /// Indicates whether the request failed, and why
@@ -201,17 +196,28 @@ struct ImageContext {
     id: PendingImageId,
 }
 
+impl ImageContext {
+    fn image_cache(&self) -> ImageCacheThread {
+        let elem = self.elem.root();
+        window_from_node(&*elem).image_cache_thread().clone()
+    }
+}
+
 impl FetchResponseListener for ImageContext {
     fn process_request_body(&mut self) {}
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        self.metadata = metadata.ok().map(|meta| match meta {
+        self.image_cache().notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponse(metadata.clone()));
+
+        let metadata = metadata.ok().map(|meta| match meta {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_
         });
 
-        let status_code = self.metadata.as_ref().and_then(|m| {
+        let status_code = metadata.as_ref().and_then(|m| {
             match m.status {
                 Some((c, _)) => Some(c),
                 _ => None,
@@ -225,18 +231,20 @@ impl FetchResponseListener for ImageContext {
         };
     }
 
-    fn process_response_chunk(&mut self, mut payload: Vec<u8>) {
+    fn process_response_chunk(&mut self, payload: Vec<u8>) {
         if self.status.is_ok() {
-            self.data.append(&mut payload);
+            self.image_cache().notify_pending_response(
+                self.id,
+                FetchResponseMsg::ProcessResponseChunk(payload));
         }
     }
 
-    fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
+    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
         let elem = self.elem.root();
         let document = document_from_node(&*elem);
-        let window = document.window();
-        let image_cache = window.image_cache_thread();
-        image_cache.store_complete_image_bytes(self.id, self.data.clone());
+        let image_cache = self.image_cache();
+        image_cache.notify_pending_response(self.id,
+                                            FetchResponseMsg::ProcessResponseEOF(response));
         document.finish_load(LoadType::Image(self.url.clone()));
     }
 }

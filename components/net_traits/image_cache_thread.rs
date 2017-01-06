@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use FetchResponseMsg;
 use image::base::{Image, ImageMetadata};
 use ipc_channel::ipc::{self, IpcSender};
 use servo_url::ServoUrl;
@@ -86,7 +87,7 @@ pub enum ImageCacheCommand {
 
     /// Instruct the cache to store this data as a newly-complete network request and continue
     /// decoding the result into pixel data
-    StoreDecodeImage(PendingImageId, Vec<u8>),
+    StoreDecodeImage(PendingImageId, FetchResponseMsg),
 
     /// Clients must wait for a response before shutting down the ResourceThread
     Exit(IpcSender<()>),
@@ -145,9 +146,9 @@ impl ImageCacheThread {
         let _ = self.chan.send(msg);
     }
 
-    /// Decode the given image bytes and cache the result for the given pending ID.
-    pub fn store_complete_image_bytes(&self, id: PendingImageId, image_data: Vec<u8>) {
-        let msg = ImageCacheCommand::StoreDecodeImage(id, image_data);
+    /// Inform the image cache about a response for a pending request.
+    pub fn notify_pending_response(&self, id: PendingImageId, data: FetchResponseMsg) {
+        let msg = ImageCacheCommand::StoreDecodeImage(id, data);
         let _ = self.chan.send(msg);
     }
 
