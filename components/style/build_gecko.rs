@@ -254,6 +254,7 @@ mod bindings {
             "mozilla::ServoStyleSheet",
             "mozilla::ServoElementSnapshot.*",
             "mozilla::ConsumeStyleBehavior",
+            "mozilla::CSSPseudoClassType",
             "mozilla::css::SheetParsingMode",
             "mozilla::TraversalRootBehavior",
             "mozilla::DisplayItemClip",  // Needed because bindgen generates
@@ -472,6 +473,7 @@ mod bindings {
             "ThreadSafeURIHolder",
             "ThreadSafePrincipalHolder",
             "ConsumeStyleBehavior",
+            "CSSPseudoClassType",
             "TraversalRootBehavior",
             "FontFamilyList",
             "FontFamilyType",
