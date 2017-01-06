@@ -603,7 +603,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
         } else if self.node_offset_box.is_none() {
             // TODO(gw): Is there a less fragile way of checking whether this
             // fragment is the body element, rather than just checking that
-            // it's at level 1 (above the root node)?
+            // it's at level 1 (below the root node)?
             let is_body_element = level == 1;
 
             let is_valid_parent = match (is_body_element,
