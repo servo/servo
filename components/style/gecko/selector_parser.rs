@@ -154,6 +154,10 @@ pub enum NonTSPseudoClass {
     ReadWrite,
     /// :read-only
     ReadOnly,
+
+    // Internal pseudo-classes
+    /// :-moz-browser-frame
+    MozBrowserFrame,
 }
 
 impl ToCss for NonTSPseudoClass {
@@ -173,6 +177,8 @@ impl ToCss for NonTSPseudoClass {
             Indeterminate => ":indeterminate",
             ReadWrite => ":read-write",
             ReadOnly => ":read-only",
+
+            MozBrowserFrame => ":-moz-browser-frame",
         })
     }
 }
@@ -196,6 +202,7 @@ impl NonTSPseudoClass {
             Indeterminate |
             ReadWrite |
             ReadOnly => false,
+            MozBrowserFrame => true,
         }
     }
 
@@ -216,7 +223,8 @@ impl NonTSPseudoClass {
 
             AnyLink |
             Link |
-            Visited => ElementState::empty(),
+            Visited |
+            MozBrowserFrame => ElementState::empty(),
         }
     }
 
@@ -236,6 +244,7 @@ impl NonTSPseudoClass {
             Disabled => disabled,
             Checked => checked,
             Indeterminate => indeterminate,
+            MozBrowserFrame => mozBrowserFrame,
             ReadWrite | ReadOnly => { return None; }
         })
     }
@@ -287,6 +296,10 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             "indeterminate" => Indeterminate,
             "read-write" => ReadWrite,
             "read-only" => ReadOnly,
+
+            // Internal
+            "-moz-browser-frame" => MozBrowserFrame,
+
             _ => return Err(())
         };
 
