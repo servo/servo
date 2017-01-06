@@ -345,7 +345,7 @@ pub mod utils {
         let image_cache = window.image_cache_thread();
         let response =
             image_cache.find_image_or_metadata(url.into(),
-                                               UsePlaceholder::Yes,
+                                               UsePlaceholder::No,
                                                CanRequestImages::No);
         match response {
             Ok(ImageOrMetadataAvailable::ImageAvailable(image)) =>
