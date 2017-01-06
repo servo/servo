@@ -6,6 +6,7 @@
 
 use cssparser::ToCss;
 use element_state::ElementState;
+use gecko_bindings::structs::CSSPseudoClassType;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
 use selector_parser::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
 use selectors::parser::AttrSelector;
@@ -196,6 +197,26 @@ impl NonTSPseudoClass {
             Link |
             Visited => ElementState::empty(),
         }
+    }
+
+    /// Convert NonTSPseudoClass to Gecko's CSSPseudoClassType.
+    pub fn to_gecko_pseudoclasstype(&self) -> Option<CSSPseudoClassType> {
+        use gecko_bindings::structs::CSSPseudoClassType::*;
+        use self::NonTSPseudoClass::*;
+        Some(match *self {
+            AnyLink => anyLink,
+            Link => link,
+            Visited => visited,
+            Active => active,
+            Focus => focus,
+            Fullscreen => fullscreen,
+            Hover => hover,
+            Enabled => enabled,
+            Disabled => disabled,
+            Checked => checked,
+            Indeterminate => indeterminate,
+            ReadWrite | ReadOnly => { return None; }
+        })
     }
 }
 
