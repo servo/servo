@@ -34,7 +34,7 @@ pub enum ExceptionHandling {
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[derive(Default, JSTraceable)]
-struct CallbackObject {
+pub struct CallbackObject {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
 }
@@ -44,6 +44,10 @@ impl CallbackObject {
         CallbackObject {
             callback: Heap::default(),
         }
+    }
+
+    pub fn get(&self) -> *mut JSObject {
+        self.callback.get()
     }
 }
 
@@ -59,8 +63,12 @@ impl PartialEq for CallbackObject {
 pub trait CallbackContainer {
     /// Create a new CallbackContainer object for the given `JSObject`.
     fn new(callback: *mut JSObject) -> Rc<Self>;
+    /// Returns the underlying `CallbackObject`.
+    fn callback_holder(&self) -> &CallbackObject;
     /// Returns the underlying `JSObject`.
-    fn callback(&self) -> *mut JSObject;
+    fn callback(&self) -> *mut JSObject {
+        self.callback_holder().get()
+    }
 }
 
 
@@ -78,15 +86,15 @@ impl CallbackFunction {
         }
     }
 
+    /// Returns the underlying `CallbackObject`.
+    pub fn callback_holder(&self) -> &CallbackObject {
+        &self.object
+    }
+
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
     pub fn init(&mut self, callback: *mut JSObject) {
         self.object.callback.set(callback);
-    }
-
-    /// Returns the underlying `JSObject`.
-    pub fn callback(&self) -> *mut JSObject {
-        self.object.callback.get()
     }
 }
 
@@ -105,22 +113,22 @@ impl CallbackInterface {
         }
     }
 
+    /// Returns the underlying `CallbackObject`.
+    pub fn callback_holder(&self) -> &CallbackObject {
+        &self.object
+    }
+
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
     pub fn init(&mut self, callback: *mut JSObject) {
         self.object.callback.set(callback);
     }
 
-    /// Returns the underlying `JSObject`.
-    pub fn callback(&self) -> *mut JSObject {
-        self.object.callback.get()
-    }
-
     /// Returns the property with the given `name`, if it is a callable object,
     /// or an error otherwise.
     pub fn get_callable_property(&self, cx: *mut JSContext, name: &str) -> Fallible<JSVal> {
         rooted!(in(cx) let mut callable = UndefinedValue());
-        rooted!(in(cx) let obj = self.callback());
+        rooted!(in(cx) let obj = self.callback_holder().get());
         unsafe {
             let c_name = CString::new(name).unwrap();
             if !JS_GetProperty(cx, obj.handle(), c_name.as_ptr(), callable.handle_mut()) {

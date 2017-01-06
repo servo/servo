@@ -5565,6 +5565,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::callback::CallbackContainer',
         'dom::bindings::callback::CallbackInterface',
         'dom::bindings::callback::CallbackFunction',
+        'dom::bindings::callback::CallbackObject',
         'dom::bindings::callback::ExceptionHandling',
         'dom::bindings::callback::wrap_call_this_object',
         'dom::bindings::conversions::ConversionBehavior',
@@ -6339,8 +6340,8 @@ impl CallbackContainer for ${type} {
         ${type}::new(callback)
     }
 
-    fn callback(&self) -> *mut JSObject {
-        self.parent.callback()
+    fn callback_holder(&self) -> &CallbackObject {
+        self.parent.callback_holder()
     }
 }
 
@@ -6619,11 +6620,11 @@ class CallCallback(CallbackMethod):
         return "aThisObj.get()"
 
     def getCallableDecl(self):
-        return "rooted!(in(cx) let callable = ObjectValue(self.parent.callback()));\n"
+        return "rooted!(in(cx) let callable = ObjectValue(self.callback()));\n"
 
     def getCallGuard(self):
         if self.callback._treatNonObjectAsNull:
-            return "!IsCallable(self.parent.callback()) || "
+            return "!IsCallable(self.callback()) || "
         return ""
 
 
@@ -6638,11 +6639,11 @@ class CallbackOperationBase(CallbackMethod):
 
     def getThisObj(self):
         if not self.singleOperation:
-            return "self.parent.callback()"
+            return "self.callback()"
         # This relies on getCallableDecl declaring a boolean
         # isCallable in the case when we're a single-operation
         # interface.
-        return "if isCallable { aThisObj.get() } else { self.parent.callback() }"
+        return "if isCallable { aThisObj.get() } else { self.callback() }"
 
     def getCallableDecl(self):
         replacements = {
@@ -6654,11 +6655,11 @@ class CallbackOperationBase(CallbackMethod):
         if not self.singleOperation:
             return 'rooted!(in(cx) let callable =\n' + getCallableFromProp + ');\n'
         return (
-            'let isCallable = IsCallable(self.parent.callback());\n'
+            'let isCallable = IsCallable(self.callback());\n'
             'rooted!(in(cx) let callable =\n' +
             CGIndenter(
                 CGIfElseWrapper('isCallable',
-                                CGGeneric('ObjectValue(self.parent.callback())'),
+                                CGGeneric('ObjectValue(self.callback())'),
                                 CGGeneric(getCallableFromProp))).define() + ');\n')
 
     def getCallGuard(self):

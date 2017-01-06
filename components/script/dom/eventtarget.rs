@@ -484,7 +484,7 @@ impl EventTarget {
 
     pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
         let listener = self.get_inline_event_listener(&Atom::from(ty));
-        listener.map(|listener| CallbackContainer::new(listener.parent().callback()))
+        listener.map(|listener| CallbackContainer::new(listener.parent().callback_holder().get()))
     }
 
     pub fn has_handlers(&self) -> bool {
