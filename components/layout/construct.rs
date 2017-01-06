@@ -1290,8 +1290,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child fragments of `table-column-group`
             // as `display: none`.
-            if let ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(fragment))
-                   = kid.swap_out_construction_result() {
+            if let ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(fragment)) =
+                kid.swap_out_construction_result() {
                 col_fragments.push(fragment)
             }
         }

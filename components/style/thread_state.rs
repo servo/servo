@@ -51,8 +51,8 @@ macro_rules! thread_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
     }
 
     #[cfg(debug_assertions)]
-    static TYPES: &'static [ThreadState]
-        = &[ $( $flag ),* ];
+    static TYPES: &'static [ThreadState] =
+        &[ $( $flag ),* ];
 ));
 
 thread_types! {
