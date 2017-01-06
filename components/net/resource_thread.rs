@@ -330,6 +330,7 @@ impl CoreResourceManager {
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
+
         thread::Builder::new().name(format!("fetch thread for {}", init.url)).spawn(move || {
             let request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
