@@ -190,7 +190,7 @@ impl<'a> StylesheetLoader<'a> {
 }
 
 impl<'a> StylesheetLoader<'a> {
-    pub fn load(&self, source: StylesheetContextSource) {
+    pub fn load(&self, source: StylesheetContextSource, integrity_metadata: String) {
         let url = source.url();
         let context = Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
@@ -231,6 +231,7 @@ impl<'a> StylesheetLoader<'a> {
             pipeline_id: Some(self.elem.global().pipeline_id()),
             referrer_url: Some(document.url()),
             referrer_policy: referrer_policy,
+            integrity_metadata: integrity_metadata,
             .. RequestInit::default()
         };
 
@@ -240,6 +241,6 @@ impl<'a> StylesheetLoader<'a> {
 
 impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
     fn request_stylesheet(&self, import: &Arc<RwLock<ImportRule>>) {
-        self.load(StylesheetContextSource::Import(import.clone()))
+        self.load(StylesheetContextSource::Import(import.clone()), "".to_owned())
     }
 }

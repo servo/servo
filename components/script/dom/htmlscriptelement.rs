@@ -39,8 +39,8 @@ use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
+use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
-
 #[dom_struct]
 pub struct HTMLScriptElement {
     htmlelement: HTMLElement,
@@ -221,6 +221,7 @@ impl PreInvoke for ScriptContext {}
 fn fetch_a_classic_script(script: &HTMLScriptElement,
                           url: ServoUrl,
                           cors_setting: Option<CorsSettings>,
+                          integrity_metadata: String,
                           character_encoding: EncodingRef) {
     let doc = document_from_node(script);
 
@@ -245,6 +246,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
         pipeline_id: Some(script.global().pipeline_id()),
         referrer_url: Some(doc.url()),
         referrer_policy: doc.get_referrer_policy(),
+        integrity_metadata: integrity_metadata,
         .. RequestInit::default()
     };
 
@@ -365,7 +367,17 @@ impl HTMLScriptElement {
 
         // TODO: Step 15: Nonce.
 
-        // TODO: Step 16: Parser state.
+        // Step 16: Integrity Metadata
+        let integrity_metadata = match element.get_attribute(&ns!(), &local_name!("integrity")) {
+            Some(ref meta_data) => {
+                if let AttrValue::String(ref data) = *meta_data.value() {
+                    data.to_owned()
+                } else {
+                    "".to_owned()
+                }
+            },
+            None => "".to_owned()
+        };
 
         // TODO: Step 17: environment settings object.
 
@@ -393,7 +405,7 @@ impl HTMLScriptElement {
                 };
 
                 // Step 18.6.
-                fetch_a_classic_script(self, url, cors_setting, encoding);
+                fetch_a_classic_script(self, url, cors_setting, integrity_metadata, encoding);
 
                 true
             },
@@ -674,6 +686,11 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     make_bool_getter!(Defer, "defer");
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
     make_bool_setter!(SetDefer, "defer");
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-integrity
+    make_getter!(Integrity, "integrity");
+    // https://html.spec.whatwg.org/multipage/#dom-script-integrity
+    make_setter!(SetIntegrity, "integrity");
 
     // https://html.spec.whatwg.org/multipage/#dom-script-event
     make_getter!(Event, "event");
