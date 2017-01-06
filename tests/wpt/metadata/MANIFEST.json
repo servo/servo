@@ -45852,6 +45852,12 @@
             "path": "cssom/overflow-serialization.html",
             "url": "/cssom/overflow-serialization.html"
           }
+        ],
+        "html/semantics/embedded-content/the-iframe-element/iframe-synchronously-discard.html": [
+          {
+            "path": "html/semantics/embedded-content/the-iframe-element/iframe-synchronously-discard.html",
+            "url": "/html/semantics/embedded-content/the-iframe-element/iframe-synchronously-discard.html"
+          }
         ]
       }
     },
