@@ -457,24 +457,6 @@ mod shorthand_serialization {
         }
     }
 
-    #[test]
-    fn overflow_wrap_should_only_serialize_with_a_single_property() {
-        use style::properties::longhands::overflow_wrap::computed_value::T as OverflowWrap;
-
-        let value = DeclaredValue::Value(OverflowWrap::break_word);
-
-        let properties = vec![
-            PropertyDeclaration::OverflowWrap(value)
-        ];
-
-        let serialization = shorthand_properties_to_string(properties);
-
-        // word-wrap is considered an outdated alternative to overflow-wrap, but it is currently
-        // what servo is using in its naming conventions:
-        // https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-wrap
-        assert_eq!(serialization, "word-wrap: break-word;");
-    }
-
     mod outline {
         use style::properties::longhands::outline_width::SpecifiedValue as WidthContainer;
         use super::*;

@@ -170,7 +170,8 @@ ${helpers.single_keyword("overflow-wrap",
                          "normal break-word",
                          gecko_constant_prefix="NS_STYLE_OVERFLOWWRAP",
                          animatable=False,
-                         spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap")}
+                         spec="https://drafts.csswg.org/css-text/#propdef-overflow-wrap",
+                         alias="word-wrap")}
 
 // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
 ${helpers.single_keyword("word-break",
