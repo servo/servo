@@ -33,10 +33,18 @@ pub enum ExceptionHandling {
 
 /// A common base class for representing IDL callback function and
 /// callback interface types.
-#[derive(JSTraceable)]
+#[derive(Default, JSTraceable)]
 struct CallbackObject {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
+}
+
+impl CallbackObject {
+    fn new() -> CallbackObject {
+        CallbackObject {
+            callback: Heap::default(),
+        }
+    }
 }
 
 impl PartialEq for CallbackObject {
@@ -66,9 +74,7 @@ impl CallbackFunction {
     /// Create a new `CallbackFunction` for this object.
     pub fn new() -> CallbackFunction {
         CallbackFunction {
-            object: CallbackObject {
-                callback: Heap::default(),
-            },
+            object: CallbackObject::new(),
         }
     }
 
@@ -95,9 +101,7 @@ impl CallbackInterface {
     /// Create a new CallbackInterface object for the given `JSObject`.
     pub fn new() -> CallbackInterface {
         CallbackInterface {
-            object: CallbackObject {
-                callback: Heap::default(),
-            },
+            object: CallbackObject::new(),
         }
     }
 
