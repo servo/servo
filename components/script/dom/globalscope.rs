@@ -10,6 +10,7 @@ use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::settings_stack::{AutoEntryScript, entry_global};
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -365,6 +366,7 @@ impl GlobalScope {
                 let filename = CString::new(filename).unwrap();
 
                 let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+                let _aes = AutoEntryScript::new(self);
                 let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 1);
                 unsafe {
                     if !Evaluate2(cx, options.ptr, code.as_ptr(),
@@ -518,6 +520,13 @@ impl GlobalScope {
             let global = CurrentGlobalOrNull(cx);
             global_scope_from_global(global)
         }
+    }
+
+    /// Returns the ["entry"] global object.
+    ///
+    /// ["entry"]: https://html.spec.whatwg.org/multipage/#entry
+    pub fn entry() -> Root<Self> {
+        entry_global()
     }
 }
 

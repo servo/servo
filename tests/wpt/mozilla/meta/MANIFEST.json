@@ -8408,6 +8408,18 @@
             "url": "/_mozilla/mozilla/global.html"
           }
         ],
+        "mozilla/globals/entry.html": [
+          {
+            "path": "mozilla/globals/entry.html",
+            "url": "/_mozilla/mozilla/globals/entry.html"
+          }
+        ],
+        "mozilla/globals/entry.worker.js": [
+          {
+            "path": "mozilla/globals/entry.worker.js",
+            "url": "/_mozilla/mozilla/globals/entry.worker.html"
+          }
+        ],
         "mozilla/hit_test_nested_sc.html": [
           {
             "path": "mozilla/hit_test_nested_sc.html",
