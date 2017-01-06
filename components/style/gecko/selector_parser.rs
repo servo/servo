@@ -178,6 +178,27 @@ impl ToCss for NonTSPseudoClass {
 }
 
 impl NonTSPseudoClass {
+    /// A pseudo-class is internal if it can only be used inside
+    /// user agent style sheets.
+    pub fn is_internal(&self) -> bool {
+        use self::NonTSPseudoClass::*;
+        match *self {
+            AnyLink |
+            Link |
+            Visited |
+            Active |
+            Focus |
+            Fullscreen |
+            Hover |
+            Enabled |
+            Disabled |
+            Checked |
+            Indeterminate |
+            ReadWrite |
+            ReadOnly => false,
+        }
+    }
+
     /// Get the state flag associated with a pseudo-class, if any.
     pub fn state_flag(&self) -> ElementState {
         use element_state::*;
@@ -269,7 +290,11 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             _ => return Err(())
         };
 
-        Ok(pseudo_class)
+        if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
+            Ok(pseudo_class)
+        } else {
+            Err(())
+        }
     }
 
     fn parse_pseudo_element(&self, name: Cow<str>) -> Result<PseudoElement, ()> {
