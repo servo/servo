@@ -106,6 +106,32 @@ def copy_dependencies(binary_path, lib_path):
         need_checked.difference_update(checked)
 
 
+def copy_windows_dependencies(binary_path, destination):
+    try:
+        [shutil.copy(path.join(binary_path, d), destination) for d in ["libeay32md.dll", "ssleay32md.dll"]]
+    except:
+        deps = [
+            "libstdc++-6.dll",
+            "libwinpthread-1.dll",
+            "libbz2-1.dll",
+            "libgcc_s_seh-1.dll",
+            "libexpat-1.dll",
+            "zlib1.dll",
+            "libpng16-16.dll",
+            "libiconv-2.dll",
+            "libglib-2.0-0.dll",
+            "libgraphite2.dll",
+            "libfreetype-6.dll",
+            "libfontconfig-1.dll",
+            "libintl-8.dll",
+            "libpcre-1.dll",
+            "libeay32.dll",
+            "ssleay32.dll",
+            "libharfbuzz-0.dll",
+        ]
+        [shutil.copy(path.join("C:\\msys64\\mingw64\\bin", d), path.join(destination, d)) for d in deps]
+
+
 def change_prefs(resources_path, platform):
     print("Swapping prefs")
     prefs_path = path.join(resources_path, "prefs.json")
@@ -220,6 +246,16 @@ class PackageCommands(CommandBase):
                     credits_file.write(template.render(version=version))
             delete(template_path)
 
+            print("Writing run-servo")
+            bhtml_path = path.join('${0%/*}', '..', 'Resources', 'browserhtml', 'index.html')
+            runservo = os.open(
+                path.join(content_dir, 'run-servo'),
+                os.O_WRONLY | os.O_CREAT,
+                int("0755", 8)
+            )
+            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + bhtml_path)
+            os.close(runservo)
+
             print("Creating dmg")
             os.symlink('/Applications', path.join(dir_to_dmg, 'Applications'))
             dmg_path = path.join(target_dir, "servo-tech-demo.dmg")
@@ -264,8 +300,14 @@ class PackageCommands(CommandBase):
             browserhtml_path = get_browserhtml_path(binary_path)
 
             print("Copying files")
-            dir_to_resources = path.join(dir_to_msi, 'resources')
+            dir_to_temp = path.join(dir_to_msi, 'temp')
+            dir_to_temp_servo = path.join(dir_to_temp, 'servo')
+            dir_to_resources = path.join(dir_to_temp_servo, 'resources')
             shutil.copytree(path.join(dir_to_root, 'resources'), dir_to_resources)
+            shutil.copytree(browserhtml_path, path.join(dir_to_temp_servo, 'browserhtml'))
+            shutil.copy(binary_path, dir_to_temp_servo)
+            shutil.copy("{}.manifest".format(binary_path), dir_to_temp_servo)
+            copy_windows_dependencies(target_dir, dir_to_temp_servo)
 
             change_prefs(dir_to_resources, "windows")
 
@@ -275,8 +317,8 @@ class PackageCommands(CommandBase):
             wxs_path = path.join(dir_to_msi, "Servo.wxs")
             open(wxs_path, "w").write(template.render(
                 exe_path=target_dir,
-                resources_path=dir_to_resources,
-                browserhtml_path=browserhtml_path))
+                dir_to_temp=dir_to_temp_servo,
+                resources_path=dir_to_resources))
 
             # run candle and light
             print("Creating MSI")
@@ -293,8 +335,14 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
-            msi_path = path.join(dir_to_msi, "Servo.msi")
-            print("Packaged Servo into {}".format(msi_path))
+            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.msi"))
+
+            print("Creating ZIP")
+            shutil.make_archive(path.join(dir_to_msi, "Servo"), "zip", dir_to_temp)
+            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.zip"))
+
+            print("Cleaning up")
+            delete(dir_to_temp)
         else:
             dir_to_temp = path.join(target_dir, 'packaging-temp')
             browserhtml_path = get_browserhtml_path(binary_path)
