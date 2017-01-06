@@ -1,6 +1,7 @@
 version: 1.0.{build}
 
 environment:
+  CCACHE_DIR: "%APPVEYOR_BUILD_FOLDER%\\.ccache"
   RUST_BACKTRACE: 1
   # The appveyor image we use has a pretty huge set of things installed... we make the
   # initial PATH something sane so we know what to expect
@@ -38,6 +39,7 @@ branches:
 cache:
   - .servo -> rust-nightly-date, cargo-commit-hash
   - .cargo -> rust-nightly-date, cargo-commit-hash
+  - .ccache
 
 install:
   - if %TARGET:*-msvc=msvc%==msvc set BUILD_ENV=msvc
@@ -47,10 +49,7 @@ install:
   - if %BUILD_ENV%==gnu  set MSYS=winsymlinks=lnk
   - if %BUILD_ENV%==gnu  bash -lc "echo $MSYSTEM; pacman --needed --noconfirm -Sy pacman-mirrors"
   - if %BUILD_ENV%==gnu  bash -lc "pacman --noconfirm -Sy"
-  - if %BUILD_ENV%==gnu  bash -lc "pacman -Sy --needed --noconfirm mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools"
-  - if %BUILD_ENV%==gnu  bash -lc "easy_install-2.7 pip virtualenv"
-  - if %BUILD_ENV%==gnu  bash -lc "mv /mingw64/bin/python2.exe /mingw64/bin/python2-mingw64.exe"
-  - if %BUILD_ENV%==gnu  bash -lc "mv /mingw64/bin/python2.7.exe /mingw64/bin/python2.7-mingw64.exe"
+  - if %BUILD_ENV%==gnu  bash -lc "pacman -Sy --needed --noconfirm mingw-w64-x86_64-ccache mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools"
   # Downgrade msys2 build GCC to 5.4.0-1 - https://github.com/servo/servo/issues/12512
   - if %BUILD_ENV%==gnu  set GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
   - if %BUILD_ENV%==gnu  set GCC_EXT=5.4.0-1-any.pkg.tar.xz
@@ -64,7 +63,9 @@ install:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 build_script:
+  - if %BUILD_ENV%==gnu  bash -lc "ccache -s"
   - if %BUILD_ENV%==msvc mach build -d -v && mach test-unit
-  - if %BUILD_ENV%==gnu  bash -lc "export PATH=/c/Python27:$PATH; cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
+  - if %BUILD_ENV%==gnu  bash -lc "export PATH=/c/Python27:$PATH; export CCACHE=/mingw64/bin/ccache; cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
+  - if %BUILD_ENV%==gnu  bash -lc "ccache -s"
 
 test: off
