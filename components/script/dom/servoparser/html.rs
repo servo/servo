@@ -52,6 +52,7 @@ impl Tokenizer {
         let sink = Sink {
             base_url: url,
             document: JS::from_ref(document),
+            current_line: 1,
         };
 
         let options = TreeBuilderOpts {
@@ -122,6 +123,7 @@ unsafe impl JSTraceable for HtmlTokenizer<TreeBuilder<JS<Node>, Sink>> {
 struct Sink {
     base_url: ServoUrl,
     document: JS<Document>,
+    current_line: u64,
 }
 
 impl<'a> TreeSink for Sink {
@@ -156,7 +158,7 @@ impl<'a> TreeSink for Sink {
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
             -> JS<Node> {
         let elem = Element::create(name, None, &*self.document,
-                                   ElementCreator::ParserCreated);
+                                   ElementCreator::ParserCreated(self.current_line));
 
         for attr in attrs {
             elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
@@ -234,6 +236,10 @@ impl<'a> TreeSink for Sink {
             new_parent.AppendChild(&child).unwrap();
         }
 
+    }
+
+    fn set_current_line(&mut self, line_number: u64) {
+        self.current_line = line_number;
     }
 }
 

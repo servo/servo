@@ -128,8 +128,9 @@ impl<'a> TreeSink for Sink {
             ns: name.namespace_url,
             local: name.local,
         };
+        //TODO: Add ability to track lines to API of xml5ever
         let elem = Element::create(name, prefix, &*self.document,
-                                   ElementCreator::ParserCreated);
+                                   ElementCreator::ParserCreated(1));
 
         for attr in attrs {
             let name = QualName {
