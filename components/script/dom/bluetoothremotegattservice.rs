@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::Error;
-use dom::bindings::js::{MutJS, Root};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, get_gatt_children};
@@ -25,7 +25,7 @@ use std::rc::Rc;
 #[dom_struct]
 pub struct BluetoothRemoteGATTService {
     eventtarget: EventTarget,
-    device: MutJS<BluetoothDevice>,
+    device: JS<BluetoothDevice>,
     uuid: DOMString,
     is_primary: bool,
     instance_id: String,
@@ -39,7 +39,7 @@ impl BluetoothRemoteGATTService {
                          -> BluetoothRemoteGATTService {
         BluetoothRemoteGATTService {
             eventtarget: EventTarget::new_inherited(),
-            device: MutJS::new(device),
+            device: JS::from_ref(device),
             uuid: uuid,
             is_primary: is_primary,
             instance_id: instance_id,
@@ -68,7 +68,7 @@ impl BluetoothRemoteGATTService {
 impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-device
     fn Device(&self) -> Root<BluetoothDevice> {
-        self.device.get()
+        Root::from_ref(&self.device)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-isprimary
