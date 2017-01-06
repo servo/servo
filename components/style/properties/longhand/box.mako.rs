@@ -557,13 +557,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
             Steps(u32, StartEnd),
         }
 
-        impl TransitionTimingFunction {
-            pub fn parse(context: &ParserContext, input: &mut ::cssparser::Parser) ->
-                Result<super::TransitionTimingFunction, ()> {
-                super::TransitionTimingFunction::parse(context, input)
-            }
-        }
-
         impl ToCss for TransitionTimingFunction {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
