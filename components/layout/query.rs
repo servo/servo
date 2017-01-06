@@ -544,15 +544,16 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             // We haven't found the node yet, so we're still looking for its parent.
             // Remove all nodes at this level or higher, as they can't be parents of this node.
             self.parent_nodes.truncate(level as usize);
-            assert!(self.parent_nodes.len() == level as usize);
+            assert_eq!(self.parent_nodes.len(), level as usize,
+                "Skipped at least one level in the flow tree!");
         }
 
         if fragment.node == self.node_address {
             // Found the fragment in the flow tree that matches the
             // DOM node being looked for.
 
-            // If self.node_offset_box is Some, we were treating this as an inline node!
-            assert!(self.node_offset_box.is_none());
+            assert!(self.node_offset_box.is_none(),
+                "Node was being treated as inline, but it has an associated fragment!");
 
             self.has_processed_node = true;
             self.node_offset_box = Some(NodeOffsetBoxInfo {
@@ -582,7 +583,8 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                     // https://github.com/servo/servo/issues/13982 will cause
                     // this assertion to fail sometimes, so it's commented out
                     // for now.
-                    //assert!(node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT));
+                    /*assert!(node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
+                        "First fragment of inline node found wasn't its first fragment!");*/
 
                     self.node_offset_box = Some(NodeOffsetBoxInfo {
                         offset: border_box.origin,
