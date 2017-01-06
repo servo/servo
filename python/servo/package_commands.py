@@ -246,6 +246,16 @@ class PackageCommands(CommandBase):
                     credits_file.write(template.render(version=version))
             delete(template_path)
 
+            print("Writing run-servo")
+            bhtml_path = path.join('${0%/*}', '..', 'Resources', 'browserhtml', 'index.html')
+            runservo = os.open(
+                path.join(content_dir, 'run-servo'),
+                os.O_WRONLY | os.O_CREAT,
+                int("0755", 8)
+            )
+            os.write(runservo, '#!/bin/bash\nexec ${0%/*}/servo ' + bhtml_path)
+            os.close(runservo)
+
             print("Creating dmg")
             os.symlink('/Applications', path.join(dir_to_dmg, 'Applications'))
             dmg_path = path.join(target_dir, "servo-tech-demo.dmg")
