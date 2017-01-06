@@ -76,7 +76,7 @@
 macro_rules! try_parse_one {
     ($input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {
-            if let Ok(value) = $input.try($prop_module::computed_value::SingleComputedValue::parse) {
+            if let Ok(value) = $input.try($prop_module::SingleSpecifiedValue::parse) {
                 $var = Some(value);
                 continue;
             }
@@ -85,7 +85,7 @@ macro_rules! try_parse_one {
     ($context: expr, $input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {
             if let Ok(value) = $input.try(|i| {
-                $prop_module::computed_value::SingleComputedValue::parse($context, i)
+                $prop_module::SingleSpecifiedValue::parse($context, i)
             }) {
                 $var = Some(value);
                 continue;
