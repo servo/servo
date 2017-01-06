@@ -355,8 +355,11 @@ impl ImageCache {
                 let result = self.get_image_or_meta_if_available(url, use_placeholder, can_request);
                 let _ = consumer.send(result);
             }
-            ImageCacheCommand::StoreDecodeImage(id, image_vector) => {
-                self.store_decode_image(id, image_vector);
+            ImageCacheCommand::StoreDecodeImage(id, data) => {
+                self.handle_progress(ResourceLoadInfo {
+                    action: data,
+                    key: id
+                });
             }
         };
 
@@ -368,7 +371,7 @@ impl ImageCache {
         match (msg.action, msg.key) {
             (FetchResponseMsg::ProcessRequestBody, _) |
             (FetchResponseMsg::ProcessRequestEOF, _) => return,
-            (FetchResponseMsg::ProcessResponse(_), _) => {}
+            (FetchResponseMsg::ProcessResponse(_response), _) => {}
             (FetchResponseMsg::ProcessResponseChunk(data), _) => {
                 let pending_load = self.pending_loads.get_by_key_mut(&msg.key).unwrap();
                 pending_load.bytes.extend_from_slice(&data);
@@ -537,21 +540,6 @@ impl ImageCache {
             Some(result) => result,
             None => Err(ImageState::LoadError),
         }
-    }
-
-    fn store_decode_image(&mut self,
-                          id: PendingImageId,
-                          loaded_bytes: Vec<u8>) {
-        let action = FetchResponseMsg::ProcessResponseChunk(loaded_bytes);
-        self.handle_progress(ResourceLoadInfo {
-            action: action,
-            key: id,
-        });
-        let action = FetchResponseMsg::ProcessResponseEOF(Ok(()));
-        self.handle_progress(ResourceLoadInfo {
-            action: action,
-            key: id,
-        });
     }
 }
 
