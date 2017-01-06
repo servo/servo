@@ -30,6 +30,32 @@ pub enum ExceptionHandling {
     Rethrow,
 }
 
+
+/// A common base class for representing IDL callback function and
+/// callback interface types.
+#[derive(JSTraceable)]
+struct CallbackObject {
+    /// The underlying `JSObject`.
+    callback: Heap<*mut JSObject>,
+}
+
+impl PartialEq for CallbackObject {
+    fn eq(&self, other: &CallbackObject) -> bool {
+        self.callback.get() == other.callback.get()
+    }
+}
+
+
+/// A trait to be implemented by concrete IDL callback function and
+/// callback interface types.
+pub trait CallbackContainer {
+    /// Create a new CallbackContainer object for the given `JSObject`.
+    fn new(callback: *mut JSObject) -> Rc<Self>;
+    /// Returns the underlying `JSObject`.
+    fn callback(&self) -> *mut JSObject;
+}
+
+
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
 pub struct CallbackFunction {
@@ -51,49 +77,18 @@ impl CallbackFunction {
     pub fn init(&mut self, callback: *mut JSObject) {
         self.object.callback.set(callback);
     }
+
+    /// Returns the underlying `JSObject`.
+    pub fn callback(&self) -> *mut JSObject {
+        self.object.callback.get()
+    }
 }
+
 
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
 pub struct CallbackInterface {
     object: CallbackObject,
-}
-
-/// A common base class for representing IDL callback function and
-/// callback interface types.
-#[derive(JSTraceable)]
-struct CallbackObject {
-    /// The underlying `JSObject`.
-    callback: Heap<*mut JSObject>,
-}
-
-impl PartialEq for CallbackObject {
-    fn eq(&self, other: &CallbackObject) -> bool {
-        self.callback.get() == other.callback.get()
-    }
-}
-
-/// A trait to be implemented by concrete IDL callback function and
-/// callback interface types.
-pub trait CallbackContainer {
-    /// Create a new CallbackContainer object for the given `JSObject`.
-    fn new(callback: *mut JSObject) -> Rc<Self>;
-    /// Returns the underlying `JSObject`.
-    fn callback(&self) -> *mut JSObject;
-}
-
-impl CallbackInterface {
-    /// Returns the underlying `JSObject`.
-    pub fn callback(&self) -> *mut JSObject {
-        self.object.callback.get()
-    }
-}
-
-impl CallbackFunction {
-    /// Returns the underlying `JSObject`.
-    pub fn callback(&self) -> *mut JSObject {
-        self.object.callback.get()
-    }
 }
 
 impl CallbackInterface {
@@ -110,6 +105,11 @@ impl CallbackInterface {
     /// Should be called once this object is done moving.
     pub fn init(&mut self, callback: *mut JSObject) {
         self.object.callback.set(callback);
+    }
+
+    /// Returns the underlying `JSObject`.
+    pub fn callback(&self) -> *mut JSObject {
+        self.object.callback.get()
     }
 
     /// Returns the property with the given `name`, if it is a callable object,
@@ -132,6 +132,7 @@ impl CallbackInterface {
     }
 }
 
+
 /// Wraps the reflector for `p` into the compartment of `cx`.
 pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
                                            p: &T,
@@ -145,6 +146,7 @@ pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
         }
     }
 }
+
 
 /// A class that performs whatever setup we need to safely make a call while
 /// this class is on the stack. After `new` returns, the call is safe to make.
