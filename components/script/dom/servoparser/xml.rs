@@ -42,7 +42,7 @@ impl Tokenizer {
             script: Default::default(),
         };
 
-        let tb = XmlTreeBuilder::new(sink);
+        let tb = XmlTreeBuilder::new(sink, Default::default());
         let tok = XmlTokenizer::new(tb, Default::default());
 
         Tokenizer {
@@ -100,8 +100,13 @@ struct Sink {
     script: MutNullableJS<HTMLScriptElement>,
 }
 
-impl<'a> TreeSink for Sink {
+impl TreeSink for Sink {
+    type Output = Self;
     type Handle = JS<Node>;
+
+    fn finish(self) -> Self {
+        self
+    }
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
         debug!("Parse error: {}", msg);

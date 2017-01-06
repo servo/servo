@@ -2308,7 +2308,7 @@ dependencies = [
  "uuid 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.11.0 (git+https://github.com/servo/webrender)",
  "websocket 0.17.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "xml5ever 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xml5ever 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3309,7 +3309,7 @@ dependencies = [
 
 [[package]]
 name = "xml5ever"
-version = "0.2.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "html5ever-atoms 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3581,4 +3581,4 @@ dependencies = [
 "checksum xdg 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "77b831a5ba77110f438f0ac5583aafeb087f70432998ba6b7dcb1d32185db453"
 "checksum xi-unicode 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "315c4e158d7fa277e3ea35b32e50bc07e9a0c8de9130a7cc4bdeab42ddc7b442"
 "checksum xml-rs 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "f2b15eed12692bd59d15e98ee7f8dc8408465b992d8ddb4d1672c24865132ec7"
-"checksum xml5ever 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1a3aa816561c8d68419dec4c43df33974940cd6a03e376dfc497ec3e46fb7755"
+"checksum xml5ever 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d3c01f8de37eb0e091996e9ecd23a4d6eefb821cd0e4d36c0e890343ddb1dd1e"
