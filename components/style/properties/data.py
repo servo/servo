@@ -60,12 +60,12 @@ class Keyword(object):
 
     def gecko_constant(self, value):
         moz_stripped = value.replace("-moz-", '') if self.gecko_strip_moz_prefix else value
-        parts = moz_stripped.split('-')
+        mapped = self.consts_map.get(value)
         if self.gecko_enum_prefix:
-            parts = [p.title() for p in parts]
+            parts = moz_stripped.split('-')
+            parts = mapped if mapped else [p.title() for p in parts]
             return self.gecko_enum_prefix + "::" + "".join(parts)
         else:
-            mapped = self.consts_map.get(value)
             suffix = mapped if mapped else moz_stripped.replace("-", "_")
             return self.gecko_constant_prefix + "_" + suffix.upper()
 
