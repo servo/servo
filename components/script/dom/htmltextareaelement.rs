@@ -425,6 +425,13 @@ impl VirtualMethods for HTMLTextAreaElement {
             }
         }
     }
+
+    fn pop(&self) {
+        self.super_type().unwrap().pop();
+
+        // https://html.spec.whatwg.org/multipage/#the-textarea-element:stack-of-open-elements
+        self.reset();
+    }
 }
 
 impl FormControl for HTMLTextAreaElement {}

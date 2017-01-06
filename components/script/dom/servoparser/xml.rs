@@ -17,6 +17,7 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
+use dom::virtualmethods::vtable_for;
 use html5ever::tokenizer::buffer_queue::BufferQueue;
 use html5ever_atoms::{Prefix, QualName};
 use js::jsapi::JSTracer;
@@ -195,5 +196,10 @@ impl TreeSink for Sink {
         } else {
             NextParserState::Continue
         }
+    }
+
+    fn pop(&mut self, node: Self::Handle) {
+        let node = Root::from_ref(&*node);
+        vtable_for(&node).pop();
     }
 }
