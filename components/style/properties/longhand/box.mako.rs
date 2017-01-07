@@ -459,55 +459,52 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 </%helpers:vector_longhand>
 
 // TODO(pcwalton): Lots more timing functions.
-<%helpers:longhand name="transition-timing-function"
-                   need_index="True"
-                   animatable="False"
-                   spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function">
+<%helpers:vector_longhand name="transition-timing-function"
+                          need_index="True"
+                          animatable="False"
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function">
     use self::computed_value::StartEnd;
-    use self::computed_value::TransitionTimingFunction as ComputedTransitionTimingFunction;
 
     use euclid::point::{Point2D, TypedPoint2D};
     use std::fmt;
     use std::marker::PhantomData;
     use style_traits::ToCss;
 
-    pub use self::TransitionTimingFunction as SingleSpecifiedValue;
-
     // FIXME: This could use static variables and const functions when they are available.
     #[inline(always)]
-    fn ease() -> ComputedTransitionTimingFunction {
-        ComputedTransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.25, 0.1),
+    fn ease() -> computed_value::T {
+        computed_value::T::CubicBezier(TypedPoint2D::new(0.25, 0.1),
                                               TypedPoint2D::new(0.25, 1.0))
     }
 
     #[inline(always)]
-    fn linear() -> ComputedTransitionTimingFunction {
-        ComputedTransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.0, 0.0),
+    fn linear() -> computed_value::T {
+        computed_value::T::CubicBezier(TypedPoint2D::new(0.0, 0.0),
                                               TypedPoint2D::new(1.0, 1.0))
     }
 
     #[inline(always)]
-    fn ease_in() -> ComputedTransitionTimingFunction {
-        ComputedTransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.42, 0.0),
+    fn ease_in() -> computed_value::T {
+        computed_value::T::CubicBezier(TypedPoint2D::new(0.42, 0.0),
                                               TypedPoint2D::new(1.0, 1.0))
     }
 
     #[inline(always)]
-    fn ease_out() -> ComputedTransitionTimingFunction {
-        ComputedTransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.0, 0.0),
+    fn ease_out() -> computed_value::T {
+        computed_value::T::CubicBezier(TypedPoint2D::new(0.0, 0.0),
                                               TypedPoint2D::new(0.58, 1.0))
     }
 
     #[inline(always)]
-    fn ease_in_out() -> ComputedTransitionTimingFunction {
-        ComputedTransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.42, 0.0),
+    fn ease_in_out() -> computed_value::T {
+        computed_value::T::CubicBezier(TypedPoint2D::new(0.42, 0.0),
                                               TypedPoint2D::new(0.58, 1.0))
     }
 
-    static STEP_START: ComputedTransitionTimingFunction =
-        ComputedTransitionTimingFunction::Steps(1, StartEnd::Start);
-    static STEP_END: ComputedTransitionTimingFunction =
-        ComputedTransitionTimingFunction::Steps(1, StartEnd::End);
+    static STEP_START: computed_value::T =
+        computed_value::T::Steps(1, StartEnd::Start);
+    static STEP_END: computed_value::T =
+        computed_value::T::Steps(1, StartEnd::End);
 
     pub mod computed_value {
         use euclid::point::Point2D;
@@ -515,20 +512,19 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         use std::fmt;
         use style_traits::ToCss;
 
-        pub use self::TransitionTimingFunction as SingleComputedValue;
         pub use super::parse;
 
         #[derive(Copy, Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum TransitionTimingFunction {
+        pub enum T {
             CubicBezier(Point2D<f32>, Point2D<f32>),
             Steps(u32, StartEnd),
         }
 
-        impl ToCss for TransitionTimingFunction {
+        impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
-                    TransitionTimingFunction::CubicBezier(p1, p2) => {
+                    T::CubicBezier(p1, p2) => {
                         try!(dest.write_str("cubic-bezier("));
                         try!(p1.x.to_css(dest));
                         try!(dest.write_str(", "));
@@ -539,7 +535,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         try!(p2.y.to_css(dest));
                         dest.write_str(")")
                     }
-                    TransitionTimingFunction::Steps(steps, start_end) => {
+                    T::Steps(steps, start_end) => {
                         super::serialize_steps(dest, steps, start_end)
                     }
                 }
@@ -561,25 +557,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                 }
             }
         }
-
-        #[derive(Clone, Debug, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<TransitionTimingFunction>);
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
-                }
-                for (i, value) in self.0.iter().enumerate() {
-                    if i != 0 {
-                        try!(dest.write_str(", "))
-                    }
-                    try!(value.to_css(dest))
-                }
-                Ok(())
-            }
-        }
     }
 
     define_css_keyword_enum!(FunctionKeyword:
@@ -593,17 +570,13 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     #[derive(Copy, Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum TransitionTimingFunction {
+    pub enum SpecifiedValue {
         CubicBezier(Point2D<f32>, Point2D<f32>),
         Steps(u32, StartEnd),
         Keyword(FunctionKeyword),
     }
 
-    #[derive(Clone, Debug, PartialEq)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(pub Vec<TransitionTimingFunction>);
-
-    impl Parse for TransitionTimingFunction {
+    impl Parse for SpecifiedValue {
         fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
             if let Ok(function_name) = input.try(|input| input.expect_function()) {
                 return match_ignore_ascii_case! { function_name,
@@ -620,7 +593,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                             Ok(())
                         }));
                         let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
-                        Ok(TransitionTimingFunction::CubicBezier(p1, p2))
+                        Ok(SpecifiedValue::CubicBezier(p1, p2))
                     },
                     "steps" => {
                         let (mut step_count, mut start_end) = (0, StartEnd::End);
@@ -636,12 +609,12 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                             }
                             Ok(())
                         }));
-                        Ok(TransitionTimingFunction::Steps(step_count as u32, start_end))
+                        Ok(SpecifiedValue::Steps(step_count as u32, start_end))
                     },
                     _ => Err(())
                 }
             }
-            Ok(TransitionTimingFunction::Keyword(try!(FunctionKeyword::parse(input))))
+            Ok(SpecifiedValue::Keyword(try!(FunctionKeyword::parse(input))))
         }
     }
 
@@ -656,10 +629,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     // https://drafts.csswg.org/css-transitions/#serializing-a-timing-function
-    impl ToCss for TransitionTimingFunction {
+    impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                TransitionTimingFunction::CubicBezier(p1, p2) => {
+                SpecifiedValue::CubicBezier(p1, p2) => {
                     try!(dest.write_str("cubic-bezier("));
                     try!(p1.x.to_css(dest));
                     try!(dest.write_str(", "));
@@ -670,10 +643,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                     try!(p2.y.to_css(dest));
                     dest.write_str(")")
                 },
-                TransitionTimingFunction::Steps(steps, start_end) => {
+                SpecifiedValue::Steps(steps, start_end) => {
                     serialize_steps(dest, steps, start_end)
                 },
-                TransitionTimingFunction::Keyword(keyword) => {
+                SpecifiedValue::Keyword(keyword) => {
                     match keyword {
                         FunctionKeyword::StepStart => {
                             serialize_steps(dest, 1, StartEnd::Start)
@@ -690,19 +663,19 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
     }
 
-    impl ToComputedValue for TransitionTimingFunction {
-        type ComputedValue = ComputedTransitionTimingFunction;
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
 
         #[inline]
-        fn to_computed_value(&self, _context: &Context) -> ComputedTransitionTimingFunction {
+        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
             match *self {
-                TransitionTimingFunction::CubicBezier(p1, p2) => {
-                    ComputedTransitionTimingFunction::CubicBezier(p1, p2)
+                SpecifiedValue::CubicBezier(p1, p2) => {
+                    computed_value::T::CubicBezier(p1, p2)
                 },
-                TransitionTimingFunction::Steps(count, start_end) => {
-                    ComputedTransitionTimingFunction::Steps(count, start_end)
+                SpecifiedValue::Steps(count, start_end) => {
+                    computed_value::T::Steps(count, start_end)
                 },
-                TransitionTimingFunction::Keyword(keyword) => {
+                SpecifiedValue::Keyword(keyword) => {
                     match keyword {
                         FunctionKeyword::Ease => ease(),
                         FunctionKeyword::Linear => linear(),
@@ -716,44 +689,15 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
             }
         }
         #[inline]
-        fn from_computed_value(computed: &ComputedTransitionTimingFunction) -> Self {
-            match *computed {
-                computed_value::TransitionTimingFunction::CubicBezier(p1, p2) => {
-                    TransitionTimingFunction::CubicBezier(p1, p2)
-                },
-                computed_value::TransitionTimingFunction::Steps(count, start_end) => {
-                    TransitionTimingFunction::Steps(count, start_end)
-                },
-            }
-        }
-    }
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if self.0.is_empty() {
-                return dest.write_str("none")
-            }
-            for (i, value) in self.0.iter().enumerate() {
-                if i != 0 {
-                    try!(dest.write_str(", "))
-                }
-                try!(value.to_css(dest))
-            }
-            Ok(())
-        }
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            computed_value::T(self.0.iter().map(|f| f.to_computed_value(context)).collect())
-        }
-        #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue(computed.0.iter().map(|f| ToComputedValue::from_computed_value(f))
-                                        .collect())
+            match *computed {
+                computed_value::T::CubicBezier(p1, p2) => {
+                    SpecifiedValue::CubicBezier(p1, p2)
+                },
+                computed_value::T::Steps(count, start_end) => {
+                    SpecifiedValue::Steps(count, start_end)
+                },
+            }
         }
     }
 
@@ -761,26 +705,19 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl NoViewportPercentage for SpecifiedValue {}
 
     #[inline]
-    pub fn get_initial_single_value() -> ComputedTransitionTimingFunction {
+    pub fn get_initial_value() -> computed_value::T {
         ease()
     }
 
     #[inline]
-    pub fn get_initial_specified_single_value() -> TransitionTimingFunction {
+    pub fn get_initial_specified_value() -> SpecifiedValue {
         ToComputedValue::from_computed_value(&ease())
     }
 
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![get_initial_single_value()])
-    }
-
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| {
-            TransitionTimingFunction::parse(context, i)
-        }))))
+        SpecifiedValue::parse(context, input)
     }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 <%helpers:longhand name="transition-property"
                    need_index="True"
@@ -931,17 +868,17 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
 </%helpers:vector_longhand>
 
-<%helpers:longhand name="animation-timing-function"
-                   need_index="True"
-                   animatable="False",
-                   spec="https://drafts.csswg.org/css-animations/#propdef-animation-timing-function",
-                   allowed_in_keyframe_block="False">
-    pub use super::transition_timing_function::computed_value;
-    pub use super::transition_timing_function::{get_initial_value, get_initial_single_value};
-    pub use super::transition_timing_function::{get_initial_specified_single_value, parse};
-    pub use super::transition_timing_function::SpecifiedValue;
-    pub use super::transition_timing_function::SingleSpecifiedValue;
-</%helpers:longhand>
+<%helpers:vector_longhand name="animation-timing-function"
+                          need_index="True"
+                          animatable="False",
+                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-timing-function",
+                          allowed_in_keyframe_block="False">
+    pub use properties::longhands::transition_timing_function::single_value::computed_value;
+    pub use properties::longhands::transition_timing_function::single_value::get_initial_value;
+    pub use properties::longhands::transition_timing_function::single_value::get_initial_specified_value;
+    pub use properties::longhands::transition_timing_function::single_value::parse;
+    pub use properties::longhands::transition_timing_function::single_value::SpecifiedValue;
+</%helpers:vector_longhand>
 
 <%helpers:longhand name="animation-iteration-count"
                    need_index="True"
