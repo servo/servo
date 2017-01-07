@@ -20,6 +20,7 @@ use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, RE
 use style::traversal::{DomTraversal, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
 use wrapper::{GetRawData, LayoutNodeHelpers, LayoutNodeLayoutData};
+use wrapper::ThreadSafeLayoutNodeHelpers;
 
 pub struct RecalcStyleAndConstructFlows {
     shared: SharedLayoutContext,
@@ -134,6 +135,8 @@ fn construct_flows_at<'a, N>(context: &LayoutContext<'a>,
                        tnode.flow_debug_id());
             }
         }
+
+        tnode.mutate_layout_data().unwrap().flags.insert(::data::HAS_BEEN_TRAVERSED);
     }
 
     if let Some(el) = node.as_element() {
