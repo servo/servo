@@ -861,14 +861,13 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
 
     let node_offset_box = iterator.node_offset_box;
-    let parent_info_index = iterator.parent_nodes.iter().rposition(|info| info.is_some());
-    match (node_offset_box, parent_info_index) {
-        (Some(node_offset_box), Some(parent_info_index)) => {
-            let parent = iterator.parent_nodes[parent_info_index].as_ref().unwrap();
-            let origin = node_offset_box.offset - parent.origin;
+    let parent_info = iterator.parent_nodes.into_iter().rev().filter_map(|info| info).next();
+    match (node_offset_box, parent_info) {
+        (Some(node_offset_box), Some(parent_info)) => {
+            let origin = node_offset_box.offset - parent_info.origin;
             let size = node_offset_box.rectangle.size;
             OffsetParentResponse {
-                node_address: Some(parent.node_address.to_untrusted_node_address()),
+                node_address: Some(parent_info.node_address.to_untrusted_node_address()),
                 rect: Rect::new(origin, size),
             }
         }
