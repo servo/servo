@@ -831,97 +831,66 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use properties::longhands::transition_timing_function::single_value::SpecifiedValue;
 </%helpers:vector_longhand>
 
-<%helpers:longhand name="animation-iteration-count"
-                   need_index="True"
-                   animatable="False",
-                   spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
-                   allowed_in_keyframe_block="False">
+<%helpers:vector_longhand name="animation-iteration-count"
+                          need_index="True"
+                          animatable="False",
+                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
+                          allowed_in_keyframe_block="False">
+    use std::fmt;
+    use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
 
     pub mod computed_value {
-        use parser::{Parse, ParserContext};
-        use std::fmt;
-        use style_traits::ToCss;
+        pub use super::SpecifiedValue as T;
+    }
 
-        pub use self::AnimationIterationCount as SingleComputedValue;
+    // https://drafts.csswg.org/css-animations/#animation-iteration-count
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Number(f32),
+        Infinite,
+    }
 
-        // https://drafts.csswg.org/css-animations/#animation-iteration-count
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum AnimationIterationCount {
-            Number(f32),
-            Infinite,
-        }
-
-        impl Parse for AnimationIterationCount {
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
-                if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
-                    return Ok(AnimationIterationCount::Infinite)
-                }
-
-                let number = try!(input.expect_number());
-                if number < 0.0 {
-                    return Err(());
-                }
-
-                Ok(AnimationIterationCount::Number(number))
+    impl Parse for SpecifiedValue {
+        fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
+                return Ok(SpecifiedValue::Infinite)
             }
-        }
 
-        impl ToCss for AnimationIterationCount {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    AnimationIterationCount::Number(n) => write!(dest, "{}", n),
-                    AnimationIterationCount::Infinite => dest.write_str("infinite"),
-                }
+            let number = try!(input.expect_number());
+            if number < 0.0 {
+                return Err(());
             }
+
+            Ok(SpecifiedValue::Number(number))
         }
+    }
 
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<AnimationIterationCount>);
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
-                }
-                for (i, value) in self.0.iter().enumerate() {
-                    if i != 0 {
-                        try!(dest.write_str(", "))
-                    }
-                    try!(value.to_css(dest))
-                }
-                Ok(())
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Number(n) => write!(dest, "{}", n),
+                SpecifiedValue::Infinite => dest.write_str("infinite"),
             }
         }
     }
 
-    pub use self::computed_value::AnimationIterationCount;
-    pub use self::computed_value::AnimationIterationCount as SingleSpecifiedValue;
-    pub use self::computed_value::T as SpecifiedValue;
     impl NoViewportPercentage for SpecifiedValue {}
 
     #[inline]
-    pub fn get_initial_single_value() -> AnimationIterationCount {
-        AnimationIterationCount::Number(1.0)
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Number(1.0)
     }
 
     #[inline]
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| {
-            AnimationIterationCount::parse(context, i)
-        }))))
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![get_initial_single_value()])
+        SpecifiedValue::parse(context, input)
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 ${helpers.single_keyword("animation-direction",
                          "normal reverse alternate alternate-reverse",
