@@ -10,7 +10,7 @@ function do_test() {
   t.step(function() {
     var doc = document.getElementsByTagName("iframe")[0].contentDocument;
     doc = doc.getElementsByTagName("iframe")[0].contentDocument;
-    assert_equals(doc.body.firstChild.textContent, "foo");
+    assert_equals(doc.body.firstChild.textContent, "foo\n");
     t.done();
   });
 }

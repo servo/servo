@@ -38,7 +38,7 @@ fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.6"
 heapsize_derive = "0.1"
-html5ever = {version = "0.10.2", features = ["heap_size", "unstable"]}
+html5ever = {version = "0.12.1", features = ["heap_size", "unstable"]}
 html5ever-atoms = {version = "0.1", features = ["heap_size"]}
 hyper = "0.9.9"
 hyper_serde = "0.1.4"
@@ -81,7 +81,7 @@ time = "0.1.12"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
 uuid = {version = "0.3.1", features = ["v4"]}
 websocket = "0.17"
-xml5ever = {version = "0.2", features = ["unstable"]}
+xml5ever = {version = "0.3.1", features = ["unstable"]}
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"

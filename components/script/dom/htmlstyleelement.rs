@@ -36,6 +36,7 @@ pub struct HTMLStyleElement {
     cssom_stylesheet: MutNullableJS<CSSStyleSheet>,
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
+    in_stack_of_open_elements: Cell<bool>,
     pending_loads: Cell<u32>,
     any_failed_load: Cell<bool>,
 }
@@ -50,6 +51,7 @@ impl HTMLStyleElement {
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
+            in_stack_of_open_elements: Cell::new(creator == ElementCreator::ParserCreated),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
         }
@@ -124,20 +126,38 @@ impl VirtualMethods for HTMLStyleElement {
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation) {
-        if let Some(ref s) = self.super_type() {
-            s.children_changed(mutation);
-        }
-        if self.upcast::<Node>().is_in_doc() {
+        self.super_type().unwrap().children_changed(mutation);
+
+        // https://html.spec.whatwg.org/multipage/#update-a-style-block
+        // Handles the case when:
+        // "The element is not on the stack of open elements of an HTML parser or XML parser,
+        // and one of its child nodes is modified by a script."
+        // TODO: Handle Text child contents being mutated.
+        if self.upcast::<Node>().is_in_doc() && !self.in_stack_of_open_elements.get() {
             self.parse_own_css();
         }
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
-        if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
-        }
+        self.super_type().unwrap().bind_to_tree(tree_in_doc);
 
-        if tree_in_doc {
+        // https://html.spec.whatwg.org/multipage/#update-a-style-block
+        // Handles the case when:
+        // "The element is not on the stack of open elements of an HTML parser or XML parser,
+        // and it becomes connected or disconnected."
+        if tree_in_doc && !self.in_stack_of_open_elements.get() {
+            self.parse_own_css();
+        }
+    }
+
+    fn pop(&self) {
+        self.super_type().unwrap().pop();
+
+        // https://html.spec.whatwg.org/multipage/#update-a-style-block
+        // Handles the case when:
+        // "The element is popped off the stack of open elements of an HTML parser or XML parser."
+        self.in_stack_of_open_elements.set(false);
+        if self.upcast::<Node>().is_in_doc() {
             self.parse_own_css();
         }
     }
