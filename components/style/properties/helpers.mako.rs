@@ -157,7 +157,7 @@
                 % endif
             }
 
-            pub use self::single_value::computed_value::T as SingleSpecifiedValue;
+            pub use self::single_value::SpecifiedValue as SingleSpecifiedValue;
 
             impl ToComputedValue for SpecifiedValue {
                 type ComputedValue = computed_value::T;
