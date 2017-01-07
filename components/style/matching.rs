@@ -36,7 +36,6 @@ fn relations_are_shareable(relations: &StyleRelations) -> bool {
     use selectors::matching::*;
     !relations.intersects(AFFECTED_BY_ID_SELECTOR |
                           AFFECTED_BY_PSEUDO_ELEMENTS | AFFECTED_BY_STATE |
-                          AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR |
                           AFFECTED_BY_STYLE_ATTRIBUTE |
                           AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
