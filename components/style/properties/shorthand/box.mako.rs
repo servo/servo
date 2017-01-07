@@ -127,11 +127,11 @@ macro_rules! try_parse_one {
                 Ok(SingleTransition {
                     transition_property: property,
                     transition_duration:
-                        duration.unwrap_or_else(transition_duration::get_initial_single_value),
+                        duration.unwrap_or_else(transition_duration::single_value::get_initial_value),
                     transition_timing_function:
                         timing_function.unwrap_or_else(transition_timing_function::get_initial_specified_single_value),
                     transition_delay:
-                        delay.unwrap_or_else(transition_delay::get_initial_single_value),
+                        delay.unwrap_or_else(transition_delay::single_value::get_initial_value),
                 })
             } else {
                 Err(())
@@ -238,11 +238,11 @@ macro_rules! try_parse_one {
                 Ok(SingleAnimation {
                     animation_name: name,
                     animation_duration:
-                        duration.unwrap_or_else(animation_duration::get_initial_single_value),
+                        duration.unwrap_or_else(animation_duration::single_value::get_initial_value),
                     animation_timing_function:
                         timing_function.unwrap_or_else(animation_timing_function::get_initial_specified_single_value),
                     animation_delay:
-                        delay.unwrap_or_else(animation_delay::get_initial_single_value),
+                        delay.unwrap_or_else(animation_delay::single_value::get_initial_value),
                     animation_iteration_count:
                         iteration_count.unwrap_or_else(animation_iteration_count::get_initial_single_value),
                     animation_direction:

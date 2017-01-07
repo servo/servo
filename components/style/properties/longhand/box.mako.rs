@@ -434,61 +434,29 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="transition-duration"
-                   need_index="True"
-                   animatable="False"
-                   spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration">
-    use values::computed::ComputedValueAsSpecified;
+<%helpers:vector_longhand name="transition-duration"
+                          need_index="True"
+                          animatable="False"
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration">
     use values::specified::Time;
 
-    pub use self::computed_value::T as SpecifiedValue;
-    pub use values::specified::Time as SingleSpecifiedValue;
+    pub use values::specified::Time as SpecifiedValue;
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use std::fmt;
-        use style_traits::ToCss;
-        use values::computed::{Context, ToComputedValue};
-
-        pub use values::computed::Time as SingleComputedValue;
-
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<SingleComputedValue>);
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
-                }
-                for (i, value) in self.0.iter().enumerate() {
-                    if i != 0 {
-                        try!(dest.write_str(", "))
-                    }
-                    try!(value.to_css(dest))
-                }
-                Ok(())
-            }
-        }
+        pub use values::computed::Time as T;
     }
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-
     #[inline]
-    pub fn get_initial_single_value() -> Time {
+    pub fn get_initial_value() -> Time {
         Time(0.0)
     }
 
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![get_initial_single_value()])
-    }
-
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| Time::parse(context, i)))))
+        Time::parse(context, input)
     }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 // TODO(pcwalton): Lots more timing functions.
 <%helpers:longhand name="transition-timing-function"
@@ -867,14 +835,14 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue { }
 </%helpers:longhand>
 
-<%helpers:longhand name="transition-delay"
-                   need_index="True"
-                   animatable="False"
-                   spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay">
-    pub use properties::longhands::transition_duration::{SingleSpecifiedValue, SpecifiedValue};
-    pub use properties::longhands::transition_duration::computed_value;
-    pub use properties::longhands::transition_duration::{get_initial_value, get_initial_single_value, parse};
-</%helpers:longhand>
+<%helpers:vector_longhand name="transition-delay"
+                          need_index="True"
+                          animatable="False"
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay">
+    pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
+    pub use properties::longhands::transition_duration::single_value::computed_value;
+    pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
+</%helpers:vector_longhand>
 
 <%helpers:longhand name="animation-name"
                    need_index="True"
@@ -953,16 +921,15 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:longhand>
 
-<%helpers:longhand name="animation-duration"
-                   need_index="True"
-                   animatable="False",
-                   spec="https://drafts.csswg.org/css-animations/#propdef-animation-duration",
-                   allowed_in_keyframe_block="False">
-    pub use super::transition_duration::computed_value;
-    pub use super::transition_duration::{get_initial_value, get_initial_single_value, parse};
-    pub use super::transition_duration::SpecifiedValue;
-    pub use super::transition_duration::SingleSpecifiedValue;
-</%helpers:longhand>
+<%helpers:vector_longhand name="animation-duration"
+                          need_index="True"
+                          animatable="False",
+                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-duration",
+                          allowed_in_keyframe_block="False">
+    pub use properties::longhands::transition_duration::single_value::computed_value;
+    pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
+    pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
+</%helpers:vector_longhand>
 
 <%helpers:longhand name="animation-timing-function"
                    need_index="True"
@@ -1095,16 +1062,15 @@ ${helpers.single_keyword("animation-fill-mode",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
                          allowed_in_keyframe_block=False)}
 
-<%helpers:longhand name="animation-delay"
-                   need_index="True"
-                   animatable="False",
-                   spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
-                   allowed_in_keyframe_block="False">
-    pub use super::transition_duration::computed_value;
-    pub use super::transition_duration::{get_initial_value, get_initial_single_value, parse};
-    pub use super::transition_duration::SpecifiedValue;
-    pub use super::transition_duration::SingleSpecifiedValue;
-</%helpers:longhand>
+<%helpers:vector_longhand name="animation-delay"
+                          need_index="True"
+                          animatable="False",
+                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
+                          allowed_in_keyframe_block="False">
+    pub use properties::longhands::transition_duration::single_value::computed_value;
+    pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
+    pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
+</%helpers:vector_longhand>
 
 <%helpers:longhand products="gecko" name="scroll-snap-points-y" animatable="False"
                    spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)">
