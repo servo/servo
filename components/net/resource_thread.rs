@@ -20,6 +20,7 @@ use net_traits::{CookieSource, CoreResourceThread};
 use net_traits::{CoreResourceMsg, FetchResponseMsg};
 use net_traits::{CustomResponseMediator, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
+use net_traits::request::{Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::{Decodable, Encodable};
