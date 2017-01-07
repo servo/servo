@@ -26,4 +26,4 @@ servo_config = {path = "../config", features = ["servo"]}
 servo_url = {path = "../url", features = ["servo"]}
 url = {version = "1.2", features = ["heap_size"]}
 uuid = { version = "0.3.1", features = ["v4"] }
-webdriver = "0.15"
+webdriver = "0.17"
