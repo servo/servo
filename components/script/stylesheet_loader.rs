@@ -138,6 +138,9 @@ impl FetchResponseListener for StylesheetContext {
                                                         Some(&loader),
                                                         win.css_error_reporter(),
                                                         ParserContextExtraData::default()));
+                    if elem.downcast::<HTMLLinkElement>().unwrap().is_alternate() {
+                        sheet.set_disabled(true);
+                    }
                     elem.downcast::<HTMLLinkElement>()
                         .unwrap()
                         .set_stylesheet(sheet.clone());
