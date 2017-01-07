@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>CSSOM - transition-timing-function should serialize correctly.</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+        test(function() {
+            var div = document.createElement('div');
+            div.style.transitionTimingFunction = "ease-in";
+            assert_equals(div.style.transitionTimingFunction, "ease-in", "Function keywords should be serialized as is.");
+
+            div.style.transitionTimingFunction = "step-start";
+            assert_equals(div.style.transitionTimingFunction, "steps(1, start)", "step-start keyword should be serialized as steps(<integer>, start).");
+
+            div.style.transitionTimingFunction = "step-end";
+            assert_equals(div.style.transitionTimingFunction, "steps(1)", "step-end keyword should be serialized as steps(<integer>).");
+
+            div.style.transitionTimingFunction = "steps(2, end)";
+            assert_equals(div.style.transitionTimingFunction, "steps(2)", "steps(<integer>, end) function should be serialized as steps(<integer>).");
+
+            div.style.transitionTimingFunction = "steps(3, start)";
+            assert_equals(div.style.transitionTimingFunction, "steps(3, start)", "steps(<integer>, start) function should be serialized as steps(<integer>, start).");
+
+            div.style.transitionTimingFunction = "cubic-bezier(0.1, 0.2, 0.3, 0.4)";
+            assert_equals(div.style.transitionTimingFunction, "cubic-bezier(0.1, 0.2, 0.3, 0.4)", "cubic-bezier function should be serialized as is.");
+
+            div.style.transitionTimingFunction = "cubic-bezier(0.1, -0.2, 0.3, -0.4)";
+            assert_equals(div.style.transitionTimingFunction, "cubic-bezier(0.1, -0.2, 0.3, -0.4)", "cubic-bezier(0.1, 0.2, 0.3, 0.4)", "cubic-bezier function should be serialized as is.");
+        });
+    </script>
+</head>
+</html>
