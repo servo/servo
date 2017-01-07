@@ -6,5 +6,6 @@
 //!
 //! These get compiled out on a Gecko build.
 
+pub mod media_queries;
 pub mod restyle_damage;
 pub mod selector_parser;
