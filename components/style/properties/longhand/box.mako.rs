@@ -719,58 +719,34 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 </%helpers:vector_longhand>
 
-<%helpers:longhand name="transition-property"
-                   need_index="True"
-                   animatable="False"
-                   spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property">
+<%helpers:vector_longhand name="transition-property"
+                          allow_empty="True"
+                          need_index="True"
+                          animatable="False"
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property">
 
     use values::computed::ComputedValueAsSpecified;
 
-    pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
-    pub use self::computed_value::T as SpecifiedValue;
+    pub use properties::animated_properties::TransitionProperty;
+    pub use properties::animated_properties::TransitionProperty as SpecifiedValue;
 
     pub mod computed_value {
         use std::fmt;
         use style_traits::ToCss;
         // NB: Can't generate the type here because it needs all the longhands
         // generated beforehand.
-        pub use properties::animated_properties::TransitionProperty;
-        pub use properties::animated_properties::TransitionProperty as SingleComputedValue;
-
-        #[derive(Clone, Debug, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<SingleComputedValue>);
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
-                }
-                for (i, value) in self.0.iter().enumerate() {
-                    if i != 0 {
-                        try!(dest.write_str(", "))
-                    }
-                    try!(value.to_css(dest))
-                }
-                Ok(())
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Vec::new())
+        pub use super::SpecifiedValue as T;
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
+        SpecifiedValue::parse(input)
     }
 
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
 
     impl ComputedValueAsSpecified for SpecifiedValue { }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="transition-delay"
                           need_index="True"
