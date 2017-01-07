@@ -28,32 +28,32 @@
                 -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck
                 -moz-popup -moz-groupbox""".split()
     %>
-    pub use self::computed_value::T as SpecifiedValue;
     use values::computed::ComputedValueAsSpecified;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use style_traits::ToCss;
-        #[allow(non_camel_case_types)]
-        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-        pub enum T {
-            % for value in values:
-                ${to_rust_ident(value)},
-            % endfor
-        }
+        pub use super::SpecifiedValue as T;
+    }
 
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-                where W: ::std::fmt::Write,
-            {
-                match *self {
-                    % for value in values:
-                        T::${to_rust_ident(value)} => dest.write_str("${value}"),
-                    % endfor
-                }
+    #[allow(non_camel_case_types)]
+    #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+    pub enum SpecifiedValue {
+        % for value in values:
+            ${to_rust_ident(value)},
+        % endfor
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
+            where W: ::std::fmt::Write,
+        {
+            match *self {
+                % for value in values:
+                    SpecifiedValue::${to_rust_ident(value)} => dest.write_str("${value}"),
+                % endfor
             }
         }
     }
@@ -397,8 +397,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
 
-    pub use self::computed_value::T as SpecifiedValue;
-
     impl NoViewportPercentage for SpecifiedValue {}
 
     impl ToCss for SpecifiedValue {
@@ -407,17 +405,18 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
     }
 
-
     /// The specified and computed value for overflow-y is a wrapper on top of
     /// `overflow-x`, so we re-use the logic, but prevent errors from mistakenly
     /// assign one to other.
     ///
     /// TODO(Manishearth, emilio): We may want to just use the same value.
     pub mod computed_value {
-        #[derive(Debug, Clone, Copy, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub super::super::overflow_x::computed_value::T);
+        pub use super::SpecifiedValue as T;
     }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue(pub super::overflow_x::SpecifiedValue);
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
