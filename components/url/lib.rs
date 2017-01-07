@@ -8,7 +8,6 @@
 #![crate_type = "rlib"]
 
 #![cfg_attr(feature = "servo", feature(plugin))]
-#![cfg_attr(feature = "servo", feature(proc_macro))]
 
 #[cfg(feature = "servo")] extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;

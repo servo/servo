@@ -12,8 +12,6 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
-#![feature(proc_macro)]
-
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;

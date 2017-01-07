@@ -12,7 +12,6 @@
 
 #![feature(box_syntax)]
 #![feature(plugin)]
-#![feature(proc_macro)]
 #![plugin(plugins)]
 
 #![allow(non_snake_case)]
