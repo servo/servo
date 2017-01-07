@@ -448,7 +448,7 @@ struct NodeOffsetBoxInfo {
 
 struct ParentBorderBoxInfo {
     node_address: OpaqueNode,
-    border_box: Rect<Au>,
+    origin: Point2D<Au>,
 }
 
 struct ParentOffsetBorderBoxIterator {
@@ -626,8 +626,8 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
 
             let parent_info = if is_valid_parent {
                 Some(ParentBorderBoxInfo {
-                    border_box: *border_box,
                     node_address: fragment.node,
+                    origin: border_box.origin,
                 })
             } else {
                 None
@@ -865,7 +865,7 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
     match (node_offset_box, parent_info_index) {
         (Some(node_offset_box), Some(parent_info_index)) => {
             let parent = iterator.parent_nodes[parent_info_index].as_ref().unwrap();
-            let origin = node_offset_box.offset - parent.border_box.origin;
+            let origin = node_offset_box.offset - parent.origin;
             let size = node_offset_box.rectangle.size;
             OffsetParentResponse {
                 node_address: Some(parent.node_address.to_untrusted_node_address()),
