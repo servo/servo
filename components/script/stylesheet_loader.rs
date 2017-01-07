@@ -138,6 +138,9 @@ impl FetchResponseListener for StylesheetContext {
                                                         Some(&loader),
                                                         win.css_error_reporter(),
                                                         ParserContextExtraData::default()));
+                    if elem.downcast::<HTMLLinkElement>().unwrap().is_alternate() {
+                        sheet.set_disabled(true);
+                    }
                     elem.downcast::<HTMLLinkElement>()
                         .unwrap()
                         .set_stylesheet(sheet.clone());
@@ -147,6 +150,9 @@ impl FetchResponseListener for StylesheetContext {
                 }
                 StylesheetContextSource::Import(ref import) => {
                     let import = import.read();
+                    if elem.downcast::<HTMLLinkElement>().unwrap().is_alternate() {
+                        import.stylesheet.set_disabled(true);
+                    }
                     Stylesheet::update_from_bytes(&import.stylesheet,
                                                   &data,
                                                   protocol_encoding_label,
