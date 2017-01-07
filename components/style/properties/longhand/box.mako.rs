@@ -757,82 +757,57 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
 </%helpers:vector_longhand>
 
-<%helpers:longhand name="animation-name"
-                   need_index="True"
-                   animatable="False",
-                   allowed_in_keyframe_block="False"
-                   spec="https://drafts.csswg.org/css-animations/#propdef-animation-name">
+<%helpers:vector_longhand name="animation-name"
+                          allow_empty="True"
+                          need_index="True"
+                          animatable="False",
+                          allowed_in_keyframe_block="False"
+                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-name">
+    use Atom;
+    use std::fmt;
+    use std::ops::Deref;
+    use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
 
     pub mod computed_value {
-        use Atom;
-        use parser::{Parse, ParserContext};
-        use std::fmt;
-        use std::ops::Deref;
-        use style_traits::ToCss;
+        pub use super::SpecifiedValue as T;
+    }
 
-        #[derive(Clone, Debug, Hash, Eq, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct AnimationName(pub Atom);
+    #[derive(Clone, Debug, Hash, Eq, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue(pub Atom);
 
-        impl fmt::Display for AnimationName {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                self.0.fmt(f)
-            }
-        }
-
-        pub use self::AnimationName as SingleComputedValue;
-
-        impl Parse for AnimationName {
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
-                use cssparser::Token;
-                Ok(match input.next() {
-                    Ok(Token::Ident(ref value)) if value != "none" => AnimationName(Atom::from(&**value)),
-                    Ok(Token::QuotedString(value)) => AnimationName(Atom::from(&*value)),
-                    _ => return Err(()),
-                })
-            }
-        }
-
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<AnimationName>);
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
-                }
-
-                for (i, name) in self.0.iter().enumerate() {
-                    if i != 0 {
-                        try!(dest.write_str(", "));
-                    }
-                    // NB: to_string() needed due to geckolib backend.
-                    try!(dest.write_str(&*name.to_string()));
-                }
-                Ok(())
-            }
+    impl fmt::Display for SpecifiedValue {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            self.0.fmt(f)
         }
     }
 
-    pub use self::computed_value::T as SpecifiedValue;
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            dest.write_str(&*self.0.to_string())
+        }
+    }
+
+    impl Parse for SpecifiedValue {
+        fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            use cssparser::Token;
+            Ok(match input.next() {
+                Ok(Token::Ident(ref value)) if value != "none" => SpecifiedValue(Atom::from(&**value)),
+                Ok(Token::QuotedString(value)) => SpecifiedValue(Atom::from(&*value)),
+                _ => return Err(()),
+            })
+        }
+    }
     impl NoViewportPercentage for SpecifiedValue {}
-    pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![])
-    }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        use std::borrow::Cow;
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| SingleSpecifiedValue::parse(context, i)))))
+        SpecifiedValue::parse(context, input)
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="animation-duration"
                           need_index="True"
