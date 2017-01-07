@@ -59,4 +59,7 @@ impl test {
 
     // Should not be triggered
     macro_rules! test_macro ( ( $( $fun:ident = $flag:ident ; )* ) => ());
+
+    let var
+        = "val";
 }

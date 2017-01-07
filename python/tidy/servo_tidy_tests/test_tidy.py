@@ -125,6 +125,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('extra space after (', errors.next()[2])
         self.assertEqual('extra space after (', errors.next()[2])
         self.assertEqual('extra space after test_fun', errors.next()[2])
+        self.assertEqual('no = in the beginning of line', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
         feature_errors = tidy.collect_errors_for_files(iterFile('lib.rs'), [], [tidy.check_rust], print_text=False)
