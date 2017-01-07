@@ -540,7 +540,7 @@ mod shorthand_serialization {
         use style::properties::longhands::transition_duration::SpecifiedValue as DurationContainer;
         use style::properties::longhands::transition_property::SpecifiedValue as PropertyContainer;
         use style::properties::longhands::transition_timing_function::SpecifiedValue as TimingContainer;
-        use style::properties::longhands::transition_timing_function::TransitionTimingFunction;
+        use style::properties::longhands::transition_timing_function::single_value::SpecifiedValue as TransitionTimingFunction;
         use style::values::specified::Time as TimeContainer;
 
         let property_name = DeclaredValue::Value(

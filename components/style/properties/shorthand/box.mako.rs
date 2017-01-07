@@ -129,7 +129,8 @@ macro_rules! try_parse_one {
                     transition_duration:
                         duration.unwrap_or_else(transition_duration::single_value::get_initial_value),
                     transition_timing_function:
-                        timing_function.unwrap_or_else(transition_timing_function::get_initial_specified_single_value),
+                        timing_function.unwrap_or_else(transition_timing_function::single_value
+                                                                                 ::get_initial_specified_value),
                     transition_delay:
                         delay.unwrap_or_else(transition_delay::single_value::get_initial_value),
                 })
@@ -240,7 +241,8 @@ macro_rules! try_parse_one {
                     animation_duration:
                         duration.unwrap_or_else(animation_duration::single_value::get_initial_value),
                     animation_timing_function:
-                        timing_function.unwrap_or_else(animation_timing_function::get_initial_specified_single_value),
+                        timing_function.unwrap_or_else(animation_timing_function::single_value
+                                                                                ::get_initial_specified_value),
                     animation_delay:
                         delay.unwrap_or_else(animation_delay::single_value::get_initial_value),
                     animation_iteration_count:
