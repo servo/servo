@@ -246,7 +246,7 @@ macro_rules! try_parse_one {
                     animation_delay:
                         delay.unwrap_or_else(animation_delay::single_value::get_initial_value),
                     animation_iteration_count:
-                        iteration_count.unwrap_or_else(animation_iteration_count::get_initial_single_value),
+                        iteration_count.unwrap_or_else(animation_iteration_count::single_value::get_initial_value),
                     animation_direction:
                         direction.unwrap_or_else(animation_direction::single_value::get_initial_value),
                     animation_fill_mode:

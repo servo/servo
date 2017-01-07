@@ -14,7 +14,7 @@ use keyframes::{KeyframesStep, KeyframesStepValue};
 use properties::{self, CascadeFlags, ComputedValues, Importance};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
-use properties::longhands::animation_iteration_count::computed_value::AnimationIterationCount;
+use properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
 use properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use properties::longhands::transition_timing_function::single_value::computed_value::StartEnd;
 use properties::longhands::transition_timing_function::single_value::computed_value::T as TransitionTimingFunction;
