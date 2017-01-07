@@ -20,7 +20,6 @@ use net_traits::{CookieSource, CoreResourceThread};
 use net_traits::{CoreResourceMsg, FetchResponseMsg};
 use net_traits::{CustomResponseMediator, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
-use net_traits::request::{Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::{Decodable, Encodable};
@@ -330,6 +329,7 @@ impl CoreResourceManager {
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
+
         thread::Builder::new().name(format!("fetch thread for {}", init.url)).spawn(move || {
             let request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)

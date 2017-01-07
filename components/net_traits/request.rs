@@ -10,6 +10,8 @@ use servo_url::ServoUrl;
 use std::cell::{Cell, RefCell};
 use std::default::Default;
 use url::Origin as UrlOrigin;
+use WebSocketCommunicate;
+use websocket::header::WebSocketProtocol;
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
 #[derive(Copy, Clone, PartialEq, HeapSizeOf)]
