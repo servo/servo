@@ -4,13 +4,14 @@
 
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
+use dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -23,11 +24,14 @@ use dom::document::{Document, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::formdata::FormData;
 use dom::globalscope::GlobalScope;
 use dom::headers::is_forbidden_header_name;
 use dom::htmlformelement::{encode_multipart_form_data, generate_boundary};
+use dom::node::Node;
 use dom::progressevent::ProgressEvent;
 use dom::servoparser::ServoParser;
+use dom::urlsearchparams::URLSearchParams;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
@@ -36,6 +40,7 @@ use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
+use html5ever::serialize::{self, SerializeOpts};
 use hyper::header::{ContentLength, ContentType};
 use hyper::header::Headers;
 use hyper::method::Method;
@@ -479,7 +484,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
-    fn Send(&self, data: Option<BodyInit>) -> ErrorResult {
+    fn Send(&self, data: Option<DocumentOrBodyInit>) -> ErrorResult {
         // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState);
@@ -491,16 +496,31 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             _ => data
         };
         // Step 4 (first half)
-        let extracted = data.as_ref().map(|d| d.extract());
+        let extracted_or_serialized = match data {
+            Some(DocumentOrBodyInit::Document(ref doc)) => {
+                let data = Vec::from(try!(serialize_document(&doc)).as_ref());
+                let content_type = if doc.is_html_document() {
+                    "text/html;charset=UTF-8"
+                } else {
+                    "application/xml;charset=UTF-8"
+                };
+                Some((data, Some(DOMString::from(content_type))))
+            },
+            Some(DocumentOrBodyInit::Blob(ref b)) => Some(b.extract()),
+            Some(DocumentOrBodyInit::FormData(ref formdata)) => Some(formdata.extract()),
+            Some(DocumentOrBodyInit::String(ref str)) => Some(str.extract()),
+            Some(DocumentOrBodyInit::URLSearchParams(ref urlsp)) => Some(urlsp.extract()),
+            None => None,
+        };
 
-        self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.0.len()));
+        self.request_body_len.set(extracted_or_serialized.as_ref().map_or(0, |e| e.0.len()));
 
         // todo preserved headers?
 
         // Step 6
         self.upload_complete.set(false);
         // Step 7
-        self.upload_complete.set(match extracted {
+        self.upload_complete.set(match extracted_or_serialized {
             None => true,
             Some(ref e) if e.0.is_empty() => true,
             _ => false
@@ -562,7 +582,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             headers: (*self.request_headers.borrow()).clone(),
             unsafe_request: true,
             // XXXManishearth figure out how to avoid this clone
-            body: extracted.as_ref().map(|e| e.0.clone()),
+            body: extracted_or_serialized.as_ref().map(|e| e.0.clone()),
             // XXXManishearth actually "subresource", but it doesn't exist
             // https://github.com/whatwg/xhr/issues/71
             destination: Destination::None,
@@ -583,16 +603,15 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
 
         // step 4 (second half)
-        match extracted {
+        match extracted_or_serialized {
             Some((_, ref content_type)) => {
-                // this should handle Document bodies too, not just BodyInit
-                let encoding = if let Some(BodyInit::String(_)) = data {
+                let encoding = match data {
+                    Some(DocumentOrBodyInit::String(_)) | Some(DocumentOrBodyInit::Document(_)) =>
                     // XHR spec differs from http, and says UTF-8 should be in capitals,
                     // instead of "utf-8", which is what Hyper defaults to. So not
                     // using content types provided by Hyper.
-                    Some(MimeValue::Ext("UTF-8".to_string()))
-                } else {
-                    None
+                    Some(MimeValue::Ext("UTF-8".to_string())),
+                    _ => None,
                 };
 
                 let mut content_type_set = false;
@@ -1332,35 +1351,60 @@ impl XHRTimeoutCallback {
 pub trait Extractable {
     fn extract(&self) -> (Vec<u8>, Option<DOMString>);
 }
+
+impl Extractable for Blob {
+    fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
+        let content_type = if self.Type().as_ref().is_empty() {
+            None
+        } else {
+            Some(self.Type())
+        };
+        let bytes = self.get_bytes().unwrap_or(vec![]);
+        (bytes, content_type)
+    }
+}
+
+
+impl Extractable for DOMString {
+    fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
+        (UTF_8.encode(self, EncoderTrap::Replace).unwrap(),
+            Some(DOMString::from("text/plain;charset=UTF-8")))
+    }
+}
+
+impl Extractable for FormData {
+    fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
+        let boundary = generate_boundary();
+        let bytes = encode_multipart_form_data(&mut self.datums(), boundary.clone(),
+                                               UTF_8 as EncodingRef);
+        (bytes, Some(DOMString::from(format!("multipart/form-data;boundary={}", boundary))))
+    }
+}
+
+impl Extractable for URLSearchParams {
+    fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
+        // Default encoding is UTF-8.
+        (self.serialize(None).into_bytes(),
+            Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
+    }
+}
+
+fn serialize_document(doc: &Document) -> Fallible<DOMString> {
+    let mut writer = vec![];
+    match serialize(&mut writer, &doc.upcast::<Node>(), SerializeOpts::default()) {
+        Ok(_) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
+        Err(_) => Err(Error::InvalidState),
+    }
+}
+
 impl Extractable for BodyInit {
     // https://fetch.spec.whatwg.org/#concept-bodyinit-extract
     fn extract(&self) -> (Vec<u8>, Option<DOMString>) {
         match *self {
-            BodyInit::String(ref s) => {
-                let encoding = UTF_8 as EncodingRef;
-                (encoding.encode(s, EncoderTrap::Replace).unwrap(),
-                    Some(DOMString::from("text/plain;charset=UTF-8")))
-            }
-            BodyInit::URLSearchParams(ref usp) => {
-                // Default encoding is UTF-8.
-                (usp.serialize(None).into_bytes(),
-                    Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
-            }
-            BodyInit::Blob(ref b) => {
-                let content_type = if b.Type().as_ref().is_empty() {
-                    None
-                } else {
-                    Some(b.Type())
-                };
-                let bytes = b.get_bytes().unwrap_or(vec![]);
-                (bytes, content_type)
-            }
-            BodyInit::FormData(ref formdata) => {
-                let boundary = generate_boundary();
-                let bytes = encode_multipart_form_data(&mut formdata.datums(), boundary.clone(),
-                                                       UTF_8 as EncodingRef);
-                (bytes, Some(DOMString::from(format!("multipart/form-data;boundary={}", boundary))))
-            }
+            BodyInit::String(ref s) => s.extract(),
+            BodyInit::URLSearchParams(ref usp) => usp.extract(),
+            BodyInit::Blob(ref b) => b.extract(),
+            BodyInit::FormData(ref formdata) => formdata.extract(),
         }
     }
 }

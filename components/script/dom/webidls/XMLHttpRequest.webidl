@@ -53,7 +53,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
            attribute boolean withCredentials;
   readonly attribute XMLHttpRequestUpload upload;
   [Throws]
-  void send(optional /*Document or*/ BodyInit? data = null);
+  void send(optional (Document or BodyInit)? data = null);
   void abort();
 
   // response
