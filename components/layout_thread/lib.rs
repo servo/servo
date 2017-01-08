@@ -1157,9 +1157,9 @@ impl LayoutThread {
         let dom_depth = Some(0); // This is always the root node.
         let token = {
             let stylist = &<RecalcStyleAndConstructFlows as
-                            DomTraversal<ServoLayoutNode>>::shared_context(&traversal).stylist;
+                            DomTraversal<ServoLayoutElement>>::shared_context(&traversal).stylist;
             <RecalcStyleAndConstructFlows as
-             DomTraversal<ServoLayoutNode>>::pre_traverse(element, stylist, /* skip_root = */ false)
+             DomTraversal<ServoLayoutElement>>::pre_traverse(element, stylist, /* skip_root = */ false)
         };
 
         if token.should_traverse() {
@@ -1171,11 +1171,11 @@ impl LayoutThread {
                 // Perform CSS selector matching and flow construction.
                 if let (true, Some(pool)) = (self.parallel_flag, self.parallel_traversal.as_mut()) {
                     // Parallel mode
-                    parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                    parallel::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
                         &traversal, element, dom_depth, token, pool);
                 } else {
                     // Sequential mode
-                    sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                    sequential::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
                         &traversal, element, token);
                 }
             });

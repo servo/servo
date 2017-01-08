@@ -9,11 +9,10 @@
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
-use dom::{TElement, TNode};
+use dom::{NodeInfo, TElement, TNode};
 use matching::{MatchMethods, StyleSharingResult};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
-use selectors::Element;
 use servo_config::opts;
 use std::mem;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
@@ -72,7 +71,7 @@ impl LogBehavior {
 
 /// A DOM Traversal trait, that is used to generically implement styling for
 /// Gecko and Servo.
-pub trait DomTraversal<N: TNode> : Sync {
+pub trait DomTraversal<E: TElement> : Sync {
     /// The thread-local context, used to store non-thread-safe stuff that needs
     /// to be used in the traversal, and of which we use one per worker, like
     /// the bloom filter, for example.
@@ -80,12 +79,15 @@ pub trait DomTraversal<N: TNode> : Sync {
 
     /// Process `node` on the way down, before its children have been processed.
     fn process_preorder(&self, data: &mut PerLevelTraversalData,
-                        thread_local: &mut Self::ThreadLocalContext, node: N);
+                        thread_local: &mut Self::ThreadLocalContext,
+                        node: E::ConcreteNode);
 
     /// Process `node` on the way up, after its children have been processed.
     ///
     /// This is only executed if `needs_postorder_traversal` returns true.
-    fn process_postorder(&self, thread_local: &mut Self::ThreadLocalContext, node: N);
+    fn process_postorder(&self,
+                         thread_local: &mut Self::ThreadLocalContext,
+                         node: E::ConcreteNode);
 
     /// Boolean that specifies whether a bottom up traversal should be
     /// performed.
@@ -99,8 +101,7 @@ pub trait DomTraversal<N: TNode> : Sync {
     ///
     /// The unstyled_children_only parameter is used in Gecko to style newly-
     /// appended children without restyling the parent.
-    fn pre_traverse(root: N::ConcreteElement, stylist: &Stylist,
-                    unstyled_children_only: bool)
+    fn pre_traverse(root: E, stylist: &Stylist, unstyled_children_only: bool)
                     -> PreTraverseToken
     {
         if unstyled_children_only {
@@ -132,10 +133,13 @@ pub trait DomTraversal<N: TNode> : Sync {
     /// Returns true if traversal should visit a text node. The style system never
     /// processes text nodes, but Servo overrides this to visit them for flow
     /// construction when necessary.
-    fn text_node_needs_traversal(node: N) -> bool { debug_assert!(node.is_text_node()); false }
+    fn text_node_needs_traversal(node: E::ConcreteNode) -> bool {
+        debug_assert!(node.is_text_node());
+        false
+    }
 
     /// Returns true if traversal is needed for the given node and subtree.
-    fn node_needs_traversal(node: N) -> bool {
+    fn node_needs_traversal(node: E::ConcreteNode) -> bool {
         // Non-incremental layout visits every node.
         if cfg!(feature = "servo") && opts::get().nonincremental_layout {
             return true;
@@ -189,8 +193,7 @@ pub trait DomTraversal<N: TNode> : Sync {
     ///
     /// This may be called multiple times when processing an element, so we pass
     /// a parameter to keep the logs tidy.
-    fn should_traverse_children(parent: N::ConcreteElement, parent_data: &ElementData,
-                                log: LogBehavior) -> bool
+    fn should_traverse_children(parent: E, parent_data: &ElementData, log: LogBehavior) -> bool
     {
         // See the comment on `cascade_node` for why we allow this on Gecko.
         debug_assert!(cfg!(feature = "gecko") || parent_data.has_current_styles());
@@ -234,7 +237,7 @@ pub trait DomTraversal<N: TNode> : Sync {
 
     /// Helper for the traversal implementations to select the children that
     /// should be enqueued for processing.
-    fn traverse_children<F: FnMut(N)>(parent: N::ConcreteElement, mut f: F)
+    fn traverse_children<F: FnMut(E::ConcreteNode)>(parent: E, mut f: F)
     {
         // Check if we're allowed to traverse past this element.
         if !Self::should_traverse_children(parent, &parent.borrow_data().unwrap(), MayLog) {
@@ -260,13 +263,13 @@ pub trait DomTraversal<N: TNode> : Sync {
     ///
     /// This is only safe to call in top-down traversal before processing the
     /// children of |element|.
-    unsafe fn ensure_element_data(element: &N::ConcreteElement) -> &AtomicRefCell<ElementData>;
+    unsafe fn ensure_element_data(element: &E) -> &AtomicRefCell<ElementData>;
 
     /// Clears the ElementData attached to this element, if any.
     ///
     /// This is only safe to call in top-down traversal before processing the
     /// children of |element|.
-    unsafe fn clear_element_data(element: &N::ConcreteElement);
+    unsafe fn clear_element_data(element: &E);
 
     /// Return the shared style context common to all worker threads.
     fn shared_context(&self) -> &SharedStyleContext;
@@ -364,7 +367,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
                              element: E,
                              mut data: &mut AtomicRefMut<ElementData>)
     where E: TElement,
-          D: DomTraversal<E::ConcreteNode>
+          D: DomTraversal<E>
 {
     debug_assert!(data.as_restyle().map_or(true, |r| r.snapshot.is_none()),
                   "Snapshots should be expanded by the caller");
@@ -411,7 +414,7 @@ fn compute_style<E, D>(_traversal: &D,
                        element: E,
                        mut data: &mut AtomicRefMut<ElementData>) -> bool
     where E: TElement,
-          D: DomTraversal<E::ConcreteNode>,
+          D: DomTraversal<E>,
 {
     let shared_context = context.shared;
     // Ensure the bloom filter is up to date.
@@ -498,7 +501,7 @@ fn preprocess_children<E, D>(traversal: &D,
                              mut propagated_hint: StoredRestyleHint,
                              parent_inherited_style_changed: bool)
     where E: TElement,
-          D: DomTraversal<E::ConcreteNode>
+          D: DomTraversal<E>
 {
     // Loop over all the children.
     for child in element.as_node().children() {
