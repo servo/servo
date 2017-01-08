@@ -76,7 +76,7 @@
 macro_rules! try_parse_one {
     ($input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {
-            if let Ok(value) = $input.try($prop_module::computed_value::SingleComputedValue::parse) {
+            if let Ok(value) = $input.try($prop_module::SingleSpecifiedValue::parse) {
                 $var = Some(value);
                 continue;
             }
@@ -85,7 +85,7 @@ macro_rules! try_parse_one {
     ($context: expr, $input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {
             if let Ok(value) = $input.try(|i| {
-                $prop_module::computed_value::SingleComputedValue::parse($context, i)
+                $prop_module::SingleSpecifiedValue::parse($context, i)
             }) {
                 $var = Some(value);
                 continue;
@@ -129,7 +129,7 @@ macro_rules! try_parse_one {
                     transition_duration:
                         duration.unwrap_or_else(transition_duration::get_initial_single_value),
                     transition_timing_function:
-                        timing_function.unwrap_or_else(transition_timing_function::get_initial_single_value),
+                        timing_function.unwrap_or_else(transition_timing_function::get_initial_specified_single_value),
                     transition_delay:
                         delay.unwrap_or_else(transition_delay::get_initial_single_value),
                 })
@@ -240,7 +240,7 @@ macro_rules! try_parse_one {
                     animation_duration:
                         duration.unwrap_or_else(animation_duration::get_initial_single_value),
                     animation_timing_function:
-                        timing_function.unwrap_or_else(animation_timing_function::get_initial_single_value),
+                        timing_function.unwrap_or_else(animation_timing_function::get_initial_specified_single_value),
                     animation_delay:
                         delay.unwrap_or_else(animation_delay::get_initial_single_value),
                     animation_iteration_count:
