@@ -53,7 +53,7 @@ impl ResponseBody {
 
 
 /// [Cache state](https://fetch.spec.whatwg.org/#concept-response-cache-state)
-#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum CacheState {
     None,
     Local,
@@ -76,7 +76,7 @@ pub enum ResponseMsg {
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
-#[derive(Debug, Clone, HeapSizeOf)]
+#[derive(Debug, HeapSizeOf)]
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
@@ -282,6 +282,26 @@ impl Response {
             }
         } else {
             Ok(FetchMetadata::Unfiltered(metadata.unwrap()))
+        }
+    }
+}
+
+impl Clone for Response {
+    fn clone(&self) -> Response {
+        Response {
+            response_type: self.response_type.clone(),
+            termination_reason: self.termination_reason,
+            url: self.url.clone(),
+            url_list: self.url_list.clone(),
+            status: self.status,
+            raw_status: self.raw_status.clone(),
+            headers: self.headers.clone(),
+            body: Arc::new(Mutex::new((*self.body.lock().unwrap()).clone())),
+            cache_state: self.cache_state,
+            https_state: self.https_state,
+            referrer: self.referrer.clone(),
+            internal_response: self.internal_response.clone(),
+            return_internal: self.return_internal.clone(),
         }
     }
 }
