@@ -77,6 +77,7 @@ pub enum RequestMode {
     SameOrigin,
     NoCors,
     CorsMode,
+    WebSocket
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)

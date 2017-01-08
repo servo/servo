@@ -826,6 +826,7 @@ impl Into<RequestMode> for NetTraitsRequestMode {
             NetTraitsRequestMode::SameOrigin => RequestMode::Same_origin,
             NetTraitsRequestMode::NoCors => RequestMode::No_cors,
             NetTraitsRequestMode::CorsMode => RequestMode::Cors,
+            NetTraitsRequestMode::WebSocket => unreachable!("Websocket request mode should never be exposed to JS"),
         }
     }
 }
