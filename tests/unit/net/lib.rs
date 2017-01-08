@@ -33,6 +33,7 @@ extern crate url;
 #[cfg(test)] mod hsts;
 #[cfg(test)] mod http_loader;
 #[cfg(test)] mod filemanager_thread;
+#[cfg(test)] mod subresource_integrity;
 
 use devtools_traits::DevtoolsControlMsg;
 use hyper::server::{Handler, Listening, Server};

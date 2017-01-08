@@ -24,6 +24,7 @@ use std::io::Read;
 use std::mem;
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, Receiver};
+use subresource_integrity::is_response_integrity_valid;
 
 pub type Target<'a> = &'a mut (FetchTaskTarget + Send);
 
@@ -268,6 +269,7 @@ pub fn main_fetch(request: Rc<Request>,
         response
     };
 
+    let mut response_loaded = false;
     {
         // Step 14
         let network_error_res;
@@ -297,50 +299,33 @@ pub fn main_fetch(request: Rc<Request>,
             let mut body = internal_response.body.lock().unwrap();
             *body = ResponseBody::Empty;
         }
-
-        // Step 18
-        // TODO be able to compare response integrity against request integrity metadata
-        // if !response.is_network_error() {
-
-        //     // Substep 1
-        //     response.wait_until_done();
-
-        //     // Substep 2
-        //     if response.termination_reason.is_none() {
-        //         response = Response::network_error();
-        //         internal_response = Response::network_error();
-        //     }
-        // }
     }
+     // Step 18
+    let response = if !response.is_network_error() && *request.integrity_metadata.borrow() != "" {
+        // Substep 1
+        wait_for_response(&response, target, done_chan);
+        response_loaded = true;
+
+        // Substep 2
+        let ref integrity_metadata = *request.integrity_metadata.borrow();
+        if response.termination_reason.is_none() &&
+           !is_response_integrity_valid(integrity_metadata, &response) {
+            Response::network_error(NetworkError::Internal("Subresource integrity validation failed".into()))
+        } else {
+            response
+        }
+    } else {
+        response
+    };
 
     // Step 19
     if request.synchronous {
         // process_response is not supposed to be used
         // by sync fetch, but we overload it here for simplicity
         target.process_response(&response);
-
-        if let Some(ref ch) = *done_chan {
-            loop {
-                match ch.1.recv()
-                        .expect("fetch worker should always send Done before terminating") {
-                    Data::Payload(vec) => {
-                        target.process_response_chunk(vec);
-                    }
-                    Data::Done => break,
-                }
-            }
-        } else {
-            let body = response.body.lock().unwrap();
-            if let ResponseBody::Done(ref vec) = *body {
-                // in case there was no channel to wait for, the body was
-                // obtained synchronously via basic_fetch for data/file/about/etc
-                // We should still send the body across as a chunk
-                target.process_response_chunk(vec.clone());
-            } else {
-                assert!(*body == ResponseBody::Empty)
-            }
+        if !response_loaded {
+            wait_for_response(&response, target, done_chan);
         }
-
         // overloaded similarly to process_response
         target.process_response_eof(&response);
         return response;
@@ -360,13 +345,25 @@ pub fn main_fetch(request: Rc<Request>,
     target.process_response(&response);
 
     // Step 22
+    if !response_loaded {
+       wait_for_response(&response, target, done_chan);
+    }
+
+    // Step 24
+    target.process_response_eof(&response);
+
+    // TODO remove this line when only asynchronous fetches are used
+    return response;
+}
+
+fn wait_for_response(response: &Response, target: Target, done_chan: &mut DoneChannel) {
     if let Some(ref ch) = *done_chan {
         loop {
             match ch.1.recv()
                     .expect("fetch worker should always send Done before terminating") {
                 Data::Payload(vec) => {
                     target.process_response_chunk(vec);
-                }
+                },
                 Data::Done => break,
             }
         }
@@ -381,12 +378,6 @@ pub fn main_fetch(request: Rc<Request>,
             assert!(*body == ResponseBody::Empty)
         }
     }
-
-    // Step 24
-    target.process_response_eof(&response);
-
-    // TODO remove this line when only asynchronous fetches are used
-    return response;
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
@@ -518,3 +509,4 @@ fn is_null_body_status(status: &Option<StatusCode>) -> bool {
         _ => false
     }
 }
+

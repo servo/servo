@@ -233,7 +233,6 @@ fn test_cors_preflight_fetch() {
     let _ = server.close();
 
     assert!(!fetch_response.is_network_error());
-
     match *fetch_response.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
         _ => panic!()
@@ -556,6 +555,53 @@ fn test_fetch_with_hsts() {
                "https");
 }
 
+#[test]
+fn test_fetch_with_sri_network_error() {
+    static MESSAGE: &'static [u8] = b"alert('Hello, Network Error');";
+    let handler = move |_: HyperRequest, response: HyperResponse| {
+        response.send(MESSAGE).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false, None);
+    *request.referrer.borrow_mut() = Referrer::NoReferrer;
+    // To calulate hash use :
+    // echo -n "alert('Hello, Network Error');" | openssl dgst -sha384 -binary | openssl base64 -A
+    *request.integrity_metadata.borrow_mut() =
+           "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO".to_owned();
+    // Set the flag.
+    request.local_urls_only = false;
+
+    let response = fetch(request, None);
+
+    let _ = server.close();
+    assert!(response.is_network_error());
+}
+
+#[test]
+fn test_fetch_with_sri_sucess() {
+    static MESSAGE: &'static [u8] = b"alert('Hello, world.');";
+    let handler = move |_: HyperRequest, response: HyperResponse| {
+        response.send(MESSAGE).unwrap();
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false, None);
+    *request.referrer.borrow_mut() = Referrer::NoReferrer;
+    // To calulate hash use :
+    // echo -n "alert('Hello, Network Error');" | openssl dgst -sha384 -binary | openssl base64 -A
+    *request.integrity_metadata.borrow_mut() =
+            "sha384-H8BRh8j48O9oYatfu5AZzq6A9RINhZO5H16dQZngK7T62em8MUt1FLm52t+eX6xO".to_owned();
+    // Set the flag.
+    request.local_urls_only = false;
+
+    let response = fetch(request, None);
+
+    let _ = server.close();
+    assert_eq!(response_is_done(&response), true);
+}
 fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response {
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         let redirects = match request.uri {
@@ -742,7 +788,6 @@ fn test_fetch_async_returns_complete_response() {
     let fetch_response = fetch(request, None);
 
     let _ = server.close();
-
     assert_eq!(response_is_done(&fetch_response), true);
 }
 

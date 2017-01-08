@@ -243,8 +243,16 @@ impl HTMLLinkElement {
             Some(ref value) => &***value,
             None => "",
         };
+
         let mut css_parser = CssParser::new(&mq_str);
         let media = parse_media_query_list(&mut css_parser);
+
+        let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
+        let integrity_val = im_attribute.r().map(|a| a.value());
+        let integrity_metadata = match integrity_val {
+            Some(ref value) => &***value,
+            None => "",
+        };
 
         // TODO: #8085 - Don't load external stylesheets if the node's mq
         // doesn't match.
@@ -252,7 +260,7 @@ impl HTMLLinkElement {
         loader.load(StylesheetContextSource::LinkElement {
             url: url,
             media: Some(media),
-        });
+        }, integrity_metadata.to_owned());
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
@@ -327,6 +335,12 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-media
     make_setter!(SetMedia, "media");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-integrity
+    make_getter!(Integrity, "integrity");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-integrity
+    make_setter!(SetIntegrity, "integrity");
 
     // https://html.spec.whatwg.org/multipage/#dom-link-hreflang
     make_getter!(Hreflang, "hreflang");
