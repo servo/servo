@@ -6,5 +6,5 @@
 [Exposed=Window]
 interface CSSKeyframeRule : CSSRule {
   //          attribute DOMString           keyText;
-  // readonly attribute CSSStyleDeclaration style;
+  readonly attribute CSSStyleDeclaration style;
 };

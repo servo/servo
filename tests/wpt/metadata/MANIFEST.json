@@ -45847,6 +45847,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "cssom/CSSKeyframeRule.html": [
+          {
+            "path": "cssom/CSSKeyframeRule.html",
+            "url": "/cssom/CSSKeyframeRule.html"
+          }
+        ],
         "cssom/overflow-serialization.html": [
           {
             "path": "cssom/overflow-serialization.html",
