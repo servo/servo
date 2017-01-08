@@ -103,6 +103,15 @@ macro_rules! object_binding_to_js_or_null {
     };
 }
 
+fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
+    match (arg1, arg2) {
+        (constants::CONSTANT_COLOR, constants::CONSTANT_ALPHA) => true,
+        (constants::ONE_MINUS_CONSTANT_COLOR, constants::ONE_MINUS_CONSTANT_ALPHA) => true,
+        (constants::ONE_MINUS_CONSTANT_COLOR, constants::CONSTANT_ALPHA) => true,
+        (constants::CONSTANT_COLOR, constants::ONE_MINUS_CONSTANT_ALPHA) => true,
+        (_,_) => false,
+    }
+}
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
     #[derive(HeapSizeOf, JSTraceable)]
@@ -808,6 +817,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendFunc(&self, src_factor: u32, dest_factor: u32) {
+        if has_invalid_blend_constants(src_factor, dest_factor) {
+            return self.webgl_error(InvalidOperation);
+        }
+        if has_invalid_blend_constants(dest_factor, src_factor) {
+            return self.webgl_error(InvalidOperation);
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::BlendFunc(src_factor, dest_factor)))
             .unwrap();
@@ -815,6 +831,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendFuncSeparate(&self, src_rgb: u32, dest_rgb: u32, src_alpha: u32, dest_alpha: u32) {
+        if has_invalid_blend_constants(src_rgb, dest_rgb) {
+            return self.webgl_error(InvalidOperation);
+        }
+        if has_invalid_blend_constants(dest_rgb, src_rgb) {
+            return self.webgl_error(InvalidOperation);
+        }
+
         self.ipc_renderer.send(
             CanvasMsg::WebGL(WebGLCommand::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha))).unwrap();
     }
