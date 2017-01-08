@@ -11,6 +11,7 @@ interface HTMLLinkElement : HTMLElement {
            attribute DOMString media;
            attribute DOMString hreflang;
            attribute DOMString type;
+           attribute DOMString integrity;
   // [SameObject, PutForwards=value] readonly attribute DOMTokenList sizes;
 
   // also has obsolete members

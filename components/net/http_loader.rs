@@ -1378,7 +1378,7 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
     }
 
     // Step 6
-    let credentials = request.headers.borrow().get::<AccessControlAllowCredentials>().cloned();
+    let credentials = response.headers.get::<AccessControlAllowCredentials>().cloned();
 
     // Step 7
     if credentials.is_some() {

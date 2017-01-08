@@ -12,6 +12,7 @@ interface HTMLScriptElement : HTMLElement {
            attribute DOMString? crossOrigin;
            [Pure]
            attribute DOMString text;
+           attribute DOMString integrity;
 
   // also has obsolete members
 };
