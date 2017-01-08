@@ -344,7 +344,7 @@ impl GlobalScope {
     /// Evaluate a JS script on this global scope.
     #[allow(unsafe_code)]
     pub fn evaluate_script_on_global_with_result(
-            &self, code: &str, filename: &str, rval: MutableHandleValue, line_number: u32) {
+            &self, code: &str, filename: &str, rval: MutableHandleValue, line_number: u64) {
         let metadata = time::TimerMetadata {
             url: if filename.is_empty() {
                 self.get_url().as_str().into()
@@ -365,7 +365,7 @@ impl GlobalScope {
                 let filename = CString::new(filename).unwrap();
 
                 let _ac = JSAutoCompartment::new(cx, globalhandle.get());
-                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), line_number);
+                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), line_number as u32);
                 unsafe {
                     if !Evaluate2(cx, options.ptr, code.as_ptr(),
                                   code.len() as libc::size_t,

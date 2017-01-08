@@ -499,7 +499,7 @@ impl HTMLScriptElement {
         let window = window_from_node(self);
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
         window.upcast::<GlobalScope>().evaluate_script_on_global_with_result(
-            &script.text, script.url.as_str(), rval.handle_mut(), 1);
+            &script.text, script.url.as_str(), rval.handle_mut(), self.line_number);
 
         // Step 6.
         document.set_current_script(old_script.r());
