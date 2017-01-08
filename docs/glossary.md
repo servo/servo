@@ -26,10 +26,10 @@ A thread that is responsible for laying out a DOM tree into layers of boxes for 
 
 A unit encapsulating a means of communication with the script, layout, and renderer threads for a particular document. Each pipeline has a globally-unique id which can be used to access it from the constellation.
 
-### Script thread (alt. script task) ###
-
-A thread that executes JavaScript and stores the DOM representation of all documents that share a common [origin](https://tools.ietf.org/html/rfc6454). This thread translates input events received from the constellation into DOM events [per the specification](https://w3c.github.io/uievents/), invokes the HTML parser when new page content is received, and evaluates JS for events like timers and `<script>` elements.
-
 ### Renderer thread (alt. paint thread) ###
 
 A thread which translates a display list into a series of drawing commands that render the contents of the associated document into a buffer, which is then sent to the compositor.
+
+### Script thread (alt. script task) ###
+
+A thread that executes JavaScript and stores the DOM representation of all documents that share a common [origin](https://tools.ietf.org/html/rfc6454). This thread translates input events received from the constellation into DOM events [per the specification](https://w3c.github.io/uievents/), invokes the HTML parser when new page content is received, and evaluates JS for events like timers and `<script>` elements.
