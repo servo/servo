@@ -195,7 +195,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// This may be called multiple times when processing an element, so we pass
     /// a parameter to keep the logs tidy.
     fn should_traverse_children(&self,
-                                _thread_local: &mut ThreadLocalStyleContext<E>,
+                                thread_local: &mut ThreadLocalStyleContext<E>,
                                 parent: E,
                                 parent_data: &ElementData,
                                 log: LogBehavior) -> bool
@@ -230,7 +230,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // happens, we may just end up doing wasted work, since Gecko
         // recursively drops Servo ElementData when the XBL insertion parent of
         // an Element is changed.
-        if cfg!(feature = "gecko") && parent_data.is_styled_initial() &&
+        if cfg!(feature = "gecko") && thread_local.is_initial_style() &&
            parent_data.styles().primary.values.has_moz_binding() {
             if log.allow() { debug!("Parent {:?} has XBL binding, deferring traversal", parent); }
             return false;
@@ -246,8 +246,11 @@ pub trait DomTraversal<E: TElement> : Sync {
         where F: FnMut(&mut Self::ThreadLocalContext, E::ConcreteNode)
     {
         // Check if we're allowed to traverse past this element.
-        if !self.should_traverse_children(thread_local.borrow_mut(), parent,
-                                          &parent.borrow_data().unwrap(), MayLog) {
+        let should_traverse =
+            self.should_traverse_children(thread_local.borrow_mut(), parent,
+                                          &parent.borrow_data().unwrap(), MayLog);
+        thread_local.borrow_mut().end_element(parent);
+        if !should_traverse {
             return;
         }
 
@@ -376,6 +379,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
     where E: TElement,
           D: DomTraversal<E>
 {
+    context.thread_local.begin_element(element, &data);
     debug_assert!(data.as_restyle().map_or(true, |r| r.snapshot.is_none()),
                   "Snapshots should be expanded by the caller");
 
