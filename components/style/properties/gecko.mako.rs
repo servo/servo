@@ -2508,7 +2508,6 @@ clip-path
     pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
         use properties::longhands::content::computed_value::T;
         use properties::longhands::content::computed_value::ContentItem;
-        use gecko_bindings::structs::nsStyleContentData;
         use gecko_bindings::structs::nsStyleContentType::*;
         use gecko_bindings::bindings::Gecko_ClearStyleContents;
 
@@ -2521,16 +2520,6 @@ clip-path
             mem::forget(vec);
             ptr
         }
-
-        #[inline(always)]
-        #[cfg(debug_assertions)]
-        fn set_image_tracked(contents: &mut nsStyleContentData, val: bool) {
-            contents.mImageTracked = val;
-        }
-
-        #[inline(always)]
-        #[cfg(not(debug_assertions))]
-        fn set_image_tracked(_contents: &mut nsStyleContentData, _val: bool) {}
 
         // Ensure destructors run, otherwise we could leak.
         if !self.gecko.mContents.is_empty() {
@@ -2546,10 +2535,7 @@ clip-path
                 // NB: set_len also reserves the appropriate space.
                 unsafe { self.gecko.mContents.set_len(items.len() as u32) }
                 for (i, item) in items.into_iter().enumerate() {
-                    // TODO: Servo lacks support for attr(), and URIs,
-                    // We don't support images, but need to remember to
-                    // explicitly initialize mImageTracked in debug builds.
-                    set_image_tracked(&mut self.gecko.mContents[i], false);
+                    // TODO: Servo lacks support for attr(), and URIs.
                     // NB: Gecko compares the mString value if type is not image
                     // or URI independently of whatever gets there. In the quote
                     // cases, they set it to null, so do the same here.
