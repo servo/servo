@@ -16,6 +16,7 @@ use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
 use parking_lot::RwLock;
 use servo_config::opts;
 use servo_url::ServoUrl;
+use std::borrow::{Borrow, BorrowMut};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -34,6 +35,18 @@ impl<E: TElement> ScopedThreadLocalLayoutContext<E> {
         ScopedThreadLocalLayoutContext {
             style_context: ThreadLocalStyleContext::new(&shared.style_context),
         }
+    }
+}
+
+impl<E: TElement> Borrow<ThreadLocalStyleContext<E>> for ScopedThreadLocalLayoutContext<E> {
+    fn borrow(&self) -> &ThreadLocalStyleContext<E> {
+        &self.style_context
+    }
+}
+
+impl<E: TElement> BorrowMut<ThreadLocalStyleContext<E>> for ScopedThreadLocalLayoutContext<E> {
+    fn borrow_mut(&mut self) -> &mut ThreadLocalStyleContext<E> {
+        &mut self.style_context
     }
 }
 

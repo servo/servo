@@ -7,13 +7,14 @@
 #![deny(missing_docs)]
 
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
-use context::{SharedStyleContext, StyleContext};
+use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{NodeInfo, TElement, TNode};
 use matching::{MatchMethods, StyleSharingResult};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
 use servo_config::opts;
+use std::borrow::BorrowMut;
 use std::mem;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use stylist::Stylist;
@@ -75,7 +76,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// The thread-local context, used to store non-thread-safe stuff that needs
     /// to be used in the traversal, and of which we use one per worker, like
     /// the bloom filter, for example.
-    type ThreadLocalContext: Send;
+    type ThreadLocalContext: Send + BorrowMut<ThreadLocalStyleContext<E>>;
 
     /// Process `node` on the way down, before its children have been processed.
     fn process_preorder(&self, data: &mut PerLevelTraversalData,
@@ -193,7 +194,11 @@ pub trait DomTraversal<E: TElement> : Sync {
     ///
     /// This may be called multiple times when processing an element, so we pass
     /// a parameter to keep the logs tidy.
-    fn should_traverse_children(parent: E, parent_data: &ElementData, log: LogBehavior) -> bool
+    fn should_traverse_children(&self,
+                                _thread_local: &mut ThreadLocalStyleContext<E>,
+                                parent: E,
+                                parent_data: &ElementData,
+                                log: LogBehavior) -> bool
     {
         // See the comment on `cascade_node` for why we allow this on Gecko.
         debug_assert!(cfg!(feature = "gecko") || parent_data.has_current_styles());
@@ -237,10 +242,12 @@ pub trait DomTraversal<E: TElement> : Sync {
 
     /// Helper for the traversal implementations to select the children that
     /// should be enqueued for processing.
-    fn traverse_children<F: FnMut(E::ConcreteNode)>(parent: E, mut f: F)
+    fn traverse_children<F>(&self, thread_local: &mut Self::ThreadLocalContext, parent: E, mut f: F)
+        where F: FnMut(&mut Self::ThreadLocalContext, E::ConcreteNode)
     {
         // Check if we're allowed to traverse past this element.
-        if !Self::should_traverse_children(parent, &parent.borrow_data().unwrap(), MayLog) {
+        if !self.should_traverse_children(thread_local.borrow_mut(), parent,
+                                          &parent.borrow_data().unwrap(), MayLog) {
             return;
         }
 
@@ -252,7 +259,7 @@ pub trait DomTraversal<E: TElement> : Sync {
                 {
                     unsafe { parent.set_dirty_descendants(); }
                 }
-                f(kid);
+                f(thread_local, kid);
             }
         }
     }
@@ -274,7 +281,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// Return the shared style context common to all worker threads.
     fn shared_context(&self) -> &SharedStyleContext;
 
-    /// Create a thread-local context.
+    /// Creates a thread-local context.
     fn create_thread_local_context(&self) -> Self::ThreadLocalContext;
 }
 
@@ -397,7 +404,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
     trace!("propagated_hint={:?}, inherited_style_changed={:?}", propagated_hint, inherited_style_changed);
 
     // Preprocess children, propagating restyle hints and handling sibling relationships.
-    if D::should_traverse_children(element, &data, DontLog) &&
+    if traversal.should_traverse_children(&mut context.thread_local, element, &data, DontLog) &&
        (element.has_dirty_descendants() || !propagated_hint.is_empty() || inherited_style_changed) {
         preprocess_children(traversal, element, propagated_hint, inherited_style_changed);
     }

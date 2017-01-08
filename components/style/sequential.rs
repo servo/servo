@@ -29,7 +29,9 @@ pub fn traverse_dom<E, D>(traversal: &D,
                 *depth += 1;
             }
 
-            D::traverse_children(el, |kid| doit(traversal, traversal_data, thread_local, kid));
+            traversal.traverse_children(thread_local, el, |tlc, kid| {
+                doit(traversal, traversal_data, tlc, kid)
+            });
 
             if let Some(ref mut depth) = traversal_data.current_dom_depth {
                 *depth -= 1;
