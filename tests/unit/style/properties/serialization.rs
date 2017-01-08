@@ -536,10 +536,10 @@ mod shorthand_serialization {
     fn transition_should_serialize_all_available_properties() {
         use euclid::point::Point2D;
         use style::properties::animated_properties::TransitionProperty;
+        use style::properties::longhands::transition_delay::SpecifiedValue as DelayContainer;
         use style::properties::longhands::transition_duration::SpecifiedValue as DurationContainer;
         use style::properties::longhands::transition_property::SpecifiedValue as PropertyContainer;
-        use style::properties::longhands::transition_timing_function::SpecifiedValue as TimingContainer;
-        use style::properties::longhands::transition_timing_function::TransitionTimingFunction;
+        use style::properties::longhands::transition_timing_function;
         use style::values::specified::Time as TimeContainer;
 
         let property_name = DeclaredValue::Value(
@@ -551,12 +551,13 @@ mod shorthand_serialization {
         );
 
         let delay = DeclaredValue::Value(
-            DurationContainer(vec![TimeContainer(4f32)])
+            DelayContainer(vec![TimeContainer(4f32)])
         );
 
         let timing_function = DeclaredValue::Value(
-            TimingContainer(vec![
-                TransitionTimingFunction::CubicBezier(Point2D::new(0f32, 5f32), Point2D::new(5f32, 10f32))
+            transition_timing_function::SpecifiedValue(vec![
+                transition_timing_function::single_value::SpecifiedValue::CubicBezier(
+                    Point2D::new(0f32, 5f32), Point2D::new(5f32, 10f32))
             ])
         );
 
