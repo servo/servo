@@ -817,6 +817,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendFunc(&self, src_factor: u32, dest_factor: u32) {
+        // From the WebGL 1.0 spec, 6.13: Viewport Depth Range:
+        //
+        //     A call to blendFunc will generate an INVALID_OPERATION error if one of the two
+        //     factors is set to CONSTANT_COLOR or ONE_MINUS_CONSTANT_COLOR and the other to
+        //     CONSTANT_ALPHA or ONE_MINUS_CONSTANT_ALPHA.
         if has_invalid_blend_constants(src_factor, dest_factor) {
             return self.webgl_error(InvalidOperation);
         }
@@ -831,6 +836,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendFuncSeparate(&self, src_rgb: u32, dest_rgb: u32, src_alpha: u32, dest_alpha: u32) {
+        // From the WebGL 1.0 spec, 6.13: Viewport Depth Range:
+        //
+        //     A call to blendFuncSeparate will generate an INVALID_OPERATION error if srcRGB is
+        //     set to CONSTANT_COLOR or ONE_MINUS_CONSTANT_COLOR and dstRGB is set to
+        //     CONSTANT_ALPHA or ONE_MINUS_CONSTANT_ALPHA or vice versa.
         if has_invalid_blend_constants(src_rgb, dest_rgb) {
             return self.webgl_error(InvalidOperation);
         }
