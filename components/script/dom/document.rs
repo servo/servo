@@ -2575,7 +2575,7 @@ impl DocumentMethods for Document {
                 let USVString(url) = self.URL();
                 Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))
             },
-            "touchevent" =>
+            "touchevent" if PREFS.is_touch_events_enabled() =>
                 Ok(Root::upcast(
                     TouchEvent::new_uninitialized(&self.window,
                         &TouchList::new(&self.window, &[]),

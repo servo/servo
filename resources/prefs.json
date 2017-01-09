@@ -7,6 +7,7 @@
   "dom.serviceworker.timeout_seconds": 60,
   "dom.testable_crash.enabled": false,
   "dom.testbinding.enabled": false,
+  "dom.w3c_touch_events.enabled": true,
   "js.asmjs.enabled": true,
   "js.asyncstack.enabled": false,
   "js.baseline.enabled": true,
