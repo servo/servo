@@ -13,6 +13,7 @@ use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::characterdata::CharacterData;
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
@@ -20,9 +21,11 @@ use dom::htmlformelement::HTMLFormElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{Node, NodeSiblingIterator};
+use dom::text::Text;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
 use html5ever::tokenizer::buffer_queue::BufferQueue;
+use html5ever::tree_builder::NodeOrText;
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
@@ -558,4 +561,21 @@ impl PreInvoke for ParserContext {}
 pub struct FragmentContext<'a> {
     pub context_elem: &'a Node,
     pub form_elem: Option<&'a Node>,
+}
+
+#[allow(unrooted_must_root)]
+fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<Node>>) {
+    match child {
+        NodeOrText::AppendNode(n) => {
+            parent.InsertBefore(&n, reference_child).unwrap();
+        },
+        NodeOrText::AppendText(t) => {
+            if let Some(text) = parent.GetLastChild().and_then(Root::downcast::<Text>) {
+                text.upcast::<CharacterData>().append_data(&t);
+            } else {
+                let text = Text::new(String::from(t).into(), &parent.owner_doc());
+                parent.InsertBefore(text.upcast(), reference_child).unwrap();
+            }
+        }
+    }
 }

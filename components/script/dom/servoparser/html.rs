@@ -19,7 +19,6 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
-use dom::text::Text;
 use dom::virtualmethods::vtable_for;
 use html5ever::Attribute;
 use html5ever::serialize::{AttrRef, Serializable, Serializer};
@@ -180,7 +179,7 @@ impl TreeSink for Sink {
             None => return Err(new_node),
         };
 
-        insert(&parent, Some(&*sibling), new_node);
+        super::insert(&parent, Some(&*sibling), new_node);
         Ok(())
     }
 
@@ -198,8 +197,7 @@ impl TreeSink for Sink {
     }
 
     fn append(&mut self, parent: JS<Node>, child: NodeOrText<JS<Node>>) {
-        // FIXME(#3701): Use a simpler algorithm and merge adjacent text nodes
-        insert(&parent, None, child);
+        super::insert(&parent, None, child);
     }
 
     fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
@@ -239,23 +237,6 @@ impl TreeSink for Sink {
     fn pop(&mut self, node: JS<Node>) {
         let node = Root::from_ref(&*node);
         vtable_for(&node).pop();
-    }
-}
-
-fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<Node>>) {
-    match child {
-        NodeOrText::AppendNode(n) => {
-            assert!(parent.InsertBefore(&n, reference_child).is_ok());
-        },
-        NodeOrText::AppendText(t) => {
-            if let Some(text) = parent.GetLastChild().and_then(Root::downcast::<Text>) {
-                text.upcast::<CharacterData>().append_data(&t);
-            } else {
-                let s: String = t.into();
-                let text = Text::new(DOMString::from(s), &parent.owner_doc());
-                parent.InsertBefore(text.upcast(), reference_child).unwrap();
-            }
-        }
     }
 }
 
