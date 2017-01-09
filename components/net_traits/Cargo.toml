@@ -31,5 +31,5 @@ cookie = {version = "0.2.5", features = ["serialize-rustc"]}
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
-default_features = false
+default-features = false
 features = ["serde_derive", "ipc"]

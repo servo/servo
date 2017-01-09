@@ -20,5 +20,5 @@ serde_derive = "0.8"
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
-default_features = false
+default-features = false
 features = ["serde_derive", "ipc"]

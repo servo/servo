@@ -45,7 +45,7 @@ websocket = "0.17"
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
-default_features = false
+default-features = false
 features = ["serde_derive", "ipc"]
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]

@@ -40,7 +40,7 @@ webvr_traits = {path = "../webvr_traits"}
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
-default_features = false
+default-features = false
 features = ["serde_derive", "ipc"]
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
