@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Removing link tag should remove associated styles</title>
+<link rel="match" href="remove_link_styles_ref.html">
+<link rel="stylesheet" type="text/css" href="remove_link_styles.css">
+<body>
+    <style>
+        body {
+            color: pink;
+        }
+    </style>
+
+    <script>
+        var l = document.querySelector('link[rel="stylesheet"]');
+        l.parentNode.removeChild(l);
+    </script>
+</body>

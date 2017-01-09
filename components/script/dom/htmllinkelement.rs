@@ -17,7 +17,7 @@ use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, document_from_node, window_from_node};
+use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
@@ -209,6 +209,15 @@ impl VirtualMethods for HTMLLinkElement {
                 _ => {}
             }
         }
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(context);
+        }
+
+        let document = document_from_node(self);
+        document.invalidate_stylesheets();
     }
 }
 
