@@ -394,7 +394,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                     &context.default_computed_values,
                                     false);
                             data.styles_mut().pseudos
-                                .insert(style_pseudo.clone(), new_style.unwrap());
+                                .insert(style_pseudo.clone(), new_style);
                         }
                     }
                     PseudoElementCascadeType::Lazy => {

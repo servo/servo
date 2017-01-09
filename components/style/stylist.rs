@@ -276,32 +276,33 @@ impl Stylist {
                                          parent: Option<&Arc<ComputedValues>>,
                                          default: &Arc<ComputedValues>,
                                          inherit_all: bool)
-                                         -> Option<ComputedStyle> {
+                                         -> ComputedStyle {
         debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
-        if let Some(declarations) = self.precomputed_pseudo_element_decls.get(pseudo) {
-            // FIXME(emilio): When we've taken rid of the cascade we can just
-            // use into_iter.
-            let rule_node =
+
+        let rule_node = match self.precomputed_pseudo_element_decls.get(pseudo) {
+            Some(declarations) => {
+                // FIXME(emilio): When we've taken rid of the cascade we can just
+                // use into_iter.
                 self.rule_tree.insert_ordered_rules(
-                    declarations.into_iter().map(|a| (a.source.clone(), a.importance)));
-
-            let mut flags = CascadeFlags::empty();
-            if inherit_all {
-                flags.insert(INHERIT_ALL)
+                    declarations.into_iter().map(|a| (a.source.clone(), a.importance)))
             }
+            None => self.rule_tree.root(),
+        };
 
-            let computed =
-                properties::cascade(self.device.au_viewport_size(),
-                                    &rule_node,
-                                    parent.map(|p| &**p),
-                                    default,
-                                    None,
-                                    Box::new(StdoutErrorReporter),
-                                    flags);
-            Some(ComputedStyle::new(rule_node, Arc::new(computed)))
-        } else {
-            parent.map(|p| ComputedStyle::new(self.rule_tree.root(), p.clone()))
+        let mut flags = CascadeFlags::empty();
+        if inherit_all {
+            flags.insert(INHERIT_ALL)
         }
+
+        let computed =
+            properties::cascade(self.device.au_viewport_size(),
+                                &rule_node,
+                                parent.map(|p| &**p),
+                                default,
+                                None,
+                                Box::new(StdoutErrorReporter),
+                                flags);
+        ComputedStyle::new(rule_node, Arc::new(computed))
     }
 
     /// Returns the style for an anonymous box of the given type.
@@ -329,7 +330,6 @@ impl Stylist {
             }
         };
         self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), default_style, inherit_all)
-            .expect("style_for_anonymous_box(): No precomputed values for that pseudo!")
             .values
     }
 
