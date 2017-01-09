@@ -6450,6 +6450,18 @@
             "url": "/_mozilla/mozilla/remove_link_styles.html"
           }
         ],
+        "mozilla/remove_style_styles.html": [
+          {
+            "path": "mozilla/remove_style_styles.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/remove_style_styles_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/remove_style_styles.html"
+          }
+        ],
         "mozilla/reparse_style_elements.html": [
           {
             "path": "mozilla/reparse_style_elements.html",
@@ -21796,6 +21808,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/remove_link_styles.html"
+        }
+      ],
+      "mozilla/remove_style_styles.html": [
+        {
+          "path": "mozilla/remove_style_styles.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/remove_style_styles_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/remove_style_styles.html"
         }
       ],
       "mozilla/reparse_style_elements.html": [
