@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use byteorder::{NativeEndian, WriteBytesExt};
-use canvas_traits::{CanvasCommonMsg, CanvasMsg, byte_swap};
+use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
+use canvas_traits::{CanvasCommonMsg, CanvasMsg, byte_swap, multiply_u8_pixel};
 use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -113,6 +113,7 @@ fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
         (_, _) => false
     }
 }
+
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
     #[derive(HeapSizeOf, JSTraceable)]
@@ -560,6 +561,72 @@ impl WebGLRenderingContext {
         flipped
     }
 
+    /// Performs premultiplication of the pixels if
+    /// UNPACK_PREMULTIPLY_ALPHA_WEBGL is currently enabled.
+    fn premultiply_pixels(&self,
+                          format: TexFormat,
+                          data_type: TexDataType,
+                          pixels: Vec<u8>) -> Vec<u8> {
+        if !self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA) {
+            return pixels;
+        }
+
+        match (format, data_type) {
+            (TexFormat::RGBA, TexDataType::UnsignedByte) => {
+                let mut premul = Vec::<u8>::with_capacity(pixels.len());
+                for rgba in pixels.chunks(4) {
+                    premul.push(multiply_u8_pixel(rgba[0], rgba[3]));
+                    premul.push(multiply_u8_pixel(rgba[1], rgba[3]));
+                    premul.push(multiply_u8_pixel(rgba[2], rgba[3]));
+                    premul.push(rgba[3]);
+                }
+                premul
+            }
+            (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
+                let mut premul = Vec::<u8>::with_capacity(pixels.len());
+                for la in pixels.chunks(2) {
+                    premul.push(multiply_u8_pixel(la[0], la[1]));
+                    premul.push(la[1]);
+                }
+                premul
+            }
+
+            (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
+                let mut premul = Vec::<u8>::with_capacity(pixels.len());
+                for mut rgba in pixels.chunks(2) {
+                    let pix = rgba.read_u16::<NativeEndian>().unwrap();
+                    if pix & (1 << 15) != 0 {
+                        premul.write_u16::<NativeEndian>(pix).unwrap();
+                    } else {
+                        premul.write_u16::<NativeEndian>(0).unwrap();
+                    }
+                }
+                premul
+            }
+
+            (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
+                let mut premul = Vec::<u8>::with_capacity(pixels.len());
+                for mut rgba in pixels.chunks(2) {
+                    let pix = rgba.read_u16::<NativeEndian>().unwrap();
+                    let extend_to_8_bits = |val| { (val | val << 4) as u8 };
+                    let r = extend_to_8_bits(pix & 0x000f);
+                    let g = extend_to_8_bits((pix & 0x00f0) >> 4);
+                    let b = extend_to_8_bits((pix & 0x0f00) >> 8);
+                    let a = extend_to_8_bits((pix & 0xf000) >> 12);
+
+                    premul.write_u16::<NativeEndian>((multiply_u8_pixel(r, a) & 0xf0) as u16 >> 4 |
+                                                     (multiply_u8_pixel(g, a) & 0xf0) as u16 |
+                                                     ((multiply_u8_pixel(b, a) & 0xf0) as u16) << 4 |
+                                                     pix & 0xf000).unwrap();
+                }
+                premul
+            }
+
+            // Other formats don't have alpha, so return their data untouched.
+            _ => pixels
+        }
+    }
+
     fn tex_image_2d(&self,
                     texture: Root<WebGLTexture>,
                     target: TexImageTarget,
@@ -570,11 +637,8 @@ impl WebGLRenderingContext {
                     height: u32,
                     _border: u32,
                     pixels: Vec<u8>) { // NB: pixels should NOT be premultipied
-        if internal_format == TexFormat::RGBA &&
-           data_type == TexDataType::UnsignedByte &&
-           self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA) {
-            // TODO(emilio): premultiply here.
-        }
+        // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
+        let pixels = self.premultiply_pixels(internal_format, data_type, pixels);
 
         let pixels = self.flip_teximage_y(pixels, internal_format, data_type,
                                           width as usize, height as usize);
@@ -587,7 +651,7 @@ impl WebGLRenderingContext {
                                                                level,
                                                                Some(data_type)));
 
-        // TODO(emilio): convert colorspace, premultiply alpha if requested
+        // TODO(emilio): convert colorspace if requested
         let msg = WebGLCommand::TexImage2D(target.as_gl_constant(), level as i32,
                                            internal_format.as_gl_constant() as i32,
                                            width as i32, height as i32,
@@ -632,10 +696,13 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
+        // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
+        let pixels = self.premultiply_pixels(format, data_type, pixels);
+
         let pixels = self.flip_teximage_y(pixels, format, data_type,
                                           width as usize, height as usize);
 
-        // TODO(emilio): convert colorspace, premultiply alpha if requested
+        // TODO(emilio): convert colorspace if requested
         let msg = WebGLCommand::TexSubImage2D(target.as_gl_constant(),
                                               level as i32, xoffset, yoffset,
                                               width as i32, height as i32,

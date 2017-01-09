@@ -417,6 +417,10 @@ pub fn byte_swap(data: &mut [u8]) {
     }
 }
 
+pub fn multiply_u8_pixel(a: u8, b: u8) -> u8 {
+    return (a as u32 * b as u32 / 255) as u8;
+}
+
 pub fn byte_swap_and_premultiply(data: &mut [u8]) {
     let length = data.len();
 
@@ -427,9 +431,9 @@ pub fn byte_swap_and_premultiply(data: &mut [u8]) {
         let b = data[i + 0];
         let a = data[i + 3];
 
-        data[i + 0] = ((r as u32) * (a as u32) / 255) as u8;
-        data[i + 1] = ((g as u32) * (a as u32) / 255) as u8;
-        data[i + 2] = ((b as u32) * (a as u32) / 255) as u8;
+        data[i + 0] = multiply_u8_pixel(r, a);
+        data[i + 1] = multiply_u8_pixel(g, a);
+        data[i + 2] = multiply_u8_pixel(b, a);
 
         i += 4;
     }
