@@ -163,6 +163,7 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
     browsing_context: MutNullableJS<BrowsingContext>,
+    document: MutNullableJS<Document>,
     history: MutNullableJS<History>,
     performance: MutNullableJS<Performance>,
     navigation_start: u64,
@@ -443,7 +444,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-2
     fn Document(&self) -> Root<Document> {
-        self.browsing_context().active_document()
+        self.document.get().expect("Document accessed before initialization.")
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history
@@ -551,21 +552,32 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
-    fn Parent(&self) -> Root<BrowsingContext> {
-        match  self.parent() {
-            Some(window) => window.browsing_context(),
-            None => self.Window()
+    fn GetParent(&self) -> Option<Root<BrowsingContext>> {
+        // Steps 1. and 2.
+        if self.browsing_context().is_discarded() {
+            return None;
         }
-    }
+        match self.parent() {
+            // Step 4.
+            Some(parent) => Some(parent.Window()),
+            // Step 5.
+            None => Some(self.Window())
+        }
+     }
 
     // https://html.spec.whatwg.org/multipage/#dom-top
-    fn Top(&self) -> Root<BrowsingContext> {
+    fn GetTop(&self) -> Option<Root<BrowsingContext>> {
+        // Steps 1. and 2.
+        if self.browsing_context().is_discarded() {
+            return None;
+        }
+        // Step 5.
         let mut window = Root::from_ref(self);
         while let Some(parent) = window.parent() {
             window = parent;
         }
-        window.browsing_context()
-    }
+        Some(window.Window())
+     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
@@ -1351,6 +1363,13 @@ impl Window {
         unsafe { SetWindowProxy(cx, window, browsing_context.reflector().get_jsobject()); }
     }
 
+    #[allow(unsafe_code)]
+    pub fn init_document(&self, document: &Document) {
+        assert!(self.document.get().is_none());
+        assert!(document.window() == self);
+        self.document.set(Some(&document));
+    }
+
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
     pub fn load_url(&self, url: ServoUrl, replace: bool, force_reload: bool,
                     referrer_policy: Option<ReferrerPolicy>) {
@@ -1518,13 +1537,8 @@ impl Window {
             return None;
         }
 
-        let browsing_context = self.browsing_context();
-
-        browsing_context.frame_element().map(|frame_element| {
-            let window = window_from_node(frame_element);
-            let context = window.browsing_context();
-            context.active_window()
-        })
+        self.browsing_context().frame_element()
+            .map(|frame_element| window_from_node(frame_element))
     }
 
     /// Returns whether this window is mozbrowser.
@@ -1610,6 +1624,7 @@ impl Window {
             image_cache_thread: image_cache_thread,
             history: Default::default(),
             browsing_context: Default::default(),
+            document: Default::default(),
             performance: Default::default(),
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
             navigation_start_precise: time::precise_time_ns() as f64,

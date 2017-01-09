@@ -6,7 +6,6 @@
 #![feature(conservative_impl_trait)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
-#![feature(proc_macro)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]

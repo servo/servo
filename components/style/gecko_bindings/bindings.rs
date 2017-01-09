@@ -10,6 +10,7 @@ use gecko_bindings::structs::RawGeckoPresContext;
 use gecko_bindings::structs::ThreadSafeURIHolder;
 use gecko_bindings::structs::ThreadSafePrincipalHolder;
 use gecko_bindings::structs::ConsumeStyleBehavior;
+use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::TraversalRootBehavior;
 use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
@@ -349,7 +350,7 @@ extern "C" {
      -> RawGeckoNodeBorrowedOrNull;
 }
 extern "C" {
-    pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u8;
+    pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u16;
 }
 extern "C" {
     pub fn Gecko_IsHTMLElementInHTMLDocument(element: RawGeckoElementBorrowed)
@@ -369,6 +370,10 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_IsRootElement(element: RawGeckoElementBorrowed) -> bool;
+}
+extern "C" {
+    pub fn Gecko_MatchesElement(type_: CSSPseudoClassType,
+                                element: RawGeckoElementBorrowed) -> bool;
 }
 extern "C" {
     pub fn Gecko_LocalName(element: RawGeckoElementBorrowed) -> *mut nsIAtom;
@@ -625,6 +630,11 @@ extern "C" {
                                          len: usize,
                                          layer_type:
                                              nsStyleImageLayers_LayerType);
+}
+extern "C" {
+    pub fn Gecko_EnsureStyleAnimationArrayLength(array:
+                                                     *mut ::std::os::raw::c_void,
+                                                 len: usize);
 }
 extern "C" {
     pub fn Gecko_ResetStyleCoord(unit: *mut nsStyleUnit,

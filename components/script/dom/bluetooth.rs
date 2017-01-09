@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::error::Error::{self, Network, NotFound, Security, Type};
 use dom::bindings::error::Fallible;
-use dom::bindings::js::{MutJS, Root};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -83,7 +83,7 @@ impl<T: AsyncBluetoothListener + DomObject> BluetoothContext<T> {
 #[dom_struct]
 pub struct Bluetooth {
     eventtarget: EventTarget,
-    device_instance_map: DOMRefCell<HashMap<String, MutJS<BluetoothDevice>>>,
+    device_instance_map: DOMRefCell<HashMap<String, JS<BluetoothDevice>>>,
 }
 
 impl Bluetooth {
@@ -104,7 +104,7 @@ impl Bluetooth {
         self.global().as_window().bluetooth_thread()
     }
 
-    pub fn get_device_map(&self) -> &DOMRefCell<HashMap<String, MutJS<BluetoothDevice>>> {
+    pub fn get_device_map(&self) -> &DOMRefCell<HashMap<String, JS<BluetoothDevice>>> {
         &self.device_instance_map
     }
 
@@ -466,13 +466,13 @@ impl AsyncBluetoothListener for Bluetooth {
             BluetoothResponse::RequestDevice(device) => {
                 let mut device_instance_map = self.device_instance_map.borrow_mut();
                 if let Some(existing_device) = device_instance_map.get(&device.id.clone()) {
-                    return promise.resolve_native(promise_cx, &existing_device.get());
+                    return promise.resolve_native(promise_cx, &**existing_device);
                 }
                 let bt_device = BluetoothDevice::new(&self.global(),
                                                      DOMString::from(device.id.clone()),
                                                      device.name.map(DOMString::from),
                                                      &self);
-                device_instance_map.insert(device.id, MutJS::new(&bt_device));
+                device_instance_map.insert(device.id, JS::from_ref(&bt_device));
                 // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
                 // Step 5.
                 promise.resolve_native(promise_cx, &bt_device);

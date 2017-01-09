@@ -12,8 +12,6 @@ use dom::{PresentationalHintsSynthetizer, TElement};
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
-#[cfg(feature = "servo")]
-use media_queries::MediaType;
 use parking_lot::RwLock;
 use properties::{self, CascadeFlags, ComputedValues, INHERIT_ALL, Importance};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
@@ -36,7 +34,6 @@ use std::slice;
 use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CssRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
-#[cfg(feature = "servo")]
 use viewport::{self, MaybeNew, ViewportRule};
 
 pub use ::fnv::FnvHashMap;
@@ -389,20 +386,24 @@ impl Stylist {
     /// This means that we may need to rebuild style data even if the
     /// stylesheets haven't changed.
     ///
-    /// Viewport_Constraints::maybe_new is servo-only (see the comment above it
-    /// explaining why), so we need to be servo-only too, since we call it.
-    #[cfg(feature = "servo")]
+    /// Also, the device that arrives here may need to take the viewport rules
+    /// into account.
+    ///
+    /// TODO(emilio): Probably should be unified with `update`, right now I
+    /// don't think we take into account dynamic updates to viewport rules.
+    ///
+    /// Probably worth to make the stylist own a single `Device`, and have a
+    /// `update_device` function?
     pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = ViewportRule {
             declarations: viewport::Cascade::from_stylesheets(stylesheets, &device).finish(),
         };
 
-        self.viewport_constraints = ViewportConstraints::maybe_new(device.viewport_size, &cascaded_rule);
+        self.viewport_constraints =
+            ViewportConstraints::maybe_new(&device, &cascaded_rule);
+
         if let Some(ref constraints) = self.viewport_constraints {
-            // FIXME(emilio): creating a device here works, but is not really
-            // appropriate. I should get rid of this while doing the stylo media
-            // query work.
-            device = Device::new(MediaType::Screen, constraints.size);
+            device.account_for_viewport_rule(constraints);
         }
 
         fn mq_eval_changed(rules: &[CssRule], before: &Device, after: &Device) -> bool {
@@ -450,7 +451,6 @@ impl Stylist {
     ///
     /// The returned `StyleRelations` indicate hints about which kind of rules
     /// have matched.
-    #[allow(unsafe_code)]
     pub fn push_applicable_declarations<E, V>(
                                         &self,
                                         element: &E,
@@ -856,7 +856,6 @@ impl SelectorMap {
 
     /// Append to `rule_list` all universal Rules (rules with selector `*|*`) in
     /// `self` sorted by specifity and source order.
-    #[allow(unsafe_code)]
     pub fn get_universal_rules<V>(&self,
                                   matching_rules_list: &mut V)
         where V: VecLike<ApplicableDeclarationBlock>
@@ -913,7 +912,6 @@ impl SelectorMap {
     }
 
     /// Adds rules in `rules` that match `element` to the `matching_rules` list.
-    #[allow(unsafe_code)]
     fn get_matching_rules<E, V>(element: &E,
                                 parent_bf: Option<&BloomFilter>,
                                 rules: &[Rule],

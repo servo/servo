@@ -48,7 +48,7 @@ macro_rules! property_name {
 }
 
 <%!
-    from data import Method, Keyword, to_rust_ident
+    from data import Method, Keyword, to_rust_ident, to_camel_case
     import os.path
 %>
 
@@ -758,24 +758,33 @@ impl PropertyId {
     pub fn from_nscsspropertyid(id: nsCSSPropertyID) -> Result<Self, ()> {
         use gecko_bindings::structs::*;
         <%
+            def alias_to_nscsspropertyid(alias):
+                return "nsCSSPropertyID_eCSSPropertyAlias_%s" % to_camel_case(alias)
             def to_nscsspropertyid(ident):
-                if ident == "word_wrap":
-                    return "nsCSSPropertyID_eCSSPropertyAlias_WordWrap"
-
                 if ident == "float":
                     ident = "float_"
-                return "nsCSSPropertyID::eCSSProperty_" + ident
+                return "nsCSSPropertyID::eCSSProperty_%s" % ident
         %>
         match id {
             % for property in data.longhands:
                 ${to_nscsspropertyid(property.ident)} => {
                     Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
                 }
+                % for alias in property.alias:
+                    ${alias_to_nscsspropertyid(alias)} => {
+                        Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
+                    }
+                % endfor
             % endfor
             % for property in data.shorthands:
                 ${to_nscsspropertyid(property.ident)} => {
                     Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
                 }
+                % for alias in property.alias:
+                    ${alias_to_nscsspropertyid(alias)} => {
+                        Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
+                    }
+                % endfor
             % endfor
             _ => Err(())
         }
@@ -2223,12 +2232,14 @@ macro_rules! css_properties_accessors {
             % for kind, props in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                 % for property in props:
                     % if not property.derived_from and not property.internal:
-                        % if '-' in property.name:
-                            [${property.ident.capitalize()}, Set${property.ident.capitalize()},
+                        % for name in [property.name] + property.alias:
+                            % if '-' in name:
+                                [${to_rust_ident(name).capitalize()}, Set${to_rust_ident(name).capitalize()},
+                                 PropertyId::${kind}(${kind}Id::${property.camel_case})],
+                            % endif
+                            [${to_camel_case(name)}, Set${to_camel_case(name)},
                              PropertyId::${kind}(${kind}Id::${property.camel_case})],
-                        % endif
-                        [${property.camel_case}, Set${property.camel_case},
-                         PropertyId::${kind}(${kind}Id::${property.camel_case})],
+                        % endfor
                     % endif
                 % endfor
             % endfor

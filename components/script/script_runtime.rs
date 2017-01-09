@@ -10,6 +10,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use dom::bindings::js::{Root, RootCollection, RootCollectionPtr, trace_roots};
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
+use dom::bindings::settings_stack;
 use dom::bindings::trace::{JSTraceable, trace_traceables};
 use dom::bindings::utils::DOM_CALLBACKS;
 use dom::globalscope::GlobalScope;
@@ -474,6 +475,7 @@ unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void
     trace_thread(tr);
     trace_traceables(tr);
     trace_roots(tr);
+    settings_stack::trace(tr);
     debug!("done custom root handler");
 }
 

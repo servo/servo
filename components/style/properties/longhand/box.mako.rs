@@ -28,32 +28,32 @@
                 -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck
                 -moz-popup -moz-groupbox""".split()
     %>
-    pub use self::computed_value::T as SpecifiedValue;
     use values::computed::ComputedValueAsSpecified;
     use style_traits::ToCss;
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use style_traits::ToCss;
-        #[allow(non_camel_case_types)]
-        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
-        pub enum T {
-            % for value in values:
-                ${to_rust_ident(value)},
-            % endfor
-        }
+        pub use super::SpecifiedValue as T;
+    }
 
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-                where W: ::std::fmt::Write,
-            {
-                match *self {
-                    % for value in values:
-                        T::${to_rust_ident(value)} => dest.write_str("${value}"),
-                    % endfor
-                }
+    #[allow(non_camel_case_types)]
+    #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+    pub enum SpecifiedValue {
+        % for value in values:
+            ${to_rust_ident(value)},
+        % endfor
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
+            where W: ::std::fmt::Write,
+        {
+            match *self {
+                % for value in values:
+                    SpecifiedValue::${to_rust_ident(value)} => dest.write_str("${value}"),
+                % endfor
             }
         }
     }
@@ -397,8 +397,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
 
-    pub use self::computed_value::T as SpecifiedValue;
-
     impl NoViewportPercentage for SpecifiedValue {}
 
     impl ToCss for SpecifiedValue {
@@ -407,17 +405,18 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
     }
 
-
     /// The specified and computed value for overflow-y is a wrapper on top of
     /// `overflow-x`, so we re-use the logic, but prevent errors from mistakenly
     /// assign one to other.
     ///
     /// TODO(Manishearth, emilio): We may want to just use the same value.
     pub mod computed_value {
-        #[derive(Debug, Clone, Copy, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub super::super::overflow_x::computed_value::T);
+        pub use super::SpecifiedValue as T;
     }
+
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue(pub super::overflow_x::SpecifiedValue);
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
 
@@ -434,185 +433,97 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="transition-duration"
-                   need_index="True"
-                   animatable="False"
-                   spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration">
-    use values::computed::ComputedValueAsSpecified;
+<%helpers:vector_longhand name="transition-duration"
+                          need_index="True"
+                          animatable="False"
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration">
     use values::specified::Time;
 
-    pub use self::computed_value::T as SpecifiedValue;
-    pub use values::specified::Time as SingleSpecifiedValue;
+    pub use values::specified::Time as SpecifiedValue;
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use std::fmt;
-        use style_traits::ToCss;
-        use values::computed::{Context, ToComputedValue};
-
-        pub use values::computed::Time as SingleComputedValue;
-
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<SingleComputedValue>);
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
-                }
-                for (i, value) in self.0.iter().enumerate() {
-                    if i != 0 {
-                        try!(dest.write_str(", "))
-                    }
-                    try!(value.to_css(dest))
-                }
-                Ok(())
-            }
-        }
+        pub use values::computed::Time as T;
     }
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-
     #[inline]
-    pub fn get_initial_single_value() -> Time {
+    pub fn get_initial_value() -> Time {
         Time(0.0)
     }
 
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![get_initial_single_value()])
-    }
-
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| Time::parse(context, i)))))
+        Time::parse(context, input)
     }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 // TODO(pcwalton): Lots more timing functions.
-<%helpers:longhand name="transition-timing-function"
-                   need_index="True"
-                   animatable="False"
-                   spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function">
-    use self::computed_value::{StartEnd, TransitionTimingFunction};
+<%helpers:vector_longhand name="transition-timing-function"
+                          need_index="True"
+                          animatable="False"
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function">
+    use self::computed_value::StartEnd;
 
     use euclid::point::{Point2D, TypedPoint2D};
+    use std::fmt;
     use std::marker::PhantomData;
-    use values::computed::ComputedValueAsSpecified;
-
-    pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
-    pub use self::computed_value::T as SpecifiedValue;
+    use style_traits::ToCss;
 
     // FIXME: This could use static variables and const functions when they are available.
     #[inline(always)]
-    fn ease() -> TransitionTimingFunction {
-        TransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.25, 0.1),
+    fn ease() -> computed_value::T {
+        computed_value::T::CubicBezier(TypedPoint2D::new(0.25, 0.1),
                                               TypedPoint2D::new(0.25, 1.0))
     }
 
     #[inline(always)]
-    fn linear() -> TransitionTimingFunction {
-        TransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.0, 0.0),
+    fn linear() -> computed_value::T {
+        computed_value::T::CubicBezier(TypedPoint2D::new(0.0, 0.0),
                                               TypedPoint2D::new(1.0, 1.0))
     }
 
     #[inline(always)]
-    fn ease_in() -> TransitionTimingFunction {
-        TransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.42, 0.0),
+    fn ease_in() -> computed_value::T {
+        computed_value::T::CubicBezier(TypedPoint2D::new(0.42, 0.0),
                                               TypedPoint2D::new(1.0, 1.0))
     }
 
     #[inline(always)]
-    fn ease_out() -> TransitionTimingFunction {
-        TransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.0, 0.0),
+    fn ease_out() -> computed_value::T {
+        computed_value::T::CubicBezier(TypedPoint2D::new(0.0, 0.0),
                                               TypedPoint2D::new(0.58, 1.0))
     }
 
     #[inline(always)]
-    fn ease_in_out() -> TransitionTimingFunction {
-        TransitionTimingFunction::CubicBezier(TypedPoint2D::new(0.42, 0.0),
+    fn ease_in_out() -> computed_value::T {
+        computed_value::T::CubicBezier(TypedPoint2D::new(0.42, 0.0),
                                               TypedPoint2D::new(0.58, 1.0))
     }
 
-    static STEP_START: TransitionTimingFunction =
-        TransitionTimingFunction::Steps(1, StartEnd::Start);
-    static STEP_END: TransitionTimingFunction =
-        TransitionTimingFunction::Steps(1, StartEnd::End);
+    static STEP_START: computed_value::T =
+        computed_value::T::Steps(1, StartEnd::Start);
+    static STEP_END: computed_value::T =
+        computed_value::T::Steps(1, StartEnd::End);
 
     pub mod computed_value {
         use euclid::point::Point2D;
         use parser::{Parse, ParserContext};
         use std::fmt;
         use style_traits::ToCss;
-        use values::specified;
-        use values::computed::ComputedValueAsSpecified;
 
-        pub use self::TransitionTimingFunction as SingleComputedValue;
+        pub use super::parse;
 
         #[derive(Copy, Clone, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum TransitionTimingFunction {
+        pub enum T {
             CubicBezier(Point2D<f32>, Point2D<f32>),
             Steps(u32, StartEnd),
         }
 
-        impl Parse for TransitionTimingFunction {
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
-                if let Ok(function_name) = input.try(|input| input.expect_function()) {
-                    return match_ignore_ascii_case! { function_name,
-                        "cubic-bezier" => {
-                            let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
-                            try!(input.parse_nested_block(|input| {
-                                p1x = try!(specified::parse_number(input));
-                                try!(input.expect_comma());
-                                p1y = try!(specified::parse_number(input));
-                                try!(input.expect_comma());
-                                p2x = try!(specified::parse_number(input));
-                                try!(input.expect_comma());
-                                p2y = try!(specified::parse_number(input));
-                                Ok(())
-                            }));
-                            let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
-                            Ok(TransitionTimingFunction::CubicBezier(p1, p2))
-                        },
-                        "steps" => {
-                            let (mut step_count, mut start_end) = (0, StartEnd::End);
-                            try!(input.parse_nested_block(|input| {
-                                step_count = try!(specified::parse_integer(input));
-                                if input.try(|input| input.expect_comma()).is_ok() {
-                                    start_end = try!(match_ignore_ascii_case! {
-                                        try!(input.expect_ident()),
-                                        "start" => Ok(StartEnd::Start),
-                                        "end" => Ok(StartEnd::End),
-                                        _ => Err(())
-                                    });
-                                }
-                                Ok(())
-                            }));
-                            Ok(TransitionTimingFunction::Steps(step_count as u32, start_end))
-                        },
-                        _ => Err(())
-                    }
-                }
-                match_ignore_ascii_case! {
-                    try!(input.expect_ident()),
-                    "ease" => Ok(super::ease()),
-                    "linear" => Ok(super::linear()),
-                    "ease-in" => Ok(super::ease_in()),
-                    "ease-out" => Ok(super::ease_out()),
-                    "ease-in-out" => Ok(super::ease_in_out()),
-                    "step-start" => Ok(super::STEP_START),
-                    "step-end" => Ok(super::STEP_END),
-                    _ => Err(())
-                }
-            }
-        }
-
-        impl ToCss for TransitionTimingFunction {
+        impl ToCss for T {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
-                    TransitionTimingFunction::CubicBezier(p1, p2) => {
+                    T::CubicBezier(p1, p2) => {
                         try!(dest.write_str("cubic-bezier("));
                         try!(p1.x.to_css(dest));
                         try!(dest.write_str(", "));
@@ -623,12 +534,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         try!(p2.y.to_css(dest));
                         dest.write_str(")")
                     }
-                    TransitionTimingFunction::Steps(steps, start_end) => {
-                        try!(dest.write_str("steps("));
-                        try!(steps.to_css(dest));
-                        try!(dest.write_str(", "));
-                        try!(start_end.to_css(dest));
-                        dest.write_str(")")
+                    T::Steps(steps, start_end) => {
+                        super::serialize_steps(dest, steps, start_end)
                     }
                 }
             }
@@ -649,23 +556,146 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                 }
             }
         }
+    }
 
-        #[derive(Clone, Debug, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<TransitionTimingFunction>);
+    define_css_keyword_enum!(FunctionKeyword:
+                             "ease" => Ease,
+                             "linear" => Linear,
+                             "ease-in" => EaseIn,
+                             "ease-out" => EaseOut,
+                             "ease-in-out" => EaseInOut,
+                             "step-start" => StepStart,
+                             "step-end" => StepEnd);
 
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        CubicBezier(Point2D<f32>, Point2D<f32>),
+        Steps(u32, StartEnd),
+        Keyword(FunctionKeyword),
+    }
+
+    impl Parse for SpecifiedValue {
+        fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            if let Ok(function_name) = input.try(|input| input.expect_function()) {
+                return match_ignore_ascii_case! { function_name,
+                    "cubic-bezier" => {
+                        let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
+                        try!(input.parse_nested_block(|input| {
+                            p1x = try!(specified::parse_number(input));
+                            try!(input.expect_comma());
+                            p1y = try!(specified::parse_number(input));
+                            try!(input.expect_comma());
+                            p2x = try!(specified::parse_number(input));
+                            try!(input.expect_comma());
+                            p2y = try!(specified::parse_number(input));
+                            Ok(())
+                        }));
+                        let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
+                        Ok(SpecifiedValue::CubicBezier(p1, p2))
+                    },
+                    "steps" => {
+                        let (mut step_count, mut start_end) = (0, StartEnd::End);
+                        try!(input.parse_nested_block(|input| {
+                            step_count = try!(specified::parse_integer(input));
+                            if input.try(|input| input.expect_comma()).is_ok() {
+                                start_end = try!(match_ignore_ascii_case! {
+                                    try!(input.expect_ident()),
+                                    "start" => Ok(StartEnd::Start),
+                                    "end" => Ok(StartEnd::End),
+                                    _ => Err(())
+                                });
+                            }
+                            Ok(())
+                        }));
+                        Ok(SpecifiedValue::Steps(step_count as u32, start_end))
+                    },
+                    _ => Err(())
                 }
-                for (i, value) in self.0.iter().enumerate() {
-                    if i != 0 {
-                        try!(dest.write_str(", "))
+            }
+            Ok(SpecifiedValue::Keyword(try!(FunctionKeyword::parse(input))))
+        }
+    }
+
+    fn serialize_steps<W>(dest: &mut W, steps: u32,
+                          start_end: StartEnd) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("steps("));
+        try!(steps.to_css(dest));
+        if let StartEnd::Start = start_end {
+            try!(dest.write_str(", start"));
+        }
+        dest.write_str(")")
+    }
+
+    // https://drafts.csswg.org/css-transitions/#serializing-a-timing-function
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::CubicBezier(p1, p2) => {
+                    try!(dest.write_str("cubic-bezier("));
+                    try!(p1.x.to_css(dest));
+                    try!(dest.write_str(", "));
+                    try!(p1.y.to_css(dest));
+                    try!(dest.write_str(", "));
+                    try!(p2.x.to_css(dest));
+                    try!(dest.write_str(", "));
+                    try!(p2.y.to_css(dest));
+                    dest.write_str(")")
+                },
+                SpecifiedValue::Steps(steps, start_end) => {
+                    serialize_steps(dest, steps, start_end)
+                },
+                SpecifiedValue::Keyword(keyword) => {
+                    match keyword {
+                        FunctionKeyword::StepStart => {
+                            serialize_steps(dest, 1, StartEnd::Start)
+                        },
+                        FunctionKeyword::StepEnd => {
+                            serialize_steps(dest, 1, StartEnd::End)
+                        },
+                        _ => {
+                            keyword.to_css(dest)
+                        },
                     }
-                    try!(value.to_css(dest))
-                }
-                Ok(())
+                },
+            }
+        }
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+            match *self {
+                SpecifiedValue::CubicBezier(p1, p2) => {
+                    computed_value::T::CubicBezier(p1, p2)
+                },
+                SpecifiedValue::Steps(count, start_end) => {
+                    computed_value::T::Steps(count, start_end)
+                },
+                SpecifiedValue::Keyword(keyword) => {
+                    match keyword {
+                        FunctionKeyword::Ease => ease(),
+                        FunctionKeyword::Linear => linear(),
+                        FunctionKeyword::EaseIn => ease_in(),
+                        FunctionKeyword::EaseOut => ease_out(),
+                        FunctionKeyword::EaseInOut => ease_in_out(),
+                        FunctionKeyword::StepStart => STEP_START,
+                        FunctionKeyword::StepEnd => STEP_END,
+                    }
+                },
+            }
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            match *computed {
+                computed_value::T::CubicBezier(p1, p2) => {
+                    SpecifiedValue::CubicBezier(p1, p2)
+                },
+                computed_value::T::Steps(count, start_end) => {
+                    SpecifiedValue::Steps(count, start_end)
+                },
             }
         }
     }
@@ -673,277 +703,193 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
 
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-
     #[inline]
-    pub fn get_initial_single_value() -> TransitionTimingFunction {
+    pub fn get_initial_value() -> computed_value::T {
         ease()
     }
 
     #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![get_initial_single_value()])
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        ToComputedValue::from_computed_value(&ease())
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| {
-            TransitionTimingFunction::parse(context, i)
-        }))))
+        SpecifiedValue::parse(context, input)
     }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
-<%helpers:longhand name="transition-property"
-                   need_index="True"
-                   animatable="False"
-                   spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property">
+<%helpers:vector_longhand name="transition-property"
+                          allow_empty="True"
+                          need_index="True"
+                          animatable="False"
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property">
 
     use values::computed::ComputedValueAsSpecified;
 
-    pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
-    pub use self::computed_value::T as SpecifiedValue;
+    pub use properties::animated_properties::TransitionProperty;
+    pub use properties::animated_properties::TransitionProperty as SpecifiedValue;
 
     pub mod computed_value {
         use std::fmt;
         use style_traits::ToCss;
         // NB: Can't generate the type here because it needs all the longhands
         // generated beforehand.
-        pub use properties::animated_properties::TransitionProperty;
-        pub use properties::animated_properties::TransitionProperty as SingleComputedValue;
-
-        #[derive(Clone, Debug, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<SingleComputedValue>);
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
-                }
-                for (i, value) in self.0.iter().enumerate() {
-                    if i != 0 {
-                        try!(dest.write_str(", "))
-                    }
-                    try!(value.to_css(dest))
-                }
-                Ok(())
-            }
-        }
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Vec::new())
+        pub use super::SpecifiedValue as T;
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(SingleSpecifiedValue::parse))))
+        SpecifiedValue::parse(input)
     }
 
     use values::NoViewportPercentage;
     impl NoViewportPercentage for SpecifiedValue {}
 
     impl ComputedValueAsSpecified for SpecifiedValue { }
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
-<%helpers:longhand name="transition-delay"
-                   need_index="True"
-                   animatable="False"
-                   spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay">
-    pub use properties::longhands::transition_duration::{SingleSpecifiedValue, SpecifiedValue};
-    pub use properties::longhands::transition_duration::computed_value;
-    pub use properties::longhands::transition_duration::{get_initial_value, get_initial_single_value, parse};
-</%helpers:longhand>
+<%helpers:vector_longhand name="transition-delay"
+                          need_index="True"
+                          animatable="False"
+                          spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay">
+    pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
+    pub use properties::longhands::transition_duration::single_value::computed_value;
+    pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
+</%helpers:vector_longhand>
 
-<%helpers:longhand name="animation-name"
-                   need_index="True"
-                   animatable="False",
-                   allowed_in_keyframe_block="False"
-                   spec="https://drafts.csswg.org/css-animations/#propdef-animation-name">
+<%helpers:vector_longhand name="animation-name"
+                          allow_empty="True"
+                          need_index="True"
+                          animatable="False",
+                          allowed_in_keyframe_block="False"
+                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-name">
+    use Atom;
+    use std::fmt;
+    use std::ops::Deref;
+    use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
 
     pub mod computed_value {
-        use Atom;
-        use parser::{Parse, ParserContext};
-        use std::fmt;
-        use std::ops::Deref;
-        use style_traits::ToCss;
+        pub use super::SpecifiedValue as T;
+    }
 
-        #[derive(Clone, Debug, Hash, Eq, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct AnimationName(pub Atom);
+    #[derive(Clone, Debug, Hash, Eq, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue(pub Atom);
 
-        impl fmt::Display for AnimationName {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                self.0.fmt(f)
-            }
-        }
-
-        pub use self::AnimationName as SingleComputedValue;
-
-        impl Parse for AnimationName {
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
-                use cssparser::Token;
-                Ok(match input.next() {
-                    Ok(Token::Ident(ref value)) if value != "none" => AnimationName(Atom::from(&**value)),
-                    Ok(Token::QuotedString(value)) => AnimationName(Atom::from(&*value)),
-                    _ => return Err(()),
-                })
-            }
-        }
-
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<AnimationName>);
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
-                }
-
-                for (i, name) in self.0.iter().enumerate() {
-                    if i != 0 {
-                        try!(dest.write_str(", "));
-                    }
-                    // NB: to_string() needed due to geckolib backend.
-                    try!(dest.write_str(&*name.to_string()));
-                }
-                Ok(())
-            }
+    impl fmt::Display for SpecifiedValue {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            self.0.fmt(f)
         }
     }
 
-    pub use self::computed_value::T as SpecifiedValue;
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            dest.write_str(&*self.0.to_string())
+        }
+    }
+
+    impl Parse for SpecifiedValue {
+        fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            use cssparser::Token;
+            Ok(match input.next() {
+                Ok(Token::Ident(ref value)) if value != "none" => SpecifiedValue(Atom::from(&**value)),
+                Ok(Token::QuotedString(value)) => SpecifiedValue(Atom::from(&*value)),
+                _ => return Err(()),
+            })
+        }
+    }
     impl NoViewportPercentage for SpecifiedValue {}
-    pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![])
-    }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        use std::borrow::Cow;
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| SingleSpecifiedValue::parse(context, i)))))
+        SpecifiedValue::parse(context, input)
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
-<%helpers:longhand name="animation-duration"
-                   need_index="True"
-                   animatable="False",
-                   spec="https://drafts.csswg.org/css-animations/#propdef-animation-duration",
-                   allowed_in_keyframe_block="False">
-    pub use super::transition_duration::computed_value;
-    pub use super::transition_duration::{get_initial_value, get_initial_single_value, parse};
-    pub use super::transition_duration::SpecifiedValue;
-    pub use super::transition_duration::SingleSpecifiedValue;
-</%helpers:longhand>
+<%helpers:vector_longhand name="animation-duration"
+                          need_index="True"
+                          animatable="False",
+                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-duration",
+                          allowed_in_keyframe_block="False">
+    pub use properties::longhands::transition_duration::single_value::computed_value;
+    pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
+    pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
+</%helpers:vector_longhand>
 
-<%helpers:longhand name="animation-timing-function"
-                   need_index="True"
-                   animatable="False",
-                   spec="https://drafts.csswg.org/css-animations/#propdef-animation-timing-function",
-                   allowed_in_keyframe_block="False">
-    pub use super::transition_timing_function::computed_value;
-    pub use super::transition_timing_function::{get_initial_value, get_initial_single_value, parse};
-    pub use super::transition_timing_function::SpecifiedValue;
-    pub use super::transition_timing_function::SingleSpecifiedValue;
-</%helpers:longhand>
+<%helpers:vector_longhand name="animation-timing-function"
+                          need_index="True"
+                          animatable="False",
+                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-timing-function",
+                          allowed_in_keyframe_block="False">
+    pub use properties::longhands::transition_timing_function::single_value::computed_value;
+    pub use properties::longhands::transition_timing_function::single_value::get_initial_value;
+    pub use properties::longhands::transition_timing_function::single_value::get_initial_specified_value;
+    pub use properties::longhands::transition_timing_function::single_value::parse;
+    pub use properties::longhands::transition_timing_function::single_value::SpecifiedValue;
+</%helpers:vector_longhand>
 
-<%helpers:longhand name="animation-iteration-count"
-                   need_index="True"
-                   animatable="False",
-                   spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
-                   allowed_in_keyframe_block="False">
+<%helpers:vector_longhand name="animation-iteration-count"
+                          need_index="True"
+                          animatable="False",
+                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
+                          allowed_in_keyframe_block="False">
+    use std::fmt;
+    use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
     use values::NoViewportPercentage;
 
     pub mod computed_value {
-        use parser::{Parse, ParserContext};
-        use std::fmt;
-        use style_traits::ToCss;
+        pub use super::SpecifiedValue as T;
+    }
 
-        pub use self::AnimationIterationCount as SingleComputedValue;
+    // https://drafts.csswg.org/css-animations/#animation-iteration-count
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Number(f32),
+        Infinite,
+    }
 
-        // https://drafts.csswg.org/css-animations/#animation-iteration-count
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub enum AnimationIterationCount {
-            Number(f32),
-            Infinite,
-        }
-
-        impl Parse for AnimationIterationCount {
-            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
-                if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
-                    return Ok(AnimationIterationCount::Infinite)
-                }
-
-                let number = try!(input.expect_number());
-                if number < 0.0 {
-                    return Err(());
-                }
-
-                Ok(AnimationIterationCount::Number(number))
+    impl Parse for SpecifiedValue {
+        fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            if input.try(|input| input.expect_ident_matching("infinite")).is_ok() {
+                return Ok(SpecifiedValue::Infinite)
             }
-        }
 
-        impl ToCss for AnimationIterationCount {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                match *self {
-                    AnimationIterationCount::Number(n) => write!(dest, "{}", n),
-                    AnimationIterationCount::Infinite => dest.write_str("infinite"),
-                }
+            let number = try!(input.expect_number());
+            if number < 0.0 {
+                return Err(());
             }
+
+            Ok(SpecifiedValue::Number(number))
         }
+    }
 
-        #[derive(Debug, Clone, PartialEq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T(pub Vec<AnimationIterationCount>);
-
-        impl ToCss for T {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                if self.0.is_empty() {
-                    return dest.write_str("none")
-                }
-                for (i, value) in self.0.iter().enumerate() {
-                    if i != 0 {
-                        try!(dest.write_str(", "))
-                    }
-                    try!(value.to_css(dest))
-                }
-                Ok(())
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Number(n) => write!(dest, "{}", n),
+                SpecifiedValue::Infinite => dest.write_str("infinite"),
             }
         }
     }
 
-    pub use self::computed_value::AnimationIterationCount;
-    pub use self::computed_value::AnimationIterationCount as SingleSpecifiedValue;
-    pub use self::computed_value::T as SpecifiedValue;
     impl NoViewportPercentage for SpecifiedValue {}
 
     #[inline]
-    pub fn get_initial_single_value() -> AnimationIterationCount {
-        AnimationIterationCount::Number(1.0)
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Number(1.0)
     }
 
     #[inline]
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        Ok(SpecifiedValue(try!(input.parse_comma_separated(|i| {
-            AnimationIterationCount::parse(context, i)
-        }))))
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![get_initial_single_value()])
+        SpecifiedValue::parse(context, input)
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-</%helpers:longhand>
+</%helpers:vector_longhand>
 
 ${helpers.single_keyword("animation-direction",
                          "normal reverse alternate alternate-reverse",
@@ -972,16 +918,15 @@ ${helpers.single_keyword("animation-fill-mode",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
                          allowed_in_keyframe_block=False)}
 
-<%helpers:longhand name="animation-delay"
-                   need_index="True"
-                   animatable="False",
-                   spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
-                   allowed_in_keyframe_block="False">
-    pub use super::transition_duration::computed_value;
-    pub use super::transition_duration::{get_initial_value, get_initial_single_value, parse};
-    pub use super::transition_duration::SpecifiedValue;
-    pub use super::transition_duration::SingleSpecifiedValue;
-</%helpers:longhand>
+<%helpers:vector_longhand name="animation-delay"
+                          need_index="True"
+                          animatable="False",
+                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
+                          allowed_in_keyframe_block="False">
+    pub use properties::longhands::transition_duration::single_value::computed_value;
+    pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
+    pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
+</%helpers:vector_longhand>
 
 <%helpers:longhand products="gecko" name="scroll-snap-points-y" animatable="False"
                    spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)">

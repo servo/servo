@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::error::Error;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutJS, MutNullableJS, Root};
+use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};
@@ -37,10 +37,10 @@ pub struct BluetoothDevice {
     id: DOMString,
     name: Option<DOMString>,
     gatt: MutNullableJS<BluetoothRemoteGATTServer>,
-    context: MutJS<Bluetooth>,
-    attribute_instance_map: (DOMRefCell<HashMap<String, MutJS<BluetoothRemoteGATTService>>>,
-                             DOMRefCell<HashMap<String, MutJS<BluetoothRemoteGATTCharacteristic>>>,
-                             DOMRefCell<HashMap<String, MutJS<BluetoothRemoteGATTDescriptor>>>),
+    context: JS<Bluetooth>,
+    attribute_instance_map: (DOMRefCell<HashMap<String, JS<BluetoothRemoteGATTService>>>,
+                             DOMRefCell<HashMap<String, JS<BluetoothRemoteGATTCharacteristic>>>,
+                             DOMRefCell<HashMap<String, JS<BluetoothRemoteGATTDescriptor>>>),
     watching_advertisements: Cell<bool>,
 }
 
@@ -54,7 +54,7 @@ impl BluetoothDevice {
             id: id,
             name: name,
             gatt: Default::default(),
-            context: MutJS::new(context),
+            context: JS::from_ref(context),
             attribute_instance_map: (DOMRefCell::new(HashMap::new()),
                                      DOMRefCell::new(HashMap::new()),
                                      DOMRefCell::new(HashMap::new())),
@@ -75,7 +75,7 @@ impl BluetoothDevice {
     }
 
     fn get_context(&self) -> Root<Bluetooth> {
-        self.context.get()
+        Root::from_ref(&self.context)
     }
 
     pub fn get_or_create_service(&self,
@@ -85,14 +85,14 @@ impl BluetoothDevice {
         let (ref service_map_ref, _, _) = self.attribute_instance_map;
         let mut service_map = service_map_ref.borrow_mut();
         if let Some(existing_service) = service_map.get(&service.instance_id) {
-            return existing_service.get();
+            return Root::from_ref(&existing_service);
         }
         let bt_service = BluetoothRemoteGATTService::new(&server.global(),
                                                          &server.Device(),
                                                          DOMString::from(service.uuid.clone()),
                                                          service.is_primary,
                                                          service.instance_id.clone());
-        service_map.insert(service.instance_id.clone(), MutJS::new(&bt_service));
+        service_map.insert(service.instance_id.clone(), JS::from_ref(&bt_service));
         return bt_service;
     }
 
@@ -103,7 +103,7 @@ impl BluetoothDevice {
         let (_, ref characteristic_map_ref, _) = self.attribute_instance_map;
         let mut characteristic_map = characteristic_map_ref.borrow_mut();
         if let Some(existing_characteristic) = characteristic_map.get(&characteristic.instance_id) {
-            return existing_characteristic.get();
+            return Root::from_ref(&existing_characteristic);
         }
         let properties =
             BluetoothCharacteristicProperties::new(&service.global(),
@@ -121,7 +121,7 @@ impl BluetoothDevice {
                                                                        DOMString::from(characteristic.uuid.clone()),
                                                                        &properties,
                                                                        characteristic.instance_id.clone());
-        characteristic_map.insert(characteristic.instance_id.clone(), MutJS::new(&bt_characteristic));
+        characteristic_map.insert(characteristic.instance_id.clone(), JS::from_ref(&bt_characteristic));
         return bt_characteristic;
     }
 
@@ -139,13 +139,13 @@ impl BluetoothDevice {
         let (_, _, ref descriptor_map_ref) = self.attribute_instance_map;
         let mut descriptor_map = descriptor_map_ref.borrow_mut();
         if let Some(existing_descriptor) = descriptor_map.get(&descriptor.instance_id) {
-            return existing_descriptor.get();
+            return Root::from_ref(&existing_descriptor);
         }
         let bt_descriptor = BluetoothRemoteGATTDescriptor::new(&characteristic.global(),
                                                                characteristic,
                                                                DOMString::from(descriptor.uuid.clone()),
                                                                descriptor.instance_id.clone());
-        descriptor_map.insert(descriptor.instance_id.clone(), MutJS::new(&bt_descriptor));
+        descriptor_map.insert(descriptor.instance_id.clone(), JS::from_ref(&bt_descriptor));
         return bt_descriptor;
     }
 
@@ -193,7 +193,7 @@ impl BluetoothDevice {
         for (id, device) in context.get_device_map().borrow().iter() {
             // Step 2.1 - 2.2.
             if id == &self.Id().to_string() {
-                if device.get().Gatt().Connected() {
+                if device.Gatt().Connected() {
                     return Ok(());
                 }
                 // TODO: Step 2.3: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.

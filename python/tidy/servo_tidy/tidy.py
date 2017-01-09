@@ -520,6 +520,8 @@ def check_rust(file_name, lines):
                 lambda match, line: is_attribute),
             (r"=[A-Za-z0-9\"]", "missing space after =",
                 lambda match, line: is_attribute),
+            (r"^=\s", "no = in the beginning of line",
+                lambda match, line: not is_comment),
             # ignore scientific notation patterns like 1e-6
             (r"[A-DF-Za-df-z0-9]-", "missing space before -",
                 lambda match, line: not is_attribute),

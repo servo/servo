@@ -149,6 +149,7 @@ pub mod num;
 pub mod proxyhandler;
 pub mod refcounted;
 pub mod reflector;
+pub mod settings_stack;
 pub mod str;
 pub mod structuredclone;
 pub mod trace;

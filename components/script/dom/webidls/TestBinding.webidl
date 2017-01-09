@@ -522,6 +522,8 @@ interface TestBinding {
   void resolvePromiseDelayed(Promise<any> p, DOMString value, unsigned long long ms);
 
   void panic();
+
+  GlobalScope entryGlobal();
 };
 
 callback SimpleCallback = void(any value);

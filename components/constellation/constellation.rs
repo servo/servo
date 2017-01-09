@@ -94,7 +94,7 @@ use pipeline::{InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
-use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
+use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext};
 use script_traits::{DocumentState, LayoutControlMsg, LoadData};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
@@ -975,13 +975,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got set visibility change complete message");
                 self.handle_visibility_change_complete(pipeline_id, visible);
             }
-            FromScriptMsg::RemoveIFrame(pipeline_id, sender) => {
+            FromScriptMsg::RemoveIFrame(frame_id, sender) => {
                 debug!("constellation got remove iframe message");
-                self.handle_remove_iframe_msg(pipeline_id);
-                if let Some(sender) = sender {
-                    if let Err(e) = sender.send(()) {
-                        warn!("Error replying to remove iframe ({})", e);
-                    }
+                let removed_pipeline_ids = self.handle_remove_iframe_msg(frame_id);
+                if let Err(e) = sender.send(removed_pipeline_ids) {
+                    warn!("Error replying to remove iframe ({})", e);
                 }
             }
             FromScriptMsg::NewFavicon(url) => {
@@ -1126,7 +1124,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             debug!("Removing pending frame {}.", pending.frame_id);
             self.close_frame(pending.frame_id, ExitPipelineMode::Normal);
             debug!("Removing pending pipeline {}.", pending.new_pipeline_id);
-            self.close_pipeline(pending.new_pipeline_id, ExitPipelineMode::Normal);
+            self.close_pipeline(pending.new_pipeline_id, DiscardBrowsingContext::Yes, ExitPipelineMode::Normal);
         }
 
         // In case there are frames which weren't attached to the frame tree, we close them.
@@ -1140,7 +1138,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let pipeline_ids: Vec<PipelineId> = self.pipelines.keys().cloned().collect();
         for pipeline_id in pipeline_ids {
             debug!("Removing detached pipeline {}.", pipeline_id);
-            self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
+            self.close_pipeline(pipeline_id, DiscardBrowsingContext::Yes, ExitPipelineMode::Normal);
         }
     }
 
@@ -1234,7 +1232,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let parent_info = pipeline_id.and_then(|id| self.pipelines.get(&id).and_then(|pipeline| pipeline.parent_info));
         let window_size = pipeline_id.and_then(|id| self.pipelines.get(&id).and_then(|pipeline| pipeline.size));
 
-        self.close_frame_children(top_level_frame_id, ExitPipelineMode::Force);
+        self.close_frame_children(top_level_frame_id, DiscardBrowsingContext::No, ExitPipelineMode::Force);
 
         let failure_url = ServoUrl::parse("about:failure").expect("infallible");
 
@@ -1805,20 +1803,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.focus_parent_pipeline(pipeline_id);
     }
 
-    fn handle_remove_iframe_msg(&mut self, pipeline_id: PipelineId) {
-        let frame_id = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
-        match frame_id {
-            Some(frame_id) => {
-                // This iframe has already loaded and been added to the frame tree.
-                self.close_frame(frame_id, ExitPipelineMode::Normal);
-            }
-            None => {
-                // This iframe is currently loading / painting for the first time.
-                // In this case, it doesn't exist in the frame tree, but the pipeline
-                // still needs to be shut down.
-                self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
-            }
-        }
+    fn handle_remove_iframe_msg(&mut self, frame_id: FrameId) -> Vec<PipelineId> {
+        let result = self.full_frame_tree_iter(frame_id)
+            .flat_map(|frame| frame.next.iter().chain(frame.prev.iter())
+                      .filter_map(|entry| entry.pipeline_id)
+                      .chain(once(frame.pipeline_id)))
+            .collect();
+        self.close_frame(frame_id, ExitPipelineMode::Normal);
+        result
     }
 
     fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
@@ -2110,7 +2102,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         } else if let Some(frame) = self.frames.get_mut(&frame_change.frame_id) {
             debug!("Adding pipeline to existing frame.");
             frame.load(frame_change.new_pipeline_id, frame_change.url.clone());
-            let evicted_id = frame.prev.get_mut(opts::get().max_session_history)
+            let evicted_id = frame.prev.len().checked_sub(opts::get().max_session_history)
+                .and_then(|index| frame.prev.get_mut(index))
                 .and_then(|entry| entry.pipeline_id.take());
             (evicted_id, false, true, true)
         } else {
@@ -2118,7 +2111,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
 
         if let Some(evicted_id) = evicted_id {
-            self.close_pipeline(evicted_id, ExitPipelineMode::Normal);
+            self.close_pipeline(evicted_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
         }
 
         if new_frame {
@@ -2344,7 +2337,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             };
             for entry in evicted {
                 if let Some(pipeline_id) = entry.pipeline_id {
-                    self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
+                    self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
                 }
             }
         }
@@ -2357,7 +2350,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .and_then(|frame| self.pipelines.get(&frame.pipeline_id))
             .and_then(|pipeline| pipeline.parent_info);
 
-        self.close_frame_children(frame_id, exit_mode);
+        self.close_frame_children(frame_id, DiscardBrowsingContext::Yes, exit_mode);
 
         self.event_loops.remove(&frame_id);
         if self.frames.remove(&frame_id).is_none() {
@@ -2375,7 +2368,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     // Close the children of a frame
-    fn close_frame_children(&mut self, frame_id: FrameId, exit_mode: ExitPipelineMode) {
+    fn close_frame_children(&mut self, frame_id: FrameId, dbc: DiscardBrowsingContext, exit_mode: ExitPipelineMode) {
         debug!("Closing frame children {}.", frame_id);
         // Store information about the pipelines to be closed. Then close the
         // pipelines, before removing ourself from the frames hash map. This
@@ -2393,18 +2386,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         for pipeline_id in pipelines_to_close {
-            self.close_pipeline(pipeline_id, exit_mode);
+            self.close_pipeline(pipeline_id, dbc, exit_mode);
         }
 
         debug!("Closed frame children {}.", frame_id);
     }
 
     // Close all pipelines at and beneath a given frame
-    fn close_pipeline(&mut self, pipeline_id: PipelineId, exit_mode: ExitPipelineMode) {
+    fn close_pipeline(&mut self, pipeline_id: PipelineId, dbc: DiscardBrowsingContext, exit_mode: ExitPipelineMode) {
         debug!("Closing pipeline {:?}.", pipeline_id);
         // Store information about the frames to be closed. Then close the
         // frames, before removing ourself from the pipelines hash map. This
-        // ordering is vital - so that if close_frames() ends up closing
+        // ordering is vital - so that if close_frame() ends up closing
         // any child pipelines, they can be removed from the parent pipeline correctly.
         let frames_to_close = {
             let mut frames_to_close = vec!();
@@ -2438,8 +2431,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // Inform script, compositor that this pipeline has exited.
         match exit_mode {
-            ExitPipelineMode::Normal => pipeline.exit(),
-            ExitPipelineMode::Force => pipeline.force_exit(),
+            ExitPipelineMode::Normal => pipeline.exit(dbc),
+            ExitPipelineMode::Force => pipeline.force_exit(dbc),
         }
         debug!("Closed pipeline {:?}.", pipeline_id);
     }
@@ -2463,7 +2456,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         // Note that we deliberately do not do any of the tidying up
                         // associated with closing a pipeline. The constellation should cope!
                         warn!("Randomly closing pipeline {}.", pipeline_id);
-                        pipeline.force_exit();
+                        pipeline.force_exit(DiscardBrowsingContext::No);
                     }
                 }
             }

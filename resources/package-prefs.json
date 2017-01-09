@@ -3,6 +3,5 @@
   "dom.mozbrowser.enabled": true,
   "shell.builtin-key-shortcuts.enabled": false,
   "os:windows,os:linux;shell.homepage": "browserhtml/index.html",
-  "os:macosx;shell.homepage": "../Resources/browserhtml/index.html",
   "os:macosx;shell.native-titlebar.enabled": false
 }

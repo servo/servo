@@ -14,7 +14,6 @@ use matching::{MatchMethods, StyleSharingResult};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
 use selectors::Element;
-use selectors::matching::StyleRelations;
 use servo_config::opts;
 use std::mem;
 use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
@@ -274,17 +273,6 @@ pub trait DomTraversal<N: TNode> : Sync {
 
     /// Create a thread-local context.
     fn create_thread_local_context(&self) -> Self::ThreadLocalContext;
-}
-
-/// Determines the amount of relations where we're going to share style.
-#[inline]
-pub fn relations_are_shareable(relations: &StyleRelations) -> bool {
-    use selectors::matching::*;
-    !relations.intersects(AFFECTED_BY_ID_SELECTOR |
-                          AFFECTED_BY_PSEUDO_ELEMENTS | AFFECTED_BY_STATE |
-                          AFFECTED_BY_NON_COMMON_STYLE_AFFECTING_ATTRIBUTE_SELECTOR |
-                          AFFECTED_BY_STYLE_ATTRIBUTE |
-                          AFFECTED_BY_PRESENTATIONAL_HINTS)
 }
 
 /// Helper for the function below.

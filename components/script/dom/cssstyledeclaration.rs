@@ -34,9 +34,9 @@ pub struct CSSStyleDeclaration {
 #[must_root]
 pub enum CSSStyleOwner {
     Element(JS<Element>),
-    CSSStyleRule(JS<Window>,
-                 #[ignore_heap_size_of = "Arc"]
-                 Arc<RwLock<PropertyDeclarationBlock>>),
+    CSSRule(JS<Window>,
+            #[ignore_heap_size_of = "Arc"]
+            Arc<RwLock<PropertyDeclarationBlock>>),
 }
 
 impl CSSStyleOwner {
@@ -49,7 +49,7 @@ impl CSSStyleOwner {
                     None
                 }
             }
-            CSSStyleOwner::CSSStyleRule(_, ref pdb) => {
+            CSSStyleOwner::CSSRule(_, ref pdb) => {
                 Some(pdb.clone())
             }
         }
@@ -58,7 +58,7 @@ impl CSSStyleOwner {
     fn window(&self) -> Root<Window> {
         match *self {
             CSSStyleOwner::Element(ref el) => window_from_node(&**el),
-            CSSStyleOwner::CSSStyleRule(ref window, _) => Root::from_ref(&**window),
+            CSSStyleOwner::CSSRule(ref window, _) => Root::from_ref(&**window),
         }
     }
 
@@ -72,7 +72,7 @@ impl CSSStyleOwner {
         match *self {
             CSSStyleOwner::Element(ref el) =>
                 el.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged),
-            CSSStyleOwner::CSSStyleRule(ref window, _) =>
+            CSSStyleOwner::CSSRule(ref window, _) =>
                 window.Document().invalidate_stylesheets(),
         }
     }
@@ -126,8 +126,8 @@ impl CSSStyleDeclaration {
 
     fn get_computed_style(&self, property: PropertyId) -> DOMString {
         match self.owner {
-            CSSStyleOwner::CSSStyleRule(..) =>
-                panic!("get_computed_style called on CSSStyleDeclaration with a CSSStyleRule owner"),
+            CSSStyleOwner::CSSRule(..) =>
+                panic!("get_computed_style called on CSSStyleDeclaration with a CSSRule owner"),
             CSSStyleOwner::Element(ref el) => {
                 let node = el.upcast::<Node>();
                 if !node.is_in_doc() {

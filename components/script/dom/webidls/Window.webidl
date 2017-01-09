@@ -31,9 +31,13 @@
   // other browsing contexts
   [Replaceable] readonly attribute WindowProxy frames;
   //[Replaceable] readonly attribute unsigned long length;
-  [Unforgeable] readonly attribute WindowProxy top;
+  // Note that this can return null in the case that the browsing context has been discarded.
+  // https://github.com/whatwg/html/issues/2115
+  [Unforgeable] readonly attribute WindowProxy? top;
   //         attribute any opener;
-  readonly attribute WindowProxy parent;
+  // Note that this can return null in the case that the browsing context has been discarded.
+  // https://github.com/whatwg/html/issues/2115
+  readonly attribute WindowProxy? parent;
   readonly attribute Element? frameElement;
   //WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank",
   //                 optional DOMString features = "", optional boolean replace = false);

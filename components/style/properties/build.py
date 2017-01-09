@@ -70,13 +70,17 @@ def write(directory, filename, content):
     open(os.path.join(directory, filename), "wb").write(content)
 
 
+def static_id_generator(properties):
+    for kind, props in [("Longhand", properties.longhands),
+                        ("Shorthand", properties.shorthands)]:
+        for p in props:
+            yield "%s\tStaticId::%s(%sId::%s)" % (p.name, kind, kind, p.camel_case)
+            for alias in p.alias:
+                yield "%s\tStaticId::%s(%sId::%s)" % (alias, kind, kind, p.camel_case)
+
+
 def static_ids(properties):
-    return '\n'.join(
-        "%s\tStaticId::%s(%sId::%s)" % (p.name, kind, kind, p.camel_case)
-        for kind, props in [("Longhand", properties.longhands),
-                            ("Shorthand", properties.shorthands)]
-        for p in props
-    )
+    return '\n'.join(static_id_generator(properties))
 
 
 def write_html(properties):

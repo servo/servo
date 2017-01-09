@@ -83,7 +83,7 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, EnqueuedPromiseCallback};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx, PromiseJobQueue};
-use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
+use script_traits::{CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, EventResult};
 use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
@@ -1007,8 +1007,8 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
                 self.handle_reload(pipeline_id),
-            ConstellationControlMsg::ExitPipeline(pipeline_id) =>
-                self.handle_exit_pipeline_msg(pipeline_id),
+            ConstellationControlMsg::ExitPipeline(pipeline_id, discard_browsing_context) =>
+                self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context),
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -1368,6 +1368,7 @@ impl ScriptThread {
                 }
             }
             document.window().thaw();
+            document.fully_activate();
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -1565,7 +1566,7 @@ impl ScriptThread {
     }
 
     /// Handles a request to exit a pipeline and shut down layout.
-    fn handle_exit_pipeline_msg(&self, id: PipelineId) {
+    fn handle_exit_pipeline_msg(&self, id: PipelineId, discard_bc: DiscardBrowsingContext) {
         debug!("Exiting pipeline {}.", id);
 
         self.closed_pipelines.borrow_mut().insert(id);
@@ -1591,6 +1592,11 @@ impl ScriptThread {
 
         if let Some(document) = self.documents.borrow_mut().remove(id) {
             shut_down_layout(document.window());
+            if discard_bc == DiscardBrowsingContext::Yes {
+                if let Some(context) = document.browsing_context() {
+                    context.discard();
+                }
+            }
             let _ = self.constellation_chan.send(ConstellationMsg::PipelineExited(id));
         }
 
@@ -1606,7 +1612,7 @@ impl ScriptThread {
         pipeline_ids.extend(self.documents.borrow().iter().next().map(|(pipeline_id, _)| pipeline_id));
 
         for pipeline_id in pipeline_ids {
-            self.handle_exit_pipeline_msg(pipeline_id);
+            self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes);
         }
 
         debug!("Exited script thread.");
@@ -1819,9 +1825,13 @@ impl ScriptThread {
                                      referrer_policy);
         document.set_ready_state(DocumentReadyState::Loading);
 
+        if !incomplete.is_frozen {
+            document.fully_activate();
+        }
+
         self.documents.borrow_mut().insert(incomplete.pipeline_id, &*document);
 
-        browsing_context.set_active_document(&document);
+        window.init_document(&document);
 
         self.constellation_chan
             .send(ConstellationMsg::ActivateDocument(incomplete.pipeline_id))
@@ -2253,8 +2263,8 @@ fn shut_down_layout(window: &Window) {
     // Drop our references to the JSContext and DOM objects.
     window.clear_js_runtime();
 
-    // Sever the connection between the global and the DOM tree
-    browsing_context.unset_active_document();
+    // Discard the browsing context.
+    browsing_context.discard();
 
     // Destroy the layout thread. If there were node leaks, layout will now crash safely.
     chan.send(message::Msg::ExitNow).ok();

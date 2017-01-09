@@ -6,6 +6,7 @@
 
 use cssparser::ToCss;
 use element_state::ElementState;
+use gecko_bindings::structs::CSSPseudoClassType;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
 use selector_parser::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
 use selectors::parser::AttrSelector;
@@ -153,6 +154,10 @@ pub enum NonTSPseudoClass {
     ReadWrite,
     /// :read-only
     ReadOnly,
+
+    // Internal pseudo-classes
+    /// :-moz-browser-frame
+    MozBrowserFrame,
 }
 
 impl ToCss for NonTSPseudoClass {
@@ -172,11 +177,35 @@ impl ToCss for NonTSPseudoClass {
             Indeterminate => ":indeterminate",
             ReadWrite => ":read-write",
             ReadOnly => ":read-only",
+
+            MozBrowserFrame => ":-moz-browser-frame",
         })
     }
 }
 
 impl NonTSPseudoClass {
+    /// A pseudo-class is internal if it can only be used inside
+    /// user agent style sheets.
+    pub fn is_internal(&self) -> bool {
+        use self::NonTSPseudoClass::*;
+        match *self {
+            AnyLink |
+            Link |
+            Visited |
+            Active |
+            Focus |
+            Fullscreen |
+            Hover |
+            Enabled |
+            Disabled |
+            Checked |
+            Indeterminate |
+            ReadWrite |
+            ReadOnly => false,
+            MozBrowserFrame => true,
+        }
+    }
+
     /// Get the state flag associated with a pseudo-class, if any.
     pub fn state_flag(&self) -> ElementState {
         use element_state::*;
@@ -194,8 +223,30 @@ impl NonTSPseudoClass {
 
             AnyLink |
             Link |
-            Visited => ElementState::empty(),
+            Visited |
+            MozBrowserFrame => ElementState::empty(),
         }
+    }
+
+    /// Convert NonTSPseudoClass to Gecko's CSSPseudoClassType.
+    pub fn to_gecko_pseudoclasstype(&self) -> Option<CSSPseudoClassType> {
+        use gecko_bindings::structs::CSSPseudoClassType::*;
+        use self::NonTSPseudoClass::*;
+        Some(match *self {
+            AnyLink => anyLink,
+            Link => link,
+            Visited => visited,
+            Active => active,
+            Focus => focus,
+            Fullscreen => fullscreen,
+            Hover => hover,
+            Enabled => enabled,
+            Disabled => disabled,
+            Checked => checked,
+            Indeterminate => indeterminate,
+            MozBrowserFrame => mozBrowserFrame,
+            ReadWrite | ReadOnly => { return None; }
+        })
     }
 }
 
@@ -245,10 +296,18 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             "indeterminate" => Indeterminate,
             "read-write" => ReadWrite,
             "read-only" => ReadOnly,
+
+            // Internal
+            "-moz-browser-frame" => MozBrowserFrame,
+
             _ => return Err(())
         };
 
-        Ok(pseudo_class)
+        if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
+            Ok(pseudo_class)
+        } else {
+            Err(())
+        }
     }
 
     fn parse_pseudo_element(&self, name: Cow<str>) -> Result<PseudoElement, ()> {

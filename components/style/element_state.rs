@@ -31,13 +31,13 @@ bitflags! {
         const IN_CHECKED_STATE = 0x20,
         #[doc = "https://html.spec.whatwg.org/multipage/#selector-indeterminate"]
         const IN_INDETERMINATE_STATE = 0x40,
-        #[doc = "https://html.spec.whatwg.org/multipage/#selector-read-write"]
-        const IN_READ_WRITE_STATE = 0x80,
         #[doc = "https://html.spec.whatwg.org/multipage/#selector-placeholder-shown"]
-        const IN_PLACEHOLDER_SHOWN_STATE = 0x0100,
+        const IN_PLACEHOLDER_SHOWN_STATE = 0x80,
         #[doc = "https://html.spec.whatwg.org/multipage/#selector-target"]
-        const IN_TARGET_STATE = 0x0200,
+        const IN_TARGET_STATE = 0x100,
         #[doc = "https://fullscreen.spec.whatwg.org/#%3Afullscreen-pseudo-class"]
-        const IN_FULLSCREEN_STATE = 0x0400,
+        const IN_FULLSCREEN_STATE = 0x200,
+        #[doc = "https://html.spec.whatwg.org/multipage/#selector-read-write"]
+        const IN_READ_WRITE_STATE = 0x400,
     }
 }

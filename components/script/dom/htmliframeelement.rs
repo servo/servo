@@ -33,7 +33,6 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
-use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
 use html5ever_atoms::LocalName;
@@ -709,42 +708,34 @@ impl VirtualMethods for HTMLIFrameElement {
         LoadBlocker::terminate(&mut blocker);
 
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
-        if let Some(pipeline_id) = self.pipeline_id.get() {
-            debug!("Unbinding pipeline {} from frame {}.", pipeline_id, self.frame_id);
-            let window = window_from_node(self);
+        debug!("Unbinding frame {}.", self.frame_id);
+        let window = window_from_node(self);
+        let (sender, receiver) = ipc::channel().unwrap();
 
-            // The only reason we're waiting for the iframe to be totally
-            // removed is to ensure the script thread can't add iframes faster
-            // than the compositor can remove them.
-            //
-            // Since most of this cleanup doesn't happen on same-origin
-            // iframes, and since that would cause a deadlock, don't do it.
-            let same_origin = {
-                // FIXME(#10968): this should probably match the origin check in
-                //                HTMLIFrameElement::contentDocument.
-                let self_url = self.get_url();
-                let win_url = window_from_node(self).get_url();
-                UrlHelper::SameOrigin(&self_url, &win_url) || self_url.as_str() == "about:blank"
-            };
-            let (sender, receiver) = if same_origin {
-                (None, None)
-            } else {
-                let (sender, receiver) = ipc::channel().unwrap();
-                (Some(sender), Some(receiver))
-            };
-            let msg = ConstellationMsg::RemoveIFrame(pipeline_id, sender);
-            window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
-            if let Some(receiver) = receiver {
-                receiver.recv().unwrap()
+        // Ask the constellation to remove the iframe, and tell us the
+        // pipeline ids of the closed pipelines.
+        let msg = ConstellationMsg::RemoveIFrame(self.frame_id, sender);
+        window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
+        let exited_pipeline_ids = receiver.recv().unwrap();
+
+        // The spec for discarding is synchronous,
+        // so we need to discard the browsing contexts now, rather than
+        // when the `PipelineExit` message arrives.
+        for exited_pipeline_id in exited_pipeline_ids {
+            if let Some(exited_document) = ScriptThread::find_document(exited_pipeline_id) {
+                exited_document.window().browsing_context().discard();
+                for exited_iframe in exited_document.iter_iframes() {
+                    exited_iframe.pipeline_id.set(None);
+                }
             }
-
-            // Resetting the pipeline_id to None is required here so that
-            // if this iframe is subsequently re-added to the document
-            // the load doesn't think that it's a navigation, but instead
-            // a new iframe. Without this, the constellation gets very
-            // confused.
-            self.pipeline_id.set(None);
         }
+
+        // Resetting the pipeline_id to None is required here so that
+        // if this iframe is subsequently re-added to the document
+        // the load doesn't think that it's a navigation, but instead
+        // a new iframe. Without this, the constellation gets very
+        // confused.
+        self.pipeline_id.set(None);
     }
 }
 

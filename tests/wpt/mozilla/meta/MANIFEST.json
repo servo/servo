@@ -8408,6 +8408,18 @@
             "url": "/_mozilla/mozilla/global.html"
           }
         ],
+        "mozilla/globals/entry.html": [
+          {
+            "path": "mozilla/globals/entry.html",
+            "url": "/_mozilla/mozilla/globals/entry.html"
+          }
+        ],
+        "mozilla/globals/entry.worker.js": [
+          {
+            "path": "mozilla/globals/entry.worker.js",
+            "url": "/_mozilla/mozilla/globals/entry.worker.html"
+          }
+        ],
         "mozilla/hit_test_nested_sc.html": [
           {
             "path": "mozilla/hit_test_nested_sc.html",
@@ -15126,6 +15138,12 @@
           {
             "path": "mozilla/service-workers/service-worker-registration.html",
             "url": "/_mozilla/mozilla/service-workers/service-worker-registration.html"
+          }
+        ],
+        "mozilla/servo-max-session-history.html": [
+          {
+            "path": "mozilla/servo-max-session-history.html",
+            "url": "/_mozilla/mozilla/servo-max-session-history.html"
           }
         ],
         "mozilla/sigsegv.html": [

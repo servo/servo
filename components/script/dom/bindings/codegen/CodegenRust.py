@@ -2883,10 +2883,10 @@ assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
                     CGGeneric(fill(
                         """
                         assert!(JS_GetProperty(cx, prototype.handle(),
-                                               b\"${prop}\0\" as *const u8 as *const _,
+                                               ${prop} as *const u8 as *const _,
                                                aliasedVal.handle_mut()));
                         """,
-                        prop=m.identifier.name))
+                        prop=str_to_const_array(m.identifier.name)))
                 ] + [defineAlias(alias) for alias in sorted(m.aliases)])
 
             defineAliases = CGList([

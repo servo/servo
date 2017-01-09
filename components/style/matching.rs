@@ -30,6 +30,16 @@ use std::slice::IterMut;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
 
+/// Determines the amount of relations where we're going to share style.
+#[inline]
+fn relations_are_shareable(relations: &StyleRelations) -> bool {
+    use selectors::matching::*;
+    !relations.intersects(AFFECTED_BY_ID_SELECTOR |
+                          AFFECTED_BY_PSEUDO_ELEMENTS | AFFECTED_BY_STATE |
+                          AFFECTED_BY_STYLE_ATTRIBUTE |
+                          AFFECTED_BY_PRESENTATIONAL_HINTS)
+}
+
 fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &E)
                                                          -> CommonStyleAffectingAttributes {
     let mut flags = CommonStyleAffectingAttributes::empty();
@@ -72,7 +82,6 @@ pub struct MatchResults {
 impl MatchResults {
     /// Returns true if the primary rule node is shareable with other nodes.
     pub fn primary_is_shareable(&self) -> bool {
-        use traversal::relations_are_shareable;
         relations_are_shareable(&self.relations)
     }
 }
@@ -375,8 +384,6 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
                               element: &E,
                               style: &Arc<ComputedValues>,
                               relations: StyleRelations) {
-        use traversal::relations_are_shareable;
-
         let parent = match element.parent_element() {
             Some(element) => element,
             None => {

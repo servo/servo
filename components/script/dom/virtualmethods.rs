@@ -124,6 +124,14 @@ pub trait VirtualMethods {
             s.cloning_steps(copy, maybe_doc, clone_children);
         }
     }
+
+    /// Called on an element when it is popped off the stack of open elements
+    /// of a parser.
+    fn pop(&self) {
+        if let Some(ref s) = self.super_type() {
+            s.pop();
+        }
+    }
 }
 
 /// Obtain a VirtualMethods instance for a given Node-derived object. Any

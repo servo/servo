@@ -1283,8 +1283,8 @@ impl BlockFlow {
                             content_block_size,
                             available_block_size));
 
-                    candidate_block_size_iterator.candidate_value
-                        = solution.unwrap().block_size;
+                    candidate_block_size_iterator.candidate_value =
+                        solution.unwrap().block_size;
                 }
             }
         }

@@ -102,7 +102,8 @@ pub enum ScriptMsg {
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
     NodeStatus(Option<String>),
     /// Notification that this iframe should be removed.
-    RemoveIFrame(PipelineId, Option<IpcSender<()>>),
+    /// Returns a list of pipelines which were closed.
+    RemoveIFrame(FrameId, IpcSender<Vec<PipelineId>>),
     /// Change pipeline visibility
     SetVisible(PipelineId, bool),
     /// Notifies constellation that an iframe's visibility has been changed.

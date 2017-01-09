@@ -20,6 +20,7 @@ use dom::htmltemplateelement::HTMLTemplateElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
+use dom::virtualmethods::vtable_for;
 use html5ever::Attribute;
 use html5ever::serialize::{AttrRef, Serializable, Serializer};
 use html5ever::serialize::TraversalScope;
@@ -124,7 +125,7 @@ struct Sink {
     document: JS<Document>,
 }
 
-impl<'a> TreeSink for Sink {
+impl TreeSink for Sink {
     type Output = Self;
     fn finish(self) -> Self { self }
 
@@ -233,7 +234,11 @@ impl<'a> TreeSink for Sink {
         while let Some(ref child) = node.GetFirstChild() {
             new_parent.AppendChild(&child).unwrap();
         }
+    }
 
+    fn pop(&mut self, node: JS<Node>) {
+        let node = Root::from_ref(&*node);
+        vtable_for(&node).pop();
     }
 }
 
@@ -243,10 +248,13 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<No
             assert!(parent.InsertBefore(&n, reference_child).is_ok());
         },
         NodeOrText::AppendText(t) => {
-            // FIXME(ajeffrey): convert directly from tendrils to DOMStrings
-            let s: String = t.into();
-            let text = Text::new(DOMString::from(s), &parent.owner_doc());
-            assert!(parent.InsertBefore(text.upcast(), reference_child).is_ok());
+            if let Some(text) = parent.GetLastChild().and_then(Root::downcast::<Text>) {
+                text.upcast::<CharacterData>().append_data(&t);
+            } else {
+                let s: String = t.into();
+                let text = Text::new(DOMString::from(s), &parent.owner_doc());
+                parent.InsertBefore(text.upcast(), reference_child).unwrap();
+            }
         }
     }
 }

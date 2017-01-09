@@ -58,7 +58,7 @@ impl CSSStyleRuleMethods for CSSStyleRule {
     fn Style(&self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             CSSStyleDeclaration::new(self.global().as_window(),
-                                     CSSStyleOwner::CSSStyleRule(JS::from_ref(self.global().as_window()),
+                                     CSSStyleOwner::CSSRule(JS::from_ref(self.global().as_window()),
                                                                  self.stylerule.read().block.clone()),
                                      None,
                                      CSSModificationAccess::ReadWrite)

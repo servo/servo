@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Incumbent page</title>
+
+<iframe src="empty.html" id="current"></iframe>
+<iframe src="empty.html" id="relevant"></iframe>
+<script>
+function get_entry() {
+  var current = document.querySelector("#current").contentWindow;
+  var relevant = document.querySelector("#relevant").contentWindow;
+
+  return current.TestBinding.prototype.entryGlobal.call(new relevant.TestBinding());
+}
+</script>

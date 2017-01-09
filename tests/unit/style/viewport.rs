@@ -288,11 +288,37 @@ fn constrain_viewport() {
     }
 
     let initial_viewport = TypedSize2D::new(800., 600.);
-    assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("")),
-               None);
+    let device = Device::new(MediaType::Screen, initial_viewport);
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("")), None);
 
-    let initial_viewport = TypedSize2D::new(800., 600.);
-    assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 320px auto")),
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto")),
+               Some(ViewportConstraints {
+                   size: initial_viewport,
+
+                   initial_zoom: ScaleFactor::new(1.),
+                   min_zoom: None,
+                   max_zoom: None,
+
+                   user_zoom: UserZoom::Zoom,
+                   orientation: Orientation::Auto
+               }));
+
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto")),
+               Some(ViewportConstraints {
+                   size: initial_viewport,
+
+                   initial_zoom: ScaleFactor::new(1.),
+                   min_zoom: None,
+                   max_zoom: None,
+
+                   user_zoom: UserZoom::Zoom,
+                   orientation: Orientation::Auto
+               }));
+
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 800px; height: 600px;\
+                                                                     zoom: 1;\
+                                                                     user-zoom: zoom;\
+                                                                     orientation: auto;")),
                Some(ViewportConstraints {
                    size: initial_viewport,
 
@@ -305,38 +331,10 @@ fn constrain_viewport() {
                }));
 
     let initial_viewport = TypedSize2D::new(200., 150.);
-    assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 320px auto")),
+    let device = Device::new(MediaType::Screen, initial_viewport);
+    assert_eq!(ViewportConstraints::maybe_new(&device, from_css!("width: 320px auto")),
                Some(ViewportConstraints {
                    size: TypedSize2D::new(320., 240.),
-
-                   initial_zoom: ScaleFactor::new(1.),
-                   min_zoom: None,
-                   max_zoom: None,
-
-                   user_zoom: UserZoom::Zoom,
-                   orientation: Orientation::Auto
-               }));
-
-    let initial_viewport = TypedSize2D::new(800., 600.);
-    assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 320px auto")),
-               Some(ViewportConstraints {
-                   size: initial_viewport,
-
-                   initial_zoom: ScaleFactor::new(1.),
-                   min_zoom: None,
-                   max_zoom: None,
-
-                   user_zoom: UserZoom::Zoom,
-                   orientation: Orientation::Auto
-               }));
-
-    let initial_viewport = TypedSize2D::new(800., 600.);
-    assert_eq!(ViewportConstraints::maybe_new(initial_viewport, from_css!("width: 800px; height: 600px;\
-                                                                     zoom: 1;\
-                                                                     user-zoom: zoom;\
-                                                                     orientation: auto;")),
-               Some(ViewportConstraints {
-                   size: initial_viewport,
 
                    initial_zoom: ScaleFactor::new(1.),
                    min_zoom: None,

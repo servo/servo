@@ -14,8 +14,8 @@ pub use style_traits::ToCss;
 
 #[test]
 fn property_declaration_block_should_serialize_correctly() {
-    use style::properties::longhands::overflow_x::computed_value::T as OverflowXValue;
-    use style::properties::longhands::overflow_y::computed_value::T as OverflowYContainer;
+    use style::properties::longhands::overflow_x::SpecifiedValue as OverflowXValue;
+    use style::properties::longhands::overflow_y::SpecifiedValue as OverflowYContainer;
 
     let declarations = vec![
         (PropertyDeclaration::Width(
@@ -72,8 +72,8 @@ mod shorthand_serialization {
 
     mod overflow {
         pub use super::*;
-        use style::properties::longhands::overflow_x::computed_value::T as OverflowXValue;
-        use style::properties::longhands::overflow_y::computed_value::T as OverflowYContainer;
+        use style::properties::longhands::overflow_x::SpecifiedValue as OverflowXValue;
+        use style::properties::longhands::overflow_y::SpecifiedValue as OverflowYContainer;
 
         #[test]
         fn equal_overflow_properties_should_serialize_to_single_value() {
@@ -418,8 +418,8 @@ mod shorthand_serialization {
     }
 
     mod list_style {
-        use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
-        use style::properties::longhands::list_style_type::computed_value::T as ListStyleType;
+        use style::properties::longhands::list_style_position::SpecifiedValue as ListStylePosition;
+        use style::properties::longhands::list_style_type::SpecifiedValue as ListStyleType;
         use style::values::Either;
         use super::*;
 
@@ -455,24 +455,6 @@ mod shorthand_serialization {
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "list-style: outside none disc;");
         }
-    }
-
-    #[test]
-    fn overflow_wrap_should_only_serialize_with_a_single_property() {
-        use style::properties::longhands::overflow_wrap::computed_value::T as OverflowWrap;
-
-        let value = DeclaredValue::Value(OverflowWrap::break_word);
-
-        let properties = vec![
-            PropertyDeclaration::OverflowWrap(value)
-        ];
-
-        let serialization = shorthand_properties_to_string(properties);
-
-        // word-wrap is considered an outdated alternative to overflow-wrap, but it is currently
-        // what servo is using in its naming conventions:
-        // https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-wrap
-        assert_eq!(serialization, "word-wrap: break-word;");
     }
 
     mod outline {
@@ -554,10 +536,10 @@ mod shorthand_serialization {
     fn transition_should_serialize_all_available_properties() {
         use euclid::point::Point2D;
         use style::properties::animated_properties::TransitionProperty;
-        use style::properties::longhands::transition_duration::computed_value::T as DurationContainer;
-        use style::properties::longhands::transition_property::computed_value::T as PropertyContainer;
-        use style::properties::longhands::transition_timing_function::computed_value::T as TimingContainer;
-        use style::properties::longhands::transition_timing_function::computed_value::TransitionTimingFunction;
+        use style::properties::longhands::transition_delay::SpecifiedValue as DelayContainer;
+        use style::properties::longhands::transition_duration::SpecifiedValue as DurationContainer;
+        use style::properties::longhands::transition_property::SpecifiedValue as PropertyContainer;
+        use style::properties::longhands::transition_timing_function;
         use style::values::specified::Time as TimeContainer;
 
         let property_name = DeclaredValue::Value(
@@ -569,12 +551,13 @@ mod shorthand_serialization {
         );
 
         let delay = DeclaredValue::Value(
-            DurationContainer(vec![TimeContainer(4f32)])
+            DelayContainer(vec![TimeContainer(4f32)])
         );
 
         let timing_function = DeclaredValue::Value(
-            TimingContainer(vec![
-                TransitionTimingFunction::CubicBezier(Point2D::new(0f32, 5f32), Point2D::new(5f32, 10f32))
+            transition_timing_function::SpecifiedValue(vec![
+                transition_timing_function::single_value::SpecifiedValue::CubicBezier(
+                    Point2D::new(0f32, 5f32), Point2D::new(5f32, 10f32))
             ])
         );
 
@@ -612,8 +595,8 @@ mod shorthand_serialization {
 
     #[test]
     fn flex_flow_should_serialize_all_available_properties() {
-        use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
-        use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
+        use style::properties::longhands::flex_direction::SpecifiedValue as FlexDirection;
+        use style::properties::longhands::flex_wrap::SpecifiedValue as FlexWrap;
 
         let mut properties = Vec::new();
 
@@ -1036,7 +1019,7 @@ mod shorthand_serialization {
 
     mod scroll_snap_type {
         pub use super::*;
-        use style::properties::longhands::scroll_snap_type_x::computed_value::T as ScrollSnapTypeXValue;
+        use style::properties::longhands::scroll_snap_type_x::SpecifiedValue as ScrollSnapTypeXValue;
 
         #[test]
         fn should_serialize_to_empty_string_if_sub_types_not_equal() {

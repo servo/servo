@@ -88,7 +88,7 @@ class Longhand(object):
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
                  allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
-                 has_uncacheable_values=False, logical=False):
+                 has_uncacheable_values=False, logical=False, alias=None):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -109,6 +109,7 @@ class Longhand(object):
         self.complex_color = complex_color
         self.cast_type = cast_type
         self.logical = arg_to_bool(logical)
+        self.alias = alias.split() if alias else []
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
@@ -134,7 +135,7 @@ class Longhand(object):
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, experimental=False, internal=False,
-                 allowed_in_keyframe_block=True):
+                 allowed_in_keyframe_block=True, alias=None):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -145,6 +146,7 @@ class Shorthand(object):
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.sub_properties = sub_properties
         self.internal = internal
+        self.alias = alias.split() if alias else []
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property

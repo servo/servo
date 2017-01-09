@@ -77,6 +77,7 @@ pub enum RequestMode {
     SameOrigin,
     NoCors,
     CorsMode,
+    WebSocket
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
@@ -158,6 +159,7 @@ pub struct RequestInit {
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
     pub redirect_mode: RedirectMode,
+    pub integrity_metadata: String,
 }
 
 impl Default for RequestInit {
@@ -181,6 +183,7 @@ impl Default for RequestInit {
             referrer_policy: None,
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
+            integrity_metadata: "".to_owned(),
         }
     }
 }
@@ -291,6 +294,7 @@ impl Request {
         req.referrer_policy.set(init.referrer_policy);
         req.pipeline_id.set(init.pipeline_id);
         req.redirect_mode.set(init.redirect_mode);
+        *req.integrity_metadata.borrow_mut() = init.integrity_metadata;
         req
     }
 

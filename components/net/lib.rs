@@ -5,7 +5,6 @@
 #![feature(box_syntax)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
-#![feature(proc_macro)]
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]
@@ -61,8 +60,8 @@ pub mod image_cache_thread;
 pub mod mime_classifier;
 pub mod resource_thread;
 mod storage_thread;
+pub mod subresource_integrity;
 mod websocket_loader;
-
 /// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)
 pub mod fetch {
     pub mod cors_cache;
