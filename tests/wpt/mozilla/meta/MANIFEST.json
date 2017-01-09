@@ -6438,6 +6438,18 @@
             "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
           }
         ],
+        "mozilla/reparse_style_elements.html": [
+          {
+            "path": "mozilla/reparse_style_elements.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/reparse_style_elements_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/reparse_style_elements.html"
+          }
+        ],
         "mozilla/restyle-out-of-document.html": [
           {
             "path": "mozilla/restyle-out-of-document.html",
@@ -21760,6 +21772,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
+        }
+      ],
+      "mozilla/reparse_style_elements.html": [
+        {
+          "path": "mozilla/reparse_style_elements.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/reparse_style_elements_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/reparse_style_elements.html"
         }
       ],
       "mozilla/restyle-out-of-document.html": [
