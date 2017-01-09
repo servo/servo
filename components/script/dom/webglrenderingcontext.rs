@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use byteorder::{NativeEndian, WriteBytesExt};
 use canvas_traits::{CanvasCommonMsg, CanvasMsg, byte_swap};
 use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
@@ -364,6 +365,67 @@ impl WebGLRenderingContext {
         true
     }
 
+    /// Translates an image in rgba8 (red in the first byte) format to
+    /// the format that was requested of TexImage.
+    ///
+    /// From the WebGL 1.0 spec, 5.14.8:
+    ///
+    ///     "The source image data is conceptually first converted to
+    ///      the data type and format specified by the format and type
+    ///      arguments, and then transferred to the WebGL
+    ///      implementation. If a packed pixel format is specified
+    ///      which would imply loss of bits of precision from the image
+    ///      data, this loss of precision must occur."
+    fn rgba8_image_to_tex_image_data(&self,
+                                     format: TexFormat,
+                                     data_type: TexDataType,
+                                     pixels: Vec<u8>) -> Vec<u8> {
+        // hint for vector allocation sizing.
+        let pixel_count = pixels.len() / 4;
+
+        match (format, data_type) {
+            (TexFormat::RGBA, TexDataType::UnsignedByte) => pixels,
+            (TexFormat::RGB, TexDataType::UnsignedByte) => pixels,
+
+            (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
+                let mut rgba4 = Vec::<u8>::with_capacity(pixel_count * 2);
+                for rgba8 in pixels.chunks(4) {
+                    rgba4.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf0) << 8 |
+                                                    (rgba8[1] as u16 & 0xf0) << 4 |
+                                                    (rgba8[2] as u16 & 0xf0) |
+                                                    (rgba8[3] as u16 & 0xf0) >> 4).unwrap();
+                }
+                rgba4
+            }
+
+            (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
+                let mut rgba5551 = Vec::<u8>::with_capacity(pixel_count * 2);
+                for rgba8 in pixels.chunks(4) {
+                    rgba5551.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf8) << 8 |
+                                                       (rgba8[1] as u16 & 0xf8) << 3 |
+                                                       (rgba8[2] as u16 & 0xf8) >> 2 |
+                                                       (rgba8[3] as u16) >> 7).unwrap();
+                }
+                rgba5551
+            }
+
+            (TexFormat::RGB, TexDataType::UnsignedShort565) => {
+                let mut rgb565 = Vec::<u8>::with_capacity(pixel_count * 2);
+                for rgba8 in pixels.chunks(4) {
+                    rgb565.write_u16::<NativeEndian>((rgba8[0] as u16 & 0xf8) << 8 |
+                                                     (rgba8[1] as u16 & 0xfc) << 3 |
+                                                     (rgba8[2] as u16 & 0xf8) >> 3).unwrap();
+                }
+                rgb565
+            }
+
+            // Validation should have ensured that we only hit the
+            // above cases, but we haven't turned the (format, type)
+            // into an enum yet so there's a default case here.
+            _ => unreachable!()
+        }
+    }
+
     fn get_image_pixels(&self,
                         source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>)
                         -> ImagePixelResult {
@@ -398,10 +460,7 @@ impl WebGLRenderingContext {
 
                 let size = Size2D::new(img.width as i32, img.height as i32);
 
-                // TODO(emilio): Validate that the format argument
-                // is coherent with the image.
-                //
-                // RGB8 should be easy to support too
+                // For now Servo's images are all stored as RGBA8 internally.
                 let mut data = match img.format {
                     PixelFormat::RGBA8 => img.bytes.to_vec(),
                     _ => unimplemented!(),
@@ -2690,6 +2749,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
 
+        let pixels = self.rgba8_image_to_tex_image_data(format, data_type, pixels);
+
         self.tex_image_2d(texture, target, data_type, format,
                           level, width, height, border, pixels);
         Ok(())
@@ -2793,6 +2854,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Ok(result) => result,
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
+
+        let pixels = self.rgba8_image_to_tex_image_data(format, data_type, pixels);
 
         self.tex_sub_image_2d(texture, target, level, xoffset, yoffset,
                               width, height, format, data_type, pixels);
