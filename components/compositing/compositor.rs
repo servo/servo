@@ -275,6 +275,7 @@ enum CompositeTarget {
 
 struct RenderTargetInfo {
     framebuffer_ids: Vec<gl::GLuint>,
+    renderbuffer_ids: Vec<gl::GLuint>,
     texture_ids: Vec<gl::GLuint>,
 }
 
@@ -282,6 +283,7 @@ impl RenderTargetInfo {
     fn empty() -> RenderTargetInfo {
         RenderTargetInfo {
             framebuffer_ids: Vec::new(),
+            renderbuffer_ids: Vec::new(),
             texture_ids: Vec::new(),
         }
     }
@@ -304,8 +306,21 @@ fn initialize_png(width: usize, height: usize) -> RenderTargetInfo {
 
     gl::bind_texture(gl::TEXTURE_2D, 0);
 
+    let renderbuffer_ids = gl::gen_renderbuffers(1);
+    let depth_rb = renderbuffer_ids[0];
+    gl::bind_renderbuffer(gl::RENDERBUFFER, depth_rb);
+    gl::renderbuffer_storage(gl::RENDERBUFFER,
+                             gl::DEPTH_COMPONENT24,
+                             width as gl::GLsizei,
+                             height as gl::GLsizei);
+    gl::framebuffer_renderbuffer(gl::FRAMEBUFFER,
+                                 gl::DEPTH_ATTACHMENT,
+                                 gl::RENDERBUFFER,
+                                 depth_rb);
+
     RenderTargetInfo {
         framebuffer_ids: framebuffer_ids,
+        renderbuffer_ids: renderbuffer_ids,
         texture_ids: texture_ids,
     }
 }
@@ -1534,6 +1549,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
 
         gl::delete_buffers(&render_target_info.texture_ids);
+        gl::delete_renderbuffers(&render_target_info.renderbuffer_ids);
         gl::delete_frame_buffers(&render_target_info.framebuffer_ids);
 
         // flip image vertically (texture is upside down)
