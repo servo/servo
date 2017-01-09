@@ -9,7 +9,7 @@
 use app_units::Au;
 use canvas_traits::CanvasMsg;
 use context::{LayoutContext, SharedLayoutContext};
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Matrix4D, Point2D, Radians, Rect, Size2D};
 use floats::ClearType;
 use flow::{self, ImmutableFlowUtils};
 use flow_ref::FlowRef;
@@ -24,7 +24,7 @@ use ipc_channel::ipc::IpcSender;
 #[cfg(debug_assertions)]
 use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, SizeConstraint};
-use model::style_length;
+use model::{style_length, ToGfxMatrix};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -34,14 +34,14 @@ use script_layout_interface::SVGSVGData;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use serde::{Serialize, Serializer};
 use servo_url::ServoUrl;
+use std::{f32, fmt};
 use std::borrow::ToOwned;
 use std::cmp::{Ordering, max, min};
 use std::collections::LinkedList;
-use std::fmt;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
 use style::computed_values::{border_collapse, box_sizing, clear, color, display, mix_blend_mode};
-use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration};
+use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration, transform};
 use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
 use style::computed_values::content::ContentItem;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
@@ -49,7 +49,7 @@ use style::properties::ServoComputedValues;
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::RECONSTRUCT_FLOW;
 use style::str::char_is_whitespace;
-use style::values::Either;
+use style::values::{self, Either};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use text;
 use text::TextRunScanner;
@@ -2737,6 +2737,93 @@ impl Fragment {
             SpecificFragmentInfo::UnscannedText(_) => true
         }
     }
+
+    /// Returns the 4D matrix representing this fragment's transform.
+    pub fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32> {
+        let mut transform = Matrix4D::identity();
+        let operations = match self.style.get_box().transform.0 {
+            None => return transform,
+            Some(ref operations) => operations,
+        };
+
+        let transform_origin = &self.style.get_box().transform_origin;
+        let transform_origin_x = model::specified(transform_origin.horizontal,
+                                                  stacking_relative_border_box.size
+                                                                              .width).to_f32_px();
+        let transform_origin_y = model::specified(transform_origin.vertical,
+                                                  stacking_relative_border_box.size
+                                                                              .height).to_f32_px();
+        let transform_origin_z = transform_origin.depth.to_f32_px();
+
+        let pre_transform = Matrix4D::create_translation(transform_origin_x,
+                                                         transform_origin_y,
+                                                         transform_origin_z);
+        let post_transform = Matrix4D::create_translation(-transform_origin_x,
+                                                          -transform_origin_y,
+                                                          -transform_origin_z);
+
+        for operation in operations {
+            let matrix = match *operation {
+                transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
+                    let theta = 2.0f32 * f32::consts::PI - theta.radians();
+                    Matrix4D::create_rotation(ax, ay, az, Radians::new(theta))
+                }
+                transform::ComputedOperation::Perspective(d) => {
+                    create_perspective_matrix(d)
+                }
+                transform::ComputedOperation::Scale(sx, sy, sz) => {
+                    Matrix4D::create_scale(sx, sy, sz)
+                }
+                transform::ComputedOperation::Translate(tx, ty, tz) => {
+                    let tx =
+                        model::specified(tx, stacking_relative_border_box.size.width).to_f32_px();
+                    let ty =
+                        model::specified(ty, stacking_relative_border_box.size.height).to_f32_px();
+                    let tz = tz.to_f32_px();
+                    Matrix4D::create_translation(tx, ty, tz)
+                }
+                transform::ComputedOperation::Matrix(m) => {
+                    m.to_gfx_matrix()
+                }
+                transform::ComputedOperation::Skew(theta_x, theta_y) => {
+                    Matrix4D::create_skew(Radians::new(theta_x.radians()),
+                                          Radians::new(theta_y.radians()))
+                }
+            };
+
+            transform = transform.pre_mul(&matrix);
+        }
+
+        pre_transform.pre_mul(&transform).pre_mul(&post_transform)
+    }
+
+    /// Returns the 4D matrix representing this fragment's perspective.
+    pub fn perspective_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32> {
+        match self.style().get_box().perspective {
+            Either::First(length) => {
+                let perspective_origin = self.style().get_box().perspective_origin;
+                let perspective_origin =
+                    Point2D::new(model::specified(perspective_origin.horizontal,
+                                                  stacking_relative_border_box.size.width).to_f32_px(),
+                                 model::specified(perspective_origin.vertical,
+                                                  stacking_relative_border_box.size.height).to_f32_px());
+
+                let pre_transform = Matrix4D::create_translation(perspective_origin.x,
+                                                                 perspective_origin.y,
+                                                                 0.0);
+                let post_transform = Matrix4D::create_translation(-perspective_origin.x,
+                                                                  -perspective_origin.y,
+                                                                  0.0);
+
+                let perspective_matrix = create_perspective_matrix(length);
+
+                pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform)
+            }
+            Either::Second(values::None_) => {
+                Matrix4D::identity()
+            }
+        }
+    }
 }
 
 impl fmt::Debug for Fragment {
@@ -2968,5 +3055,22 @@ impl Serialize for DebugId {
 impl Serialize for DebugId {
     fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
         serializer.serialize_u16(self.0)
+    }
+}
+
+// TODO(gw): The transforms spec says that perspective length must
+// be positive. However, there is some confusion between the spec
+// and browser implementations as to handling the case of 0 for the
+// perspective value. Until the spec bug is resolved, at least ensure
+// that a provided perspective value of <= 0.0 doesn't cause panics
+// and behaves as it does in other browsers.
+// See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
+#[inline]
+fn create_perspective_matrix(d: Au) -> Matrix4D<f32> {
+    let d = d.to_f32_px();
+    if d <= 0.0 {
+        Matrix4D::identity()
+    } else {
+        Matrix4D::create_perspective(d)
     }
 }
