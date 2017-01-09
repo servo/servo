@@ -7,5 +7,5 @@ def main(request, response):
     headers = []
     if 'Content-Type' in request.GET:
         headers += [('Content-Type', request.GET['Content-Type'])]
-    with open('./resources/ahem/AHEM____.TTF') as f:
+    with open('./resources/css-test-fonts/ahem/AHEM____.TTF') as f:
         return 200, headers, f.read()

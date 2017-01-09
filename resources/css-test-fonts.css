@@ -1,0 +1,419 @@
+@charset "utf-8";
+
+@font-face {
+    font-family: "CSS Full-Width Orientation Test";
+    src: url(css-test-fonts/adobe-fonts/CSSFWOrientationTest.otf);
+}
+
+@font-face {
+    font-family: "CSS Half-Width Orientation Test";
+    src: url(css-test-fonts/adobe-fonts/CSSHWOrientationTest.otf);
+}
+
+@font-face {
+    font-family: "Ahem";
+    src: url(css-test-fonts/ahem/AHEM____.TTF);
+}
+
+@font-face {
+    font-family: "Ahem!";
+    src: url(css-test-fonts/ahem-extra/AHEM_Ahem!.TTF);
+}
+
+@font-face {
+    font-family: "MissingItalicOblique";
+    src: url(css-test-fonts/ahem-extra/AHEM_MissingItalicOblique.TTF);
+}
+
+@font-face {
+    font-family: "MissingNormal";
+    src: url(css-test-fonts/ahem-extra/AHEM_MissingNormal.TTF);
+}
+
+@font-face {
+    font-family: "SmallCaps";
+    src: url(css-test-fonts/ahem-extra/AHEM_SmallCaps.TTF);
+}
+
+@font-face {
+    font-family: "White Space";
+    src: url(css-test-fonts/ahem-extra/AHEM_WhiteSpace.TTF);
+}
+
+/*
+
+These can't be globally enabled, because of tests checking that
+'sans-serif', Ahem falls back to Ahem, rather than using the generic
+sans-serif.
+
+@font-face {
+    font-family: "cursive";
+    src: url(css-test-fonts/ahem-extra/AHEM_cursive.TTF);
+}
+
+@font-face {
+    font-family: "default";
+    src: url(css-test-fonts/ahem-extra/AHEM_default.TTF);
+}
+
+@font-face {
+    font-family: "fantasy";
+    src: url(css-test-fonts/ahem-extra/AHEM_fantasy.TTF);
+}
+
+@font-face {
+    font-family: "inherit";
+    src: url(css-test-fonts/ahem-extra/AHEM_inherit.TTF);
+}
+
+@font-face {
+    font-family: "initial";
+    src: url(css-test-fonts/ahem-extra/AHEM_initial.TTF);
+}
+
+@font-face {
+    font-family: "monospace";
+    src: url(css-test-fonts/ahem-extra/AHEM_monospace.TTF);
+}
+
+@font-face {
+    font-family: "sans-serif";
+    src: url(css-test-fonts/ahem-extra/AHEM_sans-serif.TTF);
+}
+
+@font-face {
+    font-family: "serif";
+    src: url(css-test-fonts/ahem-extra/AHEM_serif.TTF);
+}
+
+*/
+
+@font-face {
+    font-family: "CSSTest ASCII";
+    src: url(css-test-fonts/CSSTest/csstest-ascii.ttf);
+}
+
+@font-face {
+    font-family: "CSSTest Basic";
+    src: url(css-test-fonts/CSSTest/csstest-basic-bold.ttf);
+    font-weight: 200;
+}
+
+@font-face {
+    font-family: "CSSTest Basic";
+    src: url(css-test-fonts/CSSTest/csstest-basic-bolditalic.ttf);
+    font-weight: 200;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "CSSTest Basic";
+    src: url(css-test-fonts/CSSTest/csstest-basic-italic.ttf);
+    font-weight: 80;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: "CSSTest Basic";
+    src: url(css-test-fonts/CSSTest/csstest-basic-regular.ttf);
+    font-weight: 80;
+}
+
+@font-face {
+    font-family: "CSSTest Fallback";
+    src: url(css-test-fonts/CSSTest/csstest-fallback.ttf);
+}
+
+@font-face {
+    font-family: "CSSTest FamilyName";
+    src: url(css-test-fonts/CSSTest/csstest-familyname-bold.ttf);
+    font-weight: 200;
+}
+
+@font-face {
+    font-family: "ＣＳＳテスト　フォント名";
+    src: url(css-test-fonts/CSSTest/csstest-familyname-bold.ttf);
+    font-weight: 200;
+}
+
+@font-face {
+    font-family: "small-caps 1in CSSTest FamilyName Funky";
+    src: url(css-test-fonts/CSSTest/csstest-familyname-funkyA.ttf);
+}
+
+@font-face {
+    font-family: "ＣＳＳテスト　フォント名";
+    src: url(css-test-fonts/CSSTest/csstest-familyname-funkyA.ttf);
+}
+
+@font-face {
+    font-family: "x-large CSSTest FamilyName Funky";
+    src: url(css-test-fonts/CSSTest/csstest-familyname-funkyB.ttf);
+}
+
+@font-face {
+    font-family: "ＣＳＳテスト　フォント名";
+    src: url(css-test-fonts/CSSTest/csstest-familyname-funkyB.ttf);
+}
+
+@font-face {
+    font-family: "12px CSSTest FamilyName Funky";
+    src: url(css-test-fonts/CSSTest/csstest-familyname-funkyC.ttf);
+}
+
+@font-face {
+    font-family: "ＣＳＳテスト　フォント名";
+    src: url(css-test-fonts/CSSTest/csstest-familyname-funkyC.ttf);
+}
+
+@font-face {
+    font-family: "CSSTest FamilyName";
+    src: url(css-test-fonts/CSSTest/csstest-familyname.ttf);
+}
+
+@font-face {
+    font-family: "ＣＳＳテスト　フォント名";
+    src: url(css-test-fonts/CSSTest/csstest-familyname.ttf);
+}
+
+@font-face {
+    font-family: "CSSTest Verify";
+    src: url(css-test-fonts/CSSTest/csstest-verify.ttf);
+}
+
+@font-face {
+    font-family: "CSSTest Weights 100";
+    src: url(css-test-fonts/CSSTest/csstest-weights-100.ttf);
+}
+
+@font-face {
+    font-family: "CSSTest Weights W1479";
+    src: url(css-test-fonts/CSSTest/csstest-weights-1479-w1.ttf);
+    font-weight: 0;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W1479";
+    src: url(css-test-fonts/CSSTest/csstest-weights-1479-w4.ttf);
+}
+
+@font-face {
+    font-family: "CSSTest Weights W1479";
+    src: url(css-test-fonts/CSSTest/csstest-weights-1479-w7.ttf);
+    font-weight: 200;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W1479";
+    src: url(css-test-fonts/CSSTest/csstest-weights-1479-w9.ttf);
+    font-weight: 210;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W15";
+    src: url(css-test-fonts/CSSTest/csstest-weights-15-w1.ttf);
+    font-weight: 0;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W15";
+    src: url(css-test-fonts/CSSTest/csstest-weights-15-w5.ttf);
+}
+
+@font-face {
+    font-family: "CSSTest Weights 200";
+    src: url(css-test-fonts/CSSTest/csstest-weights-200.ttf);
+    font-weight: 40;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W24";
+    src: url(css-test-fonts/CSSTest/csstest-weights-24-w2.ttf);
+    font-weight: 40;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W24";
+    src: url(css-test-fonts/CSSTest/csstest-weights-24-w4.ttf);
+    font-weight: 80;
+
+}
+@font-face {
+    font-family: "CSSTest Weights W2569";
+    src: url(css-test-fonts/CSSTest/csstest-weights-2569-w2.ttf);
+    font-weight: 40;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W2569";
+    src: url(css-test-fonts/CSSTest/csstest-weights-2569-w5.ttf);
+    font-weight: 100;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W2569";
+    src: url(css-test-fonts/CSSTest/csstest-weights-2569-w6.ttf);
+    font-weight: 180;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W2569";
+    src: url(css-test-fonts/CSSTest/csstest-weights-2569-w9.ttf);
+    font-weight: 210;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W258";
+    src: url(css-test-fonts/CSSTest/csstest-weights-258-w2.ttf);
+    font-weight: 40;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W258";
+    src: url(css-test-fonts/CSSTest/csstest-weights-258-w5.ttf);
+    font-weight: 100;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W258";
+    src: url(css-test-fonts/CSSTest/csstest-weights-258-w8.ttf);
+    font-weight: 205;
+}
+
+@font-face {
+    font-family: "CSSTest Weights 300";
+    src: url(css-test-fonts/CSSTest/csstest-weights-300.ttf);
+    font-weight: 50;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W3589";
+    src: url(css-test-fonts/CSSTest/csstest-weights-3589-w3.ttf);
+    font-weight: 50;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W3589";
+    src: url(css-test-fonts/CSSTest/csstest-weights-3589-w5.ttf);
+    font-weight: 100;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W3589";
+    src: url(css-test-fonts/CSSTest/csstest-weights-3589-w8.ttf);
+    font-weight: 205;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W3589";
+    src: url(css-test-fonts/CSSTest/csstest-weights-3589-w9.ttf);
+    font-weight: 210;
+}
+
+@font-face {
+    font-family: "CSSTest Weights 400";
+    src: url(css-test-fonts/CSSTest/csstest-weights-400.ttf);
+    font-weight: 80;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W47";
+    src: url(css-test-fonts/CSSTest/csstest-weights-47-w4.ttf);
+    font-weight: 80;
+}
+
+@font-face {
+    font-family: "CSSTest Weights W47";
+    src: url(css-test-fonts/CSSTest/csstest-weights-47-w7.ttf);
+    font-weight: 200;
+}
+
+@font-face {
+    font-family: "CSSTest Weights 500";
+    src: url(css-test-fonts/CSSTest/csstest-weights-500.ttf);
+    font-weight: 100;
+}
+
+@font-face {
+    font-family: "CSSTest Weights 600";
+    src: url(css-test-fonts/CSSTest/csstest-weights-600.ttf);
+    font-weight: 180;
+}
+
+@font-face {
+    font-family: "CSSTest Weights 700";
+    src: url(css-test-fonts/CSSTest/csstest-weights-700.ttf);
+    font-weight: 200;
+}
+
+@font-face {
+    font-family: "CSSTest Weights 800";
+    src: url(css-test-fonts/CSSTest/csstest-weights-800.ttf);
+    font-weight: 205;
+}
+
+@font-face {
+    font-family: "CSSTest Weights 900";
+    src: url(css-test-fonts/CSSTest/csstest-weights-900.ttf);
+    font-weight: 210;
+}
+
+@font-face {
+    font-family: "CSSTest Weights Full";
+    src: url(css-test-fonts/CSSTest/csstest-weights-full-w1.ttf);
+    font-weight: 0;
+}
+
+@font-face {
+    font-family: "CSSTest Weights Full";
+    src: url(css-test-fonts/CSSTest/csstest-weights-full-w2.ttf);
+    font-weight: 40;
+}
+
+@font-face {
+    font-family: "CSSTest Weights Full";
+    src: url(css-test-fonts/CSSTest/csstest-weights-full-w3.ttf);
+    font-weight: 50;
+}
+
+@font-face {
+    font-family: "CSSTest Weights Full";
+    src: url(css-test-fonts/CSSTest/csstest-weights-full-w4.ttf);
+    font-weight: 80;
+}
+
+@font-face {
+    font-family: "CSSTest Weights Full";
+    src: url(css-test-fonts/CSSTest/csstest-weights-full-w5.ttf);
+    font-weight: 100;
+}
+
+@font-face {
+    font-family: "CSSTest Weights Full";
+    src: url(css-test-fonts/CSSTest/csstest-weights-full-w6.ttf);
+    font-weight: 180;
+}
+
+@font-face {
+    font-family: "CSSTest Weights Full";
+    src: url(css-test-fonts/CSSTest/csstest-weights-full-w7.ttf);
+    font-weight: 200;
+}
+
+@font-face {
+    font-family: "CSSTest Weights Full";
+    src: url(css-test-fonts/CSSTest/csstest-weights-full-w8.ttf);
+    font-weight: 205;
+}
+
+@font-face {
+    font-family: "CSSTest Weights Full";
+    src: url(css-test-fonts/CSSTest/csstest-weights-full-w9.ttf);
+    font-weight: 210;
+}
+
+@font-face {
+    font-family: "CSSTest Weights";
+    src: url(css-test-fonts/CSSTest/csstest-weights.ttf);
+    font-weight: 80;
+}
