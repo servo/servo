@@ -44,7 +44,7 @@ impl SupportsCondition {
         let (keyword, wrapper) = match input.next() {
             Err(()) => {
                 // End of input
-                return Ok(SupportsCondition::Parenthesized(Box::new(in_parens)))
+                return Ok(in_parens)
             }
             Ok(Token::Ident(ident)) => {
                 match_ignore_ascii_case! { ident,
@@ -71,6 +71,9 @@ impl SupportsCondition {
 
     /// https://drafts.csswg.org/css-conditional-3/#supports_condition_in_parens
     fn parse_in_parens(input: &mut Parser) -> Result<SupportsCondition, ()> {
+        // Whitespace is normally taken care of in `Parser::next`,
+        // but we want to not include it in `pos` for the SupportsCondition::FutureSyntax cases.
+        while input.try(Parser::expect_whitespace).is_ok() {}
         let pos = input.position();
         match input.next()? {
             Token::ParenthesisBlock => {
@@ -106,9 +109,11 @@ impl SupportsCondition {
 /// supports_condition | declaration
 /// https://drafts.csswg.org/css-conditional/#dom-css-supports-conditiontext-conditiontext
 pub fn parse_condition_or_declaration(input: &mut Parser) -> Result<SupportsCondition, ()> {
-    input.try(SupportsCondition::parse).or_else(|()| {
+    if let Ok(condition) = input.try(SupportsCondition::parse) {
+        Ok(SupportsCondition::Parenthesized(Box::new(condition)))
+    } else {
         Declaration::parse(input).map(SupportsCondition::Declaration)
-    })
+    }
 }
 
 impl ToCss for SupportsCondition {
@@ -116,9 +121,8 @@ impl ToCss for SupportsCondition {
         where W: fmt::Write {
         match *self {
             SupportsCondition::Not(ref cond) => {
-                dest.write_str("not (")?;
-                cond.to_css(dest)?;
-                dest.write_str(")")
+                dest.write_str("not ")?;
+                cond.to_css(dest)
             }
             SupportsCondition::Parenthesized(ref cond) => {
                 dest.write_str("(")?;
@@ -132,9 +136,7 @@ impl ToCss for SupportsCondition {
                         dest.write_str(" and ")?;
                     }
                     first = false;
-                    dest.write_str("(")?;
                     cond.to_css(dest)?;
-                    dest.write_str(")")?;
                 }
                 Ok(())
             }
@@ -145,13 +147,15 @@ impl ToCss for SupportsCondition {
                         dest.write_str(" or ")?;
                     }
                     first = false;
-                    dest.write_str("(")?;
                     cond.to_css(dest)?;
-                    dest.write_str(")")?;
                 }
                 Ok(())
             }
-            SupportsCondition::Declaration(ref decl) => decl.to_css(dest),
+            SupportsCondition::Declaration(ref decl) => {
+                dest.write_str("(")?;
+                decl.to_css(dest)?;
+                dest.write_str(")")
+            }
             SupportsCondition::FutureSyntax(ref s) => dest.write_str(&s),
         }
     }
