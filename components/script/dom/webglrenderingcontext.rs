@@ -112,6 +112,11 @@ fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
         (_, _) => false
     }
 }
+
+fn multiply_u8_pixel(a: u8, b: u8) -> u8 {
+    return (a as u16 * b as u16 / 255) as u8;
+}
+
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
     #[derive(HeapSizeOf, JSTraceable)]
@@ -568,6 +573,71 @@ impl WebGLRenderingContext {
         flipped
     }
 
+    fn premultiply_pixels(&self,
+                          format: TexFormat,
+                          data_type: TexDataType,
+                          pixels: Vec<u8>) -> Vec<u8> {
+        if !(self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA)) {
+            return pixels;
+        }
+
+        match (format, data_type) {
+            (TexFormat::RGBA, TexDataType::UnsignedByte) => {
+                let mut premul = Vec::<u8>::with_capacity(pixels.len());
+                for rgba in pixels.chunks(4) {
+                    premul.push(multiply_u8_pixel(rgba[0], rgba[3]));
+                    premul.push(multiply_u8_pixel(rgba[1], rgba[3]));
+                    premul.push(multiply_u8_pixel(rgba[2], rgba[3]));
+                    premul.push(rgba[3]);
+                }
+                premul
+            }
+            (TexFormat::LuminanceAlpha, TexDataType::UnsignedByte) => {
+                let mut premul = Vec::<u8>::with_capacity(pixels.len());
+                for la in pixels.chunks(2) {
+                    premul.push(multiply_u8_pixel(la[0], la[1]));
+                    premul.push(la[1]);
+                }
+                premul
+            }
+
+            // FINISHME: This is not valid for big endian -- we should
+            // be looking at the low bit of a u16, not the low bit of
+            // the first u8.
+            (TexFormat::RGBA, TexDataType::UnsignedShort5551) => {
+                let mut premul = Vec::<u8>::with_capacity(pixels.len());
+                for rgba in pixels.chunks(2) {
+                    if rgba[0] & 1 != 0 {
+                        premul.push(rgba[0]);
+                        premul.push(rgba[1]);
+                    } else {
+                        premul.push(0);
+                        premul.push(0);
+                    }
+                }
+                premul
+            }
+
+            (TexFormat::RGBA, TexDataType::UnsignedShort4444) => {
+                let mut premul = Vec::<u8>::with_capacity(pixels.len());
+                for rgba in pixels.chunks(2) {
+                    let a = ((rgba[0] & 0x0f) << 4) | rgba[0] & 0x0f;
+                    let b = ((rgba[0] & 0xf0) >> 4) | rgba[0] & 0xf0;
+                    let g = ((rgba[1] & 0x0f) << 4) | rgba[1] & 0x0f;
+                    let r = ((rgba[1] & 0xf0) >> 4) | rgba[1] & 0xf0;
+
+                    premul.push(rgba[0] & 0x0f |
+                                multiply_u8_pixel(b, a) & 0xf0);
+                    premul.push(multiply_u8_pixel(g, a) >> 4 |
+                                multiply_u8_pixel(r, a) & 0xf0);
+                }
+                premul
+            }
+
+            _ => pixels
+        }
+    }
+
     fn tex_image_2d(&self,
                     texture: Root<WebGLTexture>,
                     target: TexImageTarget,
@@ -578,11 +648,7 @@ impl WebGLRenderingContext {
                     height: u32,
                     _border: u32,
                     pixels: Vec<u8>) { // NB: pixels should NOT be premultipied
-        if internal_format == TexFormat::RGBA &&
-           data_type == TexDataType::UnsignedByte &&
-           self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA) {
-            // TODO(emilio): premultiply here.
-        }
+        let pixels = self.premultiply_pixels(internal_format, data_type, pixels);
 
         let pixels = self.flip_teximage_y(pixels, internal_format, data_type,
                                           width as usize, height as usize);
@@ -595,7 +661,7 @@ impl WebGLRenderingContext {
                                                                level,
                                                                Some(data_type)));
 
-        // TODO(emilio): convert colorspace, premultiply alpha if requested
+        // TODO(emilio): convert colorspace if requested
         let msg = WebGLCommand::TexImage2D(target.as_gl_constant(), level as i32,
                                            internal_format.as_gl_constant() as i32,
                                            width as i32, height as i32,
@@ -640,10 +706,12 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
+        let pixels = self.premultiply_pixels(format, data_type, pixels);
+
         let pixels = self.flip_teximage_y(pixels, format, data_type,
                                           width as usize, height as usize);
 
-        // TODO(emilio): convert colorspace, premultiply alpha if requested
+        // TODO(emilio): convert colorspace if requested
         let msg = WebGLCommand::TexSubImage2D(target.as_gl_constant(),
                                               level as i32, xoffset, yoffset,
                                               width as i32, height as i32,
