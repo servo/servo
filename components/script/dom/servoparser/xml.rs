@@ -16,9 +16,9 @@ use dom::element::{Element, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
-use dom::text::Text;
 use dom::virtualmethods::vtable_for;
 use html5ever::tokenizer::buffer_queue::BufferQueue;
+use html5ever::tree_builder::{NodeOrText as H5eNodeOrText};
 use html5ever_atoms::{Prefix, QualName};
 use js::jsapi::JSTracer;
 use servo_url::ServoUrl;
@@ -155,14 +155,10 @@ impl TreeSink for Sink {
 
     fn append(&mut self, parent: JS<Node>, child: NodeOrText<JS<Node>>) {
         let child = match child {
-            NodeOrText::AppendNode(n) => Root::from_ref(&*n),
-            NodeOrText::AppendText(t) => {
-                let s: String = t.into();
-                let text = Text::new(DOMString::from(s), &self.document);
-                Root::upcast(text)
-            }
+            NodeOrText::AppendNode(n) => H5eNodeOrText::AppendNode(n),
+            NodeOrText::AppendText(s) => H5eNodeOrText::AppendText(s),
         };
-        assert!(parent.AppendChild(&child).is_ok());
+        super::insert(&*parent, None, child);
     }
 
     fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
