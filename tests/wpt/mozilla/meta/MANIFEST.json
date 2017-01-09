@@ -6462,6 +6462,18 @@
             "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
           }
         ],
+        "mozilla/remove_link_styles.html": [
+          {
+            "path": "mozilla/remove_link_styles.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/remove_link_styles_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/remove_link_styles.html"
+          }
+        ],
         "mozilla/reparse_style_elements.html": [
           {
             "path": "mozilla/reparse_style_elements.html",
@@ -21850,6 +21862,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
+        }
+      ],
+      "mozilla/remove_link_styles.html": [
+        {
+          "path": "mozilla/remove_link_styles.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/remove_link_styles_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/remove_link_styles.html"
         }
       ],
       "mozilla/reparse_style_elements.html": [
