@@ -82,6 +82,8 @@ url = {version = "1.2", features = ["heap_size", "query_encoding"]}
 uuid = {version = "0.3.1", features = ["v4"]}
 websocket = "0.17"
 xml5ever = {version = "0.3.1", features = ["unstable"]}
+webvr = {path = "../webvr"}
+webvr_traits = {path = "../webvr_traits"}
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"

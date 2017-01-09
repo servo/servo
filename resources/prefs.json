@@ -7,6 +7,8 @@
   "dom.serviceworker.timeout_seconds": 60,
   "dom.testable_crash.enabled": false,
   "dom.testbinding.enabled": false,
+  "dom.webvr.enabled": false,
+  "dom.webvr.event_polling_interval": 500,
   "js.asmjs.enabled": true,
   "js.asyncstack.enabled": false,
   "js.baseline.enabled": true,

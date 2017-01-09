@@ -51,6 +51,9 @@ use js::jsapi::{JSObject, JSString, JS_GetArrayBufferViewType};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetObjectAsArrayBuffer, JS_GetObjectAsArrayBufferView};
 use js::jsapi::{JS_GetReservedSlot, JS_GetTwoByteStringCharsAndLength};
 use js::jsapi::{JS_IsArrayObject, JS_NewStringCopyN, JS_StringHasLatin1Chars};
+use js::jsapi::{JS_NewFloat32Array, JS_NewFloat64Array};
+use js::jsapi::{JS_NewInt8Array, JS_NewInt16Array, JS_NewInt32Array};
+use js::jsapi::{JS_NewUint8Array, JS_NewUint16Array, JS_NewUint32Array};
 use js::jsapi::{MutableHandleValue, Type};
 use js::jsval::{ObjectValue, StringValue};
 use js::rust::{ToString, get_object_class, is_dom_class, is_dom_object, maybe_wrap_value};
@@ -463,6 +466,9 @@ pub unsafe trait ArrayBufferViewContents: Clone {
     /// Check if the JS ArrayBufferView type is compatible with the implementor of the
     /// trait
     fn is_type_compatible(ty: Type) -> bool;
+
+    /// Creates a typed array
+    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject;
 }
 
 unsafe impl ArrayBufferViewContents for u8 {
@@ -473,11 +479,19 @@ unsafe impl ArrayBufferViewContents for u8 {
             _ => false,
         }
     }
+
+    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
+        JS_NewUint8Array(cx, num)
+    }
 }
 
 unsafe impl ArrayBufferViewContents for i8 {
     fn is_type_compatible(ty: Type) -> bool {
         ty as i32 == Type::Int8 as i32
+    }
+
+    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
+        JS_NewInt8Array(cx, num)
     }
 }
 
@@ -485,11 +499,19 @@ unsafe impl ArrayBufferViewContents for u16 {
     fn is_type_compatible(ty: Type) -> bool {
         ty as i32 == Type::Uint16 as i32
     }
+
+    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
+        JS_NewUint16Array(cx, num)
+    }
 }
 
 unsafe impl ArrayBufferViewContents for i16 {
     fn is_type_compatible(ty: Type) -> bool {
         ty as i32 == Type::Int16 as i32
+    }
+
+    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
+        JS_NewInt16Array(cx, num)
     }
 }
 
@@ -497,11 +519,19 @@ unsafe impl ArrayBufferViewContents for u32 {
     fn is_type_compatible(ty: Type) -> bool {
         ty as i32 == Type::Uint32 as i32
     }
+
+    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
+        JS_NewUint32Array(cx, num)
+    }
 }
 
 unsafe impl ArrayBufferViewContents for i32 {
     fn is_type_compatible(ty: Type) -> bool {
         ty as i32 == Type::Int32 as i32
+    }
+
+    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
+        JS_NewInt32Array(cx, num)
     }
 }
 
@@ -509,10 +539,18 @@ unsafe impl ArrayBufferViewContents for f32 {
     fn is_type_compatible(ty: Type) -> bool {
         ty as i32 == Type::Float32 as i32
     }
+
+    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
+        JS_NewFloat32Array(cx, num)
+    }
 }
 unsafe impl ArrayBufferViewContents for f64 {
     fn is_type_compatible(ty: Type) -> bool {
         ty as i32 == Type::Float64 as i32
+    }
+
+    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
+        JS_NewFloat64Array(cx, num)
     }
 }
 
@@ -594,4 +632,24 @@ pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
     let mut result = false;
     assert!(JS_IsArrayObject(cx, value, &mut result));
     result
+}
+
+/// Creates a typed JS array from a Rust slice
+pub unsafe fn slice_to_array_buffer_view<T>(cx: *mut JSContext, data: &[T]) -> *mut JSObject
+    where T: ArrayBufferViewContents
+{
+    let js_object = T::new(cx, data.len() as u32);
+    assert!(!js_object.is_null());
+    update_array_buffer_view(js_object, data);
+    js_object
+}
+
+/// Updates a typed JS array from a Rust slice
+pub unsafe fn update_array_buffer_view<T>(obj: *mut JSObject, data: &[T])
+    where T: ArrayBufferViewContents
+{
+    let mut buffer = array_buffer_view_data(obj);
+    if let Some(ref mut buffer) = buffer {
+        ptr::copy_nonoverlapping(&data[0], &mut buffer[0], data.len())
+    }
 }

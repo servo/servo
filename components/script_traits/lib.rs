@@ -35,6 +35,7 @@ extern crate serde_derive;
 extern crate servo_url;
 extern crate style_traits;
 extern crate time;
+extern crate webvr_traits;
 
 mod script_msg;
 pub mod webdriver_msg;
@@ -71,6 +72,7 @@ use std::fmt;
 use std::sync::mpsc::{Receiver, Sender};
 use style_traits::{PagePx, UnsafeNode, ViewportPx};
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
+use webvr_traits::{WebVRDisplayEvent, WebVRMsg};
 
 pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, LogEntry};
 pub use script_msg::{ServiceWorkerMsg, ScopeThings, SWManagerMsg, SWManagerSenders, DOMMessage};
@@ -263,6 +265,8 @@ pub enum ConstellationControlMsg {
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
     Reload(PipelineId),
+    /// Notifies the script thread of a WebVR device event
+    WebVREvent(PipelineId, WebVREventMsg)
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -295,6 +299,7 @@ impl fmt::Debug for ConstellationControlMsg {
             FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
+            WebVREvent(..) => "WebVREvent",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }
@@ -478,6 +483,8 @@ pub struct InitialScriptState {
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// A ping will be sent on this channel once the script thread shuts down.
     pub content_process_shutdown_chan: IpcSender<()>,
+    /// A channel to the webvr thread, if available.
+    pub webvr_thread: Option<IpcSender<WebVRMsg>>
 }
 
 /// This trait allows creating a `ScriptThread` without depending on the `script`
@@ -716,6 +723,18 @@ pub enum ConstellationMsg {
     Reload,
     /// A log entry, with the top-level frame id and thread name
     LogEntry(Option<FrameId>, Option<String>, LogEntry),
+    /// Set the WebVR thread channel.
+    SetWebVRThread(IpcSender<WebVRMsg>),
+    /// Dispatch a WebVR event to the subscribed script threads.
+    WebVREvent(Vec<PipelineId>, WebVREventMsg),
+}
+
+/// Messages to the constellation originating from the WebVR thread.
+/// Used to dispatch VR Headset state events: connected, unconnected, and more.
+#[derive(Deserialize, Serialize, Clone)]
+pub enum WebVREventMsg {
+    /// Inform the constellation of a VR display event.
+    DisplayEvent(WebVRDisplayEvent)
 }
 
 /// Resources required by workerglobalscopes
