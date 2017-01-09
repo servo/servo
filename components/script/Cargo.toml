@@ -42,7 +42,7 @@ html5ever = {version = "0.12.1", features = ["heap_size", "unstable"]}
 html5ever-atoms = {version = "0.1", features = ["heap_size"]}
 hyper = "0.9.9"
 hyper_serde = "0.1.4"
-image = "0.10"
+image = "0.12"
 ipc-channel = "0.5"
 js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
 jstraceable_derive = {path = "../jstraceable_derive"}
