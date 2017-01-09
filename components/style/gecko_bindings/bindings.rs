@@ -632,6 +632,11 @@ extern "C" {
                                              nsStyleImageLayers_LayerType);
 }
 extern "C" {
+    pub fn Gecko_EnsureStyleAnimationArrayLength(array:
+                                                     *mut ::std::os::raw::c_void,
+                                                 len: usize);
+}
+extern "C" {
     pub fn Gecko_ResetStyleCoord(unit: *mut nsStyleUnit,
                                  value: *mut nsStyleUnion);
 }

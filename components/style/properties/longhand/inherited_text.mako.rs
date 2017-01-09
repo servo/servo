@@ -155,6 +155,7 @@ ${helpers.single_keyword("text-transform",
                          spec="https://drafts.csswg.org/css-text/#propdef-text-transform")}
 
 ${helpers.single_keyword("hyphens", "none manual auto",
+                         gecko_enum_prefix="StyleHyphens",
                          products="gecko", animatable=False,
                          spec="https://drafts.csswg.org/css-text/#propdef-hyphens")}
 

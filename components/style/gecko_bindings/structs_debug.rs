@@ -226,14 +226,6 @@ pub mod root {
         250;
     pub const NS_FONT_VARIANT_NORMAL: ::std::os::raw::c_uint = 0;
     pub const NS_FONT_VARIANT_SMALL_CAPS: ::std::os::raw::c_uint = 1;
-    pub const NS_CORNER_TOP_LEFT_X: ::std::os::raw::c_uint = 0;
-    pub const NS_CORNER_TOP_LEFT_Y: ::std::os::raw::c_uint = 1;
-    pub const NS_CORNER_TOP_RIGHT_X: ::std::os::raw::c_uint = 2;
-    pub const NS_CORNER_TOP_RIGHT_Y: ::std::os::raw::c_uint = 3;
-    pub const NS_CORNER_BOTTOM_RIGHT_X: ::std::os::raw::c_uint = 4;
-    pub const NS_CORNER_BOTTOM_RIGHT_Y: ::std::os::raw::c_uint = 5;
-    pub const NS_CORNER_BOTTOM_LEFT_X: ::std::os::raw::c_uint = 6;
-    pub const NS_CORNER_BOTTOM_LEFT_Y: ::std::os::raw::c_uint = 7;
     pub const NS_STYLE_STACK_SIZING_IGNORE: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_STACK_SIZING_STRETCH_TO_FIT: ::std::os::raw::c_uint =
         1;
@@ -761,9 +753,6 @@ pub mod root {
     pub const NS_STYLE_WORDBREAK_KEEP_ALL: ::std::os::raw::c_uint = 2;
     pub const NS_STYLE_OVERFLOWWRAP_NORMAL: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_OVERFLOWWRAP_BREAK_WORD: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_HYPHENS_NONE: ::std::os::raw::c_uint = 0;
-    pub const NS_STYLE_HYPHENS_MANUAL: ::std::os::raw::c_uint = 1;
-    pub const NS_STYLE_HYPHENS_AUTO: ::std::os::raw::c_uint = 2;
     pub const NS_STYLE_RUBY_ALIGN_START: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_RUBY_ALIGN_CENTER: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_RUBY_ALIGN_SPACE_BETWEEN: ::std::os::raw::c_uint = 2;
@@ -1372,9 +1361,6 @@ pub mod root {
             impl Clone for AudioContext {
                 fn clone(&self) -> Self { *self }
             }
-            pub const ReferrerPolicy_RP_Default:
-                      root::mozilla::dom::ReferrerPolicy =
-                ReferrerPolicy::RP_No_Referrer_When_Downgrade;
             #[repr(u32)]
             #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
             pub enum ReferrerPolicy {
@@ -2332,6 +2318,7 @@ pub mod root {
             pub mTitle: ::nsstring::nsStringRepr,
             pub mDocument: *mut root::nsIDocument,
             pub mOwningNode: *mut root::nsINode,
+            pub mMedia: root::RefPtr<root::nsMediaList>,
             pub mParsingMode: root::mozilla::css::SheetParsingMode,
             pub mType: root::StyleBackendType,
             pub mDisabled: bool,
@@ -2359,7 +2346,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_StyleSheet() {
-            assert_eq!(::std::mem::size_of::<StyleSheet>() , 88usize);
+            assert_eq!(::std::mem::size_of::<StyleSheet>() , 96usize);
             assert_eq!(::std::mem::align_of::<StyleSheet>() , 8usize);
         }
         #[repr(C)]
@@ -2377,6 +2364,18 @@ pub mod root {
             eSideRight = 1,
             eSideBottom = 2,
             eSideLeft = 3,
+        }
+        #[repr(u32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum HalfCorner {
+            eCornerTopLeftX = 0,
+            eCornerTopLeftY = 1,
+            eCornerTopRightX = 2,
+            eCornerTopRightY = 3,
+            eCornerBottomRightX = 4,
+            eCornerBottomRightY = 5,
+            eCornerBottomLeftX = 6,
+            eCornerBottomLeftY = 7,
         }
         #[repr(C)]
         #[derive(Debug, Copy)]
@@ -2757,6 +2756,9 @@ pub mod root {
         pub enum StyleFloatEdge { ContentBox = 0, MarginBox = 1, }
         #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum StyleHyphens { None = 0, Manual = 1, Auto = 2, }
+        #[repr(u8)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum StyleShapeOutsideShapeBox {
             NoBox = 0,
             Content = 1,
@@ -3055,194 +3057,6 @@ pub mod root {
             assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::RawServoStyleSet>>()
                        , 1usize);
         }
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct CSSVariableValues {
-            /**
-   * Map of variable names to IDs.  Variable IDs are indexes into
-   * mVariables.
-   */
-            pub mVariableIDs: [u64; 6usize],
-            /**
-   * Array of variables, indexed by variable ID.
-   */
-            pub mVariables: root::nsTArray<root::mozilla::CSSVariableValues_Variable>,
-        }
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct CSSVariableValues_Variable {
-            pub mVariableName: ::nsstring::nsStringRepr,
-            pub mValue: ::nsstring::nsStringRepr,
-            pub mFirstToken: root::nsCSSTokenSerializationType,
-            pub mLastToken: root::nsCSSTokenSerializationType,
-        }
-        #[test]
-        fn bindgen_test_layout_CSSVariableValues_Variable() {
-            assert_eq!(::std::mem::size_of::<CSSVariableValues_Variable>() ,
-                       40usize);
-            assert_eq!(::std::mem::align_of::<CSSVariableValues_Variable>() ,
-                       8usize);
-        }
-        #[test]
-        fn bindgen_test_layout_CSSVariableValues() {
-            assert_eq!(::std::mem::size_of::<CSSVariableValues>() , 56usize);
-            assert_eq!(::std::mem::align_of::<CSSVariableValues>() , 8usize);
-        }
-        #[repr(C)]
-        pub struct CounterStyle__bindgen_vtable {
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct CounterStyle {
-            pub vtable_: *const CounterStyle__bindgen_vtable,
-            pub mStyle: i32,
-        }
-        #[test]
-        fn bindgen_test_layout_CounterStyle() {
-            assert_eq!(::std::mem::size_of::<CounterStyle>() , 16usize);
-            assert_eq!(::std::mem::align_of::<CounterStyle>() , 8usize);
-        }
-        impl Clone for CounterStyle {
-            fn clone(&self) -> Self { *self }
-        }
-        pub mod image {
-            #[allow(unused_imports)]
-            use self::super::super::super::root;
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct ImageURL {
-                pub _address: u8,
-            }
-            impl Clone for ImageURL {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct Image {
-                pub _address: u8,
-            }
-            impl Clone for Image {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            #[derive(Debug, Copy)]
-            pub struct ProgressTracker {
-                pub _address: u8,
-            }
-            impl Clone for ProgressTracker {
-                fn clone(&self) -> Self { *self }
-            }
-            #[repr(C)]
-            pub struct IProgressObserver__bindgen_vtable {
-            }
-            /**
- * An interface for observing changes to image state, as reported by
- * ProgressTracker.
- *
- * This is the ImageLib-internal version of imgINotificationObserver,
- * essentially, with implementation details that code outside of ImageLib
- * shouldn't see.
- *
- * XXX(seth): It's preferable to avoid adding anything to this interface if
- * possible.  In the long term, it would be ideal to get to a place where we can
- * just use the imgINotificationObserver interface internally as well.
- */
-            #[repr(C)]
-            #[derive(Debug)]
-            pub struct IProgressObserver {
-                pub vtable_: *const IProgressObserver__bindgen_vtable,
-                pub _base: u64,
-            }
-            #[test]
-            fn bindgen_test_layout_IProgressObserver() {
-                assert_eq!(::std::mem::size_of::<IProgressObserver>() ,
-                           16usize);
-                assert_eq!(::std::mem::align_of::<IProgressObserver>() ,
-                           8usize);
-            }
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy)]
-        pub struct Position {
-            pub mXPosition: root::mozilla::Position_Coord,
-            pub mYPosition: root::mozilla::Position_Coord,
-        }
-        pub type Position_Coord = root::nsStyleCoord_CalcValue;
-        #[test]
-        fn bindgen_test_layout_Position() {
-            assert_eq!(::std::mem::size_of::<Position>() , 24usize);
-            assert_eq!(::std::mem::align_of::<Position>() , 4usize);
-        }
-        impl Clone for Position {
-            fn clone(&self) -> Self { *self }
-        }
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct StyleTransition {
-            pub mTimingFunction: root::nsTimingFunction,
-            pub mDuration: f32,
-            pub mDelay: f32,
-            pub mProperty: root::nsCSSPropertyID,
-            pub mUnknownProperty: root::nsCOMPtr<root::nsIAtom>,
-        }
-        #[test]
-        fn bindgen_test_layout_StyleTransition() {
-            assert_eq!(::std::mem::size_of::<StyleTransition>() , 40usize);
-            assert_eq!(::std::mem::align_of::<StyleTransition>() , 8usize);
-        }
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct StyleAnimation {
-            pub mTimingFunction: root::nsTimingFunction,
-            pub mDuration: f32,
-            pub mDelay: f32,
-            pub mName: ::nsstring::nsStringRepr,
-            pub mDirection: root::mozilla::dom::PlaybackDirection,
-            pub mFillMode: root::mozilla::dom::FillMode,
-            pub mPlayState: u8,
-            pub mIterationCount: f32,
-        }
-        #[test]
-        fn bindgen_test_layout_StyleAnimation() {
-            assert_eq!(::std::mem::size_of::<StyleAnimation>() , 64usize);
-            assert_eq!(::std::mem::align_of::<StyleAnimation>() , 8usize);
-        }
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct StyleBasicShape {
-            pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
-            pub mType: root::mozilla::StyleBasicShapeType,
-            pub mFillRule: root::mozilla::StyleFillRule,
-            pub mCoordinates: root::nsTArray<root::nsStyleCoord>,
-            pub mPosition: root::mozilla::Position,
-            pub mRadius: root::nsStyleCorners,
-        }
-        pub type StyleBasicShape_HasThreadSafeRefCnt =
-            root::mozilla::TrueType;
-        #[test]
-        fn bindgen_test_layout_StyleBasicShape() {
-            assert_eq!(::std::mem::size_of::<StyleBasicShape>() , 120usize);
-            assert_eq!(::std::mem::align_of::<StyleBasicShape>() , 8usize);
-        }
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct StyleShapeSource<ReferenceBox> {
-            pub __bindgen_anon_1: root::mozilla::StyleShapeSource__bindgen_ty_1<ReferenceBox>,
-            pub mType: root::mozilla::StyleShapeSourceType,
-            pub mReferenceBox: ReferenceBox,
-        }
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct StyleShapeSource__bindgen_ty_1<ReferenceBox> {
-            pub mBasicShape: root::__BindgenUnionField<*mut root::mozilla::StyleBasicShape>,
-            pub mURL: root::__BindgenUnionField<*mut root::mozilla::css::URLValue>,
-            pub bindgen_union_field: u64,
-            pub _phantom_0: ::std::marker::PhantomData<ReferenceBox>,
-        }
-        pub type StyleClipPath =
-            root::mozilla::StyleShapeSource<root::mozilla::StyleGeometryBox>;
-        pub type StyleShapeOutside =
-            root::mozilla::StyleShapeSource<root::mozilla::StyleShapeOutsideShapeBox>;
         #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum CSSPseudoClassType {
@@ -3330,6 +3144,194 @@ pub mod root {
             NotPseudo = 81,
             MAX = 82,
         }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct CSSVariableValues {
+            /**
+   * Map of variable names to IDs.  Variable IDs are indexes into
+   * mVariables.
+   */
+            pub mVariableIDs: [u64; 6usize],
+            /**
+   * Array of variables, indexed by variable ID.
+   */
+            pub mVariables: root::nsTArray<root::mozilla::CSSVariableValues_Variable>,
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct CSSVariableValues_Variable {
+            pub mVariableName: ::nsstring::nsStringRepr,
+            pub mValue: ::nsstring::nsStringRepr,
+            pub mFirstToken: root::nsCSSTokenSerializationType,
+            pub mLastToken: root::nsCSSTokenSerializationType,
+        }
+        #[test]
+        fn bindgen_test_layout_CSSVariableValues_Variable() {
+            assert_eq!(::std::mem::size_of::<CSSVariableValues_Variable>() ,
+                       40usize);
+            assert_eq!(::std::mem::align_of::<CSSVariableValues_Variable>() ,
+                       8usize);
+        }
+        #[test]
+        fn bindgen_test_layout_CSSVariableValues() {
+            assert_eq!(::std::mem::size_of::<CSSVariableValues>() , 56usize);
+            assert_eq!(::std::mem::align_of::<CSSVariableValues>() , 8usize);
+        }
+        pub mod image {
+            #[allow(unused_imports)]
+            use self::super::super::super::root;
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct ImageURL {
+                pub _address: u8,
+            }
+            impl Clone for ImageURL {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct Image {
+                pub _address: u8,
+            }
+            impl Clone for Image {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct ProgressTracker {
+                pub _address: u8,
+            }
+            impl Clone for ProgressTracker {
+                fn clone(&self) -> Self { *self }
+            }
+            #[repr(C)]
+            pub struct IProgressObserver__bindgen_vtable {
+            }
+            /**
+ * An interface for observing changes to image state, as reported by
+ * ProgressTracker.
+ *
+ * This is the ImageLib-internal version of imgINotificationObserver,
+ * essentially, with implementation details that code outside of ImageLib
+ * shouldn't see.
+ *
+ * XXX(seth): It's preferable to avoid adding anything to this interface if
+ * possible.  In the long term, it would be ideal to get to a place where we can
+ * just use the imgINotificationObserver interface internally as well.
+ */
+            #[repr(C)]
+            #[derive(Debug)]
+            pub struct IProgressObserver {
+                pub vtable_: *const IProgressObserver__bindgen_vtable,
+                pub _base: u64,
+            }
+            #[test]
+            fn bindgen_test_layout_IProgressObserver() {
+                assert_eq!(::std::mem::size_of::<IProgressObserver>() ,
+                           16usize);
+                assert_eq!(::std::mem::align_of::<IProgressObserver>() ,
+                           8usize);
+            }
+        }
+        #[repr(C)]
+        pub struct CounterStyle__bindgen_vtable {
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct CounterStyle {
+            pub vtable_: *const CounterStyle__bindgen_vtable,
+            pub mStyle: i32,
+        }
+        #[test]
+        fn bindgen_test_layout_CounterStyle() {
+            assert_eq!(::std::mem::size_of::<CounterStyle>() , 16usize);
+            assert_eq!(::std::mem::align_of::<CounterStyle>() , 8usize);
+        }
+        impl Clone for CounterStyle {
+            fn clone(&self) -> Self { *self }
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct Position {
+            pub mXPosition: root::mozilla::Position_Coord,
+            pub mYPosition: root::mozilla::Position_Coord,
+        }
+        pub type Position_Coord = root::nsStyleCoord_CalcValue;
+        #[test]
+        fn bindgen_test_layout_Position() {
+            assert_eq!(::std::mem::size_of::<Position>() , 24usize);
+            assert_eq!(::std::mem::align_of::<Position>() , 4usize);
+        }
+        impl Clone for Position {
+            fn clone(&self) -> Self { *self }
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct StyleTransition {
+            pub mTimingFunction: root::nsTimingFunction,
+            pub mDuration: f32,
+            pub mDelay: f32,
+            pub mProperty: root::nsCSSPropertyID,
+            pub mUnknownProperty: root::nsCOMPtr<root::nsIAtom>,
+        }
+        #[test]
+        fn bindgen_test_layout_StyleTransition() {
+            assert_eq!(::std::mem::size_of::<StyleTransition>() , 40usize);
+            assert_eq!(::std::mem::align_of::<StyleTransition>() , 8usize);
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct StyleAnimation {
+            pub mTimingFunction: root::nsTimingFunction,
+            pub mDuration: f32,
+            pub mDelay: f32,
+            pub mName: ::nsstring::nsStringRepr,
+            pub mDirection: root::mozilla::dom::PlaybackDirection,
+            pub mFillMode: root::mozilla::dom::FillMode,
+            pub mPlayState: u8,
+            pub mIterationCount: f32,
+        }
+        #[test]
+        fn bindgen_test_layout_StyleAnimation() {
+            assert_eq!(::std::mem::size_of::<StyleAnimation>() , 64usize);
+            assert_eq!(::std::mem::align_of::<StyleAnimation>() , 8usize);
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct StyleBasicShape {
+            pub mRefCnt: root::mozilla::ThreadSafeAutoRefCnt,
+            pub mType: root::mozilla::StyleBasicShapeType,
+            pub mFillRule: root::mozilla::StyleFillRule,
+            pub mCoordinates: root::nsTArray<root::nsStyleCoord>,
+            pub mPosition: root::mozilla::Position,
+            pub mRadius: root::nsStyleCorners,
+        }
+        pub type StyleBasicShape_HasThreadSafeRefCnt =
+            root::mozilla::TrueType;
+        #[test]
+        fn bindgen_test_layout_StyleBasicShape() {
+            assert_eq!(::std::mem::size_of::<StyleBasicShape>() , 120usize);
+            assert_eq!(::std::mem::align_of::<StyleBasicShape>() , 8usize);
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct StyleShapeSource<ReferenceBox> {
+            pub __bindgen_anon_1: root::mozilla::StyleShapeSource__bindgen_ty_1<ReferenceBox>,
+            pub mType: root::mozilla::StyleShapeSourceType,
+            pub mReferenceBox: ReferenceBox,
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct StyleShapeSource__bindgen_ty_1<ReferenceBox> {
+            pub mBasicShape: root::__BindgenUnionField<*mut root::mozilla::StyleBasicShape>,
+            pub mURL: root::__BindgenUnionField<*mut root::mozilla::css::URLValue>,
+            pub bindgen_union_field: u64,
+            pub _phantom_0: ::std::marker::PhantomData<ReferenceBox>,
+        }
+        pub type StyleClipPath =
+            root::mozilla::StyleShapeSource<root::mozilla::StyleGeometryBox>;
+        pub type StyleShapeOutside =
+            root::mozilla::StyleShapeSource<root::mozilla::StyleShapeOutsideShapeBox>;
         #[test]
         fn __bindgen_test_layout_template_2() {
             assert_eq!(::std::mem::size_of::<root::mozilla::StyleShapeSource<root::mozilla::StyleGeometryBox>>()
@@ -4384,6 +4386,7 @@ pub mod root {
     pub struct nsCycleCollectionParticipant {
         pub vtable_: *const nsCycleCollectionParticipant__bindgen_vtable,
         pub mMightSkip: bool,
+        pub mTraverseShouldTrace: bool,
     }
     #[test]
     fn bindgen_test_layout_nsCycleCollectionParticipant() {
@@ -4861,8 +4864,7 @@ pub mod root {
    * causes between the native object and the JS object, so it is important that
    * any native object that supports preserving of its wrapper
    * traces/traverses/unlinks the cached JS object (see
-   * NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER,
-   * NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS and
+   * NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER and
    * NS_IMPL_CYCLE_COLLECTION_UNLINK_PRESERVED_WRAPPER).
    */
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -5063,7 +5065,7 @@ pub mod root {
         pub mStates: root::EventStates_InternalType,
     }
     pub type EventStates_InternalType = u64;
-    pub type EventStates_ServoType = u8;
+    pub type EventStates_ServoType = u16;
     #[test]
     fn bindgen_test_layout_EventStates() {
         assert_eq!(::std::mem::size_of::<EventStates>() , 8usize);
@@ -6540,6 +6542,12 @@ pub mod root {
         pub mFramesConstructed: u64,
         pub mFramesReflowed: u64,
         pub mReflowStartTime: root::mozilla::TimeStamp,
+        pub mFirstPaintTime: root::mozilla::TimeStamp,
+        pub mFirstClickTime: root::mozilla::TimeStamp,
+        pub mFirstKeyTime: root::mozilla::TimeStamp,
+        pub mFirstMouseMoveTime: root::mozilla::TimeStamp,
+        pub mFirstScrollTime: root::mozilla::TimeStamp,
+        pub mInteractionTimeEnabled: bool,
         pub mLastStyleUpdateForAllAnimations: root::mozilla::TimeStamp,
         pub _bitfield_1: u64,
         pub mRestyleLoggingEnabled: bool,
@@ -6576,6 +6584,14 @@ pub mod root {
         eContext_Print = 2,
         eContext_PageLayout = 3,
     }
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsPresContext_InteractionType {
+        eClickInteraction = 0,
+        eKeyInteraction = 1,
+        eMouseMoveInteraction = 2,
+        eScrollInteraction = 3,
+    }
     /**
    * A class that can be used to temporarily disable reflow interruption.
    */
@@ -6600,7 +6616,7 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_nsPresContext() {
-        assert_eq!(::std::mem::size_of::<nsPresContext>() , 1248usize);
+        assert_eq!(::std::mem::size_of::<nsPresContext>() , 1296usize);
         assert_eq!(::std::mem::align_of::<nsPresContext>() , 8usize);
     }
     impl nsPresContext {
@@ -7950,6 +7966,14 @@ pub mod root {
                                                        *mut ::std::os::raw::c_void)
                                   -> ::std::os::raw::c_int>;
     #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsMediaList {
+        pub _address: u8,
+    }
+    impl Clone for nsMediaList {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
     #[derive(Debug)]
     pub struct nsAttrValue {
         pub mBits: usize,
@@ -9219,10 +9243,6 @@ pub mod root {
     }
     impl Clone for nsFrameManagerBase_UndisplayedMap {
         fn clone(&self) -> Self { *self }
-    }
-    extern "C" {
-        #[link_name = "_ZN18nsFrameManagerBase23sGlobalGenerationNumberE"]
-        pub static mut nsFrameManagerBase_sGlobalGenerationNumber: u32;
     }
     #[test]
     fn bindgen_test_layout_nsFrameManagerBase() {
@@ -11661,14 +11681,14 @@ pub mod root {
     pub type RawGeckoNode = root::nsINode;
     pub type RawGeckoElement = root::mozilla::dom::Element;
     pub type RawGeckoDocument = root::nsIDocument;
-    pub type RawGeckoPresContext = [u64; 156usize];
+    pub type RawGeckoPresContext = [u64; 162usize];
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
     pub type RawGeckoNodeBorrowedOrNull = *const root::RawGeckoNode;
     pub type RawGeckoElementBorrowed = *const root::RawGeckoElement;
     pub type RawGeckoElementBorrowedOrNull = *const root::RawGeckoElement;
     pub type RawGeckoDocumentBorrowed = *const root::RawGeckoDocument;
     pub type RawGeckoDocumentBorrowedOrNull = *const root::RawGeckoDocument;
-    pub type RawGeckoPresContextBorrowed = *const [u64; 156usize];
+    pub type RawGeckoPresContextBorrowed = *const [u64; 162usize];
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsCSSTokenSerializationType {
@@ -11697,20 +11717,6 @@ pub mod root {
         eCSSTokenSerialization_Symbol_Slash = 22,
         eCSSTokenSerialization_Symbol_Asterisk = 23,
         eCSSTokenSerialization_Other = 24,
-    }
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct LookAndFeelInt {
-        pub id: i32,
-        pub value: i32,
-    }
-    #[test]
-    fn bindgen_test_layout_LookAndFeelInt() {
-        assert_eq!(::std::mem::size_of::<LookAndFeelInt>() , 8usize);
-        assert_eq!(::std::mem::align_of::<LookAndFeelInt>() , 4usize);
-    }
-    impl Clone for LookAndFeelInt {
-        fn clone(&self) -> Self { *self }
     }
     #[repr(C)]
     #[derive(Debug, Copy)]
@@ -12540,7 +12546,7 @@ pub mod root {
         pub mWhiteSpace: u8,
         pub mWordBreak: u8,
         pub mOverflowWrap: u8,
-        pub mHyphens: u8,
+        pub mHyphens: root::mozilla::StyleHyphens,
         pub mRubyAlign: u8,
         pub mRubyPosition: u8,
         pub mTextSizeAdjust: u8,
