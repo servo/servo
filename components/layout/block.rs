@@ -31,7 +31,7 @@ use app_units::{Au, MAX_AU};
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::{BorderPaintingMode, DisplayListBuildState, FragmentDisplayListBuilding};
 use display_list_builder::BlockFlowDisplayListBuilding;
-use euclid::{Point2D, Size2D};
+use euclid::{Point2D, Rect, Size2D};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
@@ -1765,6 +1765,64 @@ impl BlockFlow {
 
     pub fn is_block_flex_item(&self) -> bool {
         self.fragment.flags.contains(IS_BLOCK_FLEX_ITEM)
+    }
+
+    /// Changes this block's clipping region from its parent's coordinate system to its own
+    /// coordinate system if necessary (i.e. if this block is a stacking context).
+    ///
+    /// The clipping region is initially in each block's parent's coordinate system because the
+    /// parent of each block does not have enough information to determine what the child's
+    /// coordinate system is on its own. Specifically, if the child is absolutely positioned, the
+    /// parent does not know where the child's absolute position is at the time it assigns clipping
+    /// regions, because flows compute their own absolute positions.
+    fn switch_coordinate_system_if_necessary(&mut self) {
+        // Avoid overflows!
+        if self.base.clip.is_max() {
+            return
+        }
+
+        if !self.fragment.establishes_stacking_context() {
+            return
+        }
+
+        let stacking_relative_border_box =
+            self.fragment.stacking_relative_border_box(&self.base.stacking_relative_position,
+                                                       &self.base
+                                                            .early_absolute_position_info
+                                                            .relative_containing_block_size,
+                                                       self.base
+                                                           .early_absolute_position_info
+                                                           .relative_containing_block_mode,
+                                                       CoordinateSystem::Parent);
+        self.base.clip = self.base.clip.translate(&-stacking_relative_border_box.origin);
+
+        // Account for `transform`, if applicable.
+        if self.fragment.style.get_box().transform.0.is_none() {
+            return
+        }
+        let transform = match self.fragment
+                                  .transform_matrix(&stacking_relative_border_box)
+                                  .inverse() {
+            Some(transform) => transform,
+            None => {
+                // Singular matrix. Ignore it.
+                return
+            }
+        };
+
+        // FIXME(pcwalton): This is inaccurate: not all transforms are 2D, and not all clips are
+        // axis-aligned.
+        let bounding_rect = self.base.clip.bounding_rect();
+        let bounding_rect = Rect::new(Point2D::new(bounding_rect.origin.x.to_f32_px(),
+                                                   bounding_rect.origin.y.to_f32_px()),
+                                      Size2D::new(bounding_rect.size.width.to_f32_px(),
+                                                  bounding_rect.size.height.to_f32_px()));
+        let clip_rect = transform.to_2d().transform_rect(&bounding_rect);
+        let clip_rect = Rect::new(Point2D::new(Au::from_f32_px(clip_rect.origin.x),
+                                               Au::from_f32_px(clip_rect.origin.y)),
+                                  Size2D::new(Au::from_f32_px(clip_rect.size.width),
+                                              Au::from_f32_px(clip_rect.size.height)));
+        self.base.clip = ClippingRegion::from_rect(&clip_rect)
     }
 }
 

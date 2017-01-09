@@ -14,7 +14,7 @@ use app_units::{AU_PER_PX, Au};
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::SharedLayoutContext;
-use euclid::{Matrix4D, Point2D, Radians, Rect, SideOffsets2D, Size2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
@@ -31,7 +31,7 @@ use gfx_traits::{ScrollPolicy, ScrollRootId, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
-use model::{self, MaybeAuto, ToGfxMatrix};
+use model::{self, MaybeAuto};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::UsePlaceholder;
 use range::Range;
@@ -45,7 +45,7 @@ use std::sync::Arc;
 use style::computed_values::{background_attachment, background_clip, background_origin};
 use style::computed_values::{background_repeat, background_size, border_style};
 use style::computed_values::{cursor, image_rendering, overflow_x};
-use style::computed_values::{pointer_events, position, transform, transform_style, visibility};
+use style::computed_values::{pointer_events, position, transform_style, visibility};
 use style::computed_values::_servo_overflow_clip_box as overflow_clip_box;
 use style::computed_values::filter::Filter;
 use style::computed_values::text_shadow::TextShadow;
@@ -53,7 +53,7 @@ use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMod
 use style::properties::{self, ServoComputedValues};
 use style::properties::style_structs;
 use style::servo::restyle_damage::REPAINT;
-use style::values::{self, Either, RGBA, computed};
+use style::values::{RGBA, computed};
 use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::cursor::Cursor;
@@ -326,23 +326,6 @@ impl<'a> DisplayListBuildState<'a> {
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 
-// TODO(gw): The transforms spec says that perspective length must
-// be positive. However, there is some confusion between the spec
-// and browser implementations as to handling the case of 0 for the
-// perspective value. Until the spec bug is resolved, at least ensure
-// that a provided perspective value of <= 0.0 doesn't cause panics
-// and behaves as it does in other browsers.
-// See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
-#[inline]
-fn create_perspective_matrix(d: Au) -> Matrix4D<f32> {
-    let d = d.to_f32_px();
-    if d <= 0.0 {
-        Matrix4D::identity()
-    } else {
-        Matrix4D::create_perspective(d)
-    }
-}
-
 pub trait FragmentDisplayListBuilding {
     /// Adds the display items necessary to paint the background of this fragment to the display
     /// list if necessary.
@@ -498,9 +481,6 @@ pub trait FragmentDisplayListBuilding {
                                mode: StackingContextCreationMode,
                                parent_scroll_id: ScrollRootId)
                                -> StackingContext;
-
-    /// Returns the 4D matrix representing this fragment's transform.
-    fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32>;
 }
 
 fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> BorderRadii<Au> {
@@ -1566,32 +1546,6 @@ impl FragmentDisplayListBuilding for Fragment {
         // Then, using that, compute our overflow region relative to our border box.
         let overflow = base_flow.overflow.paint.translate(&-border_box_offset);
 
-        let transform = self.transform_matrix(&border_box);
-        let perspective = match self.style().get_box().perspective {
-            Either::First(length) => {
-                let perspective_origin = self.style().get_box().perspective_origin;
-                let perspective_origin =
-                    Point2D::new(model::specified(perspective_origin.horizontal,
-                                                  border_box.size.width).to_f32_px(),
-                                 model::specified(perspective_origin.vertical,
-                                                  border_box.size.height).to_f32_px());
-
-                let pre_transform = Matrix4D::create_translation(perspective_origin.x,
-                                                                 perspective_origin.y,
-                                                                 0.0);
-                let post_transform = Matrix4D::create_translation(-perspective_origin.x,
-                                                                  -perspective_origin.y,
-                                                                  0.0);
-
-                let perspective_matrix = create_perspective_matrix(length);
-
-                pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform)
-            }
-            Either::Second(values::None_) => {
-                Matrix4D::identity()
-            }
-        };
-
         // Create the filter pipeline.
         let effects = self.style().get_effects();
         let mut filters = effects.filter.clone();
@@ -1615,8 +1569,8 @@ impl FragmentDisplayListBuilding for Fragment {
                              self.effective_z_index(),
                              filters,
                              self.style().get_effects().mix_blend_mode,
-                             transform,
-                             perspective,
+                             self.transform_matrix(&border_box),
+                             self.perspective_matrix(&border_box),
                              establishes_3d_context,
                              scroll_policy,
                              parent_scroll_id)
@@ -1815,63 +1769,6 @@ impl FragmentDisplayListBuilding for Fragment {
         }));
     }
 
-    fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32> {
-        let mut transform = Matrix4D::identity();
-        let operations = match self.style.get_box().transform.0 {
-            None => return transform,
-            Some(ref operations) => operations,
-        };
-
-        let transform_origin = &self.style.get_box().transform_origin;
-        let transform_origin_x = model::specified(transform_origin.horizontal,
-                                                  stacking_relative_border_box.size
-                                                                              .width).to_f32_px();
-        let transform_origin_y = model::specified(transform_origin.vertical,
-                                                  stacking_relative_border_box.size
-                                                                              .height).to_f32_px();
-        let transform_origin_z = transform_origin.depth.to_f32_px();
-
-        let pre_transform = Matrix4D::create_translation(transform_origin_x,
-                                                         transform_origin_y,
-                                                         transform_origin_z);
-        let post_transform = Matrix4D::create_translation(-transform_origin_x,
-                                                          -transform_origin_y,
-                                                          -transform_origin_z);
-
-        for operation in operations {
-            let matrix = match *operation {
-                transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
-                    let theta = 2.0f32 * f32::consts::PI - theta.radians();
-                    Matrix4D::create_rotation(ax, ay, az, Radians::new(theta))
-                }
-                transform::ComputedOperation::Perspective(d) => {
-                    create_perspective_matrix(d)
-                }
-                transform::ComputedOperation::Scale(sx, sy, sz) => {
-                    Matrix4D::create_scale(sx, sy, sz)
-                }
-                transform::ComputedOperation::Translate(tx, ty, tz) => {
-                    let tx =
-                        model::specified(tx, stacking_relative_border_box.size.width).to_f32_px();
-                    let ty =
-                        model::specified(ty, stacking_relative_border_box.size.height).to_f32_px();
-                    let tz = tz.to_f32_px();
-                    Matrix4D::create_translation(tx, ty, tz)
-                }
-                transform::ComputedOperation::Matrix(m) => {
-                    m.to_gfx_matrix()
-                }
-                transform::ComputedOperation::Skew(theta_x, theta_y) => {
-                    Matrix4D::create_skew(Radians::new(theta_x.radians()),
-                                          Radians::new(theta_y.radians()))
-                }
-            };
-
-            transform = transform.pre_mul(&matrix);
-        }
-
-        pre_transform.pre_mul(&transform).pre_mul(&post_transform)
-    }
 }
 
 pub trait BlockFlowDisplayListBuilding {
@@ -1881,16 +1778,6 @@ pub trait BlockFlowDisplayListBuilding {
     fn build_display_list_for_block(&mut self,
                                     state: &mut DisplayListBuildState,
                                     border_painting_mode: BorderPaintingMode);
-
-    /// Changes this block's clipping region from its parent's coordinate system to its own
-    /// coordinate system if necessary (i.e. if this block is a stacking context).
-    ///
-    /// The clipping region is initially in each block's parent's coordinate system because the
-    /// parent of each block does not have enough information to determine what the child's
-    /// coordinate system is on its own. Specifically, if the child is absolutely positioned, the
-    /// parent does not know where the child's absolute position is at the time it assigns clipping
-    /// regions, because flows compute their own absolute positions.
-    fn switch_coordinate_system_if_necessary(&mut self);
 }
 
 impl BlockFlowDisplayListBuilding for BlockFlow {
@@ -2024,55 +1911,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         state.processing_scroll_root_element = false;
     }
 
-    fn switch_coordinate_system_if_necessary(&mut self) {
-        // Avoid overflows!
-        if self.base.clip.is_max() {
-            return
-        }
-
-        if !self.fragment.establishes_stacking_context() {
-            return
-        }
-
-        let stacking_relative_border_box =
-            self.fragment.stacking_relative_border_box(&self.base.stacking_relative_position,
-                                                       &self.base
-                                                            .early_absolute_position_info
-                                                            .relative_containing_block_size,
-                                                       self.base
-                                                           .early_absolute_position_info
-                                                           .relative_containing_block_mode,
-                                                       CoordinateSystem::Parent);
-        self.base.clip = self.base.clip.translate(&-stacking_relative_border_box.origin);
-
-        // Account for `transform`, if applicable.
-        if self.fragment.style.get_box().transform.0.is_none() {
-            return
-        }
-        let transform = match self.fragment
-                                  .transform_matrix(&stacking_relative_border_box)
-                                  .inverse() {
-            Some(transform) => transform,
-            None => {
-                // Singular matrix. Ignore it.
-                return
-            }
-        };
-
-        // FIXME(pcwalton): This is inaccurate: not all transforms are 2D, and not all clips are
-        // axis-aligned.
-        let bounding_rect = self.base.clip.bounding_rect();
-        let bounding_rect = Rect::new(Point2D::new(bounding_rect.origin.x.to_f32_px(),
-                                                   bounding_rect.origin.y.to_f32_px()),
-                                      Size2D::new(bounding_rect.size.width.to_f32_px(),
-                                                  bounding_rect.size.height.to_f32_px()));
-        let clip_rect = transform.to_2d().transform_rect(&bounding_rect);
-        let clip_rect = Rect::new(Point2D::new(Au::from_f32_px(clip_rect.origin.x),
-                                               Au::from_f32_px(clip_rect.origin.y)),
-                                  Size2D::new(Au::from_f32_px(clip_rect.size.width),
-                                              Au::from_f32_px(clip_rect.size.height)));
-        self.base.clip = ClippingRegion::from_rect(&clip_rect)
-    }
 }
 
 pub trait InlineFlowDisplayListBuilding {
