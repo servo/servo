@@ -408,14 +408,15 @@ impl Stylist {
 
         fn mq_eval_changed(rules: &[CssRule], before: &Device, after: &Device) -> bool {
             for rule in rules {
-                if rule.with_nested_rules_and_mq(|rules, mq| {
+                let changed = rule.with_nested_rules_and_mq(|rules, mq| {
                     if let Some(mq) = mq {
                         if mq.evaluate(before) != mq.evaluate(after) {
                             return true
                         }
                     }
                     mq_eval_changed(rules, before, after)
-                }) {
+                });
+                if changed {
                     return true
                 }
             }

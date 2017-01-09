@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://drafts.csswg.org/cssom/#the-cssmediarule-interface
+// https://drafts.csswg.org/css-conditional/#cssmediarule
 [Exposed=Window]
-interface CSSMediaRule : CSSGroupingRule {
+interface CSSMediaRule : CSSConditionRule {
   [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
 };

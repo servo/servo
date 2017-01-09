@@ -11,3 +11,9 @@ interface CSS {
   [Throws]
   static DOMString escape(DOMString ident);
 };
+
+// https://drafts.csswg.org/css-conditional-3/#the-css-interface
+partial interface CSS {
+  static boolean supports(DOMString property, DOMString value);
+  static boolean supports(DOMString conditionText);
+};

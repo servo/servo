@@ -276,6 +276,11 @@ class MachCommands(CommandBase):
                 args += ["%s" % ' '.join(features + ["testing"])]
             else:
                 args += ["testing"]
+
+            args += test_patterns
+
+            if nocapture:
+                args += ["--", "--nocapture"]
             return call(args, env=env, cwd=self.servo_crate())
 
     @Command('test-stylo',
