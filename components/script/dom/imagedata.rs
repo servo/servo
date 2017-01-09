@@ -10,11 +10,10 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use euclid::size::Size2D;
 use js::jsapi::{Heap, JSContext, JSObject};
-use js::jsapi::{JS_GetUint8ClampedArrayData, JS_NewUint8ClampedArray};
-use libc::uint8_t;
+use js::rust::Runtime;
+use js::typedarray::Uint8ClampedArray;
 use std::default::Default;
 use std::ptr;
-use std::slice;
 use std::vec::Vec;
 
 #[dom_struct]
@@ -37,16 +36,10 @@ impl ImageData {
 
         unsafe {
             let cx = global.get_cx();
-            let js_object: *mut JSObject = JS_NewUint8ClampedArray(cx, width * height * 4);
-            assert!(!js_object.is_null());
-
-            if let Some(vec) = data {
-                let mut is_shared = false;
-                let js_object_data: *mut uint8_t = JS_GetUint8ClampedArrayData(js_object, &mut is_shared, ptr::null());
-                assert!(!is_shared);
-                ptr::copy_nonoverlapping(vec.as_ptr(), js_object_data, vec.len())
-            }
-            (*imagedata).data.set(js_object);
+            rooted!(in (cx) let mut js_object = ptr::null_mut());
+            let data = data.as_ref().map(|d| &d[..]);
+            Uint8ClampedArray::create(cx, width * height * 4, data, js_object.handle_mut()).unwrap();
+            (*imagedata).data.set(js_object.get());
         }
 
         reflect_dom_object(imagedata,
@@ -56,14 +49,12 @@ impl ImageData {
     #[allow(unsafe_code)]
     pub fn get_data_array(&self) -> Vec<u8> {
         unsafe {
-            let mut is_shared = false;
             assert!(!self.data.get().is_null());
-            let data: *const uint8_t =
-                JS_GetUint8ClampedArrayData(self.data.get(), &mut is_shared, ptr::null()) as *const uint8_t;
-            assert!(!data.is_null());
-            assert!(!is_shared);
-            let len = self.Width() * self.Height() * 4;
-            slice::from_raw_parts(data, len as usize).to_vec()
+            let cx = Runtime::get();
+            assert!(!cx.is_null());
+            typedarray!(in(cx) let array: Uint8ClampedArray = self.data.get());
+            let vec = array.unwrap().as_slice().to_vec();
+            vec
         }
     }
 
