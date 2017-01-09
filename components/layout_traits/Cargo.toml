@@ -20,5 +20,5 @@ servo_url = {path = "../url"}
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
-default_features = false
+default-features = false
 features = ["serde_derive", "ipc"]
