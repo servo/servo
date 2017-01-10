@@ -962,38 +962,45 @@ impl PropertyDeclaration {
                 result_list.push(PropertyDeclaration::Custom(name, value));
                 return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
             }
-            PropertyId::Longhand(id) => match id {
-            % for property in data.longhands:
-                LonghandId::${property.camel_case} => {
-                    % if not property.derived_from:
-                        % if not property.allowed_in_keyframe_block:
-                            if in_keyframe_block {
-                                return PropertyDeclarationParseResult::AnimationPropertyInKeyframeBlock
+            PropertyId::Longhand(id) => {
+                let mut maybe_push = None;
+                let ret = match id {
+                % for property in data.longhands:
+                    LonghandId::${property.camel_case} => {
+                        % if not property.derived_from:
+                            % if not property.allowed_in_keyframe_block:
+                                if in_keyframe_block {
+                                    return PropertyDeclarationParseResult::AnimationPropertyInKeyframeBlock
+                                }
+                            % endif
+                            % if property.internal:
+                                if context.stylesheet_origin != Origin::UserAgent {
+                                    return PropertyDeclarationParseResult::UnknownProperty
+                                }
+                            % endif
+                            % if property.experimental and product == "servo":
+                                if !PREFS.get("${property.experimental}")
+                                    .as_boolean().unwrap_or(false) {
+                                    return PropertyDeclarationParseResult::ExperimentalProperty
+                                }
+                            % endif
+                            match longhands::${property.ident}::parse_declared(context, input) {
+                                Ok(value) => {
+                                    maybe_push = Some(PropertyDeclaration::${property.camel_case}(value));
+                                    PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                                },
+                                Err(()) => PropertyDeclarationParseResult::InvalidValue,
                             }
+                        % else:
+                            PropertyDeclarationParseResult::UnknownProperty
                         % endif
-                        % if property.internal:
-                            if context.stylesheet_origin != Origin::UserAgent {
-                                return PropertyDeclarationParseResult::UnknownProperty
-                            }
-                        % endif
-                        % if property.experimental and product == "servo":
-                            if !PREFS.get("${property.experimental}")
-                                .as_boolean().unwrap_or(false) {
-                                return PropertyDeclarationParseResult::ExperimentalProperty
-                            }
-                        % endif
-                        match longhands::${property.ident}::parse_declared(context, input) {
-                            Ok(value) => {
-                                result_list.push(PropertyDeclaration::${property.camel_case}(value));
-                                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                            },
-                            Err(()) => PropertyDeclarationParseResult::InvalidValue,
-                        }
-                    % else:
-                        PropertyDeclarationParseResult::UnknownProperty
-                    % endif
+                    }
+                % endfor
+                };
+                if let Some(push) = maybe_push {
+                    result_list.push(push);
                 }
-            % endfor
+                ret
             },
             PropertyId::Shorthand(id) => match id {
             % for shorthand in data.shorthands:
