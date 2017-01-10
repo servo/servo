@@ -95,7 +95,7 @@ use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg, DiscardBrowsingContext};
-use script_traits::{DocumentState, LayoutControlMsg, LoadData};
+use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
@@ -1405,10 +1405,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
 
-            if let Some(old_pipeline) = old_pipeline {
-                old_pipeline.freeze();
-            }
-
             (load_data, window_size, is_private)
         };
 
@@ -1628,11 +1624,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 });
                 self.new_pipeline(new_pipeline_id, root_frame_id, None, window_size, load_data, sandbox, false);
 
-                // Send message to ScriptThread that will suspend all timers
-                match self.pipelines.get(&source_id) {
-                    Some(source) => source.freeze(),
-                    None => warn!("Pipeline {:?} loaded after closure", source_id),
-                };
                 Some(new_pipeline_id)
             }
         }
@@ -2050,13 +2041,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.focus_pipeline_id = Some(pipeline_id);
         }
 
-        // Suspend the old pipeline, and resume the new one.
-        if let Some(pipeline) = self.pipelines.get(&old_pipeline_id) {
-            pipeline.freeze();
-        }
-        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            pipeline.thaw();
-        }
+        // Deactivate the old pipeline, and activate the new one.
+        self.update_activity(old_pipeline_id);
+        self.update_activity(pipeline_id);
 
         // Set paint permissions correctly for the compositor layers.
         self.send_frame_tree();
@@ -2125,22 +2112,24 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
         }
 
-        let (evicted_id, new_frame, clear_future, location_changed) = if let Some(mut entry) = frame_change.replace {
+        let (evicted_id, new_frame, navigated, location_changed) = if let Some(mut entry) = frame_change.replace {
             debug!("Replacing pipeline in existing frame.");
             let evicted_id = entry.pipeline_id;
             entry.replace_pipeline(frame_change.new_pipeline_id, frame_change.url.clone());
             self.traverse_to_entry(entry);
-            (evicted_id, false, false, false)
+            (evicted_id, false, None, false)
         } else if let Some(frame) = self.frames.get_mut(&frame_change.frame_id) {
             debug!("Adding pipeline to existing frame.");
+            let old_pipeline_id = frame.pipeline_id;
             frame.load(frame_change.new_pipeline_id, frame_change.url.clone());
             let evicted_id = frame.prev.len()
                 .checked_sub(PREFS.get("session-history.max-length").as_u64().unwrap_or(20) as usize)
                 .and_then(|index| frame.prev.get_mut(index))
                 .and_then(|entry| entry.pipeline_id.take());
-            (evicted_id, false, true, true)
+            (evicted_id, false, Some(old_pipeline_id), true)
         } else {
-            (None, true, false, true)
+            debug!("Adding pipeline to new frame.");
+            (None, true, None, true)
         };
 
         if let Some(evicted_id) = evicted_id {
@@ -2149,9 +2138,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         if new_frame {
             self.new_frame(frame_change.frame_id, frame_change.new_pipeline_id, frame_change.url);
+            self.update_activity(frame_change.new_pipeline_id);
         };
 
-        if clear_future {
+        if let Some(old_pipeline_id) = navigated {
+            // Deactivate the old pipeline, and activate the new one.
+            self.update_activity(old_pipeline_id);
+            self.update_activity(frame_change.new_pipeline_id);
+            // Clear the joint session future
             let top_level_frame_id = self.get_top_level_frame_for_pipeline(frame_change.new_pipeline_id);
             self.clear_joint_session_future(top_level_frame_id);
         }
@@ -2165,7 +2159,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_activate_document_msg(&mut self, pipeline_id: PipelineId) {
-        debug!("Document ready to activate {:?}", pipeline_id);
+        debug!("Document ready to activate {}", pipeline_id);
 
         // Notify the parent (if there is one).
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
@@ -2357,6 +2351,53 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // All script threads are idle and layout epochs match compositor, so output image!
         ReadyToSave::Ready
+    }
+
+    /// Get the current activity of a pipeline.
+    fn get_activity(&self, pipeline_id: PipelineId) -> DocumentActivity {
+        let mut ancestor_id = pipeline_id;
+        loop {
+            if let Some(ancestor) = self.pipelines.get(&ancestor_id) {
+                if let Some(frame) = self.frames.get(&ancestor.frame_id) {
+                    if frame.pipeline_id == ancestor_id {
+                        if let Some((parent_id, FrameType::IFrame)) = ancestor.parent_info {
+                            ancestor_id = parent_id;
+                            continue;
+                        } else {
+                            return DocumentActivity::FullyActive;
+                        }
+                    }
+                }
+            }
+            if pipeline_id == ancestor_id {
+                return DocumentActivity::Inactive;
+            } else {
+                return DocumentActivity::Active;
+            }
+        }
+    }
+
+    /// Set the current activity of a pipeline.
+    fn set_activity(&self, pipeline_id: PipelineId, activity: DocumentActivity) {
+        debug!("Setting activity of {} to be {:?}.", pipeline_id, activity);
+        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+            pipeline.set_activity(activity);
+            let child_activity = if activity == DocumentActivity::Inactive {
+                DocumentActivity::Active
+            } else {
+                activity
+            };
+            for child_id in &pipeline.children {
+                if let Some(child) = self.frames.get(child_id) {
+                    self.set_activity(child.pipeline_id, child_activity);
+                }
+            }
+        }
+    }
+
+    /// Update the current activity of a pipeline.
+    fn update_activity(&self, pipeline_id: PipelineId) {
+        self.set_activity(pipeline_id, self.get_activity(pipeline_id));
     }
 
     fn clear_joint_session_future(&mut self, frame_id: FrameId) {

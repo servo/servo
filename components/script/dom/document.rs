@@ -108,7 +108,8 @@ use origin::Origin;
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, Runnable};
-use script_traits::{AnimationState, CompositorEvent, MouseButton, MouseEventType, MozBrowserEvent};
+use script_traits::{AnimationState, CompositorEvent, DocumentActivity};
+use script_traits::{MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
 use script_traits::UntrustedNodeAddress;
@@ -191,7 +192,7 @@ pub struct Document {
     last_modified: Option<String>,
     encoding: Cell<EncodingRef>,
     is_html_document: bool,
-    is_fully_active: Cell<bool>,
+    activity: Cell<DocumentActivity>,
     url: DOMRefCell<ServoUrl>,
     quirks_mode: Cell<QuirksMode>,
     /// Caches for the getElement methods
@@ -387,17 +388,33 @@ impl Document {
         self.trigger_mozbrowser_event(MozBrowserEvent::SecurityChange(https_state));
     }
 
-    // https://html.spec.whatwg.org/multipage/#fully-active
     pub fn is_fully_active(&self) -> bool {
-        self.is_fully_active.get()
+        self.activity.get() == DocumentActivity::FullyActive
     }
 
-    pub fn fully_activate(&self) {
-        self.is_fully_active.set(true)
+    pub fn is_active(&self) -> bool {
+        self.activity.get() != DocumentActivity::Inactive
     }
 
-    pub fn fully_deactivate(&self) {
-        self.is_fully_active.set(false)
+    pub fn set_activity(&self, activity: DocumentActivity) {
+        // This function should only be called on documents with a browsing context
+        assert!(self.browsing_context.is_some());
+        // Set the document's activity level, reflow if necessary, and suspend or resume timers.
+        if activity != self.activity.get() {
+            self.activity.set(activity);
+            if activity == DocumentActivity::FullyActive {
+                self.title_changed();
+                self.dirty_all_nodes();
+                self.window().reflow(
+                    ReflowGoal::ForDisplay,
+                    ReflowQueryType::NoQuery,
+                    ReflowReason::CachedPageNeededReflow
+                );
+                self.window().resume();
+            } else {
+                self.window().suspend();
+            }
+        }
     }
 
     pub fn origin(&self) -> &Origin {
@@ -1892,6 +1909,7 @@ impl Document {
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>,
                          last_modified: Option<String>,
+                         activity: DocumentActivity,
                          source: DocumentSource,
                          doc_loader: DocumentLoader,
                          referrer: Option<String>,
@@ -1927,7 +1945,7 @@ impl Document {
             // https://dom.spec.whatwg.org/#concept-document-encoding
             encoding: Cell::new(UTF_8),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
-            is_fully_active: Cell::new(false),
+            activity: Cell::new(activity),
             id_map: DOMRefCell::new(HashMap::new()),
             tag_map: DOMRefCell::new(HashMap::new()),
             tagns_map: DOMRefCell::new(HashMap::new()),
@@ -1995,6 +2013,7 @@ impl Document {
                          IsHTMLDocument::NonHTMLDocument,
                          None,
                          None,
+                         DocumentActivity::Inactive,
                          DocumentSource::NotFromParser,
                          docloader,
                          None,
@@ -2008,6 +2027,7 @@ impl Document {
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<String>,
+               activity: DocumentActivity,
                source: DocumentSource,
                doc_loader: DocumentLoader,
                referrer: Option<String>,
@@ -2020,6 +2040,7 @@ impl Document {
                                                                       doctype,
                                                                       content_type,
                                                                       last_modified,
+                                                                      activity,
                                                                       source,
                                                                       doc_loader,
                                                                       referrer,
@@ -2093,6 +2114,7 @@ impl Document {
                                         doctype,
                                         None,
                                         None,
+                                        DocumentActivity::Inactive,
                                         DocumentSource::NotFromParser,
                                         DocumentLoader::new(&self.loader()),
                                         None,

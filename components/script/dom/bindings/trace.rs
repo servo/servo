@@ -74,7 +74,7 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
-use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase};
+use script_traits::{DocumentActivity, TimerEventId, TimerSource, TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
 use servo_atoms::Atom;
@@ -327,7 +327,7 @@ unsafe_no_jsmanaged_fields!(TrustedPromise);
 unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-unsafe_no_jsmanaged_fields!(FrameId, FrameType, WindowSizeData, WindowSizeType, PipelineId);
+unsafe_no_jsmanaged_fields!(DocumentActivity, FrameId, FrameType, WindowSizeData, WindowSizeType, PipelineId);
 unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
 unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);

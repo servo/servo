@@ -17,6 +17,7 @@ use dom::node::Node;
 use dom::window::Window;
 use js::jsapi::{JSContext, JSObject};
 use origin::Origin;
+use script_traits::DocumentActivity;
 use servo_url::ServoUrl;
 
 // https://dom.spec.whatwg.org/#xmldocument
@@ -33,6 +34,7 @@ impl XMLDocument {
                      is_html_document: IsHTMLDocument,
                      content_type: Option<DOMString>,
                      last_modified: Option<String>,
+                     activity: DocumentActivity,
                      source: DocumentSource,
                      doc_loader: DocumentLoader) -> XMLDocument {
         XMLDocument {
@@ -43,6 +45,7 @@ impl XMLDocument {
                                               is_html_document,
                                               content_type,
                                               last_modified,
+                                              activity,
                                               source,
                                               doc_loader,
                                               None,
@@ -57,6 +60,7 @@ impl XMLDocument {
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<String>,
+               activity: DocumentActivity,
                source: DocumentSource,
                doc_loader: DocumentLoader)
                -> Root<XMLDocument> {
@@ -68,6 +72,7 @@ impl XMLDocument {
                                            doctype,
                                            content_type,
                                            last_modified,
+                                           activity,
                                            source,
                                            doc_loader),
             window,

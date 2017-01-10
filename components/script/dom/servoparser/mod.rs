@@ -35,6 +35,7 @@ use network_listener::PreInvoke;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
+use script_traits::DocumentActivity;
 use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -107,6 +108,7 @@ impl ServoParser {
                                      IsHTMLDocument::HTMLDocument,
                                      None,
                                      None,
+                                     DocumentActivity::Inactive,
                                      DocumentSource::FromParser,
                                      loader,
                                      None,

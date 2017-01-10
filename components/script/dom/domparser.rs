@@ -19,6 +19,7 @@ use dom::document::{Document, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::servoparser::ServoParser;
 use dom::window::Window;
+use script_traits::DocumentActivity;
 
 #[dom_struct]
 pub struct DOMParser {
@@ -65,6 +66,7 @@ impl DOMParserMethods for DOMParser {
                                              IsHTMLDocument::HTMLDocument,
                                              Some(content_type),
                                              None,
+                                             DocumentActivity::Inactive,
                                              DocumentSource::FromParser,
                                              loader,
                                              None,
@@ -82,6 +84,7 @@ impl DOMParserMethods for DOMParser {
                                              IsHTMLDocument::NonHTMLDocument,
                                              Some(content_type),
                                              None,
+                                             DocumentActivity::Inactive,
                                              DocumentSource::NotFromParser,
                                              loader,
                                              None,
