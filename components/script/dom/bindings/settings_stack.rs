@@ -25,7 +25,7 @@ pub unsafe fn trace(tracer: *mut JSTracer) {
 
 /// RAII struct that pushes and pops entries from the script settings stack.
 pub struct AutoEntryScript {
-    global: *const GlobalScope,
+    global: usize,
 }
 
 impl AutoEntryScript {
@@ -38,7 +38,7 @@ impl AutoEntryScript {
                 global: JS::from_ref(global),
             });
             AutoEntryScript {
-                global: global as *const _,
+                global: global as *const _ as usize,
             }
         })
     }
@@ -50,10 +50,10 @@ impl Drop for AutoEntryScript {
         STACK.with(|stack| {
             let mut stack = stack.borrow_mut();
             let entry = stack.pop().unwrap();
-            assert_eq!(&*entry.global as *const GlobalScope,
+            assert_eq!(&*entry.global as *const GlobalScope as usize,
                        self.global,
                        "Dropped AutoEntryScript out of order.");
-            trace!("Clean up after running script with {:p}", self.global);
+            trace!("Clean up after running script with {:p}", &*entry.global);
         })
     }
 }
