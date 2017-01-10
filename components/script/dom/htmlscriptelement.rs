@@ -382,7 +382,7 @@ impl HTMLScriptElement {
         // TODO: Step 19: environment settings object.
 
         let base_url = doc.base_url();
-        let is_external = if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
+        if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
             // Step 20.
 
             // Step 20.1.
@@ -406,54 +406,47 @@ impl HTMLScriptElement {
                 },
             };
 
+            // Preparation for step 22.
+            let kind = if element.has_attribute(&local_name!("defer")) && was_parser_inserted && !async {
+                // Step 22.a: classic, has src, has defer, was parser-inserted, is not async.
+                ExternalScriptKind::Deferred
+            } else if was_parser_inserted && !async {
+                // Step 22.b: classic, has src, was parser-inserted, is not async.
+                ExternalScriptKind::ParsingBlocking
+            } else if !async && !self.non_blocking.get() {
+                // Step 22.c: classic, has src, is not async, is not non-blocking.
+                ExternalScriptKind::AsapInOrder
+            } else {
+                // Step 22.d: classic, has src.
+                ExternalScriptKind::Asap
+            };
+
             // Step 20.6.
             fetch_a_classic_script(self, url, cors_setting, integrity_metadata.to_owned(), encoding);
 
-            true
+            // Step 22.
+            match kind {
+                ExternalScriptKind::Deferred => doc.add_deferred_script(self),
+                ExternalScriptKind::ParsingBlocking => doc.set_pending_parsing_blocking_script(Some(self)),
+                ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
+                ExternalScriptKind::Asap => doc.add_asap_script(self),
+            }
         } else {
-            // TODO: Step 21.
-            false
-        };
-
-        // Step 22.
-        let deferred = element.has_attribute(&local_name!("defer"));
-        // Step 22.a: classic, has src, has defer, was parser-inserted, is not async.
-        if is_external &&
-           deferred &&
-           was_parser_inserted &&
-           !async {
-            doc.add_deferred_script(self);
-            // Second part implemented in Document::process_deferred_scripts.
-        // Step 22.b: classic, has src, was parser-inserted, is not async.
-        } else if is_external &&
-                  was_parser_inserted &&
-                  !async {
-            doc.set_pending_parsing_blocking_script(Some(self));
-            // Second part implemented in the load result handler.
-        // Step 22.c: classic, has src, isn't async, isn't non-blocking.
-        } else if is_external &&
-                  !async &&
-                  !self.non_blocking.get() {
-            doc.push_asap_in_order_script(self);
-            // Second part implemented in Document::process_asap_scripts.
-        // Step 22.d: classic, has src.
-        } else if is_external {
-            doc.add_asap_script(self);
-            // Second part implemented in Document::process_asap_scripts.
-        // Step 22.e: doesn't have src, was parser-inserted, is blocked on stylesheet.
-        } else if !is_external &&
-                  was_parser_inserted &&
-                  doc.get_current_parser().map_or(false, |parser| parser.script_nesting_level() <= 1) &&
-                  doc.get_script_blocking_stylesheets_count() > 0 {
-            doc.set_pending_parsing_blocking_script(Some(self));
-            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
-            self.ready_to_be_parser_executed.set(true);
-        // Step 22.f: otherwise.
-        } else {
+            // Step 21.
             assert!(!text.is_empty());
-            self.ready_to_be_parser_executed.set(true);
             *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
-            self.execute();
+            self.ready_to_be_parser_executed.set(true);
+
+            // Step 22.
+            if was_parser_inserted &&
+               doc.get_current_parser().map_or(false, |parser| parser.script_nesting_level() <= 1) &&
+               doc.get_script_blocking_stylesheets_count() > 0 {
+                // Step 22.e: classic, has no src, was parser-inserted, is blocked on stylesheet.
+                doc.set_pending_parsing_blocking_script(Some(self));
+            } else {
+                // Step 22.f: otherwise.
+                self.execute();
+            }
         }
     }
 
@@ -739,4 +732,12 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     fn SetText(&self, value: DOMString) {
         self.upcast::<Node>().SetTextContent(Some(value))
     }
+}
+
+#[derive(Clone, Copy)]
+enum ExternalScriptKind {
+    Deferred,
+    ParsingBlocking,
+    AsapInOrder,
+    Asap,
 }
