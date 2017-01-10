@@ -1450,9 +1450,9 @@ impl Document {
         changed
     }
 
-    pub fn set_pending_parsing_blocking_script(&self, script: Option<&HTMLScriptElement>) {
-        assert!(self.get_pending_parsing_blocking_script().is_none() || script.is_none());
-        self.pending_parsing_blocking_script.set(script);
+    pub fn set_pending_parsing_blocking_script(&self, script: &HTMLScriptElement) {
+        assert!(self.get_pending_parsing_blocking_script().is_none());
+        self.pending_parsing_blocking_script.set(Some(script));
     }
 
     pub fn get_pending_parsing_blocking_script(&self) -> Option<Root<HTMLScriptElement>> {

@@ -427,7 +427,7 @@ impl HTMLScriptElement {
             // Step 22.
             match kind {
                 ExternalScriptKind::Deferred => doc.add_deferred_script(self),
-                ExternalScriptKind::ParsingBlocking => doc.set_pending_parsing_blocking_script(Some(self)),
+                ExternalScriptKind::ParsingBlocking => doc.set_pending_parsing_blocking_script(self),
                 ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
                 ExternalScriptKind::Asap => doc.add_asap_script(self),
             }
@@ -442,7 +442,7 @@ impl HTMLScriptElement {
                doc.get_current_parser().map_or(false, |parser| parser.script_nesting_level() <= 1) &&
                doc.get_script_blocking_stylesheets_count() > 0 {
                 // Step 22.e: classic, has no src, was parser-inserted, is blocked on stylesheet.
-                doc.set_pending_parsing_blocking_script(Some(self));
+                doc.set_pending_parsing_blocking_script(self);
             } else {
                 // Step 22.f: otherwise.
                 self.execute();
