@@ -196,7 +196,7 @@ impl ServoParser {
     pub fn write(&self, text: Vec<DOMString>) {
         assert!(self.script_nesting_level.get() > 0);
 
-        if self.document.get_pending_parsing_blocking_script().is_some() {
+        if self.document.has_pending_parsing_blocking_script() {
             // There is already a pending parsing blocking script so the
             // parser is suspended, we just append everything to the
             // script input and abort these steps.
@@ -326,7 +326,7 @@ impl ServoParser {
             script.prepare();
             self.script_nesting_level.set(script_nesting_level);
 
-            if self.document.get_pending_parsing_blocking_script().is_some() {
+            if self.document.has_pending_parsing_blocking_script() {
                 self.suspended.set(true);
                 return;
             }
