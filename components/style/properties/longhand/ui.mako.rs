@@ -17,6 +17,7 @@ ${helpers.single_keyword("ime-mode", "normal auto active disabled inactive",
                          spec="https://drafts.csswg.org/css-ui/#input-method-editor")}
 
 ${helpers.single_keyword("-moz-user-select", "auto text none all", products="gecko",
+                         alias="-webkit-user-select",
                          gecko_ffi_name="mUserSelect",
                          gecko_enum_prefix="StyleUserSelect",
                          gecko_inexhaustive=True,
