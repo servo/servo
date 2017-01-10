@@ -53,6 +53,7 @@ use style::values::{self, Either};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use text;
 use text::TextRunScanner;
+use wrapper::ThreadSafeLayoutNodeHelpers;
 
 // From gfxFontConstants.h in Firefox.
 static FONT_SUBSCRIPT_OFFSET_RATIO: f32 = 0.20;

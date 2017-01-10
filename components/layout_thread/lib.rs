@@ -1086,8 +1086,11 @@ impl LayoutThread {
                 while let Some(node) = next {
                     if node.needs_dirty_on_viewport_size_changed() {
                         let el = node.as_element().unwrap();
-                        el.mutate_data().map(|mut d| d.restyle()
-                                        .map(|mut r| r.hint.insert(&StoredRestyleHint::subtree())));
+                        if let Some(mut d) = element.mutate_data() {
+                            if d.has_styles() {
+                                d.ensure_restyle().hint.insert(&StoredRestyleHint::subtree());
+                            }
+                        }
                         if let Some(p) = el.parent_element() {
                             unsafe { p.note_dirty_descendant() };
                         }
@@ -1106,7 +1109,11 @@ impl LayoutThread {
                                                                              data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {
-            element.mutate_data().map(|mut d| d.restyle().map(|mut r| r.hint.insert(&StoredRestyleHint::subtree())));
+            if let Some(mut d) = element.mutate_data() {
+                if d.has_styles() {
+                    d.ensure_restyle().hint.insert(&StoredRestyleHint::subtree());
+                }
+            }
         }
         if needs_reflow {
             if let Some(mut flow) = self.try_get_layout_root(element.as_node()) {
@@ -1132,10 +1139,7 @@ impl LayoutThread {
                 };
                 let mut style_data = &mut data.base.style_data;
                 debug_assert!(style_data.has_current_styles());
-                let mut restyle_data = match style_data.restyle() {
-                    Some(d) => d,
-                    None => continue,
-                };
+                let mut restyle_data = style_data.ensure_restyle();
 
                 // Stash the data on the element for processing by the style system.
                 restyle_data.hint = restyle.hint.into();
@@ -1157,9 +1161,9 @@ impl LayoutThread {
         let dom_depth = Some(0); // This is always the root node.
         let token = {
             let stylist = &<RecalcStyleAndConstructFlows as
-                            DomTraversal<ServoLayoutNode>>::shared_context(&traversal).stylist;
+                            DomTraversal<ServoLayoutElement>>::shared_context(&traversal).stylist;
             <RecalcStyleAndConstructFlows as
-             DomTraversal<ServoLayoutNode>>::pre_traverse(element, stylist, /* skip_root = */ false)
+             DomTraversal<ServoLayoutElement>>::pre_traverse(element, stylist, /* skip_root = */ false)
         };
 
         if token.should_traverse() {
@@ -1171,11 +1175,11 @@ impl LayoutThread {
                 // Perform CSS selector matching and flow construction.
                 if let (true, Some(pool)) = (self.parallel_flag, self.parallel_traversal.as_mut()) {
                     // Parallel mode
-                    parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                    parallel::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
                         &traversal, element, dom_depth, token, pool);
                 } else {
                     // Sequential mode
-                    sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                    sequential::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
                         &traversal, element, token);
                 }
             });

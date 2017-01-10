@@ -198,18 +198,19 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) -> (
 #[no_mangle]
 pub extern "C" fn Servo_Element_ShouldTraverse(element: RawGeckoElementBorrowed) -> bool {
     let element = GeckoElement(element);
-    if let Some(data) = element.get_data() {
-        debug_assert!(!element.has_dirty_descendants(),
-                      "only call Servo_Element_ShouldTraverse if you know the element \
-                       does not have dirty descendants");
-        match *data.borrow() {
-            ElementData::Initial(None) |
-            ElementData::Restyle(..) => true,
-            _ => false,
-        }
-    } else {
-        false
-    }
+    debug_assert!(!element.has_dirty_descendants(),
+                  "only call Servo_Element_ShouldTraverse if you know the element \
+                   does not have dirty descendants");
+    let result = match element.borrow_data() {
+        // Note that we check for has_restyle here rather than has_current_styles,
+        // because we also want the traversal code to trigger if there's restyle
+        // damage. We really only need the Gecko post-traversal in that case, so
+        // the servo traversal will be a no-op, but it's cheap enough that we
+        // don't bother distinguishing the two cases.
+        Some(d) => !d.has_styles() || d.has_restyle(),
+        None => true,
+    };
+    result
 }
 
 #[no_mangle]
@@ -852,17 +853,21 @@ pub extern "C" fn Servo_CSSSupports(property: *const nsACString, value: *const n
 unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>, element: GeckoElement)
     -> Option<&'a mut RestyleData>
 {
-    let r = data.restyle();
-    if r.is_some() {
-        // Propagate the bit up the chain.
-        let mut curr = element;
-        while let Some(parent) = curr.parent_element() {
-            curr = parent;
-            if curr.has_dirty_descendants() { break; }
-            curr.set_dirty_descendants();
-        }
+    // Don't generate a useless RestyleData if the element hasn't been styled.
+    if !data.has_styles() {
+        return None;
     }
-    r
+
+    // Propagate the bit up the chain.
+    let mut curr = element;
+    while let Some(parent) = curr.parent_element() {
+        curr = parent;
+        if curr.has_dirty_descendants() { break; }
+        curr.set_dirty_descendants();
+    }
+
+    // Ensure and return the RestyleData.
+    Some(data.ensure_restyle())
 }
 
 #[no_mangle]
@@ -908,62 +913,43 @@ pub extern "C" fn Servo_ImportRule_GetSheet(import_rule:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_CheckChangeHint(element: RawGeckoElementBorrowed) -> nsChangeHint
+pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed) -> nsChangeHint
 {
     let element = GeckoElement(element);
-    if element.get_data().is_none() {
+    let damage = if let Some(mut data) = element.mutate_data() {
+        let d = data.get_restyle().map_or(GeckoRestyleDamage::empty(), |r| r.damage);
+        data.clear_restyle();
+        d
+    } else {
         error!("Trying to get change hint from unstyled element");
-        return nsChangeHint(0);
-    }
+        GeckoRestyleDamage::empty()
+    };
 
-    let mut data = element.get_data().unwrap().borrow_mut();
-    let damage = data.damage_sloppy();
-
-    // If there's no change hint, the caller won't consume the new style. Do that
-    // ourselves.
-    //
-    // FIXME(bholley): Once we start storing style data on frames, we'll want to
-    // drop the data here instead.
-    if damage.is_empty() {
-        data.persist();
-    }
-
-    debug!("Servo_GetChangeHint: {:?}, damage={:?}", element, damage);
+    debug!("Servo_TakeChangeHint: {:?}, damage={:?}", element, damage);
     damage.as_change_hint()
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
-                                     raw_data: RawServoStyleSetBorrowed,
-                                     consume: structs::ConsumeStyleBehavior)
+                                     raw_data: RawServoStyleSetBorrowed)
                                      -> ServoComputedValuesStrong
 {
     let element = GeckoElement(element);
-    debug!("Servo_ResolveStyle: {:?}, consume={:?}", element, consume);
-
-    let mut data = unsafe { element.ensure_data() }.borrow_mut();
-    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
+    debug!("Servo_ResolveStyle: {:?}", element);
+    let data = unsafe { element.ensure_data() }.borrow_mut();
 
     if !data.has_current_styles() {
         error!("Resolving style on unstyled element with lazy computation forbidden.");
+        let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
         return per_doc_data.default_computed_values.clone().into_strong();
     }
 
-    let values = data.styles().primary.values.clone();
-
-    if consume == structs::ConsumeStyleBehavior::Consume {
-        // FIXME(bholley): Once we start storing style data on frames, we'll want to
-        // drop the data here instead.
-        data.persist();
-    }
-
-    values.into_strong()
+    data.styles().primary.values.clone().into_strong()
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
                                            pseudo_tag: *mut nsIAtom,
-                                           consume: structs::ConsumeStyleBehavior,
                                            raw_data: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong
 {
@@ -983,15 +969,6 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     let mut result = element.mutate_data()
                             .and_then(|d| d.get_styles().map(&finish));
     if result.is_some() {
-        if consume == structs::ConsumeStyleBehavior::Consume {
-            let mut d = element.mutate_data().unwrap();
-            if !d.is_persistent() {
-                // XXXheycam is it right to persist an ElementData::Restyle?
-                // Couldn't we lose restyle hints that would cause us to
-                // restyle descendants?
-                d.persist();
-            }
-        }
         return result.unwrap().into_strong();
     }
 
@@ -1006,12 +983,6 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     let clear = |el: GeckoElement| el.clear_data();
     resolve_style(&mut context, element, &ensure, &clear,
                   |styles| result = Some(finish(styles)));
-
-    // Consume the style if requested, though it may not exist anymore if the
-    // element is in a display:none subtree.
-    if consume == structs::ConsumeStyleBehavior::Consume {
-        element.mutate_data().map(|mut d| d.persist());
-    }
 
     result.unwrap().into_strong()
 }

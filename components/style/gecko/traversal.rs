@@ -26,12 +26,12 @@ impl RecalcStyleOnly {
     }
 }
 
-impl<'ln> DomTraversal<GeckoNode<'ln>> for RecalcStyleOnly {
-    type ThreadLocalContext = ThreadLocalStyleContext<GeckoElement<'ln>>;
+impl<'le> DomTraversal<GeckoElement<'le>> for RecalcStyleOnly {
+    type ThreadLocalContext = ThreadLocalStyleContext<GeckoElement<'le>>;
 
     fn process_preorder(&self, traversal_data: &mut PerLevelTraversalData,
                         thread_local: &mut Self::ThreadLocalContext,
-                        node: GeckoNode<'ln>)
+                        node: GeckoNode<'le>)
     {
         if node.is_element() {
             let el = node.as_element().unwrap();
@@ -44,18 +44,18 @@ impl<'ln> DomTraversal<GeckoNode<'ln>> for RecalcStyleOnly {
         }
     }
 
-    fn process_postorder(&self, _: &mut Self::ThreadLocalContext, _: GeckoNode<'ln>) {
+    fn process_postorder(&self, _: &mut Self::ThreadLocalContext, _: GeckoNode<'le>) {
         unreachable!();
     }
 
     /// We don't use the post-order traversal for anything.
     fn needs_postorder_traversal() -> bool { false }
 
-    unsafe fn ensure_element_data<'a>(element: &'a GeckoElement<'ln>) -> &'a AtomicRefCell<ElementData> {
+    unsafe fn ensure_element_data<'a>(element: &'a GeckoElement<'le>) -> &'a AtomicRefCell<ElementData> {
         element.ensure_data()
     }
 
-    unsafe fn clear_element_data<'a>(element: &'a GeckoElement<'ln>) {
+    unsafe fn clear_element_data<'a>(element: &'a GeckoElement<'le>) {
         element.clear_data()
     }
 

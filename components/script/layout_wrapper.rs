@@ -67,7 +67,7 @@ use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, PresentationalHintsSynthe
 use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
-use style::selector_parser::{NonTSPseudoClass, PseudoElement, RestyleDamage, SelectorImpl};
+use style::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
 use style::sink::Push;
 use style::str::is_whitespace;
 use style::stylist::ApplicableDeclarationBlock;
@@ -740,6 +740,7 @@ impl<'ln> NodeInfo for ServoThreadSafeLayoutNode<'ln> {
 }
 
 impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
+    type ConcreteNode = ServoLayoutNode<'ln>;
     type ConcreteThreadSafeLayoutElement = ServoThreadSafeLayoutElement<'ln>;
     type ChildrenIterator = ThreadSafeLayoutNodeChildrenIterator<Self>;
 
@@ -815,15 +816,8 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         }
     }
 
-    fn restyle_damage(self) -> RestyleDamage {
-        let element = if self.is_text_node() {
-            self.node.parent_node().unwrap().as_element().unwrap()
-        } else {
-            self.node.as_element().unwrap()
-        };
-
-        let damage = element.borrow_data().unwrap().damage();
-        damage
+    unsafe fn unsafe_get(self) -> Self::ConcreteNode {
+        self.node
     }
 
     fn can_be_fragmented(&self) -> bool {

@@ -37,6 +37,8 @@ use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutD
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_layout_interface::wrapper_traits::GetLayoutData;
 use style::computed_values::content::{self, ContentItem};
+use style::dom::{NodeInfo, TNode};
+use style::selector_parser::RestyleDamage;
 
 pub type NonOpaqueStyleAndLayoutData = AtomicRefCell<PersistentLayoutData>;
 
@@ -120,6 +122,12 @@ pub trait ThreadSafeLayoutNodeHelpers {
     ///
     /// FIXME(pcwalton): This might have too much copying and/or allocation. Profile this.
     fn text_content(&self) -> TextContent;
+
+    /// The RestyleDamage from any restyling, or RestyleDamage::rebuild_and_reflow() if this
+    /// is the first time layout is visiting this node. We implement this here, rather than
+    /// with the rest of the wrapper layer, because we need layout code to determine whether
+    /// layout has visited the node.
+    fn restyle_damage(self) -> RestyleDamage;
 }
 
 impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
@@ -149,6 +157,37 @@ impl<T: ThreadSafeLayoutNode> ThreadSafeLayoutNodeHelpers for T {
 
         return TextContent::Text(self.node_text_content());
     }
+
+    fn restyle_damage(self) -> RestyleDamage {
+        // We need the underlying node to potentially access the parent in the
+        // case of text nodes. This is safe as long as we don't let the parent
+        // escape and never access its descendants.
+        let mut node = unsafe { self.unsafe_get() };
+
+        // If this is a text node, use the parent element, since that's what
+        // controls our style.
+        if node.is_text_node() {
+            node = node.parent_node().unwrap();
+            debug_assert!(node.is_element());
+        }
+
+        let data = node.borrow_layout_data().unwrap();
+        if let Some(r) = data.base.style_data.get_restyle() {
+            // We're reflowing a node that just got a restyle, and so the
+            // damage has been computed and stored in the RestyleData.
+            r.damage
+        } else if !data.flags.contains(::data::HAS_BEEN_TRAVERSED) {
+            // We're reflowing a node that was styled for the first time and
+            // has never been visited by layout. Return rebuild_and_reflow,
+            // because that's what the code expects.
+            RestyleDamage::rebuild_and_reflow()
+        } else {
+            // We're reflowing a node whose style data didn't change, but whose
+            // layout may change due to changes in ancestors or descendants.
+            RestyleDamage::empty()
+        }
+    }
+
 }
 
 pub enum TextContent {

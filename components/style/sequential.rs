@@ -10,18 +10,18 @@ use dom::{TElement, TNode};
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
 /// Do a sequential DOM traversal for layout or styling, generic over `D`.
-pub fn traverse_dom<N, D>(traversal: &D,
-                          root: N::ConcreteElement,
+pub fn traverse_dom<E, D>(traversal: &D,
+                          root: E,
                           token: PreTraverseToken)
-    where N: TNode,
-          D: DomTraversal<N>,
+    where E: TElement,
+          D: DomTraversal<E>,
 {
     debug_assert!(token.should_traverse());
 
-    fn doit<N, D>(traversal: &D, traversal_data: &mut PerLevelTraversalData,
-                  thread_local: &mut D::ThreadLocalContext, node: N)
-        where N: TNode,
-              D: DomTraversal<N>
+    fn doit<E, D>(traversal: &D, traversal_data: &mut PerLevelTraversalData,
+                  thread_local: &mut D::ThreadLocalContext, node: E::ConcreteNode)
+        where E: TElement,
+              D: DomTraversal<E>
     {
         traversal.process_preorder(traversal_data, thread_local, node);
         if let Some(el) = node.as_element() {
@@ -29,7 +29,9 @@ pub fn traverse_dom<N, D>(traversal: &D,
                 *depth += 1;
             }
 
-            D::traverse_children(el, |kid| doit(traversal, traversal_data, thread_local, kid));
+            traversal.traverse_children(thread_local, el, |tlc, kid| {
+                doit(traversal, traversal_data, tlc, kid)
+            });
 
             if let Some(ref mut depth) = traversal_data.current_dom_depth {
                 *depth -= 1;

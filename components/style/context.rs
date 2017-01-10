@@ -8,7 +8,8 @@
 use animation::Animation;
 use app_units::Au;
 use bloom::StyleBloom;
-use dom::{OpaqueNode, TElement};
+use data::ElementData;
+use dom::{OpaqueNode, TNode, TElement};
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
 use matching::StyleSharingCandidateCache;
@@ -89,6 +90,18 @@ pub struct SharedStyleContext {
     pub default_computed_values: Arc<ComputedValues>,
 }
 
+/// Information about the current element being processed. We group this together
+/// into a single struct within ThreadLocalStyleContext so that we can instantiate
+/// and destroy it easily at the beginning and end of element processing.
+struct CurrentElementInfo {
+    /// The element being processed. Currently we use an OpaqueNode since we only
+    /// use this for identity checks, but we could use SendElement if there were
+    /// a good reason to.
+    element: OpaqueNode,
+    /// Whether the element is being styled for the first time.
+    is_initial_style: bool,
+}
+
 /// A thread-local style context.
 ///
 /// This context contains data that needs to be used during restyling, but is
@@ -102,16 +115,51 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     /// A channel on which new animations that have been triggered by style
     /// recalculation can be sent.
     pub new_animations_sender: Sender<Animation>,
+    /// Information related to the current element, non-None during processing.
+    current_element_info: Option<CurrentElementInfo>,
 }
 
 impl<E: TElement> ThreadLocalStyleContext<E> {
-    /// Create a new `ThreadLocalStyleContext` from a shared one.
+    /// Creates a new `ThreadLocalStyleContext` from a shared one.
     pub fn new(shared: &SharedStyleContext) -> Self {
         ThreadLocalStyleContext {
             style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             bloom_filter: StyleBloom::new(),
             new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
+            current_element_info: None,
         }
+    }
+
+    /// Notes when the style system starts traversing an element.
+    pub fn begin_element(&mut self, element: E, data: &ElementData) {
+        debug_assert!(self.current_element_info.is_none());
+        self.current_element_info = Some(CurrentElementInfo {
+            element: element.as_node().opaque(),
+            is_initial_style: !data.has_styles(),
+        });
+    }
+
+    /// Notes when the style system finishes traversing an element.
+    pub fn end_element(&mut self, element: E) {
+        debug_assert!(self.current_element_info.is_some());
+        debug_assert!(self.current_element_info.as_ref().unwrap().element ==
+                      element.as_node().opaque());
+        self.current_element_info = None;
+    }
+
+    /// Returns true if the current element being traversed is being styled for
+    /// the first time.
+    ///
+    /// Panics if called while no element is being traversed.
+    pub fn is_initial_style(&self) -> bool {
+        self.current_element_info.as_ref().unwrap().is_initial_style
+    }
+}
+
+#[cfg(debug_assertions)]
+impl<E: TElement> Drop for ThreadLocalStyleContext<E> {
+    fn drop(&mut self) {
+        debug_assert!(self.current_element_info.is_none());
     }
 }
 

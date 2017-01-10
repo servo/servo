@@ -37,13 +37,13 @@ pub const CHUNK_SIZE: usize = 64;
 
 /// A parallel top down traversal, generic over `D`.
 #[allow(unsafe_code)]
-pub fn traverse_dom<N, D>(traversal: &D,
-                          root: N::ConcreteElement,
+pub fn traverse_dom<E, D>(traversal: &D,
+                          root: E,
                           known_root_dom_depth: Option<usize>,
                           token: PreTraverseToken,
                           queue: &rayon::ThreadPool)
-    where N: TNode,
-          D: DomTraversal<N>,
+    where E: TElement,
+          D: DomTraversal<E>,
 {
     if opts::get().style_sharing_stats {
         STYLE_SHARING_CACHE_HITS.store(0, Ordering::SeqCst);
@@ -91,14 +91,14 @@ pub fn traverse_dom<N, D>(traversal: &D,
 /// A parallel top-down DOM traversal.
 #[inline(always)]
 #[allow(unsafe_code)]
-fn top_down_dom<'a, 'scope, N, D>(nodes: &'a [SendNode<N>],
+fn top_down_dom<'a, 'scope, E, D>(nodes: &'a [SendNode<E::ConcreteNode>],
                                   root: OpaqueNode,
                                   mut traversal_data: PerLevelTraversalData,
                                   scope: &'a rayon::Scope<'scope>,
                                   traversal: &'scope D,
                                   tls: &'scope ScopedTLS<'scope, D::ThreadLocalContext>)
-    where N: TNode + 'scope,
-          D: DomTraversal<N>,
+    where E: TElement + 'scope,
+          D: DomTraversal<E>,
 {
     let mut discovered_child_nodes = vec![];
     {
@@ -112,7 +112,7 @@ fn top_down_dom<'a, 'scope, N, D>(nodes: &'a [SendNode<N>],
             let mut children_to_process = 0isize;
             traversal.process_preorder(&mut traversal_data, &mut *tlc, node);
             if let Some(el) = node.as_element() {
-                D::traverse_children(el, |kid| {
+                traversal.traverse_children(&mut *tlc, el, |_tlc, kid| {
                     children_to_process += 1;
                     discovered_child_nodes.push(unsafe { SendNode::new(kid) })
                 });
@@ -140,13 +140,13 @@ fn top_down_dom<'a, 'scope, N, D>(nodes: &'a [SendNode<N>],
     traverse_nodes(discovered_child_nodes, root, traversal_data, scope, traversal, tls);
 }
 
-fn traverse_nodes<'a, 'scope, N, D>(nodes: Vec<SendNode<N>>, root: OpaqueNode,
+fn traverse_nodes<'a, 'scope, E, D>(nodes: Vec<SendNode<E::ConcreteNode>>, root: OpaqueNode,
                                     traversal_data: PerLevelTraversalData,
                                     scope: &'a rayon::Scope<'scope>,
                                     traversal: &'scope D,
                                     tls: &'scope ScopedTLS<'scope, D::ThreadLocalContext>)
-    where N: TNode + 'scope,
-          D: DomTraversal<N>,
+    where E: TElement + 'scope,
+          D: DomTraversal<E>,
 {
     if nodes.is_empty() {
         return;
@@ -182,12 +182,12 @@ fn traverse_nodes<'a, 'scope, N, D>(nodes: Vec<SendNode<N>>, root: OpaqueNode,
 ///
 /// The only communication between siblings is that they both
 /// fetch-and-subtract the parent's children count.
-fn bottom_up_dom<N, D>(traversal: &D,
+fn bottom_up_dom<E, D>(traversal: &D,
                        thread_local: &mut D::ThreadLocalContext,
                        root: OpaqueNode,
-                       mut node: N)
-    where N: TNode,
-          D: DomTraversal<N>,
+                       mut node: E::ConcreteNode)
+    where E: TElement,
+          D: DomTraversal<E>,
 {
     loop {
         // Perform the appropriate operation.

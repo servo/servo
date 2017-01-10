@@ -660,16 +660,22 @@ pub trait MatchMethods : TElement {
                     // better, factor it out/make it a bit more generic so Gecko
                     // can decide more easily if it knows that it's a child of
                     // replaced content, or similar stuff!
-                    let damage = {
-                        debug_assert!(!data.has_current_styles());
-                        let previous_values = data.get_styles().map(|x| &x.primary.values);
-                        match self.existing_style_for_restyle_damage(previous_values, None) {
-                            Some(ref source) => RestyleDamage::compute(source, &shared_style.values),
-                            None => RestyleDamage::rebuild_and_reflow(),
-                        }
+                    let maybe_damage = {
+                        let previous = data.get_styles().map(|x| &x.primary.values);
+                        let existing = self.existing_style_for_restyle_damage(previous, None);
+                        existing.map(|e| RestyleDamage::compute(e, &shared_style.values))
                     };
+                    if let Some(d) = maybe_damage {
+                        data.restyle_mut().damage |= d;
+                    }
 
-                    data.finish_styling(ElementStyles::new(shared_style), damage);
+                    // We never put elements with pseudo style into the style sharing cache,
+                    // so we can just mint an ElementStyles directly here.
+                    //
+                    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1329361
+                    let styles = ElementStyles::new(shared_style);
+                    data.set_styles(styles);
+
                     return StyleSharingResult::StyleWasShared(i)
                 }
                 Err(miss) => {
@@ -857,7 +863,10 @@ pub trait MatchMethods : TElement {
             damage
         };
 
-        data.finish_styling(new_styles, damage);
+        if data.has_styles() {
+            data.restyle_mut().damage |= damage;
+        }
+        data.set_styles(new_styles);
     }
 
     /// Given the old and new styling results, compute the final restyle damage.
