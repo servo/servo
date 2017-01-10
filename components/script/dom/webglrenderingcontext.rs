@@ -109,7 +109,7 @@ fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
         (constants::ONE_MINUS_CONSTANT_COLOR, constants::ONE_MINUS_CONSTANT_ALPHA) => true,
         (constants::ONE_MINUS_CONSTANT_COLOR, constants::CONSTANT_ALPHA) => true,
         (constants::CONSTANT_COLOR, constants::ONE_MINUS_CONSTANT_ALPHA) => true,
-        (_,_) => false
+        (_, _) => false
     }
 }
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
