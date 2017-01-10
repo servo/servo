@@ -11,9 +11,6 @@ use url::quirks;
 pub struct UrlHelper;
 
 impl UrlHelper {
-    pub fn SameOrigin(url_a: &ServoUrl, url_b: &ServoUrl) -> bool {
-        url_a.origin() == url_b.origin()
-    }
     pub fn Origin(url: &ServoUrl) -> USVString {
         USVString(quirks::origin(url.as_url().unwrap()).to_owned())
     }
