@@ -15,8 +15,6 @@ use euclid::Point2D;
 use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::StackingContext;
-use gfx_traits::ScrollRootId;
 use gfx_traits::print_tree::PrintTree;
 use layout_debug;
 use model::MaybeAuto;
@@ -481,10 +479,8 @@ impl Flow for TableRowFlow {
         self.block_flow.build_display_list_for_block(state, border_painting_mode);
     }
 
-    fn collect_stacking_contexts(&mut self,
-                                 parent: &mut StackingContext,
-                                 parent_scroll_root_id: ScrollRootId) {
-        self.block_flow.collect_stacking_contexts(parent, parent_scroll_root_id);
+    fn collect_stacking_contexts(&mut self, state: &mut DisplayListBuildState) {
+        self.block_flow.collect_stacking_contexts(state);
     }
 
     fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {

@@ -232,17 +232,11 @@ pub struct BuildDisplayList<'a> {
 impl<'a> BuildDisplayList<'a> {
     #[inline]
     pub fn traverse(&mut self, flow: &mut Flow) {
-        let new_stacking_context =
-            flow::base(flow).stacking_context_id != self.state.stacking_context_id();
-        if new_stacking_context {
-            self.state.push_stacking_context_id(flow::base(flow).stacking_context_id);
-        }
+        let parent_stacking_context_id = self.state.current_stacking_context_id;
+        self.state.current_stacking_context_id = flow::base(flow).stacking_context_id;
 
-        let new_scroll_root =
-            flow::base(flow).scroll_root_id != self.state.scroll_root_id();
-        if new_scroll_root {
-            self.state.push_scroll_root_id(flow::base(flow).scroll_root_id);
-        }
+        let parent_scroll_root_id = self.state.current_scroll_root_id;
+        self.state.current_scroll_root_id = flow::base(flow).scroll_root_id;
 
         if self.should_process() {
             flow.build_display_list(&mut self.state);
@@ -253,13 +247,8 @@ impl<'a> BuildDisplayList<'a> {
             self.traverse(kid);
         }
 
-        if new_stacking_context {
-            self.state.pop_stacking_context_id();
-        }
-
-        if new_scroll_root {
-            self.state.pop_scroll_root_id();
-        }
+        self.state.current_stacking_context_id = parent_stacking_context_id;
+        self.state.current_scroll_root_id = parent_scroll_root_id;
     }
 
     #[inline]
