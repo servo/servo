@@ -63,7 +63,7 @@ pub struct HTMLScriptElement {
     parser_document: JS<Document>,
 
     /// The source this script was loaded from
-    load: DOMRefCell<Option<Result<ScriptOrigin, NetworkError>>>,
+    load: DOMRefCell<Option<Result<ClassicScript, NetworkError>>>,
 }
 
 impl HTMLScriptElement {
@@ -113,23 +113,23 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 ];
 
 #[derive(HeapSizeOf, JSTraceable)]
-pub struct ScriptOrigin {
+pub struct ClassicScript {
     text: DOMString,
     url: ServoUrl,
     external: bool,
 }
 
-impl ScriptOrigin {
-    fn internal(text: DOMString, url: ServoUrl) -> ScriptOrigin {
-        ScriptOrigin {
+impl ClassicScript {
+    fn internal(text: DOMString, url: ServoUrl) -> ClassicScript {
+        ClassicScript {
             text: text,
             url: url,
             external: false,
         }
     }
 
-    fn external(text: DOMString, url: ServoUrl) -> ScriptOrigin {
-        ScriptOrigin {
+    fn external(text: DOMString, url: ServoUrl) -> ClassicScript {
+        ClassicScript {
             text: text,
             url: url,
             external: true,
@@ -200,7 +200,7 @@ impl FetchResponseListener for ScriptContext {
 
             // Step 7.
             let source_text = encoding.decode(&self.data, DecoderTrap::Replace).unwrap();
-            ScriptOrigin::external(DOMString::from(source_text), metadata.final_url)
+            ClassicScript::external(DOMString::from(source_text), metadata.final_url)
         });
 
         // Step 9.
@@ -394,7 +394,7 @@ impl HTMLScriptElement {
                 return;
             }
 
-            // Step 20.3: The "from an external file"" flag is stored in ScriptOrigin.
+            // Step 20.3: The "from an external file"" flag is stored in ClassicScript.
 
             // Step 20.4-20.5.
             let url = match base_url.join(&src) {
@@ -434,7 +434,7 @@ impl HTMLScriptElement {
         } else {
             // Step 21.
             assert!(!text.is_empty());
-            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
+            *self.load.borrow_mut() = Some(Ok(ClassicScript::internal(text, base_url)));
             self.ready_to_be_parser_executed.set(true);
 
             // Step 22.
