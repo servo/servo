@@ -6,7 +6,6 @@ use app_units::Au;
 use bluetooth_traits::BluetoothRequest;
 use cssparser::Parser;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
-use document_loader::LoadType;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -40,7 +39,7 @@ use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
 use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
-use dom::node::{Node, from_untrusted_node_address, window_from_node, document_from_node, NodeDamage};
+use dom::node::{Node, from_untrusted_node_address, window_from_node, NodeDamage};
 use dom::performance::Performance;
 use dom::promise::Promise;
 use dom::screen::Screen;
@@ -55,14 +54,12 @@ use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime, SetWindowProxy};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
+use layout_image::fetch_image_for_layout;
 use msg::constellation_msg::{FrameType, PipelineId};
-use net_traits::{FetchResponseMsg, NetworkError};
-use net_traits::{ResourceThreads, ReferrerPolicy, FetchResponseListener, FetchMetadata};
+use net_traits::{ResourceThreads, ReferrerPolicy};
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
 use net_traits::image_cache_thread::{PendingImageResponse, ImageCacheThread, PendingImageId};
-use net_traits::request::{Type as RequestType, RequestInit as FetchRequestInit};
 use net_traits::storage_thread::StorageType;
-use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
 use open;
 use origin::Origin;
@@ -1841,70 +1838,4 @@ impl Runnable for PostMessageHandler {
                                      window.upcast(),
                                      message.handle());
     }
-}
-
-struct LayoutImageContext {
-    node: Trusted<Node>,
-    id: PendingImageId,
-    url: ServoUrl,
-    cache: ImageCacheThread,
-}
-
-impl FetchResponseListener for LayoutImageContext {
-    fn process_request_body(&mut self) {}
-    fn process_request_eof(&mut self) {}
-    fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        self.cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponse(metadata));
-    }
-
-    fn process_response_chunk(&mut self, payload: Vec<u8>) {
-        self.cache.notify_pending_response(
-            self.id,
-            FetchResponseMsg::ProcessResponseChunk(payload));
-    }
-
-    fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-        let node = self.node.root();
-        let document = document_from_node(&*node);
-        self.cache.notify_pending_response(self.id,
-                                           FetchResponseMsg::ProcessResponseEOF(response));
-        document.finish_load(LoadType::Image(self.url.clone()));
-    }
-}
-
-impl PreInvoke for LayoutImageContext {}
-
-fn fetch_image_for_layout(url: ServoUrl, node: &Node, id: PendingImageId, cache: ImageCacheThread) {
-    let context = Arc::new(Mutex::new(LayoutImageContext {
-        node: Trusted::new(node),
-        id: id,
-        url: url.clone(),
-        cache: cache,
-    }));
-
-    let document = document_from_node(node);
-    let window = window_from_node(node);
-
-    let (action_sender, action_receiver) = ipc::channel().unwrap();
-    let listener = NetworkListener {
-        context: context,
-        task_source: window.networking_task_source(),
-        wrapper: Some(window.get_runnable_wrapper()),
-    };
-    ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-        listener.notify_fetch(message.to().unwrap());
-    });
-
-    let request = FetchRequestInit {
-        url: url.clone(),
-        origin: document.url().clone(),
-        type_: RequestType::Image,
-        pipeline_id: Some(document.global().pipeline_id()),
-        .. FetchRequestInit::default()
-    };
-
-    //XXXjdm should not block load event
-    document.fetch_async(LoadType::Image(url), request, action_sender);
 }

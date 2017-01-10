@@ -108,6 +108,7 @@ pub mod document_loader;
 #[macro_use]
 mod dom;
 pub mod fetch;
+mod layout_image;
 pub mod layout_wrapper;
 mod mem;
 mod network_listener;
