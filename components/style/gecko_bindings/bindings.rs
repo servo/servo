@@ -757,6 +757,9 @@ extern "C" {
                                                               *mut nsCSSValueSharedList);
 }
 extern "C" {
+    pub fn Gecko_PropertyId_IsPrefEnabled(id: nsCSSPropertyID) -> bool;
+}
+extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(ptr: *mut nsStyleFont,
                                                pres_context:
                                                    RawGeckoPresContextBorrowed);
