@@ -86,21 +86,21 @@ impl PropertyDeclarationBlock {
     pub fn property_value_to_css<W>(&self, property: &PropertyId, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
-        // Step 1: done when parsing a string to PropertyId
+        // Step 1.1: done when parsing a string to PropertyId
 
-        // Step 2
+        // Step 1.2
         match property.as_shorthand() {
             Ok(shorthand) => {
-                // Step 2.1
+                // Step 1.2.1
                 let mut list = Vec::new();
                 let mut important_count = 0;
 
-                // Step 2.2
+                // Step 1.2.2
                 for &longhand in shorthand.longhands() {
-                    // Step 2.2.1
+                    // Step 1.2.2.1
                     let declaration = self.get(PropertyDeclarationId::Longhand(longhand));
 
-                    // Step 2.2.2 & 2.2.3
+                    // Step 1.2.2.2 & 1.2.2.3
                     match declaration {
                         Some(&(ref declaration, importance)) => {
                             list.push(declaration);
@@ -112,26 +112,28 @@ impl PropertyDeclarationBlock {
                     }
                 }
 
-                // Step 3.3.2.4
                 // If there is one or more longhand with important, and one or more
                 // without important, we don't serialize it as a shorthand.
                 if important_count > 0 && important_count != list.len() {
                     return Ok(());
                 }
 
-                // Step 2.3
+                // Step 1.2.3
                 // We don't print !important when serializing individual properties,
                 // so we treat this as a normal-importance property
                 let importance = Importance::Normal;
-                let appendable_value = shorthand.get_shorthand_appendable_value(list).unwrap();
-                append_declaration_value(dest, appendable_value, importance, false)
+                match shorthand.get_shorthand_appendable_value(list) {
+                    Some(appendable_value) =>
+                        append_declaration_value(dest, appendable_value, importance, false),
+                    None => return Ok(()),
+                }
             }
             Err(longhand_or_custom) => {
                 if let Some(&(ref value, _importance)) = self.get(longhand_or_custom) {
-                    // Step 3
+                    // Step 2
                     value.to_css(dest)
                 } else {
-                    // Step 4
+                    // Step 3
                     Ok(())
                 }
             }
