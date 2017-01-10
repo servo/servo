@@ -43,6 +43,7 @@ use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use multicol::MulticolFlow;
 use parallel::FlowParallelInfo;
 use serde::{Serialize, Serializer};
+use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect};
 use std::{fmt, mem, raw};
 use std::iter::Zip;
 use std::slice::IterMut;
@@ -248,6 +249,46 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
         might_have_floats_in_or_out
     }
 
+    fn get_overflow_in_parent_coordinates(&self) -> Overflow {
+        // FIXME(#2795): Get the real container size.
+        let container_size = Size2D::zero();
+        let position = base(self).position.to_physical(base(self).writing_mode, container_size);
+
+        let mut overflow = base(self).overflow;
+
+        match self.class() {
+            FlowClass::Block | FlowClass::TableCaption | FlowClass::TableCell => {}
+            _ => {
+                overflow.translate(&position.origin);
+                return overflow;
+            }
+        }
+
+        if !self.as_block().fragment.establishes_stacking_context() ||
+           self.as_block().fragment.style.get_box().transform.0.is_none() {
+            overflow.translate(&position.origin);
+            return overflow;
+        }
+
+        // TODO: Take into account 3d transforms, even though it's a fairly
+        // uncommon case.
+        let transform_2d = self.as_block().fragment.transform_matrix(&position).to_2d();
+        let transformed_overflow = Overflow {
+            paint: f32_rect_to_au_rect(transform_2d.transform_rect(
+                                       &au_rect_to_f32_rect(overflow.paint))),
+            scroll: f32_rect_to_au_rect(transform_2d.transform_rect(
+                                       &au_rect_to_f32_rect(overflow.scroll))),
+        };
+
+        // TODO: We are taking the union of the overflow and transformed overflow here, which
+        // happened implicitly in the previous version of this code. This will probably be
+        // unnecessary once we are taking into account 3D transformations above.
+        overflow.union(&transformed_overflow);
+
+        overflow.translate(&position.origin);
+        overflow
+    }
+
     ///
     /// CSS Section 11.1
     /// This is the union of rectangles of the flows for which we define the
@@ -266,17 +307,11 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
             FlowClass::Block |
             FlowClass::TableCaption |
             FlowClass::TableCell => {
-                // FIXME(#2795): Get the real container size.
-                let container_size = Size2D::zero();
-
                 let overflow_x = self.as_block().fragment.style.get_box().overflow_x;
                 let overflow_y = self.as_block().fragment.style.get_box().overflow_y;
 
                 for kid in mut_base(self).children.iter_mut() {
-                    let mut kid_overflow = base(kid).overflow;
-                    let kid_position = base(kid).position.to_physical(base(kid).writing_mode,
-                                                                      container_size);
-                    kid_overflow.translate(&kid_position.origin);
+                    let mut kid_overflow = kid.get_overflow_in_parent_coordinates();
 
                     // If the overflow for this flow is hidden on a given axis, just
                     // put the existing overflow in the kid rect, so that the union

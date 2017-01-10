@@ -518,6 +518,8 @@ bitflags! {
     flags BlockFlowFlags: u8 {
         #[doc = "If this is set, then this block flow is the root flow."]
         const IS_ROOT = 0b0000_0001,
+        #[doc = "If this is set, then this block flow has overflow and it will scroll."]
+        const HAS_SCROLLING_OVERFLOW = 0b0000_0010,
     }
 }
 
@@ -1675,7 +1677,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn has_scrolling_overflow(&self) -> bool {
+    pub fn style_permits_scrolling_overflow(&self) -> bool {
         match (self.fragment.style().get_box().overflow_x,
                self.fragment.style().get_box().overflow_y.0) {
             (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
@@ -1823,6 +1825,19 @@ impl BlockFlow {
                                               Au::from_f32_px(clip_rect.size.height)));
         self.base.clip = ClippingRegion::from_rect(&clip_rect)
     }
+
+    pub fn mark_scrolling_overflow(&mut self, has_scrolling_overflow: bool) {
+        if has_scrolling_overflow {
+            self.flags.insert(HAS_SCROLLING_OVERFLOW);
+        } else {
+            self.flags.remove(HAS_SCROLLING_OVERFLOW);
+        }
+    }
+
+    pub fn has_scrolling_overflow(&mut self) -> bool {
+        self.flags.contains(HAS_SCROLLING_OVERFLOW)
+    }
+
 }
 
 impl Flow for BlockFlow {

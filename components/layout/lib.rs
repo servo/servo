@@ -50,6 +50,7 @@ extern crate serde_derive;
 extern crate serde_json;
 #[macro_use] extern crate servo_atoms;
 extern crate servo_config;
+extern crate servo_geometry;
 extern crate servo_url;
 extern crate smallvec;
 extern crate style;
