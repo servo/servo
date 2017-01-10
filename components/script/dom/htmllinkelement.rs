@@ -5,6 +5,7 @@
 use cssparser::Parser as CssParser;
 use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
@@ -22,6 +23,7 @@ use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use net_traits::ReferrerPolicy;
+use net_traits::request::CorsSettings;
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -235,6 +237,14 @@ impl HTMLLinkElement {
             }
         };
 
+        // Step 3
+        let cors_setting = match self.GetCrossOrigin() {
+            Some(ref s) if *s == "anonymous" => Some(CorsSettings::Anonymous),
+            Some(ref s) if *s == "use-credentials" => Some(CorsSettings::UseCredentials),
+            None => None,
+            _ => unreachable!()
+        };
+
         let element = self.upcast::<Element>();
 
         let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
@@ -260,7 +270,7 @@ impl HTMLLinkElement {
         loader.load(StylesheetContextSource::LinkElement {
             url: url,
             media: Some(media),
-        }, integrity_metadata.to_owned());
+        }, cors_setting, integrity_metadata.to_owned());
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
@@ -376,6 +386,32 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-target
     make_setter!(SetTarget, "target");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-crossorigin
+    fn GetCrossOrigin(&self) -> Option<DOMString> {
+        let element = self.upcast::<Element>();
+        let attr = element.get_attribute(&ns!(), &local_name!("crossorigin"));
+
+        if let Some(mut val) = attr.map(|v| v.Value()) {
+            val.make_ascii_lowercase();
+            if val == "anonymous" || val == "use-credentials" {
+                return Some(val);
+            }
+            return Some(DOMString::from("anonymous"));
+        }
+        None
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-crossorigin
+    fn SetCrossOrigin(&self, value: Option<DOMString>) {
+        let element = self.upcast::<Element>();
+        match value {
+            Some(val) => element.set_string_attribute(&local_name!("crossorigin"), val),
+            None => {
+                element.remove_attribute(&ns!(), &local_name!("crossorigin"));
+            }
+        }
+    }
 
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
     fn GetSheet(&self) -> Option<Root<DOMStyleSheet>> {
