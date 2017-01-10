@@ -1451,12 +1451,12 @@ impl Document {
     }
 
     pub fn set_pending_parsing_blocking_script(&self, script: &HTMLScriptElement) {
-        assert!(self.get_pending_parsing_blocking_script().is_none());
+        assert!(self.has_pending_parsing_blocking_script());
         self.pending_parsing_blocking_script.set(Some(script));
     }
 
-    pub fn get_pending_parsing_blocking_script(&self) -> Option<Root<HTMLScriptElement>> {
-        self.pending_parsing_blocking_script.get()
+    pub fn has_pending_parsing_blocking_script(&self) -> bool {
+        self.pending_parsing_blocking_script.get().is_some()
     }
 
     pub fn add_deferred_script(&self, script: &HTMLScriptElement) {
