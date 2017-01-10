@@ -11,8 +11,8 @@ use euclid::Point2D;
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use gfx_traits::{DevicePixel, LayerPixel, ScrollRootId};
-use gfx_traits::{Epoch, FrameTreeId, FragmentType};
+use gfx_traits::{DevicePixel, ScrollRootId};
+use gfx_traits::{Epoch, FragmentType};
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -107,6 +107,22 @@ enum ReadyState {
     WaitingForConstellationReply,
     ReadyToSaveImage,
 }
+
+#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+struct FrameTreeId(u32);
+
+impl FrameTreeId {
+    pub fn next(&mut self) {
+        self.0 += 1;
+    }
+}
+
+/// One pixel in layer coordinate space.
+///
+/// This unit corresponds to a "pixel" in layer coordinate space, which after scaling and
+/// transformation becomes a device pixel.
+#[derive(Copy, Clone, Debug)]
+enum LayerPixel {}
 
 /// NB: Never block on the constellation, because sometimes the constellation blocks on us.
 pub struct IOCompositor<Window: WindowMethods> {

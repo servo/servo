@@ -926,7 +926,6 @@ dependencies = [
  "ordered-float 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "range 0.0.1",
- "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -960,7 +959,6 @@ dependencies = [
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "range 0.0.1",
- "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

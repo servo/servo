@@ -19,7 +19,7 @@ use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use euclid::num::{One, Zero};
 use euclid::rect::TypedRect;
 use euclid::side_offsets::SideOffsets2D;
-use gfx_traits::{ScrollPolicy, ScrollRootId, StackingContextId};
+use gfx_traits::{ScrollRootId, StackingContextId};
 use gfx_traits::print_tree::PrintTree;
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
@@ -34,7 +34,7 @@ use style::computed_values::{border_style, filter, image_rendering, mix_blend_mo
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::ByteIndex;
-use webrender_traits::{self, ColorF, GradientStop, WebGLContextId};
+use webrender_traits::{self, ColorF, GradientStop, ScrollPolicy, WebGLContextId};
 
 pub use style::dom::OpaqueNode;
 
@@ -129,7 +129,7 @@ impl DisplayList {
         // Convert the parent translated point into stacking context local transform space if the
         // stacking context isn't fixed.  If it's fixed, we need to use the client point anyway.
         debug_assert!(stacking_context.context_type == StackingContextType::Real);
-        let is_fixed = stacking_context.scroll_policy == ScrollPolicy::FixedPosition;
+        let is_fixed = stacking_context.scroll_policy == ScrollPolicy::Fixed;
         let translated_point = if is_fixed {
             *client_point
         } else {
@@ -251,7 +251,7 @@ impl<'a> Iterator for DisplayListTraversal<'a> {
 /// Display list sections that make up a stacking context. Each section  here refers
 /// to the steps in CSS 2.1 Appendix E.
 ///
-#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, Ord, PartialEq, PartialOrd, RustcEncodable, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum DisplayListSection {
     BackgroundAndBorders,
     BlockBackgroundsAndBorders,
@@ -259,7 +259,7 @@ pub enum DisplayListSection {
     Outlines,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, Ord, PartialEq, PartialOrd, RustcEncodable, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum StackingContextType {
     Real,
     PseudoPositioned,

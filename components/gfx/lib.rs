@@ -58,7 +58,6 @@ extern crate net_traits;
 extern crate ordered_float;
 #[macro_use]
 extern crate range;
-extern crate rustc_serialize;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

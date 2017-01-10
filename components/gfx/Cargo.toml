@@ -29,7 +29,6 @@ net_traits = {path = "../net_traits"}
 ordered-float = "0.2.2"
 plugins = {path = "../plugins"}
 range = {path = "../range"}
-rustc-serialize = "0.3"
 serde = "0.8"
 servo_atoms = {path = "../atoms"}
 servo_geometry = {path = "../geometry"}

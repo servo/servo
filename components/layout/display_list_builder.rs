@@ -27,7 +27,7 @@ use gfx::display_list::{GradientDisplayItem, IframeDisplayItem, ImageDisplayItem
 use gfx::display_list::{LineDisplayItem, OpaqueNode};
 use gfx::display_list::{SolidColorDisplayItem, ScrollRoot, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebGLDisplayItem, WebRenderImageInfo};
-use gfx_traits::{ScrollPolicy, ScrollRootId, StackingContextId};
+use gfx_traits::{ScrollRootId, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
@@ -58,7 +58,7 @@ use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPer
 use style::values::specified::{HorizontalDirection, VerticalDirection};
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
-use webrender_traits::{ColorF, GradientStop};
+use webrender_traits::{ColorF, GradientStop, ScrollPolicy};
 
 trait RgbColor {
     fn rgb(r: u8, g: u8, b: u8) -> Self;
@@ -1912,7 +1912,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                               parent_scroll_root_id: ScrollRootId,
                                               state: &mut DisplayListBuildState) {
         let scroll_policy = if self.is_fixed() {
-            ScrollPolicy::FixedPosition
+            ScrollPolicy::Fixed
         } else {
             ScrollPolicy::Scrollable
         };
