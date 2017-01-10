@@ -891,11 +891,14 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl ComputedValueAsSpecified for SpecifiedValue {}
 </%helpers:vector_longhand>
 
+<% animation_direction_custom_consts = { "alternate-reverse": "Alternate_reverse" } %>
 ${helpers.single_keyword("animation-direction",
                          "normal reverse alternate alternate-reverse",
                          need_index=True,
                          animatable=False,
                          vector=True,
+                         gecko_enum_prefix="PlaybackDirection",
+                         custom_consts=animation_direction_custom_consts,
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
                          allowed_in_keyframe_block=False)}
 
@@ -915,6 +918,7 @@ ${helpers.single_keyword("animation-fill-mode",
                          need_index=True,
                          animatable=False,
                          vector=True,
+                         gecko_enum_prefix="FillMode",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
                          allowed_in_keyframe_block=False)}
 
