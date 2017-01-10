@@ -1076,29 +1076,40 @@ impl PropertyDeclaration {
                     ${property_pref_check(shorthand)}
 
                     match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                        Ok(CSSWideKeyword::InheritKeyword) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push((
-                                    PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Inherit), Importance::Normal));
-                            % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                        },
-                        Ok(CSSWideKeyword::InitialKeyword) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push((
-                                    PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Initial), Importance::Normal));
-                            % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                        },
-                        Ok(CSSWideKeyword::UnsetKeyword) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push((PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Unset), Importance::Normal));
-                            % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                        },
+                        Ok(keyword) => {
+                            match keyword {
+                                CSSWideKeyword::InheritKeyword => {
+                                    result_list.extend_from_slice(&[
+                                        % for sub_property in shorthand.sub_properties:
+                                            (PropertyDeclaration::${sub_property.camel_case}(
+                                                DeclaredValue::Inherit),
+                                             Importance::Normal),
+                                        % endfor
+                                    ]);
+                                    PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                                },
+                                CSSWideKeyword::InitialKeyword => {
+                                    result_list.extend_from_slice(&[
+                                        % for sub_property in shorthand.sub_properties:
+                                            (PropertyDeclaration::${sub_property.camel_case}(
+                                                DeclaredValue::Initial),
+                                             Importance::Normal),
+                                        % endfor
+                                    ]);
+                                    PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                                },
+                                CSSWideKeyword::UnsetKeyword => {
+                                    result_list.extend_from_slice(&[
+                                        % for sub_property in shorthand.sub_properties:
+                                            (PropertyDeclaration::${sub_property.camel_case}(
+                                                DeclaredValue::Unset),
+                                             Importance::Normal),
+                                        % endfor
+                                    ]);
+                                    PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                                },
+                            }
+                        }
                         Err(()) => match shorthands::${shorthand.ident}::parse(context, input, result_list) {
                             Ok(()) => PropertyDeclarationParseResult::ValidOrIgnoredDeclaration,
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
