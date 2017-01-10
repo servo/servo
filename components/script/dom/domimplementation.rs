@@ -23,6 +23,7 @@ use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::Node;
 use dom::text::Text;
 use dom::xmldocument::XMLDocument;
+use script_traits::DocumentActivity;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
@@ -83,6 +84,7 @@ impl DOMImplementationMethods for DOMImplementation {
                                    IsHTMLDocument::NonHTMLDocument,
                                    Some(DOMString::from(content_type)),
                                    None,
+                                   DocumentActivity::Inactive,
                                    DocumentSource::NotFromParser,
                                    loader);
         // Step 2-3.
@@ -129,6 +131,7 @@ impl DOMImplementationMethods for DOMImplementation {
                                 IsHTMLDocument::HTMLDocument,
                                 None,
                                 None,
+                                DocumentActivity::Inactive,
                                 DocumentSource::NotFromParser,
                                 loader,
                                 None,

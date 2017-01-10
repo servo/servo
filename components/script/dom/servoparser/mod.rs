@@ -37,6 +37,7 @@ use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::ScriptThread;
+use script_traits::DocumentActivity;
 use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -116,6 +117,7 @@ impl ServoParser {
                                      context_document.origin().alias(),
                                      IsHTMLDocument::HTMLDocument,
                                      None, None,
+                                     DocumentActivity::Inactive,
                                      DocumentSource::FromParser,
                                      loader,
                                      None, None);

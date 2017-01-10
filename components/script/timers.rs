@@ -233,6 +233,7 @@ impl OneshotTimers {
             return warn!("Suspending an already suspended timer.");
         }
 
+        debug!("Suspending timers.");
         self.suspended_since.set(Some(precise_time_ms()));
         self.invalidate_expected_event_id();
     }
@@ -244,6 +245,7 @@ impl OneshotTimers {
             None => return warn!("Resuming an already resumed timer."),
         };
 
+        debug!("Resuming timers.");
         self.suspension_offset.set(self.suspension_offset.get() + additional_offset);
         self.suspended_since.set(None);
 
@@ -252,7 +254,7 @@ impl OneshotTimers {
 
     fn schedule_timer_call(&self) {
         if self.suspended_since.get().is_some() {
-            // The timer will be scheduled when the pipeline is thawed.
+            // The timer will be scheduled when the pipeline is fully activated.
             return;
         }
 
