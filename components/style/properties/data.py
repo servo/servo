@@ -14,6 +14,14 @@ ALL_SIDES = [(side, False) for side in PHYSICAL_SIDES] + [(side, True) for side 
 ALL_SIZES = [(size, False) for size in PHYSICAL_SIZES] + [(size, True) for size in LOGICAL_SIZES]
 
 
+def maybe_moz_logical_alias(product, side, prop):
+    if product == "gecko" and side[1]:
+        axis, dir = side[0].split("-")
+        if axis == "inline":
+            return prop % dir
+    return None
+
+
 def to_rust_ident(name):
     name = name.replace("-", "_")
     if name in ["static", "super", "box", "move"]:  # Rust keywords
