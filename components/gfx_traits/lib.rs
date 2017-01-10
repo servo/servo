@@ -14,7 +14,6 @@ extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 #[macro_use]
 extern crate range;
-extern crate rustc_serialize;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -41,7 +40,7 @@ const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
 /// One hardware pixel.
 ///
 /// This unit corresponds to the smallest addressable element of the display hardware.
-#[derive(Copy, Clone, RustcEncodable, Debug)]
+#[derive(Copy, Clone, Debug)]
 pub enum DevicePixel {}
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
@@ -172,7 +171,7 @@ impl FragmentType {
 }
 
 int_range_index! {
-    #[derive(Deserialize, Serialize, RustcEncodable)]
+    #[derive(Deserialize, Serialize)]
     #[doc = "An index that refers to a byte offset in a text run. This could \
              point to the middle of a glyph."]
     #[derive(HeapSizeOf)]

@@ -14,6 +14,5 @@ heapsize = "0.3.0"
 heapsize_derive = "0.1"
 plugins = {path = "../plugins"}
 range = {path = "../range"}
-rustc-serialize = "0.3"
 serde = "0.8"
 serde_derive = "0.8"
