@@ -135,18 +135,29 @@ impl FetchResponseListener for FetchContext {
                     promise.global().get_cx(),
                     Error::Type("Network error occurred".to_string()));
                 self.fetch_promise = Some(TrustedPromise::new(promise));
+                self.response_object.root().set_type(DOMResponseType::Error);
                 return;
             },
             // Step 4.2
             Ok(metadata) => {
                 match metadata {
-                    FetchMetadata::Unfiltered(m) =>
-                        fill_headers_with_metadata(self.response_object.root(), m),
+                    FetchMetadata::Unfiltered(m) => {
+                        fill_headers_with_metadata(self.response_object.root(), m);
+                        self.response_object.root().set_type(DOMResponseType::Default);
+                    },
                     FetchMetadata::Filtered { filtered, .. } => match filtered {
-                        FilteredMetadata::Transparent(m) =>
-                            fill_headers_with_metadata(self.response_object.root(), m),
+                        FilteredMetadata::Basic(m) => {
+                            fill_headers_with_metadata(self.response_object.root(), m);
+                            self.response_object.root().set_type(DOMResponseType::Basic);
+                        },
+                        FilteredMetadata::Cors(m) => {
+                            fill_headers_with_metadata(self.response_object.root(), m);
+                            self.response_object.root().set_type(DOMResponseType::Cors);
+                        },
                         FilteredMetadata::Opaque =>
                             self.response_object.root().set_type(DOMResponseType::Opaque),
+                        FilteredMetadata::OpaqueRedirect =>
+                            self.response_object.root().set_type(DOMResponseType::Opaqueredirect)
                     }
                 }
             }

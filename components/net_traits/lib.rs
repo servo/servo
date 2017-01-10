@@ -172,8 +172,10 @@ pub trait FetchTaskTarget {
 
 #[derive(Serialize, Deserialize)]
 pub enum FilteredMetadata {
+    Basic(Metadata),
+    Cors(Metadata),
     Opaque,
-    Transparent(Metadata),
+    OpaqueRedirect
 }
 
 #[derive(Serialize, Deserialize)]

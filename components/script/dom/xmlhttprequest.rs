@@ -854,8 +854,10 @@ impl XMLHttpRequest {
             Ok(meta) => match meta {
                 FetchMetadata::Unfiltered(m) => m,
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
+                    FilteredMetadata::Basic(m) => m,
+                    FilteredMetadata::Cors(m) => m,
                     FilteredMetadata::Opaque => return Err(Error::Network),
-                    FilteredMetadata::Transparent(m) => m
+                    FilteredMetadata::OpaqueRedirect => return Err(Error::Network)
                 }
             },
             Err(_) => {
