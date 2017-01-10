@@ -52,7 +52,8 @@ update_brew() {
        > "${tmp_dir}/Formula/servo-bin.rb"
 
   git -C "${tmp_dir}" add ./Formula/servo-bin.rb
-  git -C "${tmp_dir}" commit -m "Version bump: ${version}"
+  git -C "${tmp_dir}" commit --author="Tom Servo <servo@servo.org>" \
+      -m "Version bump: ${version}"
 
   git -C "${tmp_dir}" push -qf \
       "https://${GITHUB_HOMEBREW_TOKEN}@github.com/servo/homebrew-servo.git" \
