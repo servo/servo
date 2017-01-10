@@ -88,7 +88,7 @@ class Longhand(object):
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
                  allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
-                 has_uncacheable_values=False, logical=False, alias=None):
+                 has_uncacheable_values=False, logical=False, alias=None, prefixes=None):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -110,6 +110,7 @@ class Longhand(object):
         self.cast_type = cast_type
         self.logical = arg_to_bool(logical)
         self.alias = alias.split() if alias else []
+        self.prefixes = prefixes.split() if prefixes else []
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
@@ -135,7 +136,7 @@ class Longhand(object):
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, spec=None, experimental=False, internal=False,
-                 allowed_in_keyframe_block=True, alias=None):
+                 allowed_in_keyframe_block=True, alias=None, prefixes=None):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -147,6 +148,7 @@ class Shorthand(object):
         self.sub_properties = sub_properties
         self.internal = internal
         self.alias = alias.split() if alias else []
+        self.prefixes = prefixes.split() if prefixes else []
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property
@@ -220,12 +222,19 @@ class PropertiesData(object):
     def active_style_structs(self):
         return [s for s in self.style_structs if s.additional_methods or s.longhands]
 
+    def add_prefixed_aliases(self, property_data):
+        # FIXME Servo's DOM architecture doesn't support vendor-prefixed properties.
+        if self.product == "gecko":
+            for prefix in property_data.prefixes:
+                property_data.alias.append('-%s-%s' % (prefix, property_data.name))
+
     def declare_longhand(self, name, products="gecko servo", disable_when_testing=False, **kwargs):
         products = products.split()
         if self.product not in products and not (self.testing and not disable_when_testing):
             return
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
+        self.add_prefixed_aliases(longhand)
         self.current_style_struct.longhands.append(longhand)
         self.longhands.append(longhand)
         self.longhands_by_name[name] = longhand
@@ -243,5 +252,6 @@ class PropertiesData(object):
 
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]
         shorthand = Shorthand(name, sub_properties, *args, **kwargs)
+        self.add_prefixed_aliases(shorthand)
         self.shorthands.append(shorthand)
         return shorthand
