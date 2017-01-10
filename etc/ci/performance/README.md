@@ -18,10 +18,11 @@ Servo Page Load Time Test
 ## CI for Gecko
 
 * Install Firefox Nightly in your PATH
-* Download [geckodriver](https://github.com/mozilla/geckodriver/releases) and add it to the `PATH`
+* Download [geckodriver](https://github.com/mozilla/geckodriver/releases) and add it to the `PATH` (e.g. for Linux `export PATH=$PATH:path/to/geckodriver`)
+* `export FIREFOX_BIN=/path/to/firefox`
 * `pip install selenium`
 * Run `python gecko_driver.py` to test
-* Run `test_all.sh --gecko --submit`
+* Run `test_all.sh --gecko --submit` (omit `--submit` if you don't want to submit to perfherder)
 
 # How it works
 
@@ -29,6 +30,25 @@ Servo Page Load Time Test
 * Some of the tests will make Servo run forever, it's disabled right now. See https://github.com/servo/servo/issues/11087
 * Each testcase is a subtest on Perfherder, and their summary time is the geometric mean of all the subtests.
 * Notice that the test is different from the Talos TP5 test we run for Gecko. So you can NOT conclude that Servo is "faster" or "slower" than Gecko from this test.
+
+# Comparing the performance before and after a patch
+
+* Run the test once before you apply a patch, and once after you apply it.
+* `python test_differ.py output/perf-<before time>.json output/perf-<after time>.json`
+* Green lines means loading time decreased, Blue lines means loading time increased.
+
+# Add your own test
+
+* Add you test case (html file) to the `page_load_test/` folder. For example we can create a `page_load_test/example/example.html`
+* Add a manifest (or modify existing ones) named `page_load_test/example.manifest`
+* Add the lines like this to the manifest:
+
+```
+http://localhost:8000/page_load_test/example/example.html
+# This is a comment
+# Pages got served on a local server at localhost:8000
+```
+* Modify the `MANIFEST=...` link in `test_all.sh` and point that to the new manifest file.
 
 # Unit tests
 
