@@ -69,7 +69,7 @@ pub enum ListenerPhase {
 
 /// https://html.spec.whatwg.org/multipage/#internal-raw-uncompiled-handler
 #[derive(JSTraceable, Clone, PartialEq)]
-pub struct InternalRawUncompiledHandler {
+struct InternalRawUncompiledHandler {
     source: DOMString,
     url: ServoUrl,
     line: usize,
@@ -77,7 +77,7 @@ pub struct InternalRawUncompiledHandler {
 
 /// A representation of an event handler, either compiled or uncompiled raw source, or null.
 #[derive(JSTraceable, PartialEq, Clone)]
-pub enum InlineEventListener {
+enum InlineEventListener {
     Uncompiled(InternalRawUncompiledHandler),
     Compiled(CommonEventHandler),
     Null,
@@ -308,9 +308,9 @@ impl EventTarget {
     }
 
     /// https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handlers-11
-    pub fn set_inline_event_listener(&self,
-                                     ty: Atom,
-                                     listener: Option<InlineEventListener>) {
+    fn set_inline_event_listener(&self,
+                                 ty: Atom,
+                                 listener: Option<InlineEventListener>) {
         let mut handlers = self.handlers.borrow_mut();
         let entries = match handlers.entry(ty) {
             Occupied(entry) => entry.into_mut(),
@@ -363,10 +363,10 @@ impl EventTarget {
 
     // https://html.spec.whatwg.org/multipage/#getting-the-current-value-of-the-event-handler
     #[allow(unsafe_code)]
-    pub fn get_compiled_event_handler(&self,
-                                      handler: InternalRawUncompiledHandler,
-                                      ty: &Atom)
-                                      -> Option<CommonEventHandler> {
+    fn get_compiled_event_handler(&self,
+                                  handler: InternalRawUncompiledHandler,
+                                  ty: &Atom)
+                                  -> Option<CommonEventHandler> {
         // Step 1.1
         let element = self.downcast::<Element>();
         let document = match element {
@@ -484,7 +484,7 @@ impl EventTarget {
 
     pub fn get_event_handler_common<T: CallbackContainer>(&self, ty: &str) -> Option<Rc<T>> {
         let listener = self.get_inline_event_listener(&Atom::from(ty));
-        listener.map(|listener| CallbackContainer::new(listener.parent().callback()))
+        listener.map(|listener| CallbackContainer::new(listener.parent().callback_holder().get()))
     }
 
     pub fn has_handlers(&self) -> bool {

@@ -30,6 +30,48 @@ pub enum ExceptionHandling {
     Rethrow,
 }
 
+
+/// A common base class for representing IDL callback function and
+/// callback interface types.
+#[derive(Default, JSTraceable)]
+pub struct CallbackObject {
+    /// The underlying `JSObject`.
+    callback: Heap<*mut JSObject>,
+}
+
+impl CallbackObject {
+    fn new() -> CallbackObject {
+        CallbackObject {
+            callback: Heap::default(),
+        }
+    }
+
+    pub fn get(&self) -> *mut JSObject {
+        self.callback.get()
+    }
+}
+
+impl PartialEq for CallbackObject {
+    fn eq(&self, other: &CallbackObject) -> bool {
+        self.callback.get() == other.callback.get()
+    }
+}
+
+
+/// A trait to be implemented by concrete IDL callback function and
+/// callback interface types.
+pub trait CallbackContainer {
+    /// Create a new CallbackContainer object for the given `JSObject`.
+    fn new(callback: *mut JSObject) -> Rc<Self>;
+    /// Returns the underlying `CallbackObject`.
+    fn callback_holder(&self) -> &CallbackObject;
+    /// Returns the underlying `JSObject`.
+    fn callback(&self) -> *mut JSObject {
+        self.callback_holder().get()
+    }
+}
+
+
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
 pub struct CallbackFunction {
@@ -40,10 +82,13 @@ impl CallbackFunction {
     /// Create a new `CallbackFunction` for this object.
     pub fn new() -> CallbackFunction {
         CallbackFunction {
-            object: CallbackObject {
-                callback: Heap::default(),
-            },
+            object: CallbackObject::new(),
         }
+    }
+
+    /// Returns the underlying `CallbackObject`.
+    pub fn callback_holder(&self) -> &CallbackObject {
+        &self.object
     }
 
     /// Initialize the callback function with a value.
@@ -53,57 +98,24 @@ impl CallbackFunction {
     }
 }
 
+
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
 pub struct CallbackInterface {
     object: CallbackObject,
 }
 
-/// A common base class for representing IDL callback function and
-/// callback interface types.
-#[derive(JSTraceable)]
-struct CallbackObject {
-    /// The underlying `JSObject`.
-    callback: Heap<*mut JSObject>,
-}
-
-impl PartialEq for CallbackObject {
-    fn eq(&self, other: &CallbackObject) -> bool {
-        self.callback.get() == other.callback.get()
-    }
-}
-
-/// A trait to be implemented by concrete IDL callback function and
-/// callback interface types.
-pub trait CallbackContainer {
-    /// Create a new CallbackContainer object for the given `JSObject`.
-    fn new(callback: *mut JSObject) -> Rc<Self>;
-    /// Returns the underlying `JSObject`.
-    fn callback(&self) -> *mut JSObject;
-}
-
-impl CallbackInterface {
-    /// Returns the underlying `JSObject`.
-    pub fn callback(&self) -> *mut JSObject {
-        self.object.callback.get()
-    }
-}
-
-impl CallbackFunction {
-    /// Returns the underlying `JSObject`.
-    pub fn callback(&self) -> *mut JSObject {
-        self.object.callback.get()
-    }
-}
-
 impl CallbackInterface {
     /// Create a new CallbackInterface object for the given `JSObject`.
     pub fn new() -> CallbackInterface {
         CallbackInterface {
-            object: CallbackObject {
-                callback: Heap::default(),
-            },
+            object: CallbackObject::new(),
         }
+    }
+
+    /// Returns the underlying `CallbackObject`.
+    pub fn callback_holder(&self) -> &CallbackObject {
+        &self.object
     }
 
     /// Initialize the callback function with a value.
@@ -116,7 +128,7 @@ impl CallbackInterface {
     /// or an error otherwise.
     pub fn get_callable_property(&self, cx: *mut JSContext, name: &str) -> Fallible<JSVal> {
         rooted!(in(cx) let mut callable = UndefinedValue());
-        rooted!(in(cx) let obj = self.callback());
+        rooted!(in(cx) let obj = self.callback_holder().get());
         unsafe {
             let c_name = CString::new(name).unwrap();
             if !JS_GetProperty(cx, obj.handle(), c_name.as_ptr(), callable.handle_mut()) {
@@ -132,6 +144,7 @@ impl CallbackInterface {
     }
 }
 
+
 /// Wraps the reflector for `p` into the compartment of `cx`.
 pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
                                            p: &T,
@@ -145,6 +158,7 @@ pub fn wrap_call_this_object<T: DomObject>(cx: *mut JSContext,
         }
     }
 }
+
 
 /// A class that performs whatever setup we need to safely make a call while
 /// this class is on the stack. After `new` returns, the call is safe to make.
