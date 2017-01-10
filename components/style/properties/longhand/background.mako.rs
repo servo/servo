@@ -203,17 +203,17 @@ ${helpers.single_keyword("background-attachment",
 
 ${helpers.single_keyword("background-clip",
                          "border-box padding-box content-box",
-                         vector=True,
+                         vector=True, extra_prefixes="webkit",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
                          animatable=False)}
 
 ${helpers.single_keyword("background-origin",
                          "padding-box border-box content-box",
-                         vector=True,
+                         vector=True, extra_prefixes="webkit",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-origin",
                          animatable=False)}
 
-<%helpers:vector_longhand name="background-size" animatable="True"
+<%helpers:vector_longhand name="background-size" animatable="True" extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-size">
     use cssparser::Token;
     use std::ascii::AsciiExt;

@@ -13,7 +13,8 @@ ${helpers.predefined_type("opacity",
                           animatable=True,
                           spec="https://drafts.csswg.org/css-color/#opacity")}
 
-<%helpers:vector_longhand name="box-shadow" allow_empty="True" animatable="True"
+<%helpers:vector_longhand name="box-shadow" allow_empty="True"
+                          animatable="True" extra_prefixes="webkit"
                           spec="https://drafts.csswg.org/css-backgrounds/#box-shadow">
     use cssparser;
     use std::fmt;
@@ -290,7 +291,7 @@ ${helpers.predefined_type("opacity",
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="filter" animatable="False"
+<%helpers:longhand name="filter" animatable="False" extra_prefixes="webkit"
                    spec="https://drafts.fxtf.org/filters/#propdef-filter">
     //pub use self::computed_value::T as SpecifiedValue;
     use cssparser;

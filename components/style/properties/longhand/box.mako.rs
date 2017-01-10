@@ -436,6 +436,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 <%helpers:vector_longhand name="transition-duration"
                           need_index="True"
                           animatable="False"
+                          extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-duration">
     use values::specified::Time;
 
@@ -461,6 +462,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 <%helpers:vector_longhand name="transition-timing-function"
                           need_index="True"
                           animatable="False"
+                          extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-timing-function">
     use self::computed_value::StartEnd;
 
@@ -722,6 +724,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                           allow_empty="True"
                           need_index="True"
                           animatable="False"
+                          extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-property">
 
     use values::computed::ComputedValueAsSpecified;
@@ -750,6 +753,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 <%helpers:vector_longhand name="transition-delay"
                           need_index="True"
                           animatable="False"
+                          extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-transitions/#propdef-transition-delay">
     pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
     pub use properties::longhands::transition_duration::single_value::computed_value;
@@ -760,6 +764,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                           allow_empty="True"
                           need_index="True"
                           animatable="False",
+                          extra_prefixes="moz webkit"
                           allowed_in_keyframe_block="False"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-name">
     use Atom;
@@ -811,6 +816,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 <%helpers:vector_longhand name="animation-duration"
                           need_index="True"
                           animatable="False",
+                          extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-duration",
                           allowed_in_keyframe_block="False">
     pub use properties::longhands::transition_duration::single_value::computed_value;
@@ -821,6 +827,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 <%helpers:vector_longhand name="animation-timing-function"
                           need_index="True"
                           animatable="False",
+                          extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-timing-function",
                           allowed_in_keyframe_block="False">
     pub use properties::longhands::transition_timing_function::single_value::computed_value;
@@ -833,6 +840,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 <%helpers:vector_longhand name="animation-iteration-count"
                           need_index="True"
                           animatable="False",
+                          extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-iteration-count",
                           allowed_in_keyframe_block="False">
     use std::fmt;
@@ -899,6 +907,7 @@ ${helpers.single_keyword("animation-direction",
                          vector=True,
                          gecko_enum_prefix="PlaybackDirection",
                          custom_consts=animation_direction_custom_consts,
+                         extra_prefixes="moz webkit",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-direction",
                          allowed_in_keyframe_block=False)}
 
@@ -910,6 +919,7 @@ ${helpers.single_keyword("animation-play-state",
                          need_index=True,
                          animatable=False,
                          vector=True,
+                         extra_prefixes="moz webkit",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-play-state",
                          allowed_in_keyframe_block=True)}
 
@@ -919,12 +929,14 @@ ${helpers.single_keyword("animation-fill-mode",
                          animatable=False,
                          vector=True,
                          gecko_enum_prefix="FillMode",
+                         extra_prefixes="moz webkit",
                          spec="https://drafts.csswg.org/css-animations/#propdef-animation-fill-mode",
                          allowed_in_keyframe_block=False)}
 
 <%helpers:vector_longhand name="animation-delay"
                           need_index="True"
                           animatable="False",
+                          extra_prefixes="moz webkit",
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
                           allowed_in_keyframe_block="False">
     pub use properties::longhands::transition_duration::single_value::computed_value;
@@ -1037,7 +1049,8 @@ ${helpers.single_keyword("animation-fill-mode",
 
 
 
-<%helpers:longhand name="transform" products="gecko servo" animatable="${product == 'servo'}"
+<%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
+                   animatable="${product == 'servo'}"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use app_units::Au;
     use style_traits::ToCss;
@@ -1625,10 +1638,11 @@ ${helpers.predefined_type("perspective",
                           "Either::Second(None_)",
                           gecko_ffi_name="mChildPerspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
+                          extra_prefixes="moz webkit",
                           animatable=True)}
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="perspective-origin" animatable="False"
+<%helpers:longhand name="perspective-origin" animatable="False" extra_prefixes="moz webkit"
                    spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -1718,6 +1732,7 @@ ${helpers.predefined_type("perspective",
 ${helpers.single_keyword("backface-visibility",
                          "visible hidden",
                          spec="https://drafts.csswg.org/css-transforms/#backface-visibility-property",
+                         extra_prefixes="moz webkit",
                          animatable=False)}
 
 ${helpers.single_keyword("transform-box",
@@ -1731,9 +1746,10 @@ ${helpers.single_keyword("transform-style",
                          "auto flat preserve-3d" if product == "servo" else
                          "flat preserve-3d",
                          spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
+                         extra_prefixes="moz webkit",
                          animatable=False)}
 
-<%helpers:longhand name="transform-origin" animatable="True"
+<%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit"
                    spec="https://drafts.csswg.org/css-transforms/#transform-origin-property">
     use app_units::Au;
     use std::fmt;

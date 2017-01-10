@@ -78,17 +78,18 @@
 // Flex container properties
 ${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse",
                          spec="https://drafts.csswg.org/css-flexbox/#flex-direction-property",
-                         animatable=False)}
+                         extra_prefixes="webkit", animatable=False)}
 
 ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
                          spec="https://drafts.csswg.org/css-flexbox/#flex-wrap-property",
-                         animatable=False)}
+                         extra_prefixes="webkit", animatable=False)}
 
 // FIXME(stshine): The type of 'justify-content' and 'align-content' is uint16_t in gecko
 // FIXME(stshine): Its higher bytes are used to store fallback value. Disable them in geckolib for now
 ${helpers.single_keyword("justify-content", "flex-start flex-end center space-between space-around",
                          gecko_constant_prefix="NS_STYLE_JUSTIFY",
                          products="servo",
+                         extra_prefixes="webkit",
                          spec="https://drafts.csswg.org/css-flexbox/#justify-content-property",
                          animatable=False)}
 
@@ -97,6 +98,7 @@ ${helpers.single_keyword("justify-content", "flex-start flex-end center space-be
 ${helpers.single_keyword("align-items", "stretch flex-start flex-end center baseline" if product == "servo"
                          else "normal stretch flex-start flex-end center baseline",
                          need_clone=True,
+                         extra_prefixes="webkit",
                          gecko_constant_prefix="NS_STYLE_ALIGN",
                          spec="https://drafts.csswg.org/css-flexbox/#align-items-property",
                          animatable=False)}
@@ -104,6 +106,7 @@ ${helpers.single_keyword("align-items", "stretch flex-start flex-end center base
 ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
                          gecko_constant_prefix="NS_STYLE_ALIGN",
                          products="servo",
+                         extra_prefixes="webkit",
                          spec="https://drafts.csswg.org/css-flexbox/#align-content-property",
                          animatable=False)}
 
@@ -111,12 +114,14 @@ ${helpers.single_keyword("align-content", "stretch flex-start flex-end center sp
 ${helpers.predefined_type("flex-grow", "Number",
                           "0.0", "parse_non_negative",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-grow-property",
+                          extra_prefixes="webkit",
                           needs_context=False,
                           animatable=True)}
 
 ${helpers.predefined_type("flex-shrink", "Number",
                           "1.0", "parse_non_negative",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-shrink-property",
+                          extra_prefixes="webkit",
                           needs_context=False,
                           animatable=True)}
 
@@ -124,13 +129,14 @@ ${helpers.predefined_type("flex-shrink", "Number",
 // FIXME: We don't support the Gecko value 'normal' yet.
 ${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center baseline",
                          need_clone=True,
+                         extra_prefixes="webkit",
                          extra_gecko_values="normal",
                          gecko_constant_prefix="NS_STYLE_ALIGN",
                          spec="https://drafts.csswg.org/css-flexbox/#propdef-align-self",
                          animatable=False)}
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
-<%helpers:longhand name="order" animatable="True"
+<%helpers:longhand name="order" animatable="True" extra_prefixes="webkit"
                    spec="https://drafts.csswg.org/css-flexbox/#order-property">
     use values::computed::ComputedValueAsSpecified;
 
@@ -157,6 +163,7 @@ ${helpers.predefined_type("flex-basis",
                           "LengthOrPercentageOrAutoOrContent",
                           "computed::LengthOrPercentageOrAutoOrContent::Auto",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
+                          extra_prefixes="webkit",
                           animatable=False)}
 
 % for (size, logical) in ALL_SIZES:
@@ -195,6 +202,7 @@ ${helpers.predefined_type("flex-basis",
 
 ${helpers.single_keyword("box-sizing",
                          "content-box border-box",
+                         extra_prefixes="moz webkit",
                          spec="https://drafts.csswg.org/css-ui/#propdef-box-sizing",
                          animatable=False)}
 

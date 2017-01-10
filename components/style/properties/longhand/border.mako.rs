@@ -64,7 +64,7 @@
 % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
     ${helpers.predefined_type("border-" + corner + "-radius", "BorderRadiusSize",
                               "computed::BorderRadiusSize::zero()",
-                              "parse",
+                              "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               animatable=True)}
 % endfor
