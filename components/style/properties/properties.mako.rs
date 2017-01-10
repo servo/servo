@@ -1022,29 +1022,34 @@ impl PropertyDeclaration {
                         }
                     % endif
                     match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                        Ok(CSSWideKeyword::InheritKeyword) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push(
-                                    PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Inherit));
-                            % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                        },
-                        Ok(CSSWideKeyword::InitialKeyword) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push(
-                                    PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Initial));
-                            % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                        },
-                        Ok(CSSWideKeyword::UnsetKeyword) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push(PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Unset));
-                            % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                        },
+                        Ok(keyword) => {
+                            result_list.reserve(${len(shorthand.sub_properties)});
+                            match keyword {
+                                CSSWideKeyword::InheritKeyword => {
+                                    % for sub_property in shorthand.sub_properties:
+                                        result_list.push(
+                                            PropertyDeclaration::${sub_property.camel_case}(
+                                                DeclaredValue::Inherit));
+                                    % endfor
+                                    PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                                },
+                                CSSWideKeyword::InitialKeyword => {
+                                    % for sub_property in shorthand.sub_properties:
+                                        result_list.push(
+                                            PropertyDeclaration::${sub_property.camel_case}(
+                                                DeclaredValue::Initial));
+                                    % endfor
+                                    PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                                },
+                                CSSWideKeyword::UnsetKeyword => {
+                                    % for sub_property in shorthand.sub_properties:
+                                        result_list.push(PropertyDeclaration::${sub_property.camel_case}(
+                                                DeclaredValue::Unset));
+                                    % endfor
+                                    PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                                },
+                            }
+                        }
                         Err(()) => match shorthands::${shorthand.ident}::parse(context, input, result_list) {
                             Ok(()) => PropertyDeclarationParseResult::ValidOrIgnoredDeclaration,
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
