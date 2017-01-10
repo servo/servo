@@ -116,6 +116,13 @@ impl DocumentLoader {
                        request: RequestInit,
                        fetch_target: IpcSender<FetchResponseMsg>) {
         self.add_blocking_load(load);
+        self.fetch_async_background(request, fetch_target);
+    }
+
+    /// Initiate a new fetch that does not block the document load event.
+    pub fn fetch_async_background(&mut self,
+                                  request: RequestInit,
+                                  fetch_target: IpcSender<FetchResponseMsg>) {
         self.resource_threads.sender().send(CoreResourceMsg::Fetch(request, fetch_target)).unwrap();
     }
 
