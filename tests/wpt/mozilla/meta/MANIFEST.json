@@ -5232,6 +5232,18 @@
             "url": "/_mozilla/css/table_margin_auto_a.html"
           }
         ],
+        "css/table_overflow.html": [
+          {
+            "path": "css/table_overflow.html",
+            "references": [
+              [
+                "/_mozilla/css/table_overflow_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_overflow.html"
+          }
+        ],
         "css/table_padding_a.html": [
           {
             "path": "css/table_padding_a.html",
@@ -20554,6 +20566,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_margin_auto_a.html"
+        }
+      ],
+      "css/table_overflow.html": [
+        {
+          "path": "css/table_overflow.html",
+          "references": [
+            [
+              "/_mozilla/css/table_overflow_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_overflow.html"
         }
       ],
       "css/table_padding_a.html": [
