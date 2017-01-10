@@ -547,6 +547,25 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
+    pub fn range_index_of_advance(&self, range: &Range<ByteIndex>, advance: Au, extra_word_spacing: Au) -> (usize, Au) {
+        let mut index = 0;
+        let mut current_advance = Au(0);
+        for glyph in self.iter_glyphs_for_byte_range(range) {
+            if glyph.char_is_space() {
+                current_advance += glyph.advance() + extra_word_spacing
+            } else {
+                current_advance += glyph.advance()
+            }
+            if current_advance > advance {
+                break;
+            } else {
+                index += 1;
+            }
+        }
+        (index, advance - current_advance)
+    }
+
+    #[inline]
     pub fn advance_for_byte_range(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         if range.begin() == ByteIndex(0) && range.end() == self.len() {
             self.total_advance + extra_word_spacing * self.total_spaces

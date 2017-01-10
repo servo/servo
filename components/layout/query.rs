@@ -20,7 +20,7 @@ use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
 use script_layout_interface::rpc::{HitTestResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeGeometryResponse};
 use script_layout_interface::rpc::{NodeOverflowResponse, OffsetParentResponse};
-use script_layout_interface::rpc::{NodeScrollRootIdResponse, ResolvedStyleResponse};
+use script_layout_interface::rpc::{NodeScrollRootIdResponse, ResolvedStyleResponse, TextIndexResponse};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
@@ -85,6 +85,9 @@ pub struct LayoutThreadData {
 
     /// Scroll offsets of stacking contexts. This will only be populated if WebRender is in use.
     pub stacking_context_scroll_offsets: ScrollOffsetMap,
+
+    /// Index in a text fragment. We need this do determine the insertion point.
+    pub text_index_response: TextIndexResponse,
 }
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
@@ -138,7 +141,7 @@ impl LayoutRPC for LayoutRPCImpl {
     fn nodes_from_point(&self,
                         page_point: Point2D<f32>,
                         client_point: Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        let page_point = Point2D::new(Au::from_f32_px(page_point.x),
+        let mut page_point = Point2D::new(Au::from_f32_px(page_point.x),
                                       Au::from_f32_px(page_point.y));
         let client_point = Point2D::new(Au::from_f32_px(client_point.x),
                                         Au::from_f32_px(client_point.y));
@@ -149,7 +152,7 @@ impl LayoutRPC for LayoutRPCImpl {
             let result = match rw_data.display_list {
                 None => panic!("Tried to hit test without a DisplayList"),
                 Some(ref display_list) => {
-                    display_list.hit_test(&page_point,
+                    display_list.hit_test(&mut page_point,
                                           &client_point,
                                           &rw_data.stacking_context_scroll_offsets)
                 }
@@ -205,6 +208,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.margin_style_response.clone()
+    }
+
+    fn text_index(&self) -> TextIndexResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.text_index_response.clone()
     }
 }
 
@@ -580,6 +589,7 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
         !self.has_found_node
     }
 }
+
 
 pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_root: &mut Flow)
         -> Rect<i32> {
