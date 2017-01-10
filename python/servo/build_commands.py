@@ -408,7 +408,7 @@ class MachCommands(CommandBase):
         opts = []
         if with_gecko is not None:
             opts += ["--features", "bindgen"]
-            env["MOZ_DIST"] = path.abspath(with_gecko)
+            env["MOZ_DIST"] = path.abspath(path.expanduser(with_gecko))
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
