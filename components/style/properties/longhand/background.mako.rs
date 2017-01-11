@@ -203,6 +203,7 @@ ${helpers.single_keyword("background-attachment",
 
 ${helpers.single_keyword("background-clip",
                          "border-box padding-box content-box",
+                         extra_gecko_values="text",
                          vector=True, extra_prefixes="webkit",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
                          animatable=False)}

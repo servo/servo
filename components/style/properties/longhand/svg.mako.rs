@@ -158,20 +158,18 @@ ${helpers.single_keyword("mask-repeat",
     }
 </%helpers:vector_longhand>
 
-// missing: margin-box fill-box stroke-box view-box no-clip
-// (gecko doesn't implement these)
 ${helpers.single_keyword("mask-clip",
                          "content-box padding-box border-box",
+                         extra_gecko_values="fill-box stroke-box view-box no-clip",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
                          animatable=False,
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip")}
 
-// missing: margin-box fill-box stroke-box view-box
-// (gecko doesn't implement these)
 ${helpers.single_keyword("mask-origin",
                          "content-box padding-box border-box",
+                         extra_gecko_values="fill-box stroke-box view-box",
                          vector=True,
                          products="gecko",
                          extra_prefixes="webkit",
