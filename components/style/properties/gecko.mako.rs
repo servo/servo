@@ -1565,6 +1565,14 @@ fn static_assert() {
             T::border_box => StyleGeometryBox::Border,
             T::padding_box => StyleGeometryBox::Padding,
             T::content_box => StyleGeometryBox::Content,
+            % if shorthand == "mask":
+            T::fill_box => StyleGeometryBox::Fill,
+            T::stroke_box => StyleGeometryBox::Stroke,
+            T::view_box => StyleGeometryBox::View,
+            T::no_clip => StyleGeometryBox::NoClip,
+            % elif shorthand == "background":
+            T::text => StyleGeometryBox::Text,
+            % endif
         }
     </%self:simple_image_array_property>
 
@@ -1576,6 +1584,11 @@ fn static_assert() {
             T::border_box => StyleGeometryBox::Border,
             T::padding_box => StyleGeometryBox::Padding,
             T::content_box => StyleGeometryBox::Content,
+            % if shorthand == "mask":
+            T::fill_box => StyleGeometryBox::Fill,
+            T::stroke_box => StyleGeometryBox::Stroke,
+            T::view_box => StyleGeometryBox::View,
+            % endif
         }
     </%self:simple_image_array_property>
 

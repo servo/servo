@@ -20,6 +20,14 @@
                     mask_clip::single_value::SpecifiedValue::padding_box,
                 mask_origin::single_value::SpecifiedValue::border_box =>
                     mask_clip::single_value::SpecifiedValue::border_box,
+                % if product == "gecko":
+                mask_origin::single_value::SpecifiedValue::fill_box =>
+                    mask_clip::single_value::SpecifiedValue::fill_box,
+                mask_origin::single_value::SpecifiedValue::stroke_box =>
+                    mask_clip::single_value::SpecifiedValue::stroke_box,
+                mask_origin::single_value::SpecifiedValue::view_box =>
+                    mask_clip::single_value::SpecifiedValue::view_box,
+                % endif
             }
         }
     }
