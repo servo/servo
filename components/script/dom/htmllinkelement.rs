@@ -99,6 +99,17 @@ impl HTMLLinkElement {
             })
         })
     }
+
+    pub fn is_alternate(&self) -> bool {
+        let rel = get_attr(self.upcast(), &local_name!("rel"));
+        match rel {
+            Some(ref value) => {
+                value.split(HTML_SPACE_CHARACTERS)
+                    .any(|s| s.eq_ignore_ascii_case("alternate"))
+            },
+            None => false,
+        }
+    }
 }
 
 fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
@@ -112,17 +123,8 @@ fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
 fn string_is_stylesheet(value: &Option<String>) -> bool {
     match *value {
         Some(ref value) => {
-            let mut found_stylesheet = false;
-            for s in value.split(HTML_SPACE_CHARACTERS).into_iter() {
-                if s.eq_ignore_ascii_case("alternate") {
-                    return false;
-                }
-
-                if s.eq_ignore_ascii_case("stylesheet") {
-                    found_stylesheet = true;
-                }
-            }
-            found_stylesheet
+            value.split(HTML_SPACE_CHARACTERS)
+                .any(|s| s.eq_ignore_ascii_case("stylesheet"))
         },
         None => false,
     }
