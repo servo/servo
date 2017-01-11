@@ -71,7 +71,7 @@ def generate_placeholder(testcase):
         return [timings]
 
 
-def run_gecko_test(testcase, timeout):
+def run_gecko_test(testcase, timeout, is_async):
     with create_gecko_session() as driver:
         driver.set_page_load_timeout(timeout)
         try:
@@ -97,13 +97,15 @@ def run_gecko_test(testcase, timeout):
             print("Failed to get a valid timing measurement.")
             return generate_placeholder(testcase)
 
-        driver.implicitly_wait(10) # sec
-        elem = driver.find_element_by_id("GECKO_TEST_DONE")
-        timings.update(json.loads(
-            driver.execute_script(
-                "return JSON.stringify(window.customTimers)"
-            )
-        ))
+        if is_async:
+            # TODO: the timeout is hardcoded
+            driver.implicitly_wait(5) # sec
+            driver.find_element_by_id("GECKO_TEST_DONE")
+            timings.update(json.loads(
+                driver.execute_script(
+                    "return JSON.stringify(window.customTimers)"
+                )
+            ))
 
 
     return [timings]
