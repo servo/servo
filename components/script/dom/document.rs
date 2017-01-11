@@ -60,7 +60,7 @@ use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
-use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::location::Location;
@@ -118,7 +118,7 @@ use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::default::Default;
 use std::iter::once;
@@ -220,15 +220,15 @@ pub struct Document {
     /// The script element that is currently executing.
     current_script: MutNullableJS<HTMLScriptElement>,
     /// https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
-    pending_parsing_blocking_script: MutNullableJS<HTMLScriptElement>,
+    pending_parsing_blocking_script: DOMRefCell<Option<PendingScript>>,
     /// Number of stylesheets that block executing the next parser-inserted script
     script_blocking_stylesheets_count: Cell<u32>,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
-    deferred_scripts: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
+    deferred_scripts: PendingInOrderScriptVec,
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
-    asap_in_order_scripts_list: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
+    asap_in_order_scripts_list: PendingInOrderScriptVec,
     /// https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
-    asap_scripts_set: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
+    asap_scripts_set: DOMRefCell<VecDeque<PendingScript>>,
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
@@ -1450,25 +1450,27 @@ impl Document {
         changed
     }
 
-    pub fn set_pending_parsing_blocking_script(&self, script: Option<&HTMLScriptElement>) {
-        assert!(self.get_pending_parsing_blocking_script().is_none() || script.is_none());
-        self.pending_parsing_blocking_script.set(script);
+    pub fn set_pending_parsing_blocking_script(&self,
+                                               script: &HTMLScriptElement,
+                                               load: Option<ScriptResult>) {
+        assert!(!self.has_pending_parsing_blocking_script());
+        *self.pending_parsing_blocking_script.borrow_mut() = Some(PendingScript::new_with_load(script, load));
     }
 
-    pub fn get_pending_parsing_blocking_script(&self) -> Option<Root<HTMLScriptElement>> {
-        self.pending_parsing_blocking_script.get()
+    pub fn has_pending_parsing_blocking_script(&self) -> bool {
+        self.pending_parsing_blocking_script.borrow().is_some()
     }
 
     pub fn add_deferred_script(&self, script: &HTMLScriptElement) {
-        self.deferred_scripts.borrow_mut().push(JS::from_ref(script));
+        self.deferred_scripts.push(script);
     }
 
     pub fn add_asap_script(&self, script: &HTMLScriptElement) {
-        self.asap_scripts_set.borrow_mut().push(JS::from_ref(script));
+        self.asap_scripts_set.borrow_mut().push_back(PendingScript::new(script));
     }
 
     pub fn push_asap_in_order_script(&self, script: &HTMLScriptElement) {
-        self.asap_in_order_scripts_list.borrow_mut().push(JS::from_ref(script));
+        self.asap_in_order_scripts_list.push(script);
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
@@ -1573,12 +1575,22 @@ impl Document {
         }
 
         if let Some(parser) = self.get_current_parser() {
-            if let Some(script) = self.pending_parsing_blocking_script.get() {
-                if self.script_blocking_stylesheets_count.get() > 0 || !script.is_ready_to_be_executed() {
-                    return;
-                }
-                self.pending_parsing_blocking_script.set(None);
-                parser.resume_with_pending_parsing_blocking_script(&script);
+            let ready_to_be_executed = match self.pending_parsing_blocking_script.borrow_mut().as_mut() {
+                Some(pending) => {
+                    if self.script_blocking_stylesheets_count.get() > 0 {
+                        return;
+                    }
+                    if let Some(pair) = pending.take_result() {
+                        Some(pair)
+                    } else {
+                        return;
+                    }
+                },
+                None => None,
+            };
+            if let Some((element, result)) = ready_to_be_executed {
+                *self.pending_parsing_blocking_script.borrow_mut() = None;
+                parser.resume_with_pending_parsing_blocking_script(&element, result);
             }
         } else if self.reflow_timeout.get().is_none() {
             // If we don't have a parser, and the reflow timer has been reset, explicitly
@@ -1601,58 +1613,66 @@ impl Document {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-end step 3
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
+    pub fn pending_parsing_blocking_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
+        let mut blocking_script = self.pending_parsing_blocking_script.borrow_mut();
+        let entry = blocking_script.as_mut().unwrap();
+        assert!(&*entry.element == element);
+        entry.loaded(result);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
+    pub fn deferred_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
+        self.deferred_scripts.loaded(element, result);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
     pub fn process_deferred_scripts(&self) {
         if self.ready_state.get() != DocumentReadyState::Interactive {
             return;
         }
         // Part of substep 1.
-        if self.script_blocking_stylesheets_count.get() > 0 {
-            return;
-        }
-        let mut deferred_scripts = self.deferred_scripts.borrow_mut();
-        while !deferred_scripts.is_empty() {
-            {
-                let script = &*deferred_scripts[0];
-                // Part of substep 1.
-                if !script.is_ready_to_be_executed() {
-                    return;
-                }
-                // Substep 2.
-                script.execute();
+        loop {
+            if self.script_blocking_stylesheets_count.get() > 0 {
+                return;
             }
-            // Substep 3.
-            deferred_scripts.remove(0);
-            // Substep 4 (implicit).
-        }
-        // https://html.spec.whatwg.org/multipage/#the-end step 4.
-        self.maybe_dispatch_dom_content_loaded();
-    }
-
-    /// https://html.spec.whatwg.org/multipage/#the-end step 5 and the latter parts of
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script 20.d and 20.e.
-    pub fn process_asap_scripts(&self) {
-        // Execute the first in-order asap-executed script if it's ready, repeat as required.
-        // Re-borrowing the list for each step because it can also be borrowed under execute.
-        while self.asap_in_order_scripts_list.borrow().len() > 0 {
-            let script = Root::from_ref(&*self.asap_in_order_scripts_list.borrow()[0]);
-            if !script.is_ready_to_be_executed() {
+            if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed() {
+                element.execute(result);
+            } else {
                 break;
             }
-            script.execute();
-            self.asap_in_order_scripts_list.borrow_mut().remove(0);
         }
+        if self.deferred_scripts.is_empty() {
+            // https://html.spec.whatwg.org/multipage/#the-end step 4.
+            self.maybe_dispatch_dom_content_loaded();
+        }
+    }
 
-        let mut idx = 0;
-        // Re-borrowing the set for each step because it can also be borrowed under execute.
-        while idx < self.asap_scripts_set.borrow().len() {
-            let script = Root::from_ref(&*self.asap_scripts_set.borrow()[idx]);
-            if !script.is_ready_to_be_executed() {
-                idx += 1;
-                continue;
-            }
-            script.execute();
-            self.asap_scripts_set.borrow_mut().swap_remove(idx);
+    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
+    pub fn asap_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
+        let mut scripts = self.asap_scripts_set.borrow_mut();
+        let idx = scripts.iter().position(|entry| &*entry.element == element).unwrap();
+        scripts.swap(0, idx);
+        scripts[0].loaded(result);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.c.
+    pub fn asap_in_order_script_loaded(&self,
+                                       element: &HTMLScriptElement,
+                                       result: ScriptResult) {
+        self.asap_in_order_scripts_list.loaded(element, result);
+    }
+
+    fn process_asap_scripts(&self) {
+        let pair = self.asap_scripts_set.borrow_mut().front_mut().and_then(PendingScript::take_result);
+        if let Some((element, result)) = pair {
+            self.asap_scripts_set.borrow_mut().pop_front();
+            element.execute(result);
+        }
+        while let Some((element, result)) = self.asap_in_order_scripts_list.take_next_ready_to_be_executed() {
+            element.execute(result);
         }
     }
 
@@ -1889,9 +1909,9 @@ impl Document {
             current_script: Default::default(),
             pending_parsing_blocking_script: Default::default(),
             script_blocking_stylesheets_count: Cell::new(0u32),
-            deferred_scripts: DOMRefCell::new(vec![]),
-            asap_in_order_scripts_list: DOMRefCell::new(vec![]),
-            asap_scripts_set: DOMRefCell::new(vec![]),
+            deferred_scripts: Default::default(),
+            asap_in_order_scripts_list: Default::default(),
+            asap_scripts_set: Default::default(),
             scripting_enabled: Cell::new(browsing_context.is_some()),
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DOMRefCell::new(vec![]),
@@ -3377,5 +3397,62 @@ impl AnimationFrameCallback {
                 let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report);
             }
         }
+    }
+}
+
+#[derive(Default, HeapSizeOf, JSTraceable)]
+#[must_root]
+struct PendingInOrderScriptVec {
+    scripts: DOMRefCell<VecDeque<PendingScript>>,
+}
+
+impl PendingInOrderScriptVec {
+    fn is_empty(&self) -> bool {
+        self.scripts.borrow().is_empty()
+    }
+    fn push(&self, element: &HTMLScriptElement) {
+        self.scripts.borrow_mut().push_back(PendingScript::new(element));
+    }
+
+    fn loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
+        let mut scripts = self.scripts.borrow_mut();
+        let mut entry = scripts.iter_mut().find(|entry| &*entry.element == element).unwrap();
+        entry.loaded(result);
+    }
+
+    fn take_next_ready_to_be_executed(&self) -> Option<(Root<HTMLScriptElement>, ScriptResult)> {
+        let mut scripts = self.scripts.borrow_mut();
+        let pair = scripts.front_mut().and_then(PendingScript::take_result);
+        if pair.is_none() {
+            return None;
+        }
+        scripts.pop_front();
+        pair
+    }
+}
+
+#[derive(HeapSizeOf, JSTraceable)]
+#[must_root]
+struct PendingScript {
+    element: JS<HTMLScriptElement>,
+    load: Option<ScriptResult>,
+}
+
+impl PendingScript {
+    fn new(element: &HTMLScriptElement) -> Self {
+        Self { element: JS::from_ref(element), load: None }
+    }
+
+    fn new_with_load(element: &HTMLScriptElement, load: Option<ScriptResult>) -> Self {
+        Self { element: JS::from_ref(element), load }
+    }
+
+    fn loaded(&mut self, result: ScriptResult) {
+        assert!(self.load.is_none());
+        self.load = Some(result);
+    }
+
+    fn take_result(&mut self) -> Option<(Root<HTMLScriptElement>, ScriptResult)> {
+        self.load.take().map(|result| (Root::from_ref(&*self.element), result))
     }
 }
