@@ -25,6 +25,7 @@ use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, P
 use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
 use hyper::method::Method;
 use hyper::net::Fresh;
+use hyper::net::HttpStream;
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
 use log;
