@@ -8660,6 +8660,12 @@
             "url": "/_mozilla/mozilla/navigator.html"
           }
         ],
+        "mozilla/nested_asap_script.html": [
+          {
+            "path": "mozilla/nested_asap_script.html",
+            "url": "/_mozilla/mozilla/nested_asap_script.html"
+          }
+        ],
         "mozilla/node_compareDocumentPosition.html": [
           {
             "path": "mozilla/node_compareDocumentPosition.html",
