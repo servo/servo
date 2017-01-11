@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cookie_rs;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -498,8 +499,11 @@ impl Runnable for ConnectionEstablishedTask {
         };
 
         // Step 5: Cookies.
-        if let Some(cookies) = self.headers.get::<hyper::header::SetCookie>() {
-            let cookies = cookies.iter().map(|c| Serde(c.clone())).collect();
+        if let Some(cookies) =  self.headers.get::<hyper::header::SetCookie>() {
+            let cookies = cookies.0.iter().filter_map(|cookie| {
+                cookie_rs::Cookie::parse(cookie.to_string()).ok().map(Serde)
+            }).collect();
+
             let _ = ws.global().core_resource_thread().send(
                 SetCookiesForUrl(ws.url.clone(), cookies, HTTP));
         }

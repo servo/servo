@@ -374,18 +374,14 @@ pub enum CoreResourceMsg {
     Fetch(RequestInit, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
-    /// Store a cookie for a given originating URL
-    SetCookieForUrl(ServoUrl,
-                    #[serde(deserialize_with = "::hyper_serde::deserialize",
-                            serialize_with = "::hyper_serde::serialize")]
-                    Cookie,
-                    CookieSource),
-    /// Store cookies for a given originating URL
-    SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie>>, CookieSource),
+    /// Store a set of cookies from a raw cookie header
+    SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
+    /// Store a set of cookies for a given originating URL
+    SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie<'static>>>, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
-    GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie>>>, CookieSource),
+    GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie<'static>>>>, CookieSource),
     /// Cancel a network request corresponding to a given `ResourceId`
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
