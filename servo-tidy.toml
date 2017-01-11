@@ -10,7 +10,7 @@ lint-scripts = [
 
 [ignore]
 # Ignored packages with duplicated versions
-packages = ["bitflags", "lazy_static", "semver", "libloading"]
+packages = ["bitflags", "byteorder", "lazy_static", "semver", "libloading"]
 # Files that are ignored for all tidy and lint checks.
 files = [
   # Generated and upstream code combined with our own. Could use cleanup

@@ -13,7 +13,7 @@ path = "lib.rs"
 euclid = "0.10.1"
 gfx_traits = {path = "../gfx_traits"}
 gleam = "0.2.8"
-image = "0.10"
+image = "0.12"
 ipc-channel = "0.5"
 log = "0.3.5"
 msg = {path = "../msg"}
