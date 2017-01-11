@@ -91,6 +91,7 @@ use script::layout_wrapper::{ServoLayoutElement, ServoLayoutDocument, ServoLayou
 use script_layout_interface::message::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{LayoutRPC, MarginStyleResponse, NodeOverflowResponse, OffsetParentResponse};
+use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
@@ -474,6 +475,7 @@ impl LayoutThread {
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
                     stacking_context_scroll_offsets: HashMap::new(),
+                    text_index_response: TextIndexResponse(None),
                 })),
             error_reporter: CSSErrorReporter {
                 pipelineid: id,
@@ -1039,6 +1041,9 @@ impl LayoutThread {
                     ReflowQueryType::MarginStyleQuery(_) => {
                         rw_data.margin_style_response = MarginStyleResponse::empty();
                     },
+                    ReflowQueryType::TextIndexQuery(..) => {
+                        rw_data.text_index_response = TextIndexResponse(None);
+                    }
                     ReflowQueryType::NoQuery => {}
                 }
                 return;
@@ -1243,7 +1248,7 @@ impl LayoutThread {
                 rw_data.content_boxes_response = process_content_boxes_request(node, root_flow);
             },
             ReflowQueryType::HitTestQuery(translated_point, client_point, update_cursor) => {
-                let translated_point = Point2D::new(Au::from_f32_px(translated_point.x),
+                let mut translated_point = Point2D::new(Au::from_f32_px(translated_point.x),
                                                     Au::from_f32_px(translated_point.y));
 
                 let client_point = Point2D::new(Au::from_f32_px(client_point.x),
@@ -1252,10 +1257,23 @@ impl LayoutThread {
                 let result = rw_data.display_list
                                     .as_ref()
                                     .expect("Tried to hit test with no display list")
-                                    .hit_test(&translated_point,
+                                    .hit_test(&mut translated_point,
                                               &client_point,
                                               &rw_data.stacking_context_scroll_offsets);
                 rw_data.hit_test_response = (result.last().cloned(), update_cursor);
+            },
+            ReflowQueryType::TextIndexQuery(node, mouse_x, mouse_y) => {
+                let node = unsafe { ServoLayoutNode::new(&node) };
+                let opaque_node = node.opaque();
+                let client_point = Point2D::new(Au::from_px(mouse_x),
+                                                Au::from_px(mouse_y));
+                rw_data.text_index_response =
+                    TextIndexResponse(rw_data.display_list
+                                      .as_ref()
+                                      .expect("Tried to hit test with no display list")
+                                      .text_index(opaque_node,
+                                                  &client_point,
+                                                  &rw_data.stacking_context_scroll_offsets));
             },
             ReflowQueryType::NodeGeometryQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
@@ -1593,7 +1611,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
 /// or false if it only needs stacking-relative positions.
 fn reflow_query_type_needs_display_list(query_type: &ReflowQueryType) -> bool {
     match *query_type {
-        ReflowQueryType::HitTestQuery(..) => true,
+        ReflowQueryType::HitTestQuery(..) | ReflowQueryType::TextIndexQuery(..) => true,
         ReflowQueryType::ContentBoxQuery(_) | ReflowQueryType::ContentBoxesQuery(_) |
         ReflowQueryType::NodeGeometryQuery(_) | ReflowQueryType::NodeScrollGeometryQuery(_) |
         ReflowQueryType::NodeOverflowQuery(_) | ReflowQueryType::NodeScrollRootIdQuery(_) |
