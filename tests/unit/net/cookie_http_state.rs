@@ -20,7 +20,7 @@ fn run(set_location: &str, set_cookies: &[&str], final_location: &str) -> String
         let header = Header::parse_header(&[bytes]);
         if let Ok(SetCookie(cookies)) = header {
             for bare_cookie in cookies {
-                if let Some(cookie) = Cookie::new_wrapped(bare_cookie, &url, source) {
+                if let Some(cookie) = Cookie::from_cookie_string(bare_cookie, &url, source) {
                     storage.push(cookie, &url, source);
                 }
             }

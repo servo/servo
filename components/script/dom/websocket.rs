@@ -24,14 +24,13 @@ use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
 use dom_struct::dom_struct;
 use hyper;
-use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::CookieSource::HTTP;
-use net_traits::CoreResourceMsg::{SetCookiesForUrl, WebsocketConnect};
+use net_traits::CoreResourceMsg::{SetCookieHeaderForUrl, WebsocketConnect};
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
 use net_traits::unwrap_websocket_protocol;
@@ -498,10 +497,10 @@ impl Runnable for ConnectionEstablishedTask {
         };
 
         // Step 5: Cookies.
-        if let Some(cookies) = self.headers.get::<hyper::header::SetCookie>() {
-            let cookies = cookies.iter().map(|c| Serde(c.clone())).collect();
+        if let Some(cookies) =  self.headers.get::<hyper::header::SetCookie>() {
+            let cookies = cookies.iter().map(ToString::to_string).collect::<String>();
             let _ = ws.global().core_resource_thread().send(
-                SetCookiesForUrl(ws.url.clone(), cookies, HTTP));
+                SetCookieHeaderForUrl(ws.url.clone(), cookies, HTTP));
         }
 
         // Step 6.

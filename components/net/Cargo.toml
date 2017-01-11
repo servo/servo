@@ -12,11 +12,12 @@ path = "lib.rs"
 [dependencies]
 brotli = "1.0.6"
 content-blocker = "0.2.3"
-cookie = "0.2.5"
+cookie = "0.6"
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
-hyper = "0.9.9"
-hyper_serde = "0.5"
+hyper = "0.10"
+hyper_serde = "0.6"
+hyper-openssl = "0.2.2"
 immeta = "0.3.1"
 ipc-channel = "0.7"
 lazy_static = "0.2"
@@ -26,8 +27,7 @@ mime = "0.2.1"
 mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-openssl = "0.7.6"
-openssl-verify = "0.1"
+openssl = "0.9"
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3"
 serde = "0.9"
@@ -41,7 +41,7 @@ unicase = "1.4.0"
 url = {version = "1.2", features = ["heap_size"]}
 uuid = {version = "0.4", features = ["v4"]}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
-websocket = "0.17"
+websocket = {git = "https://github.com/avadacatavra/rust-websocket.git", branch = "hyper-bump" }
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"

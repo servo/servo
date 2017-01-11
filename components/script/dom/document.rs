@@ -93,8 +93,6 @@ use encoding::all::UTF_8;
 use euclid::point::Point2D;
 use gfx_traits::ScrollRootId;
 use html5ever_atoms::{LocalName, QualName};
-use hyper::header::{Header, SetCookie};
-use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use js::jsapi::JS_GetRuntime;
@@ -102,7 +100,7 @@ use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{FrameId, Key, KeyModifiers, KeyState};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
-use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookieHeaderForUrl};
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
@@ -3102,14 +3100,10 @@ impl DocumentMethods for Document {
             return Err(Error::Security);
         }
 
-        let header = Header::parse_header(&[cookie.into()]);
-        if let Ok(SetCookie(cookies)) = header {
-            let cookies = cookies.into_iter().map(Serde).collect();
-            let _ = self.window
-                        .upcast::<GlobalScope>()
-                        .resource_threads()
-                        .send(SetCookiesForUrl(self.url(), cookies, NonHTTP));
-        }
+        let _ = self.window
+                    .upcast::<GlobalScope>()
+                    .resource_threads()
+                    .send(SetCookieHeaderForUrl(self.url(), String::from(cookie), NonHTTP));
 
         Ok(())
     }
