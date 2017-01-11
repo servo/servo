@@ -5,12 +5,127 @@
 from __future__ import absolute_import, print_function
 
 from distutils.spawn import find_executable
+import json
 import os
+import platform
+import shutil
 import subprocess
-import sys
 
 import servo.packages as packages
 from servo.util import extract, download_file, host_triple
+
+
+def salt(context, force=False):
+    # Ensure Salt is installed in the virtualenv
+    # It's not instaled globally because it's a large, non-required dependency,
+    # and the installation fails on Windows
+    print("Checking Salt installation...", end='')
+    reqs_path = os.path.join(context.topdir, 'python', 'requirements-salt.txt')
+    process = subprocess.Popen(
+        ["pip", "install", "-q", "-I", "-r", reqs_path],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    process.wait()
+    if process.returncode:
+        out, err = process.communicate()
+        print('failed to install Salt via pip:')
+        print('Output: {}\nError: {}'.format(out, err))
+        return 1
+    print("done")
+
+    salt_root = os.path.join(context.sharedir, 'salt')
+    config_dir = os.path.join(salt_root, 'etc', 'salt')
+    pillar_dir = os.path.join(config_dir, 'pillars')
+
+    # In order to allow `mach bootstrap` to work from any CWD,
+    # the `root_dir` must be an absolute path.
+    # We place it under `context.sharedir` because
+    # Salt caches data (e.g. gitfs files) in its `var` subdirectory.
+    # Hence, dynamically generate the config with an appropriate `root_dir`
+    # and serialize it as JSON (which is valid YAML).
+    config = {
+        'fileserver_backend': ['git'],
+        'gitfs_env_whitelist': 'base',
+        'gitfs_provider': 'gitpython',
+        'gitfs_remotes': [
+            'https://github.com/servo/saltfs.git',
+        ],
+        'hash_type': 'sha384',
+        'master': 'localhost',
+        'root_dir': salt_root,
+        'state_output': 'changes',
+        'state_tabular': True,
+    }
+
+    if not os.path.exists(config_dir):
+        os.makedirs(config_dir, mode=0o700)
+    with open(os.path.join(config_dir, 'minion'), 'w') as config_file:
+        config_file.write(json.dumps(config) + '\n')
+
+    # Similarly, the pillar data is created dynamically
+    # and temporarily serialized to disk.
+    # This dynamism is not yet used, but will be in the future
+    # to enable Android bootstrapping by using
+    # context.sharedir as a location for Android packages.
+    pillar = {
+        'top.sls': {
+            'base': {
+                '*': ['bootstrap'],
+            },
+        },
+        'bootstrap.sls': {
+            'fully_managed': False,
+        },
+    }
+    if os.path.exists(pillar_dir):
+        shutil.rmtree(pillar_dir)
+    os.makedirs(pillar_dir, mode=0o700)
+    for filename in pillar:
+        with open(os.path.join(pillar_dir, filename), 'w') as pillar_file:
+            pillar_file.write(json.dumps(pillar[filename]) + '\n')
+
+    cmd = [
+        'sudo',
+        # sudo escapes from the venv, need to use full path
+        find_executable('salt-call'),
+        '--local',
+        '--config-dir={}'.format(config_dir),
+        '--pillar-root={}'.format(pillar_dir),
+        'state.apply',
+        'servo-build-dependencies',
+    ]
+
+    if not force:
+        print('Running bootstrap in dry-run mode to show changes')
+        # Because `test=True` mode runs each state individually without
+        # considering how required/previous states affect the system,
+        # it will often report states with requisites as failing due
+        # to the requisites not actually being run,
+        # even though these are spurious and will succeed during
+        # the actual highstate.
+        # Hence `--retcode-passthrough` is not helpful in dry-run mode,
+        # so only detect failures of the actual salt-call binary itself.
+        retcode = subprocess.call(cmd + ['test=True'])
+        if retcode != 0:
+            print('Something went wrong while bootstrapping')
+            return retcode
+
+        proceed = raw_input(
+            'Proposed changes are above, proceed with bootstrap? [y/N]: '
+        )
+        if proceed.lower() not in ['y', 'yes']:
+            return 0
+
+        print('')
+
+    print('Running Salt bootstrap')
+    retcode = subprocess.call(cmd + ['--retcode-passthrough'])
+    if retcode == 0:
+        print('Salt bootstrapping complete')
+    else:
+        print('Salt bootstrapping encountered errors')
+    return retcode
 
 
 def windows_gnu(context, force=False):
@@ -102,6 +217,10 @@ def bootstrap(context, force=False):
         bootstrapper = windows_gnu
     elif "windows-msvc" in host_triple():
         bootstrapper = windows_msvc
+    elif "linux-gnu" in host_triple():
+        distro, version, _ = platform.linux_distribution()
+        if distro == 'Ubuntu' and version == '14.04':
+            bootstrapper = salt
 
     if bootstrapper is None:
         print('Bootstrap support is not yet available for your OS.')
