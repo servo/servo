@@ -39,7 +39,7 @@ use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
 use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
-use dom::node::{Node, from_untrusted_node_address, window_from_node};
+use dom::node::{Node, from_untrusted_node_address, window_from_node, NodeDamage};
 use dom::performance::Performance;
 use dom::promise::Promise;
 use dom::screen::Screen;
@@ -49,13 +49,16 @@ use euclid::{Point2D, Rect, Size2D};
 use fetch;
 use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleObject, HandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JS_GC, JS_GetRuntime, SetWindowProxy};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
+use layout_image::fetch_image_for_layout;
 use msg::constellation_msg::{FrameType, PipelineId};
 use net_traits::{ResourceThreads, ReferrerPolicy};
-use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
+use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
+use net_traits::image_cache_thread::{PendingImageResponse, ImageCacheThread, PendingImageId};
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
 use open;
@@ -63,7 +66,7 @@ use origin::Origin;
 use profile_traits::mem;
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_layout_interface::TrustedNodeAddress;
+use script_layout_interface::{TrustedNodeAddress, PendingImageState};
 use script_layout_interface::message::{Msg, Reflow, ReflowQueryType, ScriptReflow};
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
@@ -71,7 +74,7 @@ use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse
 use script_layout_interface::rpc::ResolvedStyleResponse;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
-use script_thread::SendableMainThreadScriptChan;
+use script_thread::{SendableMainThreadScriptChan, ImageCacheMsg};
 use script_traits::{ConstellationControlMsg, LoadData, MozBrowserEvent, UntrustedNodeAddress};
 use script_traits::{DocumentState, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, WindowSizeData, WindowSizeType};
@@ -85,6 +88,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
+use std::collections::hash_map::Entry;
 use std::default::Default;
 use std::io::{Write, stderr, stdout};
 use std::rc::Rc;
@@ -162,7 +166,7 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
-    image_cache_chan: ImageCacheChan,
+    image_cache_chan: Sender<ImageCacheMsg>,
     browsing_context: MutNullableJS<BrowsingContext>,
     document: MutNullableJS<Document>,
     history: MutNullableJS<History>,
@@ -246,6 +250,12 @@ pub struct Window {
     /// A handle for communicating messages to the webvr thread, if available.
     #[ignore_heap_size_of = "channels are hard"]
     webvr_thread: Option<IpcSender<WebVRMsg>>
+
+    /// All of the elements that have an outstanding image request that was
+    /// initiated by layout during a reflow. They are stored in the script thread
+    /// to ensure that the element can be marked dirty when the image data becomes
+    /// available at some point in the future.
+    pending_layout_images: DOMRefCell<HashMap<PendingImageId, Vec<JS<Node>>>>,
 }
 
 impl Window {
@@ -287,10 +297,6 @@ impl Window {
         &self.script_chan.0
     }
 
-    pub fn image_cache_chan(&self) -> ImageCacheChan {
-        self.image_cache_chan.clone()
-    }
-
     pub fn parent_info(&self) -> Option<(PipelineId, FrameType)> {
         self.parent_info
     }
@@ -329,6 +335,29 @@ impl Window {
 
     pub fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
         self.webvr_thread.clone()
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn pending_image_notification(&self, response: PendingImageResponse) {
+        //XXXjdm could be more efficient to send the responses to the layout thread,
+        //       rather than making the layout thread talk to the image cache to
+        //       obtain the same data.
+        let mut images = self.pending_layout_images.borrow_mut();
+        let nodes = images.entry(response.id);
+        let nodes = match nodes {
+            Entry::Occupied(nodes) => nodes,
+            Entry::Vacant(_) => return,
+        };
+        for node in nodes.get() {
+            node.dirty(NodeDamage::OtherNodeDamage);
+        }
+        match response.response {
+            ImageResponse::MetadataLoaded(_) => {}
+            ImageResponse::Loaded(_) |
+            ImageResponse::PlaceholderLoaded(_) |
+            ImageResponse::None => { nodes.remove(); }
+        }
+        self.add_pending_reflow();
     }
 }
 
@@ -1143,6 +1172,31 @@ impl Window {
             self.emit_timeline_marker(marker.end());
         }
 
+        let pending_images = self.layout_rpc.pending_images();
+        for image in pending_images {
+            let id = image.id;
+            let js_runtime = self.js_runtime.borrow();
+            let js_runtime = js_runtime.as_ref().unwrap();
+            let node = from_untrusted_node_address(js_runtime.rt(), image.node);
+
+            if let PendingImageState::Unrequested(ref url) = image.state {
+                fetch_image_for_layout(url.clone(), &*node, id, self.image_cache_thread.clone());
+            }
+
+            let mut images = self.pending_layout_images.borrow_mut();
+            let nodes = images.entry(id).or_insert(vec![]);
+            if nodes.iter().find(|n| **n == JS::from_ref(&*node)).is_none() {
+                let (responder, responder_listener) = ipc::channel().unwrap();
+                let pipeline = self.upcast::<GlobalScope>().pipeline_id();
+                let image_cache_chan = self.image_cache_chan.clone();
+                ROUTER.add_route(responder_listener.to_opaque(), box move |message| {
+                    let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
+                });
+                self.image_cache_thread.add_listener(id, ImageResponder::new(responder, id));
+                nodes.push(JS::from_ref(&*node));
+            }
+        }
+
         true
     }
 
@@ -1202,7 +1256,8 @@ impl Window {
 
             let ready_state = document.ReadyState();
 
-            if ready_state == DocumentReadyState::Complete && !reftest_wait {
+            let pending_images = self.pending_layout_images.borrow().is_empty();
+            if ready_state == DocumentReadyState::Complete && !reftest_wait && pending_images {
                 let global_scope = self.upcast::<GlobalScope>();
                 let event = ConstellationMsg::SetDocumentState(global_scope.pipeline_id(), DocumentState::Idle);
                 global_scope.constellation_chan().send(event).unwrap();
@@ -1585,7 +1640,7 @@ impl Window {
                network_task_source: NetworkingTaskSource,
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
-               image_cache_chan: ImageCacheChan,
+               image_cache_chan: Sender<ImageCacheMsg>,
                image_cache_thread: ImageCacheThread,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothRequest>,
@@ -1664,7 +1719,8 @@ impl Window {
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             media_query_lists: WeakMediaQueryListVec::new(),
             test_runner: Default::default(),
-            webvr_thread: webvr_thread
+            webvr_thread: webvr_thread,
+            pending_layout_images: DOMRefCell::new(HashMap::new()),
         };
 
         unsafe {
