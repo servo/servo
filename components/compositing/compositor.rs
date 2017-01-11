@@ -11,8 +11,7 @@ use euclid::Point2D;
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use gfx_traits::{DevicePixel, ScrollRootId};
-use gfx_traits::{Epoch, FragmentType};
+use gfx_traits::{Epoch, FragmentType, ScrollRootId};
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -22,7 +21,7 @@ use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId, Tra
 use net_traits::image::base::{Image, PixelFormat};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
-use script_traits::{ConstellationMsg, LayoutControlMsg, LoadData, MouseButton};
+use script_traits::{ConstellationMsg, DevicePixel, LayoutControlMsg, LoadData, MouseButton};
 use script_traits::{MouseEventType, StackingContextScrollState};
 use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{self, MouseMoveEvent, MouseButtonEvent, TouchEvent, TouchpadPressureEvent};

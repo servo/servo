@@ -13,7 +13,6 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 #[cfg(target_os = "windows")]
 use gdi32;
-use gfx_traits::DevicePixel;
 use gleam::gl;
 use glutin;
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, MouseScrollDelta, VirtualKeyCode};
@@ -25,7 +24,7 @@ use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER};
 use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
-use script_traits::{TouchEventType, TouchpadPressurePhase};
+use script_traits::{DevicePixel, TouchEventType, TouchpadPressurePhase};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files;
