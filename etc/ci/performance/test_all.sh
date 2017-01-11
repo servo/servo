@@ -40,7 +40,8 @@ python3 -m http.server > /dev/null 2>&1 &
 # TODO: enable the full manifest when #11087 is fixed
 # https://github.com/servo/servo/issues/11087
 # MANIFEST="page_load_test/test.manifest"
-MANIFEST="page_load_test/tp5n/20160509.manifest" # A manifest that excludes
+# MANIFEST="page_load_test/tp5n/20160509.manifest" # A manifest that excludes
+MANIFEST="page_load_test/example.manifest" # A manifest that excludes
                                                  # timeout test cases
 PERF_FILE="output/perf-$(date +%s).json"
 

@@ -20,8 +20,15 @@ def load_manifest(filename):
 
 
 def parse_manifest(text):
-    return filter(lambda x: x != "" and not x.startswith("#"),
-                  map(lambda x: x.strip(), text.splitlines()))
+    lines = filter(lambda x: x != "" and not x.startswith("#"),
+                   map(lambda x: x.strip(), text.splitlines()))
+    output = []
+    for line in lines:
+        if line.split(" ")[0] == "async":
+            output.append((line.split(" ")[1], True))
+        else:
+            output.append((line.split(" ")[0], False))
+    return output
 
 
 def execute_test(url, command, timeout):
@@ -39,7 +46,12 @@ def execute_test(url, command, timeout):
     return ""
 
 
-def run_servo_test(url, timeout):
+def run_servo_test(url, timeout, is_async):
+    if is_async:
+        print("Servo does not support async test!")
+        # Return a placeholder
+        return parse_log("", url)
+
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     command = [
         "../../../target/release/servo", url,
@@ -157,7 +169,7 @@ def parse_log(log, testcase):
 
 def filter_result_by_manifest(result_json, manifest):
     filtered = []
-    for name in manifest:
+    for name, is_async in manifest:
         match = [tc for tc in result_json if tc['testcase'] == name]
         if len(match) == 0:
             raise Exception(("Missing test result: {}. This will cause a "
@@ -177,7 +189,7 @@ def take_result_median(result_json, expected_runs):
 
         median_result = {}
         for k, _ in group[0].items():
-            if k == "testcase":
+            if k == "testcase" or k == "title":
                 median_result[k] = group[0][k]
             else:
                 try:
@@ -257,14 +269,14 @@ def main():
         # Assume the server is up and running
         testcases = load_manifest(args.tp5_manifest)
         results = []
-        for testcase in testcases:
+        for testcase, is_async in testcases:
             for run in range(args.runs):
                 print("Running test {}/{} on {}".format(run + 1,
                                                         args.runs,
                                                         testcase))
                 # results will be a mixure of timings dict and testcase strings
                 # testcase string indicates a failed test
-                results += run_test(testcase, args.timeout)
+                results += run_test(testcase, args.timeout, is_async)
                 print("Finished")
                 # TODO: Record and analyze other performance.timing properties
 
