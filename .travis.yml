@@ -15,7 +15,8 @@ matrix:
          - ./mach test-compiletest
          - ./mach test-unit
          - ./mach build-geckolib
-         - ./mach test-stylo
+         # disabled due to #14723
+         #- ./mach test-stylo
          - bash etc/ci/check_no_panic.sh
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh
