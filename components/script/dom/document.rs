@@ -3271,8 +3271,7 @@ impl DocumentMethods for Document {
 
         // Step 2.
         // TODO: handle throw-on-dynamic-markup-insertion counter.
-        // FIXME: this should check for being active rather than fully active
-        if !self.is_fully_active() {
+        if !self.is_active() {
             // Step 3.
             return Ok(());
         }
