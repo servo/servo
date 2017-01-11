@@ -148,6 +148,7 @@ impl ResourceChannelManager {
         }
     }
 
+
     /// Returns false if the thread should exit.
     fn process_msg(&mut self,
                    msg: CoreResourceMsg,
@@ -158,10 +159,10 @@ impl ResourceChannelManager {
             CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                 self.resource_manager.websocket_connect(connect, connect_data, group),
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) =>
-                self.resource_manager.set_cookie_for_url(&request, cookie, source, group),
+                self.resource_manager.set_cookie_for_url(&request, cookie.into_inner(), source, group),
             CoreResourceMsg::SetCookiesForUrl(request, cookies, source) => {
                 for cookie in cookies {
-                    self.resource_manager.set_cookie_for_url(&request, cookie.0, source, group);
+                    self.resource_manager.set_cookie_for_url(&request, cookie.into_inner(), source, group);
                 }
             }
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
@@ -307,9 +308,11 @@ impl CoreResourceManager {
         }
     }
 
-    fn set_cookie_for_url(&mut self, request: &ServoUrl, cookie: cookie_rs::Cookie, source: CookieSource,
+    fn set_cookie_for_url(&mut self, request: &ServoUrl,
+                          cookie: cookie_rs::Cookie<'static>,
+                          source: CookieSource,
                           resource_group: &ResourceGroup) {
-        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
+        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, request, source) {
             let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
             cookie_jar.push(cookie, request, source)
         }

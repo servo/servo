@@ -196,7 +196,7 @@ def windows_msvc(context, force=False):
     '''Bootstrapper for MSVC building on Windows.'''
 
     deps_dir = os.path.join(context.sharedir, "msvc-dependencies")
-    deps_url = "https://servo-rust.s3.amazonaws.com/msvc-deps/"
+    deps_url = "https://servo-deps.s3.amazonaws.com/msvc-deps/"
 
     def version(package):
         return packages.WINDOWS_MSVC[package]

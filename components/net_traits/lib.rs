@@ -22,7 +22,6 @@ extern crate lazy_static;
 extern crate log;
 extern crate msg;
 extern crate num_traits;
-extern crate openssl;
 extern crate parse_hosts;
 extern crate serde;
 #[macro_use]
@@ -44,7 +43,6 @@ use hyper_serde::Serde;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use openssl::ssl::error::{OpensslError, SslError};
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
 use servo_url::ServoUrl;
@@ -377,17 +375,13 @@ pub enum CoreResourceMsg {
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a cookie for a given originating URL
-    SetCookieForUrl(ServoUrl,
-                    #[serde(deserialize_with = "::hyper_serde::deserialize",
-                            serialize_with = "::hyper_serde::serialize")]
-                    Cookie,
-                    CookieSource),
-    /// Store cookies for a given originating URL
-    SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie>>, CookieSource),
+    SetCookieForUrl(ServoUrl, Serde<Cookie<'static>>, CookieSource),
+    /// Store a set of cookies for a given originating URL
+    SetCookiesForUrl(ServoUrl, Vec<Serde<Cookie<'static>>>, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
-    GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie>>>, CookieSource),
+    GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie<'static>>>>, CookieSource),
     /// Cancel a network request corresponding to a given `ResourceId`
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
@@ -533,63 +527,13 @@ pub enum NetworkError {
 impl NetworkError {
     pub fn from_hyper_error(url: &ServoUrl, error: HyperError) -> Self {
         if let HyperError::Ssl(ref ssl_error) = error {
-            if let Some(ssl_error) = ssl_error.downcast_ref::<SslError>() {
-                return NetworkError::from_ssl_error(url, ssl_error);
-            }
+            return NetworkError::from_ssl_error(url, &**ssl_error);
         }
         NetworkError::Internal(error.description().to_owned())
     }
 
-    pub fn from_ssl_error(url: &ServoUrl, error: &SslError) -> Self {
-        if let SslError::OpenSslErrors(ref errors) = *error {
-            if errors.iter().any(is_cert_verify_error) {
-                let mut error_report = vec![format!("ssl error ({}):", openssl::version::version())];
-                let mut suggestion = None;
-                for err in errors {
-                    if is_unknown_message_digest_err(err) {
-                        suggestion = Some("<b>Servo recommends upgrading to a newer OpenSSL version.</b>");
-                    }
-                    error_report.push(format_ssl_error(err));
-                }
-
-                if let Some(suggestion) = suggestion {
-                    error_report.push(suggestion.to_owned());
-                }
-
-                let error_report = error_report.join("<br>\n");
-                return NetworkError::SslValidation(url.clone(), error_report);
-            }
-        }
-        NetworkError::Internal(error.description().to_owned())
-    }
-}
-
-fn format_ssl_error(error: &OpensslError) -> String {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            format!("{}: {} - {}", library, function, reason)
-        }
-    }
-}
-
-// FIXME: This incredibly hacky. Make it more robust, and at least test it.
-fn is_cert_verify_error(error: &OpensslError) -> bool {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "SSL routines" &&
-            function.to_uppercase() == "SSL3_GET_SERVER_CERTIFICATE" &&
-            reason == "certificate verify failed"
-        }
-    }
-}
-
-fn is_unknown_message_digest_err(error: &OpensslError) -> bool {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "asn1 encoding routines" &&
-            function == "ASN1_item_verify" &&
-            reason == "unknown message digest algorithm"
-        }
+    pub fn from_ssl_error(url: &ServoUrl, error: &Error) -> Self {
+        NetworkError::SslValidation(url.clone(), error.description().to_owned())
     }
 }
 

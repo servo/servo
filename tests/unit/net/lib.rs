@@ -6,6 +6,7 @@ extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
+extern crate hyper_openssl;
 extern crate hyper_serde;
 extern crate ipc_channel;
 extern crate msg;

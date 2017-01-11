@@ -321,7 +321,7 @@ class MachCommands(CommandBase):
                         call(["editbin", "/nologo", "/subsystem:windows", path.join(servo_exe_dir, "servo.exe")],
                              verbose=verbose)
                     # on msvc, we need to copy in some DLLs in to the servo.exe dir
-                    for ssl_lib in ["ssleay32md.dll", "libeay32md.dll"]:
+                    for ssl_lib in ["libcryptoMD.dll", "libsslMD.dll"]:
                         shutil.copy(path.join(env['OPENSSL_LIB_DIR'], "../bin" + msvc_x64, ssl_lib),
                                     servo_exe_dir)
 
