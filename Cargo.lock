@@ -2364,6 +2364,7 @@ dependencies = [
 name = "script_tests"
 version = "0.0.1"
 dependencies = [
+ "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "plugins 0.0.1",
  "script 0.0.1",
