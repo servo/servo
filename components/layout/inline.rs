@@ -15,6 +15,7 @@ use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, Mutab
 use flow::OpaqueFlow;
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
+use fragment::IS_ELLIPSIS;
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
@@ -331,6 +332,16 @@ impl LineBreaker {
                 None => break,
                 Some(fragment) => fragment,
             };
+            
+            // If ellipsis are still needed, then they were already needed for the previous fragment.
+            if fragment.flags.contains(IS_ELLIPSIS) {
+                continue
+            }
+
+            // If ellipsis are still needed, then they were already needed for the previous fragment.
+            if fragment.flags.contains(IS_ELLIPSIS) {
+                continue
+            }
 
             // Try to append the fragment.
             self.reflow_fragment(fragment, flow, layout_context);

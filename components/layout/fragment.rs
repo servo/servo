@@ -764,14 +764,17 @@ impl Fragment {
                                    text_overflow_string: String)
                                    -> Fragment {
         let mut unscanned_ellipsis_fragments = LinkedList::new();
-        unscanned_ellipsis_fragments.push_back(self.transform(
-                self.border_box.size,
-                SpecificFragmentInfo::UnscannedText(
-                    box UnscannedTextFragmentInfo::new(text_overflow_string, None))));
+        let mut ellipsis_fragment = self.transform(
+            self.border_box.size,
+            SpecificFragmentInfo::UnscannedText(
+                box UnscannedTextFragmentInfo::new(text_overflow_string, None)));
+        unscanned_ellipsis_fragments.push_back(ellipsis_fragment);
         let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
                                                                      unscanned_ellipsis_fragments);
         debug_assert!(ellipsis_fragments.len() == 1);
-        ellipsis_fragments.fragments.into_iter().next().unwrap()
+        ellipsis_fragment = ellipsis_fragments.fragments.into_iter().next().unwrap();
+        ellipsis_fragment.flags |= IS_ELLIPSIS;
+        ellipsis_fragment
     }
 
     pub fn restyle_damage(&self) -> RestyleDamage {
@@ -2997,6 +3000,8 @@ bitflags! {
         const IS_INLINE_FLEX_ITEM = 0b0000_0001,
         /// Whether this fragment represents a child in a column flex container.
         const IS_BLOCK_FLEX_ITEM = 0b0000_0010,
+        /// Whether this fragment represents the generated text from a text-overflow clip.
+        const IS_ELLIPSIS = 0b0000_0100,
     }
 }
 
