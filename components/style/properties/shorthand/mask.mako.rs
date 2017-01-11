@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="mask" products="gecko"
+<%helpers:shorthand name="mask" products="gecko" extra_prefixes="webkit"
                     sub_properties="mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position
                                     mask-size mask-image"
                     spec="https://drafts.fxtf.org/css-masking/#propdef-mask">

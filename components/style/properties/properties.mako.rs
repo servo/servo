@@ -759,7 +759,9 @@ impl PropertyId {
         use gecko_bindings::structs::*;
         <%
             def alias_to_nscsspropertyid(alias):
-                return "nsCSSPropertyID_eCSSPropertyAlias_%s" % to_camel_case(alias)
+                if alias == "word-wrap":
+                    return "nsCSSPropertyID_eCSSPropertyAlias_WordWrap"
+                return "nsCSSPropertyID::eCSSPropertyAlias_%s" % to_camel_case(alias)
             def to_nscsspropertyid(ident):
                 if ident == "float":
                     ident = "float_"
@@ -782,7 +784,7 @@ impl PropertyId {
                 }
                 % for alias in property.alias:
                     ${alias_to_nscsspropertyid(alias)} => {
-                        Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
+                        Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
                     }
                 % endfor
             % endfor

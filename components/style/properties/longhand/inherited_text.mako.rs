@@ -156,7 +156,7 @@ ${helpers.single_keyword("text-transform",
 
 ${helpers.single_keyword("hyphens", "none manual auto",
                          gecko_enum_prefix="StyleHyphens",
-                         products="gecko", animatable=False,
+                         products="gecko", animatable=False, extra_prefixes="moz",
                          spec="https://drafts.csswg.org/css-text/#propdef-hyphens")}
 
 ${helpers.predefined_type("text-indent",

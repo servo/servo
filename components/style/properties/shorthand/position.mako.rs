@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="flex-flow" sub_properties="flex-direction flex-wrap"
+<%helpers:shorthand name="flex-flow" sub_properties="flex-direction flex-wrap" extra_prefixes="webkit"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-flow-property">
     use properties::longhands::{flex_direction, flex_wrap};
 
@@ -54,7 +54,7 @@
     }
 </%helpers:shorthand>
 
-<%helpers:shorthand name="flex" sub_properties="flex-grow flex-shrink flex-basis"
+<%helpers:shorthand name="flex" sub_properties="flex-grow flex-shrink flex-basis" extra_prefixes="webkit"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
     use parser::Parse;
     use app_units::Au;

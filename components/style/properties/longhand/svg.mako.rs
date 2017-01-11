@@ -99,10 +99,11 @@ ${helpers.single_keyword("mask-repeat",
                          "repeat repeat-x repeat-y space round no-repeat",
                          vector=True,
                          products="gecko",
+                         extra_prefixes="webkit",
                          animatable=False,
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat")}
 
-<%helpers:vector_longhand name="mask-position" products="gecko" animatable="True"
+<%helpers:vector_longhand name="mask-position" products="gecko" animatable="True" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
     use std::fmt;
     use style_traits::ToCss;
@@ -163,6 +164,7 @@ ${helpers.single_keyword("mask-clip",
                          "content-box padding-box border-box",
                          vector=True,
                          products="gecko",
+                         extra_prefixes="webkit",
                          animatable=False,
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip")}
 
@@ -172,10 +174,11 @@ ${helpers.single_keyword("mask-origin",
                          "content-box padding-box border-box",
                          vector=True,
                          products="gecko",
+                         extra_prefixes="webkit",
                          animatable=False,
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-origin")}
 
-<%helpers:longhand name="mask-size" products="gecko" animatable="True"
+<%helpers:longhand name="mask-size" products="gecko" animatable="True" extra_prefixes="webkit"
                    spec="https://drafts.fxtf.org/css-masking/#propdef-mask-size">
     use properties::longhands::background_size;
     pub use ::properties::longhands::background_size::SpecifiedValue;
@@ -196,10 +199,11 @@ ${helpers.single_keyword("mask-composite",
                          "add subtract intersect exclude",
                          vector=True,
                          products="gecko",
+                         extra_prefixes="webkit",
                          animatable=False,
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-composite")}
 
-<%helpers:vector_longhand name="mask-image" products="gecko" animatable="False"
+<%helpers:vector_longhand name="mask-image" products="gecko" animatable="False" extra_prefixes="webkit"
                           has_uncacheable_values="${product == 'gecko'}",
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-image">
     use std::fmt;

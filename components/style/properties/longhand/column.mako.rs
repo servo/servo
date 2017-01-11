@@ -11,13 +11,14 @@ ${helpers.predefined_type("column-width",
                           "length::LengthOrAuto",
                           "Either::Second(Auto)",
                           parse_method="parse_non_negative_length",
+                          extra_prefixes="moz",
                           animatable=False,
                           experimental=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
 
 
 // FIXME: This prop should be animatable.
-<%helpers:longhand name="column-count" experimental="True" animatable="False"
+<%helpers:longhand name="column-count" experimental="True" animatable="False" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-multicol/#propdef-column-count">
     use std::fmt;
     use style_traits::ToCss;
@@ -102,16 +103,17 @@ ${helpers.predefined_type("column-gap",
                           "length::LengthOrNormal",
                           "Either::Second(Normal)",
                           parse_method='parse_non_negative_length',
+                          extra_prefixes="moz",
                           experimental=True,
                           animatable=False,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
-${helpers.single_keyword("column-fill", "auto balance",
+${helpers.single_keyword("column-fill", "auto balance", extra_prefixes="moz",
                          products="gecko", animatable=False,
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
 // https://drafts.csswg.org/css-multicol-1/#propdef-column-rule-width
-<%helpers:longhand name="column-rule-width" products="gecko" animatable="True"
+<%helpers:longhand name="column-rule-width" products="gecko" animatable="True" extra_prefixes="moz"
                    spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-width">
     use app_units::Au;
     use std::fmt;
@@ -144,7 +146,7 @@ ${helpers.single_keyword("column-fill", "auto balance",
 // https://drafts.csswg.org/css-multicol-1/#crc
 ${helpers.predefined_type("column-rule-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
-                          products="gecko", animatable=True,
+                          products="gecko", animatable=True, extra_prefixes="moz",
                           complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-color")}
 
@@ -155,7 +157,7 @@ ${helpers.single_keyword("column-span", "none all",
 
 ${helpers.single_keyword("column-rule-style",
                          "none hidden dotted dashed solid double groove ridge inset outset",
-                         products="gecko",
+                         products="gecko", extra_prefixes="moz",
                          gecko_constant_prefix="NS_STYLE_BORDER_STYLE",
                          animatable=False,
                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-style")}

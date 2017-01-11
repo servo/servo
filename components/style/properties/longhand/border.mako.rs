@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import Method, PHYSICAL_SIDES, ALL_SIDES %>
+<% from data import Method, PHYSICAL_SIDES, ALL_SIDES, maybe_moz_logical_alias %>
 
 <% data.new_style_struct("Border", inherited=False,
                    additional_methods=[Method("border_" + side + "_has_nonzero_width",
@@ -18,6 +18,7 @@
 % for side in ALL_SIDES:
     ${helpers.predefined_type("border-%s-color" % side[0], "CSSColor",
                               "::cssparser::Color::CurrentColor",
+                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),
                               animatable=True, logical = side[1])}
 % endfor
@@ -26,12 +27,14 @@
     ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
                               "specified::BorderStyle::none",
                               needs_context=False, need_clone=True,
+                              alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
                               spec=maybe_logical_spec(side, "style"),
                               animatable=False, logical = side[1])}
 % endfor
 
 % for side in ALL_SIDES:
     <%helpers:longhand name="border-${side[0]}-width" animatable="True" logical="${side[1]}"
+                       alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width")
                        spec="${maybe_logical_spec(side, 'width')}">
         use app_units::Au;
         use std::fmt;
@@ -61,7 +64,7 @@
 % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
     ${helpers.predefined_type("border-" + corner + "-radius", "BorderRadiusSize",
                               "computed::BorderRadiusSize::zero()",
-                              "parse",
+                              "parse", extra_prefixes="webkit",
                               spec="https://drafts.csswg.org/css-backgrounds/#border-%s-radius" % corner,
                               animatable=True)}
 % endfor

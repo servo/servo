@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import to_rust_ident, ALL_SIDES %>
+<% from data import to_rust_ident, ALL_SIDES, maybe_moz_logical_alias %>
 
 ${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse",
                                spec="https://drafts.csswg.org/css-backgrounds/#border-color")}
@@ -99,7 +99,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     <%helpers:shorthand name="border-${side}" sub_properties="${' '.join(
         'border-%s-%s' % (side, prop)
         for prop in ['color', 'style', 'width']
-    )}" spec="${spec}">
+    )}" alias=maybe_moz_logical_alias(product, side, "-moz-border-%s") spec="${spec}">
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let (color, style, width) = try!(super::parse_border(context, input));
@@ -159,7 +159,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 <%helpers:shorthand name="border-radius" sub_properties="${' '.join(
     'border-%s-radius' % (corner)
      for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
-)}" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
+)}" extra_prefixes="webkit" spec="https://drafts.csswg.org/css-backgrounds/#border-radius">
     use values::specified::basic_shape::BorderRadius;
     use parser::Parse;
 
@@ -194,7 +194,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
 <%helpers:shorthand name="border-image" products="gecko" sub_properties="border-image-outset
     border-image-repeat border-image-slice border-image-source border-image-width"
-    spec="https://drafts.csswg.org/css-backgrounds-3/#border-image">
+    extra_prefixes="moz webkit" spec="https://drafts.csswg.org/css-backgrounds-3/#border-image">
     use properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
     use properties::longhands::{border_image_source, border_image_width};
 

@@ -94,7 +94,7 @@ macro_rules! try_parse_one {
     };
 }
 
-<%helpers:shorthand name="transition"
+<%helpers:shorthand name="transition" extra_prefixes="moz webkit"
                     sub_properties="transition-property transition-duration
                                     transition-timing-function
                                     transition-delay"
@@ -183,7 +183,7 @@ macro_rules! try_parse_one {
     }
 </%helpers:shorthand>
 
-<%helpers:shorthand name="animation"
+<%helpers:shorthand name="animation" extra_prefixes="moz webkit"
                     sub_properties="animation-name animation-duration
                                     animation-timing-function animation-delay
                                     animation-iteration-count animation-direction
