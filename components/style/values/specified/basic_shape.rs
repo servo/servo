@@ -239,7 +239,7 @@ impl Parse for InsetRect {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
            "inset" => {
-               Ok(try!(input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i))))
+               input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i))
            },
            _ => Err(())
         }
@@ -414,7 +414,7 @@ impl Parse for Circle {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
            "circle" => {
-               Ok(try!(input.parse_nested_block(|i| Circle::parse_function_arguments(context, i))))
+               input.parse_nested_block(|i| Circle::parse_function_arguments(context, i))
            },
            _ => Err(())
         }
@@ -498,7 +498,7 @@ impl Parse for Ellipse {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
            "ellipse" => {
-               Ok(try!(input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i))))
+               input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i))
            },
            _ => Err(())
         }
@@ -576,7 +576,7 @@ impl Parse for Polygon {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         match_ignore_ascii_case! { try!(input.expect_function()),
            "polygon" => {
-               Ok(try!(input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i))))
+               input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i))
            },
            _ => Err(())
         }
