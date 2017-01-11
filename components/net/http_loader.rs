@@ -34,12 +34,11 @@ use net_traits::hosts::replace_hosts;
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
 use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
-use openssl;
-use openssl::ssl::error::{OpensslError, SslError};
 use resource_thread::AuthCache;
 use servo_url::ServoUrl;
 use std::collections::HashSet;
 use std::error::Error;
+use std::fmt;
 use std::io::{self, Read, Write};
 use std::iter::FromIterator;
 use std::mem;
@@ -130,15 +129,26 @@ struct NetworkHttpRequestFactory {
 
 impl NetworkHttpRequestFactory {
     fn create(&self, url: ServoUrl, method: Method, headers: Headers)
-              -> Result<HyperRequest<Fresh>, NetworkError> {
+              -> Result<HyperRequest<Fresh>, LoadError> {
         let connection = HyperRequest::with_connector(method,
                                                       url.clone().into_url().unwrap(),
                                                       &*self.connector);
 
         if let Err(HttpError::Ssl(ref error)) = connection {
             let error: &(Error + Send + 'static) = &**error;
-            if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
-                if errors.iter().any(is_cert_verify_error) {
+            return Err(LoadError::new(url, LoadErrorType::Ssl { reason: error.description().into() }));
+                        /*
+            if let Some(handshake_error) = error.downcast_ref::<openssl::ssl::HandshakeError<SslStream<HttpStream>>>() {
+                let errors = match *handshake_error {
+                    openssl::ssl::HandshakeError::SetupFailure(ref error_stack) => (),
+                    openssl::ssl::HandshakeError::Failure(ref stream) => (),
+                    openssl::ssl::HandshakeError::Interrupted(ref stream) => (),
+                };
+                /*
+                if is_cert_verify_error(openssl_error) {
+                    return Err(LoadError::new(url, LoadErrorType::Ssl { reason: "tmp".into() }));
+                }
+                if openssl_errors.iter().any(is_cert_verify_error) {
                     let mut error_report = vec![format!("ssl error ({}):", openssl::version::version())];
                     let mut suggestion = None;
                     for err in errors {
@@ -147,26 +157,67 @@ impl NetworkHttpRequestFactory {
                         }
                         error_report.push(format_ssl_error(err));
                     }
-
                     if let Some(suggestion) = suggestion {
                         error_report.push(suggestion.to_owned());
                     }
-
                     let error_report = error_report.join("<br>\n");
-                    return Err(NetworkError::SslValidation(url, error_report));
+                    return Err(LoadError::new(url, LoadErrorType::Ssl { reason: error_report }));
                 }
+                */
+            } else {
+                // TODO: do something with this case
             }
+            */
         }
 
         let mut request = match connection {
             Ok(req) => req,
-            Err(e) => return Err(NetworkError::Internal(e.description().to_owned())),
+            Err(e) => return Err(
+                LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
         };
         *request.headers_mut() = headers;
 
         Ok(request)
     }
+
 }
+
+#[derive(Debug)]
+struct LoadError {
+    pub url: ServoUrl,
+    pub error: LoadErrorType,
+}
+
+impl LoadError {
+    pub fn new(url: ServoUrl, error: LoadErrorType) -> LoadError {
+        LoadError {
+            url: url,
+            error: error,
+        }
+    }
+}
+
+#[derive(Eq, PartialEq, Debug)]
+enum LoadErrorType {
+    Connection { reason: String },
+    Ssl { reason: String },
+}
+
+impl fmt::Display for LoadErrorType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
+impl Error for LoadErrorType {
+    fn description(&self) -> &str {
+        match *self {
+            LoadErrorType::Connection { ref reason } => reason,
+            LoadErrorType::Ssl { ref reason } => reason,
+        }
+    }
+}
+
 
 fn set_default_accept_encoding(headers: &mut Headers) {
     if headers.has::<AcceptEncoding>() {
@@ -281,8 +332,8 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
     let header = Header::parse_header(&[cookie_val.into_bytes()]);
 
     if let Ok(SetCookie(cookies)) = header {
-        for bare_cookie in cookies {
-            if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, request, source) {
+        for cookie in cookies {
+            if let Some(cookie) = cookie::Cookie::new_wrapped_hyper(cookie, request, source) {
                 cookie_jar.push(cookie, request, source);
             }
         }
@@ -409,7 +460,7 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
                    iters: u32,
                    request_id: Option<&str>,
                    is_xhr: bool)
-                   -> Result<(WrappedHttpResponse, Option<ChromeToDevtoolsControlMsg>), NetworkError> {
+                   -> Result<(WrappedHttpResponse, Option<ChromeToDevtoolsControlMsg>), LoadError> {
     let null_data = None;
     let connection_url = replace_hosts(&url);
 
@@ -460,12 +511,14 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
 
         let mut request_writer = match request.start() {
             Ok(streaming) => streaming,
-            Err(e) => return Err(NetworkError::Internal(e.description().to_owned())),
+            Err(e) => return Err(LoadError::new(connection_url,
+                                                LoadErrorType::Connection { reason: e.description().to_owned() })),
         };
 
         if let Some(ref data) = *request_body {
             if let Err(e) = request_writer.write_all(&data) {
-                return Err(NetworkError::Internal(e.description().to_owned()))
+                return Err(LoadError::new(connection_url,
+                                          LoadErrorType::Connection { reason: e.description().to_owned() }))
             }
         }
 
@@ -475,7 +528,8 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
                 debug!("connection aborted ({:?}), possibly stale, trying new connection", io_error.description());
                 continue;
             },
-            Err(e) => return Err(NetworkError::Internal(e.description().to_owned())),
+            Err(e) => return Err(LoadError::new(connection_url,
+                                                LoadErrorType::Connection { reason: e.description().to_owned() })),
         };
 
         let send_end = precise_time_ms();
@@ -497,35 +551,6 @@ fn obtain_response(request_factory: &NetworkHttpRequestFactory,
         };
 
         return Ok((WrappedHttpResponse { response: response }, msg));
-    }
-}
-
-// FIXME: This incredibly hacky. Make it more robust, and at least test it.
-fn is_cert_verify_error(error: &OpensslError) -> bool {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "SSL routines" &&
-            function.to_uppercase() == "SSL3_GET_SERVER_CERTIFICATE" &&
-            reason == "certificate verify failed"
-        }
-    }
-}
-
-fn is_unknown_message_digest_err(error: &OpensslError) -> bool {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            library == "asn1 encoding routines" &&
-            function == "ASN1_item_verify" &&
-            reason == "unknown message digest algorithm"
-        }
-    }
-}
-
-fn format_ssl_error(error: &OpensslError) -> String {
-    match error {
-        &OpensslError::UnknownError { ref library, ref function, ref reason } => {
-            format!("{}: {} - {}", library, function, reason)
-        }
     }
 }
 
@@ -1110,10 +1135,16 @@ fn http_network_fetch(request: Rc<Request>,
                                            request_id.as_ref().map(Deref::deref), is_xhr);
 
     let pipeline_id = request.pipeline_id.get();
-    let (res, msg) = match wrapped_response {
+            let (res, msg) = match wrapped_response {
         Ok(wrapped_response) => wrapped_response,
-        Err(error) => return Response::network_error(error),
-    };
+        Err(error) => {
+            let error = match error.error {
+                LoadErrorType::Ssl { reason } => NetworkError::SslValidation(error.url, reason),
+                e => NetworkError::Internal(e.description().to_owned())
+            };
+            return Response::network_error(error);
+        }
+};
 
     let mut response = Response::new(url.clone());
     response.status = Some(res.response.status);

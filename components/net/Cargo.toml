@@ -10,13 +10,15 @@ name = "net"
 path = "lib.rs"
 
 [dependencies]
+bitflags = "0.7"
 brotli = "1.0.6"
 content-blocker = "0.2.1"
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+cookie = {version = "0.4", features = ["serialize-rustc"]}
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
-hyper = "0.9.9"
-hyper_serde = "0.1.4"
+hyper = {version = "0.9.9", default-features = false}
+hyper_serde = "0.2"
+hyper-openssl = "0.1"
 immeta = "0.3.1"
 ipc-channel = "0.5"
 lazy_static = "0.2"
@@ -26,11 +28,12 @@ mime = "0.2.1"
 mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-openssl = "0.7.6"
-openssl-verify = "0.1"
+openssl = "0.9"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3"
+serde = "0.8"
+serde_derive = "0.8"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 threadpool = "1.0"
@@ -38,7 +41,11 @@ time = "0.1.17"
 unicase = "1.4.0"
 url = {version = "1.2", features = ["heap_size", "rustc-serialize"]}
 uuid = {version = "0.3.1", features = ["v4"]}
-websocket = "0.17"
+websocket = {git = "https://github.com/dten/rust-websocket.git", branch = "openssl_0.9.1" }
+webpki = "0.8.0"
+antidote = "1.0.0"
+untrusted = "0.3.1"
+rustls = "0.5"
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"

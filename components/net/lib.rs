@@ -9,12 +9,16 @@
 
 #![deny(unsafe_code)]
 
+extern crate antidote;
+#[macro_use]
+extern crate bitflags;
 extern crate brotli;
 extern crate content_blocker as content_blocker_parser;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
+extern crate hyper_openssl;
 extern crate hyper_serde;
 extern crate immeta;
 extern crate ipc_channel;
@@ -27,9 +31,11 @@ extern crate mime_guess;
 extern crate msg;
 extern crate net_traits;
 extern crate openssl;
-extern crate openssl_verify;
 extern crate profile_traits;
 extern crate rustc_serialize;
+extern crate rustls;
+#[macro_use]
+extern crate serde_derive;
 extern crate servo_config;
 extern crate servo_url;
 extern crate threadpool;
