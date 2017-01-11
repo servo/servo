@@ -35,14 +35,6 @@ static NEXT_SPECIAL_STACKING_CONTEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
 /// Note that we assume that the top 16 bits of the address space are unused on the platform.
 const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
 
-// Units for use with euclid::length and euclid::scale_factor.
-
-/// One hardware pixel.
-///
-/// This unit corresponds to the smallest addressable element of the display hardware.
-#[derive(Copy, Clone, Debug)]
-pub enum DevicePixel {}
-
 /// A newtype struct for denoting the age of messages; prevents race conditions.
 #[derive(PartialEq, Eq, Debug, Copy, Clone, PartialOrd, Ord, Deserialize, Serialize)]
 pub struct Epoch(pub u32);
