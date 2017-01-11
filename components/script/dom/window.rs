@@ -68,7 +68,7 @@ use script_layout_interface::message::{Msg, Reflow, ReflowQueryType, ScriptReflo
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{MarginStyleResponse, NodeScrollRootIdResponse};
-use script_layout_interface::rpc::ResolvedStyleResponse;
+use script_layout_interface::rpc::{ResolvedStyleResponse, TextIndexResponse};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, RunnableWrapper};
 use script_thread::SendableMainThreadScriptChan;
@@ -1362,6 +1362,15 @@ impl Window {
         self.layout_rpc.margin_style()
     }
 
+    pub fn text_index_query(&self, node: TrustedNodeAddress, mouse_x: i32, mouse_y: i32) -> TextIndexResponse {
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::TextIndexQuery(node, mouse_x, mouse_y),
+                        ReflowReason::Query) {
+            return TextIndexResponse(None);
+        }
+        self.layout_rpc.text_index()
+    }
+
     #[allow(unsafe_code)]
     pub fn init_browsing_context(&self, browsing_context: &BrowsingContext) {
         assert!(self.browsing_context.get().is_none());
@@ -1710,6 +1719,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",
         ReflowQueryType::MarginStyleQuery(_n) => "\tMarginStyleQuery",
+        ReflowQueryType::TextIndexQuery(..) => "\tTextIndexQuery",
     });
 
     debug_msg.push_str(match *reason {
