@@ -5,7 +5,7 @@
 //! Implementation of cookie creation and matching as specified by
 //! http://tools.ietf.org/html/rfc6265
 
-use cookie_rs;
+use cookie_rs::{self, ParseError};
 use hyper_serde::{self, Serde};
 use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
@@ -21,7 +21,7 @@ use time::{Tm, now, at, Duration};
 pub struct Cookie {
     #[serde(deserialize_with = "hyper_serde::deserialize",
             serialize_with = "hyper_serde::serialize")]
-    pub cookie: cookie_rs::Cookie,
+    pub cookie: cookie_rs::Cookie<'static>,
     pub host_only: bool,
     pub persistent: bool,
     #[serde(deserialize_with = "hyper_serde::deserialize",
@@ -34,13 +34,23 @@ pub struct Cookie {
 }
 
 impl Cookie {
+    pub fn new_wrapped_hyper(cookie_str: String, request: &ServoUrl,
+                             source: CookieSource) -> Option<Cookie> {
+        let cookie: Result<cookie_rs::Cookie<'static>, ParseError> = cookie_rs::Cookie::parse(cookie_str);
+        match cookie {
+            Ok(cookie) => Cookie::new_wrapped(cookie, request, source),
+            Err(_) => None,
+        }
+    }
+
     /// http://tools.ietf.org/html/rfc6265#section-5.3
-    pub fn new_wrapped(mut cookie: cookie_rs::Cookie, request: &ServoUrl, source: CookieSource)
+    pub fn new_wrapped(cookie: cookie_rs::Cookie<'static>, request: &ServoUrl, source: CookieSource)
                        -> Option<Cookie> {
+        let mut cookie = cookie.into_owned();
         // Step 3
-        let (persistent, expiry_time) = match (&cookie.max_age, &cookie.expires) {
+        let (persistent, expiry_time) = match (&cookie.max_age(), &cookie.expires()) {
             (&Some(max_age), _) => {
-                (true, Some(at(now().to_timespec() + Duration::seconds(max_age as i64))))
+                (true, Some(at(now().to_timespec() + Duration::seconds(max_age.num_seconds()))))
             }
             (_, &Some(expires)) => (true, Some(expires)),
             _ => (false, None)
@@ -49,12 +59,12 @@ impl Cookie {
         let url_host = request.host_str().unwrap_or("").to_owned();
 
         // Step 4
-        let mut domain = cookie.domain.clone().unwrap_or("".to_owned());
+        let mut domain = cookie.domain().unwrap_or("").to_owned();
 
         // Step 5
         if is_pub_domain(&domain) {
             if domain == url_host {
-                domain = "".to_owned();
+                domain = "".to_string();
             } else {
                 return None
             }
@@ -65,24 +75,24 @@ impl Cookie {
             if !Cookie::domain_match(&url_host, &domain) {
                 return None;
             } else {
-                cookie.domain = Some(domain);
+                cookie.set_domain(domain);
                 false
             }
         } else {
-            cookie.domain = Some(url_host);
+            cookie.set_domain(url_host);
             true
         };
 
         // Step 7
-        let mut path = cookie.path.unwrap_or("".to_owned());
+        let mut path = cookie.path().unwrap_or("").to_owned();
         if path.chars().next() != Some('/') {
-            path = Cookie::default_path(request.path()).to_owned();
+            path = Cookie::default_path(&request.path().to_owned()).to_string();
         }
-        cookie.path = Some(path);
+        cookie.set_path(path);
 
 
         // Step 10
-        if cookie.httponly && source == CookieSource::NonHTTP {
+        if cookie.http_only() && source == CookieSource::NonHTTP {
             return None;
         }
 
@@ -139,6 +149,9 @@ impl Cookie {
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.3
     pub fn domain_match(string: &str, domain_string: &str) -> bool {
+        let string = &string.to_lowercase();
+        let domain_string = &domain_string.to_lowercase();
+
         string == domain_string ||
         (string.ends_with(domain_string) &&
          string.as_bytes()[string.len()-domain_string.len()-1] == b'.' &&
@@ -150,27 +163,27 @@ impl Cookie {
     pub fn appropriate_for_url(&self, url: &ServoUrl, source: CookieSource) -> bool {
         let domain = url.host_str();
         if self.host_only {
-            if self.cookie.domain.as_ref().map(String::as_str) != domain {
+            if self.cookie.domain() != domain {
                 return false;
             }
         } else {
-            if let (Some(domain), &Some(ref cookie_domain)) = (domain, &self.cookie.domain) {
+            if let (Some(domain), &Some(ref cookie_domain)) = (domain, &self.cookie.domain()) {
                 if !Cookie::domain_match(domain, cookie_domain) {
                     return false;
                 }
             }
         }
 
-        if let Some(ref cookie_path) = self.cookie.path {
+        if let Some(ref cookie_path) = self.cookie.path() {
             if !Cookie::path_match(url.path(), cookie_path) {
                 return false;
             }
         }
 
-        if self.cookie.secure && !url.is_secure_scheme() {
+        if self.cookie.secure() && !url.is_secure_scheme() {
             return false;
         }
-        if self.cookie.httponly && source == CookieSource::NonHTTP {
+        if self.cookie.http_only() && source == CookieSource::NonHTTP {
             return false;
         }
 
