@@ -1,0 +1,1 @@
+fully_managed: False

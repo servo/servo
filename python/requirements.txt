@@ -1,3 +1,6 @@
+# Ensure all versions are pinned for repeatability,
+# since `--system-site-packages` is enabled
+
 blessings == 1.6
 mach == 0.6.0
 mozdebug == 0.1
@@ -14,6 +17,10 @@ pyflakes == 0.8.1
 
 # For buildbot checking
 PyYAML == 3.12
+
+# For boostrapping, make sure versions match those in saltfs
+salt == 2016.3.4
+GitPython == 0.3.2
 
 # For test-webidl
 ply == 3.8
