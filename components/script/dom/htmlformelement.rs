@@ -451,7 +451,27 @@ impl HTMLFormElement {
         // Step 1-3
         let _unhandled_invalid_controls = match self.static_validation() {
             Ok(()) => return Ok(()),
-            Err(err) => err
+            //Err(err) => err,
+            Err(err) => {
+                match err[0] {
+                    FormSubmittableElement::InputElement(ref i) =>
+                        println!("First element didn't pass: {}",
+                        i.upcast::<Element>().get_string_attribute(&local_name!("name"))),
+                    FormSubmittableElement::ButtonElement(ref i) =>
+                        println!("First element didn't pass: {}",
+                        i.upcast::<Element>().get_string_attribute(&local_name!("name"))),
+                    FormSubmittableElement::SelectElement(ref i) =>
+                        println!("First element didn't pass: {}",
+                        i.upcast::<Element>().get_string_attribute(&local_name!("name"))),
+                    FormSubmittableElement::TextAreaElement(ref i) =>
+                        println!("First elment didn't pass: {}",
+                        i.upcast::<Element>().get_string_attribute(&local_name!("name"))),
+                    FormSubmittableElement::ObjectElement(ref i) =>
+                        println!("First element didn't pass: {}",
+                        i.upcast::<Element>().get_string_attribute(&local_name!("name"))),
+                };
+            }
+
         };
         // TODO: Report the problems with the constraints of at least one of
         //       the elements given in unhandled invalid controls to the user
