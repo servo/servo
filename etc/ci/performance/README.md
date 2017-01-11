@@ -39,14 +39,19 @@ Servo Page Load Time Test
 
 # Add your own test
 
+* You can add two types of tests: sync test and async test
+  * sync test: measure the page load time. Exits automatically after page loaded.
+  * async test: measures your custom time markers from JavaScript, see `page_load_test/example/example_async.html` for example.
 * Add you test case (html file) to the `page_load_test/` folder. For example we can create a `page_load_test/example/example.html`
 * Add a manifest (or modify existing ones) named `page_load_test/example.manifest`
 * Add the lines like this to the manifest:
 
 ```
-http://localhost:8000/page_load_test/example/example.html
-# This is a comment
 # Pages got served on a local server at localhost:8000
+# Test case without any flag is a sync test
+http://localhost:8000/page_load_test/example/example_sync.html
+# Async test must start with a `async` flag
+async http://localhost:8000/page_load_test/example/example.html
 ```
 * Modify the `MANIFEST=...` link in `test_all.sh` and point that to the new manifest file.
 

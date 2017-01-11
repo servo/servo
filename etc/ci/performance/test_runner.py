@@ -163,6 +163,7 @@ def test_log_parser_empty():
 
     expected = [{
         "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
+        "title": "",
         "navigationStart": 0,
         "unloadEventStart": -1,
         "unloadEventEnd": -1,
@@ -195,6 +196,7 @@ def test_log_parser_error():
 
     expected = [{
         "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
+        "title": "",
         "navigationStart": 0,
         "unloadEventStart": -1,
         "unloadEventEnd": -1,
@@ -254,6 +256,7 @@ Shutting down the Constellation after generating an output file or exit flag spe
 
     expected = [{
         "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
+        "title": "",
         "navigationStart": 0,
         "unloadEventStart": -1,
         "unloadEventEnd": -1,
@@ -290,9 +293,22 @@ http://localhost/page_load_test/tp5n/aljazeera.net/aljazeera.net/portal.html
 # Disabled! http://localhost/page_load_test/tp5n/aljazeera.net/aljazeera.net/portal.html
 '''
     expected = [
-        "http://localhost/page_load_test/tp5n/163.com/www.163.com/index.html",
-        "http://localhost/page_load_test/tp5n/56.com/www.56.com/index.html",
-        "http://localhost/page_load_test/tp5n/aljazeera.net/aljazeera.net/portal.html"
+        ("http://localhost/page_load_test/tp5n/163.com/www.163.com/index.html", False),
+        ("http://localhost/page_load_test/tp5n/56.com/www.56.com/index.html", False),
+        ("http://localhost/page_load_test/tp5n/aljazeera.net/aljazeera.net/portal.html", False)
+    ]
+    assert(expected == list(runner.parse_manifest(text)))
+
+
+def test_manifest_loader_async():
+
+    text = '''
+http://localhost/page_load_test/tp5n/163.com/www.163.com/index.html
+async http://localhost/page_load_test/tp5n/56.com/www.56.com/index.html
+'''
+    expected = [
+        ("http://localhost/page_load_test/tp5n/163.com/www.163.com/index.html", False),
+        ("http://localhost/page_load_test/tp5n/56.com/www.56.com/index.html", True),
     ]
     assert(expected == list(runner.parse_manifest(text)))
 
@@ -315,7 +331,7 @@ def test_filter_result_by_manifest():
     }]
 
     manifest = [
-        "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
+        ("http://localhost:8000/page_load_test/56.com/www.56.com/index.html", False)
     ]
 
     assert(expected == runner.filter_result_by_manifest(input_json, manifest))
@@ -328,8 +344,8 @@ def test_filter_result_by_manifest_error():
     }]
 
     manifest = [
-        "1.html",
-        "2.html"
+        ("1.html", False),
+        ("2.html", False)
     ]
 
     with pytest.raises(Exception) as execinfo:
