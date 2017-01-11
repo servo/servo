@@ -69,16 +69,22 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
 
 fn cookie_msg_to_cookie(cookie: cookie_rs::Cookie) -> Cookie {
     Cookie {
-        name: cookie.name,
-        value: cookie.value,
-        path: cookie.path.map(Nullable::Value).unwrap_or(Nullable::Null),
-        domain: cookie.domain.map(Nullable::Value).unwrap_or(Nullable::Null),
-        expiry: match cookie.expires {
+        name: cookie.name().to_owned(),
+        value: cookie.value().to_owned(),
+        path: match cookie.path() {
+            Some(path) => Nullable::Value(path.to_string()),
+            None => Nullable::Null
+        },
+        domain: match cookie.domain() {
+            Some(domain) => Nullable::Value(domain.to_string()),
+            None => Nullable::Null
+        },
+        expiry: match cookie.expires() {
             Some(time) => Nullable::Value(Date::new(time.to_timespec().sec as u64)),
             None => Nullable::Null
         },
-        secure: cookie.secure,
-        httpOnly: cookie.httponly,
+        secure: cookie.secure(),
+        httpOnly: cookie.http_only(),
     }
 }
 
@@ -100,14 +106,14 @@ struct WebDriverSession {
 
     /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
     /// specifies that the script should run indefinitely.
-    script_timeout: Option<u32>,
+    script_timeout: Option<u64>,
 
     /// Time to wait for a page to finish loading upon navigation.
-    load_timeout: u32,
+    load_timeout: Option<u64>,
 
     /// Time to wait for the element location strategy when retrieving elements, and when
     /// waiting for an element to become interactable.
-    implicit_wait_timeout: u32,
+    implicit_wait_timeout: Option<u64>,
 }
 
 impl WebDriverSession {
@@ -117,8 +123,8 @@ impl WebDriverSession {
             frame_id: None,
 
             script_timeout: Some(30_000),
-            load_timeout: 300_000,
-            implicit_wait_timeout: 0,
+            load_timeout: Some(300_000),
+            implicit_wait_timeout: Some(0),
         }
     }
 }
@@ -369,7 +375,7 @@ impl Handler {
         let timeout = session.load_timeout;
         let timeout_chan = sender;
         thread::spawn(move || {
-            thread::sleep(Duration::from_millis(timeout as u64));
+            thread::sleep(Duration::from_millis(timeout.unwrap()));
             let _ = timeout_chan.send(LoadStatus::LoadTimeout);
         });
 
@@ -671,17 +677,19 @@ impl Handler {
 
     fn handle_add_cookie(&self, params: &AddCookieParameters) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let cookie = cookie_rs::Cookie {
-            name: params.name.to_owned(),
-            value: params.value.to_owned(),
-            path: params.path.to_owned().into(),
-            domain: params.domain.to_owned().into(),
-            expires: None,
-            max_age: None,
-            secure: params.secure,
-            httponly: params.httpOnly,
-            custom: BTreeMap::new()
+
+        let cookie = cookie_rs::Cookie::build(params.name.to_owned(), params.value.to_owned())
+            .secure(params.secure)
+            .http_only(params.httpOnly);
+        let cookie = match params.domain {
+            Nullable::Value(ref domain) => cookie.domain(domain.to_owned()),
+            _ => cookie,
         };
+        let cookie = match params.path {
+            Nullable::Value(ref path) => cookie.path(path.to_owned()).finish(),
+            _ => cookie.finish(),
+        };
+
         try!(self.frame_script_command(WebDriverScriptCommand::AddCookie(cookie, sender)));
         match receiver.recv().unwrap() {
             Ok(_) => Ok(WebDriverResponse::Void),
@@ -701,17 +709,10 @@ impl Handler {
             .as_mut()
             .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, "")));
 
-        // TODO: this conversion is crazy, spec should limit these to u32 and check upstream
-        let value = parameters.ms as u32;
-        match &parameters.type_[..] {
-            "script" => session.script_timeout = Some(value),
-            "page load" => session.load_timeout = value,
-            "implicit" => session.implicit_wait_timeout = value,
-            x => {
-                return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
-                                               format!("Unknown timeout type {}", x)))
-            }
-        }
+        session.script_timeout = parameters.script;
+        session.load_timeout = parameters.page_load;
+        session.implicit_wait_timeout = parameters.implicit;
+
         Ok(WebDriverResponse::Void)
     }
 
