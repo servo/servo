@@ -19,7 +19,7 @@ use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlimageelement::HTMLImageElement;
-use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::node::{Node, NodeSiblingIterator};
 use dom::text::Text;
 use encoding::all::UTF_8;
@@ -171,7 +171,7 @@ impl ServoParser {
     ///     ^
     ///     insertion point
     /// ```
-    pub fn resume_with_pending_parsing_blocking_script(&self, script: &HTMLScriptElement) {
+    pub fn resume_with_pending_parsing_blocking_script(&self, script: &HTMLScriptElement, result: ScriptResult) {
         assert!(self.suspended.get());
         self.suspended.set(false);
 
@@ -184,7 +184,7 @@ impl ServoParser {
         assert_eq!(script_nesting_level, 0);
 
         self.script_nesting_level.set(script_nesting_level + 1);
-        script.execute();
+        script.execute(result);
         self.script_nesting_level.set(script_nesting_level);
 
         if !self.suspended.get() {
