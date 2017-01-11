@@ -97,6 +97,15 @@ def run_gecko_test(testcase, timeout):
             print("Failed to get a valid timing measurement.")
             return generate_placeholder(testcase)
 
+        driver.implicitly_wait(10) # sec
+        elem = driver.find_element_by_id("GECKO_TEST_DONE")
+        timings.update(json.loads(
+            driver.execute_script(
+                "return JSON.stringify(window.customTimers)"
+            )
+        ))
+
+
     return [timings]
 
 if __name__ == '__main__':
