@@ -10,6 +10,10 @@ pub use dom::bindings::cell::DOMRefCell;
 pub use dom::bindings::js::JS;
 pub use dom::node::Node;
 
+pub mod area {
+    pub use dom::htmlareaelement::{Area, Shape};
+}
+
 pub mod size_of {
     use dom::characterdata::CharacterData;
     use dom::element::Element;

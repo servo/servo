@@ -8,8 +8,7 @@
 // except according to those terms.
 
 use euclid::point::Point2D;
-use script::dom::htmlareaelement::Area;
-use script::dom::htmlareaelement::Shape;
+use script::test::area::{Area, Shape};
 
 #[test]
 fn garbage_input() {
