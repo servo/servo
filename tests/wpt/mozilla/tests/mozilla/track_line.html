@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test that errors from inline scripts report meaningful line numbers</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+setup({allow_uncaught_exception:true});
+var t = async_test("error event has proper line number");
+window.addEventListener('error', t.step_func(function(e) {
+    assert_true(e instanceof ErrorEvent);
+    assert_equals(e.lineno, 16);
+    t.done();
+}), true);
+</script>
+<script>
+this_is_a_js_error
+</script>
