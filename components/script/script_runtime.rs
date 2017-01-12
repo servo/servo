@@ -5,10 +5,8 @@
 //! The script runtime contains common traits and structs commonly used by the
 //! script thread, the dom, and the worker threads.
 
-use dom::bindings::callback::ExceptionHandling;
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
-use dom::bindings::js::{Root, RootCollection, RootCollectionPtr, trace_roots};
+use dom::bindings::js::{RootCollection, RootCollectionPtr, trace_roots};
 use dom::bindings::refcounted::{LiveDOMReferences, trace_refcounted_objects};
 use dom::bindings::settings_stack;
 use dom::bindings::trace::{JSTraceable, trace_traceables};
@@ -23,7 +21,7 @@ use js::jsapi::{JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_Se
 use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback, SetEnqueuePromiseJobCallback};
 use js::panic::wrap_panic;
 use js::rust::Runtime;
-use msg::constellation_msg::PipelineId;
+use microtask::{EnqueuedPromiseCallback, Microtask};
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
 use script_thread::{Runnable, STACK_ROOTS, trace_thread};
 use servo_config::opts;
@@ -35,7 +33,6 @@ use std::os;
 use std::os::raw::c_void;
 use std::panic::AssertUnwindSafe;
 use std::ptr;
-use std::rc::Rc;
 use style::thread_state;
 use time::{Tm, now};
 
@@ -107,86 +104,21 @@ impl<'a> Drop for StackRootTLS<'a> {
     }
 }
 
-/// A promise callback scheduled to run during the next microtask checkpoint (#4283).
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct EnqueuedPromiseCallback {
-    #[ignore_heap_size_of = "Rc has unclear ownership"]
-    callback: Rc<PromiseJobCallback>,
-    pipeline: PipelineId,
-}
-
-/// A collection of promise callbacks in FIFO order.
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct PromiseJobQueue {
-    /// A snapshot of `promise_job_queue` that was taken at the start of the microtask checkpoint.
-    /// Used to work around mutability errors when appending new promise jobs while performing
-    /// a microtask checkpoint.
-    flushing_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
-    /// The list of enqueued promise callbacks that will be invoked at the next microtask checkpoint.
-    promise_job_queue: DOMRefCell<Vec<EnqueuedPromiseCallback>>,
-    /// True if there is an outstanding runnable responsible for evaluating the promise job queue.
-    /// This prevents runnables flooding the event queue needlessly, since the first one will
-    /// execute all pending runnables.
-    pending_promise_job_runnable: Cell<bool>,
-}
-
-impl PromiseJobQueue {
-    /// Create a new PromiseJobQueue instance.
-    pub fn new() -> PromiseJobQueue {
-        PromiseJobQueue {
-            promise_job_queue: DOMRefCell::new(vec![]),
-            flushing_job_queue: DOMRefCell::new(vec![]),
-            pending_promise_job_runnable: Cell::new(false),
-        }
-    }
-
-    /// Add a new promise job callback to this queue. It will be invoked as part of the next
-    /// microtask checkpoint.
-    pub fn enqueue(&self, job: EnqueuedPromiseCallback, global: &GlobalScope) {
-        self.promise_job_queue.borrow_mut().push(job);
-        if !self.pending_promise_job_runnable.get() {
-            self.pending_promise_job_runnable.set(true);
-            global.flush_promise_jobs();
-        }
-    }
-
-    /// Perform a microtask checkpoint, by invoking all of the pending promise job callbacks in
-    /// FIFO order (#4283).
-    pub fn flush_promise_jobs<F>(&self, target_provider: F)
-        where F: Fn(PipelineId) -> Option<Root<GlobalScope>>
-    {
-        self.pending_promise_job_runnable.set(false);
-        {
-            let mut pending_queue = self.promise_job_queue.borrow_mut();
-            *self.flushing_job_queue.borrow_mut() = pending_queue.drain(..).collect();
-        }
-        // N.B. borrowing this vector is safe w.r.t. mutability, since any promise job that
-        // is enqueued while invoking these callbacks will be placed in `pending_queue`;
-        // `flushing_queue` is a static snapshot during this checkpoint.
-        for job in &*self.flushing_job_queue.borrow() {
-            if let Some(target) = target_provider(job.pipeline) {
-                let _ = job.callback.Call_(&*target, ExceptionHandling::Report);
-            }
-        }
-        self.flushing_job_queue.borrow_mut().clear();
-    }
-}
-
-/// SM callback for promise job resolution. Adds a promise callback to the current global's
-/// promise job queue, and enqueues a runnable to perform a microtask checkpoint if one
-/// is not already pending.
+/// SM callback for promise job resolution. Adds a promise callback to the current
+/// global's microtask queue.
 #[allow(unsafe_code)]
 unsafe extern "C" fn enqueue_job(cx: *mut JSContext,
                                  job: HandleObject,
                                  _allocation_site: HandleObject,
                                  _data: *mut c_void) -> bool {
     wrap_panic(AssertUnwindSafe(|| {
+        //XXXjdm - use a different global now?
         let global = GlobalScope::from_object(job.get());
         let pipeline = global.pipeline_id();
-        global.enqueue_promise_job(EnqueuedPromiseCallback {
+        global.enqueue_microtask(Microtask::Promise(EnqueuedPromiseCallback {
             callback: PromiseJobCallback::new(cx, job.get()),
             pipeline: pipeline,
-        });
+        }));
         true
     }), false)
 }

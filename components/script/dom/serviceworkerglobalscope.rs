@@ -214,6 +214,7 @@ impl ServiceWorkerGlobalScope {
                     if !global.handle_event(event) {
                         break;
                     }
+                    global.upcast::<WorkerGlobalScope>().perform_a_microtask_checkpoint();
                 }
             }, reporter_name, scope.script_chan(), CommonScriptMsg::CollectReports);
         }).expect("Thread spawning failed");

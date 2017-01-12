@@ -241,6 +241,7 @@ impl DedicatedWorkerGlobalScope {
                         break;
                     }
                     global.handle_event(event);
+                    global.upcast::<WorkerGlobalScope>().perform_a_microtask_checkpoint();
                 }
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
         }).expect("Thread spawning failed");
