@@ -1592,14 +1592,6 @@ impl Document {
                 *self.pending_parsing_blocking_script.borrow_mut() = None;
                 parser.resume_with_pending_parsing_blocking_script(&element, result);
             }
-        } else if self.reflow_timeout.get().is_none() {
-            // If we don't have a parser, and the reflow timer has been reset, explicitly
-            // trigger a reflow.
-            if let LoadType::Stylesheet(_) = load {
-                self.window.reflow(ReflowGoal::ForDisplay,
-                                   ReflowQueryType::NoQuery,
-                                   ReflowReason::StylesheetLoaded);
-            }
         }
 
         if !self.loader.borrow().is_blocked() && !self.loader.borrow().events_inhibited() {
