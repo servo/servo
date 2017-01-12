@@ -562,8 +562,7 @@ class JSToNativeConversionInfo():
     """
     An object representing information about a JS-to-native conversion.
     """
-    def __init__(self, template, default=None, declType=None,
-                 needsRooting=False):
+    def __init__(self, template, default=None, declType=None):
         """
         template: A string representing the conversion code.  This will have
                   template substitution performed on it as follows:
@@ -575,16 +574,12 @@ class JSToNativeConversionInfo():
         declType: A CGThing representing the native C++ type we're converting
                   to.  This is allowed to be None if the conversion code is
                   supposed to be used as-is.
-
-        needsRooting: A boolean indicating whether the caller has to root
-                      the result
         """
         assert isinstance(template, str)
         assert declType is None or isinstance(declType, CGThing)
         self.template = template
         self.default = default
         self.declType = declType
-        self.needsRooting = needsRooting
 
 
 def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
@@ -665,11 +660,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     else:
         failOrPropagate = failureCode
 
-    needsRooting = typeNeedsRooting(type, descriptorProvider)
-
     def handleOptional(template, declType, default):
         assert (defaultValue is None) == (default is None)
-        return JSToNativeConversionInfo(template, default, declType, needsRooting=needsRooting)
+        return JSToNativeConversionInfo(template, default, declType)
 
     # Unfortunately, .capitalize() on a string will lowercase things inside the
     # string, which we do not want.
@@ -1035,7 +1028,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         else:
             default = None
 
-        return JSToNativeConversionInfo(template, default, finalDeclType, needsRooting=needsRooting)
+        return JSToNativeConversionInfo(template, default, finalDeclType)
 
     if type.isAny():
         assert not isEnforceRange and not isClamp
@@ -1104,7 +1097,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isVoid():
         # This one only happens for return values, and its easy: Just
         # ignore the jsval.
-        return JSToNativeConversionInfo("", None, None, needsRooting=False)
+        return JSToNativeConversionInfo("", None, None)
 
     if not type.isPrimitive():
         raise TypeError("Need conversion for argument type '%s'" % str(type))
