@@ -486,11 +486,7 @@ impl HTMLScriptElement {
         document.set_current_script(Some(self));
 
         // Step 5.a.2.
-        let window = window_from_node(self);
-        let line_number = if script.external { 1 } else { self.line_number as u32 };
-        rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
-        window.upcast::<GlobalScope>().evaluate_script_on_global_with_result(
-            &script.text, script.url.as_str(), rval.handle_mut(), line_number);
+        self.run_a_classic_script(&script);
 
         // Step 6.
         document.set_current_script(old_script.r());
@@ -504,6 +500,24 @@ impl HTMLScriptElement {
         if script.external {
             self.dispatch_load_event();
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#run-a-classic-script
+    pub fn run_a_classic_script(&self, script: &ClassicScript) {
+        // TODO use a settings object rather than this element's document/window
+        // Step 2
+        let document = document_from_node(self);
+        if !document.is_fully_active() || !document.is_scripting_enabled() {
+            return;
+        }
+
+        // Steps 4-10
+        let window = window_from_node(self);
+        let line_number = if script.external { 1 } else { self.line_number as u32 };
+        rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
+        let global = window.upcast::<GlobalScope>();
+        global.evaluate_script_on_global_with_result(
+            &script.text, script.url.as_str(), rval.handle_mut(), line_number);
     }
 
     pub fn queue_error_event(&self) {
