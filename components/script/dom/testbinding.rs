@@ -36,6 +36,7 @@ use dom::url::URL;
 use js::jsapi::{HandleObject, HandleValue, JSContext, JSObject, JSAutoCompartment};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
+use js::typedarray;
 use script_traits::MsDuration;
 use servo_config::prefs::PREFS;
 use std::borrow::ToOwned;
@@ -626,6 +627,23 @@ impl TestBindingMethods for TestBinding {
     unsafe fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<HandleValue>) {}
     #[allow(unsafe_code)]
     unsafe fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
+
+    fn PassArrayBuffer(&self, _: typedarray::ArrayBuffer) {}
+    fn PassNullableArrayBuffer(&self, _: Option<typedarray::ArrayBuffer>) {}
+    fn PassOptionalArrayBuffer(&self, _: Option<typedarray::ArrayBuffer>) {}
+    fn PassOptionalNullableArrayBuffer(&self, _: Option<Option<typedarray::ArrayBuffer>>) {}
+    fn PassOptionalNullableArrayBufferWithDefaultValue(&self, _: Option<typedarray::ArrayBuffer>) {}
+    fn PassArrayBufferView(&self, _: typedarray::ArrayBufferView) {}
+    fn PassInt8Array(&self, _: typedarray::Int8Array) {}
+    fn PassInt16Array(&self, _: typedarray::Int16Array) {}
+    fn PassInt32Array(&self, _: typedarray::Int32Array) {}
+    fn PassUint8Array(&self, _: typedarray::Uint8Array) {}
+    fn PassUint8ClampedArray(&self, _: typedarray::Uint8ClampedArray) {}
+    fn PassUint16Array(&self, _: typedarray::Uint16Array) {}
+    fn PassUint32Array(&self, _: typedarray::Uint32Array) {}
+    fn PassFloat32Array(&self, _: typedarray::Float32Array) {}
+    fn PassFloat64Array(&self, _: typedarray::Float64Array) {}
+
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
         PREFS.get(pref_name.as_ref()).as_boolean().unwrap_or(false)
     }
