@@ -449,6 +449,17 @@ impl GlobalScope {
         unreachable!();
     }
 
+    /// Perform a microtask checkpoint.
+    pub fn perform_a_microtask_checkpoint(&self) {
+        if self.is::<Window>() {
+            return ScriptThread::invoke_perform_a_microtask_checkpoint();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.perform_a_microtask_checkpoint();
+        }
+        unreachable!();
+    }
+
     /// Enqueue a microtask for subsequent execution.
     pub fn enqueue_microtask(&self, job: Microtask) {
         if self.is::<Window>() {
