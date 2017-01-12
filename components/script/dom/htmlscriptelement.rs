@@ -213,14 +213,14 @@ impl FetchResponseListener for ScriptContext {
         elem.ready_to_be_parser_executed.set(true);
         let document = document_from_node(&*elem);
 
+        document.finish_load(LoadType::Script(self.url.clone()));
         match self.kind {
             ExternalScriptKind::Asap => document.asap_script_loaded(&elem, load),
             ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(&elem, load),
             ExternalScriptKind::Deferred => document.deferred_script_loaded(&elem, load),
             ExternalScriptKind::ParsingBlocking => document.pending_parsing_blocking_script_loaded(&elem, load),
         }
-
-        document.finish_load(LoadType::Script(self.url.clone()));
+        document.maybe_fire_load_event();
     }
 }
 

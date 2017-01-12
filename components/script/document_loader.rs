@@ -62,6 +62,7 @@ impl LoadBlocker {
     pub fn terminate(blocker: &mut Option<LoadBlocker>) {
         if let Some(this) = blocker.as_mut() {
             this.doc.finish_load(this.load.take().unwrap());
+            this.doc.maybe_fire_load_event();
         }
         *blocker = None;
     }

@@ -553,6 +553,8 @@ impl FetchResponseListener for ParserContext {
         if !parser.suspended.get() {
             parser.parse_sync();
         }
+
+        parser.document.maybe_fire_load_event();
     }
 }
 
