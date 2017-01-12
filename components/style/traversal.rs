@@ -418,6 +418,19 @@ pub fn recalc_style_at<E, D>(traversal: &D,
        (element.has_dirty_descendants() || !propagated_hint.is_empty() || inherited_style_changed) {
         preprocess_children(traversal, element, propagated_hint, inherited_style_changed);
     }
+
+    // Make sure the dirty descendants bit is not set for the root of a
+    // display:none subtree, even if the style didn't change (since, if
+    // the style did change, we'd have already cleared it in compute_style).
+    //
+    // This keeps the tree in a valid state without requiring the DOM to
+    // check display:none on the parent when inserting new children (which
+    // can be moderately expensive). Instead, DOM implementations can
+    // unconditionally set the dirty descendants bit on any styled parent,
+    // and let the traversal sort it out.
+    if data.styles().is_display_none() {
+        unsafe { element.unset_dirty_descendants(); }
+    }
 }
 
 // Computes style, returning true if the inherited styles changed for this
