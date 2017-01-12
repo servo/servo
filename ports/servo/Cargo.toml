@@ -35,12 +35,6 @@ testing = ["libservo/testing"]
 clippy = ["libservo/clippy"]
 debugmozjs = ["libservo/debugmozjs"]
 
-[profile.release]
-opt-level = 3
-# Uncomment to profile on Linux:
-# debug = true
-# lto = false
-
 [dependencies]
 backtrace = "0.2"
 browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "crate"}

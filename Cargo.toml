@@ -5,3 +5,12 @@ members = [
     "ports/servo",
     "support/android/build-apk",
 ]
+
+[profile.dev]
+codegen-units = 4
+
+[profile.release]
+opt-level = 3
+# Uncomment to profile on Linux:
+# debug = true
+# lto = false
