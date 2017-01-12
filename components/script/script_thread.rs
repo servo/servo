@@ -70,6 +70,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
+use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
@@ -81,8 +82,8 @@ use origin::Origin;
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
-use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, EnqueuedPromiseCallback};
-use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx, PromiseJobQueue};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
+use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{DocumentActivity, DiscardBrowsingContext, EventResult};
 use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
@@ -98,6 +99,7 @@ use servo_config::opts;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
+use std::default::Default;
 use std::ops::Deref;
 use std::option::Option;
 use std::ptr;
@@ -477,7 +479,7 @@ pub struct ScriptThread {
 
     content_process_shutdown_chan: IpcSender<()>,
 
-    promise_job_queue: PromiseJobQueue,
+    microtask_queue: MicrotaskQueue,
 
     /// A handle to the webvr thread, if available
     webvr_thread: Option<IpcSender<WebVRMsg>>,
@@ -694,7 +696,7 @@ impl ScriptThread {
 
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
-            promise_job_queue: PromiseJobQueue::new(),
+            microtask_queue: MicrotaskQueue::default(),
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
 
@@ -776,6 +778,7 @@ impl ScriptThread {
         let mut mouse_move_event_index = None;
         let mut animation_ticks = HashSet::new();
         loop {
+            // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7
             match event {
                 // This has to be handled before the ResizeMsg below,
                 // otherwise the page may not have been added to the
@@ -788,6 +791,7 @@ impl ScriptThread {
                     })
                 }
                 FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
+                    // step 7.7
                     self.profile_event(ScriptThreadEventCategory::Resize, || {
                         self.handle_resize(id, size, size_type);
                     })
@@ -804,6 +808,7 @@ impl ScriptThread {
                 }
                 FromConstellation(ConstellationControlMsg::TickAllAnimations(
                         pipeline_id)) => {
+                    // step 7.8
                     if !animation_ticks.contains(&pipeline_id) {
                         animation_ticks.insert(pipeline_id);
                         sequential.push(event);
@@ -868,10 +873,15 @@ impl ScriptThread {
                 None
             });
 
+            // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
+            self.perform_a_microtask_checkpoint();
+
             if let Some(retval) = result {
                 return retval
             }
         }
+
+        // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 7.12
 
         // Issue batched reflows on any pages that require it (e.g. if images loaded)
         // TODO(gw): In the future we could probably batch other types of reflows
@@ -2108,30 +2118,15 @@ impl ScriptThread {
         }
     }
 
-    pub fn enqueue_promise_job(job: EnqueuedPromiseCallback, global: &GlobalScope) {
+    pub fn enqueue_microtask(job: Microtask) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.promise_job_queue.enqueue(job, global);
+            script_thread.microtask_queue.enqueue(job);
         });
     }
 
-    pub fn flush_promise_jobs(global: &GlobalScope) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            let _ = script_thread.dom_manipulation_task_source.queue(
-                box FlushPromiseJobs, global);
-        })
-    }
-
-    fn do_flush_promise_jobs(&self) {
-        self.promise_job_queue.flush_promise_jobs(|id| self.documents.borrow().find_global(id))
-    }
-}
-
-struct FlushPromiseJobs;
-impl Runnable for FlushPromiseJobs {
-    fn main_thread_handler(self: Box<FlushPromiseJobs>, script_thread: &ScriptThread) {
-        script_thread.do_flush_promise_jobs();
+    fn perform_a_microtask_checkpoint(&self) {
+        self.microtask_queue.checkpoint(|id| self.documents.borrow().find_global(id))
     }
 }
 
