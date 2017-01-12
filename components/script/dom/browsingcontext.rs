@@ -33,9 +33,6 @@ use std::cell::Cell;
 pub struct BrowsingContext {
     reflector: Reflector,
 
-    /// Indicates if reflow is required when reloading.
-    needs_reflow: Cell<bool>,
-
     /// Has this browsing context been discarded?
     discarded: Cell<bool>,
 
@@ -47,7 +44,6 @@ impl BrowsingContext {
     pub fn new_inherited(frame_element: Option<&Element>) -> BrowsingContext {
         BrowsingContext {
             reflector: Reflector::new(),
-            needs_reflow: Cell::new(true),
             discarded:  Cell::new(false),
             frame_element: frame_element.map(JS::from_ref),
         }
@@ -94,12 +90,6 @@ impl BrowsingContext {
         let window_proxy = self.reflector.get_jsobject();
         assert!(!window_proxy.get().is_null());
         window_proxy.get()
-    }
-
-    pub fn set_reflow_status(&self, status: bool) -> bool {
-        let old = self.needs_reflow.get();
-        self.needs_reflow.set(status);
-        old
     }
 }
 

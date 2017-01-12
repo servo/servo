@@ -1371,12 +1371,7 @@ impl ScriptThread {
     fn handle_thaw_msg(&self, id: PipelineId) {
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            if let Some(context) = document.browsing_context() {
-                let needed_reflow = context.set_reflow_status(false);
-                if needed_reflow {
-                    self.rebuild_and_force_reflow(&document, ReflowReason::CachedPageNeededReflow);
-                }
-            }
+            self.rebuild_and_force_reflow(&document, ReflowReason::CachedPageNeededReflow);
             document.window().thaw();
             document.fully_activate();
             return;
@@ -1451,7 +1446,6 @@ impl ScriptThread {
         let window = self.documents.borrow().find_window(id)
             .expect("ScriptThread: received a resize msg for a pipeline not in this script thread. This is a bug.");
         window.set_window_size(new_size);
-        window.browsing_context().set_reflow_status(true);
     }
 
     /// We have gotten a window.close from script, which we pass on to the compositor.
@@ -2187,9 +2181,6 @@ impl ScriptThread {
         document.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         let window = window_from_node(&*document);
         window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
-
-        // No more reflow required
-        window.browsing_context().set_reflow_status(false);
 
         // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
         document.process_deferred_scripts();
