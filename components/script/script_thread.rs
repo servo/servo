@@ -565,6 +565,13 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
+    pub fn invoke_perform_a_microtask_checkpoint() {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.perform_a_microtask_checkpoint()
+        })
+    }
+
     pub fn page_headers_available(id: &PipelineId, metadata: Option<Metadata>)
                                   -> Option<Root<ServoParser>> {
         SCRIPT_THREAD_ROOT.with(|root| {
