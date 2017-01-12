@@ -333,10 +333,14 @@ impl LineBreaker {
                 Some(fragment) => fragment,
             };
 
-            // If ellipsis are still needed, then they were already needed for the previous fragment.
-            if fragment.flags.contains(IS_ELLIPSIS) {
+            // Do not reflow truncated fragments. Reflow the original fragment only.
+            let fragment = if fragment.flags.contains(IS_ELLIPSIS) {
                 continue
-            }
+            } else if let SpecificFragmentInfo::TruncatedFragment(info) = fragment.specific {
+                info.full
+            } else {
+                fragment
+            };
 
             // Try to append the fragment.
             self.reflow_fragment(fragment, flow, layout_context);
@@ -713,13 +717,9 @@ impl LineBreaker {
 
         if let Some(string) = ellipsis {
             let ellipsis = fragment.transform_into_ellipsis(layout_context, string);
-            if let Some(truncation_info) =
-                    fragment.truncate_to_inline_size(available_inline_size -
-                                                     ellipsis.margin_box_inline_size()) {
-                let fragment = fragment.transform_with_split_info(&truncation_info.split,
-                                                                  truncation_info.text_run);
-                self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
-            }
+            let truncated = fragment.truncate_to_inline_size(available_inline_size -
+                                                             ellipsis.margin_box_inline_size());
+            self.push_fragment_to_line_ignoring_text_overflow(truncated, layout_context);
             self.push_fragment_to_line_ignoring_text_overflow(ellipsis, layout_context);
         } else {
             self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
