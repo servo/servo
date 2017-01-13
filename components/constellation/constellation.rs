@@ -970,6 +970,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got activate document message");
                 self.handle_activate_document_msg(pipeline_id);
             }
+            // Notifies constellation to synchronously update an iframe's current PipelineId
+            FromScriptMsg::UpdateIframePipelineId(pipeline_id, sender) => {
+                debug!("constellation got update iframe pipeline id message");
+                self.handle_update_iframe_pipeline_id(pipeline_id, sender);
+            }
             // Update pipeline url after redirections
             FromScriptMsg::SetFinalUrl(pipeline_id, final_url) => {
                 // The script may have finished loading after we already started shutting down.
@@ -2094,7 +2099,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Update the owning iframe to point to the new pipeline id.
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, _)) = parent_info {
-            let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id, frame_id, pipeline_id);
+            let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
+                                                                frame_id,
+                                                                pipeline_id,
+                                                                None);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child traversed after closure.", parent_pipeline_id),
                 Some(pipeline) => pipeline.event_loop.send(msg),
@@ -2225,6 +2233,24 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let frame_change = self.pending_frames.swap_remove(pending_index);
             self.add_or_replace_pipeline_in_frame_tree(frame_change);
         }
+    }
+
+    fn handle_update_iframe_pipeline_id(&mut self, pipeline_id: PipelineId, sender: IpcSender<()>) {
+        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+            if let Some((parent_pipeline_id, _)) = pipeline.parent_info {
+                if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
+                    let msg = ConstellationControlMsg::UpdatePipelineId(parent_pipeline_id,
+                                                                        pipeline.frame_id,
+                                                                        pipeline_id,
+                                                                        Some(sender));
+                    let _ = parent_pipeline.event_loop.send(msg);
+                    return;
+                }
+            }
+        }
+        // If no parent was found, make to send a message back so the script thread is not blocked
+        // forever.
+        let _ = sender.send(());
     }
 
     /// Called when the window is resized.
