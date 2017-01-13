@@ -11,7 +11,9 @@ shopt -s failglob
 
 
 usage() {
-    printf "usage: ${0} android|linux|mac|macbrew|windows-gnu|windows-msvc\n"
+    printf \
+        "usage: %s android|linux|mac|macbrew|windows-gnu|windows-msvc\n" \
+        "${0}"
 }
 
 
