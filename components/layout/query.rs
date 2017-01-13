@@ -549,10 +549,9 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 "Skipped at least one level in the flow tree!");
         }
 
-        if fragment.is_hypothetical() {
-            // We're not interested in hypothetical fragments. The
-            // corresponding block will show up later if this fragment
-            // corresponds to the node we're looking for.
+        if !fragment.is_primary_fragment() {
+            // This fragment doesn't correspond to anything worth
+            // taking measurements from.
 
             if self.node_offset_box.is_none() {
                 // If this is the only fragment in the flow, we need to
