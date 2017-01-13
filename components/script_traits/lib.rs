@@ -244,7 +244,8 @@ pub enum ConstellationControlMsg {
     MozBrowserEvent(PipelineId, Option<FrameId>, MozBrowserEvent),
     /// Updates the current pipeline ID of a given iframe.
     /// First PipelineId is for the parent, second is the new PipelineId for the frame.
-    UpdatePipelineId(PipelineId, FrameId, PipelineId),
+    /// The optional sender allows for the pipeline id to be updated synchronously.
+    UpdatePipelineId(PipelineId, FrameId, PipelineId, Option<IpcSender<()>>),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     /// PipelineId is for the parent, FrameId is for the actual frame.
     FocusIFrame(PipelineId, FrameId),

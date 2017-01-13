@@ -119,6 +119,8 @@ pub enum ScriptMsg {
     SetClipboardContents(String),
     /// Mark a new document as active
     ActivateDocument(PipelineId),
+    /// Notifies constellation to synchronously update an iframe's current PipelineId
+    UpdateIframePipelineId(PipelineId, IpcSender<()>),
     /// Set the document state for a pipeline (used by screenshot / reftests)
     SetDocumentState(PipelineId, DocumentState),
     /// Update the pipeline Url, which can change after redirections.
