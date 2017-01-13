@@ -19,7 +19,7 @@ use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
-use fragment::SpecificFragmentInfo;
+use fragment::{SpecificFragmentInfo, TruncatedFragmentInfo};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList, DisplayListSection};
@@ -1402,7 +1402,11 @@ impl FragmentDisplayListBuilding for Fragment {
             self.stacking_relative_content_box(stacking_relative_border_box);
 
         match self.specific {
-            SpecificFragmentInfo::ScannedText(ref text_fragment) => {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(ref text_fragment),
+                ..
+            }) |
+            SpecificFragmentInfo::ScannedText(box ref text_fragment) => {
                 // Create items for shadows.
                 //
                 // NB: According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front
@@ -1410,7 +1414,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
                 for text_shadow in self.style.get_inheritedtext().text_shadow.0.iter().rev() {
                     self.build_display_list_for_text_fragment(state,
-                                                              &**text_fragment,
+                                                              &*text_fragment,
                                                               &stacking_relative_content_box,
                                                               Some(text_shadow),
                                                               clip);
@@ -1418,7 +1422,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
                 // Create the main text display item.
                 self.build_display_list_for_text_fragment(state,
-                                                          &**text_fragment,
+                                                          &*text_fragment,
                                                           &stacking_relative_content_box,
                                                           None,
                                                           clip);
@@ -1428,7 +1432,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                    self.style(),
                                                                    stacking_relative_border_box,
                                                                    &stacking_relative_content_box,
-                                                                   &**text_fragment,
+                                                                   &*text_fragment,
                                                                    clip);
                 }
             }
@@ -1443,6 +1447,7 @@ impl FragmentDisplayListBuilding for Fragment {
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
+            SpecificFragmentInfo::TruncatedFragment(_) |
             SpecificFragmentInfo::Svg(_) => {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_fragment(state,

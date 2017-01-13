@@ -186,6 +186,12 @@ pub enum SpecificFragmentInfo {
     Multicol,
     MulticolColumn,
     UnscannedText(Box<UnscannedTextFragmentInfo>),
+
+    /// A container for a fragment that got truncated by text-overflow.
+    /// "Totally truncated fragments" are not rendered at all.
+    /// Text fragments may be partially truncated (in which case this renders like a text fragment).
+    /// Other fragments can only be totally truncated or not truncated at all.
+    TruncatedFragment(Box<TruncatedFragmentInfo>),
 }
 
 impl SpecificFragmentInfo {
@@ -206,6 +212,7 @@ impl SpecificFragmentInfo {
                 SpecificFragmentInfo::Multicol |
                 SpecificFragmentInfo::MulticolColumn |
                 SpecificFragmentInfo::UnscannedText(_) |
+                SpecificFragmentInfo::TruncatedFragment(_) |
                 SpecificFragmentInfo::Generic => return RestyleDamage::empty(),
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref info) => &info.flow_ref,
                 SpecificFragmentInfo::InlineAbsolute(ref info) => &info.flow_ref,
@@ -237,6 +244,7 @@ impl SpecificFragmentInfo {
             SpecificFragmentInfo::Multicol => "SpecificFragmentInfo::Multicol",
             SpecificFragmentInfo::MulticolColumn => "SpecificFragmentInfo::MulticolColumn",
             SpecificFragmentInfo::UnscannedText(_) => "SpecificFragmentInfo::UnscannedText",
+            SpecificFragmentInfo::TruncatedFragment(_) => "SpecificFragmentInfo::TruncatedFragment"
         }
     }
 }
@@ -573,11 +581,11 @@ pub struct SplitResult {
 }
 
 /// Describes how a fragment should be truncated.
-pub struct TruncationResult {
+struct TruncationResult {
     /// The part of the fragment remaining after truncation.
-    pub split: SplitInfo,
+    split: SplitInfo,
     /// The text run which is being truncated.
-    pub text_run: Arc<TextRun>,
+    text_run: Arc<TextRun>,
 }
 
 /// Data for an unscanned text fragment. Unscanned text fragments are the results of flow
@@ -620,6 +628,15 @@ impl TableColumnFragmentInfo {
             span: span,
         }
     }
+}
+
+/// A wrapper for fragments that have been truncated by the `text-overflow` property.
+/// This may have an associated text node, or, if the fragment was completely truncated,
+/// it may act as an invisible marker for incremental reflow.
+#[derive(Clone)]
+pub struct TruncatedFragmentInfo {
+    pub text_info: Option<ScannedTextFragmentInfo>,
+    pub full: Fragment,
 }
 
 impl Fragment {
@@ -764,14 +781,17 @@ impl Fragment {
                                    text_overflow_string: String)
                                    -> Fragment {
         let mut unscanned_ellipsis_fragments = LinkedList::new();
-        unscanned_ellipsis_fragments.push_back(self.transform(
-                self.border_box.size,
-                SpecificFragmentInfo::UnscannedText(
-                    box UnscannedTextFragmentInfo::new(text_overflow_string, None))));
+        let mut ellipsis_fragment = self.transform(
+            self.border_box.size,
+            SpecificFragmentInfo::UnscannedText(
+                box UnscannedTextFragmentInfo::new(text_overflow_string, None)));
+        unscanned_ellipsis_fragments.push_back(ellipsis_fragment);
         let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
                                                                      unscanned_ellipsis_fragments);
         debug_assert!(ellipsis_fragments.len() == 1);
-        ellipsis_fragments.fragments.into_iter().next().unwrap()
+        ellipsis_fragment = ellipsis_fragments.fragments.into_iter().next().unwrap();
+        ellipsis_fragment.flags |= IS_ELLIPSIS;
+        ellipsis_fragment
     }
 
     pub fn restyle_damage(&self) -> RestyleDamage {
@@ -843,6 +863,7 @@ impl Fragment {
                     base_quantities
                 }
             }
+            SpecificFragmentInfo::TruncatedFragment(_) |
             SpecificFragmentInfo::ScannedText(_) |
             SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::UnscannedText(_) |
@@ -1498,7 +1519,11 @@ impl Fragment {
                 });
             }
 
-            SpecificFragmentInfo::ScannedText(ref text_fragment_info) => {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(ref text_fragment_info),
+                ..
+            }) |
+            SpecificFragmentInfo::ScannedText(box ref text_fragment_info) => {
                 let range = &text_fragment_info.range;
 
                 // See http://dev.w3.org/csswg/css-sizing/#max-content-inline-size.
@@ -1518,6 +1543,12 @@ impl Fragment {
                     preferred_inline_size: max_line_inline_size,
                 })
             }
+
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: None,
+                ..
+            }) => return IntrinsicISizesContribution::new(),
+
             SpecificFragmentInfo::UnscannedText(..) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             }
@@ -1559,7 +1590,11 @@ impl Fragment {
     /// this fragment.)
     pub fn minimum_splittable_inline_size(&self) -> Au {
         match self.specific {
-            SpecificFragmentInfo::ScannedText(ref text) => {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(ref text),
+                ..
+            }) |
+            SpecificFragmentInfo::ScannedText(box ref text) => {
                 text.run.minimum_splittable_inline_size(&text.range)
             }
             _ => Au(0),
@@ -1621,8 +1656,54 @@ impl Fragment {
     }
 
     /// Truncates this fragment to the given `max_inline_size`, using a character-based breaking
+    /// strategy. The resulting fragment will have `SpecificFragmentInfo::TruncatedFragment`,
+    /// preserving the original fragment for use in incremental reflow.
+    ///
+    /// This function will panic if self is already truncated.
+    pub fn truncate_to_inline_size(self, max_inline_size: Au) -> Fragment {
+        if let SpecificFragmentInfo::TruncatedFragment(_) = self.specific {
+            panic!("Cannot truncate an already truncated fragment");
+        }
+        let info = self.calculate_truncate_to_inline_size(max_inline_size);
+        let (size, text_info) = match info {
+            Some(TruncationResult { split: SplitInfo { inline_size, range }, text_run } ) => {
+                let size = LogicalSize::new(self.style.writing_mode,
+                                            inline_size,
+                                            self.border_box.size.block);
+                // Preserve the insertion point if it is in this fragment's range or it is at line end.
+                let (flags, insertion_point) = match self.specific {
+                    SpecificFragmentInfo::ScannedText(ref info) => {
+                        match info.insertion_point {
+                            Some(index) if range.contains(index) => (info.flags, info.insertion_point),
+                            Some(index) if index == ByteIndex(text_run.text.chars().count() as isize - 1) &&
+                                index == range.end() => (info.flags, info.insertion_point),
+                            _ => (info.flags, None)
+                        }
+                    },
+                    _ => (ScannedTextFlags::empty(), None)
+                };
+                let text_info = ScannedTextFragmentInfo::new(
+                    text_run,
+                    range,
+                    size,
+                    insertion_point,
+                    flags);
+                (size, Some(text_info))
+            }
+            None =>
+                (LogicalSize::zero(self.style.writing_mode), None)
+        };
+        let mut result = self.transform(size, SpecificFragmentInfo::Generic);
+        result.specific = SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+            text_info: text_info,
+            full: self,
+        });
+        result
+    }
+
+    /// Truncates this fragment to the given `max_inline_size`, using a character-based breaking
     /// strategy. If no characters could fit, returns `None`.
-    pub fn truncate_to_inline_size(&self, max_inline_size: Au) -> Option<TruncationResult> {
+    fn calculate_truncate_to_inline_size(&self, max_inline_size: Au) -> Option<TruncationResult> {
         let text_fragment_info =
             if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
                 text_fragment_info
@@ -1818,6 +1899,10 @@ impl Fragment {
                                                     container_inline_size: Au,
                                                     container_block_size: Option<Au>) {
         match self.specific {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: None,
+                ..
+            }) |
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Table |
@@ -1839,6 +1924,7 @@ impl Fragment {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
             SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::TruncatedFragment(_) |
             SpecificFragmentInfo::Svg(_) => {}
         };
 
@@ -1870,7 +1956,11 @@ impl Fragment {
             }
 
             // Text
-            SpecificFragmentInfo::ScannedText(ref info) => {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(ref info),
+                ..
+            }) |
+            SpecificFragmentInfo::ScannedText(box ref info) => {
                 // Scanned text fragments will have already had their content inline-sizes assigned
                 // by this point.
                 self.border_box.size.inline = info.content_size.inline +
@@ -1895,6 +1985,10 @@ impl Fragment {
     /// Ideally, this should follow CSS 2.1 § 10.6.2.
     pub fn assign_replaced_block_size_if_necessary(&mut self) {
         match self.specific {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: None,
+                ..
+            }) |
             SpecificFragmentInfo::Generic |
             SpecificFragmentInfo::GeneratedContent(_) |
             SpecificFragmentInfo::Table |
@@ -1916,12 +2010,20 @@ impl Fragment {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
             SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(_),
+                ..
+            }) |
             SpecificFragmentInfo::Svg(_) => {}
         }
 
         match self.specific {
             // Text
-            SpecificFragmentInfo::ScannedText(ref info) => {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(ref info),
+                ..
+            }) |
+            SpecificFragmentInfo::ScannedText(box ref info) => {
                 // Scanned text fragments' content block-sizes are calculated by the text run
                 // scanner during flow construction.
                 self.border_box.size.block = info.content_size.block +
@@ -1998,7 +2100,11 @@ impl Fragment {
                     ascent: ascent,
                 }
             }
-            SpecificFragmentInfo::ScannedText(ref info) => {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(ref info),
+                ..
+            }) |
+            SpecificFragmentInfo::ScannedText(box ref info) => {
                 // Fragments with no glyphs don't contribute any inline metrics.
                 // TODO: Filter out these fragments during flow construction?
                 if info.insertion_point.is_none() && info.content_size.inline == Au(0) {
@@ -2016,6 +2122,10 @@ impl Fragment {
             SpecificFragmentInfo::InlineAbsoluteHypothetical(ref info) => {
                 inline_metrics_of_block(&info.flow_ref, &*self.style)
             }
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: None,
+                ..
+            }) |
             SpecificFragmentInfo::InlineAbsolute(_) => {
                 InlineMetrics::new(Au(0), Au(0), Au(0))
             }
@@ -2264,6 +2374,7 @@ impl Fragment {
             SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableColumn(_) |
             SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TruncatedFragment(_) |
             SpecificFragmentInfo::Multicol |
             SpecificFragmentInfo::UnscannedText(_) => true,
         }
@@ -2351,6 +2462,7 @@ impl Fragment {
     pub fn establishes_stacking_context(&self) -> bool {
         // Text fragments shouldn't create stacking contexts.
         match self.specific {
+            SpecificFragmentInfo::TruncatedFragment(_) |
             SpecificFragmentInfo::ScannedText(_) |
             SpecificFragmentInfo::UnscannedText(_) => return false,
             _ => {}
@@ -2481,7 +2593,11 @@ impl Fragment {
 
     pub fn requires_line_break_afterward_if_wrapping_on_newlines(&self) -> bool {
         match self.specific {
-            SpecificFragmentInfo::ScannedText(ref scanned_text) => {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(ref scanned_text),
+                ..
+            }) |
+            SpecificFragmentInfo::ScannedText(box ref scanned_text) => {
                 scanned_text.requires_line_break_afterward_if_wrapping_on_newlines()
             }
             _ => false,
@@ -2494,7 +2610,11 @@ impl Fragment {
         }
 
         match self.specific {
-            SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(ref mut scanned_text_fragment_info),
+                ..
+            }) |
+            SpecificFragmentInfo::ScannedText(box ref mut scanned_text_fragment_info) => {
                 let leading_whitespace_byte_count = scanned_text_fragment_info.text()
                     .find(|c| !char_is_whitespace(c))
                     .unwrap_or(scanned_text_fragment_info.text().len());
@@ -2548,7 +2668,11 @@ impl Fragment {
         }
 
         match self.specific {
-            SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(ref mut scanned_text_fragment_info),
+                ..
+            }) |
+            SpecificFragmentInfo::ScannedText(box ref mut scanned_text_fragment_info) => {
                 let mut trailing_whitespace_start_byte = 0;
                 for (i, c) in scanned_text_fragment_info.text().char_indices().rev() {
                     if !char_is_whitespace(c) {
@@ -2734,6 +2858,7 @@ impl Fragment {
             SpecificFragmentInfo::Iframe(_) |
             SpecificFragmentInfo::Image(_) |
             SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::TruncatedFragment(_) |
             SpecificFragmentInfo::Svg(_) |
             SpecificFragmentInfo::UnscannedText(_) => true
         }
@@ -2997,6 +3122,8 @@ bitflags! {
         const IS_INLINE_FLEX_ITEM = 0b0000_0001,
         /// Whether this fragment represents a child in a column flex container.
         const IS_BLOCK_FLEX_ITEM = 0b0000_0010,
+        /// Whether this fragment represents the generated text from a text-overflow clip.
+        const IS_ELLIPSIS = 0b0000_0100,
     }
 }
 
