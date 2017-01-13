@@ -113,7 +113,6 @@ impl HTMLIFrameElement {
     pub fn generate_new_pipeline_id(&self) -> (Option<PipelineId>, PipelineId) {
         let old_pipeline_id = self.pipeline_id.get();
         let new_pipeline_id = PipelineId::new();
-        self.pipeline_id.set(Some(new_pipeline_id));
         debug!("Frame {} created pipeline {}.", self.frame_id, new_pipeline_id);
         (old_pipeline_id, new_pipeline_id)
     }
@@ -158,6 +157,7 @@ impl HTMLIFrameElement {
 
         match nav_type {
             NavigationType::InitialAboutBlank => {
+                self.pipeline_id.set(Some(new_pipeline_id));
                 let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
 
                 global_scope
@@ -241,11 +241,13 @@ impl HTMLIFrameElement {
         self.navigate_or_reload_child_browsing_context(Some(load_data), NavigationType::InitialAboutBlank, false);
     }
 
-    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId) {
+    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId, terminate_load_blocker: bool) {
         self.pipeline_id.set(Some(new_pipeline_id));
 
-        let mut blocker = self.load_blocker.borrow_mut();
-        LoadBlocker::terminate(&mut blocker);
+        if terminate_load_blocker {
+            let mut blocker = self.load_blocker.borrow_mut();
+            LoadBlocker::terminate(&mut blocker);
+        }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
