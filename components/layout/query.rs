@@ -548,6 +548,20 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
                 "Skipped at least one level in the flow tree!");
         }
 
+        if fragment.is_hypothetical() {
+            // We're not interested in hypothetical fragments. The
+            // corresponding block will show up later if this fragment
+            // corresponds to the node we're looking for.
+
+            if self.node_offset_box.is_none() {
+                // If this is the only fragment in the flow, we need to
+                // do this to avoid failing the above assertion.
+                self.parent_nodes.push(None);
+            }
+
+            return;
+        }
+
         if fragment.node == self.node_address {
             // Found the fragment in the flow tree that matches the
             // DOM node being looked for.
@@ -596,10 +610,6 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             if node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
                 self.has_processed_node = true;
             }
-
-            // TODO: `position: fixed` on inline elements doesn't seem to work
-            // as of Sep 25, 2016, so I don't know how one will check if an
-            // inline element has it when it does.
         } else if self.node_offset_box.is_none() {
             // TODO(gw): Is there a less fragile way of checking whether this
             // fragment is the body element, rather than just checking that
