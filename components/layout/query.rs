@@ -636,9 +636,11 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             };
 
             let parent_info = if is_valid_parent {
+                let border_width = fragment.border_width().to_physical(fragment.style.writing_mode);
+
                 Some(ParentBorderBoxInfo {
                     node_address: fragment.node,
-                    origin: border_box.origin,
+                    origin: border_box.origin + Point2D::new(border_width.left, border_width.top),
                 })
             } else {
                 None
