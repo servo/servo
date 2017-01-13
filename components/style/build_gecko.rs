@@ -108,7 +108,7 @@ mod bindings {
     trait BuilderExt {
         fn get_initial_builder(build_type: BuildType) -> Builder;
         fn include<T: Into<String>>(self, file: T) -> Builder;
-        fn zero_size_type(self, ty: &str) -> Builder;
+        fn zero_size_type(self, ty: &str, structs_list: &[&str]) -> Builder;
         fn borrowed_type(self, ty: &str) -> Builder;
         fn mutable_borrowed_type(self, ty: &str) -> Builder;
     }
@@ -172,10 +172,14 @@ mod bindings {
         // Not 100% sure of how safe this is, but it's what we're using
         // in the XPCOM ffi too
         // https://github.com/nikomatsakis/rust-memory-model/issues/2
-        fn zero_size_type(self, ty: &str) -> Builder {
-            self.hide_type(ty)
-                .raw_line(format!("enum {}Void {{ }}", ty))
-                .raw_line(format!("pub struct {0}({0}Void);", ty))
+        fn zero_size_type(self, ty: &str, structs_list: &[&str]) -> Builder {
+            if !structs_list.contains(&ty) {
+                self.hide_type(ty)
+                    .raw_line(format!("enum {}Void {{ }}", ty))
+                    .raw_line(format!("pub struct {0}({0}Void);", ty))
+            } else {
+                self
+            }
         }
         fn borrowed_type(self, ty: &str) -> Builder {
             self.hide_type(format!("{}Borrowed", ty))
@@ -222,6 +226,7 @@ mod bindings {
                 ..CodegenConfig::nothing()
             })
             .header(add_include("nsStyleStruct.h"))
+            .header(add_include("mozilla/StyleAnimationValue.h"))
             .include(add_include("gfxFontConstants.h"))
             .include(add_include("nsThemeConstants.h"))
             .include(add_include("mozilla/dom/AnimationEffectReadOnlyBinding.h"))
@@ -255,6 +260,7 @@ mod bindings {
             "mozilla::CSSPseudoClassType",
             "mozilla::css::SheetParsingMode",
             "mozilla::HalfCorner",
+            "mozilla::PropertyStyleAnimationValuePair",
             "mozilla::TraversalRootBehavior",
             "mozilla::DisplayItemClip",  // Needed because bindgen generates
                                          // specialization tests for this even
@@ -398,7 +404,10 @@ mod bindings {
             "gfxSize",  // <- union { struct { T width; T height; }; T components[2] };
             "gfxSize_Super",  // Ditto.
             "mozilla::ErrorResult",  // Causes JSWhyMagic to be included & handled incorrectly.
+            "mozilla::StyleAnimationValue",
+            "StyleAnimationValue", // pulls in a whole bunch of stuff we don't need in the bindings
         ];
+
         struct MappedGenericType {
             generic: bool,
             gecko: &'static str,
@@ -468,6 +477,8 @@ mod bindings {
             "RawGeckoDocument",
             "RawGeckoElement",
             "RawGeckoNode",
+            "RawGeckoAnimationValueList",
+            "RawServoAnimationValue",
             "RawGeckoPresContext",
             "ThreadSafeURIHolder",
             "ThreadSafePrincipalHolder",
@@ -547,6 +558,7 @@ mod bindings {
             "RawServoDeclarationBlock",
             "RawServoStyleRule",
             "RawServoImportRule",
+            "RawServoAnimationValue",
         ];
         struct ServoOwnedType {
             name: &'static str,
@@ -566,6 +578,7 @@ mod bindings {
         ];
         let servo_borrow_types = [
             "nsCSSValue",
+            "RawGeckoAnimationValueList",
         ];
         for &ty in structs_types.iter() {
             builder = builder.hide_type(ty)
@@ -588,7 +601,7 @@ mod bindings {
                 .hide_type(format!("{}Strong", ty))
                 .raw_line(format!("pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;", ty))
                 .borrowed_type(ty)
-                .zero_size_type(ty);
+                .zero_size_type(ty, &structs_types);
         }
         for &ServoOwnedType { name, opaque } in servo_owned_types.iter() {
             builder = builder
@@ -599,7 +612,7 @@ mod bindings {
                                   name))
                 .mutable_borrowed_type(name);
             if opaque {
-                builder = builder.zero_size_type(name);
+                builder = builder.zero_size_type(name, &structs_types);
             }
         }
         for &ty in servo_immutable_borrow_types.iter() {

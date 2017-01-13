@@ -13,7 +13,7 @@ use selectors::Element;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::fmt::Write;
-use std::mem::transmute;
+use std::mem;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
@@ -35,8 +35,10 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedV
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
+use style::gecko_bindings::bindings::RawGeckoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
+use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
@@ -55,6 +57,7 @@ use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock, PropertyId};
 use style::properties::{apply_declarations, parse_one_declaration};
+use style::properties::animated_properties::AnimationValue;
 use style::restyle_hints::RestyleHint;
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
@@ -155,6 +158,76 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                      behavior == structs::TraversalRootBehavior::UnstyledChildrenOnly);
 }
 
+/// Takes a ServoAnimationValues and populates it with the animation values corresponding
+/// to a given property declaration block
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValues_Populate(anim: RawGeckoAnimationValueListBorrowedMut,
+                                                 declarations: RawServoDeclarationBlockBorrowed,
+                                                 style: ServoComputedValuesBorrowed,
+                                                 parent_style: ServoComputedValuesBorrowedOrNull,
+                                                 pres_context: RawGeckoPresContextBorrowed)
+{
+    use style::properties::declaration_block::Importance;
+    use style::values::computed::Context;
+
+    let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
+    // FIXME this might not be efficient since Populate
+    // is called multiple times. We should precalculate the Context
+    // and share it across Populate calls
+    let style = ComputedValues::as_arc(&style);
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let guard = declarations.read();
+
+    let init = ComputedValues::default_values(pres_context);
+
+    let context = Context {
+        is_root_element: false,
+        // FIXME (bug 1303229): Use the actual viewport size here
+        viewport_size: Size2D::new(Au(0), Au(0)),
+        inherited_style: parent_style.unwrap_or(&init),
+        style: (**style).clone(),
+        font_metrics_provider: None,
+    };
+
+    let mut iter = guard.declarations
+                    .iter()
+                    .filter_map(|&(ref decl, imp)| {
+                        if imp == Importance::Normal {
+                            AnimationValue::from_declaration(decl, &context, &init)
+                        } else {
+                            None
+                        }
+                    });
+
+    let mut geckoiter = anim.iter_mut();
+    {
+        // we reborrow to scope the consumed mutable borrow
+        // we need to be able to ensure geckoiter is empty later on
+        // and thus can't directly use `geckoiter`
+        let local_geckoiter = &mut geckoiter;
+        for (gecko, servo) in local_geckoiter.zip(&mut iter) {
+            gecko.mServoValue.set_arc_leaky(Arc::new(servo));
+        }
+    }
+
+    // we should have gone through both iterators
+    if iter.next().is_some() || geckoiter.next().is_some() {
+        error!("stylo: Mismatched sizes of Gecko and Servo \
+                array during animation value construction");
+    }
+}
+
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValue_AddRef(anim: RawServoAnimationValueBorrowed) -> () {
+    unsafe { AnimationValue::addref(anim) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValue_Release(anim: RawServoAnimationValueBorrowed) -> () {
+    unsafe { AnimationValue::release(anim) };
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_RestyleWithAddedDeclaration(raw_data: RawServoStyleSetBorrowed,
                                                     declarations: RawServoDeclarationBlockBorrowed,
@@ -226,7 +299,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
         "", url, origin, Default::default(), None,
         Box::new(StdoutErrorReporter), extra_data));
     unsafe {
-        transmute(sheet)
+        mem::transmute(sheet)
     }
 }
 
@@ -271,7 +344,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
         input, url, origin, Default::default(), loader,
         Box::new(StdoutErrorReporter), extra_data));
     unsafe {
-        transmute(sheet)
+        mem::transmute(sheet)
     }
 }
 
@@ -618,7 +691,6 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) -> () {
     let _ = data.into_box::<PerDocumentStyleData>();
 }
 
-
 #[no_mangle]
 pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const nsACString,
                                       base_url: *const nsACString, base: *mut ThreadSafeURIHolder,
@@ -915,7 +987,7 @@ pub extern "C" fn Servo_ImportRule_GetSheet(import_rule:
                                             RawServoImportRuleBorrowed)
                                             -> RawServoStyleSheetStrong {
     let import_rule = RwLock::<ImportRule>::as_arc(&import_rule);
-    unsafe { transmute(import_rule.read().stylesheet.clone()) }
+    unsafe { mem::transmute(import_rule.read().stylesheet.clone()) }
 }
 
 #[no_mangle]

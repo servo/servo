@@ -5,7 +5,7 @@
 use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA};
 use euclid::{Point2D, Size2D};
-use properties::PropertyDeclaration;
+use properties::{DeclaredValue, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::background_position_x::computed_value::T as BackgroundPositionX;
 use properties::longhands::background_position_y::computed_value::T as BackgroundPositionY;
@@ -26,7 +26,7 @@ use super::ComputedValues;
 use values::Either;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
-use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
+use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::position::{HorizontalPosition, Position, VerticalPosition};
 use values::computed::ToComputedValue;
 
@@ -191,6 +191,17 @@ impl AnimatedProperty {
     }
 }
 
+
+% if product == "gecko":
+    use gecko_bindings::structs::RawServoAnimationValue;
+    use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
+
+    unsafe impl HasFFI for AnimationValue {
+        type FFIType = RawServoAnimationValue;
+    }
+    unsafe impl HasArcFFI for AnimationValue {}
+% endif
+
 /// An enum to represent a single computed value belonging to an animated
 /// property in order to be interpolated with another one. When interpolating,
 /// both values need to belong to the same property.
@@ -228,6 +239,40 @@ impl AnimationValue {
                     }
                 % endif
             % endfor
+        }
+    }
+
+    /// Construct an AnimationValue from a property declaration
+    pub fn from_declaration(decl: &PropertyDeclaration, context: &Context, initial: &ComputedValues) -> Option<Self> {
+        match *decl {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    PropertyDeclaration::${prop.camel_case}(ref val) => {
+                        let computed = match *val {
+                            // https://bugzilla.mozilla.org/show_bug.cgi?id=1326131
+                            DeclaredValue::WithVariables{..} => unimplemented!(),
+                            DeclaredValue::Value(ref val) => val.to_computed_value(context),
+                            % if not prop.style_struct.inherited:
+                                DeclaredValue::Unset |
+                            % endif
+                            DeclaredValue::Initial => {
+                                let initial_struct = initial.get_${prop.style_struct.name_lower}();
+                                initial_struct.clone_${prop.ident}()
+                            },
+                            % if prop.style_struct.inherited:
+                                DeclaredValue::Unset |
+                            % endif
+                            DeclaredValue::Inherit => {
+                                let inherit_struct = context.inherited_style
+                                                            .get_${prop.style_struct.name_lower}();
+                                inherit_struct.clone_${prop.ident}()
+                            },
+                        };
+                        Some(AnimationValue::${prop.camel_case}(computed))
+                    }
+                % endif
+            % endfor
+            _ => None // non animatable properties will get included because of shorthands. ignore.
         }
     }
 }
