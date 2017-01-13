@@ -1774,9 +1774,9 @@ fn static_assert() {
     }
 
     <%
-        fill_fields = "mRepeat mClip mOrigin mPositionX mPositionY mImage"
+        fill_fields = "mRepeat mClip mOrigin mPositionX mPositionY mImage mSize"
         if shorthand == "background":
-            fill_fields += " mAttachment"
+            fill_fields += " mAttachment mBlendMode"
         else:
             # mSourceURI uses mImageCount
             fill_fields += " mMaskMode mComposite"
