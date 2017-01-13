@@ -670,7 +670,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             prev_visibility: prev_visibility,
             webrender_api_sender: self.webrender_api_sender.clone(),
             is_private: is_private,
-            webvr_thread: self.webvr_thread.clone()
+            webvr_thread: self.webvr_thread.clone(),
         });
 
         let pipeline = match result {
@@ -1390,9 +1390,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
         let (frame_id, parent_id) = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => match pipeline.parent_info {
-                Some((parent_id, _)) => (pipeline.frame_id, parent_id),
-                None => return warn!("Pipeline {} has no parent.", pipeline_id),
+            Some(pipeline) => {
+                // If this is the initial about:blank page, no load event should be fired.
+                if pipeline.is_initial_about_blank {
+                    return;
+                }
+                match pipeline.parent_info {
+                    Some((parent_id, _)) => (pipeline.frame_id, parent_id),
+                    None => return warn!("Pipeline {} has no parent.", pipeline_id),
+                }
             },
             None => return warn!("Pipeline {} loaded after closure.", pipeline_id),
         };
@@ -1500,7 +1506,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           is_private || parent_pipeline.is_private,
                           url.clone(),
                           None,
-                          parent_pipeline.visible)
+                          parent_pipeline.visible,
+                          true)
         };
 
         // TODO: Referrer?
