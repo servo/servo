@@ -528,8 +528,6 @@ impl HTMLScriptElement {
         // Step 8.
         if script.external {
             self.dispatch_load_event();
-        } else {
-            window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("load"), &window);
         }
     }
 
