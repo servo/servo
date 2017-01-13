@@ -874,11 +874,15 @@ unsafe fn maybe_restyle<'a>(data: &'a mut AtomicRefMut<ElementData>, element: Ge
 pub extern "C" fn Servo_Element_GetSnapshot(element: RawGeckoElementBorrowed) -> *mut structs::ServoElementSnapshot
 {
     let element = GeckoElement(element);
-    let mut data = unsafe { element.ensure_data().borrow_mut() };
-    let snapshot = if let Some(restyle_data) = unsafe { maybe_restyle(&mut data, element) } {
-        restyle_data.snapshot.ensure(|| element.create_snapshot()).borrow_mut_raw()
-    } else {
-        ptr::null_mut()
+    let snapshot = match element.mutate_data() {
+        None => ptr::null_mut(),
+        Some(mut data) => {
+            if let Some(restyle_data) = unsafe { maybe_restyle(&mut data, element) } {
+                restyle_data.snapshot.ensure(|| element.create_snapshot()).borrow_mut_raw()
+            } else {
+                ptr::null_mut()
+            }
+        },
     };
 
     debug!("Servo_Element_GetSnapshot: {:?}: {:?}", element, snapshot);
@@ -891,11 +895,13 @@ pub extern "C" fn Servo_NoteExplicitHints(element: RawGeckoElementBorrowed,
                                           change_hint: nsChangeHint) {
     let element = GeckoElement(element);
     let damage = GeckoRestyleDamage::new(change_hint);
-    let mut data = unsafe { element.ensure_data().borrow_mut() };
     debug!("Servo_NoteExplicitHints: {:?}, restyle_hint={:?}, change_hint={:?}",
            element, restyle_hint, change_hint);
 
-    if let Some(restyle_data) = unsafe { maybe_restyle(&mut data, element) } {
+    let mut maybe_data = element.mutate_data();
+    let maybe_restyle_data =
+        maybe_data.as_mut().and_then(|d| unsafe { maybe_restyle(d, element) });
+    if let Some(restyle_data) = maybe_restyle_data {
         let restyle_hint: RestyleHint = restyle_hint.into();
         restyle_data.hint.insert(&restyle_hint.into());
         restyle_data.damage |= damage;
