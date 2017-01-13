@@ -230,7 +230,7 @@ dependencies = [
 [[package]]
 name = "browserhtml"
 version = "0.1.17"
-source = "git+https://github.com/browserhtml/browserhtml?branch=crate#cbb020096c77f5d2547e575c0e19003a6d2a614a"
+source = "git+https://github.com/browserhtml/browserhtml?branch=crate#cd5374a970fd404377ab418ac1e4a358db47691f"
 
 [[package]]
 name = "build-apk"
