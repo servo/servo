@@ -541,8 +541,9 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
 impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     fn process(&mut self, fragment: &Fragment, level: i32, border_box: &Rect<Au>) {
         if self.node_offset_box.is_none() {
-            // We haven't found the node yet, so we're still looking for its parent.
-            // Remove all nodes at this level or higher, as they can't be parents of this node.
+            // We haven't found the node yet, so we're still looking
+            // for its parent. Remove all nodes at this level or
+            // higher, as they can't be parents of this node.
             self.parent_nodes.truncate(level as usize);
             assert_eq!(self.parent_nodes.len(), level as usize,
                 "Skipped at least one level in the flow tree!");
@@ -586,17 +587,17 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             // element. This will likely be impossible until
             // https://github.com/servo/servo/issues/13982 is fixed.
 
-            // Found a fragment in the flow tree whose inline context contains
-            // the DOM node we're looking for, i.e. the node is inline and
-            // contains this fragment.
+            // Found a fragment in the flow tree whose inline context
+            // contains the DOM node we're looking for, i.e. the node
+            // is inline and contains this fragment.
             match self.node_offset_box {
                 Some(NodeOffsetBoxInfo { ref mut rectangle, .. }) => {
                     *rectangle = rectangle.union(border_box);
                 },
                 None => {
-                    // https://github.com/servo/servo/issues/13982 will cause
-                    // this assertion to fail sometimes, so it's commented out
-                    // for now.
+                    // https://github.com/servo/servo/issues/13982 will
+                    // cause this assertion to fail sometimes, so it's
+                    // commented out for now.
                     /*assert!(node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
                         "First fragment of inline node found wasn't its first fragment!");*/
 
