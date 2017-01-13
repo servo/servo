@@ -92,24 +92,39 @@ def notify_darwin(title, text):
         raise Exception("Optional Python module 'pyobjc' is not installed.")
 
 
-def notify_build_done(elapsed, success=True):
+def notify_with_command(command):
+    def notify(title, text):
+        if call([command, title, text]) != 0:
+            raise Exception("Could not run '%s'." % command)
+    return notify
+
+
+def notify_build_done(config, elapsed, success=True):
     """Generate desktop notification when build is complete and the
     elapsed build time was longer than 30 seconds."""
     if elapsed > 30:
-        notify("Servo build", "%s in %s" % ("Completed" if success else "FAILED", format_duration(elapsed)))
+        notify(config, "Servo build",
+               "%s in %s" % ("Completed" if success else "FAILED", format_duration(elapsed)))
 
 
-def notify(title, text):
+def notify(config, title, text):
     """Generate a desktop notification using appropriate means on
     supported platforms Linux, Windows, and Mac OS.  On unsupported
-    platforms, this function acts as a no-op."""
-    platforms = {
-        "linux": notify_linux,
-        "linux2": notify_linux,
-        "win32": notify_win,
-        "darwin": notify_darwin
-    }
-    func = platforms.get(sys.platform)
+    platforms, this function acts as a no-op.
+
+    If notify-command is set in the [tools] section of the configuration,
+    that is used instead."""
+    notify_command = config["tools"].get("notify-command")
+    if notify_command:
+        func = notify_with_command(notify_command)
+    else:
+        platforms = {
+            "linux": notify_linux,
+            "linux2": notify_linux,
+            "win32": notify_win,
+            "darwin": notify_darwin
+        }
+        func = platforms.get(sys.platform)
 
     if func is not None:
         try:
@@ -324,7 +339,7 @@ class MachCommands(CommandBase):
                         pass
 
         # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(elapsed, status == 0)
+        notify_build_done(self.config, elapsed, status == 0)
 
         print("Build %s in %s" % ("Completed" if status == 0 else "FAILED", format_duration(elapsed)))
         return status
@@ -375,7 +390,7 @@ class MachCommands(CommandBase):
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(elapsed)
+        notify_build_done(self.config, elapsed)
 
         print("CEF build completed in %s" % format_duration(elapsed))
 
@@ -430,7 +445,7 @@ class MachCommands(CommandBase):
         elapsed = time() - build_start
 
         # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(elapsed)
+        notify_build_done(self.config, elapsed)
 
         print("GeckoLib build completed in %s" % format_duration(elapsed))
 

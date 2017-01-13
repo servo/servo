@@ -27,6 +27,12 @@ system-cargo = false
 # Defaults to true
 rustc-with-gold = true
 
+# If uncommented, this command is used instead of the platform’s default
+# to notify at the end of a compilation that took a long time.
+# This is the name or path of an executable called with two arguments:
+# the summary and content of the notification.
+#notify-command = "notify-send"
+
 [build]
 # Set "mode = dev" or use `mach build --dev` to build the project with warning.
 # or Set "mode = release" or use `mach build --release` for optimized build.
