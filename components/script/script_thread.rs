@@ -1354,9 +1354,10 @@ impl ScriptThread {
 
     /// Handles freeze message
     fn handle_freeze_msg(&self, id: PipelineId) {
-        let window = self.documents.borrow().find_window(id);
-        if let Some(window) = window {
-            window.freeze();
+        let document = self.documents.borrow().find_document(id);
+        if let Some(document) = document {
+            document.window().freeze();
+            document.fully_deactivate();
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
