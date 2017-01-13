@@ -3,15 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use alloc::heap;
-use freetype::freetype::FTErrorMethods;
 use freetype::freetype::FT_Add_Default_Modules;
 use freetype::freetype::FT_Done_Library;
 use freetype::freetype::FT_Library;
 use freetype::freetype::FT_Memory;
+use freetype::freetype::FT_MemoryRec_;
 use freetype::freetype::FT_New_Library;
-use freetype::freetype::struct_FT_MemoryRec_;
 use heapsize::{HeapSizeOf, heap_size_of};
-use libc::{c_long, c_void};
+use std::os::raw::{c_long, c_void};
 use std::ptr;
 use std::rc::Rc;
 
@@ -118,11 +117,11 @@ impl FontContextHandle {
         let user = Box::into_raw(box User {
             size: 0,
         });
-        let mem = Box::into_raw(box struct_FT_MemoryRec_ {
+        let mem = Box::into_raw(box FT_MemoryRec_ {
             user: user as *mut c_void,
-            alloc: ft_alloc,
-            free: ft_free,
-            realloc: ft_realloc,
+            alloc: Some(ft_alloc),
+            free: Some(ft_free),
+            realloc: Some(ft_realloc),
         });
         unsafe {
             let mut ctx: FT_Library = ptr::null_mut();

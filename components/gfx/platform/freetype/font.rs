@@ -7,20 +7,20 @@ extern crate freetype;
 use app_units::Au;
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel, GPOS, GSUB, KERN};
-use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Done_Face, FT_New_Memory_Face};
+use freetype::freetype::{FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
 use freetype::freetype::{FT_Get_Kerning, FT_Get_Sfnt_Table, FT_Load_Sfnt_Table};
 use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
-use freetype::freetype::{FT_KERNING_DEFAULT, FT_STYLE_FLAG_BOLD, FT_STYLE_FLAG_ITALIC};
+use freetype::freetype::{FT_Kerning_Mode, FT_STYLE_FLAG_BOLD, FT_STYLE_FLAG_ITALIC};
 use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
-use freetype::freetype::{FT_SizeRec, FT_Size_Metrics, FT_UInt, struct_FT_Vector_};
-use freetype::freetype::ft_sfnt_os2;
+use freetype::freetype::{FT_SizeRec, FT_Size_Metrics, FT_UInt, FT_Vector};
+use freetype::freetype::FT_Sfnt_Tag;
 use freetype::tt_os2::TT_OS2;
-use libc::c_char;
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
 use std::{mem, ptr};
+use std::os::raw::{c_char, c_long};
 use std::sync::Arc;
 use style::computed_values::{font_stretch, font_weight};
 use super::c_str_to_string;
@@ -121,15 +121,15 @@ impl FontHandleMethods for FontHandle {
         }
     }
     fn is_italic(&self) -> bool {
-        unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
+        unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC as c_long != 0 }
     }
     fn boldness(&self) -> font_weight::T {
         let default_weight = font_weight::T::Weight400;
-        if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD == 0 } {
+        if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD as c_long == 0 } {
             default_weight
         } else {
             unsafe {
-                let os2 = FT_Get_Sfnt_Table(self.face, ft_sfnt_os2) as *mut TT_OS2;
+                let os2 = FT_Get_Sfnt_Table(self.face, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
                 let valid = !os2.is_null() && (*os2).version != 0xffff;
                 if valid {
                     let weight =(*os2).usWeightClass;
@@ -172,9 +172,11 @@ impl FontHandleMethods for FontHandle {
     fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId)
                        -> FractionalPixel {
         assert!(!self.face.is_null());
-        let mut delta = struct_FT_Vector_ { x: 0, y: 0 };
+        let mut delta = FT_Vector { x: 0, y: 0 };
         unsafe {
-            FT_Get_Kerning(self.face, first_glyph, second_glyph, FT_KERNING_DEFAULT, &mut delta);
+            FT_Get_Kerning(self.face, first_glyph, second_glyph,
+                           FT_Kerning_Mode::FT_KERNING_DEFAULT as FT_UInt,
+                           &mut delta);
         }
         fixed_to_float_ft(delta.x as i32)
     }
@@ -196,7 +198,7 @@ impl FontHandleMethods for FontHandle {
                 let advance = advance as i32;
                 Some(fixed_to_float_ft(advance) as FractionalPixel)
             } else {
-                debug!("Unable to load glyph {}. reason: {}", glyph, res);
+                debug!("Unable to load glyph {}. reason: {:?}", glyph, res);
                 None
             }
         }
@@ -226,7 +228,7 @@ impl FontHandleMethods for FontHandle {
         let mut strikeout_offset = Au(0);
         let mut x_height = Au(0);
         unsafe {
-            let os2 = FT_Get_Sfnt_Table(face, ft_sfnt_os2) as *mut TT_OS2;
+            let os2 = FT_Get_Sfnt_Table(face, FT_Sfnt_Tag::FT_SFNT_OS2) as *mut TT_OS2;
             let valid = !os2.is_null() && (*os2).version != 0xffff;
             if valid {
                strikeout_size = self.font_units_to_au((*os2).yStrikeoutSize as f64);
