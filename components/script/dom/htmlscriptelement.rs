@@ -4,7 +4,6 @@
 
 use document_loader::LoadType;
 use dom::attr::Attr;
-use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
@@ -17,6 +16,7 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
+use dom::element::{cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventdispatcher::EventStatus;
 use dom::globalscope::GlobalScope;
@@ -369,12 +369,7 @@ impl HTMLScriptElement {
                               .unwrap_or_else(|| doc.encoding());
 
         // Step 14.
-        let cors_setting = match self.GetCrossOrigin() {
-            Some(ref s) if *s == "anonymous" => Some(CorsSettings::Anonymous),
-            Some(ref s) if *s == "use-credentials" => Some(CorsSettings::UseCredentials),
-            None => None,
-            _ => unreachable!()
-        };
+        let cors_setting = cors_setting_for_element(element);
 
         // TODO: Step 15: Module script credentials mode.
 
@@ -707,28 +702,12 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
-        let element = self.upcast::<Element>();
-        let attr = element.get_attribute(&ns!(), &local_name!("crossorigin"));
-
-        if let Some(mut val) = attr.map(|v| v.Value()) {
-            val.make_ascii_lowercase();
-            if val == "anonymous" || val == "use-credentials" {
-                return Some(val);
-            }
-            return Some(DOMString::from("anonymous"));
-        }
-        None
+        reflect_cross_origin_attribute(self.upcast::<Element>())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
     fn SetCrossOrigin(&self, value: Option<DOMString>) {
-        let element = self.upcast::<Element>();
-        match value {
-            Some(val) => element.set_string_attribute(&local_name!("crossorigin"), val),
-            None => {
-                element.remove_attribute(&ns!(), &local_name!("crossorigin"));
-            }
-        }
+        set_cross_origin_attribute(self.upcast::<Element>(), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text

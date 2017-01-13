@@ -20,7 +20,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError, ReferrerPolicy};
-use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
+use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
 use script_layout_interface::message::Msg;
@@ -196,7 +196,8 @@ impl<'a> StylesheetLoader<'a> {
 }
 
 impl<'a> StylesheetLoader<'a> {
-    pub fn load(&self, source: StylesheetContextSource, integrity_metadata: String) {
+    pub fn load(&self, source: StylesheetContextSource, cors_setting: Option<CorsSettings>,
+                integrity_metadata: String) {
         let url = source.url();
         let document = document_from_node(self.elem);
         let context = Arc::new(Mutex::new(StylesheetContext {
@@ -231,8 +232,18 @@ impl<'a> StylesheetLoader<'a> {
             url: url.clone(),
             type_: RequestType::Style,
             destination: Destination::Style,
-            credentials_mode: CredentialsMode::Include,
-            use_url_credentials: true,
+            // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+            // Step 1
+            mode: match cors_setting {
+                Some(_) => RequestMode::CorsMode,
+                None => RequestMode::NoCors,
+            },
+            // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+            // Step 3-4
+            credentials_mode: match cors_setting {
+                Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+                _ => CredentialsMode::Include,
+            },
             origin: document.url(),
             pipeline_id: Some(self.elem.global().pipeline_id()),
             referrer_url: Some(document.url()),
@@ -247,6 +258,8 @@ impl<'a> StylesheetLoader<'a> {
 
 impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
     fn request_stylesheet(&self, import: &Arc<RwLock<ImportRule>>) {
-        self.load(StylesheetContextSource::Import(import.clone()), "".to_owned())
+        //TODO (mrnayak) : Whether we should use the original loader's CORS setting?
+        //Fix this when spec has more details.
+        self.load(StylesheetContextSource::Import(import.clone()), None, "".to_owned())
     }
 }

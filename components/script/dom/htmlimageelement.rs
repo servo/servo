@@ -19,6 +19,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlareaelement::HTMLAreaElement;
@@ -335,9 +336,14 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
-    make_enumerated_getter!(CrossOrigin, "crossorigin", "anonymous", "use-credentials");
+    fn GetCrossOrigin(&self) -> Option<DOMString> {
+        reflect_cross_origin_attribute(self.upcast::<Element>())
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
-    make_setter!(SetCrossOrigin, "crossorigin");
+    fn SetCrossOrigin(&self, value: Option<DOMString>) {
+        set_cross_origin_attribute(self.upcast::<Element>(), value);
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_getter!(UseMap, "usemap");

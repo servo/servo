@@ -5,7 +5,7 @@
 // https://html.spec.whatwg.org/multipage/#htmllinkelement
 interface HTMLLinkElement : HTMLElement {
            attribute DOMString href;
-  //         attribute DOMString crossOrigin;
+           attribute DOMString? crossOrigin;
            attribute DOMString rel;
   readonly attribute DOMTokenList relList;
            attribute DOMString media;
