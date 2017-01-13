@@ -30,13 +30,11 @@ class Bootstrapper(object):
         self.instance = cls(**args)
         self.instance.context = context
 
-    def bootstrap(self, android=False, interactive=False, force=False):
+    def bootstrap(self, interactive=False, force=False):
         self.instance.interactive = interactive
         self.instance.force = force
 
-        if android:
-            self.instance.install_mobile_android_packages()
-        elif force:
+        if force:
             self.instance.install_system_packages()
         else:
             self.instance.ensure_system_packages()

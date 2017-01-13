@@ -29,14 +29,6 @@ class BaseBootstrapper(object):
         raise NotImplementedError('%s must implement install_system_packages()' %
                                   __name__)
 
-    def install_mobile_android_packages(self):
-        '''
-        Install packages required to build Servo for Android.
-        '''
-        raise NotImplementedError('Cannot bootstrap Servo for Android: '
-                                  '%s does not yet implement install_mobile_android_packages()'
-                                  % __name__)
-
     def which(self, name):
         """Python implementation of which.
 

@@ -81,6 +81,3 @@ class WindowsMsvcBootstrapper(BaseBootstrapper):
         with open(installed_deps_file, 'w') as installed_file:
             for line in packages:
                 installed_file.write(line + "\n")
-
-    def install_mobile_android_packages(self):
-        sys.exit('We do not support building Android on Windows. Sorry!')

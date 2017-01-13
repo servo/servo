@@ -32,9 +32,6 @@ class WindowsGnuBootstrapper(BaseBootstrapper):
         self._ensure_package_manager_updated()
         self.pacman_install(*packages)
 
-    def install_mobile_android_packages(self):
-        sys.exit('We do not support building Android on Windows. Sorry!')
-
     def _update_package_manager(self):
         self.pacman_update()
 

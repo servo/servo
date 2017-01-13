@@ -136,17 +136,14 @@ class MachCommands(CommandBase):
     @CommandArgument('--interactive', "-i",
                      action='store_true',
                      help='Need to answer any (Y/n) interactive prompts.')
-    @CommandArgument('--android',
-                     action='store_true',
-                     help='Install required packages for Android')
     @CommandArgument('--force', '-f',
                      action='store_true',
                      help='Force reinstall packages')
-    def bootstrap(self, android=False, interactive=False, force=False):
+    def bootstrap(self, interactive=False, force=False):
         from servo.bootstrapper.bootstrap import Bootstrapper
 
         bootstrapper = Bootstrapper(self.context)
-        bootstrapper.bootstrap(android=android, interactive=interactive, force=force)
+        bootstrapper.bootstrap(interactive=interactive, force=force)
 
     @Command('bootstrap-rust',
              description='Download the Rust compiler',
