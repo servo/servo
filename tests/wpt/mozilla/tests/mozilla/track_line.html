@@ -6,12 +6,18 @@
 <script>
 setup({allow_uncaught_exception:true});
 var t = async_test("error event has proper line number");
+var errors = 0;
+var expected_lines = [21, 4];
 window.addEventListener('error', t.step_func(function(e) {
     assert_true(e instanceof ErrorEvent);
-    assert_equals(e.lineno, 16);
-    t.done();
+    assert_equals(e.lineno, expected_lines[errors]);
+    errors++;
+    if (errors == 2) {
+        t.done();
+    }
 }), true);
 </script>
 <script>
 this_is_a_js_error
 </script>
+<script src="resources/external.js"></script>
