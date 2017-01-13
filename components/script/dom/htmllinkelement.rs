@@ -15,6 +15,7 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
+use dom::element::{cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute};
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
@@ -239,6 +240,9 @@ impl HTMLLinkElement {
 
         let element = self.upcast::<Element>();
 
+        // Step 3
+        let cors_setting = cors_setting_for_element(element);
+
         let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
         let value = mq_attribute.r().map(|a| a.value());
         let mq_str = match value {
@@ -262,7 +266,7 @@ impl HTMLLinkElement {
         loader.load(StylesheetContextSource::LinkElement {
             url: url,
             media: Some(media),
-        }, integrity_metadata.to_owned());
+        }, cors_setting, integrity_metadata.to_owned());
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
@@ -378,6 +382,16 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-target
     make_setter!(SetTarget, "target");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-crossorigin
+    fn GetCrossOrigin(&self) -> Option<DOMString> {
+        reflect_cross_origin_attribute(self.upcast::<Element>())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-crossorigin
+    fn SetCrossOrigin(&self, value: Option<DOMString>) {
+        set_cross_origin_attribute(self.upcast::<Element>(), value);
+    }
 
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
     fn GetSheet(&self) -> Option<Root<DOMStyleSheet>> {

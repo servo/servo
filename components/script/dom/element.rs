@@ -79,6 +79,7 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use js::jsapi::{HandleValue, JSAutoCompartment};
+use net_traits::request::CorsSettings;
 use parking_lot::RwLock;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
@@ -2896,4 +2897,36 @@ impl Runnable for ElementPerformFullscreenExit {
         let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
         promise.resolve(promise.global().get_cx(), HandleValue::undefined());
     }
+}
+
+pub fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
+    let attr = element.get_attribute(&ns!(), &local_name!("crossorigin"));
+
+    if let Some(mut val) = attr.map(|v| v.Value()) {
+        val.make_ascii_lowercase();
+        if val == "anonymous" || val == "use-credentials" {
+            return Some(val);
+        }
+        return Some(DOMString::from("anonymous"));
+    }
+    None
+}
+
+pub fn set_cross_origin_attribute(element: &Element, value: Option<DOMString>) {
+    match value {
+        Some(val) => element.set_string_attribute(&local_name!("crossorigin"), val),
+        None => {
+            element.remove_attribute(&ns!(), &local_name!("crossorigin"));
+        }
+    }
+}
+
+pub fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
+    reflect_cross_origin_attribute(element).map_or(None, |attr| {
+        match &*attr {
+            "anonymous" => Some(CorsSettings::Anonymous),
+            "use-credentials" => Some(CorsSettings::UseCredentials),
+            _ => unreachable!()
+        }
+    })
 }

@@ -8,7 +8,7 @@ interface HTMLImageElement : HTMLElement {
            attribute DOMString alt;
            attribute DOMString src;
   //         attribute DOMString srcset;
-           attribute DOMString crossOrigin;
+           attribute DOMString? crossOrigin;
            attribute DOMString useMap;
            attribute boolean isMap;
            attribute unsigned long width;
