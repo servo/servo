@@ -92,6 +92,9 @@ pub struct Pipeline {
     /// Whether this pipeline should be treated as visible for the purposes of scheduling and
     /// resource management.
     pub visible: bool,
+
+    /// Whether this pipeline is an initial about:blank page.
+    pub is_initial_about_blank: bool,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -171,6 +174,7 @@ pub struct InitialPipelineState {
 
     /// Whether this pipeline is considered private.
     pub is_private: bool,
+
     /// A channel to the webvr thread.
     pub webvr_thread: Option<IpcSender<WebVRMsg>>,
 }
@@ -294,7 +298,8 @@ impl Pipeline {
                          state.is_private,
                          url,
                          state.window_size,
-                         state.prev_visibility.unwrap_or(true)))
+                         state.prev_visibility.unwrap_or(true),
+                         false))
     }
 
     /// Creates a new `Pipeline`, after the script and layout threads have been
@@ -308,7 +313,8 @@ impl Pipeline {
                is_private: bool,
                url: ServoUrl,
                size: Option<TypedSize2D<f32, CSSPixel>>,
-               visible: bool)
+               visible: bool,
+               is_initial_about_blank: bool)
                -> Pipeline {
         let pipeline = Pipeline {
             id: id,
@@ -324,6 +330,7 @@ impl Pipeline {
             running_animations: false,
             visible: visible,
             is_private: is_private,
+            is_initial_about_blank: is_initial_about_blank,
         };
 
         pipeline.notify_visibility();
