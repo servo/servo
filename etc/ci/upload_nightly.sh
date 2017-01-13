@@ -52,8 +52,10 @@ update_brew() {
        > "${tmp_dir}/Formula/servo-bin.rb"
 
   git -C "${tmp_dir}" add ./Formula/servo-bin.rb
-  git -C "${tmp_dir}" commit \
-      --author="Tom Servo <servo@servo.org>" \
+  git -C "${tmp_dir}" \
+      -c user.name="Tom Servo" \
+      -c user.email="servo@servo.org" \
+      commit \
       --message="Version bump: ${version}"
 
   git -C "${tmp_dir}" push -qf \
