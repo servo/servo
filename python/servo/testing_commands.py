@@ -30,8 +30,9 @@ from mach.decorators import (
 
 from servo.command_base import (
     BuildNotFound, CommandBase,
-    call, cd, check_call, host_triple, set_osmesa_env,
+    call, cd, check_call, set_osmesa_env,
 )
+from servo.util import host_triple
 
 from wptrunner import wptcommandline
 from update import updatecommandline

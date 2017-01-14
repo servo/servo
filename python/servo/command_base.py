@@ -18,11 +18,12 @@ import subprocess
 from subprocess import PIPE
 import sys
 import tarfile
-import platform
 
 import toml
 
 from mach.registrar import Registrar
+from servo.util import host_triple
+
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 
@@ -105,51 +106,6 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
                             arcname = os.path.normpath(os.path.join(prepend_path, arcname))
                         tar_file.add(entry, filter=reset, recursive=False, arcname=arcname)
         os.rename(temp_file, dest_archive)
-
-
-def host_triple():
-    os_type = platform.system().lower()
-    if os_type == "linux":
-        os_type = "unknown-linux-gnu"
-    elif os_type == "darwin":
-        os_type = "apple-darwin"
-    elif os_type == "android":
-        os_type = "linux-androideabi"
-    elif os_type == "windows":
-        # If we are in a Visual Studio environment, use msvc
-        if os.getenv("PLATFORM") is not None:
-            os_type = "pc-windows-msvc"
-        elif os.getenv("MSYSTEM") is not None:
-            os_type = "pc-windows-gnu"
-        else:
-            os_type = "unknown"
-    elif os_type.startswith("mingw64_nt-") or os_type.startswith("cygwin_nt-"):
-        os_type = "pc-windows-gnu"
-    elif os_type == "freebsd":
-        os_type = "unknown-freebsd"
-    else:
-        os_type = "unknown"
-
-    cpu_type = platform.machine().lower()
-    if os_type.endswith("-msvc"):
-        # vcvars*.bat should set it properly
-        platform_env = os.environ.get("PLATFORM")
-        if platform_env == "X86":
-            cpu_type = "i686"
-        elif platform_env == "X64":
-            cpu_type = "x86_64"
-        else:
-            cpu_type = "unknown"
-    elif cpu_type in ["i386", "i486", "i686", "i768", "x86"]:
-        cpu_type = "i686"
-    elif cpu_type in ["x86_64", "x86-64", "x64", "amd64"]:
-        cpu_type = "x86_64"
-    elif cpu_type == "arm":
-        cpu_type = "arm"
-    else:
-        cpu_type = "unknown"
-
-    return "%s-%s" % (cpu_type, os_type)
 
 
 def normalize_env(env):
