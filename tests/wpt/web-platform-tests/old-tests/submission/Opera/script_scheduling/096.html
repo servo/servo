@@ -9,16 +9,22 @@
 
 	<div id="log">FAILED (This TC requires JavaScript enabled)</div>
 
-        <script>
-          log("inline script #1");
-          document.write("<script defer src='scripts/include-1.js'><\/script>")
-        </script>
+  <script>
+    log("inline script #1");
+    document.write("<script defer src='scripts/include-1.js'><\/script>")
+  </script>
 	<script>
-          log("inline script #2");
-          var t = async_test();
+    log("inline script #2");
+    var t = async_test();
 
-          addEventListener("DOMContentLoaded", t.step_func(function() {assert_array_equals(eventOrder, ["inline script #1", "inline script #2"])}), false);
+    addEventListener("DOMContentLoaded", t.step_func(function() {
+      assert_array_equals(eventOrder, ["inline script #1", "inline script #2", "external script #1"]);
+      log("inline script #3");
+    }), false);
 
-          onload = t.step_func(function() {assert_array_equals(eventOrder, ["inline script #1", "inline script #2", "external script #1"]); t.done();});
-        </script>
+    onload = t.step_func(function() {
+      assert_array_equals(eventOrder, ["inline script #1", "inline script #2", "external script #1", "inline script #3"]);
+      t.done();
+    });
+  </script>
 </body></html>

@@ -680,6 +680,17 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-charset
     make_setter!(SetCharset, "charset");
 
+    // https://html.spec.whatwg.org/multipage/#dom-script-async
+    fn Async(&self) -> bool {
+        self.non_blocking.get() || self.upcast::<Element>().has_attribute(&local_name!("async"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-async
+    fn SetAsync(&self, value: bool) {
+        self.non_blocking.set(false);
+        self.upcast::<Element>().set_bool_attribute(&local_name!("async"), value);
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
     make_bool_getter!(Defer, "defer");
     // https://html.spec.whatwg.org/multipage/#dom-script-defer

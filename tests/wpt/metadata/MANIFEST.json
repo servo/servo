@@ -45843,7 +45843,9 @@
     ]
   },
   "local_changes": {
-    "deleted": [],
+    "deleted": [
+      "old-tests/submission/Opera/script_scheduling/098.html"
+    ],
     "deleted_reftests": {},
     "items": {
       "testharness": {
