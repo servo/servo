@@ -1432,16 +1432,10 @@ fn static_assert() {
         }
     }
     ${impl_animation_count('timing_function', 'TimingFunction')}
+    ${impl_copy_animation_value('timing_function', 'TimingFunction')}
     pub fn animation_timing_function_at(&self, index: usize)
         -> longhands::animation_timing_function::computed_value::SingleComputedValue {
         self.gecko.mAnimations[index].mTimingFunction.into()
-    }
-    pub fn copy_animation_timing_function_from(&mut self, other: &Self) {
-        unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };
-        self.gecko.mAnimationTimingFunctionCount = other.gecko.mAnimationTimingFunctionCount;
-        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate() {
-            animation.mTimingFunction = other.gecko.mAnimations[index].mTimingFunction;
-        }
     }
 
     <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "none mandatory proximity") %>
