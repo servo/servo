@@ -481,11 +481,6 @@ impl HTMLScriptElement {
             Ok(script) => script,
         };
 
-        // TODO(#12446): beforescriptexecute.
-        if self.dispatch_before_script_execute_event() == EventStatus::Canceled {
-            return;
-        }
-
         // Step 3.
         let neutralized_doc = if script.external {
             debug!("loading external script, url = {}", script.url);
@@ -517,9 +512,6 @@ impl HTMLScriptElement {
             doc.decr_ignore_destructive_writes_counter();
         }
 
-        // TODO(#12446): afterscriptexecute.
-        self.dispatch_after_script_execute_event();
-
         // Step 8.
         if script.external {
             self.dispatch_load_event();
@@ -529,18 +521,6 @@ impl HTMLScriptElement {
     pub fn queue_error_event(&self) {
         let window = window_from_node(self);
         window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("error"), &window);
-    }
-
-    pub fn dispatch_before_script_execute_event(&self) -> EventStatus {
-        self.dispatch_event(atom!("beforescriptexecute"),
-                            EventBubbles::Bubbles,
-                            EventCancelable::Cancelable)
-    }
-
-    pub fn dispatch_after_script_execute_event(&self) {
-        self.dispatch_event(atom!("afterscriptexecute"),
-                            EventBubbles::Bubbles,
-                            EventCancelable::NotCancelable);
     }
 
     pub fn dispatch_load_event(&self) {
