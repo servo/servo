@@ -13,6 +13,7 @@ use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::trace_object;
 use dom::browsingcontext;
+use dom::globalscope::GlobalScope;
 use heapsize::HeapSizeOf;
 use js;
 use js::JS_CALLEE;
@@ -22,8 +23,8 @@ use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_ST
 use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{CallArgs, DOMCallbacks, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSContext};
-use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks};
-use js::jsapi::{JS_DeletePropertyById, JS_EnumerateStandardClasses};
+use js::jsapi::{JSJitInfo, JSObject, JSTracer, JSWrapObjectCallbacks, AutoFilename};
+use js::jsapi::{JS_DeletePropertyById, JS_EnumerateStandardClasses, DescribeScriptedCaller};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_GetLatin1StringCharsAndLength};
 use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasProperty};
 use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject};
@@ -32,7 +33,7 @@ use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::{GCMethods, ToString, get_object_class, is_dom_class};
 use libc;
-use std::ffi::CString;
+use std::ffi::{CString, CStr};
 use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
@@ -513,3 +514,32 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
+
+pub struct ScriptedCaller {
+    pub filename: String,
+    pub line: usize,
+    pub column: usize,
+}
+
+pub fn describe_scripted_caller(global: &GlobalScope) -> Option<ScriptedCaller> {
+    let cx = global.get_cx();
+    let mut fname = AutoFilename {
+        ss_: ptr::null_mut(),
+        filename_: [0, 0],
+    };
+    let mut lineno = 0;
+    let mut column = 0;
+    let ok = unsafe {
+        DescribeScriptedCaller(cx, &mut fname, &mut lineno, &mut column)
+    };
+    if ok {
+        Some(ScriptedCaller {
+            filename: unsafe { CStr::from_ptr(fname.get()).to_string_lossy().into() },
+            line: lineno as usize,
+            column: column as usize,
+        })
+    } else {
+        //TODO: get the entry global? how to figure out line/column, in that case?
+        None
+    }
+}

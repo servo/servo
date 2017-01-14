@@ -14,7 +14,9 @@ use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableJS, Root, RootedReference};
+use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
+use dom::bindings::utils::describe_scripted_caller;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::document::{Document, FocusType};
 use dom::domstringmap::DOMStringMap;
@@ -511,9 +513,14 @@ impl VirtualMethods for HTMLElement {
         match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(_)) if name.starts_with("on") => {
                 let evtarget = self.upcast::<EventTarget>();
-                let source_line = 1; //TODO(#9604) get current JS execution line
-                evtarget.set_event_handler_uncompiled(window_from_node(self).get_url(),
-                                                      source_line,
+                let caller = describe_scripted_caller(&self.global());
+                let (filename, line, column) = match caller {
+                    Some(c) => (c.filename, c.line, c.column),
+                    None => (window_from_node(self).get_url().to_string(), 1, 0),
+                };
+                evtarget.set_event_handler_uncompiled(filename,
+                                                      line,
+                                                      column,
                                                       &name[2..],
                                                       // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
                                                       DOMString::from(&**attr.value()));

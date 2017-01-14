@@ -71,8 +71,9 @@ pub enum ListenerPhase {
 #[derive(JSTraceable, Clone, PartialEq)]
 struct InternalRawUncompiledHandler {
     source: DOMString,
-    url: ServoUrl,
+    filename: String,
     line: usize,
+    column: usize,
 }
 
 /// A representation of an event handler, either compiled or uncompiled raw source, or null.
@@ -348,14 +349,16 @@ impl EventTarget {
     /// Store the raw uncompiled event handler for on-demand compilation later.
     /// https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
     pub fn set_event_handler_uncompiled(&self,
-                                        url: ServoUrl,
+                                        filename: String,
                                         line: usize,
+                                        column: usize,
                                         ty: &str,
                                         source: DOMString) {
         let handler = InternalRawUncompiledHandler {
             source: source,
             line: line,
-            url: url,
+            column: column,
+            filename: filename,
         };
         self.set_inline_event_listener(Atom::from(ty),
                                        Some(InlineEventListener::Uncompiled(handler)));
@@ -387,7 +390,7 @@ impl EventTarget {
         // Step 1.6
         let window = document.window();
 
-        let url_serialized = CString::new(handler.url.to_string()).unwrap();
+        let url_serialized = CString::new(handler.filename).unwrap();
         let name = CString::new(&**ty).unwrap();
 
         static mut ARG_NAMES: [*const c_char; 1] = [b"event\0" as *const u8 as *const c_char];

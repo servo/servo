@@ -9,7 +9,9 @@ use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyEle
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
+use dom::bindings::utils::describe_scripted_caller;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::eventtarget::EventTarget;
@@ -169,9 +171,14 @@ impl VirtualMethods for HTMLBodyElement {
                     &local_name!("onresize") | &local_name!("onunload") | &local_name!("onerror")
                       => {
                           let evtarget = window.upcast::<EventTarget>(); // forwarded event
-                          let source_line = 1; //TODO(#9604) obtain current JS execution line
-                          evtarget.set_event_handler_uncompiled(window.get_url(),
-                                                                source_line,
+                          let caller = describe_scripted_caller(&self.global());
+                          let (filename, line, column) = match caller {
+                              Some(c) => (c.filename, c.line, c.column),
+                              None => (window.get_url().to_string(), 1, 0),
+                          };
+                          evtarget.set_event_handler_uncompiled(filename,
+                                                                line,
+                                                                column,
                                                                 &name[2..],
                                                                 DOMString::from((**attr.value()).to_owned()));
                           false

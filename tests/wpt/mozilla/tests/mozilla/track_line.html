@@ -7,15 +7,25 @@
 setup({allow_uncaught_exception:true});
 var t = async_test("error event has proper line number");
 var errors = 0;
-var expected_lines = [21, 4];
+var expected_lines = [[location.href, 27],
+                      [location.href, 31],
+                      [location.href.replace('track_line.html', 'resources/external.js'), 4]];
 window.addEventListener('error', t.step_func(function(e) {
     assert_true(e instanceof ErrorEvent);
-    assert_equals(e.lineno, expected_lines[errors]);
+    var expected = expected_lines[errors];
+    assert_equals(e.filename, expected[0]);
+    assert_equals(e.lineno, expected[1]);
     errors++;
-    if (errors == 2) {
+    if (errors == expected_lines.length) {
         t.done();
     }
 }), true);
+</script>
+<div id="testdiv"></div>
+<script>
+  var div = document.querySelector('#testdiv');
+  div.setAttribute('onclick', 'this_is_a_js_error');
+  div.dispatchEvent(new Event('click'));
 </script>
 <script>
 this_is_a_js_error
