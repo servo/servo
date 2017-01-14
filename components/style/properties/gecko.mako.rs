@@ -1038,7 +1038,9 @@ fn static_assert() {
 <%def name="impl_animation_time_value(ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn set_animation_${ident}(&mut self, v: longhands::animation_${ident}::computed_value::T) {
+        assert!(v.0.len() > 0);
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+
         self.gecko.mAnimation${gecko_ffi_name}Count = v.0.len() as u32;
         for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
             gecko.m${gecko_ffi_name} = servo.seconds() * 1000.;
@@ -1060,7 +1062,9 @@ fn static_assert() {
         use properties::longhands::animation_${ident}::single_value::computed_value::T as Keyword;
         use gecko_bindings::structs;
 
+        assert!(v.0.len() > 0);
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+
         self.gecko.mAnimation${gecko_ffi_name}Count = v.0.len() as u32;
 
         for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
@@ -1365,9 +1369,14 @@ fn static_assert() {
     pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
         use nsstring::nsCString;
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
-        self.gecko.mAnimationNameCount = v.0.len() as u32;
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
-            gecko.mName.assign_utf8(&nsCString::from(servo.0.to_string()));
+
+        if v.0.len() > 0 {
+            self.gecko.mAnimationNameCount = v.0.len() as u32;
+            for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
+                gecko.mName.assign_utf8(&nsCString::from(servo.0.to_string()));
+            }
+        } else {
+            unsafe { self.gecko.mAnimations[0].mName.truncate(); }
         }
     }
     pub fn animation_name_at(&self, index: usize)
@@ -1400,7 +1409,9 @@ fn static_assert() {
         use std::f32;
         use properties::longhands::animation_iteration_count::single_value::SpecifiedValue as AnimationIterationCount;
 
+        assert!(v.0.len() > 0);
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+
         self.gecko.mAnimationIterationCountCount = v.0.len() as u32;
         for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
             match servo {
@@ -1424,6 +1435,7 @@ fn static_assert() {
     ${impl_copy_animation_value('iteration_count', 'IterationCount')}
 
     pub fn set_animation_timing_function(&mut self, v: longhands::animation_timing_function::computed_value::T) {
+        assert!(v.0.len() > 0);
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
 
         self.gecko.mAnimationTimingFunctionCount = v.0.len() as u32;
