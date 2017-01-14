@@ -14,7 +14,7 @@ use app_units::{AU_PER_PX, Au};
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::SharedLayoutContext;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
@@ -32,6 +32,7 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto};
+use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::UsePlaceholder;
 use range::Range;
@@ -56,6 +57,7 @@ use style::servo::restyle_damage::REPAINT;
 use style::values::{RGBA, computed};
 use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{HorizontalDirection, VerticalDirection};
+use style_traits::PagePx;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_traits::{ColorF, GradientStop, ScrollPolicy};
@@ -105,6 +107,10 @@ pub struct DisplayListBuildState<'a> {
     /// The current scroll root id, used to keep track of state when
     /// recursively building and processing the display list.
     pub current_scroll_root_id: ScrollRootId,
+
+    /// Vector containing iframe sizes, used to inform the constellation about
+    /// new iframe sizes
+    pub iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, PagePx>)>,
 }
 
 impl<'a> DisplayListBuildState<'a> {
@@ -118,6 +124,7 @@ impl<'a> DisplayListBuildState<'a> {
             processing_scroll_root_element: false,
             current_stacking_context_id: StackingContextId::root(),
             current_scroll_root_id: ScrollRootId::root(),
+            iframe_sizes: Vec::new(),
         }
     }
 
@@ -1462,6 +1469,10 @@ impl FragmentDisplayListBuilding for Fragment {
                         base: base,
                         iframe: fragment_info.pipeline_id,
                     });
+
+                    let size = Size2D::new(item.bounds().size.width.to_f32_px(),
+                                           item.bounds().size.height.to_f32_px());
+                    state.iframe_sizes.push((fragment_info.pipeline_id, TypedSize2D::from_untyped(&size)));
 
                     state.add_display_item(item);
                 }
