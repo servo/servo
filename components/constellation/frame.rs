@@ -11,12 +11,12 @@ use std::mem::replace;
 use std::time::Instant;
 
 /// A frame in the frame tree.
-/// Each frame is the constrellation's view of a browsing context.
+/// Each frame is the constellation's view of a browsing context.
 /// Each browsing context has a session history, caused by
 /// navigation and traversing the history. Each frame has its
 /// current entry, plus past and future entries. The past is sorted
-/// chronologically, the future is sorted reverse chronoogically:
-/// in partiucular prev.pop() is the latest past entry, and
+/// chronologically, the future is sorted reverse chronologically:
+/// in particular prev.pop() is the latest past entry, and
 /// next.pop() is the earliest future entry.
 #[derive(Debug, Clone)]
 pub struct Frame {
