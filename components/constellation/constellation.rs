@@ -817,12 +817,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation exiting");
                 self.handle_exit();
             }
-            // The compositor discovered the size of a subframe. This needs to be reflected by all
-            // frame trees in the navigation context containing the subframe.
-            FromCompositorMsg::FrameSize(pipeline_id, size) => {
-                debug!("constellation got frame size message");
-                self.handle_frame_size_msg(pipeline_id, &TypedSize2D::from_untyped(&size));
-            }
             FromCompositorMsg::GetFrame(pipeline_id, resp_chan) => {
                 debug!("constellation got get root pipeline message");
                 self.handle_get_frame(pipeline_id, resp_chan);
@@ -1089,6 +1083,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromLayoutMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
             }
+            // The compositor discovered the size of a subframe. This needs to be reflected by all
+            // frame trees in the navigation context containing the subframe.
+            FromLayoutMsg::FrameSize(pipeline_id, size) => {
+                debug!("constellation got frame size message");
+                self.handle_frame_size_msg(pipeline_id, &TypedSize2D::from_untyped(&size));
+            }
             FromLayoutMsg::SetCursor(cursor) => {
                 self.handle_set_cursor_msg(cursor)
             }
@@ -1329,27 +1329,23 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_frame_size_msg(&mut self,
                              pipeline_id: PipelineId,
                              size: &TypedSize2D<f32, PagePx>) {
-        let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
-            visible_viewport: *size,
-            initial_viewport: *size * ScaleFactor::new(1.0),
-            device_pixel_ratio: self.window_size.device_pixel_ratio,
-        }, WindowSizeType::Initial);
-
-        // Store the new rect inside the pipeline
-        let result = {
-            // Find the pipeline that corresponds to this rectangle. It's possible that this
-            // pipeline may have already exited before we process this message, so just
-            // early exit if that occurs.
-            match self.pipelines.get_mut(&pipeline_id) {
-                Some(pipeline) => {
+        let result = match self.pipelines.get_mut(&pipeline_id) {
+            Some(pipeline) => {
+                if pipeline.size != Some(*size) {
                     pipeline.size = Some(*size);
-                    pipeline.event_loop.send(msg)
+                    let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
+                        visible_viewport: *size,
+                        initial_viewport: *size * ScaleFactor::new(1.0),
+                        device_pixel_ratio: self.window_size.device_pixel_ratio,
+                    }, WindowSizeType::Initial);
+                    Some(pipeline.event_loop.send(msg))
+                } else {
+                    None
                 }
-                None => return,
             }
+            None => None
         };
-
-        if let Err(e) = result {
+        if let Some(Err(e)) = result {
             self.handle_send_error(pipeline_id, e);
         }
     }

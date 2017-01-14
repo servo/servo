@@ -51,7 +51,7 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, OpaqueNode};
+use gfx::display_list::{ClippingRegion, DisplayItem, OpaqueNode};
 use gfx::display_list::WebRenderImageInfo;
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
@@ -953,6 +953,21 @@ impl LayoutThread {
                 document.will_paint();
             }
             let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
+
+            for item in &display_list.list {
+                match *item {
+                    DisplayItem::Iframe(ref iframe) => {
+                        let size = Size2D::new((*item).bounds().size.width.to_f32_px(),
+                                               (*item).bounds().size.height.to_f32_px());
+                        debug!("new iframe size: {:?}", size);
+                        let msg = ConstellationMsg::FrameSize((*iframe).iframe, size);
+                        if let Err(e) = self.constellation_chan.send(msg) {
+                            warn!("Layout resize to constellation failed ({}).", e);
+                        }
+                    },
+                    _ => debug!("other!"),
+                }
+            }
 
             if opts::get().dump_display_list {
                 display_list.print();
