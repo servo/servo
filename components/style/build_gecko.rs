@@ -99,7 +99,7 @@ mod bindings {
 
     fn add_include(name: &str) -> String {
         let mut added_paths = ADDED_PATHS.lock().unwrap();
-        let file = search_include(name).unwrap();
+        let file = search_include(name).expect("Include not found!");
         let result = String::from(file.to_str().unwrap());
         add_headers_recursively(file, &mut *added_paths);
         result
