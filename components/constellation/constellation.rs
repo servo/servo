@@ -2136,7 +2136,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         } else if let Some(frame) = self.frames.get_mut(&frame_change.frame_id) {
             debug!("Adding pipeline to existing frame.");
             frame.load(frame_change.new_pipeline_id, frame_change.url.clone());
-            let evicted_id = frame.prev.len().checked_sub(opts::get().max_session_history)
+            let evicted_id = frame.prev.len()
+                .checked_sub(PREFS.get("session-history.max-length").as_u64().unwrap_or(20) as usize)
                 .and_then(|index| frame.prev.get_mut(index))
                 .and_then(|entry| entry.pipeline_id.take());
             (evicted_id, false, true, true)
