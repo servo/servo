@@ -8,6 +8,26 @@ lint-scripts = [
   "./python/servo/lints/wpt_lint.py",
 ]
 
+# Packages which we avoid using in Servo.
+# For each blocked package, we can list the exceptions,
+# which are packages allowed to use the blocked package.
+[blocked-packages]
+rand = [
+  "deque",
+  "gaol",
+  "ipc-channel",
+  "num-bigint",
+  "parking_lot_core",
+  "phf_generator",
+  "rayon",
+  "servo_rand",
+  "tempdir",
+  "tempfile",
+  "uuid",
+  "websocket",
+  "ws",
+]
+
 [ignore]
 # Ignored packages with duplicated versions
 packages = ["bitflags", "byteorder", "lazy_static", "semver", "libloading"]

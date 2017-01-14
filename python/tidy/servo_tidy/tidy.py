@@ -31,6 +31,7 @@ config = {
     "skip-check-licenses": False,
     "check-ordered-json-keys": [],
     "lint-scripts": [],
+    "blocked-packages": {},
     "ignore": {
         "files": [
             os.path.join(".", "."),   # ignore hidden files
@@ -80,27 +81,6 @@ WEBIDL_STANDARDS = [
     "// This interface is entirely internal to Servo, and should not be" +
     " accessible to\n// web pages."
 ]
-
-# Packages which we avoid using in Servo.
-# For each blocked package, we can list the exceptions,
-# which are packages allowed to use the blocked package.
-BLOCKED_PACKAGES = {
-    "rand": [
-        "deque",
-        "gaol",
-        "ipc-channel",
-        "num-bigint",
-        "parking_lot_core",
-        "phf_generator",
-        "rayon",
-        "servo_rand",
-        "tempdir",
-        "tempfile",
-        "uuid",
-        "websocket",
-        "ws",
-    ],
-}
 
 
 def is_iter_empty(iterator):
@@ -366,7 +346,7 @@ def check_lock(file_name, contents):
         for dependency in package.get("dependencies", []):
             dependency = dependency.split()
             dependency_name = dependency[0]
-            whitelist = BLOCKED_PACKAGES.get(dependency_name)
+            whitelist = config['blocked-packages'].get(dependency_name)
             if whitelist is not None:
                 if package_name not in whitelist:
                     fmt = "Package {} {} depends on blocked package {}."
@@ -856,7 +836,7 @@ def check_config_file(config_file, print_text=True):
         # Check for invalid tables
         if re.match("\[(.*?)\]", line.strip()):
             table_name = re.findall(r"\[(.*?)\]", line)[0].strip()
-            if table_name not in ("configs", "ignore", "check_ext"):
+            if table_name not in ("configs", "blocked-packages", "ignore", "check_ext"):
                 yield config_file, idx + 1, "invalid config table [%s]" % table_name
             current_table = table_name
             continue
@@ -893,6 +873,9 @@ def parse_config(content):
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
         config['check_ext'][normilize_paths([path])[0]] = exts
+
+    # Add list of blocked packages
+    config["blocked-packages"] = config_file.get("blocked-packages", {})
 
     # Override default configs
     user_configs = config_file.get("configs", [])
