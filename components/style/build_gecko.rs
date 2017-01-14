@@ -497,6 +497,7 @@ mod bindings {
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
             "RawGeckoPresContext",
+            "RawGeckoPresContextOwned",
             "ThreadSafeURIHolder",
             "ThreadSafePrincipalHolder",
             "CSSPseudoClassType",

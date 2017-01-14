@@ -37,12 +37,12 @@ use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::RawGeckoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
-use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs;
+use style::gecko_bindings::structs::{RawGeckoPresContextOwned, RawGeckoPresContextBorrowed};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
@@ -111,7 +111,7 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
         timer: Timer::new(),
         // FIXME Find the real QuirksMode information for this document
         quirks_mode: QuirksMode::NoQuirks,
-        default_computed_values: per_doc_data.default_computed_values.clone(),
+        default_computed_values: per_doc_data.default_computed_values().clone(),
     }
 }
 
@@ -251,7 +251,7 @@ pub extern "C" fn Servo_RestyleWithAddedDeclaration(raw_data: RawServoStyleSetBo
                                       /* is_root_element = */ false,
                                       declarations,
                                       previous_style,
-                                      &data.default_computed_values,
+                                      data.default_computed_values(),
                                       None,
                                       Box::new(StdoutErrorReporter),
                                       None,
@@ -597,7 +597,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 
     let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
     data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent,
-                                               &data.default_computed_values, false)
+                                               data.default_computed_values(), false)
         .values
         .into_strong()
 }
@@ -618,7 +618,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
         return if is_probe {
             Strong::null()
         } else {
-            doc_data.borrow().default_computed_values.clone().into_strong()
+            doc_data.borrow().default_computed_values().clone().into_strong()
         };
     }
 
@@ -640,7 +640,7 @@ fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
         PseudoElementCascadeType::Lazy => {
             let d = doc_data.borrow_mut();
             let base = &styles.primary.values;
-            d.stylist.lazily_compute_pseudo_element_style(&element, &pseudo, base, &d.default_computed_values)
+            d.stylist.lazily_compute_pseudo_element_style(&element, &pseudo, base, &d.default_computed_values())
                      .map(|s| s.values.clone())
         },
     }
@@ -654,37 +654,37 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let maybe_arc = ComputedValues::arc_from_borrowed(&parent_style);
     let style = if let Some(reference) = maybe_arc.as_ref() {
-        ComputedValues::inherit_from(reference, &data.default_computed_values)
+        ComputedValues::inherit_from(reference, &data.default_computed_values())
     } else {
-        data.default_computed_values.clone()
+        data.default_computed_values().clone()
     };
     style.into_strong()
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_AddRef(ptr: ServoComputedValuesBorrowed) -> () {
+pub extern "C" fn Servo_ComputedValues_AddRef(ptr: ServoComputedValuesBorrowed) {
     unsafe { ComputedValues::addref(ptr) };
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed) -> () {
+pub extern "C" fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed) {
     unsafe { ComputedValues::release(ptr) };
 }
 
+/// See the comment in `Device` to see why it's ok to pass an owned reference to
+/// the pres context (hint: the context outlives the StyleSet, that holds the
+/// device alive).
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextBorrowed)
+pub extern "C" fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
   -> RawServoStyleSetOwned {
     let data = Box::new(PerDocumentStyleData::new(pres_context));
     data.into_ffi()
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_RecomputeDefaultStyles(
-  raw_data: RawServoStyleSetBorrowed,
-  pres_context: RawGeckoPresContextBorrowed) {
+pub extern "C" fn Servo_StyleSet_RebuildData(raw_data: RawServoStyleSetBorrowed) {
     let mut data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
-    data.default_computed_values = ComputedValues::default_values(pres_context);
-    // FIXME(bz): We need to update our Stylist's Device's computed values, but how?
+    data.device_changed = true;
 }
 
 #[no_mangle]
@@ -1034,7 +1034,7 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
     if !data.has_current_styles() {
         error!("Resolving style on unstyled element with lazy computation forbidden.");
         let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-        return per_doc_data.default_computed_values.clone().into_strong();
+        return per_doc_data.default_computed_values().clone().into_strong();
     }
 
     data.styles().primary.values.clone().into_strong()

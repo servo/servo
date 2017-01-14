@@ -2957,7 +2957,7 @@ pub mod root {
  * The FramePropertyTable is optimized for storing 0 or 1 properties on
  * a given frame. Storing very large numbers of properties on a single
  * frame will not be efficient.
- * 
+ *
  * Property values are passed as void* but do not actually have to be
  * valid pointers. You can use NS_INT32_TO_PTR/NS_PTR_TO_INT32 to
  * store int32_t values. Null/zero values can be stored and retrieved.
@@ -12149,9 +12149,11 @@ pub mod root {
     pub type RawGeckoElementBorrowedOrNull = *const root::RawGeckoElement;
     pub type RawGeckoDocumentBorrowed = *const root::RawGeckoDocument;
     pub type RawGeckoDocumentBorrowedOrNull = *const root::RawGeckoDocument;
+    pub type RawGeckoPresContextOwned = *mut [u64; 162usize];
     pub type RawGeckoPresContextBorrowed = *const [u64; 162usize];
     pub type RawGeckoAnimationValueListBorrowedMut =
         *mut root::RawGeckoAnimationValueList;
+    pub type RawGeckoPresContextBorrowedMut = *mut [u64; 162usize];
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsCSSTokenSerializationType {
@@ -13600,6 +13602,125 @@ pub mod root {
     pub type ThreadSafePrincipalHolder =
         root::nsMainThreadPtrHolder<root::nsIPrincipal>;
     pub type ThreadSafeURIHolder = root::nsMainThreadPtrHolder<root::nsIURI>;
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsMediaFeature {
+        pub mName: *mut *mut root::nsIAtom,
+        pub mRangeType: root::nsMediaFeature_RangeType,
+        pub mValueType: root::nsMediaFeature_ValueType,
+        pub mReqFlags: u8,
+        pub mData: root::nsMediaFeature__bindgen_ty_1,
+        pub mGetter: root::nsMediaFeatureValueGetter,
+    }
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsMediaFeature_RangeType {
+        eMinMaxAllowed = 0,
+        eMinMaxNotAllowed = 1,
+    }
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsMediaFeature_ValueType {
+        eLength = 0,
+        eInteger = 1,
+        eFloat = 2,
+        eBoolInteger = 3,
+        eIntRatio = 4,
+        eResolution = 5,
+        eEnumerated = 6,
+        eIdent = 7,
+    }
+    #[repr(u8)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsMediaFeature_RequirementFlags {
+        eNoRequirements = 0,
+        eHasWebkitPrefix = 1,
+        eWebkitDevicePixelRatioPrefEnabled = 2,
+    }
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsMediaFeature__bindgen_ty_1 {
+        pub mInitializer_: root::__BindgenUnionField<*const ::std::os::raw::c_void>,
+        pub mKeywordTable: root::__BindgenUnionField<*const root::nsCSSProps_KTableEntry>,
+        pub mMetric: root::__BindgenUnionField<*const *const root::nsIAtom>,
+        pub bindgen_union_field: u64,
+    }
+    #[test]
+    fn bindgen_test_layout_nsMediaFeature__bindgen_ty_1() {
+        assert_eq!(::std::mem::size_of::<nsMediaFeature__bindgen_ty_1>() ,
+                   8usize);
+        assert_eq!(::std::mem::align_of::<nsMediaFeature__bindgen_ty_1>() ,
+                   8usize);
+    }
+    impl Clone for nsMediaFeature__bindgen_ty_1 {
+        fn clone(&self) -> Self { *self }
+    }
+    #[test]
+    fn bindgen_test_layout_nsMediaFeature() {
+        assert_eq!(::std::mem::size_of::<nsMediaFeature>() , 40usize);
+        assert_eq!(::std::mem::align_of::<nsMediaFeature>() , 8usize);
+    }
+    impl Clone for nsMediaFeature {
+        fn clone(&self) -> Self { *self }
+    }
+    pub type ThreadSafePrincipalHolder =
+        root::nsMainThreadPtrHolder<root::nsIPrincipal>;
+    pub type ThreadSafeURIHolder = root::nsMainThreadPtrHolder<root::nsIURI>;
+    pub type nsMediaFeatureValueGetter =
+        ::std::option::Option<unsafe extern "C" fn(aPresContext:
+                                                       *mut root::nsPresContext,
+                                                   aFeature:
+                                                       *const root::nsMediaFeature,
+                                                   aResult:
+                                                       *mut root::nsCSSValue)
+                                  -> root::nsresult>;
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct nsMediaFeatures {
+        pub _address: u8,
+    }
+    extern "C" {
+        #[link_name = "_ZN15nsMediaFeatures8featuresE"]
+        pub static mut nsMediaFeatures_features: *const root::nsMediaFeature;
+    }
+    #[test]
+    fn bindgen_test_layout_nsMediaFeatures() {
+        assert_eq!(::std::mem::size_of::<nsMediaFeatures>() , 1usize);
+        assert_eq!(::std::mem::align_of::<nsMediaFeatures>() , 1usize);
+    }
+    impl Clone for nsMediaFeatures {
+        fn clone(&self) -> Self { *self }
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsMediaExpression {
+        pub mFeature: *const root::nsMediaFeature,
+        pub mRange: root::nsMediaExpression_Range,
+        pub mValue: root::nsCSSValue,
+    }
+    #[repr(u32)]
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    pub enum nsMediaExpression_Range { eMin = 0, eMax = 1, eEqual = 2, }
+    #[test]
+    fn bindgen_test_layout_nsMediaExpression() {
+        assert_eq!(::std::mem::size_of::<nsMediaExpression>() , 32usize);
+        assert_eq!(::std::mem::align_of::<nsMediaExpression>() , 8usize);
+    }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsMediaQuery {
+        pub mNegated: bool,
+        pub mHasOnly: bool,
+        pub mTypeOmitted: bool,
+        pub mHadUnknownExpression: bool,
+        pub mMediaType: root::nsCOMPtr<root::nsIAtom>,
+        pub mExpressions: root::nsTArray<root::nsMediaExpression>,
+    }
+    #[test]
+    fn bindgen_test_layout_nsMediaQuery() {
+        assert_eq!(::std::mem::size_of::<nsMediaQuery>() , 24usize);
+        assert_eq!(::std::mem::align_of::<nsMediaQuery>() , 8usize);
+    }
     #[test]
     fn __bindgen_test_layout_template_11() {
         assert_eq!(::std::mem::size_of::<root::JS::TenuredHeap<*mut root::JSObject>>()

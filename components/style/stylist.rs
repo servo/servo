@@ -49,6 +49,20 @@ pub use ::fnv::FnvHashMap;
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct Stylist {
     /// Device that the stylist is currently evaluating against.
+    ///
+    /// This field deserves a bigger comment due to the different use that Gecko
+    /// and Servo give to it (that we should eventually unify).
+    ///
+    /// With Gecko, the device is never changed. Gecko manually tracks whether
+    /// the device data should be reconstructed, and "resets" the state of the
+    /// device.
+    ///
+    /// On Servo, on the other hand, the device is a really cheap representation
+    /// that is recreated each time some constraint changes and calling
+    /// `set_device`.
+    ///
+    /// In both cases, the device is actually _owned_ by the Stylist, and it's
+    /// only an `Arc` so we can implement `add_stylesheet` more idiomatically.
     pub device: Arc<Device>,
 
     /// Viewport constraints based on the current device.
@@ -144,6 +158,18 @@ impl Stylist {
                   stylesheets_changed: bool) -> bool {
         if !(self.is_device_dirty || stylesheets_changed) {
             return false;
+        }
+
+        let cascaded_rule = ViewportRule {
+            declarations: viewport::Cascade::from_stylesheets(doc_stylesheets, &self.device).finish(),
+        };
+
+        self.viewport_constraints =
+            ViewportConstraints::maybe_new(&self.device, &cascaded_rule);
+
+        if let Some(ref constraints) = self.viewport_constraints {
+            Arc::get_mut(&mut self.device).unwrap()
+                .account_for_viewport_rule(constraints);
         }
 
         self.element_map = PerPseudoElementSelectorMap::new();
@@ -394,6 +420,13 @@ impl Stylist {
     ///
     /// Probably worth to make the stylist own a single `Device`, and have a
     /// `update_device` function?
+    ///
+    /// feature = "servo" because gecko only has one device, and manually tracks
+    /// when the device is dirty.
+    ///
+    /// FIXME(emilio): The semantics of the device for Servo and Gecko are
+    /// different enough we may want to unify them.
+    #[cfg(feature = "servo")]
     pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = ViewportRule {
             declarations: viewport::Cascade::from_stylesheets(stylesheets, &device).finish(),
