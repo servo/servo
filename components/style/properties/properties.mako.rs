@@ -24,7 +24,8 @@ use error_reporting::ParseErrorReporter;
 use euclid::size::Size2D;
 use computed_values;
 use font_metrics::FontMetricsProvider;
-#[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
+#[cfg(feature = "gecko")] use gecko_bindings::bindings;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{Parse, ParserContext, ParserContextExtraData};
@@ -734,7 +735,16 @@ enum StaticId {
     Shorthand(ShorthandId),
 }
 include!(concat!(env!("OUT_DIR"), "/static_ids.rs"));
-
+<%
+    def alias_to_nscsspropertyid(alias):
+        if alias == "word-wrap":
+            return "nsCSSPropertyID_eCSSPropertyAlias_WordWrap"
+        return "nsCSSPropertyID::eCSSPropertyAlias_%s" % to_camel_case(alias)
+    def to_nscsspropertyid(ident):
+        if ident == "float":
+            ident = "float_"
+        return "nsCSSPropertyID::eCSSProperty_%s" % ident
+%>
 impl PropertyId {
     /// Returns a given property from the string `s`.
     ///
@@ -757,16 +767,6 @@ impl PropertyId {
     #[allow(non_upper_case_globals)]
     pub fn from_nscsspropertyid(id: nsCSSPropertyID) -> Result<Self, ()> {
         use gecko_bindings::structs::*;
-        <%
-            def alias_to_nscsspropertyid(alias):
-                if alias == "word-wrap":
-                    return "nsCSSPropertyID_eCSSPropertyAlias_WordWrap"
-                return "nsCSSPropertyID::eCSSPropertyAlias_%s" % to_camel_case(alias)
-            def to_nscsspropertyid(ident):
-                if ident == "float":
-                    ident = "float_"
-                return "nsCSSPropertyID::eCSSProperty_%s" % ident
-        %>
         match id {
             % for property in data.longhands:
                 ${to_nscsspropertyid(property.ident)} => {
@@ -788,6 +788,31 @@ impl PropertyId {
                     }
                 % endfor
             % endfor
+            _ => Err(())
+        }
+    }
+
+    /// Returns a property id from Gecko's nsCSSPropertyID.
+    #[cfg(feature = "gecko")]
+    #[allow(non_upper_case_globals)]
+    pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
+        use gecko_bindings::structs::*;
+
+        match *self {
+            PropertyId::Longhand(id) => match id {
+                % for property in data.longhands:
+                    LonghandId::${property.camel_case} => {
+                        Ok(${to_nscsspropertyid(property.ident)})
+                    }
+                % endfor
+            },
+            PropertyId::Shorthand(id) => match id {
+                % for property in data.shorthands:
+                    ShorthandId::${property.camel_case} => {
+                        Ok(${to_nscsspropertyid(property.ident)})
+                    }
+                % endfor
+            },
             _ => Err(())
         }
     }
@@ -875,6 +900,33 @@ impl ToCss for PropertyDeclaration {
         }
     }
 }
+
+<%def name="property_pref_check(property)">
+    % if property.experimental and product == "servo":
+        if !PREFS.get("${property.experimental}")
+            .as_boolean().unwrap_or(false) {
+            return PropertyDeclarationParseResult::ExperimentalProperty
+        }
+    % endif
+    % if product == "gecko":
+        <%
+            # gecko can't use the identifier `float`
+            # and instead uses `float_`
+            # XXXManishearth make this an attr on the property
+            # itself?
+            pref_ident = property.ident
+            if pref_ident == "float":
+                pref_ident = "float_"
+        %>
+        if structs::root::mozilla::SERVO_PREF_ENABLED_${pref_ident} {
+            let id = structs::${to_nscsspropertyid(property.ident)};
+            let enabled = unsafe { bindings::Gecko_PropertyId_IsPrefEnabled(id) };
+            if !enabled {
+                return PropertyDeclarationParseResult::ExperimentalProperty
+            }
+        }
+    % endif
+</%def>
 
 impl PropertyDeclaration {
     /// Given a property declaration, return the property declaration id.
@@ -978,12 +1030,9 @@ impl PropertyDeclaration {
                                 return PropertyDeclarationParseResult::UnknownProperty
                             }
                         % endif
-                        % if property.experimental and product == "servo":
-                            if !PREFS.get("${property.experimental}")
-                                .as_boolean().unwrap_or(false) {
-                                return PropertyDeclarationParseResult::ExperimentalProperty
-                            }
-                        % endif
+
+                        ${property_pref_check(property)}
+
                         match longhands::${property.ident}::parse_declared(context, input) {
                             Ok(value) => {
                                 result_list.push(PropertyDeclaration::${property.camel_case}(value));
@@ -1010,12 +1059,9 @@ impl PropertyDeclaration {
                             return PropertyDeclarationParseResult::UnknownProperty
                         }
                     % endif
-                    % if shorthand.experimental and product == "servo":
-                        if !PREFS.get("${shorthand.experimental}")
-                            .as_boolean().unwrap_or(false) {
-                            return PropertyDeclarationParseResult::ExperimentalProperty
-                        }
-                    % endif
+
+                    ${property_pref_check(shorthand)}
+
                     match input.try(|i| CSSWideKeyword::parse(context, i)) {
                         Ok(CSSWideKeyword::InheritKeyword) => {
                             % for sub_property in shorthand.sub_properties:

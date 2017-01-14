@@ -226,6 +226,7 @@ mod bindings {
                 ..CodegenConfig::nothing()
             })
             .header(add_include("nsStyleStruct.h"))
+            .include(add_include("mozilla/ServoPropPrefList.h"))
             .header(add_include("mozilla/StyleAnimationValue.h"))
             .include(add_include("gfxFontConstants.h"))
             .include(add_include("nsThemeConstants.h"))
@@ -251,7 +252,8 @@ mod bindings {
             "NS_STYLE_.*",
             "NS_RADIUS_.*",
             "BORDER_COLOR_.*",
-            "BORDER_STYLE_.*"
+            "BORDER_STYLE_.*",
+            "mozilla::SERVO_PREF_.*",
         ];
         let whitelist = [
             "RawGecko.*",
