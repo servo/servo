@@ -19,11 +19,11 @@ from subprocess import PIPE
 import sys
 import tarfile
 
+from mach.registrar import Registrar
 import toml
 
-from mach.registrar import Registrar
+from servo.packages import WINDOWS_MSVC as msvc_deps
 from servo.util import host_triple
-
 
 BIN_SUFFIX = ".exe" if sys.platform == "win32" else ""
 
@@ -384,14 +384,18 @@ class CommandBase(object):
         if "msvc" in (target or host_triple()):
             msvc_x64 = "64" if "x86_64" in (target or host_triple()) else ""
             msvc_deps_dir = path.join(self.context.sharedir, "msvc-dependencies")
-            extra_path += [path.join(msvc_deps_dir, "cmake", "bin")]
-            extra_path += [path.join(msvc_deps_dir, "ninja", "bin")]
+
+            def package_dir(package):
+                return path.join(msvc_deps_dir, package, msvc_deps[package])
+
+            extra_path += [path.join(package_dir("cmake"), "bin")]
+            extra_path += [path.join(package_dir("ninja"), "bin")]
             # Link openssl
-            env["OPENSSL_INCLUDE_DIR"] = path.join(msvc_deps_dir, "openssl", "include")
-            env["OPENSSL_LIB_DIR"] = path.join(msvc_deps_dir, "openssl", "lib" + msvc_x64)
+            env["OPENSSL_INCLUDE_DIR"] = path.join(package_dir("openssl"), "include")
+            env["OPENSSL_LIB_DIR"] = path.join(package_dir("openssl"), "lib" + msvc_x64)
             env["OPENSSL_LIBS"] = "ssleay32MD:libeay32MD"
             # Link moztools
-            env["MOZTOOLS_PATH"] = path.join(msvc_deps_dir, "moztools", "bin")
+            env["MOZTOOLS_PATH"] = path.join(package_dir("moztools"), "bin")
 
         if is_windows():
             if not os.environ.get("NATIVE_WIN32_PYTHON"):

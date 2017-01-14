@@ -7,7 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import base64
 import json
@@ -24,6 +24,7 @@ from mach.decorators import (
     Command,
 )
 
+import servo.bootstrap as bootstrap
 from servo.command_base import CommandBase, BIN_SUFFIX
 from servo.util import download_bytes, download_file, extract, host_triple
 
@@ -44,17 +45,11 @@ class MachCommands(CommandBase):
     @Command('bootstrap',
              description='Install required packages for building.',
              category='bootstrap')
-    @CommandArgument('--interactive', "-i",
-                     action='store_true',
-                     help='Need to answer any (Y/n) interactive prompts.')
     @CommandArgument('--force', '-f',
                      action='store_true',
-                     help='Force reinstall packages')
-    def bootstrap(self, interactive=False, force=False):
-        from servo.bootstrapper.bootstrap import Bootstrapper
-
-        bootstrapper = Bootstrapper(self.context)
-        bootstrapper.bootstrap(interactive=interactive, force=force)
+                     help='Boostrap without confirmation')
+    def bootstrap(self, force=False):
+        return bootstrap.bootstrap(self.context, force=force)
 
     @Command('bootstrap-rust',
              description='Download the Rust compiler',
