@@ -29,7 +29,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use dom::cssstylesheet::CSSStyleSheet;
-use dom::document::{Document, DocumentSource, IsHTMLDocument};
+use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
@@ -1726,7 +1726,7 @@ impl Node {
                 };
                 let window = document.window();
                 let loader = DocumentLoader::new(&*document.loader());
-                let document = Document::new(window, None,
+                let document = Document::new(window, HasBrowsingContext::No,
                                              Some(document.url()),
                                              // https://github.com/whatwg/dom/issues/378
                                              document.origin().alias(),

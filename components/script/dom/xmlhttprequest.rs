@@ -20,7 +20,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use dom::blob::{Blob, BlobImpl};
-use dom::document::{Document, IsHTMLDocument};
+use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -1223,7 +1223,7 @@ impl XMLHttpRequest {
             DOMString::from(format!("{}", mime))
         });
         Document::new(win,
-                      None,
+                      HasBrowsingContext::No,
                       parsed_url,
                       doc.origin().alias(),
                       is_html_document,
