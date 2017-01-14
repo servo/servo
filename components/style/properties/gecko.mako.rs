@@ -1021,8 +1021,13 @@ fn static_assert() {
     #[allow(non_snake_case)]
     pub fn copy_animation_${ident}_from(&mut self, other: &Self) {
         unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };
-        self.gecko.mAnimation${gecko_ffi_name}Count = other.gecko.mAnimation${gecko_ffi_name}Count;
-        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate() {
+
+        let count = other.gecko.mAnimation${gecko_ffi_name}Count;
+        self.gecko.mAnimation${gecko_ffi_name}Count = count;
+
+        // The length of mAnimations is often greater than mAnimationXXCount,
+        // don't copy values over the count.
+        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate().take(count as usize) {
             animation.m${gecko_ffi_name} = other.gecko.mAnimations[index].m${gecko_ffi_name};
         }
     }
@@ -1388,8 +1393,13 @@ fn static_assert() {
     }
     pub fn copy_animation_name_from(&mut self, other: &Self) {
         unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };
-        self.gecko.mAnimationNameCount = other.gecko.mAnimationNameCount;
-        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate() {
+
+        let count = other.gecko.mAnimationNameCount;
+        self.gecko.mAnimationNameCount = count;
+
+        // The length of mAnimations is often greater than mAnimationXXCount,
+        // don't copy values over the count.
+        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate().take(count as usize) {
             animation.mName.assign(&other.gecko.mAnimations[index].mName);
         }
     }
