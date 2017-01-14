@@ -3,10 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
-import sys
 import shutil
 from distutils import spawn
 
+from servo.util import extract, download_file
 from base import BaseBootstrapper
 from packages import WINDOWS_MSVC as deps
 
@@ -21,7 +21,6 @@ class WindowsMsvcBootstrapper(BaseBootstrapper):
         self.install_system_packages()
 
     def install_system_packages(self, packages=deps):
-        from servo.bootstrap_commands import extract, download_file
 
         deps_dir = os.path.join(self.context.sharedir, "msvc-dependencies")
         deps_url = "https://servo-rust.s3.amazonaws.com/msvc-deps/"
