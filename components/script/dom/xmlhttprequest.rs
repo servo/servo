@@ -1224,7 +1224,7 @@ impl XMLHttpRequest {
             DOMString::from(format!("{}", mime))
         });
         Document::new(win,
-                      None,
+                      false,
                       parsed_url,
                       doc.origin().alias(),
                       is_html_document,

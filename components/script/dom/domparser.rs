@@ -59,7 +59,7 @@ impl DOMParserMethods for DOMParser {
         match ty {
             Text_html => {
                 let document = Document::new(&self.window,
-                                             None,
+                                             false,
                                              Some(url.clone()),
                                              doc.origin().alias(),
                                              IsHTMLDocument::HTMLDocument,
@@ -76,7 +76,7 @@ impl DOMParserMethods for DOMParser {
             Text_xml | Application_xml | Application_xhtml_xml => {
                 // FIXME: this should probably be FromParser when we actually parse the string (#3756).
                 let document = Document::new(&self.window,
-                                             None,
+                                             false,
                                              Some(url.clone()),
                                              doc.origin().alias(),
                                              IsHTMLDocument::NonHTMLDocument,

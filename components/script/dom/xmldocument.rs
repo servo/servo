@@ -10,7 +10,6 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
-use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::location::Location;
 use dom::node::Node;
@@ -27,7 +26,7 @@ pub struct XMLDocument {
 
 impl XMLDocument {
     fn new_inherited(window: &Window,
-                     browsing_context: Option<&BrowsingContext>,
+                     has_browsing_context: bool,
                      url: Option<ServoUrl>,
                      origin: Origin,
                      is_html_document: IsHTMLDocument,
@@ -37,7 +36,7 @@ impl XMLDocument {
                      doc_loader: DocumentLoader) -> XMLDocument {
         XMLDocument {
             document: Document::new_inherited(window,
-                                              browsing_context,
+                                              has_browsing_context,
                                               url,
                                               origin,
                                               is_html_document,
@@ -51,7 +50,7 @@ impl XMLDocument {
     }
 
     pub fn new(window: &Window,
-               browsing_context: Option<&BrowsingContext>,
+               has_browsing_context: bool,
                url: Option<ServoUrl>,
                origin: Origin,
                doctype: IsHTMLDocument,
@@ -62,7 +61,7 @@ impl XMLDocument {
                -> Root<XMLDocument> {
         let doc = reflect_dom_object(
             box XMLDocument::new_inherited(window,
-                                           browsing_context,
+                                           has_browsing_context,
                                            url,
                                            origin,
                                            doctype,

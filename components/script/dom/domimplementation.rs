@@ -77,7 +77,7 @@ impl DOMImplementationMethods for DOMImplementation {
 
         // Step 1.
         let doc = XMLDocument::new(win,
-                                   None,
+                                   false,
                                    None,
                                    self.document.origin().alias(),
                                    IsHTMLDocument::NonHTMLDocument,
@@ -123,7 +123,7 @@ impl DOMImplementationMethods for DOMImplementation {
 
         // Step 1-2.
         let doc = Document::new(win,
-                                None,
+                                false,
                                 None,
                                 self.document.origin().alias(),
                                 IsHTMLDocument::HTMLDocument,
