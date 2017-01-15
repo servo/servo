@@ -1194,7 +1194,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     last_combined_event = None
                 }
             }
-            
+
             match (&mut last_combined_event, scroll_event.phase) {
                 (last_combined_event @ &mut None, _) => {
                     *last_combined_event = Some(ScrollZoomEvent {
