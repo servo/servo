@@ -67,9 +67,9 @@ def host_triple():
 
 def download(desc, src, writer, start_byte=0):
     if start_byte:
-        print("Resuming download of %s..." % desc)
+        print("Resuming download of {}...".format(desc))
     else:
-        print("Downloading %s..." % desc)
+        print("Downloading {}...".format(desc))
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
 
     try:
@@ -101,16 +101,16 @@ def download(desc, src, writer, start_byte=0):
         if not dumb:
             print()
     except urllib2.HTTPError, e:
-        print("Download failed (%d): %s - %s" % (e.code, e.reason, src))
+        print("Download failed ({}): {} - {}".format(e.code, e.reason, src))
         if e.code == 403:
             print("No Rust compiler binary available for this platform. "
                   "Please see https://github.com/servo/servo/#prerequisites")
         sys.exit(1)
     except urllib2.URLError, e:
-        print("Error downloading Rust compiler: %s. The failing URL was: %s" % (e.reason, src))
+        print("Error downloading {}: {}. The failing URL was: {}".format(desc, e.reason, src))
         sys.exit(1)
     except socket_error, e:
-        print("Looks like there's a connectivity issue, check your Internet connection. %s" % (e))
+        print("Looks like there's a connectivity issue, check your Internet connection. {}".format(e))
         sys.exit(1)
     except KeyboardInterrupt:
         writer.flush()
