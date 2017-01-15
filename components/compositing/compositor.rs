@@ -1174,26 +1174,25 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             if let Some(combined_event) = last_combined_event {
                 if combined_event.phase != scroll_event.phase {
-                    if combined_event.phase != scroll_event.phase {
-                        let combined_delta = match combined_event.scroll_location {
-                            ScrollLocation::Delta(delta) => delta,
-                            _ => {
-                                // If this is an event which is scrolling to the start or end of the page,
-                                // disregard other pending events and exit the loop.
-                                last_combined_event = Some(scroll_event);
-                                break;
-                            }
-                        };
-                        let delta = (TypedPoint2D::from_untyped(&combined_delta.to_untyped()) / self.scale)
-                                     .to_untyped();
-                        let delta = webrender_traits::LayerPoint::from_untyped(&delta);
-                        let cursor =
-                            (combined_event.cursor.to_f32() / self.scale).to_untyped();
-                        let location = webrender_traits::ScrollLocation::Delta(delta);
-                        let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
-                        self.webrender_api.scroll(location, cursor, combined_event.phase);
-                        last_combined_event = None
-                    }
+                    let combined_delta = match combined_event.scroll_location {
+                        ScrollLocation::Delta(delta) => delta,
+                        _ => {
+                            // If this is an event which is scrolling to the start or end of the page,
+                            // disregard other pending events and exit the loop.
+                            last_combined_event = Some(scroll_event);
+                            break;
+                        }
+                    };
+                    let delta = (TypedPoint2D::from_untyped(&combined_delta.to_untyped()) / self.scale)
+                                 .to_untyped();
+                    let delta = webrender_traits::LayerPoint::from_untyped(&delta);
+                    let cursor =
+                        (combined_event.cursor.to_f32() / self.scale).to_untyped();
+                    let location = webrender_traits::ScrollLocation::Delta(delta);
+                    let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
+                    self.webrender_api.scroll(location, cursor, combined_event.phase);
+                    last_combined_event = None
+                }
                 }
             }
 
@@ -1226,9 +1225,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     }
                 }
                 (&mut Some(ref mut last_combined_event), _) => {
-                     if let ScrollLocation::Delta(delta) = last_combined_event.scroll_location {
-                                last_combined_event.scroll_location = ScrollLocation::Delta(delta + this_delta);
-                                last_combined_event.event_count += 1
+                    if let ScrollLocation::Delta(delta) = last_combined_event.scroll_location {
+                        last_combined_event.scroll_location = ScrollLocation::Delta(delta + this_delta);
+                        last_combined_event.event_count += 1
                     }
                 }
             }
@@ -1237,13 +1236,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // TODO(gw): Support zoom (WR issue #28).
         if let Some(combined_event) = last_combined_event {
             let scroll_location = match combined_event.scroll_location {
-                        ScrollLocation::Delta(delta) => {
-                            let scaled_delta = (TypedPoint2D::from_untyped(&delta.to_untyped()) / self.scale)
-                                               .to_untyped();
-                            let calculated_delta = webrender_traits::LayoutPoint::from_untyped(&scaled_delta);
-                            ScrollLocation::Delta(calculated_delta)
-                        },
-                        sl @ _ => sl, // Leave ScrollLocation unchanged if it is Start or End location.
+                ScrollLocation::Delta(delta) => {
+                    let scaled_delta = (TypedPoint2D::from_untyped(&delta.to_untyped()) / self.scale)
+                                       .to_untyped();
+                    let calculated_delta = webrender_traits::LayoutPoint::from_untyped(&scaled_delta);
+                                           ScrollLocation::Delta(calculated_delta)
+                },
+                sl @ _ => sl, // Leave ScrollLocation unchanged if it is Start or End location.
             };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
             let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
@@ -1738,7 +1737,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             warn!("Failed to send pipeline title ({}).", e);
         }
     }
-}
+
 
 /// Why we performed a composite. This is used for debugging.
 #[derive(Copy, Clone, PartialEq, Debug)]
