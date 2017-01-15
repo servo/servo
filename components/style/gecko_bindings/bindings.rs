@@ -751,6 +751,9 @@ extern "C" {
                                        index: i32) -> nsCSSValueBorrowedMut;
 }
 extern "C" {
+    pub fn Gecko_CSSValue_Drop(css_value: nsCSSValueBorrowedMut);
+}
+extern "C" {
     pub fn Gecko_AddRefCSSValueSharedListArbitraryThread(aPtr:
                                                              *mut nsCSSValueSharedList);
 }
