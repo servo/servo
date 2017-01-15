@@ -121,30 +121,6 @@ impl ToComputedValue for specified::CSSColor {
 
 impl ComputedValueAsSpecified for specified::BorderStyle {}
 
-impl ToComputedValue for specified::Length {
-    type ComputedValue = Au;
-
-    #[inline]
-    fn to_computed_value(&self, context: &Context) -> Au {
-        match *self {
-            specified::Length::Absolute(length) => length,
-            specified::Length::Calc(ref calc, range) => range.clamp(calc.to_computed_value(context).length()),
-            specified::Length::FontRelative(length) =>
-                length.to_computed_value(context, /* use inherited */ false),
-            specified::Length::ViewportPercentage(length) =>
-                length.to_computed_value(context.viewport_size()),
-            specified::Length::ServoCharacterWidth(length) =>
-                length.to_computed_value(context.style().get_font().clone_font_size())
-        }
-    }
-
-    #[inline]
-    fn from_computed_value(computed: &Au) -> Self {
-        specified::Length::Absolute(*computed)
-    }
-}
-
-
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
