@@ -99,7 +99,7 @@ unsafe impl Send for Device {}
 #[derive(Debug, Clone)]
 pub struct Expression {
     feature: &'static nsMediaFeature,
-    value: MediaExpressionValue,
+    value: Option<MediaExpressionValue>,
     range: nsMediaExpression_Range
 }
 
@@ -113,11 +113,15 @@ impl ToCss for Expression {
             nsMediaExpression_Range::eMax => dest.write_str("max-")?,
             nsMediaExpression_Range::eEqual => {},
         }
-        // NB: CSSStringWriter not needed, features are under control.
-        write!(dest, "{}", Atom::from(unsafe { *self.feature.mName }))?;
-        dest.write_str(": ")?;
 
-        self.value.to_css(dest)?;
+        // NB: CSSStringWriter not needed, feature names are under control.
+        write!(dest, "{}", Atom::from(unsafe { *self.feature.mName }))?;
+
+        if let Some(ref val) = self.value {
+            dest.write_str(": ")?;
+            val.to_css(dest)?;
+        }
+
         dest.write_str(")")
     }
 }
@@ -214,7 +218,6 @@ fn starts_with_ignore_ascii_case(string: &str, prefix: &str) -> bool {
       string[0..prefix.len()].eq_ignore_ascii_case(prefix)
 }
 
-#[allow(warnings)]
 fn find_feature<F>(mut f: F) -> Option<&'static nsMediaFeature>
     where F: FnMut(&'static nsMediaFeature) -> bool,
 {
@@ -239,7 +242,7 @@ fn find_feature<F>(mut f: F) -> Option<&'static nsMediaFeature>
 impl Expression {
     /// Trivially construct a new expression.
     fn new(feature: &'static nsMediaFeature,
-           value: MediaExpressionValue,
+           value: Option<MediaExpressionValue>,
            range: nsMediaExpression_Range) -> Self {
         Expression {
             feature: feature,
@@ -253,12 +256,10 @@ impl Expression {
     /// ```
     /// (media-feature: media-value)
     /// ```
-    #[allow(warnings)]
     pub fn parse(input: &mut Parser) -> Result<Self, ()> {
         try!(input.expect_parenthesis_block());
         input.parse_nested_block(|input| {
             let ident = try!(input.expect_ident());
-            try!(input.expect_colon());
 
             let mut flags = 0;
             let mut feature_name = &*ident;
@@ -293,6 +294,17 @@ impl Expression {
             if range != nsMediaExpression_Range::eEqual &&
                 feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed {
                 return Err(());
+            }
+
+            // If there's no colon, this is a media query of the form
+            // '(<feature>)', that is, there's no value specified.
+            //
+            // FIXME(emilio): We need to check for range operators too here when
+            // we support them, see:
+            //
+            // https://drafts.csswg.org/mediaqueries/#mq-ranges
+            if input.try(|i| i.expect_colon()).is_err() {
+                return Ok(Expression::new(feature, None, range));
             }
 
             let value = match feature.mValueType {
@@ -337,6 +349,7 @@ impl Expression {
                 nsMediaFeature_ValueType::eEnumerated => {
                     let index = unsafe {
                         let _table = feature.mData.mKeywordTable.as_ref();
+                        // TODO
                         0
                     };
                     MediaExpressionValue::Enumerated(index)
