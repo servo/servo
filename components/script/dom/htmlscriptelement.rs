@@ -55,9 +55,6 @@ pub struct HTMLScriptElement {
     /// (currently unused)
     non_blocking: Cell<bool>,
 
-    /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
-    ready_to_be_parser_executed: Cell<bool>,
-
     /// Document of the parser that created this element
     parser_document: JS<Document>,
 
@@ -74,7 +71,6 @@ impl HTMLScriptElement {
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator.is_parser_created()),
             non_blocking: Cell::new(!creator.is_parser_created()),
-            ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
             line_number: creator.return_line_number(),
         }
@@ -210,7 +206,6 @@ impl FetchResponseListener for ScriptContext {
         // https://html.spec.whatwg.org/multipage/#prepare-a-script
         // Step 18.6 (When the chosen algorithm asynchronously completes).
         let elem = self.elem.root();
-        elem.ready_to_be_parser_executed.set(true);
         let document = document_from_node(&*elem);
 
         match self.kind {
@@ -441,7 +436,6 @@ impl HTMLScriptElement {
             // Step 21.
             assert!(!text.is_empty());
             let result = Ok(ClassicScript::internal(text, base_url));
-            self.ready_to_be_parser_executed.set(true);
 
             // Step 22.
             if was_parser_inserted &&
@@ -456,14 +450,8 @@ impl HTMLScriptElement {
         }
     }
 
-    pub fn is_ready_to_be_executed(&self) -> bool {
-        self.ready_to_be_parser_executed.get()
-    }
-
     /// https://html.spec.whatwg.org/multipage/#execute-the-script-block
     pub fn execute(&self, result: Result<ClassicScript, NetworkError>) {
-        assert!(self.ready_to_be_parser_executed.get());
-
         // Step 1.
         let doc = document_from_node(self);
         if self.parser_inserted.get() && &*doc != &*self.parser_document {
