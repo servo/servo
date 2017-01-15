@@ -316,6 +316,18 @@ impl NoCalcLength {
             _ => Err(())
         }
     }
+
+    #[inline]
+    /// Returns a `zero` length.
+    pub fn zero() -> NoCalcLength {
+        NoCalcLength::Absolute(Au(0))
+    }
+
+    /// Get an absolute length from a px values.
+    #[inline]
+    pub fn from_px(px_value: CSSFloat) -> NoCalcLength {
+        NoCalcLength::Absolute(Au((px_value * AU_PER_PX) as i32))
+    }
 }
 
 /// An extension to `NoCalcLength` to parse `calc` expressions.
@@ -395,6 +407,12 @@ impl Mul<CSSFloat> for ViewportPercentageLength {
 }
 
 impl Length {
+    #[inline]
+    /// Returns a `zero` length.
+    pub fn zero() -> Length {
+        Length::NoCalc(NoCalcLength::zero())
+    }
+
     /// https://drafts.csswg.org/css-fonts-3/#font-size-prop
     pub fn from_str(s: &str) -> Option<Length> {
         NoCalcLength::from_str(s).map(Length::NoCalc)
@@ -411,7 +429,7 @@ impl Length {
             Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
                 Length::parse_dimension(value.value, unit),
             Token::Number(ref value) if value.value == 0. =>
-                Ok(Length::Absolute(Au(0))),
+                Ok(Length::zero()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
                 input.parse_nested_block(|input| {
                     CalcLengthOrPercentage::parse_length(input, context)
@@ -428,7 +446,7 @@ impl Length {
     /// Get an absolute length from a px values.
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> Length {
-        Length::NoCalc(NoCalcLength::Absolute(Au((px_value * AU_PER_PX) as i32)))
+        Length::NoCalc(NoCalcLength::from_px(px_value))
     }
 
     /// Extract inner length without a clone, replacing it with a 0 Au
@@ -436,8 +454,7 @@ impl Length {
     /// Use when you need to move out of a length array without cloning
     #[inline]
     pub fn take(&mut self) -> Self {
-        let new = Length::Absolute(Au(0));
-        mem::replace(self, new)
+        mem::replace(self, Length::zero())
     }
 }
 
@@ -473,7 +490,7 @@ pub struct CalcProductNode {
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub enum CalcValueNode {
-    Length(Length),
+    Length(LengthInternal),
     Angle(Angle),
     Time(Time),
     Percentage(CSSFloat),
@@ -566,7 +583,7 @@ impl CalcLengthOrPercentage {
             (Token::Number(ref value), _) => Ok(CalcValueNode::Number(value.value)),
             (Token::Dimension(ref value, ref unit), CalcUnit::Length) |
             (Token::Dimension(ref value, ref unit), CalcUnit::LengthOrPercentage) => {
-                Length::parse_dimension(value.value, unit).map(CalcValueNode::Length)
+                LengthInternal::parse_dimension(value.value, unit).map(CalcValueNode::Length)
             }
             (Token::Dimension(ref value, ref unit), CalcUnit::Angle) => {
                 Angle::parse_dimension(value.value, unit).map(CalcValueNode::Angle)
@@ -907,9 +924,10 @@ impl ToCss for LengthOrPercentage {
     }
 }
 impl LengthOrPercentage {
+    #[inline]
     /// Returns a `zero` length.
     pub fn zero() -> LengthOrPercentage {
-        LengthOrPercentage::Length(Length::Absolute(Au(0)))
+        LengthOrPercentage::Length(Length::zero())
     }
 
     fn parse_internal(input: &mut Parser, context: AllowedNumericType)
@@ -921,7 +939,7 @@ impl LengthOrPercentage {
             Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentage::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
+                Ok(LengthOrPercentage::Length(Length::zero())),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
                 Ok(LengthOrPercentage::Calc(Box::new(calc)))
@@ -941,8 +959,7 @@ impl LengthOrPercentage {
     /// Use when you need to move out of a length array without cloning
     #[inline]
     pub fn take(&mut self) -> Self {
-        let new = LengthOrPercentage::Length(Length::Absolute(Au(0)));
-        mem::replace(self, new)
+        mem::replace(self, LengthOrPercentage::zero())
     }
 }
 
@@ -996,7 +1013,7 @@ impl LengthOrPercentageOrAuto {
             Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentageOrAuto::Length(Length::Absolute(Au(0)))),
+                Ok(LengthOrPercentageOrAuto::Length(Length::zero())),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(LengthOrPercentageOrAuto::Auto),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
@@ -1063,7 +1080,7 @@ impl LengthOrPercentageOrNone {
             Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrNone::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentageOrNone::Length(Length::Absolute(Au(0)))),
+                Ok(LengthOrPercentageOrNone::Length(Length::zero())),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
                 Ok(LengthOrPercentageOrNone::Calc(Box::new(calc)))
@@ -1146,7 +1163,7 @@ impl Parse for LengthOrPercentageOrAutoOrContent {
             Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAutoOrContent::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentageOrAutoOrContent::Length(Length::Absolute(Au(0)))),
+                Ok(LengthOrPercentageOrAutoOrContent::Length(Length::zero())),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(LengthOrPercentageOrAutoOrContent::Auto),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("content") =>
