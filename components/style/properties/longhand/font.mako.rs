@@ -299,7 +299,7 @@ ${helpers.single_keyword("font-variant-caps",
     use std::fmt;
     use style_traits::ToCss;
     use values::{FONT_MEDIUM_PX, HasViewportPercentage};
-    use values::specified::{LengthOrPercentage, Length, Percentage};
+    use values::specified::{LengthOrPercentage, Length, NoCalcLength, Percentage};
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -333,10 +333,10 @@ ${helpers.single_keyword("font-variant-caps",
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match self.0 {
-                LengthOrPercentage::Length(Length::FontRelative(value)) => {
+                LengthOrPercentage::Length(Length::NoCalc(NoCalcLength::FontRelative(value))) => {
                     value.to_computed_value(context, /* use inherited */ true)
                 }
-                LengthOrPercentage::Length(Length::ServoCharacterWidth(value)) => {
+                LengthOrPercentage::Length(Length::NoCalc(NoCalcLength::ServoCharacterWidth(value))) => {
                     value.to_computed_value(context.inherited_style().get_font().clone_font_size())
                 }
                 LengthOrPercentage::Length(ref l) => {

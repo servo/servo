@@ -198,7 +198,7 @@ impl NoViewportPercentage for BorderRadiusSize {}
 impl BorderRadiusSize {
     #[allow(missing_docs)]
     pub fn zero() -> BorderRadiusSize {
-        let zero = LengthOrPercentage::Length(Length::Absolute(Au(0)));
+        let zero = LengthOrPercentage::Length(Length::default());
             BorderRadiusSize(Size2D::new(zero.clone(), zero))
     }
 
@@ -605,12 +605,11 @@ impl Shadow {
     // disable_spread_and_inset is for filter: drop-shadow(...)
     #[allow(missing_docs)]
     pub fn parse(context:  &ParserContext, input: &mut Parser, disable_spread_and_inset: bool) -> Result<Shadow, ()> {
-        use app_units::Au;
         let length_count = if disable_spread_and_inset { 3 } else { 4 };
-        let mut lengths = [Length::Absolute(Au(0)),
-                           Length::Absolute(Au(0)),
-                           Length::Absolute(Au(0)),
-                           Length::Absolute(Au(0))];
+        let mut lengths = [Length::default(),
+                           Length::default(),
+                           Length::default(),
+                           Length::default()];
         let mut lengths_parsed = false;
         let mut color = None;
         let mut inset = false;
@@ -662,7 +661,7 @@ impl Shadow {
             offset_x: lengths[0].take(),
             offset_y: lengths[1].take(),
             blur_radius: lengths[2].take(),
-            spread_radius: if disable_spread_and_inset { Length::Absolute(Au(0)) } else { lengths[3].take() },
+            spread_radius: if disable_spread_and_inset { Length::default() } else { lengths[3].take() },
             color: color,
             inset: inset,
         })

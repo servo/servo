@@ -1322,7 +1322,7 @@ ${helpers.single_keyword("animation-fill-mode",
                         result.push(SpecifiedOperation::Translate(TranslateKind::Translate,
                                                                   tx,
                                                                   ty,
-                                                                  specified::Length::Absolute(Au(0))));
+                                                                  specified::Length::zero()));
                         Ok(())
                     }))
                 },
@@ -1333,7 +1333,7 @@ ${helpers.single_keyword("animation-fill-mode",
                             TranslateKind::TranslateX,
                             tx,
                             specified::LengthOrPercentage::zero(),
-                            specified::Length::Absolute(Au(0))));
+                            specified::Length::zero()));
                         Ok(())
                     }))
                 },
@@ -1344,7 +1344,7 @@ ${helpers.single_keyword("animation-fill-mode",
                             TranslateKind::TranslateY,
                             specified::LengthOrPercentage::zero(),
                             ty,
-                            specified::Length::Absolute(Au(0))));
+                            specified::Length::zero()));
                         Ok(())
                     }))
                 },
@@ -1830,7 +1830,7 @@ ${helpers.single_keyword("transform-style",
         Ok(SpecifiedValue {
             horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
             vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
-            depth: result.depth.unwrap_or(Length::Absolute(Au(0))),
+            depth: result.depth.unwrap_or(Length::zero()),
         })
     }
 
