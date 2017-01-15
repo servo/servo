@@ -471,6 +471,36 @@ impl WebGLRenderingContext {
         return Ok(expected_byte_length);
     }
 
+    /// Flips the pixels in the Vec on the Y axis if
+    /// UNPACK_FLIP_Y_WEBGL is currently enabled.
+    fn flip_teximage_y(&self,
+                       pixels: Vec<u8>,
+                       internal_format: TexFormat,
+                       data_type: TexDataType,
+                       width: usize,
+                       height: usize) -> Vec<u8> {
+        if !self.texture_unpacking_settings.get().contains(FLIP_Y_AXIS) {
+            return pixels;
+        }
+
+        let cpp = (data_type.element_size() *
+                   internal_format.components() / data_type.components_per_element()) as usize;
+
+        let stride = width * cpp;
+
+        // This should have already been validated.
+        assert!(stride * height <= pixels.len());
+
+        let mut flipped = Vec::<u8>::with_capacity(pixels.len());
+
+        for y in 0..height {
+            let flipped_y = height - 1 - y;
+            flipped.extend_from_slice(&pixels[(flipped_y * stride)..((flipped_y + 1) * stride)]);
+        }
+
+        flipped
+    }
+
     fn tex_image_2d(&self,
                     texture: Root<WebGLTexture>,
                     target: TexImageTarget,
@@ -487,7 +517,8 @@ impl WebGLRenderingContext {
             // TODO(emilio): premultiply here.
         }
 
-        // TODO(emilio): Flip Y axis if necessary here
+        let pixels = self.flip_teximage_y(pixels, internal_format, data_type,
+                                          width as usize, height as usize);
 
         // TexImage2D depth is always equal to 1
         handle_potential_webgl_error!(self, texture.initialize(target,
@@ -497,7 +528,7 @@ impl WebGLRenderingContext {
                                                                level,
                                                                Some(data_type)));
 
-        // TODO(emilio): Invert axis, convert colorspace, premultiply alpha if requested
+        // TODO(emilio): convert colorspace, premultiply alpha if requested
         let msg = WebGLCommand::TexImage2D(target.as_gl_constant(), level as i32,
                                            internal_format.as_gl_constant() as i32,
                                            width as i32, height as i32,
@@ -542,9 +573,10 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidOperation);
         }
 
-        // TODO(emilio): Flip Y axis if necessary here
+        let pixels = self.flip_teximage_y(pixels, format, data_type,
+                                          width as usize, height as usize);
 
-        // TODO(emilio): Invert axis, convert colorspace, premultiply alpha if requested
+        // TODO(emilio): convert colorspace, premultiply alpha if requested
         let msg = WebGLCommand::TexSubImage2D(target.as_gl_constant(),
                                               level as i32, xoffset, yoffset,
                                               width as i32, height as i32,
