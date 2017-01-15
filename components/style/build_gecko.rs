@@ -415,7 +415,6 @@ mod bindings {
                                         // for clang.
             "nsPIDOMWindow",  // <- Takes the vtable from a template parameter, and we can't
                               //    generate it conditionally.
-            "RawGeckoPresContext", // Just passing it through.
             "JS::Rooted",
             "mozilla::Maybe",
             "gfxSize",  // <- union { struct { T width; T height; }; T components[2] };

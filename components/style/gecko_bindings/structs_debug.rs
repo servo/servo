@@ -12140,7 +12140,7 @@ pub mod root {
     pub type RawGeckoNode = root::nsINode;
     pub type RawGeckoElement = root::mozilla::dom::Element;
     pub type RawGeckoDocument = root::nsIDocument;
-    pub type RawGeckoPresContext = [u64; 162usize];
+    pub type RawGeckoPresContext = root::nsPresContext;
     pub type RawGeckoAnimationValueList =
         root::nsTArray<root::mozilla::PropertyStyleAnimationValuePair>;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
@@ -12149,11 +12149,9 @@ pub mod root {
     pub type RawGeckoElementBorrowedOrNull = *const root::RawGeckoElement;
     pub type RawGeckoDocumentBorrowed = *const root::RawGeckoDocument;
     pub type RawGeckoDocumentBorrowedOrNull = *const root::RawGeckoDocument;
-    pub type RawGeckoPresContextOwned = *mut [u64; 162usize];
-    pub type RawGeckoPresContextBorrowed = *const [u64; 162usize];
-    pub type RawGeckoAnimationValueListBorrowedMut =
-        *mut root::RawGeckoAnimationValueList;
-    pub type RawGeckoPresContextBorrowedMut = *mut [u64; 162usize];
+    pub type RawGeckoPresContextOwned = *mut root::RawGeckoPresContext;
+    pub type RawGeckoPresContextBorrowed = *const root::RawGeckoPresContext;
+    pub type RawGeckoPresContextBorrowedMut = *mut root::RawGeckoPresContext;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsCSSTokenSerializationType {
