@@ -17,6 +17,45 @@ pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Ima
 pub use super::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use values::specified::{Angle, BorderStyle, Time, UrlOrNone};
 
+impl ToComputedValue for specified::NoCalcLength {
+    type ComputedValue = Au;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Au {
+        match *self {
+            specified::NoCalcLength::Absolute(length) => length,
+            specified::NoCalcLength::FontRelative(length) =>
+                length.to_computed_value(context, /* use inherited */ false),
+            specified::NoCalcLength::ViewportPercentage(length) =>
+                length.to_computed_value(context.viewport_size()),
+            specified::NoCalcLength::ServoCharacterWidth(length) =>
+                length.to_computed_value(context.style().get_font().clone_font_size())
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Au) -> Self {
+        specified::NoCalcLength::Absolute(*computed)
+    }
+}
+
+impl ToComputedValue for specified::Length {
+    type ComputedValue = Au;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Au {
+        match *self {
+            specified::Length::NoCalc(l) => l.to_computed_value(context),
+            specified::Length::Calc(ref calc, range) => range.clamp(calc.to_computed_value(context).length()),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Au) -> Self {
+        specified::Length::NoCalc(specified::NoCalcLength::from_computed_value(computed))
+    }
+}
+
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
