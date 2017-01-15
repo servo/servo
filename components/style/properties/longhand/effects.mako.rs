@@ -280,10 +280,10 @@ ${helpers.predefined_type("opacity",
                 left = try!(parse_argument(context, input));
             }
             Ok(SpecifiedValue(Some(SpecifiedClipRect {
-                top: top.unwrap_or(Length::Absolute(Au(0))),
+                top: top.unwrap_or(Length::zero()),
                 right: right,
                 bottom: bottom,
-                left: left.unwrap_or(Length::Absolute(Au(0))),
+                left: left.unwrap_or(Length::zero()),
             })))
         })
     }

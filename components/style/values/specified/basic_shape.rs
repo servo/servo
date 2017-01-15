@@ -327,7 +327,7 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
         // 0 length should be replaced with 0%
         fn replace_with_percent(input: LengthOrPercentage) -> LengthOrPercentage {
             match input {
-                LengthOrPercentage::Length(Length::Absolute(au)) if au.0 == 0 => {
+                LengthOrPercentage::Length(ref l) if l == &Length::zero() => {
                     LengthOrPercentage::Percentage(Percentage(0.0))
                 }
                 _ => {

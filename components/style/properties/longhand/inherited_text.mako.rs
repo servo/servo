@@ -113,13 +113,14 @@
                         specified::LengthOrPercentage::Length(ref value) =>
                             computed_value::T::Length(value.to_computed_value(context)),
                         specified::LengthOrPercentage::Percentage(specified::Percentage(value)) => {
-                            let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
+                            let fr = specified::Length::NoCalc(specified::NoCalcLength::FontRelative(
+                                specified::FontRelativeLength::Em(value)));
                             computed_value::T::Length(fr.to_computed_value(context))
                         },
                         specified::LengthOrPercentage::Calc(ref calc) => {
                             let calc = calc.to_computed_value(context);
                             let fr = specified::FontRelativeLength::Em(calc.percentage());
-                            let fr = specified::Length::FontRelative(fr);
+                            let fr = specified::Length::NoCalc(specified::NoCalcLength::FontRelative(fr));
                             computed_value::T::Length(calc.length() + fr.to_computed_value(context))
                         }
                     }
@@ -681,9 +682,7 @@ ${helpers.single_keyword("text-align-last",
 
     fn parse_one_text_shadow(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedTextShadow,()> {
         use app_units::Au;
-        let mut lengths = [specified::Length::Absolute(Au(0)),
-                           specified::Length::Absolute(Au(0)),
-                           specified::Length::Absolute(Au(0))];
+        let mut lengths = [specified::Length::zero(), specified::Length::zero(), specified::Length::zero()];
         let mut lengths_parsed = false;
         let mut color = None;
 
