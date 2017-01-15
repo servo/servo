@@ -428,6 +428,8 @@ impl Window {
                 };
                 if let Some((x, y)) = pos {
                   self.mouse_pos.set(Point2D::new(x, y));
+                  self.event_queue.borrow_mut().push(
+                      WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(x as f32, y as f32)));
                 };
                 let phase = glutin_phase_to_touch_event_type(phase);
                 self.scroll_window(dx, dy, phase);
