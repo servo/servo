@@ -1193,9 +1193,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     self.webrender_api.scroll(location, cursor, combined_event.phase);
                     last_combined_event = None
                 }
-                }
             }
-
+            
             match (&mut last_combined_event, scroll_event.phase) {
                 (last_combined_event @ &mut None, _) => {
                     *last_combined_event = Some(ScrollZoomEvent {
@@ -1737,6 +1736,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             warn!("Failed to send pipeline title ({}).", e);
         }
     }
+}
 
 
 /// Why we performed a composite. This is used for debugging.
