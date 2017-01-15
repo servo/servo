@@ -5,21 +5,23 @@
 //! Gecko's media-query device and expression representation.
 
 use app_units::Au;
-use cssparser::{Parser, Token};
+use cssparser::{CssStringWriter, Parser, Token};
 use euclid::Size2D;
 use gecko_bindings::bindings;
+use gecko_bindings::structs::{nsCSSValue, nsCSSUnit, nsStringBuffer, nsresult};
 use gecko_bindings::structs::{nsMediaExpression_Range, nsMediaFeature};
 use gecko_bindings::structs::{nsMediaFeature_ValueType, nsMediaFeature_RangeType, nsMediaFeature_RequirementFlags};
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use media_queries::MediaType;
 use properties::ComputedValues;
 use std::ascii::AsciiExt;
-use std::fmt;
+use std::fmt::{self, Write};
 use std::sync::Arc;
 use string_cache::Atom;
 use style_traits::ToCss;
 use style_traits::viewport::ViewportConstraints;
 use values::{CSSFloat, specified};
+use values::computed::{self, ToComputedValue};
 
 /// The `Device` in Gecko wraps a pres context, has a default values computed,
 /// and contains all the viewport rule state.
@@ -114,7 +116,7 @@ impl ToCss for Expression {
             nsMediaExpression_Range::eEqual => {},
         }
 
-        // NB: CSSStringWriter not needed, feature names are under control.
+        // NB: CssStringWriter not needed, feature names are under control.
         write!(dest, "{}", Atom::from(unsafe { *self.feature.mName }))?;
 
         if let Some(ref val) = self.value {
@@ -138,6 +140,14 @@ pub enum Resolution {
 }
 
 impl Resolution {
+    fn to_dpi(&self) -> CSSFloat {
+        match *self {
+            Resolution::Dpi(f) => f,
+            Resolution::Dppx(f) => f * 96.0,
+            Resolution::Dpcm(f) => f * 2.54,
+        }
+    }
+
     fn parse(input: &mut Parser) -> Result<Self, ()> {
         let (value, unit) = match try!(input.next()) {
             Token::Dimension(value, unit) => {
@@ -167,6 +177,19 @@ impl ToCss for Resolution {
     }
 }
 
+unsafe fn string_from_ns_string_buffer(buffer: *const nsStringBuffer) -> String {
+    use std::slice;
+    debug_assert!(!buffer.is_null());
+    let data = buffer.offset(1) as *const u16;
+    let mut length = 0;
+    let mut iter = data;
+    while *iter != 0 {
+        length += 1;
+        iter = iter.offset(1);
+    }
+    String::from_utf16_lossy(slice::from_raw_parts(data, length))
+}
+
 /// A value found or expected in a media expression.
 #[derive(Debug, Clone)]
 pub enum MediaExpressionValue {
@@ -183,10 +206,73 @@ pub enum MediaExpressionValue {
     IntRatio(u32, u32),
     /// A resolution.
     Resolution(Resolution),
-    /// An enumerated index into the variant keyword table.
+    /// An enumerated value, defined by the variant keyword table in the
+    /// feature's `mData` member.
     Enumerated(u32),
     /// An identifier.
-    Ident(Atom),
+    ///
+    /// TODO(emilio): Maybe atomize?
+    Ident(String),
+}
+
+impl MediaExpressionValue {
+    fn from_css_value(for_expr: &Expression, css_value: &nsCSSValue) -> Option<Self> {
+        // NB: If there's a null value, that means that we don't support the
+        // feature.
+        if css_value.mUnit == nsCSSUnit::eCSSUnit_Null {
+            return None;
+        }
+
+        match for_expr.feature.mValueType {
+            nsMediaFeature_ValueType::eLength => {
+                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Pixel);
+                let pixels = css_value.float_unchecked();
+                Some(MediaExpressionValue::Length(
+                        specified::Length::Absolute(Au::from_f32_px(pixels))))
+            }
+            nsMediaFeature_ValueType::eInteger => {
+                let i = css_value.integer_unchecked();
+                debug_assert!(i >= 0);
+                Some(MediaExpressionValue::Integer(i as u32))
+            }
+            nsMediaFeature_ValueType::eFloat => {
+                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Number);
+                Some(MediaExpressionValue::Float(css_value.float_unchecked()))
+            }
+            nsMediaFeature_ValueType::eBoolInteger => {
+                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Integer);
+                let i = css_value.integer_unchecked();
+                debug_assert!(i == 0 || i == 1);
+                Some(MediaExpressionValue::BoolInteger(i == 1))
+            }
+            nsMediaFeature_ValueType::eResolution => {
+                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Inch);
+                Some(MediaExpressionValue::Resolution(Resolution::Dpi(css_value.float_unchecked())))
+            }
+            nsMediaFeature_ValueType::eEnumerated => {
+                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Enumerated);
+                let value = css_value.integer_unchecked();
+                debug_assert!(value >= 0);
+                Some(MediaExpressionValue::Enumerated(value as u32))
+            }
+            nsMediaFeature_ValueType::eIdent => {
+                debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Ident);
+                let string = unsafe {
+                    string_from_ns_string_buffer(*css_value.mValue.mString.as_ref())
+                };
+                Some(MediaExpressionValue::Ident(string))
+            }
+            nsMediaFeature_ValueType::eIntRatio => {
+                let array = unsafe { css_value.array_unchecked() };
+                debug_assert_eq!(array.len(), 2);
+                let first = array[0].integer_unchecked();
+                let second = array[1].integer_unchecked();
+
+                debug_assert!(first >= 0 && second >= 0);
+                Some(MediaExpressionValue::IntRatio(first as u32, second as u32))
+            }
+        }
+    }
 }
 
 impl ToCss for MediaExpressionValue {
@@ -204,9 +290,11 @@ impl ToCss for MediaExpressionValue {
                 write!(dest, "{}/{}", a, b)
             },
             MediaExpressionValue::Resolution(ref r) => r.to_css(dest),
-            MediaExpressionValue::Enumerated(..) |
-            MediaExpressionValue::Ident(..) => {
-                // TODO(emilio)
+            MediaExpressionValue::Ident(ref ident) => {
+                CssStringWriter::new(dest).write_str(ident)
+            }
+            MediaExpressionValue::Enumerated(..) => {
+                // TODO(emilio): Use the CSS keyword table.
                 unimplemented!()
             }
         }
@@ -347,26 +435,118 @@ impl Expression {
                     MediaExpressionValue::Resolution(Resolution::parse(input)?)
                 }
                 nsMediaFeature_ValueType::eEnumerated => {
-                    let index = unsafe {
-                        let _table = feature.mData.mKeywordTable.as_ref();
-                        // TODO
-                        0
-                    };
-                    MediaExpressionValue::Enumerated(index)
+                    // TODO(emilio): Use Gecko's CSS keyword table to parse
+                    // this.
+                    return Err(())
                 }
                 nsMediaFeature_ValueType::eIdent => {
-                    MediaExpressionValue::Ident(input.expect_ident()?.into())
+                    MediaExpressionValue::Ident(input.expect_ident()?.into_owned())
                 }
             };
 
-            Ok(Expression::new(feature, value, range))
+            Ok(Expression::new(feature, Some(value), range))
         })
     }
 
-    /// Returns whether this media query evaluates to true for the given
-    /// device.
-    pub fn matches(&self, _device: &Device) -> bool {
-        // TODO
-        false
+    /// Returns whether this media query evaluates to true for the given device.
+    pub fn matches(&self, device: &Device) -> bool {
+        let mut css_value = nsCSSValue::null();
+        let result = unsafe {
+            (self.feature.mGetter.unwrap())(device.pres_context,
+                                            self.feature,
+                                            &mut css_value)
+        };
+
+        if result != nsresult::NS_OK {
+            // FIXME(emilio): This doesn't seem possible from reading gecko
+            // code, probably we should just clean up that function and return
+            // void.
+            error!("Media feature getter errored: {:?}, {:?}",
+                   result, Atom::from(unsafe { *self.feature.mName }));
+            return false;
+        }
+
+        let value = match MediaExpressionValue::from_css_value(self, &css_value) {
+            Some(v) => v,
+            None => return false,
+        };
+
+        self.evaluate_against(device, &value)
+    }
+
+    fn evaluate_against(&self,
+                        device: &Device,
+                        actual_value: &MediaExpressionValue)
+                        -> bool {
+        use self::MediaExpressionValue::*;
+        use std::cmp::Ordering;
+
+        debug_assert!(self.range == nsMediaExpression_Range::eEqual ||
+                      self.feature.mRangeType == nsMediaFeature_RangeType::eMinMaxAllowed,
+                      "Whoops, wrong range");
+
+        let default_values = device.default_values();
+
+        // http://dev.w3.org/csswg/mediaqueries3/#units
+        // em units are relative to the initial font-size.
+        let context = computed::Context {
+            is_root_element: false,
+            viewport_size: device.au_viewport_size(),
+            inherited_style: default_values,
+            // This cloning business is kind of dumb.... It's because Context
+            // insists on having an actual ComputedValues inside itself.
+            style: default_values.clone(),
+            font_metrics_provider: None
+        };
+
+        let required_value = match self.value {
+            Some(ref v) => v,
+            None => {
+                // If there's no value, always match unless it's a zero length
+                // or a zero integer or boolean.
+                return match *actual_value {
+                    BoolInteger(v) => v,
+                    Integer(v) => v != 0,
+                    Length(ref l) => l.to_computed_value(&context) != Au(0),
+                    _ => true,
+                }
+            }
+        };
+
+        // FIXME(emilio): Handle the possible floating point errors?
+        let cmp = match (required_value, actual_value) {
+            (&Length(ref one), &Length(ref other)) => {
+                one.to_computed_value(&context)
+                    .cmp(&other.to_computed_value(&context))
+            }
+            (&Integer(one), &Integer(ref other)) => one.cmp(other),
+            (&BoolInteger(one), &BoolInteger(ref other)) => one.cmp(other),
+            (&Float(one), &Float(ref other)) => one.partial_cmp(other).unwrap(),
+            (&IntRatio(one_num, one_den), &IntRatio(other_num, other_den)) => {
+                (one_num * other_den).partial_cmp(&(other_num * one_den)).unwrap()
+            }
+            (&Resolution(ref one), &Resolution(ref other)) => {
+                // FIXME(emilio): The pres context may override the DPPX of the
+                // `other` resolution, we need to look at that here, but I'm
+                // skipping that for now (we should check if bindgen can
+                // generate nsPresContext correctly now).
+                one.to_dpi().partial_cmp(&other.to_dpi()).unwrap()
+            }
+            (&Ident(ref one), &Ident(ref other)) => {
+                debug_assert!(self.feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed);
+                return one == other;
+            }
+            (&Enumerated(..), &Enumerated(..)) => {
+                // TODO(emilio)
+                unimplemented!();
+            }
+            _ => unreachable!(),
+        };
+
+        cmp == Ordering::Equal || match self.range {
+            nsMediaExpression_Range::eMin => cmp == Ordering::Less,
+            nsMediaExpression_Range::eEqual => false,
+            nsMediaExpression_Range::eMax => cmp == Ordering::Greater,
+        }
     }
 }
