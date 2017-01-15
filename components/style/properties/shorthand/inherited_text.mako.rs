@@ -93,7 +93,7 @@
         Ok(Longhands {
             _webkit_text_stroke_color: color.or(Some(CSSColor { parsed: CSSParserColor::CurrentColor,
                                                                 authored: None })),
-            _webkit_text_stroke_width: width.or(Some(BorderWidth::from_length(Length::Absolute(Au::from_px(0))))),
+            _webkit_text_stroke_width: width.or(Some(BorderWidth::from_length(Length::default()))),
         })
     }
 
