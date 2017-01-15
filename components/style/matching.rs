@@ -769,22 +769,23 @@ pub trait MatchMethods : TElement {
                 //
                 //  2. This is an incremental restyle, but the old display value
                 //     is none, so there's no effective way for Gecko to get the
-                //     style source. In this case, we could return either
+                //     style source (which is the style context).
+                //
+                //     In this case, we could return either
                 //     RestyleDamage::empty(), in the case both displays are
-                //     none, or rebuild_and_reflow, otherwise. The first case
-                //     should be already handled when calling this function, so
-                //     we can assert that the new display value is not none.
+                //     none, or rebuild_and_reflow, otherwise.
                 //
-                //     Also, this can be a text node (in which case we don't
-                //     care of watching the new display value).
-                //
-                // Unfortunately we can't strongly assert part of this, since
-                // we style some nodes that in Gecko never generate a frame,
-                // like children of replaced content. Arguably, we shouldn't be
-                // styling those here, but until we implement that we'll have to
-                // stick without the assertions.
-                debug_assert!(pseudo.is_none() ||
-                              new_style.get_box().clone_display() != display::T::none);
+                if let Some(old_style) = old_style {
+                    // FIXME(emilio): This should assert the old style is
+                    // display: none, but we still can't get an old style
+                    // context for other stuff that should give us a style
+                    // context source like display: contents, so we fall on the
+                    // safe side here.
+                    if new_style.get_box().clone_display() == display::T::none &&
+                        old_style.get_box().clone_display() == display::T::none {
+                        return RestyleDamage::empty();
+                    }
+                }
                 RestyleDamage::rebuild_and_reflow()
             }
         }
@@ -881,31 +882,6 @@ pub trait MatchMethods : TElement {
             possibly_expired_animations: &mut Vec<PropertyAnimation>)
             -> RestyleDamage
     {
-        // Here we optimise the case of the style changing but both the
-        // previous and the new styles having display: none. In this
-        // case, we can always optimize the traversal, regardless of the
-        // restyle hint.
-        let this_display = new_primary.get_box().clone_display();
-        if this_display == display::T::none {
-            let old_display = old_primary.map(|old| {
-                old.get_box().clone_display()
-            });
-
-            // If display passed from none to something, then we need to reflow,
-            // otherwise, we don't do anything.
-            let damage = match old_display {
-                Some(display) if display == this_display => {
-                    RestyleDamage::empty()
-                }
-                _ => RestyleDamage::rebuild_and_reflow()
-            };
-
-            debug!("Short-circuiting traversal: {:?} {:?} {:?}",
-                   this_display, old_display, damage);
-
-            return damage
-        }
-
         // Compute the damage and sum up the damage related to pseudo-elements.
         let mut damage =
             self.compute_restyle_damage(old_primary, new_primary, None);
