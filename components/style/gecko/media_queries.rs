@@ -76,8 +76,17 @@ impl Device {
 
     /// Returns the current media type of the device.
     pub fn media_type(&self) -> MediaType {
-        // TODO
-        MediaType::Screen
+        unsafe {
+            // FIXME(emilio): Gecko allows emulating random media with
+            // mIsEmulatingMedia / mMediaEmulated . Refactor both sides so that
+            // is supported (probably just making MediaType an Atom).
+            if (*self.pres_context).mMedium == atom!("screen").as_ptr() {
+                MediaType::Screen
+            } else {
+                debug_assert!((*self.pres_context).mMedium == atom!("print").as_ptr());
+                MediaType::Print
+            }
+        }
     }
 
     /// Returns the current viewport size in app units.
