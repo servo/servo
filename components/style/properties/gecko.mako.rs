@@ -2315,6 +2315,9 @@ fn static_assert() {
         if v.line_through {
             bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8;
         }
+        if v.blink {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_BLINK as u8;
+        }
         self.gecko.mTextDecorationLine = bits;
     }
 
