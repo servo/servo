@@ -769,7 +769,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
             declType = CGWrapper(CGGeneric(name), pre="Rc<", post=">")
-            template = "%s::new(${val}.get().to_object())" % name
+            template = "%s::new(cx, ${val}.get().to_object())" % name
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
                 template = wrapObjectTemplate("Some(%s)" % template, "None",
@@ -2188,7 +2188,7 @@ class CGGeneric(CGThing):
 
 class CGCallbackTempRoot(CGGeneric):
     def __init__(self, name):
-        CGGeneric.__init__(self, "%s::new(${val}.get().to_object())" % name)
+        CGGeneric.__init__(self, "%s::new(cx, ${val}.get().to_object())" % name)
 
 
 def getAllTypes(descriptors, dictionaries, callbacks, typedefs):
@@ -4437,10 +4437,11 @@ class ClassConstructor(ClassItem):
                 "});\n"
                 "// Note: callback cannot be moved after calling init.\n"
                 "match Rc::get_mut(&mut ret) {\n"
-                "    Some(ref mut callback) => callback.parent.init(%s),\n"
+                "    Some(ref mut callback) => unsafe { callback.parent.init(%s, %s) },\n"
                 "    None => unreachable!(),\n"
                 "};\n"
-                "ret") % (cgClass.name, '\n'.join(initializers), self.args[0].name))
+                "ret") % (cgClass.name, '\n'.join(initializers),
+                          self.args[0].name, self.args[1].name))
 
     def declare(self, cgClass):
         args = ', '.join([a.declare() for a in self.args])
@@ -6229,11 +6230,11 @@ class CGCallback(CGClass):
                          bases=[ClassBase(baseName)],
                          constructors=self.getConstructors(),
                          methods=realMethods + getters + setters,
-                         decorators="#[derive(JSTraceable, PartialEq)]")
+                         decorators="#[derive(JSTraceable, PartialEq)]\n#[allow_unrooted_interior]")
 
     def getConstructors(self):
         return [ClassConstructor(
-            [Argument("*mut JSObject", "aCallback")],
+            [Argument("*mut JSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
             bodyInHeader=True,
             visibility="pub",
             explicit=False,
@@ -6329,8 +6330,8 @@ class CGCallbackFunctionImpl(CGGeneric):
     def __init__(self, callback):
         impl = string.Template("""\
 impl CallbackContainer for ${type} {
-    fn new(callback: *mut JSObject) -> Rc<${type}> {
-        ${type}::new(callback)
+    unsafe fn new(cx: *mut JSContext, callback: *mut JSObject) -> Rc<${type}> {
+        ${type}::new(cx, callback)
     }
 
     fn callback_holder(&self) -> &CallbackObject {
