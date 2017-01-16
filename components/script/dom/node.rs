@@ -524,8 +524,12 @@ impl Node {
         TrustedNodeAddress(&*self as *const Node as *const libc::c_void)
     }
 
+    /// Returns the rendered bounding content box if the element is rendered,
+    /// and none otherwise.
     pub fn bounding_content_box(&self) -> Rect<Au> {
-        window_from_node(self).content_box_query(self.to_trusted_node_address())
+        window_from_node(self)
+            .content_box_query(self.to_trusted_node_address())
+            .unwrap_or_else(Rect::zero)
     }
 
     pub fn content_boxes(&self) -> Vec<Rect<Au>> {

@@ -43,7 +43,7 @@ pub trait LayoutRPC {
     fn text_index(&self) -> TextIndexResponse;
 }
 
-pub struct ContentBoxResponse(pub Rect<Au>);
+pub struct ContentBoxResponse(pub Option<Rect<Au>>);
 
 pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
 

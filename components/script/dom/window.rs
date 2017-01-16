@@ -1216,11 +1216,11 @@ impl Window {
         &*self.layout_rpc
     }
 
-    pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Rect<Au> {
+    pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Option<Rect<Au>> {
         if !self.reflow(ReflowGoal::ForScriptQuery,
                         ReflowQueryType::ContentBoxQuery(content_box_request),
                         ReflowReason::Query) {
-            return Rect::zero();
+            return None;
         }
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
