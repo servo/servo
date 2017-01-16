@@ -8510,6 +8510,12 @@
             "url": "/_mozilla/mozilla/img_width_height.html"
           }
         ],
+        "mozilla/img_width_height_not_rendered.html": [
+          {
+            "path": "mozilla/img_width_height_not_rendered.html",
+            "url": "/_mozilla/mozilla/img_width_height_not_rendered.html"
+          }
+        ],
         "mozilla/inline-event-listener-panic.html": [
           {
             "path": "mozilla/inline-event-listener-panic.html",
