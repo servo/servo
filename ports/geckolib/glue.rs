@@ -64,6 +64,7 @@ use style::sequential;
 use style::string_cache::Atom;
 use style::stylesheets::{CssRule, CssRules, Origin, Stylesheet, StyleRule, ImportRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
+use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{resolve_style, DomTraversal};
@@ -902,7 +903,7 @@ pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawSer
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_CSSSupports(property: *const nsACString, value: *const nsACString) -> bool {
+pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const nsACString) -> bool {
     let property = unsafe { property.as_ref().unwrap().as_str_unchecked() };
     let id =  if let Ok(id) = PropertyId::parse(property.into()) {
         id
@@ -917,6 +918,20 @@ pub extern "C" fn Servo_CSSSupports(property: *const nsACString, value: *const n
     match parse_one_declaration(id, &value, &base_url, Box::new(StdoutErrorReporter), extra_data) {
         Ok(decls) => !decls.is_empty(),
         Err(()) => false,
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
+    let condition = unsafe { cond.as_ref().unwrap().as_str_unchecked() };
+    let mut input = Parser::new(&condition);
+    let cond = parse_condition_or_declaration(&mut input);
+    if let Ok(cond) = cond {
+        let url = ServoUrl::parse("about:blank").unwrap();
+        let context = ParserContext::new_for_cssom(&url);
+        cond.eval(&context)
+    } else {
+        false
     }
 }
 
