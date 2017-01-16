@@ -1317,8 +1317,11 @@ extern "C" {
                                                          nsCSSPropertyID);
 }
 extern "C" {
-    pub fn Servo_CSSSupports(name: *const nsACString_internal,
-                             value: *const nsACString_internal) -> bool;
+    pub fn Servo_CSSSupports2(name: *const nsACString_internal,
+                              value: *const nsACString_internal) -> bool;
+}
+extern "C" {
+    pub fn Servo_CSSSupports(cond: *const nsACString_internal) -> bool;
 }
 extern "C" {
     pub fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null:
