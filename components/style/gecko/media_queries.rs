@@ -535,11 +535,16 @@ impl Expression {
                 (one_num * other_den).partial_cmp(&(other_num * one_den)).unwrap()
             }
             (&Resolution(ref one), &Resolution(ref other)) => {
-                // FIXME(emilio): The pres context may override the DPPX of the
-                // `other` resolution, we need to look at that here, but I'm
-                // skipping that for now (we should check if bindgen can
-                // generate nsPresContext correctly now).
-                one.to_dpi().partial_cmp(&other.to_dpi()).unwrap()
+                let actual_dpi = unsafe {
+                    if (*device.pres_context).mOverrideDPPX > 0.0 {
+                        self::Resolution::Dppx((*device.pres_context).mOverrideDPPX)
+                            .to_dpi()
+                    } else {
+                        other.to_dpi()
+                    }
+                };
+
+                one.to_dpi().partial_cmp(&actual_dpi).unwrap()
             }
             (&Ident(ref one), &Ident(ref other)) => {
                 debug_assert!(self.feature.mRangeType != nsMediaFeature_RangeType::eMinMaxAllowed);
