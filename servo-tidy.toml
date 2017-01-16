@@ -27,6 +27,7 @@ rand = [
   "websocket",
   "ws",
 ]
+num = []
 
 [ignore]
 # Ignored packages with duplicated versions
