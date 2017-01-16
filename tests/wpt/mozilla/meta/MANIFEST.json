@@ -8432,6 +8432,12 @@
             "url": "/_mozilla/mozilla/globals/entry.worker.html"
           }
         ],
+        "mozilla/hit_test_multiple_sc.html": [
+          {
+            "path": "mozilla/hit_test_multiple_sc.html",
+            "url": "/_mozilla/mozilla/hit_test_multiple_sc.html"
+          }
+        ],
         "mozilla/hit_test_nested_sc.html": [
           {
             "path": "mozilla/hit_test_nested_sc.html",
