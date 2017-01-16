@@ -526,10 +526,13 @@ impl Node {
 
     /// Returns the rendered bounding content box if the element is rendered,
     /// and none otherwise.
-    pub fn bounding_content_box(&self) -> Rect<Au> {
+    pub fn bounding_content_box(&self) -> Option<Rect<Au>> {
         window_from_node(self)
             .content_box_query(self.to_trusted_node_address())
-            .unwrap_or_else(Rect::zero)
+    }
+
+    pub fn bounding_content_box_or_zero(&self) -> Rect<Au> {
+        self.bounding_content_box().unwrap_or_else(Rect::zero)
     }
 
     pub fn content_boxes(&self) -> Vec<Rect<Au>> {

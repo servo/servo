@@ -544,7 +544,11 @@ impl Activatable for HTMLAnchorElement {
         if let Some(element) = target.downcast::<Element>() {
             if target.is::<HTMLImageElement>() && element.has_attribute(&local_name!("ismap")) {
                 let target_node = element.upcast::<Node>();
-                let rect = target_node.bounding_content_box();
+                // TODO(emilio): Should we assert that the element is rendered
+                // (unwrap the content box)?
+                //
+                // It seems that this can only happen when it does.
+                let rect = target_node.bounding_content_box_or_zero();
                 ismap_suffix = Some(
                     format!("?{},{}", mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),
                                       mouse_event.ClientY().to_f32().unwrap() - rect.origin.y.to_f32_px())
