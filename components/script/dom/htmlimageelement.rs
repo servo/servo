@@ -358,7 +358,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u32 {
         let node = self.upcast::<Node>();
-        let rect = node.bounding_content_box();
+        let rect = node.bounding_content_box_or_zero();
         rect.size.width.to_px() as u32
     }
 
@@ -370,7 +370,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u32 {
         let node = self.upcast::<Node>();
-        let rect = node.bounding_content_box();
+        let rect = node.bounding_content_box_or_zero();
         rect.size.height.to_px() as u32
     }
 
