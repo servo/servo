@@ -500,9 +500,10 @@ impl HTMLScriptElement {
 
         // Step 5.a.2.
         let window = window_from_node(self);
+        let line_number = if script.external { 1 } else { self.line_number as u32 };
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
         window.upcast::<GlobalScope>().evaluate_script_on_global_with_result(
-            &script.text, script.url.as_str(), rval.handle_mut(), self.line_number as u32);
+            &script.text, script.url.as_str(), rval.handle_mut(), line_number);
 
         // Step 6.
         document.set_current_script(old_script.r());
