@@ -55,11 +55,10 @@ impl DisplayList {
                       scroll_offsets: &ScrollOffsetMap)
                       -> Option<usize> {
         let mut result = Vec::new();
-        let mut translated_point = client_point.clone();
         let mut traversal = DisplayListTraversal::new(self);
         self.text_index_contents(node,
                                  &mut traversal,
-                                 &mut translated_point,
+                                 client_point,
                                  client_point,
                                  scroll_offsets,
                                  &mut result);
@@ -69,30 +68,32 @@ impl DisplayList {
     pub fn text_index_contents<'a>(&self,
                                    node: OpaqueNode,
                                    traversal: &mut DisplayListTraversal<'a>,
-                                   translated_point: &mut Point2D<Au>,
+                                   translated_point: &Point2D<Au>,
                                    client_point: &Point2D<Au>,
                                    scroll_offsets: &ScrollOffsetMap,
                                    result: &mut Vec<usize>) {
         while let Some(item) = traversal.next() {
             match item {
                 &DisplayItem::PushStackingContext(ref stacking_context_item) => {
+                    let mut point = *translated_point;
                     DisplayList::translate_point(&stacking_context_item.stacking_context,
-                                                 translated_point,
+                                                 &mut point,
                                                  client_point);
                     self.text_index_contents(node,
                                              traversal,
-                                             translated_point,
+                                             &point,
                                              client_point,
                                              scroll_offsets,
                                              result);
                 }
                 &DisplayItem::PushScrollRoot(ref item) => {
+                    let mut point = *translated_point;
                     DisplayList::scroll_root(&item.scroll_root,
-                                             translated_point,
+                                             &mut point,
                                              scroll_offsets);
                     self.text_index_contents(node,
                                              traversal,
-                                             translated_point,
+                                             &point,
                                              client_point,
                                              scroll_offsets,
                                              result);
@@ -115,7 +116,7 @@ impl DisplayList {
     // Return all nodes containing the point of interest, bottommost first, and
     // respecting the `pointer-events` CSS property.
     pub fn hit_test(&self,
-                    translated_point: &mut Point2D<Au>,
+                    translated_point: &Point2D<Au>,
                     client_point: &Point2D<Au>,
                     scroll_offsets: &ScrollOffsetMap)
                     -> Vec<DisplayItemMetadata> {
@@ -131,28 +132,30 @@ impl DisplayList {
 
     pub fn hit_test_contents<'a>(&self,
                                  traversal: &mut DisplayListTraversal<'a>,
-                                 translated_point: &mut Point2D<Au>,
+                                 translated_point: &Point2D<Au>,
                                  client_point: &Point2D<Au>,
                                  scroll_offsets: &ScrollOffsetMap,
                                  result: &mut Vec<DisplayItemMetadata>) {
         while let Some(item) = traversal.next() {
             match item {
                 &DisplayItem::PushStackingContext(ref stacking_context_item) => {
+                    let mut point = *translated_point;
                     DisplayList::translate_point(&stacking_context_item.stacking_context,
-                                                 translated_point,
+                                                 &mut point,
                                                  client_point);
                     self.hit_test_contents(traversal,
-                                           translated_point,
+                                           &point,
                                            client_point,
                                            scroll_offsets,
                                            result);
                 }
                 &DisplayItem::PushScrollRoot(ref item) => {
+                    let mut point = *translated_point;
                     DisplayList::scroll_root(&item.scroll_root,
-                                             translated_point,
+                                             &mut point,
                                              scroll_offsets);
                     self.hit_test_contents(traversal,
-                                           translated_point,
+                                           &point,
                                            client_point,
                                            scroll_offsets,
                                            result);

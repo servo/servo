@@ -141,7 +141,7 @@ impl LayoutRPC for LayoutRPCImpl {
     fn nodes_from_point(&self,
                         page_point: Point2D<f32>,
                         client_point: Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        let mut page_point = Point2D::new(Au::from_f32_px(page_point.x),
+        let page_point = Point2D::new(Au::from_f32_px(page_point.x),
                                       Au::from_f32_px(page_point.y));
         let client_point = Point2D::new(Au::from_f32_px(client_point.x),
                                         Au::from_f32_px(client_point.y));
@@ -152,7 +152,7 @@ impl LayoutRPC for LayoutRPCImpl {
             let result = match rw_data.display_list {
                 None => panic!("Tried to hit test without a DisplayList"),
                 Some(ref display_list) => {
-                    display_list.hit_test(&mut page_point,
+                    display_list.hit_test(&page_point,
                                           &client_point,
                                           &rw_data.stacking_context_scroll_offsets)
                 }
