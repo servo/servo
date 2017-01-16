@@ -1020,35 +1020,6 @@ pub mod root {
     pub const NS_STYLE_IS_TEXT_COMBINED: ::std::os::raw::c_ulonglong =
         34359738368;
     pub const NS_STYLE_CONTEXT_TYPE_SHIFT: ::std::os::raw::c_uint = 36;
-    pub mod std {
-        #[allow(unused_imports)]
-        use self::super::super::root;
-        #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct pair<_T1, _T2> {
-            pub first: _T1,
-            pub second: _T2,
-        }
-        pub type pair_first_type<_T1> = _T1;
-        pub type pair_second_type<_T2> = _T2;
-        pub mod namespace {
-            #[allow(unused_imports)]
-            use self::super::super::super::root;
-        }
-        #[repr(C)]
-        #[derive(Debug)]
-        pub struct atomic<_Tp> {
-            pub _M_i: _Tp,
-        }
-        pub mod chrono {
-            #[allow(unused_imports)]
-            use self::super::super::super::root;
-        }
-    }
-    pub mod __gnu_cxx {
-        #[allow(unused_imports)]
-        use self::super::super::root;
-    }
     pub mod mozilla {
         #[allow(unused_imports)]
         use self::super::super::root;
@@ -1760,6 +1731,26 @@ pub mod root {
                 pub _phantom_0: ::std::marker::PhantomData<T>,
                 pub _phantom_1: ::std::marker::PhantomData<U>,
             }
+            /**
+   * StyleStateLocks is used to specify which event states should be locked,
+   * and whether they should be locked to on or off.
+   */
+            #[repr(C)]
+            #[derive(Debug, Copy)]
+            pub struct Element_StyleStateLocks {
+                pub mLocks: root::EventStates,
+                pub mValues: root::EventStates,
+            }
+            #[test]
+            fn bindgen_test_layout_Element_StyleStateLocks() {
+                assert_eq!(::std::mem::size_of::<Element_StyleStateLocks>() ,
+                           16usize);
+                assert_eq!(::std::mem::align_of::<Element_StyleStateLocks>() ,
+                           8usize);
+            }
+            impl Clone for Element_StyleStateLocks {
+                fn clone(&self) -> Self { *self }
+            }
             #[repr(C)]
             #[derive(Debug, Copy)]
             pub struct Element_MappedAttributeEntry {
@@ -2105,7 +2096,7 @@ pub mod root {
             pub struct UnionMember<T> {
                 pub mStorage: root::mozilla::AlignedStorage2<T>,
             }
-            #[repr(u32)]
+            #[repr(u8)]
             #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
             pub enum VisibilityState {
                 Hidden = 0,
@@ -2212,7 +2203,7 @@ pub mod root {
             impl Clone for XPathEvaluator {
                 fn clone(&self) -> Self { *self }
             }
-            #[repr(u32)]
+            #[repr(u8)]
             #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
             pub enum FillMode {
                 None = 0,
@@ -2222,7 +2213,7 @@ pub mod root {
                 Auto = 4,
                 EndGuard_ = 5,
             }
-            #[repr(u32)]
+            #[repr(u8)]
             #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
             pub enum PlaybackDirection {
                 Normal = 0,
@@ -3676,7 +3667,7 @@ pub mod root {
         }
         #[test]
         fn bindgen_test_layout_StyleAnimation() {
-            assert_eq!(::std::mem::size_of::<StyleAnimation>() , 64usize);
+            assert_eq!(::std::mem::size_of::<StyleAnimation>() , 56usize);
             assert_eq!(::std::mem::align_of::<StyleAnimation>() , 8usize);
         }
         #[repr(C)]
@@ -3741,6 +3732,35 @@ pub mod root {
             pub mPtr: *mut T,
             pub _phantom_1: ::std::marker::PhantomData<Deleter>,
         }
+    }
+    pub mod std {
+        #[allow(unused_imports)]
+        use self::super::super::root;
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct pair<_T1, _T2> {
+            pub first: _T1,
+            pub second: _T2,
+        }
+        pub type pair_first_type<_T1> = _T1;
+        pub type pair_second_type<_T2> = _T2;
+        pub mod namespace {
+            #[allow(unused_imports)]
+            use self::super::super::super::root;
+        }
+        #[repr(C)]
+        #[derive(Debug)]
+        pub struct atomic<_Tp> {
+            pub _M_i: _Tp,
+        }
+        pub mod chrono {
+            #[allow(unused_imports)]
+            use self::super::super::super::root;
+        }
+    }
+    pub mod __gnu_cxx {
+        #[allow(unused_imports)]
+        use self::super::super::root;
     }
     /**
  * MozRefCountType is Mozilla's reference count type.
@@ -3898,6 +3918,7 @@ pub mod root {
         NS_NET_STATUS_SENDING_TO = 2152398853,
         NS_NET_STATUS_RECEIVING_FROM = 2152398854,
         NS_ERROR_INTERCEPTION_FAILED = 2152398948,
+        NS_ERROR_HSTS_PRIMING_TIMEOUT = 2152398958,
         NS_ERROR_PLUGINS_PLUGINSNOTCHANGED = 2152465384,
         NS_ERROR_PLUGIN_DISABLED = 2152465385,
         NS_ERROR_PLUGIN_BLOCKLISTED = 2152465386,
@@ -4447,9 +4468,24 @@ pub mod root {
         }
         #[repr(C)]
         #[derive(Debug, Copy, Clone)]
-        pub struct HeapBase<T> {
+        pub struct WrappedPtrOperations<Element, Wrapper> {
+            pub _address: u8,
+            pub _phantom_0: ::std::marker::PhantomData<Element>,
+            pub _phantom_1: ::std::marker::PhantomData<Wrapper>,
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct MutableWrappedPtrOperations<Element, Wrapper> {
+            pub _address: u8,
+            pub _phantom_0: ::std::marker::PhantomData<Element>,
+            pub _phantom_1: ::std::marker::PhantomData<Wrapper>,
+        }
+        #[repr(C)]
+        #[derive(Debug, Copy, Clone)]
+        pub struct HeapBase<T, Wrapper> {
             pub _address: u8,
             pub _phantom_0: ::std::marker::PhantomData<T>,
+            pub _phantom_1: ::std::marker::PhantomData<Wrapper>,
         }
         #[repr(C)]
         pub struct SourceHook__bindgen_vtable {
@@ -5499,11 +5535,11 @@ pub mod root {
         pub mExtraPropertyTables: root::nsTArray<root::nsAutoPtr<root::nsPropertyTable>>,
         pub mChildrenCollection: root::nsCOMPtr<root::nsIHTMLCollection>,
         pub mFontFaceSet: root::RefPtr<root::mozilla::dom::FontFaceSet>,
+        pub _bitfield_1: u64,
         pub mCompatMode: root::nsCompatibility,
         pub mReadyState: root::nsIDocument_ReadyState,
         pub mStyleBackendType: root::StyleBackendType,
         pub mVisibilityState: root::mozilla::dom::VisibilityState,
-        pub _bitfield_1: u64,
         pub mType: root::nsIDocument_Type,
         pub mDefaultElementType: u8,
         pub mAllowXULXBL: root::nsIDocument_Tri,
@@ -5918,72 +5954,72 @@ pub mod root {
                 ((val as u8 as u64) << 8u32) & (256usize as u64);
         }
         #[inline]
-        pub fn mRemovedFromDocShell(&self) -> bool {
+        pub fn mHasReferrerPolicyCSP(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 & (512usize as u64))
                                            >> 9u32) as u8)
             }
         }
         #[inline]
-        pub fn set_mRemovedFromDocShell(&mut self, val: bool) {
+        pub fn set_mHasReferrerPolicyCSP(&mut self, val: bool) {
             self._bitfield_1 &= !(512usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 9u32) & (512usize as u64);
         }
         #[inline]
-        pub fn mAllowDNSPrefetch(&self) -> bool {
+        pub fn mRemovedFromDocShell(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 & (1024usize as u64))
                                            >> 10u32) as u8)
             }
         }
         #[inline]
-        pub fn set_mAllowDNSPrefetch(&mut self, val: bool) {
+        pub fn set_mRemovedFromDocShell(&mut self, val: bool) {
             self._bitfield_1 &= !(1024usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 10u32) & (1024usize as u64);
         }
         #[inline]
-        pub fn mIsStaticDocument(&self) -> bool {
+        pub fn mAllowDNSPrefetch(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 & (2048usize as u64))
                                            >> 11u32) as u8)
             }
         }
         #[inline]
-        pub fn set_mIsStaticDocument(&mut self, val: bool) {
+        pub fn set_mAllowDNSPrefetch(&mut self, val: bool) {
             self._bitfield_1 &= !(2048usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 11u32) & (2048usize as u64);
         }
         #[inline]
-        pub fn mCreatingStaticClone(&self) -> bool {
+        pub fn mIsStaticDocument(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 & (4096usize as u64))
                                            >> 12u32) as u8)
             }
         }
         #[inline]
-        pub fn set_mCreatingStaticClone(&mut self, val: bool) {
+        pub fn set_mIsStaticDocument(&mut self, val: bool) {
             self._bitfield_1 &= !(4096usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 12u32) & (4096usize as u64);
         }
         #[inline]
-        pub fn mInUnlinkOrDeletion(&self) -> bool {
+        pub fn mCreatingStaticClone(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 & (8192usize as u64))
                                            >> 13u32) as u8)
             }
         }
         #[inline]
-        pub fn set_mInUnlinkOrDeletion(&mut self, val: bool) {
+        pub fn set_mCreatingStaticClone(&mut self, val: bool) {
             self._bitfield_1 &= !(8192usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 13u32) & (8192usize as u64);
         }
         #[inline]
-        pub fn mHasHadScriptHandlingObject(&self) -> bool {
+        pub fn mInUnlinkOrDeletion(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (16384usize as u64)) >> 14u32) as
@@ -5991,13 +6027,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasHadScriptHandlingObject(&mut self, val: bool) {
+        pub fn set_mInUnlinkOrDeletion(&mut self, val: bool) {
             self._bitfield_1 &= !(16384usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 14u32) & (16384usize as u64);
         }
         #[inline]
-        pub fn mIsBeingUsedAsImage(&self) -> bool {
+        pub fn mHasHadScriptHandlingObject(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (32768usize as u64)) >> 15u32) as
@@ -6005,13 +6041,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mIsBeingUsedAsImage(&mut self, val: bool) {
+        pub fn set_mHasHadScriptHandlingObject(&mut self, val: bool) {
             self._bitfield_1 &= !(32768usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 15u32) & (32768usize as u64);
         }
         #[inline]
-        pub fn mIsSyntheticDocument(&self) -> bool {
+        pub fn mIsBeingUsedAsImage(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (65536usize as u64)) >> 16u32) as
@@ -6019,13 +6055,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mIsSyntheticDocument(&mut self, val: bool) {
+        pub fn set_mIsBeingUsedAsImage(&mut self, val: bool) {
             self._bitfield_1 &= !(65536usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 16u32) & (65536usize as u64);
         }
         #[inline]
-        pub fn mHasLinksToUpdate(&self) -> bool {
+        pub fn mIsSyntheticDocument(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (131072usize as u64)) >> 17u32) as
@@ -6033,13 +6069,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasLinksToUpdate(&mut self, val: bool) {
+        pub fn set_mIsSyntheticDocument(&mut self, val: bool) {
             self._bitfield_1 &= !(131072usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 17u32) & (131072usize as u64);
         }
         #[inline]
-        pub fn mNeedLayoutFlush(&self) -> bool {
+        pub fn mHasLinksToUpdate(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (262144usize as u64)) >> 18u32) as
@@ -6047,13 +6083,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mNeedLayoutFlush(&mut self, val: bool) {
+        pub fn set_mHasLinksToUpdate(&mut self, val: bool) {
             self._bitfield_1 &= !(262144usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 18u32) & (262144usize as u64);
         }
         #[inline]
-        pub fn mNeedStyleFlush(&self) -> bool {
+        pub fn mNeedLayoutFlush(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (524288usize as u64)) >> 19u32) as
@@ -6061,13 +6097,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mNeedStyleFlush(&mut self, val: bool) {
+        pub fn set_mNeedLayoutFlush(&mut self, val: bool) {
             self._bitfield_1 &= !(524288usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 19u32) & (524288usize as u64);
         }
         #[inline]
-        pub fn mMayHaveDOMMutationObservers(&self) -> bool {
+        pub fn mNeedStyleFlush(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (1048576usize as u64)) >> 20u32)
@@ -6075,13 +6111,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mMayHaveDOMMutationObservers(&mut self, val: bool) {
+        pub fn set_mNeedStyleFlush(&mut self, val: bool) {
             self._bitfield_1 &= !(1048576usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 20u32) & (1048576usize as u64);
         }
         #[inline]
-        pub fn mMayHaveAnimationObservers(&self) -> bool {
+        pub fn mMayHaveDOMMutationObservers(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (2097152usize as u64)) >> 21u32)
@@ -6089,13 +6125,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mMayHaveAnimationObservers(&mut self, val: bool) {
+        pub fn set_mMayHaveDOMMutationObservers(&mut self, val: bool) {
             self._bitfield_1 &= !(2097152usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 21u32) & (2097152usize as u64);
         }
         #[inline]
-        pub fn mHasMixedActiveContentLoaded(&self) -> bool {
+        pub fn mMayHaveAnimationObservers(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (4194304usize as u64)) >> 22u32)
@@ -6103,13 +6139,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasMixedActiveContentLoaded(&mut self, val: bool) {
+        pub fn set_mMayHaveAnimationObservers(&mut self, val: bool) {
             self._bitfield_1 &= !(4194304usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 22u32) & (4194304usize as u64);
         }
         #[inline]
-        pub fn mHasMixedActiveContentBlocked(&self) -> bool {
+        pub fn mHasMixedActiveContentLoaded(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (8388608usize as u64)) >> 23u32)
@@ -6117,13 +6153,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasMixedActiveContentBlocked(&mut self, val: bool) {
+        pub fn set_mHasMixedActiveContentLoaded(&mut self, val: bool) {
             self._bitfield_1 &= !(8388608usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 23u32) & (8388608usize as u64);
         }
         #[inline]
-        pub fn mHasMixedDisplayContentLoaded(&self) -> bool {
+        pub fn mHasMixedActiveContentBlocked(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (16777216usize as u64)) >> 24u32)
@@ -6131,13 +6167,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasMixedDisplayContentLoaded(&mut self, val: bool) {
+        pub fn set_mHasMixedActiveContentBlocked(&mut self, val: bool) {
             self._bitfield_1 &= !(16777216usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 24u32) & (16777216usize as u64);
         }
         #[inline]
-        pub fn mHasMixedDisplayContentBlocked(&self) -> bool {
+        pub fn mHasMixedDisplayContentLoaded(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (33554432usize as u64)) >> 25u32)
@@ -6145,13 +6181,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasMixedDisplayContentBlocked(&mut self, val: bool) {
+        pub fn set_mHasMixedDisplayContentLoaded(&mut self, val: bool) {
             self._bitfield_1 &= !(33554432usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 25u32) & (33554432usize as u64);
         }
         #[inline]
-        pub fn mHasMixedContentObjectSubrequest(&self) -> bool {
+        pub fn mHasMixedDisplayContentBlocked(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (67108864usize as u64)) >> 26u32)
@@ -6159,13 +6195,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasMixedContentObjectSubrequest(&mut self, val: bool) {
+        pub fn set_mHasMixedDisplayContentBlocked(&mut self, val: bool) {
             self._bitfield_1 &= !(67108864usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 26u32) & (67108864usize as u64);
         }
         #[inline]
-        pub fn mHasCSP(&self) -> bool {
+        pub fn mHasMixedContentObjectSubrequest(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (134217728usize as u64)) >> 27u32)
@@ -6173,13 +6209,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasCSP(&mut self, val: bool) {
+        pub fn set_mHasMixedContentObjectSubrequest(&mut self, val: bool) {
             self._bitfield_1 &= !(134217728usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 27u32) & (134217728usize as u64);
         }
         #[inline]
-        pub fn mHasUnsafeEvalCSP(&self) -> bool {
+        pub fn mHasCSP(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (268435456usize as u64)) >> 28u32)
@@ -6187,13 +6223,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasUnsafeEvalCSP(&mut self, val: bool) {
+        pub fn set_mHasCSP(&mut self, val: bool) {
             self._bitfield_1 &= !(268435456usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 28u32) & (268435456usize as u64);
         }
         #[inline]
-        pub fn mHasUnsafeInlineCSP(&self) -> bool {
+        pub fn mHasUnsafeEvalCSP(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (536870912usize as u64)) >> 29u32)
@@ -6201,13 +6237,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasUnsafeInlineCSP(&mut self, val: bool) {
+        pub fn set_mHasUnsafeEvalCSP(&mut self, val: bool) {
             self._bitfield_1 &= !(536870912usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 29u32) & (536870912usize as u64);
         }
         #[inline]
-        pub fn mHasTrackingContentBlocked(&self) -> bool {
+        pub fn mHasUnsafeInlineCSP(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (1073741824usize as u64)) >>
@@ -6215,13 +6251,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasTrackingContentBlocked(&mut self, val: bool) {
+        pub fn set_mHasUnsafeInlineCSP(&mut self, val: bool) {
             self._bitfield_1 &= !(1073741824usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 30u32) & (1073741824usize as u64);
         }
         #[inline]
-        pub fn mHasTrackingContentLoaded(&self) -> bool {
+        pub fn mHasTrackingContentBlocked(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (2147483648usize as u64)) >>
@@ -6229,13 +6265,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasTrackingContentLoaded(&mut self, val: bool) {
+        pub fn set_mHasTrackingContentBlocked(&mut self, val: bool) {
             self._bitfield_1 &= !(2147483648usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 31u32) & (2147483648usize as u64);
         }
         #[inline]
-        pub fn mBFCacheDisallowed(&self) -> bool {
+        pub fn mHasTrackingContentLoaded(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (4294967296usize as u64)) >>
@@ -6243,13 +6279,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mBFCacheDisallowed(&mut self, val: bool) {
+        pub fn set_mHasTrackingContentLoaded(&mut self, val: bool) {
             self._bitfield_1 &= !(4294967296usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 32u32) & (4294967296usize as u64);
         }
         #[inline]
-        pub fn mHasHadDefaultView(&self) -> bool {
+        pub fn mBFCacheDisallowed(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (8589934592usize as u64)) >>
@@ -6257,13 +6293,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasHadDefaultView(&mut self, val: bool) {
+        pub fn set_mBFCacheDisallowed(&mut self, val: bool) {
             self._bitfield_1 &= !(8589934592usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 33u32) & (8589934592usize as u64);
         }
         #[inline]
-        pub fn mStyleSheetChangeEventsEnabled(&self) -> bool {
+        pub fn mHasHadDefaultView(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (17179869184usize as u64)) >>
@@ -6271,13 +6307,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mStyleSheetChangeEventsEnabled(&mut self, val: bool) {
+        pub fn set_mHasHadDefaultView(&mut self, val: bool) {
             self._bitfield_1 &= !(17179869184usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 34u32) & (17179869184usize as u64);
         }
         #[inline]
-        pub fn mIsSrcdocDocument(&self) -> bool {
+        pub fn mStyleSheetChangeEventsEnabled(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (34359738368usize as u64)) >>
@@ -6285,13 +6321,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mIsSrcdocDocument(&mut self, val: bool) {
+        pub fn set_mStyleSheetChangeEventsEnabled(&mut self, val: bool) {
             self._bitfield_1 &= !(34359738368usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 35u32) & (34359738368usize as u64);
         }
         #[inline]
-        pub fn mDidDocumentOpen(&self) -> bool {
+        pub fn mIsSrcdocDocument(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (68719476736usize as u64)) >>
@@ -6299,13 +6335,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mDidDocumentOpen(&mut self, val: bool) {
+        pub fn set_mIsSrcdocDocument(&mut self, val: bool) {
             self._bitfield_1 &= !(68719476736usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 36u32) & (68719476736usize as u64);
         }
         #[inline]
-        pub fn mHasDisplayDocument(&self) -> bool {
+        pub fn mDidDocumentOpen(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (137438953472usize as u64)) >>
@@ -6313,13 +6349,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mHasDisplayDocument(&mut self, val: bool) {
+        pub fn set_mDidDocumentOpen(&mut self, val: bool) {
             self._bitfield_1 &= !(137438953472usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 37u32) & (137438953472usize as u64);
         }
         #[inline]
-        pub fn mFontFaceSetDirty(&self) -> bool {
+        pub fn mHasDisplayDocument(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (274877906944usize as u64)) >>
@@ -6327,13 +6363,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mFontFaceSetDirty(&mut self, val: bool) {
+        pub fn set_mHasDisplayDocument(&mut self, val: bool) {
             self._bitfield_1 &= !(274877906944usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 38u32) & (274877906944usize as u64);
         }
         #[inline]
-        pub fn mGetUserFontSetCalled(&self) -> bool {
+        pub fn mFontFaceSetDirty(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (549755813888usize as u64)) >>
@@ -6341,13 +6377,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mGetUserFontSetCalled(&mut self, val: bool) {
+        pub fn set_mFontFaceSetDirty(&mut self, val: bool) {
             self._bitfield_1 &= !(549755813888usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 39u32) & (549755813888usize as u64);
         }
         #[inline]
-        pub fn mPostedFlushUserFontSet(&self) -> bool {
+        pub fn mGetUserFontSetCalled(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (1099511627776usize as u64)) >>
@@ -6355,13 +6391,13 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mPostedFlushUserFontSet(&mut self, val: bool) {
+        pub fn set_mGetUserFontSetCalled(&mut self, val: bool) {
             self._bitfield_1 &= !(1099511627776usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 40u32) & (1099511627776usize as u64);
         }
         #[inline]
-        pub fn mEverInForeground(&self) -> bool {
+        pub fn mPostedFlushUserFontSet(&self) -> bool {
             unsafe {
                 ::std::mem::transmute(((self._bitfield_1 &
                                             (2199023255552usize as u64)) >>
@@ -6369,10 +6405,24 @@ pub mod root {
             }
         }
         #[inline]
-        pub fn set_mEverInForeground(&mut self, val: bool) {
+        pub fn set_mPostedFlushUserFontSet(&mut self, val: bool) {
             self._bitfield_1 &= !(2199023255552usize as u64);
             self._bitfield_1 |=
                 ((val as u8 as u64) << 41u32) & (2199023255552usize as u64);
+        }
+        #[inline]
+        pub fn mEverInForeground(&self) -> bool {
+            unsafe {
+                ::std::mem::transmute(((self._bitfield_1 &
+                                            (4398046511104usize as u64)) >>
+                                           42u32) as u8)
+            }
+        }
+        #[inline]
+        pub fn set_mEverInForeground(&mut self, val: bool) {
+            self._bitfield_1 &= !(4398046511104usize as u64);
+            self._bitfield_1 |=
+                ((val as u8 as u64) << 42u32) & (4398046511104usize as u64);
         }
         #[inline]
         pub fn mDidFireDOMContentLoaded(&self) -> bool {
@@ -10212,7 +10262,7 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_nsStyleDisplay() {
-        assert_eq!(::std::mem::size_of::<nsStyleDisplay>() , 424usize);
+        assert_eq!(::std::mem::size_of::<nsStyleDisplay>() , 416usize);
         assert_eq!(::std::mem::align_of::<nsStyleDisplay>() , 8usize);
     }
     #[repr(C)]
@@ -11983,7 +12033,7 @@ pub mod root {
         assert_eq!(::std::mem::align_of::<nsCSSValueFloatColor>() , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_8_TEMPORARY() {
+    fn __bindgen_test_layout_template_8() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValueList,
                                                root::mozilla::DefaultDelete<root::nsCSSValueList>>>()
                    , 8usize);
@@ -11992,7 +12042,7 @@ pub mod root {
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_9_TEMPORARY() {
+    fn __bindgen_test_layout_template_9() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValuePairList,
                                                root::mozilla::DefaultDelete<root::nsCSSValuePairList>>>()
                    , 8usize);
@@ -12372,7 +12422,7 @@ pub mod root {
         assert_eq!(::std::mem::align_of::<CachedBorderImageData>() , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_8() {
+    fn __bindgen_test_layout_template_10() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleSides,
                                                root::mozilla::DefaultDelete<root::nsStyleSides>>>()
                    , 8usize);
@@ -13551,173 +13601,187 @@ pub mod root {
         root::nsMainThreadPtrHolder<root::nsIPrincipal>;
     pub type ThreadSafeURIHolder = root::nsMainThreadPtrHolder<root::nsIURI>;
     #[test]
-    fn __bindgen_test_layout_template_9() {
+    fn __bindgen_test_layout_template_11() {
         assert_eq!(::std::mem::size_of::<root::JS::TenuredHeap<*mut root::JSObject>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::JS::TenuredHeap<*mut root::JSObject>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_10() {
+    fn __bindgen_test_layout_template_12() {
         assert_eq!(::std::mem::size_of::<root::JS::Heap<*mut root::JSObject>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::JS::Heap<*mut root::JSObject>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_11() {
+    fn __bindgen_test_layout_template_13() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCString>>() ,
                    8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<root::nsCString>>() ,
                    8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_12() {
+    fn __bindgen_test_layout_template_14() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIPrincipal>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsIPrincipal>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_13() {
+    fn __bindgen_test_layout_template_15() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::Element>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::RefPtr<root::mozilla::dom::Element>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_14() {
+    fn __bindgen_test_layout_template_16() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::Element>>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::Element>>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_15() {
+    fn __bindgen_test_layout_template_17() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIObserver>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsIObserver>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_16() {
+    fn __bindgen_test_layout_template_18() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIWeakReference>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsIWeakReference>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_17() {
+    fn __bindgen_test_layout_template_19() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_18() {
+    fn __bindgen_test_layout_template_20() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<::nsstring::nsStringRepr>>() ,
                    8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_19() {
+    fn __bindgen_test_layout_template_21() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::mozilla::dom::TimeoutManager>>()
                    , 1usize);
         assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::mozilla::dom::TimeoutManager>>()
                    , 1usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_20() {
+    fn __bindgen_test_layout_template_22() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_21() {
+    fn __bindgen_test_layout_template_23() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::nsINode>>()
                    , 16usize);
         assert_eq!(::std::mem::align_of::<root::mozilla::OwningNonNull<root::nsINode>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_22() {
+    fn __bindgen_test_layout_template_24() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<f64>>() , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<f64>>() , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_23() {
+    fn __bindgen_test_layout_template_25() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_24() {
+    fn __bindgen_test_layout_template_26() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_25() {
+    fn __bindgen_test_layout_template_27() {
         assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
                    , 24usize);
         assert_eq!(::std::mem::align_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_26() {
+    fn __bindgen_test_layout_template_28() {
         assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIPrincipal>>()
                    , 24usize);
         assert_eq!(::std::mem::align_of::<root::nsMainThreadPtrHolder<root::nsIPrincipal>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_27() {
+    fn __bindgen_test_layout_template_29() {
         assert_eq!(::std::mem::size_of::<root::nsPtrHashKey<root::nsIFrame>>()
                    , 16usize);
         assert_eq!(::std::mem::align_of::<root::nsPtrHashKey<root::nsIFrame>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_28() {
+    fn __bindgen_test_layout_template_30() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_29() {
+    fn __bindgen_test_layout_template_31() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMRect>>()
                    , 8usize);
         assert_eq!(::std::mem::align_of::<root::RefPtr<root::mozilla::dom::DOMRect>>()
                    , 8usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_30() {
+    fn __bindgen_test_layout_template_32() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::ProxyBehaviour>>()
                    , 1usize);
         assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::ProxyBehaviour>>()
                    , 1usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_31() {
+    fn __bindgen_test_layout_template_33() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsCSSValueList>>()
+                   , 1usize);
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::nsCSSValueList>>()
+                   , 1usize);
+    }
+    #[test]
+    fn __bindgen_test_layout_template_34() {
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsCSSValuePairList>>()
+                   , 1usize);
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::nsCSSValuePairList>>()
+                   , 1usize);
+    }
+    #[test]
+    fn __bindgen_test_layout_template_35() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsStyleSides>>()
                    , 1usize);
         assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::nsStyleSides>>()
                    , 1usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_32() {
+    fn __bindgen_test_layout_template_36() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::CachedBorderImageData>>()
                    , 1usize);
         assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<root::CachedBorderImageData>>()
                    , 1usize);
     }
     #[test]
-    fn __bindgen_test_layout_template_33() {
+    fn __bindgen_test_layout_template_37() {
         assert_eq!(::std::mem::size_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
                    , 32usize);
         assert_eq!(::std::mem::align_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
