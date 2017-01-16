@@ -877,7 +877,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::SwitchToParentFrame => self.handle_switch_to_parent_frame(),
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
-            WebDriverCommand::GetCookie(ref name) => self.handle_get_cookie(name),
+            WebDriverCommand::GetNamedCookie(ref name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),
             WebDriverCommand::GetElementRect(ref element) => self.handle_element_rect(element),

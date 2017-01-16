@@ -32,7 +32,7 @@ constellation = {path = "../constellation"}
 debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
-env_logger = "0.3"
+env_logger = "0.4"
 euclid = "0.10.1"
 gfx = {path = "../gfx"}
 gleam = "0.2"
