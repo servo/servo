@@ -10,6 +10,7 @@ use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, None_, Normal, specified};
+use values::specified::length::{FontRelativeLength, FontUnit, ViewportPercentageLength, ViewportUnit};
 
 pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
@@ -99,22 +100,16 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     type ComputedValue = CalcLengthOrPercentage;
 
     fn to_computed_value(&self, context: &Context) -> CalcLengthOrPercentage {
-        let mut length = Au(0);
+        let mut length = self.absolute.unwrap_or(Au(0));
 
-        if let Some(absolute) = self.absolute {
-            length += absolute;
+        for (i, val) in self.viewport_values.iter().filter_map(|v| *v).enumerate() {
+            let val = ViewportPercentageLength::new(val, ViewportUnit::from_usize(i));
+            length += val.to_computed_value(context);
         }
 
-        for val in &[self.vw, self.vh, self.vmin, self.vmax] {
-            if let Some(val) = *val {
-                length += val.to_computed_value(context.viewport_size());
-            }
-        }
-
-        for val in &[self.ch, self.em, self.ex, self.rem] {
-            if let Some(val) = *val {
-                length += val.to_computed_value(context, /* use inherited */ false);
-            }
+        for (i, val) in self.font_values.iter().filter_map(|v| *v).enumerate() {
+            let val = FontRelativeLength::new(val, FontUnit::from_usize(i));
+            length += val.to_computed_value(context);
         }
 
         CalcLengthOrPercentage {

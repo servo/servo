@@ -335,7 +335,7 @@ ${helpers.single_keyword("font-variant-caps",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match self.0 {
                 LengthOrPercentage::Length(Length::FontRelative(value)) => {
-                    value.to_computed_value(context, /* use inherited */ true)
+                    value.to_computed_value_inherited(context)
                 }
                 LengthOrPercentage::Length(Length::ServoCharacterWidth(value)) => {
                     value.to_computed_value(context.inherited_style().get_font().clone_font_size())

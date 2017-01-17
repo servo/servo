@@ -12,9 +12,9 @@ use style::error_reporting::ParseErrorReporter;
 use style::media_queries::{Device, MediaType};
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::stylesheets::{Stylesheet, Origin};
+use style::values::specified::{ViewportPercentageLength, ViewportUnit};
 use style::values::specified::Length::{self, ViewportPercentage};
 use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
-use style::values::specified::ViewportPercentageLength::Vw;
 use style::viewport::*;
 use style_traits::viewport::*;
 
@@ -83,7 +83,8 @@ macro_rules! viewport_length {
         ViewportLength::Specified(LengthOrPercentageOrAuto::Length(Length::from_px($value)))
     };
     ($value:expr, vw) => {
-        ViewportLength::Specified(LengthOrPercentageOrAuto::Length(ViewportPercentage(Vw($value))))
+        ViewportLength::Specified(LengthOrPercentageOrAuto::Length(
+            ViewportPercentage(ViewportPercentageLength::new($value, ViewportUnit::Vw))))
     }
 }
 

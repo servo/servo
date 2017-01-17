@@ -113,13 +113,15 @@
                         specified::LengthOrPercentage::Length(value) =>
                             computed_value::T::Length(value.to_computed_value(context)),
                         specified::LengthOrPercentage::Percentage(specified::Percentage(value)) => {
-                            let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
+                            let fr = specified::Length::FontRelative(
+                                specified::FontRelativeLength::new(value, specified::FontUnit::Em));
                             computed_value::T::Length(fr.to_computed_value(context))
                         },
                         specified::LengthOrPercentage::Calc(calc) => {
                             let calc = calc.to_computed_value(context);
-                            let fr = specified::FontRelativeLength::Em(calc.percentage());
-                            let fr = specified::Length::FontRelative(fr);
+                            let fr = specified::Length::FontRelative(
+                                specified::FontRelativeLength::new(calc.percentage(),
+                                                                   specified::FontUnit::Em));
                             computed_value::T::Length(calc.length() + fr.to_computed_value(context))
                         }
                     }
