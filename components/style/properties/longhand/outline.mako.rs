@@ -48,7 +48,7 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
-            let &SpecifiedValue(length) = self;
+            let &SpecifiedValue(ref length) = self;
             length.has_viewport_percentage()
         }
     }

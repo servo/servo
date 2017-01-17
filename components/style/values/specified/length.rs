@@ -11,9 +11,8 @@ use cssparser::{Parser, Token};
 use euclid::size::Size2D;
 use font_metrics::FontMetrics;
 use parser::{Parse, ParserContext};
+use std::{cmp, fmt, mem};
 use std::ascii::AsciiExt;
-use std::cmp;
-use std::fmt;
 use std::ops::Mul;
 use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
@@ -209,7 +208,7 @@ impl CharacterWidth {
 /// A length.
 ///
 /// https://drafts.csswg.org/css-values/#lengths
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Length {
     /// An absolute length: https://drafts.csswg.org/css-values/#absolute-length
@@ -237,7 +236,7 @@ pub enum Length {
     ///
     /// TODO(emilio): We have more `Calc` variants around, we should only use
     /// one.
-    Calc(CalcLengthOrPercentage, AllowedNumericType),
+    Calc(Box<CalcLengthOrPercentage>, AllowedNumericType),
 }
 
 impl HasViewportPercentage for Length {
@@ -381,6 +380,15 @@ impl Length {
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> Length {
         Length::Absolute(Au((px_value * AU_PER_PX) as i32))
+    }
+
+    /// Extract inner length without a clone, replacing it with a 0 Au
+    ///
+    /// Use when you need to move out of a length array without cloning
+    #[inline]
+    pub fn take(&mut self) -> Self {
+        let new = Length::Absolute(Au(0));
+        mem::replace(self, new)
     }
 }
 
@@ -584,7 +592,7 @@ impl CalcLengthOrPercentage {
                     node_with_unit = Some(match *node {
                         CalcValueNode::Sum(ref sum) =>
                             try!(CalcLengthOrPercentage::simplify_products_in_sum(sum)),
-                        CalcValueNode::Length(l) => SimplifiedValueNode::Length(l),
+                        CalcValueNode::Length(ref l) => SimplifiedValueNode::Length(l.clone()),
                         CalcValueNode::Angle(a) => SimplifiedValueNode::Angle(a),
                         CalcValueNode::Time(t) => SimplifiedValueNode::Time(t),
                         CalcValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p),
@@ -604,7 +612,7 @@ impl CalcLengthOrPercentage {
     fn parse_length(input: &mut Parser,
                     context: AllowedNumericType) -> Result<Length, ()> {
         CalcLengthOrPercentage::parse(input, CalcUnit::Length).map(|calc| {
-            Length::Calc(calc, context)
+            Length::Calc(Box::new(calc), context)
         })
     }
 
@@ -844,13 +852,13 @@ impl Parse for Percentage {
 /// A length or a percentage value.
 ///
 /// TODO(emilio): Does this make any sense vs. CalcLengthOrPercentage?
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum LengthOrPercentage {
     Length(Length),
     Percentage(Percentage),
-    Calc(CalcLengthOrPercentage),
+    Calc(Box<CalcLengthOrPercentage>),
 }
 
 impl HasViewportPercentage for LengthOrPercentage {
@@ -866,9 +874,9 @@ impl HasViewportPercentage for LengthOrPercentage {
 impl ToCss for LengthOrPercentage {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            LengthOrPercentage::Length(length) => length.to_css(dest),
+            LengthOrPercentage::Length(ref length) => length.to_css(dest),
             LengthOrPercentage::Percentage(percentage) => percentage.to_css(dest),
-            LengthOrPercentage::Calc(calc) => calc.to_css(dest),
+            LengthOrPercentage::Calc(ref calc) => calc.to_css(dest),
         }
     }
 }
@@ -890,7 +898,7 @@ impl LengthOrPercentage {
                 Ok(LengthOrPercentage::Length(Length::Absolute(Au(0)))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
-                Ok(LengthOrPercentage::Calc(calc))
+                Ok(LengthOrPercentage::Calc(Box::new(calc)))
             },
             _ => Err(())
         }
@@ -900,6 +908,15 @@ impl LengthOrPercentage {
     #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
         LengthOrPercentage::parse_internal(input, AllowedNumericType::NonNegative)
+    }
+
+    /// Extract value from ref without a clone, replacing it with a 0 Au
+    ///
+    /// Use when you need to move out of a length array without cloning
+    #[inline]
+    pub fn take(&mut self) -> Self {
+        let new = LengthOrPercentage::Length(Length::Absolute(Au(0)));
+        mem::replace(self, new)
     }
 }
 
@@ -912,14 +929,14 @@ impl Parse for LengthOrPercentage {
 
 /// TODO(emilio): Do the Length and Percentage variants make any sense with
 /// CalcLengthOrPercentage?
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum LengthOrPercentageOrAuto {
     Length(Length),
     Percentage(Percentage),
     Auto,
-    Calc(CalcLengthOrPercentage),
+    Calc(Box<CalcLengthOrPercentage>),
 }
 
 impl HasViewportPercentage for LengthOrPercentageOrAuto {
@@ -935,10 +952,10 @@ impl HasViewportPercentage for LengthOrPercentageOrAuto {
 impl ToCss for LengthOrPercentageOrAuto {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            LengthOrPercentageOrAuto::Length(length) => length.to_css(dest),
+            LengthOrPercentageOrAuto::Length(ref length) => length.to_css(dest),
             LengthOrPercentageOrAuto::Percentage(percentage) => percentage.to_css(dest),
             LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
-            LengthOrPercentageOrAuto::Calc(calc) => calc.to_css(dest),
+            LengthOrPercentageOrAuto::Calc(ref calc) => calc.to_css(dest),
         }
     }
 }
@@ -958,7 +975,7 @@ impl LengthOrPercentageOrAuto {
                 Ok(LengthOrPercentageOrAuto::Auto),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
-                Ok(LengthOrPercentageOrAuto::Calc(calc))
+                Ok(LengthOrPercentageOrAuto::Calc(Box::new(calc)))
             },
             _ => Err(())
         }
@@ -980,13 +997,13 @@ impl Parse for LengthOrPercentageOrAuto {
 
 /// TODO(emilio): Do the Length and Percentage variants make any sense with
 /// CalcLengthOrPercentage?
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum LengthOrPercentageOrNone {
     Length(Length),
     Percentage(Percentage),
-    Calc(CalcLengthOrPercentage),
+    Calc(Box<CalcLengthOrPercentage>),
     None,
 }
 
@@ -1023,7 +1040,7 @@ impl LengthOrPercentageOrNone {
                 Ok(LengthOrPercentageOrNone::Length(Length::Absolute(Au(0)))),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
-                Ok(LengthOrPercentageOrNone::Calc(calc))
+                Ok(LengthOrPercentageOrNone::Calc(Box::new(calc)))
             },
             Token::Ident(ref value) if value.eq_ignore_ascii_case("none") =>
                 Ok(LengthOrPercentageOrNone::None),
@@ -1057,7 +1074,7 @@ pub type LengthOrAuto = Either<Length, Auto>;
 /// `content` keyword.
 ///
 /// TODO(emilio): Do the Length and Percentage variants make any sense with
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LengthOrPercentageOrAutoOrContent {
     /// A `<length>`.
@@ -1065,7 +1082,7 @@ pub enum LengthOrPercentageOrAutoOrContent {
     /// A percentage.
     Percentage(Percentage),
     /// A `calc` node.
-    Calc(CalcLengthOrPercentage),
+    Calc(Box<CalcLengthOrPercentage>),
     /// The `auto` keyword.
     Auto,
     /// The `content` keyword.
@@ -1075,7 +1092,7 @@ pub enum LengthOrPercentageOrAutoOrContent {
 impl HasViewportPercentage for LengthOrPercentageOrAutoOrContent {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
-            LengthOrPercentageOrAutoOrContent::Length(length) => length.has_viewport_percentage(),
+            LengthOrPercentageOrAutoOrContent::Length(ref length) => length.has_viewport_percentage(),
             LengthOrPercentageOrAutoOrContent::Calc(ref calc) => calc.has_viewport_percentage(),
             _ => false
         }
@@ -1085,11 +1102,11 @@ impl HasViewportPercentage for LengthOrPercentageOrAutoOrContent {
 impl ToCss for LengthOrPercentageOrAutoOrContent {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            LengthOrPercentageOrAutoOrContent::Length(len) => len.to_css(dest),
+            LengthOrPercentageOrAutoOrContent::Length(ref len) => len.to_css(dest),
             LengthOrPercentageOrAutoOrContent::Percentage(perc) => perc.to_css(dest),
             LengthOrPercentageOrAutoOrContent::Auto => dest.write_str("auto"),
             LengthOrPercentageOrAutoOrContent::Content => dest.write_str("content"),
-            LengthOrPercentageOrAutoOrContent::Calc(calc) => calc.to_css(dest),
+            LengthOrPercentageOrAutoOrContent::Calc(ref calc) => calc.to_css(dest),
         }
     }
 }
@@ -1110,7 +1127,7 @@ impl Parse for LengthOrPercentageOrAutoOrContent {
                 Ok(LengthOrPercentageOrAutoOrContent::Content),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
-                Ok(LengthOrPercentageOrAutoOrContent::Calc(calc))
+                Ok(LengthOrPercentageOrAutoOrContent::Calc(Box::new(calc)))
             },
             _ => Err(())
         }

@@ -128,7 +128,7 @@ impl ToComputedValue for specified::Length {
     fn to_computed_value(&self, context: &Context) -> Au {
         match *self {
             specified::Length::Absolute(length) => length,
-            specified::Length::Calc(calc, range) => range.clamp(calc.to_computed_value(context).length()),
+            specified::Length::Calc(ref calc, range) => range.clamp(calc.to_computed_value(context).length()),
             specified::Length::FontRelative(length) =>
                 length.to_computed_value(context, /* use inherited */ false),
             specified::Length::ViewportPercentage(length) =>

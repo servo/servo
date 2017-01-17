@@ -15,13 +15,13 @@
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedValue::LengthOrPercentage(length) => length.has_viewport_percentage(),
+                SpecifiedValue::LengthOrPercentage(ref length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
     }
 
-    #[derive(Debug, Clone, PartialEq, Copy)]
+    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
@@ -39,7 +39,7 @@
                 % if product == "gecko":
                     SpecifiedValue::MozBlockHeight => dest.write_str("-moz-block-height"),
                 % endif
-                SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
+                SpecifiedValue::LengthOrPercentage(ref value) => value.to_css(dest),
                 SpecifiedValue::Number(number) => write!(dest, "{}", number),
             }
         }
@@ -108,15 +108,15 @@
                     SpecifiedValue::MozBlockHeight => computed_value::T::MozBlockHeight,
                 % endif
                 SpecifiedValue::Number(value) => computed_value::T::Number(value),
-                SpecifiedValue::LengthOrPercentage(value) => {
-                    match value {
-                        specified::LengthOrPercentage::Length(value) =>
+                SpecifiedValue::LengthOrPercentage(ref value) => {
+                    match *value {
+                        specified::LengthOrPercentage::Length(ref value) =>
                             computed_value::T::Length(value.to_computed_value(context)),
                         specified::LengthOrPercentage::Percentage(specified::Percentage(value)) => {
                             let fr = specified::Length::FontRelative(specified::FontRelativeLength::Em(value));
                             computed_value::T::Length(fr.to_computed_value(context))
                         },
-                        specified::LengthOrPercentage::Calc(calc) => {
+                        specified::LengthOrPercentage::Calc(ref calc) => {
                             let calc = calc.to_computed_value(context);
                             let fr = specified::FontRelativeLength::Em(calc.percentage());
                             let fr = specified::Length::FontRelative(fr);
@@ -267,13 +267,13 @@ ${helpers.single_keyword("text-align-last",
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                SpecifiedValue::Specified(ref length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
@@ -284,7 +284,7 @@ ${helpers.single_keyword("text-align-last",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Specified(l) => l.to_css(dest),
+                SpecifiedValue::Specified(ref l) => l.to_css(dest),
             }
         }
     }
@@ -317,7 +317,7 @@ ${helpers.single_keyword("text-align-last",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::Normal => computed_value::T(None),
-                SpecifiedValue::Specified(l) =>
+                SpecifiedValue::Specified(ref l) =>
                     computed_value::T(Some(l.to_computed_value(context)))
             }
         }
@@ -348,13 +348,13 @@ ${helpers.single_keyword("text-align-last",
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedValue::Specified(length) => length.has_viewport_percentage(),
+                SpecifiedValue::Specified(ref length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         Normal,
@@ -365,7 +365,7 @@ ${helpers.single_keyword("text-align-last",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::Normal => dest.write_str("normal"),
-                SpecifiedValue::Specified(l) => l.to_css(dest),
+                SpecifiedValue::Specified(ref l) => l.to_css(dest),
             }
         }
     }
@@ -398,7 +398,7 @@ ${helpers.single_keyword("text-align-last",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::Normal => computed_value::T(None),
-                SpecifiedValue::Specified(l) =>
+                SpecifiedValue::Specified(ref l) =>
                     computed_value::T(Some(l.to_computed_value(context))),
             }
         }
@@ -681,7 +681,9 @@ ${helpers.single_keyword("text-align-last",
 
     fn parse_one_text_shadow(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedTextShadow,()> {
         use app_units::Au;
-        let mut lengths = [specified::Length::Absolute(Au(0)); 3];
+        let mut lengths = [specified::Length::Absolute(Au(0)),
+                           specified::Length::Absolute(Au(0)),
+                           specified::Length::Absolute(Au(0))];
         let mut lengths_parsed = false;
         let mut color = None;
 
@@ -723,9 +725,9 @@ ${helpers.single_keyword("text-align-last",
         }
 
         Ok(SpecifiedTextShadow {
-            offset_x: lengths[0],
-            offset_y: lengths[1],
-            blur_radius: lengths[2],
+            offset_x: lengths[0].take(),
+            offset_y: lengths[1].take(),
+            blur_radius: lengths[2].take(),
             color: color,
         })
     }

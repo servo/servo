@@ -33,18 +33,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             % for side in ["top", "right", "bottom", "left"]:
-                let ${side} = match self.border_${side}_width {
-                    &DeclaredValue::Value(ref value) => DeclaredValue::Value(*value),
-                    &DeclaredValue::WithVariables {
-                        css: ref a, first_token_type: ref b, base_url: ref c, from_shorthand: ref d
-                    } => DeclaredValue::WithVariables {
-                        // WithVariables should not be reachable during serialization
-                        css: a.clone(), first_token_type: b.clone(), base_url: c.clone(), from_shorthand: d.clone()
-                    },
-                    &DeclaredValue::Initial => DeclaredValue::Initial,
-                    &DeclaredValue::Inherit => DeclaredValue::Inherit,
-                    &DeclaredValue::Unset => DeclaredValue::Unset,
-                };
+                let ${side} = self.border_${side}_width.clone();
             % endfor
 
             super::serialize_four_sides(dest, &top, &right, &bottom, &left)
@@ -136,7 +125,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
             % for side in ["top", "right", "bottom", "left"]:
                 border_${side}_color: color.clone(),
                 border_${side}_style: style,
-                border_${side}_width: width,
+                border_${side}_width: width.clone(),
             % endfor
         })
     }
