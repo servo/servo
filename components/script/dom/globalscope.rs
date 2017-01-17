@@ -10,7 +10,7 @@ use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::settings_stack::{AutoEntryScript, entry_global};
+use dom::bindings::settings_stack::{AutoEntryScript, entry_global, incumbent_global};
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -527,6 +527,13 @@ impl GlobalScope {
     /// ["entry"]: https://html.spec.whatwg.org/multipage/#entry
     pub fn entry() -> Root<Self> {
         entry_global()
+    }
+
+    /// Returns the ["incumbent"] global object.
+    ///
+    /// ["incumbent"]: https://html.spec.whatwg.org/multipage/#incumbent
+    pub fn incumbent() -> Option<Root<Self>> {
+        incumbent_global()
     }
 }
 
