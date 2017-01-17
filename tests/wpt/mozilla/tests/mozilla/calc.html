@@ -40,13 +40,13 @@ var widthTests = [
 
     // Alphabetical order
     ['calc(0ch + 0px + 0pt + 0pc + 0in + 0cm + 0mm + 0rem + 0em + 0ex + 0% + 0vw + 0vh + 0vmin + 0vmax)',
-     'calc(0ch + 0em + 0ex + 0px + 0rem + 0vh + 0vmax + 0vmin + 0vw + 0%)',
+     'calc(0ch + 0em + 0ex + 0rem + 0vh + 0vmax + 0vmin + 0vw + 0px + 0%)',
      '0px'],
 
     // Simplification
     ['calc((2 - 1) * 10px)', '10px', '10px'],
     ['calc(((3 - 1) * (8 + 4)) * 10px)', '240px', '240px'],
-    ['calc(5 * (20px / 2 + 7 * (3em + 12px/4 + (8 - 2) * 2rem)))', 'calc(105em + 155px + 420rem)', '8555px'],
+    ['calc(5 * (20px / 2 + 7 * (3em + 12px/4 + (8 - 2) * 2rem)))', 'calc(105em + 420rem + 155px)', '8555px'],
 
 ];
 
