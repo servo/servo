@@ -583,13 +583,6 @@ impl ScriptThread {
         });
     }
 
-    pub fn parsing_complete(id: PipelineId) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.handle_parsing_complete(id);
-        });
-    }
-
     pub fn process_event(msg: CommonScriptMsg) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
@@ -2161,30 +2154,6 @@ impl ScriptThread {
         context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
         context.process_response_chunk(vec![]);
         context.process_response_eof(Ok(()));
-    }
-
-    fn handle_parsing_complete(&self, id: PipelineId) {
-        let document = match { self.documents.borrow().find_document(id) } {
-            Some(document) => document,
-            None => return,
-        };
-
-        let final_url = document.url();
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 1
-        document.set_ready_state(DocumentReadyState::Interactive);
-
-        // TODO: Execute step 2 here.
-
-        // Kick off the initial reflow of the page.
-        debug!("kicking off initial reflow of {:?}", final_url);
-        document.disarm_reflow_timeout();
-        document.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        let window = window_from_node(&*document);
-        window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
-
-        // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
-        document.process_deferred_scripts();
     }
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
