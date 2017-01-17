@@ -25,7 +25,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
 use range::Range;
-use servo_geometry::{au_rect_to_f32_rect, f32_rect_to_au_rect, max_rect};
+use servo_geometry::max_rect;
 use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::fmt;
@@ -414,24 +414,6 @@ impl StackingContext {
                              true,
                              ScrollPolicy::Scrollable,
                              ScrollRootId::root())
-    }
-
-    pub fn overflow_rect_in_parent_space(&self) -> Rect<Au> {
-        // Transform this stacking context to get it into the same space as
-        // the parent stacking context.
-        //
-        // TODO: Take into account 3d transforms, even though it's a fairly
-        // uncommon case.
-        let origin_x = self.bounds.origin.x.to_f32_px();
-        let origin_y = self.bounds.origin.y.to_f32_px();
-
-        let transform = Matrix4D::identity().pre_translated(origin_x, origin_y, 0.0)
-                                            .pre_mul(&self.transform);
-        let transform_2d = transform.to_2d();
-
-        let overflow = au_rect_to_f32_rect(self.overflow);
-        let overflow = transform_2d.transform_rect(&overflow);
-        f32_rect_to_au_rect(overflow)
     }
 
     pub fn to_display_list_items(self) -> (DisplayItem, DisplayItem) {

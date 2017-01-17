@@ -128,14 +128,7 @@ impl<'a> DisplayListBuildState<'a> {
 
     fn add_stacking_context(&mut self,
                             parent_id: StackingContextId,
-                            mut stacking_context: StackingContext) {
-        self.update_overflow_for_stacking_context(&mut stacking_context);
-        self.add_stacking_context_without_calcuating_overflow(parent_id, stacking_context);
-    }
-
-    fn add_stacking_context_without_calcuating_overflow(&mut self,
-                                                        parent_id: StackingContextId,
-                                                        stacking_context: StackingContext) {
+                            stacking_context: StackingContext) {
         let contexts = self.stacking_context_children.entry(parent_id).or_insert(Vec::new());
         contexts.push(stacking_context);
     }
@@ -191,24 +184,6 @@ impl<'a> DisplayListBuildState<'a> {
 
         DisplayList {
             list: list,
-        }
-    }
-
-    fn update_overflow_for_stacking_context(&mut self, stacking_context: &mut StackingContext) {
-        if stacking_context.context_type != StackingContextType::Real {
-            return;
-        }
-
-        let children = self.stacking_context_children.get_mut(&stacking_context.id);
-        if let Some(children) = children {
-            for child in children {
-                if child.context_type == StackingContextType::Real {
-                    // This child might be transformed, so we need to take into account
-                    // its transformed overflow rect too, but at the correct position.
-                    let overflow = child.overflow_rect_in_parent_space();
-                    stacking_context.overflow = stacking_context.overflow.union(&overflow);
-                }
-            }
         }
     }
 
@@ -1847,12 +1822,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
     }
 
     fn collect_scroll_root_for_block(&mut self, state: &mut DisplayListBuildState) -> ScrollRootId {
-        if !self.has_scrolling_overflow() {
+        if !self.style_permits_scrolling_overflow() {
             return state.current_scroll_root_id;
         }
 
-        let scroll_root_id = ScrollRootId::new_of_type(self.fragment.node.id() as usize,
-                                                       self.fragment.fragment_type());
         let coordinate_system = if self.fragment.establishes_stacking_context() {
             CoordinateSystem::Own
         } else {
@@ -1864,13 +1837,24 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             &self.base.early_absolute_position_info.relative_containing_block_size,
             self.base.early_absolute_position_info.relative_containing_block_mode,
             coordinate_system);
+        let clip = self.fragment.stacking_relative_content_box(&border_box);
 
+        let has_scrolling_overflow = self.base.overflow.scroll.origin != Point2D::zero() ||
+                                     self.base.overflow.scroll.size.width > clip.size.width ||
+                                     self.base.overflow.scroll.size.height > clip.size.height;
+        self.mark_scrolling_overflow(has_scrolling_overflow);
+        if !has_scrolling_overflow {
+            return state.current_scroll_root_id;
+        }
+
+        let scroll_root_id = ScrollRootId::new_of_type(self.fragment.node.id() as usize,
+                                                       self.fragment.fragment_type());
         let parent_scroll_root_id = state.current_scroll_root_id;
         state.add_scroll_root(
             ScrollRoot {
                 id: scroll_root_id,
                 parent_id: parent_scroll_root_id,
-                clip: self.fragment.stacking_relative_content_box(&border_box),
+                clip: clip,
                 size: self.base.overflow.scroll.size,
             }
         );
@@ -1903,10 +1887,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             state.stacking_context_children.remove(&stacking_context_id).unwrap_or_else(Vec::new);
         for child in new_children {
             if child.context_type == StackingContextType::PseudoFloat {
-                state.add_stacking_context_without_calcuating_overflow(stacking_context_id, child);
+                state.add_stacking_context(stacking_context_id, child);
             } else {
-                state.add_stacking_context_without_calcuating_overflow(parent_stacking_context_id,
-                                                                       child);
+                state.add_stacking_context(parent_stacking_context_id, child);
             }
         }
     }
@@ -1947,9 +1930,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             DisplayListSection::BlockBackgroundsAndBorders
         };
 
-        if self.has_scrolling_overflow() {
-            state.processing_scroll_root_element = true;
-        }
+        state.processing_scroll_root_element = self.has_scrolling_overflow();
 
         // Add the box that starts the block context.
         self.fragment
