@@ -10,6 +10,7 @@ use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, None_, Normal, specified};
+use values::specified::length::{FontRelativeLength, ViewportPercentageLength};
 
 pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
@@ -105,13 +106,19 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
             length += absolute;
         }
 
-        for val in &[self.vw, self.vh, self.vmin, self.vmax] {
+        for val in &[self.vw.map(ViewportPercentageLength::Vw),
+                     self.vh.map(ViewportPercentageLength::Vh),
+                     self.vmin.map(ViewportPercentageLength::Vmin),
+                     self.vmax.map(ViewportPercentageLength::Vmax)] {
             if let Some(val) = *val {
                 length += val.to_computed_value(context.viewport_size());
             }
         }
 
-        for val in &[self.ch, self.em, self.ex, self.rem] {
+        for val in &[self.ch.map(FontRelativeLength::Ch),
+                     self.em.map(FontRelativeLength::Em),
+                     self.ex.map(FontRelativeLength::Ex),
+                     self.rem.map(FontRelativeLength::Rem)] {
             if let Some(val) = *val {
                 length += val.to_computed_value(context, /* use inherited */ false);
             }
@@ -119,7 +126,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 
         CalcLengthOrPercentage {
             length: length,
-            percentage: self.percentage.map(|p| p.0),
+            percentage: self.percentage,
         }
     }
 
@@ -127,7 +134,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     fn from_computed_value(computed: &CalcLengthOrPercentage) -> Self {
         specified::CalcLengthOrPercentage {
             absolute: Some(computed.length),
-            percentage: computed.percentage.map(specified::Percentage),
+            percentage: computed.percentage,
             ..Default::default()
         }
     }
