@@ -440,15 +440,15 @@ pub enum CalcUnit {
 #[allow(missing_docs)]
 pub struct CalcLengthOrPercentage {
     pub absolute: Option<Au>,
-    pub vw: Option<ViewportPercentageLength>,
-    pub vh: Option<ViewportPercentageLength>,
-    pub vmin: Option<ViewportPercentageLength>,
-    pub vmax: Option<ViewportPercentageLength>,
-    pub em: Option<FontRelativeLength>,
-    pub ex: Option<FontRelativeLength>,
-    pub ch: Option<FontRelativeLength>,
-    pub rem: Option<FontRelativeLength>,
-    pub percentage: Option<Percentage>,
+    pub vw: Option<CSSFloat>,
+    pub vh: Option<CSSFloat>,
+    pub vmin: Option<CSSFloat>,
+    pub vmax: Option<CSSFloat>,
+    pub em: Option<CSSFloat>,
+    pub ex: Option<CSSFloat>,
+    pub ch: Option<CSSFloat>,
+    pub rem: Option<CSSFloat>,
+    pub percentage: Option<CSSFloat>,
 }
 
 impl CalcLengthOrPercentage {
@@ -671,15 +671,15 @@ impl CalcLengthOrPercentage {
 
         Ok(CalcLengthOrPercentage {
             absolute: absolute.map(Au),
-            vw: vw.map(ViewportPercentageLength::Vw),
-            vh: vh.map(ViewportPercentageLength::Vh),
-            vmax: vmax.map(ViewportPercentageLength::Vmax),
-            vmin: vmin.map(ViewportPercentageLength::Vmin),
-            em: em.map(FontRelativeLength::Em),
-            ex: ex.map(FontRelativeLength::Ex),
-            ch: ch.map(FontRelativeLength::Ch),
-            rem: rem.map(FontRelativeLength::Rem),
-            percentage: percentage.map(Percentage),
+            vw: vw,
+            vh: vh,
+            vmax: vmax,
+            vmin: vmin,
+            em: em,
+            ex: ex,
+            ch: ch,
+            rem: rem,
+            percentage: percentage,
         })
     }
 
@@ -767,21 +767,26 @@ impl ToCss for CalcLengthOrPercentage {
             };
         }
 
+        let mut first_value = true;
+        macro_rules! first_value_check {
+            () => {
+                if !first_value {
+                    try!(dest.write_str(" + "));
+                } else {
+                    first_value = false;
+                }
+            };
+        }
+
         macro_rules! serialize {
             ( $( $val:ident ),* ) => {
-                {
-                    let mut first_value = true;
-                    $(
-                        if let Some(val) = self.$val {
-                            if !first_value {
-                                try!(write!(dest, " + "));
-                            } else {
-                                first_value = false;
-                            }
-                            try!(val.to_css(dest));
-                        }
-                    )*
-                 }
+                $(
+                    if let Some(val) = self.$val {
+                        first_value_check!();
+                        try!(val.to_css(dest));
+                        try!(dest.write_str(stringify!($val)));
+                    }
+                )*
             };
         }
 
@@ -792,11 +797,21 @@ impl ToCss for CalcLengthOrPercentage {
            try!(write!(dest, "calc("));
         }
 
-        serialize!(ch, em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
+        serialize!(ch, em, ex, rem, vh, vmax, vmin, vw);
+        if let Some(val) = self.absolute {
+            first_value_check!();
+            try!(val.to_css(dest));
+        }
+
+        if let Some(val) = self.percentage {
+            first_value_check!();
+            try!(write!(dest, "{}%", val * 100.));
+        }
 
         if count > 1 {
            try!(write!(dest, ")"));
         }
+
         Ok(())
      }
 }
