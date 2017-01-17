@@ -37,16 +37,17 @@ use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::RawGeckoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
+use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs;
-use style::gecko_bindings::structs::{RawGeckoPresContextOwned, RawGeckoPresContextBorrowed};
 use style::gecko_bindings::structs::{SheetParsingMode, nsIAtom, nsCSSPropertyID};
 use style::gecko_bindings::structs::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
 use style::gecko_bindings::structs::Loader;
+use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::ServoStyleSheet;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
