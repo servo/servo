@@ -343,22 +343,22 @@ impl ServoParser {
         assert!(self.script_input.borrow().is_empty());
         assert!(self.network_input.borrow().is_empty());
 
+        // Step 1.
+        self.document.set_ready_state(DocumentReadyState::Interactive);
+
         // Step 2.
         self.tokenizer.borrow_mut().end();
         self.document.set_current_parser(None);
 
         if self.pipeline.is_some() {
-            // Step 1.
-            self.document.set_ready_state(DocumentReadyState::Interactive);
-
             self.document.disarm_reflow_timeout();
             self.document.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             let window = self.document.window();
             window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
-
-            // Step 3.
-            self.document.process_deferred_scripts();
         }
+
+        // Step 3.
+        self.document.process_deferred_scripts();
     }
 }
 
