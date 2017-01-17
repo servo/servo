@@ -13,7 +13,8 @@ matrix:
       script:
          - ./mach build -d --verbose
          - ./mach test-compiletest
-         - ./mach test-unit
+         # disabled due to #15076
+         #- ./mach test-unit
          # disabled due to #14723
          #- ./mach build-geckolib
          #- ./mach test-stylo
