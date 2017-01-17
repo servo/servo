@@ -80,7 +80,7 @@ impl ToCss for Gradient {
                     skipcomma = true;
                 }
             },
-            GradientKind::Radial(ref shape, position) => {
+            GradientKind::Radial(ref shape, ref position) => {
                 try!(dest.write_str("radial-gradient("));
                 try!(shape.to_css(dest));
                 try!(dest.write_str(" at "));
@@ -312,7 +312,7 @@ pub struct ColorStop {
 impl ToCss for ColorStop {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(self.color.to_css(dest));
-        if let Some(position) = self.position {
+        if let Some(ref position) = self.position {
             try!(dest.write_str(" "));
             try!(position.to_css(dest));
         }
@@ -413,7 +413,7 @@ impl Parse for LengthOrPercentageOrKeyword {
 impl ToCss for LengthOrPercentageOrKeyword {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            LengthOrPercentageOrKeyword::LengthOrPercentage(ref first_len, second_len) => {
+            LengthOrPercentageOrKeyword::LengthOrPercentage(ref first_len, ref second_len) => {
                 try!(first_len.to_css(dest));
                 try!(dest.write_str(" "));
                 second_len.to_css(dest)

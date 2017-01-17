@@ -166,9 +166,9 @@ impl Parse for BasicShape {
 impl ToCss for BasicShape {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            BasicShape::Inset(rect) => rect.to_css(dest),
-            BasicShape::Circle(circle) => circle.to_css(dest),
-            BasicShape::Ellipse(e) => e.to_css(dest),
+            BasicShape::Inset(ref rect) => rect.to_css(dest),
+            BasicShape::Circle(ref circle) => circle.to_css(dest),
+            BasicShape::Ellipse(ref e) => e.to_css(dest),
             BasicShape::Polygon(ref poly) => poly.to_css(dest),
         }
     }
@@ -180,9 +180,9 @@ impl ToComputedValue for BasicShape {
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
         match *self {
-            BasicShape::Inset(rect) => computed_basic_shape::BasicShape::Inset(rect.to_computed_value(cx)),
-            BasicShape::Circle(circle) => computed_basic_shape::BasicShape::Circle(circle.to_computed_value(cx)),
-            BasicShape::Ellipse(e) => computed_basic_shape::BasicShape::Ellipse(e.to_computed_value(cx)),
+            BasicShape::Inset(ref rect) => computed_basic_shape::BasicShape::Inset(rect.to_computed_value(cx)),
+            BasicShape::Circle(ref circle) => computed_basic_shape::BasicShape::Circle(circle.to_computed_value(cx)),
+            BasicShape::Ellipse(ref e) => computed_basic_shape::BasicShape::Ellipse(e.to_computed_value(cx)),
             BasicShape::Polygon(ref poly) => computed_basic_shape::BasicShape::Polygon(poly.to_computed_value(cx)),
         }
     }
@@ -205,7 +205,7 @@ impl ToComputedValue for BasicShape {
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// https://drafts.csswg.org/css-shapes/#funcdef-inset
 #[allow(missing_docs)]
@@ -275,7 +275,7 @@ impl ToComputedValue for InsetRect {
             right: self.right.to_computed_value(cx),
             bottom: self.bottom.to_computed_value(cx),
             left: self.left.to_computed_value(cx),
-            round: self.round.map(|r| r.to_computed_value(cx)),
+            round: self.round.as_ref().map(|r| r.to_computed_value(cx)),
         }
     }
 
@@ -305,6 +305,7 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
         // keyword-percentage pairs can be folded into a single percentage
         fn fold_keyword(keyword: Option<Keyword>, length: Option<LengthOrPercentage>)
             -> Option<LengthOrPercentage> {
+            let none = length.is_none();
             let pc = match length.map(replace_with_percent) {
                 None => Percentage(0.0), // unspecified length = 0%
                 Some(LengthOrPercentage::Percentage(pc)) => pc,
@@ -313,7 +314,7 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
             let percent = match keyword {
                 Some(Keyword::Center) => {
                     // center cannot pair with lengths
-                    assert!(length.is_none());
+                    assert!(none);
                     Percentage(0.5)
                 },
                 Some(Keyword::Left) | Some(Keyword::Top) | None => pc,
@@ -342,8 +343,8 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
             replace_with_percent(y).to_css(dest)
         }
 
-        match (position.horizontal.keyword, position.horizontal.position,
-               position.vertical.keyword, position.vertical.position) {
+        match (position.horizontal.keyword, position.horizontal.position.clone(),
+               position.vertical.keyword, position.vertical.position.clone()) {
             (Some(hk), None, Some(vk), None) => {
                 // two keywords: serialize as two lengths
                 serialize_position_pair(hk.to_length_or_percentage(),
@@ -357,7 +358,8 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
             (hk, hp, vk, vp) => {
                 // only fold if both fold; the three-value form isn't
                 // allowed here.
-                if let (Some(x), Some(y)) = (fold_keyword(hk, hp), fold_keyword(vk, vp)) {
+                if let (Some(x), Some(y)) = (fold_keyword(hk, hp.clone()),
+                                             fold_keyword(vk, vp.clone())) {
                     serialize_position_pair(x, y, dest)
                 } else {
                     // We failed to reduce it to a two-value form,
@@ -365,7 +367,7 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
                     let zero = LengthOrPercentage::Percentage(Percentage(0.0));
                     try!(hk.unwrap_or(Keyword::Left).to_css(dest));
                     try!(dest.write_str(" "));
-                    try!(replace_with_percent(hp.unwrap_or(zero)).to_css(dest));
+                    try!(replace_with_percent(hp.unwrap_or(zero.clone())).to_css(dest));
                     try!(dest.write_str(" "));
                     try!(vk.unwrap_or(Keyword::Top).to_css(dest));
                     try!(dest.write_str(" "));
@@ -375,7 +377,7 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
         }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// https://drafts.csswg.org/css-shapes/#funcdef-circle
 #[allow(missing_docs)]
@@ -454,7 +456,7 @@ impl ToComputedValue for Circle {
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// https://drafts.csswg.org/css-shapes/#funcdef-ellipse
 #[allow(missing_docs)]
@@ -508,7 +510,7 @@ impl Parse for Ellipse {
 impl ToCss for Ellipse {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(dest.write_str("ellipse("));
-        if (self.semiaxis_x, self.semiaxis_y) != Default::default() {
+        if !self.semiaxis_x.is_default() || !self.semiaxis_y.is_default() {
             try!(self.semiaxis_x.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.semiaxis_y.to_css(dest));
@@ -635,13 +637,23 @@ impl ToComputedValue for Polygon {
 }
 
 /// https://drafts.csswg.org/css-shapes/#typedef-shape-radius
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum ShapeRadius {
     Length(LengthOrPercentage),
     ClosestSide,
     FarthestSide,
+}
+
+impl ShapeRadius {
+    fn is_default(&self) -> bool {
+        if let ShapeRadius::ClosestSide = *self {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl Default for ShapeRadius {
@@ -665,7 +677,7 @@ impl Parse for ShapeRadius {
 impl ToCss for ShapeRadius {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            ShapeRadius::Length(lop) => lop.to_css(dest),
+            ShapeRadius::Length(ref lop) => lop.to_css(dest),
             ShapeRadius::ClosestSide => dest.write_str("closest-side"),
             ShapeRadius::FarthestSide => dest.write_str("farthest-side"),
         }
@@ -679,7 +691,7 @@ impl ToComputedValue for ShapeRadius {
     #[inline]
     fn to_computed_value(&self, cx: &Context) -> Self::ComputedValue {
         match *self {
-            ShapeRadius::Length(lop) => {
+            ShapeRadius::Length(ref lop) => {
                 computed_basic_shape::ShapeRadius::Length(lop.to_computed_value(cx))
             }
             ShapeRadius::ClosestSide => computed_basic_shape::ShapeRadius::ClosestSide,
@@ -700,7 +712,7 @@ impl ToComputedValue for ShapeRadius {
 }
 
 /// https://drafts.csswg.org/css-backgrounds-3/#border-radius
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct BorderRadius {
@@ -739,17 +751,20 @@ impl ToCss for BorderRadius {
 
 impl Parse for BorderRadius {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        let widths = try!(parse_one_set_of_border_values(context, input));
-        let heights = if input.try(|input| input.expect_delim('/')).is_ok() {
+        let mut widths = try!(parse_one_set_of_border_values(context, input));
+        let mut heights = if input.try(|input| input.expect_delim('/')).is_ok() {
             try!(parse_one_set_of_border_values(context, input))
         } else {
-            widths.clone()
+            [widths[0].clone(),
+             widths[1].clone(),
+             widths[2].clone(),
+             widths[3].clone()]
         };
         Ok(BorderRadius {
-            top_left: BorderRadiusSize::new(widths[0], heights[0]),
-            top_right: BorderRadiusSize::new(widths[1], heights[1]),
-            bottom_right: BorderRadiusSize::new(widths[2], heights[2]),
-            bottom_left: BorderRadiusSize::new(widths[3], heights[3]),
+            top_left: BorderRadiusSize::new(widths[0].take(), heights[0].take()),
+            top_right: BorderRadiusSize::new(widths[1].take(), heights[1].take()),
+            bottom_right: BorderRadiusSize::new(widths[2].take(), heights[2].take()),
+            bottom_left: BorderRadiusSize::new(widths[3].take(), heights[3].take()),
         })
     }
 }
@@ -761,19 +776,19 @@ fn parse_one_set_of_border_values(context: &ParserContext, mut input: &mut Parse
     let b = if let Ok(b) = input.try(|i| LengthOrPercentage::parse(context, i)) {
         b
     } else {
-        return Ok([a, a, a, a])
+        return Ok([a.clone(), a.clone(), a.clone(), a])
     };
 
     let c = if let Ok(c) = input.try(|i| LengthOrPercentage::parse(context, i)) {
         c
     } else {
-        return Ok([a, b, a, b])
+        return Ok([a.clone(), b.clone(), a, b])
     };
 
     if let Ok(d) = input.try(|i| LengthOrPercentage::parse(context, i)) {
         Ok([a, b, c, d])
     } else {
-        Ok([a, b, c, b])
+        Ok([a, b.clone(), c, b])
     }
 }
 

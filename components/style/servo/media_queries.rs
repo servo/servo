@@ -100,7 +100,7 @@ impl Device {
 /// A expression kind servo understands and parses.
 ///
 /// Only `pub` for unit testing, please don't use it directly!
-#[derive(PartialEq, Copy, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum ExpressionKind {
     /// http://dev.w3.org/csswg/mediaqueries-3/#width
