@@ -7442,6 +7442,12 @@
             "url": "/_mozilla/mozilla/bluetooth/idl-BluetoothUUID.html"
           }
         ],
+        "mozilla/bluetooth/interfaces.html": [
+          {
+            "path": "mozilla/bluetooth/interfaces.html",
+            "url": "/_mozilla/mozilla/bluetooth/interfaces.html"
+          }
+        ],
         "mozilla/bluetooth/readValue/characteristic/blocklisted-characteristic.html": [
           {
             "path": "mozilla/bluetooth/readValue/characteristic/blocklisted-characteristic.html",
