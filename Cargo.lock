@@ -1470,7 +1470,6 @@ dependencies = [
  "backtrace 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bluetooth 0.0.1",
  "bluetooth_traits 0.0.1",
- "browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "compositing 0.0.1",
