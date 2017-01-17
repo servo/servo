@@ -236,13 +236,24 @@ partial interface Navigator {
 </script>
 <script>
 'use strict';
+var bluetooth_device;
 var idl_array;
 setup(function() {
+    window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
+    window.navigator.bluetooth.requestDevice({
+        filters: [{services: [heart_rate.name]}],
+        optionalServices: [generic_access.name]
+    })
+    .then(device => {
+        bluetooth_device = device;
+    });
+
     idl_array = new IdlArray();
     idl_array.add_untested_idls(document.getElementById('untested_idl').textContent);
     idl_array.add_idls(document.getElementById('webbluetooth_idl').textContent);
     idl_array.add_objects({
         Bluetooth: ['window.navigator.bluetooth'],
+        BluetoothDevice: ['bluetooth_device'],
     });
 });
 idl_array.test();
