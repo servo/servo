@@ -187,13 +187,13 @@ impl ToComputedValue for specified::LengthOrPercentage {
 
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentage {
         match *self {
-            specified::LengthOrPercentage::Length(value) => {
+            specified::LengthOrPercentage::Length(ref value) => {
                 LengthOrPercentage::Length(value.to_computed_value(context))
             }
             specified::LengthOrPercentage::Percentage(value) => {
                 LengthOrPercentage::Percentage(value.0)
             }
-            specified::LengthOrPercentage::Calc(calc) => {
+            specified::LengthOrPercentage::Calc(ref calc) => {
                 LengthOrPercentage::Calc(calc.to_computed_value(context))
             }
         }
@@ -209,9 +209,9 @@ impl ToComputedValue for specified::LengthOrPercentage {
             LengthOrPercentage::Percentage(value) => {
                 specified::LengthOrPercentage::Percentage(specified::Percentage(value))
             }
-            LengthOrPercentage::Calc(calc) => {
+            LengthOrPercentage::Calc(ref calc) => {
                 specified::LengthOrPercentage::Calc(
-                    ToComputedValue::from_computed_value(&calc)
+                    Box::new(ToComputedValue::from_computed_value(calc))
                 )
             }
         }
@@ -270,7 +270,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrAuto {
         match *self {
-            specified::LengthOrPercentageOrAuto::Length(value) => {
+            specified::LengthOrPercentageOrAuto::Length(ref value) => {
                 LengthOrPercentageOrAuto::Length(value.to_computed_value(context))
             }
             specified::LengthOrPercentageOrAuto::Percentage(value) => {
@@ -279,7 +279,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
             specified::LengthOrPercentageOrAuto::Auto => {
                 LengthOrPercentageOrAuto::Auto
             }
-            specified::LengthOrPercentageOrAuto::Calc(calc) => {
+            specified::LengthOrPercentageOrAuto::Calc(ref calc) => {
                 LengthOrPercentageOrAuto::Calc(calc.to_computed_value(context))
             }
         }
@@ -299,7 +299,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
             }
             LengthOrPercentageOrAuto::Calc(calc) => {
                 specified::LengthOrPercentageOrAuto::Calc(
-                    ToComputedValue::from_computed_value(&calc)
+                    Box::new(ToComputedValue::from_computed_value(&calc))
                 )
             }
         }
@@ -347,13 +347,13 @@ impl ToComputedValue for specified::LengthOrPercentageOrAutoOrContent {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrAutoOrContent {
         match *self {
-            specified::LengthOrPercentageOrAutoOrContent::Length(value) => {
+            specified::LengthOrPercentageOrAutoOrContent::Length(ref value) => {
                 LengthOrPercentageOrAutoOrContent::Length(value.to_computed_value(context))
             },
             specified::LengthOrPercentageOrAutoOrContent::Percentage(value) => {
                 LengthOrPercentageOrAutoOrContent::Percentage(value.0)
             },
-            specified::LengthOrPercentageOrAutoOrContent::Calc(calc) => {
+            specified::LengthOrPercentageOrAutoOrContent::Calc(ref calc) => {
                 LengthOrPercentageOrAutoOrContent::Calc(calc.to_computed_value(context))
             },
             specified::LengthOrPercentageOrAutoOrContent::Auto => {
@@ -385,7 +385,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAutoOrContent {
             }
             LengthOrPercentageOrAutoOrContent::Calc(calc) => {
                 specified::LengthOrPercentageOrAutoOrContent::Calc(
-                    ToComputedValue::from_computed_value(&calc)
+                    Box::new(ToComputedValue::from_computed_value(&calc))
                 )
             }
         }
@@ -432,13 +432,13 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrNone {
         match *self {
-            specified::LengthOrPercentageOrNone::Length(value) => {
+            specified::LengthOrPercentageOrNone::Length(ref value) => {
                 LengthOrPercentageOrNone::Length(value.to_computed_value(context))
             }
             specified::LengthOrPercentageOrNone::Percentage(value) => {
                 LengthOrPercentageOrNone::Percentage(value.0)
             }
-            specified::LengthOrPercentageOrNone::Calc(calc) => {
+            specified::LengthOrPercentageOrNone::Calc(ref calc) => {
                 LengthOrPercentageOrNone::Calc(calc.to_computed_value(context))
             }
             specified::LengthOrPercentageOrNone::None => {
@@ -461,7 +461,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
             }
             LengthOrPercentageOrNone::Calc(calc) => {
                 specified::LengthOrPercentageOrNone::Calc(
-                    ToComputedValue::from_computed_value(&calc)
+                    Box::new(ToComputedValue::from_computed_value(&calc))
                 )
             }
         }

@@ -190,7 +190,7 @@ impl ToComputedValue for specified::GradientKind {
             specified::GradientKind::Linear(angle_or_corner) => {
                 GradientKind::Linear(angle_or_corner.to_computed_value(context))
             },
-            specified::GradientKind::Radial(ref shape, position) => {
+            specified::GradientKind::Radial(ref shape, ref position) => {
                 GradientKind::Radial(shape.to_computed_value(context),
                                      position.to_computed_value(context))
             },
@@ -253,7 +253,7 @@ impl ToComputedValue for specified::ColorStop {
             color: self.color.parsed,
             position: match self.position {
                 None => None,
-                Some(value) => Some(value.to_computed_value(context)),
+                Some(ref value) => Some(value.to_computed_value(context)),
             },
         }
     }
@@ -374,7 +374,7 @@ impl ToComputedValue for specified::LengthOrKeyword {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrKeyword {
         match *self {
-            specified::LengthOrKeyword::Length(length) => {
+            specified::LengthOrKeyword::Length(ref length) => {
                 LengthOrKeyword::Length(length.to_computed_value(context))
             },
             specified::LengthOrKeyword::Keyword(keyword) => {
@@ -437,7 +437,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrKeyword {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrKeyword {
         match *self {
-            specified::LengthOrPercentageOrKeyword::LengthOrPercentage(first_len, second_len) => {
+            specified::LengthOrPercentageOrKeyword::LengthOrPercentage(ref first_len, ref second_len) => {
                 LengthOrPercentageOrKeyword::LengthOrPercentage(first_len.to_computed_value(context),
                                                                 second_len.to_computed_value(context))
             },

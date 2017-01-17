@@ -427,7 +427,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     impl ToCss for computed_value::SingleComputedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                computed_value::SingleComputedValue::LengthOrPercentage(len) => len.to_css(dest),
+                computed_value::SingleComputedValue::LengthOrPercentage(ref len) => len.to_css(dest),
                 computed_value::SingleComputedValue::Number(number) => number.to_css(dest),
                 computed_value::SingleComputedValue::Auto => dest.write_str("auto"),
             }
@@ -436,7 +436,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     impl ToCss for SingleSpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                SingleSpecifiedValue::LengthOrPercentage(len) => len.to_css(dest),
+                SingleSpecifiedValue::LengthOrPercentage(ref len) => len.to_css(dest),
                 SingleSpecifiedValue::Number(number) => number.to_css(dest),
                 SingleSpecifiedValue::Auto => dest.write_str("auto"),
             }
@@ -449,7 +449,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::SingleComputedValue {
             match *self {
-                SingleSpecifiedValue::LengthOrPercentage(len) => {
+                SingleSpecifiedValue::LengthOrPercentage(ref len) => {
                     computed_value::SingleComputedValue::LengthOrPercentage(
                         len.to_computed_value(context))
                 },

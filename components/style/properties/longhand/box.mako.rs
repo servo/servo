@@ -258,7 +258,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedValue::LengthOrPercentage(length) => length.has_viewport_percentage(),
+                SpecifiedValue::LengthOrPercentage(ref length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
@@ -266,7 +266,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
 
     /// The `vertical-align` value.
     #[allow(non_camel_case_types)]
-    #[derive(Debug, Clone, PartialEq, Copy)]
+    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         % for keyword in vertical_align_keywords:
@@ -281,7 +281,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                 % for keyword in vertical_align_keywords:
                     SpecifiedValue::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
                 % endfor
-                SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
+                SpecifiedValue::LengthOrPercentage(ref value) => value.to_css(dest),
             }
         }
     }
@@ -324,7 +324,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                     % for keyword in vertical_align_keywords:
                         T::${to_rust_ident(keyword)} => dest.write_str("${keyword}"),
                     % endfor
-                    T::LengthOrPercentage(value) => value.to_css(dest),
+                    T::LengthOrPercentage(ref value) => value.to_css(dest),
                 }
             }
         }
@@ -347,7 +347,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                         computed_value::T::${to_rust_ident(keyword)}
                     }
                 % endfor
-                SpecifiedValue::LengthOrPercentage(value) =>
+                SpecifiedValue::LengthOrPercentage(ref value) =>
                     computed_value::T::LengthOrPercentage(value.to_computed_value(context)),
             }
         }
@@ -954,7 +954,7 @@ ${helpers.single_keyword("animation-fill-mode",
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedValue::Repeat(length) => length.has_viewport_percentage(),
+                SpecifiedValue::Repeat(ref length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
@@ -968,7 +968,7 @@ ${helpers.single_keyword("animation-fill-mode",
         pub struct T(pub Option<LengthOrPercentage>);
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
@@ -979,7 +979,7 @@ ${helpers.single_keyword("animation-fill-mode",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self.0 {
                 None => dest.write_str("none"),
-                Some(l) => {
+                Some(ref l) => {
                     try!(dest.write_str("repeat("));
                     try!(l.to_css(dest));
                     dest.write_str(")")
@@ -1012,7 +1012,7 @@ ${helpers.single_keyword("animation-fill-mode",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::None => computed_value::T(None),
-                SpecifiedValue::Repeat(l) =>
+                SpecifiedValue::Repeat(ref l) =>
                     computed_value::T(Some(l.to_computed_value(context))),
             }
         }
@@ -1167,12 +1167,12 @@ ${helpers.single_keyword("animation-fill-mode",
     impl HasViewportPercentage for SpecifiedOperation {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedOperation::Translate(_, l1, l2, l3) => {
+                SpecifiedOperation::Translate(_, ref l1, ref l2, ref l3) => {
                     l1.has_viewport_percentage() ||
                     l2.has_viewport_percentage() ||
                     l3.has_viewport_percentage()
                 },
-                SpecifiedOperation::Perspective(length) => length.has_viewport_percentage(),
+                SpecifiedOperation::Perspective(ref length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
@@ -1183,13 +1183,13 @@ ${helpers.single_keyword("animation-fill-mode",
             match *self {
                 // todo(gw): implement serialization for transform
                 // types other than translate.
-                SpecifiedOperation::Matrix(_m) => {
+                SpecifiedOperation::Matrix(..) => {
                     Ok(())
                 }
-                SpecifiedOperation::Skew(_sx, _sy) => {
+                SpecifiedOperation::Skew(..) => {
                     Ok(())
                 }
-                SpecifiedOperation::Translate(kind, tx, ty, tz) => {
+                SpecifiedOperation::Translate(kind, ref tx, ref ty, ref tz) => {
                     match kind {
                         TranslateKind::Translate => {
                             try!(dest.write_str("translate("));
@@ -1224,13 +1224,13 @@ ${helpers.single_keyword("animation-fill-mode",
                         }
                     }
                 }
-                SpecifiedOperation::Scale(_sx, _sy, _sz) => {
+                SpecifiedOperation::Scale(..) => {
                     Ok(())
                 }
-                SpecifiedOperation::Rotate(_ax, _ay, _az, _angle) => {
+                SpecifiedOperation::Rotate(..) => {
                     Ok(())
                 }
-                SpecifiedOperation::Perspective(_p) => {
+                SpecifiedOperation::Perspective(_) => {
                     Ok(())
                 }
             }
@@ -1525,7 +1525,7 @@ ${helpers.single_keyword("animation-fill-mode",
                     SpecifiedOperation::Skew(theta_x, theta_y) => {
                         result.push(computed_value::ComputedOperation::Skew(theta_x, theta_y));
                     }
-                    SpecifiedOperation::Perspective(d) => {
+                    SpecifiedOperation::Perspective(ref d) => {
                         result.push(computed_value::ComputedOperation::Perspective(d.to_computed_value(context)));
                     }
                 };
@@ -1674,7 +1674,7 @@ ${helpers.predefined_type("perspective",
         }
     }
 
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         horizontal: LengthOrPercentage,
@@ -1788,7 +1788,7 @@ ${helpers.single_keyword("transform-style",
         }
     }
 
-    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue {
         horizontal: LengthOrPercentage,

@@ -107,21 +107,26 @@ ${helpers.single_keyword("caption-side", "top bottom",
     }
 
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        let mut lengths = [ None, None ];
-        for i in 0..2 {
-            match specified::Length::parse_non_negative(input) {
-                Err(()) => break,
-                Ok(length) => lengths[i] = Some(length),
+        let mut first = None;
+        let mut second = None;
+        match specified::Length::parse_non_negative(input) {
+            Err(()) => (),
+            Ok(length) => {
+                first = Some(length);
+                match specified::Length::parse_non_negative(input) {
+                    Err(()) => (),
+                    Ok(length) => second = Some(length),
+                }
             }
         }
         if input.next().is_ok() {
             return Err(())
         }
-        match (lengths[0], lengths[1]) {
+        match (first, second) {
             (None, None) => Err(()),
             (Some(length), None) => {
                 Ok(SpecifiedValue {
-                    horizontal: length,
+                    horizontal: length.clone(),
                     vertical: length,
                 })
             }
