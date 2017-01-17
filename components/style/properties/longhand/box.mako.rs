@@ -954,7 +954,7 @@ ${helpers.single_keyword("animation-fill-mode",
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedValue::Repeat(length) => length.has_viewport_percentage(),
+                SpecifiedValue::Repeat(ref length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
@@ -968,7 +968,7 @@ ${helpers.single_keyword("animation-fill-mode",
         pub struct T(pub Option<LengthOrPercentage>);
     }
 
-    #[derive(Debug, Clone, Copy, PartialEq)]
+    #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub enum SpecifiedValue {
         None,
@@ -979,7 +979,7 @@ ${helpers.single_keyword("animation-fill-mode",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match self.0 {
                 None => dest.write_str("none"),
-                Some(l) => {
+                Some(ref l) => {
                     try!(dest.write_str("repeat("));
                     try!(l.to_css(dest));
                     dest.write_str(")")
@@ -1012,7 +1012,7 @@ ${helpers.single_keyword("animation-fill-mode",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match *self {
                 SpecifiedValue::None => computed_value::T(None),
-                SpecifiedValue::Repeat(l) =>
+                SpecifiedValue::Repeat(ref l) =>
                     computed_value::T(Some(l.to_computed_value(context))),
             }
         }
