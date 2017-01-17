@@ -150,13 +150,13 @@ ${helpers.predefined_type("opacity",
     impl HasViewportPercentage for SpecifiedClipRect {
         fn has_viewport_percentage(&self) -> bool {
             self.top.has_viewport_percentage() ||
-            self.right.map_or(false, |x| x.has_viewport_percentage()) ||
-            self.bottom.map_or(false, |x| x.has_viewport_percentage()) ||
+            self.right.as_ref().map_or(false, |x| x.has_viewport_percentage()) ||
+            self.bottom.as_ref().map_or(false, |x| x.has_viewport_percentage()) ||
             self.left.has_viewport_percentage()
         }
     }
 
-    #[derive(Clone, Debug, PartialEq, Copy)]
+    #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedClipRect {
         pub top: specified::Length,
@@ -167,12 +167,11 @@ ${helpers.predefined_type("opacity",
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
-            let &SpecifiedValue(clip) = self;
-            clip.map_or(false, |x| x.has_viewport_percentage())
+            self.0.as_ref().map_or(false, |x| x.has_viewport_percentage())
         }
     }
 
-    #[derive(Clone, Debug, PartialEq, Copy)]
+    #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(Option<SpecifiedClipRect>);
 
@@ -183,14 +182,14 @@ ${helpers.predefined_type("opacity",
             try!(self.top.to_css(dest));
             try!(dest.write_str(", "));
 
-            if let Some(right) = self.right {
+            if let Some(ref right) = self.right {
                 try!(right.to_css(dest));
                 try!(dest.write_str(", "));
             } else {
                 try!(dest.write_str("auto, "));
             }
 
-            if let Some(bottom) = self.bottom {
+            if let Some(ref bottom) = self.bottom {
                 try!(bottom.to_css(dest));
                 try!(dest.write_str(", "));
             } else {
@@ -224,10 +223,10 @@ ${helpers.predefined_type("opacity",
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            computed_value::T(self.0.map(|value| computed_value::ClipRect {
+            computed_value::T(self.0.as_ref().map(|value| computed_value::ClipRect {
                 top: value.top.to_computed_value(context),
-                right: value.right.map(|right| right.to_computed_value(context)),
-                bottom: value.bottom.map(|bottom| bottom.to_computed_value(context)),
+                right: value.right.as_ref().map(|right| right.to_computed_value(context)),
+                bottom: value.bottom.as_ref().map(|bottom| bottom.to_computed_value(context)),
                 left: value.left.to_computed_value(context),
             }))
         }
@@ -302,8 +301,7 @@ ${helpers.predefined_type("opacity",
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
-            let &SpecifiedValue(ref vec) = self;
-            vec.iter().any(|ref x| x.has_viewport_percentage())
+            self.0.iter().any(|ref x| x.has_viewport_percentage())
         }
     }
 
@@ -314,7 +312,7 @@ ${helpers.predefined_type("opacity",
     impl HasViewportPercentage for SpecifiedFilter {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedFilter::Blur(length) => length.has_viewport_percentage(),
+                SpecifiedFilter::Blur(ref length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
@@ -439,7 +437,7 @@ ${helpers.predefined_type("opacity",
     impl ToCss for computed_value::Filter {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                computed_value::Filter::Blur(value) => {
+                computed_value::Filter::Blur(ref value) => {
                     try!(dest.write_str("blur("));
                     try!(value.to_css(dest));
                     try!(dest.write_str(")"));
@@ -477,7 +475,7 @@ ${helpers.predefined_type("opacity",
     impl ToCss for SpecifiedFilter {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                SpecifiedFilter::Blur(value) => {
+                SpecifiedFilter::Blur(ref value) => {
                     try!(dest.write_str("blur("));
                     try!(value.to_css(dest));
                     try!(dest.write_str(")"));
@@ -567,7 +565,7 @@ ${helpers.predefined_type("opacity",
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             computed_value::T{ filters: self.0.iter().map(|value| {
                 match *value {
-                    SpecifiedFilter::Blur(factor) =>
+                    SpecifiedFilter::Blur(ref factor) =>
                         computed_value::Filter::Blur(factor.to_computed_value(context)),
                     SpecifiedFilter::Brightness(factor) => computed_value::Filter::Brightness(factor),
                     SpecifiedFilter::Contrast(factor) => computed_value::Filter::Contrast(factor),
