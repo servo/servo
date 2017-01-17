@@ -1251,7 +1251,7 @@ fn static_assert() {
             T::left   => true,
             T::right  => true
         };
-        self.gecko.mBreakBefore = result;
+        self.gecko.mBreakAfter = result;
     }
 
     ${impl_simple_copy('page_break_after', 'mBreakAfter')}
