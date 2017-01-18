@@ -3,7 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate cmake;
+extern crate phf_codegen;
+extern crate phf_shared;
+extern crate regex;
+
+use regex::Regex;
 use std::env;
+use std::fmt;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::time::Instant;
 
 fn main() {
@@ -34,4 +43,43 @@ fn main() {
     build.build();
 
     println!("Binding generation completed in {}s", start.elapsed().as_secs());
+
+    convert_phf();
+}
+
+fn convert_phf() {
+    let filename = PathBuf::from(env::var("OUT_DIR").unwrap()).join("InterfaceObjectMap.rs");
+    let mut source = String::new();
+    File::open(&filename).unwrap().read_to_string(&mut source).unwrap();
+    let map_macro = Regex::new("phf_map! \\{([^}]+)\\}").unwrap().captures(&source).unwrap();
+    let entries_re = Regex::new("b\"([^\"]+)\" => ([^\n]+),\n").unwrap();
+    let entries = entries_re.captures_iter(&map_macro[1]);
+
+    let mut map = phf_codegen::Map::new();
+    for entry in entries {
+        map.entry(Bytes(entry.get(1).unwrap().as_str()), entry.get(2).unwrap().as_str());
+    }
+
+    let mut file = File::create(&filename).unwrap();
+    let map_macro = map_macro.get(0).unwrap();
+    file.write_all(source[..map_macro.start()].as_bytes()).unwrap();
+    map.build(&mut file).unwrap();
+    file.write_all(source[map_macro.end()..].as_bytes()).unwrap();
+}
+
+#[derive(Eq, PartialEq, Hash)]
+struct Bytes<'a>(&'a str);
+
+impl<'a> fmt::Debug for Bytes<'a> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("b\"")?;
+        formatter.write_str(self.0)?;
+        formatter.write_str("\" as &'static [u8]")
+    }
+}
+
+impl<'a> phf_shared::PhfHash for Bytes<'a> {
+    fn phf_hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
+        self.0.as_bytes().phf_hash(hasher)
+    }
 }
