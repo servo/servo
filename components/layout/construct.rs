@@ -937,9 +937,14 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         ConstructionResult::ConstructionItem(construction_item)
     }
 
-    fn build_fragment_for_inline_block(&mut self, node: &ConcreteThreadSafeLayoutNode)
-                                       -> ConstructionResult {
-        let block_flow_result = self.build_flow_for_block(node, None);
+    /// Build the fragment for an inline-block or inline-flex, based on the `display` flag
+    fn build_fragment_for_inline_block_or_inline_flex(&mut self, node: &ConcreteThreadSafeLayoutNode,
+                                                      display: display::T) -> ConstructionResult {
+        let block_flow_result = match display {
+            display::T::inline_block => self.build_flow_for_block(node, None),
+            display::T::inline_flex => self.build_flow_for_flex(node, None),
+            _ => panic!("The flag should be inline-block or inline-flex")
+        };
         let (block_flow, abs_descendants) = match block_flow_result {
             ConstructionResult::Flow(block_flow, abs_descendants) => (block_flow, abs_descendants),
             _ => unreachable!()
@@ -1316,39 +1321,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         self.build_flow_for_block_like(flow, node)
     }
 
-    /// Builds a fragment for a node with 'display: inline-flex'.
-    // Shared code with build_fragment_for_inline_block
-    fn build_fragment_for_inline_flex(&mut self, node: &ConcreteThreadSafeLayoutNode)
-                                       -> ConstructionResult {
-        let block_flow_result = self.build_flow_for_flex(node, None);
-        let (block_flow, abs_descendants) = match block_flow_result {
-            ConstructionResult::Flow(block_flow, abs_descendants) => (block_flow, abs_descendants),
-            _ => unreachable!()
-        };
-
-        let mut modified_style = node.style(self.style_context());
-        properties::modify_style_for_outer_inline_block_fragment(&mut modified_style);
-        let fragment_info = SpecificFragmentInfo::InlineBlock(InlineBlockFragmentInfo::new(
-                block_flow));
-        let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
-                                                            node.get_pseudo_element_type().strip(),
-                                                            modified_style,
-                                                            node.selected_style(),
-                                                            node.restyle_damage(),
-                                                            fragment_info);
-
-        let mut fragment_accumulator = InlineFragmentsAccumulator::new();
-        fragment_accumulator.fragments.fragments.push_back(fragment);
-        fragment_accumulator.fragments.absolute_descendants.push_descendants(abs_descendants);
-
-        let construction_item =
-            ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
-                splits: LinkedList::new(),
-                fragments: fragment_accumulator.to_intermediate_inline_fragments(),
-            });
-        ConstructionResult::ConstructionItem(construction_item)
-    }
-
     /// Attempts to perform incremental repair to account for recent changes to this node. This
     /// can fail and return false, indicating that flows will need to be reconstructed.
     ///
@@ -1581,7 +1553,8 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
 
             // Inline-block items contribute inline fragment construction results.
             (display::T::inline_block, float::T::none, _) => {
-                let construction_result = self.build_fragment_for_inline_block(node);
+                let construction_result = self.build_fragment_for_inline_block_or_inline_flex(node,
+                                                                                              display::T::inline_block);
                 self.set_flow_construction_result(node, construction_result)
             }
 
@@ -1631,7 +1604,8 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
             }
 
             (display::T::inline_flex, _, _) => {
-                let construction_result = self.build_fragment_for_inline_flex(node);
+                let construction_result = self.build_fragment_for_inline_block_or_inline_flex(node,
+                                                                                              display::T::inline_flex);
                 self.set_flow_construction_result(node, construction_result)
             }
 
