@@ -2033,9 +2033,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
                 debug_assert_eq!(entry.instant, curr_entry.instant);
 
-                frame.pipeline_id = pipeline_id;
-                frame.instant = entry.instant;
-                frame.url = entry.url.clone();
+                frame.update_current(pipeline_id, &entry);
 
                 old_pipeline_id
             },
@@ -2130,7 +2128,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let (evicted_id, new_frame, clear_future, location_changed) = if let Some(mut entry) = frame_change.replace {
             debug!("Replacing pipeline in existing frame.");
             let evicted_id = entry.pipeline_id;
-            entry.pipeline_id = Some(frame_change.new_pipeline_id);
+            entry.replace_pipeline(frame_change.new_pipeline_id, frame_change.url.clone());
             self.traverse_to_entry(entry);
             (evicted_id, false, false, false)
         } else if let Some(frame) = self.frames.get_mut(&frame_change.frame_id) {
