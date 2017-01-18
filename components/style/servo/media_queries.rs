@@ -10,8 +10,6 @@ use euclid::{Size2D, TypedSize2D};
 use media_queries::MediaType;
 use properties::ComputedValues;
 use std::fmt;
-#[cfg(feature = "gecko")]
-use std::sync::Arc;
 use style_traits::{ToCss, ViewportPx};
 use style_traits::viewport::ViewportConstraints;
 use values::computed::{self, ToComputedValue};
@@ -21,24 +19,16 @@ use values::specified;
 /// is displayed in.
 ///
 /// This is the struct against which media queries are evaluated.
-#[derive(Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug, HeapSizeOf)]
 pub struct Device {
     /// The current media type used by de device.
     media_type: MediaType,
     /// The current viewport size, in viewport pixels.
     viewport_size: TypedSize2D<f32, ViewportPx>,
-    /// A set of default computed values for this document.
-    ///
-    /// This allows handling zoom correctly, among other things. Gecko-only for
-    /// now, see #14773.
-    #[cfg(feature = "gecko")]
-    default_values: Arc<ComputedValues>,
 }
 
 impl Device {
     /// Trivially construct a new `Device`.
-    #[cfg(feature = "servo")]
     pub fn new(media_type: MediaType,
                viewport_size: TypedSize2D<f32, ViewportPx>)
                -> Device {
@@ -48,28 +38,9 @@ impl Device {
         }
     }
 
-    /// Trivially construct a new `Device`.
-    #[cfg(feature = "gecko")]
-    pub fn new(media_type:
-               MediaType, viewport_size: TypedSize2D<f32, ViewportPx>,
-               default_values: &Arc<ComputedValues>) -> Device {
-        Device {
-            media_type: media_type,
-            viewport_size: viewport_size,
-            default_values: default_values.clone(),
-        }
-    }
-
     /// Return the default computed values for this device.
-    #[cfg(feature = "servo")]
     pub fn default_values(&self) -> &ComputedValues {
         ComputedValues::initial_values()
-    }
-
-    /// Return the default computed values for this device.
-    #[cfg(feature = "gecko")]
-    pub fn default_values(&self) -> &ComputedValues {
-        &*self.default_values
     }
 
     /// Returns the viewport size of the current device in app units, needed,

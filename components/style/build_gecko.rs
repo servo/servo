@@ -99,7 +99,7 @@ mod bindings {
 
     fn add_include(name: &str) -> String {
         let mut added_paths = ADDED_PATHS.lock().unwrap();
-        let file = search_include(name).unwrap();
+        let file = search_include(name).expect("Include not found!");
         let result = String::from(file.to_str().unwrap());
         add_headers_recursively(file, &mut *added_paths);
         result
@@ -235,6 +235,8 @@ mod bindings {
             .include(add_include("mozilla/ServoElementSnapshot.h"))
             .include(add_include("mozilla/dom/Element.h"))
             .include(add_include("mozilla/ServoBindings.h"))
+            .include(add_include("nsMediaFeatures.h"))
+            .include(add_include("nsMediaList.h"))
             // FIXME(emilio): Incrementally remove these "pub use"s. Probably
             // mozilla::css and mozilla::dom are easier.
             .raw_line("pub use self::root::*;")
@@ -296,6 +298,14 @@ mod bindings {
             "nsChangeHint",
             "nsCSSKeyword",
             "nsCSSPropertyID",
+            "nsCSSProps",
+
+            // FIXME(emilio): These three can go away once
+            // https://github.com/servo/rust-bindgen/pull/397 has landed.
+            "nsStyleStructID",
+            "nsStyleAnimType",
+            "UseCounter",
+
             "nsCSSRect",
             "nsCSSRect_heap",
             "nsCSSShadowArray",
@@ -316,6 +326,10 @@ mod bindings {
             "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder",
             "nsMargin",
+            "nsMediaExpression",
+            "nsMediaFeature",
+            "nsMediaFeatures",
+            "nsMediaList",
             "nsRect",
             "nsRestyleHint",
             "nsresult",
@@ -376,6 +390,7 @@ mod bindings {
             "mozilla::DefaultDelete",
         ];
         let opaque_types = [
+            "std::pair__PCCP",
             "std::namespace::atomic___base", "std::atomic__My_base",
             "nsAString_internal_char_traits",
             "nsAString_internal_incompatible_char_type",
@@ -401,7 +416,6 @@ mod bindings {
                                         // for clang.
             "nsPIDOMWindow",  // <- Takes the vtable from a template parameter, and we can't
                               //    generate it conditionally.
-            "RawGeckoPresContext", // Just passing it through.
             "JS::Rooted",
             "mozilla::Maybe",
             "gfxSize",  // <- union { struct { T width; T height; }; T components[2] };
@@ -483,6 +497,7 @@ mod bindings {
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
             "RawGeckoPresContext",
+            "RawGeckoPresContextOwned",
             "ThreadSafeURIHolder",
             "ThreadSafePrincipalHolder",
             "CSSPseudoClassType",
@@ -503,6 +518,7 @@ mod bindings {
             "nsCursorImage",
             "nsFont",
             "nsIAtom",
+            "nsMediaFeature",
             "nsRestyleHint",
             "nsStyleBackground",
             "nsStyleBorder",

@@ -9,6 +9,7 @@ use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawGeckoAnimationValueList;
 use gecko_bindings::structs::RawServoAnimationValue;
 use gecko_bindings::structs::RawGeckoPresContext;
+use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::structs::ThreadSafeURIHolder;
 use gecko_bindings::structs::ThreadSafePrincipalHolder;
 use gecko_bindings::structs::CSSPseudoClassType;
@@ -29,6 +30,7 @@ use gecko_bindings::structs::nsChangeHint;
 use gecko_bindings::structs::nsCursorImage;
 use gecko_bindings::structs::nsFont;
 use gecko_bindings::structs::nsIAtom;
+use gecko_bindings::structs::nsMediaFeature;
 use gecko_bindings::structs::nsRestyleHint;
 use gecko_bindings::structs::nsStyleBackground;
 unsafe impl Send for nsStyleBackground {}
@@ -749,6 +751,9 @@ extern "C" {
                                        index: i32) -> nsCSSValueBorrowedMut;
 }
 extern "C" {
+    pub fn Gecko_CSSValue_Drop(css_value: nsCSSValueBorrowedMut);
+}
+extern "C" {
     pub fn Gecko_AddRefCSSValueSharedListArbitraryThread(aPtr:
                                                              *mut nsCSSValueSharedList);
 }
@@ -758,6 +763,9 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_PropertyId_IsPrefEnabled(id: nsCSSPropertyID) -> bool;
+}
+extern "C" {
+    pub fn Gecko_GetMediaFeatures() -> *const nsMediaFeature;
 }
 extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(ptr: *mut nsStyleFont,
@@ -1114,14 +1122,11 @@ extern "C" {
      -> ServoCssRulesStrong;
 }
 extern "C" {
-    pub fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextBorrowed)
+    pub fn Servo_StyleSet_Init(pres_context: RawGeckoPresContextOwned)
      -> RawServoStyleSetOwned;
 }
 extern "C" {
-    pub fn Servo_StyleSet_RecomputeDefaultStyles(set:
-                                                     RawServoStyleSetBorrowed,
-                                                 pres_context:
-                                                     RawGeckoPresContextBorrowed);
+    pub fn Servo_StyleSet_RebuildData(set: RawServoStyleSetBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_AppendStyleSheet(set: RawServoStyleSetBorrowed,
