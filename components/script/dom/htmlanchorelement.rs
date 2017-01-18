@@ -21,7 +21,7 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::mouseevent::MouseEvent;
-use dom::node::{Node, document_from_node, window_from_node};
+use dom::node::{Node, document_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
@@ -544,8 +544,7 @@ impl Activatable for HTMLAnchorElement {
         if let Some(element) = target.downcast::<Element>() {
             if target.is::<HTMLImageElement>() && element.has_attribute(&local_name!("ismap")) {
                 let target_node = element.upcast::<Node>();
-                let rect = window_from_node(target_node).content_box_query(
-                    target_node.to_trusted_node_address());
+                let rect = target_node.bounding_content_box_or_zero();
                 ismap_suffix = Some(
                     format!("?{},{}", mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),
                                       mouse_event.ClientY().to_f32().unwrap() - rect.origin.y.to_f32_px())

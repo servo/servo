@@ -970,7 +970,7 @@ impl Window {
         let body = self.Document().GetBody();
         let (x, y) = match body {
             Some(e) => {
-                let content_size = e.upcast::<Node>().bounding_content_box();
+                let content_size = e.upcast::<Node>().bounding_content_box_or_zero();
                 let content_height = content_size.size.height.to_f64_px();
                 let content_width = content_size.size.width.to_f64_px();
                 (xfinite.max(0.0f64).min(content_width - width),
@@ -1216,11 +1216,11 @@ impl Window {
         &*self.layout_rpc
     }
 
-    pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Rect<Au> {
+    pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Option<Rect<Au>> {
         if !self.reflow(ReflowGoal::ForScriptQuery,
                         ReflowQueryType::ContentBoxQuery(content_box_request),
                         ReflowReason::Query) {
-            return Rect::zero();
+            return None;
         }
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect

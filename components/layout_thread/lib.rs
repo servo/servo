@@ -464,7 +464,7 @@ impl LayoutThread {
                     constellation_chan: constellation_chan,
                     display_list: None,
                     stylist: stylist,
-                    content_box_response: Rect::zero(),
+                    content_box_response: None,
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
                     hit_test_response: (None, false),
@@ -1012,7 +1012,7 @@ impl LayoutThread {
                 debug!("layout: No root node: bailing");
                 match data.query_type {
                     ReflowQueryType::ContentBoxQuery(_) => {
-                        rw_data.content_box_response = Rect::zero();
+                        rw_data.content_box_response = None;
                     },
                     ReflowQueryType::ContentBoxesQuery(_) => {
                         rw_data.content_boxes_response = Vec::new();

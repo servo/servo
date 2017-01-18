@@ -358,8 +358,10 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u32 {
         let node = self.upcast::<Node>();
-        let rect = node.bounding_content_box();
-        rect.size.width.to_px() as u32
+        match node.bounding_content_box() {
+            Some(rect) => rect.size.width.to_px() as u32,
+            None => self.NaturalWidth(),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-width
@@ -370,8 +372,10 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u32 {
         let node = self.upcast::<Node>();
-        let rect = node.bounding_content_box();
-        rect.size.height.to_px() as u32
+        match node.bounding_content_box() {
+            Some(rect) => rect.size.height.to_px() as u32,
+            None => self.NaturalHeight(),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-height
