@@ -1898,6 +1898,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
     let is_item = matches!(context.inherited_style.get_box().clone_display(),
         % if product == "gecko":
         computed_values::display::T::grid |
+        computed_values::display::T::inline_grid |
         % endif
         computed_values::display::T::flex |
         computed_values::display::T::inline_flex);
