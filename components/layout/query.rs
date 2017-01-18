@@ -14,6 +14,7 @@ use flow::{self, Flow};
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, ScrollOffsetMap};
 use gfx_traits::ScrollRootId;
+use inline::LAST_FRAGMENT_OF_ELEMENT;
 use ipc_channel::ipc::IpcSender;
 use opaque_node::OpaqueNodeMethods;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse};
@@ -437,16 +438,20 @@ impl UnioningFragmentScrollAreaIterator {
     }
 }
 
+struct NodeOffsetBoxInfo {
+    offset: Point2D<Au>,
+    rectangle: Rect<Au>,
+}
+
 struct ParentBorderBoxInfo {
     node_address: OpaqueNode,
-    border_box: Rect<Au>,
+    origin: Point2D<Au>,
 }
 
 struct ParentOffsetBorderBoxIterator {
     node_address: OpaqueNode,
-    last_level: i32,
-    has_found_node: bool,
-    node_border_box: Rect<Au>,
+    has_processed_node: bool,
+    node_offset_box: Option<NodeOffsetBoxInfo>,
     parent_nodes: Vec<Option<ParentBorderBoxInfo>>,
 }
 
@@ -454,9 +459,8 @@ impl ParentOffsetBorderBoxIterator {
     fn new(node_address: OpaqueNode) -> ParentOffsetBorderBoxIterator {
         ParentOffsetBorderBoxIterator {
             node_address: node_address,
-            last_level: -1,
-            has_found_node: false,
-            node_border_box: Rect::zero(),
+            has_processed_node: false,
+            node_offset_box: None,
             parent_nodes: Vec::new(),
         }
     }
@@ -533,21 +537,81 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
 // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
 impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
     fn process(&mut self, fragment: &Fragment, level: i32, border_box: &Rect<Au>) {
+        if self.node_offset_box.is_none() {
+            // We haven't found the node yet, so we're still looking
+            // for its parent. Remove all nodes at this level or
+            // higher, as they can't be parents of this node.
+            self.parent_nodes.truncate(level as usize);
+            assert_eq!(self.parent_nodes.len(), level as usize,
+                "Skipped at least one level in the flow tree!");
+        }
+
+        if !fragment.is_primary_fragment() {
+            // This fragment doesn't correspond to anything worth
+            // taking measurements from.
+
+            if self.node_offset_box.is_none() {
+                // If this is the only fragment in the flow, we need to
+                // do this to avoid failing the above assertion.
+                self.parent_nodes.push(None);
+            }
+
+            return;
+        }
+
         if fragment.node == self.node_address {
             // Found the fragment in the flow tree that matches the
             // DOM node being looked for.
-            self.has_found_node = true;
-            self.node_border_box = *border_box;
+
+            assert!(self.node_offset_box.is_none(),
+                "Node was being treated as inline, but it has an associated fragment!");
+
+            self.has_processed_node = true;
+            self.node_offset_box = Some(NodeOffsetBoxInfo {
+                offset: border_box.origin,
+                rectangle: *border_box,
+            });
 
             // offsetParent returns null if the node is fixed.
             if fragment.style.get_box().position == computed_values::position::T::fixed {
                 self.parent_nodes.clear();
             }
-        } else if level > self.last_level {
+        } else if let Some(node) = fragment.inline_context.as_ref().and_then(|inline_context| {
+            inline_context.nodes.iter().find(|node| node.address == self.node_address)
+        }) {
+            // TODO: Handle cases where the `offsetParent` is an inline
+            // element. This will likely be impossible until
+            // https://github.com/servo/servo/issues/13982 is fixed.
+
+            // Found a fragment in the flow tree whose inline context
+            // contains the DOM node we're looking for, i.e. the node
+            // is inline and contains this fragment.
+            match self.node_offset_box {
+                Some(NodeOffsetBoxInfo { ref mut rectangle, .. }) => {
+                    *rectangle = rectangle.union(border_box);
+                },
+                None => {
+                    // https://github.com/servo/servo/issues/13982 will
+                    // cause this assertion to fail sometimes, so it's
+                    // commented out for now.
+                    /*assert!(node.flags.contains(FIRST_FRAGMENT_OF_ELEMENT),
+                        "First fragment of inline node found wasn't its first fragment!");*/
+
+                    self.node_offset_box = Some(NodeOffsetBoxInfo {
+                        offset: border_box.origin,
+                        rectangle: *border_box,
+                    });
+                },
+            }
+
+            if node.flags.contains(LAST_FRAGMENT_OF_ELEMENT) {
+                self.has_processed_node = true;
+            }
+        } else if self.node_offset_box.is_none() {
             // TODO(gw): Is there a less fragile way of checking whether this
             // fragment is the body element, rather than just checking that
-            // the parent nodes stack contains the root node only?
-            let is_body_element = self.parent_nodes.len() == 1;
+            // it's at level 1 (below the root node)?
+            let is_body_element = level == 1;
 
             let is_valid_parent = match (is_body_element,
                                          fragment.style.get_box().position,
@@ -568,22 +632,22 @@ impl FragmentBorderBoxIterator for ParentOffsetBorderBoxIterator {
             };
 
             let parent_info = if is_valid_parent {
+                let border_width = fragment.border_width().to_physical(fragment.style.writing_mode);
+
                 Some(ParentBorderBoxInfo {
-                    border_box: *border_box,
                     node_address: fragment.node,
+                    origin: border_box.origin + Point2D::new(border_width.left, border_width.top),
                 })
             } else {
                 None
             };
 
             self.parent_nodes.push(parent_info);
-        } else if level < self.last_level {
-            self.parent_nodes.pop();
         }
     }
 
     fn should_process(&mut self, _: &Fragment) -> bool {
-        !self.has_found_node
+        !self.has_processed_node
     }
 }
 
@@ -804,18 +868,19 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
         -> OffsetParentResponse {
     let mut iterator = ParentOffsetBorderBoxIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    let parent_info_index = iterator.parent_nodes.iter().rposition(|info| info.is_some());
-    match parent_info_index {
-        Some(parent_info_index) => {
-            let parent = iterator.parent_nodes[parent_info_index].as_ref().unwrap();
-            let origin = iterator.node_border_box.origin - parent.border_box.origin;
-            let size = iterator.node_border_box.size;
+
+    let node_offset_box = iterator.node_offset_box;
+    let parent_info = iterator.parent_nodes.into_iter().rev().filter_map(|info| info).next();
+    match (node_offset_box, parent_info) {
+        (Some(node_offset_box), Some(parent_info)) => {
+            let origin = node_offset_box.offset - parent_info.origin;
+            let size = node_offset_box.rectangle.size;
             OffsetParentResponse {
-                node_address: Some(parent.node_address.to_untrusted_node_address()),
+                node_address: Some(parent_info.node_address.to_untrusted_node_address()),
                 rect: Rect::new(origin, size),
             }
         }
-        None => {
+        _ => {
             OffsetParentResponse::empty()
         }
     }
