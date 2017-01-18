@@ -1155,7 +1155,7 @@ impl InlineFlow {
                 }
                 (display::T::inline, vertical_align::T::bottom) |
                 (display::T::block, vertical_align::T::bottom) |
-                (display::T::inline_flex, vertical_align::T::top) |
+                (display::T::inline_flex, vertical_align::T::bottom) |
                 (display::T::inline_block, vertical_align::T::bottom) if
                         inline_metrics.space_below_baseline >= Au(0) => {
                     *largest_block_size_for_bottom_fragments = max(
