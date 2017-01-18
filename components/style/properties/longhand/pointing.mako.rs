@@ -149,7 +149,7 @@
 ${helpers.single_keyword("pointer-events", "auto none", animatable=False,
                          spec="https://www.w3.org/TR/SVG11/interact.html#PointerEventsProperty")}
 
-${helpers.single_keyword("-moz-user-input", "none enabled disabled",
+${helpers.single_keyword("-moz-user-input", "auto none enabled disabled",
                          products="gecko", gecko_ffi_name="mUserInput",
                          gecko_enum_prefix="StyleUserInput",
                          gecko_inexhaustive=True,
@@ -164,7 +164,7 @@ ${helpers.single_keyword("-moz-user-modify", "read-only read-write write-only",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-modify)")}
 
 ${helpers.single_keyword("-moz-user-focus",
-                         "ignore normal select-after select-before select-menu select-same select-all none",
+                         "none ignore normal select-after select-before select-menu select-same select-all",
                          products="gecko", gecko_ffi_name="mUserFocus",
                          gecko_enum_prefix="StyleUserFocus",
                          gecko_inexhaustive=True,
