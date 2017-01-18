@@ -103,19 +103,19 @@ ${helpers.single_keyword("mask-repeat",
                          animatable=False,
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-repeat")}
 
-<%helpers:vector_longhand name="mask-position" products="gecko" animatable="True" extra_prefixes="webkit"
+<%helpers:vector_longhand name="mask-position-x" products="gecko" animatable="True" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::specified::position::Position;
+    use values::specified::position::HorizontalPosition;
 
     pub mod computed_value {
-        use values::computed::position::Position;
+        use values::computed::position::HorizontalPosition;
         use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
         use properties::longhands::mask_position::computed_value::T as MaskPosition;
 
-        pub type T = Position;
+        pub type T = HorizontalPosition;
 
         impl RepeatableListInterpolate for MaskPosition {}
 
@@ -126,35 +126,88 @@ ${helpers.single_keyword("mask-repeat",
         }
     }
 
-    pub type SpecifiedValue = Position;
+    pub type SpecifiedValue = HorizontalPosition;
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        use values::computed::position::Position;
-        Position {
-            horizontal: computed::LengthOrPercentage::Percentage(0.0),
-            vertical: computed::LengthOrPercentage::Percentage(0.0),
-        }
+        use values::computed::position::HorizontalPosition;
+        HorizontalPosition(computed::LengthOrPercentage::Percentage(0.0))
     }
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        use values::specified::Percentage;
-        use values::specified::position::{HorizontalPosition, VerticalPosition};
-        Position {
-            horizontal: HorizontalPosition {
-                keyword: None,
-                position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
-            },
-            vertical: VerticalPosition {
-                keyword: None,
-                position: Some(specified::LengthOrPercentage::Percentage(Percentage(0.0))),
-            },
+        use values::specified::position::Keyword;
+        HorizontalPosition {
+            keyword: Some(Keyword::Left),
+            position: None,
+        }
+    }
+    #[inline]
+    #[allow(missing_docs)]
+    pub fn get_initial_position_value() -> SpecifiedValue {
+        use values::specified::{LengthOrPercentage, Percentage};
+        HorizontalPosition {
+            keyword: None,
+            position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
         }
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser)
                  -> Result<SpecifiedValue, ()> {
-        Position::parse(context, input)
+        HorizontalPosition::parse(context, input)
+    }
+</%helpers:vector_longhand>
+
+<%helpers:vector_longhand name="mask-position-y" products="gecko" animatable="True" extra_prefixes="webkit"
+                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::specified::position::VerticalPosition;
+
+    pub mod computed_value {
+        use values::computed::position::VerticalPosition;
+        use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
+        use properties::longhands::mask_position::computed_value::T as MaskPosition;
+
+        pub type T = VerticalPosition;
+
+        impl RepeatableListInterpolate for MaskPosition {}
+
+        impl Interpolate for MaskPosition {
+            fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+                Ok(MaskPosition(try!(self.0.interpolate(&other.0, progress))))
+            }
+        }
+    }
+
+    pub type SpecifiedValue = VerticalPosition;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        use values::computed::position::VerticalPosition;
+        VerticalPosition(computed::LengthOrPercentage::Percentage(0.0))
+    }
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        use values::specified::position::Keyword;
+        VerticalPosition {
+            keyword: Some(Keyword::Top),
+            position: None,
+        }
+    }
+    #[inline]
+    #[allow(missing_docs)]
+    pub fn get_initial_position_value() -> SpecifiedValue {
+        use values::specified::{LengthOrPercentage, Percentage};
+        VerticalPosition {
+            keyword: None,
+            position: Some(LengthOrPercentage::Percentage(Percentage(0.0))),
+        }
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser)
+                 -> Result<SpecifiedValue, ()> {
+        VerticalPosition::parse(context, input)
     }
 </%helpers:vector_longhand>
 
