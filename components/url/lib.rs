@@ -23,7 +23,7 @@ use std::path::Path;
 use std::sync::Arc;
 use url::{Url, Origin, Position};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf, Serialize, Deserialize))]
 pub struct ServoUrl(Arc<Url>);
 
@@ -153,6 +153,12 @@ impl ServoUrl {
 }
 
 impl fmt::Display for ServoUrl {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        self.0.fmt(formatter)
+    }
+}
+
+impl fmt::Debug for ServoUrl {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         self.0.fmt(formatter)
     }
