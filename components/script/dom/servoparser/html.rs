@@ -93,6 +93,10 @@ impl Tokenizer {
         self.inner.end();
     }
 
+    pub fn url(&self) -> &ServoUrl {
+        &self.inner.sink().sink().base_url
+    }
+
     pub fn set_plaintext_state(&mut self) {
         self.inner.set_plaintext_state();
     }

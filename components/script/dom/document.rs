@@ -1572,6 +1572,7 @@ impl Document {
         }
 
         if !self.loader.borrow().is_blocked() && !self.loader.borrow().events_inhibited() {
+            self.loader.borrow_mut().inhibit_events();
             // Schedule a task to fire a "load" event (if no blocking loads have arrived in the mean time)
             // NOTE: we can end up executing this code more than once, in case more blocking loads arrive.
             debug!("Document loads are complete.");

@@ -1771,7 +1771,7 @@ impl ScriptThread {
         });
 
         let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
-                                                      Some(incomplete.url.clone()));
+                                                      Some(final_url.clone()));
 
         let is_html_document = match metadata.content_type {
             Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _))))

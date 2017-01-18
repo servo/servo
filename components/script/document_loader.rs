@@ -127,7 +127,6 @@ impl DocumentLoader {
     }
 
     pub fn is_blocked(&self) -> bool {
-        // TODO: Ensure that we report blocked if parsing is still ongoing.
         !self.blocking_loads.is_empty()
     }
 
