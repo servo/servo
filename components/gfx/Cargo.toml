@@ -60,4 +60,5 @@ servo-fontconfig = "0.2.1"
 simd = {git = "https://github.com/huonw/simd"}
 
 [target.'cfg(target_os = "windows")'.dependencies]
-dwrote = "0.1.1"
+dwrote = "0.1.5"
+truetype = "0.24"

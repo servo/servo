@@ -7,7 +7,8 @@
 // renderer moves to a sandboxed process.
 
 use app_units::Au;
-use dwrote::{Font, FontFace};
+use dwrote;
+use dwrote::{Font, FontFace, FontFile};
 use dwrote::{FontWeight, FontStretch, FontStyle};
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
@@ -17,6 +18,7 @@ use platform::windows::font_list::font_from_atom;
 use std::sync::Arc;
 use style::computed_values::{font_stretch, font_weight};
 use text::glyph::GlyphId;
+use truetype;
 
 // 1em = 12pt = 16px, assuming 72 points per inch and 96 px per inch
 fn pt_to_px(pt: f64) -> f64 { pt / 72. * 96. }
@@ -40,11 +42,211 @@ impl FontTableMethods for FontTable {
     }
 }
 
+fn make_tag(tag_bytes: &[u8]) -> FontTableTag {
+    assert!(tag_bytes.len() == 4);
+    unsafe { *(tag_bytes.as_ptr() as *const FontTableTag) }
+}
+
+macro_rules! try_lossy(($result:expr) => (try!($result.map_err(|e| (())))));
+
+// Given a set of records, figure out the string indices for the family and face
+// names.  We want name_id 1 and 2, and we need to use platform_id == 1 and
+// language_id == 0 to avoid limitations in the truetype crate.  We *could* just
+// do our own parsing here, and use the offset/length data and pull the values out
+// ourselves.
+fn get_family_face_indices(records: &[truetype::naming_table::Record]) -> Option<(usize, usize)> {
+    let mut family_name_index = None;
+    let mut face_name_index = None;
+
+    for i in 0..records.len() {
+        // the truetype crate can only decode mac platform format names
+        if records[i].platform_id != 1 {
+            continue;
+        }
+
+        if records[i].language_id != 0 {
+            continue;
+        }
+
+        if records[i].name_id == 1 {
+            family_name_index = Some(i);
+        } else if records[i].name_id == 2 {
+            face_name_index = Some(i);
+        }
+    }
+
+    if family_name_index.is_some() && face_name_index.is_some() {
+        Some((family_name_index.unwrap(), face_name_index.unwrap()))
+    } else {
+        None
+    }
+}
+
+// We need the font (DWriteFont) in order to be able to query things like
+// the family name, face name, weight, etc.  On Windows 10, the
+// DWriteFontFace3 interface provides this on the FontFace, but that's only
+// available on Win10+.
+//
+// Instead, we do the parsing work using the truetype crate for raw fonts.
+// We're just extracting basic info, so this is sufficient for now.
+
+#[derive(Debug)]
+struct FontInfo {
+    family_name: String,
+    face_name: String,
+    weight: font_weight::T,
+    stretch: font_stretch::T,
+    style: FontStyle,
+}
+
+impl FontInfo {
+    fn new_from_face(face: &FontFace) -> Result<FontInfo, ()> {
+        use std::cmp::{min, max};
+        use std::io::Cursor;
+        use truetype::Value;
+
+        let mut info = FontInfo {
+            family_name: "".to_owned(),
+            face_name: "".to_owned(),
+            weight: font_weight::T::Weight400,
+            stretch: font_stretch::T::normal,
+            style: FontStyle::Normal,
+        };
+
+        if let Some(mut name_table_bytes) = face.get_font_table(make_tag(b"name")) {
+            use truetype::NamingTable;
+            let mut table = Cursor::new(&name_table_bytes);
+            let names = try_lossy!(NamingTable::read(&mut table));
+            let (family, face) = match names {
+                NamingTable::Format0(ref table) => {
+                    if let Some((family_index, face_index)) = get_family_face_indices(&table.records) {
+                        let strings = table.strings().unwrap();
+                        let family = strings[family_index].clone();
+                        let face = strings[face_index].clone();
+                        ((family, face))
+                    } else {
+                        return Err(());
+                    }
+                },
+                NamingTable::Format1(ref table) => {
+                    if let Some((family_index, face_index)) = get_family_face_indices(&table.records) {
+                        let strings = table.strings().unwrap();
+                        let family = strings[family_index].clone();
+                        let face = strings[face_index].clone();
+                        ((family, face))
+                    } else {
+                        return Err(());
+                    }
+                }
+            };
+            info.family_name = family;
+            info.face_name = face;
+        } else {
+            return Err(());
+        }
+
+        if let Some(os2_table_bytes) = face.get_font_table(make_tag(b"OS/2")) {
+            use truetype::WindowsMetrics;
+            let mut table = Cursor::new(&os2_table_bytes);
+            let metrics = try_lossy!(WindowsMetrics::read(&mut table));
+            let (weight_val, width_val, italic_bool) = match metrics {
+                WindowsMetrics::Version0(ref m) => {
+                    (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
+                },
+                WindowsMetrics::Version1(ref m) => {
+                    (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
+                },
+                WindowsMetrics::Version2(ref m) |
+                WindowsMetrics::Version3(ref m) |
+                WindowsMetrics::Version4(ref m) => {
+                    (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
+                },
+                WindowsMetrics::Version5(ref m) => {
+                    (m.weight_class, m.width_class, m.selection_flags.0 & 1 == 1)
+                },
+            };
+
+            info.weight = match min(9, max(1, weight_val / 100)) {
+                1 => font_weight::T::Weight100,
+                2 => font_weight::T::Weight200,
+                3 => font_weight::T::Weight300,
+                4 => font_weight::T::Weight400,
+                5 => font_weight::T::Weight500,
+                6 => font_weight::T::Weight600,
+                7 => font_weight::T::Weight700,
+                8 => font_weight::T::Weight800,
+                9 => font_weight::T::Weight900,
+                _ => return Err(()),
+            };
+            info.stretch = match min(9, max(1, width_val)) {
+                1 => font_stretch::T::ultra_condensed,
+                2 => font_stretch::T::extra_condensed,
+                3 => font_stretch::T::condensed,
+                4 => font_stretch::T::semi_condensed,
+                5 => font_stretch::T::normal,
+                6 => font_stretch::T::semi_expanded,
+                7 => font_stretch::T::expanded,
+                8 => font_stretch::T::extra_expanded,
+                9 => font_stretch::T::ultra_expanded,
+                _ => return Err(()),
+            };
+            info.style = if italic_bool {
+                FontStyle::Italic
+            } else {
+                FontStyle::Normal
+            };
+        } else {
+            return Err(());
+        }
+
+        Ok(info)
+    }
+
+    fn new_from_font(font: &Font) -> Result<FontInfo, ()> {
+        let style = font.style();
+        let weight = match font.weight() {
+            FontWeight::Thin => font_weight::T::Weight100,
+            FontWeight::ExtraLight => font_weight::T::Weight200,
+            FontWeight::Light => font_weight::T::Weight300,
+            // slightly grayer gray
+            FontWeight::SemiLight => font_weight::T::Weight300,
+            FontWeight::Regular => font_weight::T::Weight400,
+            FontWeight::Medium => font_weight::T::Weight500,
+            FontWeight::SemiBold => font_weight::T::Weight600,
+            FontWeight::Bold => font_weight::T::Weight700,
+            FontWeight::ExtraBold => font_weight::T::Weight800,
+            FontWeight::Black => font_weight::T::Weight900,
+            // slightly blacker black
+            FontWeight::ExtraBlack => font_weight::T::Weight900,
+        };
+        let stretch = match font.stretch() {
+            FontStretch::Undefined => font_stretch::T::normal,
+            FontStretch::UltraCondensed => font_stretch::T::ultra_condensed,
+            FontStretch::ExtraCondensed => font_stretch::T::extra_condensed,
+            FontStretch::Condensed => font_stretch::T::condensed,
+            FontStretch::SemiCondensed => font_stretch::T::semi_condensed,
+            FontStretch::Normal => font_stretch::T::normal,
+            FontStretch::SemiExpanded => font_stretch::T::semi_expanded,
+            FontStretch::Expanded => font_stretch::T::expanded,
+            FontStretch::ExtraExpanded => font_stretch::T::extra_expanded,
+            FontStretch::UltraExpanded => font_stretch::T::ultra_expanded,
+        };
+
+        Ok(FontInfo {
+            family_name: font.family_name(),
+            face_name: font.face_name(),
+            style: style,
+            weight: weight,
+            stretch: stretch,
+        })
+    }
+}
+
 #[derive(Debug)]
 pub struct FontHandle {
     font_data: Arc<FontTemplateData>,
-    font: Font,
     face: FontFace,
+    info: FontInfo,
     em_size: f32,
     du_per_em: f32,
     du_to_px: f32,
@@ -58,32 +260,41 @@ impl FontHandleMethods for FontHandle {
     fn new_from_template(_: &FontContextHandle, template: Arc<FontTemplateData>, pt_size: Option<Au>)
                          -> Result<Self, ()>
     {
-        if let Some(_) = template.bytes {
-            // FIXME we should load from template.bytes
-            Err(())
+        let (info, face) = if let Some(ref raw_font) = template.bytes {
+            let font_file = FontFile::new_from_data(&raw_font);
+            if font_file.is_none() {
+                // failed to load raw font
+                return Err(());
+            }
+
+            let face = font_file.unwrap().create_face(0, dwrote::DWRITE_FONT_SIMULATIONS_NONE);
+            let info = try!(FontInfo::new_from_face(&face));
+            (info, face)
         } else {
             let font = font_from_atom(&template.identifier);
             let face = font.create_font_face();
+            let info = try!(FontInfo::new_from_font(&font));
+            (info, face)
+        };
 
-            let pt_size = pt_size.unwrap_or(au_from_pt(12.));
-            let du_per_em = face.metrics().designUnitsPerEm as f32;
+        let pt_size = pt_size.unwrap_or(au_from_pt(12.));
+        let du_per_em = face.metrics().designUnitsPerEm as f32;
 
-            let em_size = pt_size.to_f32_px() / 16.;
-            let design_units_per_pixel = du_per_em / 16.;
+        let em_size = pt_size.to_f32_px() / 16.;
+        let design_units_per_pixel = du_per_em / 16.;
 
-            let design_units_to_pixels = 1. / design_units_per_pixel;
-            let scaled_design_units_to_pixels = em_size / design_units_per_pixel;
+        let design_units_to_pixels = 1. / design_units_per_pixel;
+        let scaled_design_units_to_pixels = em_size / design_units_per_pixel;
 
-            Ok(FontHandle {
-                font_data: template.clone(),
-                font: font,
-                face: face,
-                em_size: em_size,
-                du_per_em: du_per_em,
-                du_to_px: design_units_to_pixels,
-                scaled_du_to_px: scaled_design_units_to_pixels,
-            })
-        }
+        Ok(FontHandle {
+            font_data: template.clone(),
+            face: face,
+            info: info,
+            em_size: em_size,
+            du_per_em: du_per_em,
+            du_to_px: design_units_to_pixels,
+            scaled_du_to_px: scaled_design_units_to_pixels,
+        })
     }
 
     fn template(&self) -> Arc<FontTemplateData> {
@@ -91,51 +302,26 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn family_name(&self) -> String {
-        self.font.family_name()
+        self.info.family_name.clone()
     }
 
     fn face_name(&self) -> String {
-        self.font.face_name()
+        self.info.face_name.clone()
     }
 
     fn is_italic(&self) -> bool {
-        match self.font.style() {
+        match self.info.style {
             FontStyle::Normal => false,
             FontStyle::Oblique | FontStyle::Italic => true,
         }
     }
 
     fn boldness(&self) -> font_weight::T {
-        match self.font.weight() {
-            FontWeight::Thin => font_weight::T::Weight100,
-            FontWeight::ExtraLight => font_weight::T::Weight200,
-            FontWeight::Light => font_weight::T::Weight300,
-            // slightly lighter gray
-            FontWeight::SemiLight => font_weight::T::Weight300,
-            FontWeight::Regular => font_weight::T::Weight400,
-            FontWeight::Medium => font_weight::T::Weight500,
-            FontWeight::SemiBold => font_weight::T::Weight600,
-            FontWeight::Bold => font_weight::T::Weight700,
-            FontWeight::ExtraBold => font_weight::T::Weight800,
-            FontWeight::Black => font_weight::T::Weight900,
-            // slightly blacker black
-            FontWeight::ExtraBlack => font_weight::T::Weight900,
-        }
+        self.info.weight
     }
 
     fn stretchiness(&self) -> font_stretch::T {
-        match self.font.stretch() {
-            FontStretch::Undefined => font_stretch::T::normal,
-            FontStretch::UltraCondensed => font_stretch::T::ultra_condensed,
-            FontStretch::ExtraCondensed => font_stretch::T::extra_condensed,
-            FontStretch::Condensed => font_stretch::T::condensed,
-            FontStretch::SemiCondensed => font_stretch::T::semi_condensed,
-            FontStretch::Normal => font_stretch::T::normal,
-            FontStretch::SemiExpanded => font_stretch::T::semi_expanded,
-            FontStretch::Expanded => font_stretch::T::expanded,
-            FontStretch::ExtraExpanded => font_stretch::T::extra_expanded,
-            FontStretch::UltraExpanded => font_stretch::T::ultra_expanded,
-        }
+        self.info.stretch
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
