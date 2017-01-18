@@ -4,7 +4,7 @@
 
 use document_loader::{DocumentLoader, LoadType};
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ServoParserBinding;
@@ -20,8 +20,9 @@ use dom::globalscope::GlobalScope;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
-use dom::node::{Node, NodeSiblingIterator};
+use dom::node::{Node, NodeDamage, NodeSiblingIterator};
 use dom::text::Text;
+use dom::window::ReflowReason;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
 use html5ever::tokenizer::buffer_queue::BufferQueue;
@@ -34,11 +35,13 @@ use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
+use script_layout_interface::message::ReflowQueryType;
 use script_thread::ScriptThread;
 use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::mem;
+use style::context::ReflowGoal;
 
 mod html;
 mod xml;
@@ -333,20 +336,29 @@ impl ServoParser {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-end
     fn finish(&self) {
         assert!(!self.suspended.get());
         assert!(self.last_chunk_received.get());
         assert!(self.script_input.borrow().is_empty());
         assert!(self.network_input.borrow().is_empty());
 
-        self.tokenizer.borrow_mut().end();
-        debug!("finished parsing");
+        // Step 1.
+        self.document.set_ready_state(DocumentReadyState::Interactive);
 
+        // Step 2.
+        self.tokenizer.borrow_mut().end();
         self.document.set_current_parser(None);
 
-        if let Some(pipeline) = self.pipeline {
-            ScriptThread::parsing_complete(pipeline);
+        if self.pipeline.is_some() {
+            self.document.disarm_reflow_timeout();
+            self.document.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+            let window = self.document.window();
+            window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
         }
+
+        // Step 3.
+        self.document.process_deferred_scripts();
     }
 }
 

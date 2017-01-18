@@ -1450,29 +1450,6 @@ impl Document {
         changed
     }
 
-    pub fn set_pending_parsing_blocking_script(&self,
-                                               script: &HTMLScriptElement,
-                                               load: Option<ScriptResult>) {
-        assert!(!self.has_pending_parsing_blocking_script());
-        *self.pending_parsing_blocking_script.borrow_mut() = Some(PendingScript::new_with_load(script, load));
-    }
-
-    pub fn has_pending_parsing_blocking_script(&self) -> bool {
-        self.pending_parsing_blocking_script.borrow().is_some()
-    }
-
-    pub fn add_deferred_script(&self, script: &HTMLScriptElement) {
-        self.deferred_scripts.push(script);
-    }
-
-    pub fn add_asap_script(&self, script: &HTMLScriptElement) {
-        self.asap_scripts_set.borrow_mut().push_back(PendingScript::new(script));
-    }
-
-    pub fn push_asap_in_order_script(&self, script: &HTMLScriptElement) {
-        self.asap_in_order_scripts_list.push(script);
-    }
-
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if PREFS.is_mozbrowser_enabled() {
             if let Some((parent_pipeline_id, _)) = self.window.parent_info() {
@@ -1592,14 +1569,6 @@ impl Document {
                 *self.pending_parsing_blocking_script.borrow_mut() = None;
                 parser.resume_with_pending_parsing_blocking_script(&element, result);
             }
-        } else if self.reflow_timeout.get().is_none() {
-            // If we don't have a parser, and the reflow timer has been reset, explicitly
-            // trigger a reflow.
-            if let LoadType::Stylesheet(_) = load {
-                self.window.reflow(ReflowGoal::ForDisplay,
-                                   ReflowQueryType::NoQuery,
-                                   ReflowReason::StylesheetLoaded);
-            }
         }
 
         if !self.loader.borrow().is_blocked() && !self.loader.borrow().events_inhibited() {
@@ -1613,12 +1582,63 @@ impl Document {
         }
     }
 
+    pub fn set_pending_parsing_blocking_script(&self,
+                                               script: &HTMLScriptElement,
+                                               load: Option<ScriptResult>) {
+        assert!(!self.has_pending_parsing_blocking_script());
+        *self.pending_parsing_blocking_script.borrow_mut() = Some(PendingScript::new_with_load(script, load));
+    }
+
+    pub fn has_pending_parsing_blocking_script(&self) -> bool {
+        self.pending_parsing_blocking_script.borrow().is_some()
+    }
+
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
     pub fn pending_parsing_blocking_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
         let mut blocking_script = self.pending_parsing_blocking_script.borrow_mut();
         let entry = blocking_script.as_mut().unwrap();
         assert!(&*entry.element == element);
         entry.loaded(result);
+    }
+
+    pub fn add_asap_script(&self, script: &HTMLScriptElement) {
+        self.asap_scripts_set.borrow_mut().push_back(PendingScript::new(script));
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
+    pub fn asap_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
+        let mut scripts = self.asap_scripts_set.borrow_mut();
+        let idx = scripts.iter().position(|entry| &*entry.element == element).unwrap();
+        scripts.swap(0, idx);
+        scripts[0].loaded(result);
+    }
+
+    pub fn push_asap_in_order_script(&self, script: &HTMLScriptElement) {
+        self.asap_in_order_scripts_list.push(script);
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
+    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.c.
+    pub fn asap_in_order_script_loaded(&self,
+                                       element: &HTMLScriptElement,
+                                       result: ScriptResult) {
+        self.asap_in_order_scripts_list.loaded(element, result);
+    }
+
+    fn process_asap_scripts(&self) {
+        let pair = self.asap_scripts_set.borrow_mut().front_mut().and_then(PendingScript::take_result);
+        if let Some((element, result)) = pair {
+            self.asap_scripts_set.borrow_mut().pop_front();
+            element.execute(result);
+        }
+        while let Some((element, result)) = self.asap_in_order_scripts_list.take_next_ready_to_be_executed() {
+            element.execute(result);
+        }
+    }
+
+    pub fn add_deferred_script(&self, script: &HTMLScriptElement) {
+        self.deferred_scripts.push(script);
     }
 
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
@@ -1645,34 +1665,6 @@ impl Document {
         if self.deferred_scripts.is_empty() {
             // https://html.spec.whatwg.org/multipage/#the-end step 4.
             self.maybe_dispatch_dom_content_loaded();
-        }
-    }
-
-    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
-    pub fn asap_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
-        let mut scripts = self.asap_scripts_set.borrow_mut();
-        let idx = scripts.iter().position(|entry| &*entry.element == element).unwrap();
-        scripts.swap(0, idx);
-        scripts[0].loaded(result);
-    }
-
-    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
-    /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.c.
-    pub fn asap_in_order_script_loaded(&self,
-                                       element: &HTMLScriptElement,
-                                       result: ScriptResult) {
-        self.asap_in_order_scripts_list.loaded(element, result);
-    }
-
-    fn process_asap_scripts(&self) {
-        let pair = self.asap_scripts_set.borrow_mut().front_mut().and_then(PendingScript::take_result);
-        if let Some((element, result)) = pair {
-            self.asap_scripts_set.borrow_mut().pop_front();
-            element.execute(result);
-        }
-        while let Some((element, result)) = self.asap_in_order_scripts_list.take_next_ready_to_be_executed() {
-            element.execute(result);
         }
     }
 
