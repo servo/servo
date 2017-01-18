@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use document_loader::LoadType;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
@@ -167,19 +168,26 @@ impl FetchResponseListener for StylesheetContext {
             successful = metadata.status.map_or(false, |(code, _)| code == 200);
         }
 
+        let url = self.source.url();
         let owner = elem.upcast::<Element>().as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
+
         if owner.parser_inserted() {
             document.decrement_script_blocking_stylesheet_count();
         }
 
-        let url = self.source.url();
-        document.finish_load(LoadType::Stylesheet(url));
-
         if let Some(any_failed) = owner.load_finished(successful) {
             let event = if any_failed { atom!("error") } else { atom!("load") };
             elem.upcast::<EventTarget>().fire_event(event);
+            if owner.parser_inserted() {
+                if document.ReadyState() == DocumentReadyState::Interactive {
+                    document.process_deferred_scripts();
+                } else {
+                    document.process_pending_parsing_blocking_script_if_any();
+                }
+            }
         }
+        document.finish_load(LoadType::Stylesheet(url));
     }
 }
 

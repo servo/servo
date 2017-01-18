@@ -345,6 +345,7 @@ impl ServoParser {
         self.document.set_current_parser(None);
 
         if let Some(pipeline) = self.pipeline {
+            self.document.finish_load(LoadType::PageSource(self.document.url()));
             ScriptThread::parsing_complete(pipeline);
         }
     }
@@ -545,9 +546,6 @@ impl FetchResponseListener for ParserContext {
             // TODO(Savago): we should send a notification to callers #5463.
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
-
-        parser.document
-            .finish_load(LoadType::PageSource(self.url.clone()));
 
         parser.last_chunk_received.set(true);
         if !parser.suspended.get() {
