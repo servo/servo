@@ -71,6 +71,10 @@ impl Tokenizer {
     pub fn end(&mut self) {
         self.inner.end()
     }
+
+    pub fn url(&self) -> &ServoUrl {
+        &self.inner.sink().sink().base_url
+    }
 }
 
 #[allow(unsafe_code)]

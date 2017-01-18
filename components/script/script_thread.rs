@@ -41,7 +41,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
 use dom::browsingcontext::BrowsingContext;
-use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument, TouchEventResult};
+use dom::document::{Document, DocumentSource, FocusType, IsHTMLDocument, TouchEventResult};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
@@ -239,8 +239,6 @@ enum MixedMessage {
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
-    /// Notify a document that all pending loads are complete.
-    DocumentLoadsComplete(PipelineId),
     /// Notifies the script that a window associated with a particular pipeline
     /// should be closed (only dispatched to ScriptThread).
     ExitWindow(PipelineId),
@@ -1027,8 +1025,6 @@ impl ScriptThread {
                 self.handle_navigate(parent_pipeline_id, None, load_data, replace),
             MainThreadScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
-            MainThreadScriptMsg::DocumentLoadsComplete(id) =>
-                self.handle_loads_complete(id),
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
                 // The category of the runnable is ignored by the pattern, however
                 // it is still respected by profiling (see categorize_msg).
@@ -1246,29 +1242,6 @@ impl ScriptThread {
         } else {
             self.start_page_load(new_load, load_data);
         }
-    }
-
-    fn handle_loads_complete(&self, pipeline: PipelineId) {
-        let doc = match { self.documents.borrow().find_document(pipeline) } {
-            Some(doc) => doc,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline),
-        };
-        if doc.loader().is_blocked() {
-            debug!("Script thread got loads complete while loader is blocked.");
-            return;
-        }
-
-        doc.mut_loader().inhibit_events();
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 7
-        // Schedule a task to fire a "load" event (if no blocking loads have arrived in the mean time)
-        // NOTE: we can end up executing this code more than once, in case more blocking loads arrive.
-        let handler = box DocumentProgressHandler::new(Trusted::new(&doc));
-        self.dom_manipulation_task_source.queue(handler, doc.window().upcast()).unwrap();
-
-        if let Some(fragment) = doc.url().fragment() {
-            doc.check_and_scroll_fragment(fragment);
-        };
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
@@ -1771,7 +1744,7 @@ impl ScriptThread {
         });
 
         let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
-                                                      Some(incomplete.url.clone()));
+                                                      Some(final_url.clone()));
 
         let is_html_document = match metadata.content_type {
             Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _))))

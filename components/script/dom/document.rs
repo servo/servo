@@ -132,6 +132,7 @@ use style::restyle_hints::RestyleHint;
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
+use task_source::TaskSource;
 use time;
 use url::percent_encoding::percent_decode;
 
@@ -1572,13 +1573,11 @@ impl Document {
         }
 
         if !self.loader.borrow().is_blocked() && !self.loader.borrow().events_inhibited() {
-            // Schedule a task to fire a "load" event (if no blocking loads have arrived in the mean time)
-            // NOTE: we can end up executing this code more than once, in case more blocking loads arrive.
+            self.loader.borrow_mut().inhibit_events();
+            // Schedule a task to fire a "load" event.
             debug!("Document loads are complete.");
-            let win = self.window();
-            let msg = MainThreadScriptMsg::DocumentLoadsComplete(
-                win.upcast::<GlobalScope>().pipeline_id());
-            win.main_thread_script_chan().send(msg).unwrap();
+            let handler = box DocumentProgressHandler::new(Trusted::new(self));
+            self.window.dom_manipulation_task_source().queue(handler, self.window.upcast()).unwrap();
         }
     }
 
@@ -3314,6 +3313,9 @@ impl DocumentProgressHandler {
 
     fn dispatch_load(&self) {
         let document = self.addr.root();
+        if document.browsing_context().is_none() {
+            return;
+        }
         let window = document.window();
         let event = Event::new(window.upcast(),
                                atom!("load"),
@@ -3330,7 +3332,6 @@ impl DocumentProgressHandler {
 
         // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
         update_with_current_time_ms(&document.load_event_end);
-
 
         window.reflow(ReflowGoal::ForDisplay,
                       ReflowQueryType::NoQuery,
@@ -3349,6 +3350,9 @@ impl Runnable for DocumentProgressHandler {
         if window.is_alive() {
             self.set_ready_state_complete();
             self.dispatch_load();
+            if let Some(fragment) = document.url().fragment() {
+                document.check_and_scroll_fragment(fragment);
+            }
         }
     }
 }
