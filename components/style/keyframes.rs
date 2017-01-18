@@ -325,14 +325,14 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
 
     fn parse_block(&mut self, prelude: Self::Prelude, input: &mut Parser)
                    -> Result<Self::QualifiedRule, ()> {
-        let mut declarations = Vec::new();
         let parser = KeyframeDeclarationParser {
             context: self.context,
+            declarations: vec![],
         };
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
             match declaration {
-                Ok(d) => declarations.extend(d.into_iter().map(|d| (d, Importance::Normal))),
+                Ok(_) => (),
                 Err(range) => {
                     let pos = range.start;
                     let message = format!("Unsupported keyframe property declaration: '{}'",
@@ -345,7 +345,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         Ok(Arc::new(RwLock::new(Keyframe {
             selector: prelude,
             block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: declarations,
+                declarations: iter.parser.declarations,
                 important_count: 0,
             })),
         })))
@@ -354,24 +354,25 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
 
 struct KeyframeDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
+    declarations: Vec<(PropertyDeclaration, Importance)>
 }
 
 /// Default methods reject all at rules.
 impl<'a, 'b> AtRuleParser for KeyframeDeclarationParser<'a, 'b> {
     type Prelude = ();
-    type AtRule = Vec<PropertyDeclaration>;
+    type AtRule = ();
 }
 
 impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
-    type Declaration = Vec<PropertyDeclaration>;
+    /// We parse rules directly into the declarations object
+    type Declaration = ();
 
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<Vec<PropertyDeclaration>, ()> {
+    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
         let id = try!(PropertyId::parse(name.into()));
-        let mut results = Vec::new();
-        match PropertyDeclaration::parse(id, self.context, input, &mut results, true) {
+        match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, true) {
             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
             _ => return Err(())
         }
-        Ok(results)
+        Ok(())
     }
 }
