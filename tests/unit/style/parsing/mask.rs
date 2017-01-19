@@ -7,7 +7,7 @@ use media_queries::CSSErrorReporterTest;
 use servo_url::ServoUrl;
 use style::parser::ParserContext;
 use style::properties::longhands::{mask_clip, mask_composite, mask_image, mask_mode};
-use style::properties::longhands::{mask_origin, mask_position, mask_repeat, mask_size};
+use style::properties::longhands::{mask_origin, mask_position_x, mask_position_y, mask_repeat, mask_size};
 use style::properties::shorthands::mask;
 use style::stylesheets::Origin;
 
@@ -21,7 +21,8 @@ fn mask_shorthand_should_parse_all_available_properties_when_specified() {
 
     assert_eq!(result.mask_image.unwrap(), parse_longhand!(mask_image, "url(\"http://servo/test.png\")"));
     assert_eq!(result.mask_mode.unwrap(), parse_longhand!(mask_mode, "luminance"));
-    assert_eq!(result.mask_position.unwrap(), parse_longhand!(mask_position, "7px 4px"));
+    assert_eq!(result.mask_position_x.unwrap(), parse_longhand!(mask_position_x, "7px"));
+    assert_eq!(result.mask_position_y.unwrap(), parse_longhand!(mask_position_y, "4px"));
     assert_eq!(result.mask_size.unwrap(), parse_longhand!(mask_size, "70px 50px"));
     assert_eq!(result.mask_repeat.unwrap(), parse_longhand!(mask_repeat, "repeat-x"));
     assert_eq!(result.mask_origin.unwrap(), parse_longhand!(mask_origin, "padding-box"));
@@ -36,7 +37,8 @@ fn mask_shorthand_should_parse_when_some_fields_set() {
     let mut parser = Parser::new("14px 40px repeat-y");
     let result = mask::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.mask_position.unwrap(), parse_longhand!(mask_position, "14px 40px"));
+    assert_eq!(result.mask_position_x.unwrap(), parse_longhand!(mask_position_x, "14px"));
+    assert_eq!(result.mask_position_y.unwrap(), parse_longhand!(mask_position_y, "40px"));
     assert_eq!(result.mask_repeat.unwrap(), parse_longhand!(mask_repeat, "repeat-y"));
 
     let mut parser = Parser::new("url(\"http://servo/test.png\") repeat add");
@@ -64,12 +66,14 @@ fn mask_shorthand_should_parse_position_and_size_correctly() {
     let mut parser = Parser::new("7px 4px");
     let result = mask::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.mask_position.unwrap(), parse_longhand!(mask_position, "7px 4px"));
+    assert_eq!(result.mask_position_x.unwrap(), parse_longhand!(mask_position_x, "7px"));
+    assert_eq!(result.mask_position_y.unwrap(), parse_longhand!(mask_position_y, "4px"));
 
     let mut parser = Parser::new("7px 4px / 30px 20px");
     let result = mask::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.mask_position.unwrap(), parse_longhand!(mask_position, "7px 4px"));
+    assert_eq!(result.mask_position_x.unwrap(), parse_longhand!(mask_position_x, "7px"));
+    assert_eq!(result.mask_position_y.unwrap(), parse_longhand!(mask_position_y, "4px"));
     assert_eq!(result.mask_size.unwrap(), parse_longhand!(mask_size, "30px 20px"));
 
     let mut parser = Parser::new("/ 30px 20px");

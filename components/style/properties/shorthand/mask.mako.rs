@@ -226,7 +226,7 @@
     }
 </%helpers:shorthand>
 
-<%helpers:shorthand name="mask-position"
+<%helpers:shorthand name="mask-position" products="gecko" extra_prefixes="webkit"
                     sub_properties="mask-position-x mask-position-y"
                     spec="https://drafts.csswg.org/css-masks-4/#the-mask-position">
     use properties::longhands::{mask_position_x,mask_position_y};

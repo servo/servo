@@ -113,15 +113,15 @@ ${helpers.single_keyword("mask-repeat",
     pub mod computed_value {
         use values::computed::position::HorizontalPosition;
         use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
-        use properties::longhands::mask_position::computed_value::T as MaskPosition;
+        use properties::longhands::mask_position_x::computed_value::T as MaskPositionX;
 
         pub type T = HorizontalPosition;
 
-        impl RepeatableListInterpolate for MaskPosition {}
+        impl RepeatableListInterpolate for MaskPositionX {}
 
-        impl Interpolate for MaskPosition {
+        impl Interpolate for MaskPositionX {
             fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-                Ok(MaskPosition(try!(self.0.interpolate(&other.0, progress))))
+                Ok(MaskPositionX(try!(self.0.interpolate(&other.0, progress))))
             }
         }
     }
@@ -167,15 +167,15 @@ ${helpers.single_keyword("mask-repeat",
     pub mod computed_value {
         use values::computed::position::VerticalPosition;
         use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
-        use properties::longhands::mask_position::computed_value::T as MaskPosition;
+        use properties::longhands::mask_position_y::computed_value::T as MaskPositionY;
 
         pub type T = VerticalPosition;
 
-        impl RepeatableListInterpolate for MaskPosition {}
+        impl RepeatableListInterpolate for MaskPositionY {}
 
-        impl Interpolate for MaskPosition {
+        impl Interpolate for MaskPositionY {
             fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-                Ok(MaskPosition(try!(self.0.interpolate(&other.0, progress))))
+                Ok(MaskPositionY(try!(self.0.interpolate(&other.0, progress))))
             }
         }
     }
