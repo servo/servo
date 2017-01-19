@@ -19,7 +19,8 @@
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use std::fmt;
+        use cssparser::CssStringWriter;
+        use std::fmt::{self, Write};
         use Atom;
         use style_traits::ToCss;
         pub use self::FontFamily as SingleComputedValue;
@@ -72,7 +73,16 @@
 
         impl ToCss for FontFamily {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.atom().with_str(|s| dest.write_str(s))
+                match *self {
+                    FontFamily::FamilyName(ref name) => {
+                        dest.write_char('"')?;
+                        write!(CssStringWriter::new(dest), "{}", name)?;
+                        dest.write_char('"')
+                    }
+
+                    // All generic values accepted by the parser are known to not require escaping.
+                    FontFamily::Generic(ref name) => write!(dest, "{}", name),
+                }
             }
         }
 
