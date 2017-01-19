@@ -974,19 +974,6 @@ mod shorthand_serialization {
 
             let mode = single_vec_keyword_value!(mode, luminance);
 
-            let position = single_vec_value_typedef!(position,
-                Position {
-                    horizontal: HorizontalPosition {
-                        keyword: None,
-                        position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
-                    },
-                    vertical: VerticalPosition {
-                        keyword: None,
-                        position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
-                    },
-                }
-            );
-
             let position_x = single_vec_value_typedef!(position_x,
                 HorizontalPosition {
                     keyword: None,
