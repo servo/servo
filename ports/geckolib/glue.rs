@@ -34,7 +34,7 @@ use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSet
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
-use style::gecko_bindings::bindings::{nsACString, nsAString};
+use style::gecko_bindings::bindings::{nsACString, nsCSSValueBorrowedMut, nsAString};
 use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
 use style::gecko_bindings::bindings::RawGeckoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
@@ -944,6 +944,61 @@ pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDe
 pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawServoDeclarationBlockBorrowed,
                                                             property: nsCSSPropertyID) {
     remove_property(declarations, get_property_id_from_nscsspropertyid!(property, ()))
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlock_AddPresValue(declarations: RawServoDeclarationBlockBorrowed,
+                                                      property: nsCSSPropertyID,
+                                                      css_value: nsCSSValueBorrowedMut) {
+    use style::gecko::values::convert_nscolor_to_rgba;
+    use style::properties::{DeclaredValue, LonghandId, PropertyDeclaration, PropertyId, longhands};
+    use style::values::specified;
+
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let prop = PropertyId::from_nscsspropertyid(property);
+
+    let long = match prop {
+        Ok(PropertyId::Longhand(long)) => long,
+        _ => {
+            error!("stylo: unknown presentation property with id {:?}", property);
+            return
+        }
+    };
+    let decl = match long {
+        LonghandId::FontSize => {
+            if let Some(int) = css_value.integer() {
+                PropertyDeclaration::FontSize(DeclaredValue::Value(
+                    longhands::font_size::SpecifiedValue(
+                        specified::LengthOrPercentage::Length(
+                            specified::NoCalcLength::from_font_size_int(int as u8)
+                        )
+                    )
+                ))
+            } else {
+                error!("stylo: got unexpected non-integer value for font-size presentation attribute");
+                return
+            }
+        }
+        LonghandId::Color => {
+            if let Some(color) = css_value.color_value() {
+                PropertyDeclaration::Color(DeclaredValue::Value(
+                    specified::CSSRGBA {
+                        parsed: convert_nscolor_to_rgba(color),
+                        authored: None
+                    }
+                ))
+            } else {
+                error!("stylo: got unexpected non-integer value for color presentation attribute");
+                return
+            }
+        }
+        _ => {
+            error!("stylo: cannot handle longhand {:?} from presentation attribute", long);
+            return
+        }
+    };
+    declarations.write().declarations.push((decl, Importance::Normal));
+
 }
 
 #[no_mangle]

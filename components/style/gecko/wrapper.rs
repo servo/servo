@@ -30,7 +30,8 @@ use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
-use gecko_bindings::bindings::Gecko_GetServoDeclarationBlock;
+use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
+use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
@@ -42,6 +43,7 @@ use parking_lot::RwLock;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
 use properties::PropertyDeclarationBlock;
+use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{ElementExt, Snapshot};
 use selectors::Element;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
@@ -385,7 +387,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>> {
-        let declarations = unsafe { Gecko_GetServoDeclarationBlock(self.0) };
+        let declarations = unsafe { Gecko_GetStyleAttrDeclarationBlock(self.0) };
         declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
     }
 
@@ -483,10 +485,16 @@ impl<'le> PartialEq for GeckoElement<'le> {
 }
 
 impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
         where V: Push<ApplicableDeclarationBlock>,
     {
-        // FIXME(bholley) - Need to implement this.
+        let declarations = unsafe { Gecko_GetHTMLPresentationAttrDeclarationBlock(self.0) };
+        let declarations = declarations.and_then(|s| s.as_arc_opt());
+        if let Some(decl) = declarations {
+            hints.push(
+                ApplicableDeclarationBlock::from_declarations(Clone::clone(decl), ServoCascadeLevel::PresHints)
+            );
+        }
     }
 }
 
