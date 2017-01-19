@@ -32,10 +32,8 @@ function getPEMString(cert)
          + "\r\n-----END CERTIFICATE-----\r\n";
 }
 
-let certcache = Components.classes["@mozilla.org/security/nsscertcache;1"].createInstance(Ci.nsINSSCertCache);
 let certdb = Components.classes["@mozilla.org/security/x509certdb;1"].createInstance(Ci.nsIX509CertDB);
-certcache.cacheAllCerts();
-let enumerator = certcache.getX509CachedCerts().getEnumerator();
+let enumerator = certdb.getCerts().getEnumerator();
 let certlist = [];
 let certstring="";
 while(enumerator.hasMoreElements()){
