@@ -61,4 +61,10 @@ impl<'scope, T: Send> ScopedTLS<'scope, T> {
 
         RefMut::map(opt, |x| x.as_mut().unwrap())
     }
+
+    /// Unsafe access to the slots. This can be used to access the TLS when
+    /// the caller knows that the pool does not have access to the TLS.
+    pub unsafe fn unsafe_get(&self) -> &[RefCell<Option<T>>] {
+        &self.slots
+    }
 }
