@@ -110,7 +110,8 @@ impl ServoParser {
         let url = context_document.url();
 
         // Step 1.
-        let loader = DocumentLoader::new(&*context_document.loader());
+        let loader = DocumentLoader::new_with_threads(context_document.loader().resource_threads().clone(),
+                                                      Some(url.clone()));
         let document = Document::new(window, None, Some(url.clone()),
                                      context_document.origin().alias(),
                                      IsHTMLDocument::HTMLDocument,
@@ -351,14 +352,17 @@ impl ServoParser {
         self.document.set_current_parser(None);
 
         if self.pipeline.is_some() {
+            // Initial reflow.
             self.document.disarm_reflow_timeout();
             self.document.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
             let window = self.document.window();
             window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
         }
 
-        // Step 3.
+        // Steps 3-12 are in other castles, namely process_deferred_scripts and finish_load.
+        let url = self.tokenizer.borrow().url().clone();
         self.document.process_deferred_scripts();
+        self.document.finish_load(LoadType::PageSource(url));
     }
 }
 
@@ -398,6 +402,13 @@ impl Tokenizer {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.end(),
             Tokenizer::Xml(ref mut tokenizer) => tokenizer.end(),
+        }
+    }
+
+    fn url(&self) -> &ServoUrl {
+        match *self {
+            Tokenizer::Html(ref tokenizer) => tokenizer.url(),
+            Tokenizer::Xml(ref tokenizer) => tokenizer.url(),
         }
     }
 
@@ -557,9 +568,6 @@ impl FetchResponseListener for ParserContext {
             // TODO(Savago): we should send a notification to callers #5463.
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
-
-        parser.document
-            .finish_load(LoadType::PageSource(self.url.clone()));
 
         parser.last_chunk_received.set(true);
         if !parser.suspended.get() {
