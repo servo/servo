@@ -22,13 +22,13 @@
 
 #![deny(missing_docs)]
 
+use context::TraversalStatistics;
 use dom::{OpaqueNode, SendNode, TElement, TNode};
 use rayon;
 use scoped_tls::ScopedTLS;
 use servo_config::opts;
-use std::sync::atomic::Ordering;
+use std::borrow::Borrow;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
-use traversal::{STYLE_SHARING_CACHE_HITS, STYLE_SHARING_CACHE_MISSES};
 
 /// The chunk size used to split the parallel traversal nodes.
 ///
@@ -45,11 +45,6 @@ pub fn traverse_dom<E, D>(traversal: &D,
     where E: TElement,
           D: DomTraversal<E>,
 {
-    if opts::get().style_sharing_stats {
-        STYLE_SHARING_CACHE_HITS.store(0, Ordering::SeqCst);
-        STYLE_SHARING_CACHE_MISSES.store(0, Ordering::SeqCst);
-    }
-
     // Handle Gecko's eager initial styling. We don't currently support it
     // in conjunction with bottom-up traversal. If we did, we'd need to put
     // it on the context to make it available to the bottom-up phase.
@@ -78,13 +73,16 @@ pub fn traverse_dom<E, D>(traversal: &D,
         });
     });
 
-    if opts::get().style_sharing_stats {
-        let hits = STYLE_SHARING_CACHE_HITS.load(Ordering::SeqCst);
-        let misses = STYLE_SHARING_CACHE_MISSES.load(Ordering::SeqCst);
-
-        println!("Style sharing stats:");
-        println!(" * Hits: {}", hits);
-        println!(" * Misses: {}", misses);
+    // Dump statistics to stdout if requested.
+    if TraversalStatistics::should_dump() || opts::get().style_sharing_stats {
+        let slots = unsafe { tls.unsafe_get() };
+        let aggregate = slots.iter().fold(TraversalStatistics::default(), |acc, t| {
+            match *(t.borrow()) {
+                None => acc,
+                Some(ref cx) => &cx.borrow().statistics + &acc,
+            }
+        });
+        println!("{}", aggregate);
     }
 }
 
