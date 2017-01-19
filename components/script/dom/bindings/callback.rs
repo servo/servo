@@ -15,6 +15,7 @@ use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment, RemoveR
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JS_GetProperty;
 use js::jsval::{JSVal, UndefinedValue, ObjectValue};
+use js::rust::Runtime;
 use std::default::Default;
 use std::ffi::CString;
 use std::mem::drop;
@@ -88,7 +89,7 @@ impl Drop for CallbackObject {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
         unsafe {
-            let cx = GlobalScope::from_object(self.callback.get()).get_cx();
+            let cx = Runtime::get();
             RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
         }
     }
