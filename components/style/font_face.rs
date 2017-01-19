@@ -108,33 +108,26 @@ impl ToCss for FontFaceRule {
 /// Note that the prelude parsing code lives in the `stylesheets` module.
 pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
                              -> Result<FontFaceRule, ()> {
-    let mut family = None;
-    let mut src = None;
-    let mut iter = DeclarationListParser::new(input, FontFaceRuleParser { context: context });
-    while let Some(declaration) = iter.next() {
-        match declaration {
-            Err(range) => {
+    let mut rule = FontFaceRule {
+        family: FontFamily::Generic(atom!("")),
+        sources: Vec::new(),
+    };
+    {
+        let parser = FontFaceRuleParser { context: context, rule: &mut rule };
+        let mut iter = DeclarationListParser::new(input, parser);
+        while let Some(declaration) = iter.next() {
+            if let Err(range) = declaration {
                 let pos = range.start;
                 let message = format!("Unsupported @font-face descriptor declaration: '{}'",
                                       iter.input.slice(range));
                 log_css_error(iter.input, pos, &*message, context);
             }
-            Ok(FontFaceDescriptorDeclaration::Family(value)) => {
-                family = Some(value);
-            }
-            Ok(FontFaceDescriptorDeclaration::Src(value)) => {
-                src = Some(value);
-            }
         }
     }
-    match (family, src) {
-        (Some(family), Some(src)) => {
-            Ok(FontFaceRule {
-                family: family,
-                sources: src,
-            })
-        }
-        _ => Err(())
+    if rule.family != FontFamily::Generic(atom!("")) && !rule.sources.is_empty() {
+        Ok(rule)
+    } else {
+        Err(())
     }
 }
 
@@ -171,40 +164,34 @@ impl iter::Iterator for EffectiveSources {
     }
 }
 
-enum FontFaceDescriptorDeclaration {
-    Family(FontFamily),
-    Src(Vec<Source>),
-}
-
-
 struct FontFaceRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
+    rule: &'a mut FontFaceRule,
 }
-
 
 /// Default methods reject all at rules.
 impl<'a, 'b> AtRuleParser for FontFaceRuleParser<'a, 'b> {
     type Prelude = ();
-    type AtRule = FontFaceDescriptorDeclaration;
+    type AtRule = ();
 }
 
 
 impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
-    type Declaration = FontFaceDescriptorDeclaration;
+    type Declaration = ();
 
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<FontFaceDescriptorDeclaration, ()> {
+    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
         match_ignore_ascii_case! { name,
             "font-family" => {
-                Ok(FontFaceDescriptorDeclaration::Family(try!(
-                            parse_one_family(input))))
+                self.rule.family = parse_one_family(input)?;
             },
             "src" => {
-                Ok(FontFaceDescriptorDeclaration::Src(try!(input.parse_comma_separated(|input| {
+                self.rule.sources = input.parse_comma_separated(|input| {
                     parse_one_src(self.context, input)
-                }))))
+                })?;
             },
-            _ => Err(())
+            _ => return Err(())
         }
+        Ok(())
     }
 }
 
