@@ -20,7 +20,7 @@
 //!    calls `trace()` on the field.
 //!    For example, for fields of type `JS<T>`, `JS<T>::trace()` calls
 //!    `trace_reflector()`.
-//! 4. `trace_reflector()` calls `JS_CallUnbarrieredObjectTracer()` with a
+//! 4. `trace_reflector()` calls `JS::TraceEdge()` with a
 //!    pointer to the `JSObject` for the reflector. This notifies the GC, which
 //!    will add the object to the graph, and will trace that object as well.
 //! 5. When the GC finishes tracing, it [`finalizes`](../index.html#destruction)
@@ -54,7 +54,7 @@ use hyper::method::Method;
 use hyper::mime::Mime;
 use hyper::status::StatusCode;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use js::glue::{CallObjectTracer, CallUnbarrieredObjectTracer, CallValueTracer};
+use js::glue::{CallObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::Runtime;
@@ -139,12 +139,8 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
 /// Trace the `JSObject` held by `reflector`.
 #[allow(unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
-    unsafe {
-        trace!("tracing reflector {}", description);
-        CallUnbarrieredObjectTracer(tracer,
-                                    reflector.rootable(),
-                                    GCTraceKindToAscii(TraceKind::Object));
-    }
+    trace!("tracing reflector {}", description);
+    trace_object(tracer, description, reflector.rootable())
 }
 
 /// Trace a `JSObject`.
