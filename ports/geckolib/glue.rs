@@ -725,8 +725,6 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
         _ => return RawServoDeclarationBlockStrong::null(),
     }
 
-    let results = results.into_iter().map(|r| (r, Importance::Normal)).collect();
-
     Arc::new(RwLock::new(PropertyDeclarationBlock {
         declarations: results,
         important_count: 0,
@@ -864,7 +862,7 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
         let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
         let importance = if is_important { Importance::Important } else { Importance::Normal };
         for decl in decls.into_iter() {
-            declarations.set_parsed_declaration(decl, importance);
+            declarations.set_parsed_declaration(decl.0, importance);
         }
         true
     } else {

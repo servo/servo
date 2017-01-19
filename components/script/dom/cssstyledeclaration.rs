@@ -193,7 +193,7 @@ impl CSSStyleDeclaration {
                                       ParserContextExtraData::default());
 
             // Step 7
-            let declarations = match declarations {
+            let mut declarations = match declarations {
                 Ok(declarations) => declarations,
                 Err(_) => return Ok(())
             };
@@ -204,7 +204,7 @@ impl CSSStyleDeclaration {
                 Some(ref lock) => {
                     let mut style_attribute = lock.write();
                     for declaration in declarations {
-                        style_attribute.set_parsed_declaration(declaration, importance);
+                        style_attribute.set_parsed_declaration(declaration.0, importance);
                     }
                     self.owner.flush_style(&style_attribute);
                 }
@@ -214,8 +214,11 @@ impl CSSStyleDeclaration {
                     } else {
                         0
                     };
+                    for decl in &mut declarations {
+                        decl.1 = importance
+                    }
                     let block = PropertyDeclarationBlock {
-                        declarations: declarations.into_iter().map(|d| (d, importance)).collect(),
+                        declarations: declarations,
                         important_count: important_count,
                     };
                     if let CSSStyleOwner::Element(ref el) = self.owner {
