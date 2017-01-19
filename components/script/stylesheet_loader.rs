@@ -13,7 +13,6 @@ use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::HTMLLinkElement;
-use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::node::{document_from_node, window_from_node};
 use encoding::EncodingRef;
@@ -99,8 +98,6 @@ impl FetchResponseListener for StylesheetContext {
         let stylesheet: Option<Root<CSSStyleSheet>>;
         let elem = self.elem.root();
         if let Some(element) = elem.downcast::<HTMLLinkElement>() {
-            stylesheet = element.get_cssom_stylesheet();
-        } else if let Some(element) = elem.downcast::<HTMLMetaElement>() {
             stylesheet = element.get_cssom_stylesheet();
         } else if let Some(element) = elem.downcast::<HTMLStyleElement>() {
             stylesheet = element.get_cssom_stylesheet();

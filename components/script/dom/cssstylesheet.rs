@@ -38,7 +38,7 @@ impl CSSStyleSheet {
             owner: JS::from_ref(owner),
             rulelist: MutNullableJS::new(None),
             style_stylesheet: stylesheet,
-            origin_clean: Cell::new(false),
+            origin_clean: Cell::new(true),
         }
     }
 
