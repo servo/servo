@@ -129,7 +129,7 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
             return;
         }
 
-        debug!("tracing value {}", description);
+        trace!("tracing value {}", description);
         CallValueTracer(tracer,
                         val.ptr.get() as *mut _,
                         GCTraceKindToAscii(val.get().trace_kind()));
@@ -140,7 +140,7 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
 #[allow(unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
     unsafe {
-        debug!("tracing reflector {}", description);
+        trace!("tracing reflector {}", description);
         CallUnbarrieredObjectTracer(tracer,
                                     reflector.rootable(),
                                     GCTraceKindToAscii(TraceKind::Object));
@@ -150,7 +150,7 @@ pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Ref
 /// Trace a `JSObject`.
 pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
     unsafe {
-        debug!("tracing {}", description);
+        trace!("tracing {}", description);
         CallObjectTracer(tracer,
                          obj.ptr.get() as *mut _,
                          GCTraceKindToAscii(TraceKind::Object));
@@ -734,7 +734,7 @@ impl<'a, T: JSTraceable> DerefMut for RootedVec<'a, T> {
 
 /// SM Callback that traces the rooted traceables
 pub unsafe fn trace_traceables(tracer: *mut JSTracer) {
-    debug!("tracing stack-rooted traceables");
+    trace!("tracing stack-rooted traceables");
     ROOTED_TRACEABLES.with(|ref traceables| {
         let traceables = traceables.borrow();
         traceables.trace(tracer);

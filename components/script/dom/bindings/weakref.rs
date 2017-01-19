@@ -55,7 +55,7 @@ pub trait WeakReferenceable: DomObject + Sized {
                                              DOM_WEAK_SLOT)
                               .to_private() as *mut WeakBox<Self>;
             if ptr.is_null() {
-                debug!("Creating new WeakBox holder for {:p}.", self);
+                trace!("Creating new WeakBox holder for {:p}.", self);
                 ptr = Box::into_raw(box WeakBox {
                     count: Cell::new(1),
                     value: Cell::new(Some(NonZero::new(self))),
@@ -65,7 +65,7 @@ pub trait WeakReferenceable: DomObject + Sized {
             let box_ = &*ptr;
             assert!(box_.value.get().is_some());
             let new_count = box_.count.get() + 1;
-            debug!("Incrementing WeakBox refcount for {:p} to {}.",
+            trace!("Incrementing WeakBox refcount for {:p} to {}.",
                    self,
                    new_count);
             box_.count.set(new_count);

@@ -159,7 +159,7 @@ unsafe impl<T> Sync for ReentrantMutex<T> where T: Send {}
 
 impl<T> ReentrantMutex<T> {
     pub fn new(data: T) -> ReentrantMutex<T> {
-        debug!("{:?} Creating new lock.", ThreadId::current());
+        trace!("{:?} Creating new lock.", ThreadId::current());
         ReentrantMutex {
             mutex: HandOverHandMutex::new(),
             count: Cell::new(0),
@@ -168,53 +168,53 @@ impl<T> ReentrantMutex<T> {
     }
 
     pub fn lock(&self) -> LockResult<ReentrantMutexGuard<T>> {
-        debug!("{:?} Locking.", ThreadId::current());
+        trace!("{:?} Locking.", ThreadId::current());
         if self.mutex.owner() != Some(ThreadId::current()) {
-            debug!("{:?} Becoming owner.", ThreadId::current());
+            trace!("{:?} Becoming owner.", ThreadId::current());
             if let Err(_) = self.mutex.lock() {
-                debug!("{:?} Poison!", ThreadId::current());
+                trace!("{:?} Poison!", ThreadId::current());
                 return Err(PoisonError::new(self.mk_guard()));
             }
-            debug!("{:?} Became owner.", ThreadId::current());
+            trace!("{:?} Became owner.", ThreadId::current());
         }
         Ok(self.mk_guard())
     }
 
     pub fn try_lock(&self) -> TryLockResult<ReentrantMutexGuard<T>> {
-        debug!("{:?} Try locking.", ThreadId::current());
+        trace!("{:?} Try locking.", ThreadId::current());
         if self.mutex.owner() != Some(ThreadId::current()) {
-            debug!("{:?} Becoming owner?", ThreadId::current());
+            trace!("{:?} Becoming owner?", ThreadId::current());
             if let Err(err) = self.mutex.try_lock() {
                 match err {
                     TryLockError::WouldBlock => {
-                        debug!("{:?} Would block.", ThreadId::current());
+                        trace!("{:?} Would block.", ThreadId::current());
                         return Err(TryLockError::WouldBlock)
                     },
                     TryLockError::Poisoned(_) => {
-                        debug!("{:?} Poison!", ThreadId::current());
+                        trace!("{:?} Poison!", ThreadId::current());
                         return Err(TryLockError::Poisoned(PoisonError::new(self.mk_guard())));
                     },
                 }
             }
-            debug!("{:?} Became owner.", ThreadId::current());
+            trace!("{:?} Became owner.", ThreadId::current());
         }
         Ok(self.mk_guard())
     }
 
     fn unlock(&self) {
-        debug!("{:?} Unlocking.", ThreadId::current());
+        trace!("{:?} Unlocking.", ThreadId::current());
         let count = self.count.get().checked_sub(1).expect("Underflowed lock count.");
-        debug!("{:?} Decrementing count to {}.", ThreadId::current(), count);
+        trace!("{:?} Decrementing count to {}.", ThreadId::current(), count);
         self.count.set(count);
         if count == 0 {
-            debug!("{:?} Releasing mutex.", ThreadId::current());
+            trace!("{:?} Releasing mutex.", ThreadId::current());
             self.mutex.unlock();
         }
     }
 
     fn mk_guard(&self) -> ReentrantMutexGuard<T> {
         let count = self.count.get().checked_add(1).expect("Overflowed lock count.");
-        debug!("{:?} Incrementing count to {}.", ThreadId::current(), count);
+        trace!("{:?} Incrementing count to {}.", ThreadId::current(), count);
         self.count.set(count);
         ReentrantMutexGuard { mutex: self }
     }
