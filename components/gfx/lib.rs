@@ -29,6 +29,7 @@ extern crate bitflags;
 
 // Windows-specific library dependencies
 #[cfg(target_os = "windows")] extern crate dwrote;
+#[cfg(target_os = "windows")] extern crate truetype;
 
 extern crate euclid;
 extern crate fnv;
