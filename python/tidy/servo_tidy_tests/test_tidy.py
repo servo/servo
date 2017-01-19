@@ -29,6 +29,8 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual("invalid config key 'key-outside'", errors.next()[2])
         self.assertEqual("invalid config key 'wrong-key'", errors.next()[2])
         self.assertEqual('invalid config table [wrong]', errors.next()[2])
+        self.assertEqual("ignored file './fake/file.html' doesn't exist", errors.next()[2])
+        self.assertEqual("ignored directory './fake/dir' doesn't exist", errors.next()[2])
         self.assertNoMoreErrors(errors)
 
     def test_directory_checks(self):

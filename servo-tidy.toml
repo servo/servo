@@ -50,9 +50,6 @@ files = [
   "./tests/wpt/mozilla/tests/css/fonts",
   "./tests/wpt/mozilla/tests/css/pre_with_tab.html",
   "./tests/wpt/mozilla/tests/mozilla/textarea_placeholder.html",
-  # FIXME(pcwalton, #11679): This is a workaround for a tidy error on the quoted string
-  # `"__TEXT,_info_plist"` inside an attribute.
-  "./components/servo/platform/macos/mod.rs",
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [
@@ -65,7 +62,6 @@ directories = [
   "./tests/wpt/mozilla/tests/mozilla/referrer-policy",
   "./tests/wpt/sync",
   "./tests/wpt/sync_css",
-  "./python/mach",
   "./python/tidy/servo_tidy_tests",
   "./components/script/dom/bindings/codegen/parser",
   "./components/script/dom/bindings/codegen/ply",

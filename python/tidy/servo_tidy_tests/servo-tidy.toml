@@ -11,5 +11,9 @@ wrong-key = false
 wrong-key = true
 
 [ignore]
-files = []
-directories = []
+files = [
+  "./fake/file.html",
+]
+directories = [
+  "./fake/dir",
+]
