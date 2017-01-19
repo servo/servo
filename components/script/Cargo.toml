@@ -18,7 +18,7 @@ debugmozjs = ['js/debugmozjs']
 cmake = "0.1"
 phf_codegen = "0.7.18"
 phf_shared = "0.7.18"
-regex = "0.2"
+serde_json = "0.8"
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"
