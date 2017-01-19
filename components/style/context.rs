@@ -16,6 +16,9 @@ use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
 use properties::ComputedValues;
 use std::collections::HashMap;
+use std::env;
+use std::fmt;
+use std::ops::Add;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use stylist::Stylist;
@@ -102,6 +105,65 @@ struct CurrentElementInfo {
     is_initial_style: bool,
 }
 
+/// Statistics gathered during the traversal. We gather statistics on each thread
+/// and then combine them after the threads join via the Add implementation below.
+#[derive(Default)]
+pub struct TraversalStatistics {
+    /// The total number of elements traversed.
+    pub elements_traversed: u32,
+    /// The number of elements where has_styles() went from false to true.
+    pub elements_styled: u32,
+    /// The number of elements for which we performed selector matching.
+    pub elements_matched: u32,
+    /// The number of cache hits from the StyleSharingCache.
+    pub styles_shared: u32,
+}
+
+/// Implementation of Add to aggregate statistics across different threads.
+impl<'a> Add for &'a TraversalStatistics {
+    type Output = TraversalStatistics;
+    fn add(self, other: Self) -> TraversalStatistics {
+        TraversalStatistics {
+            elements_traversed: self.elements_traversed + other.elements_traversed,
+            elements_styled: self.elements_styled + other.elements_styled,
+            elements_matched: self.elements_matched + other.elements_matched,
+            styles_shared: self.styles_shared + other.styles_shared,
+        }
+    }
+}
+
+/// Format the statistics in a way that the performance test harness understands.
+/// See https://bugzilla.mozilla.org/show_bug.cgi?id=1331856#c2
+impl fmt::Display for TraversalStatistics {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        try!(writeln!(f, "[PERF] perf block start"));
+        try!(writeln!(f, "[PERF],elements_traversed,{}", self.elements_traversed));
+        try!(writeln!(f, "[PERF],elements_styled,{}", self.elements_styled));
+        try!(writeln!(f, "[PERF],elements_matched,{}", self.elements_matched));
+        try!(writeln!(f, "[PERF],styles_shared,{}", self.styles_shared));
+        writeln!(f, "[PERF] perf block end")
+    }
+}
+
+lazy_static! {
+    /// Whether to dump style statistics, computed statically. We use an environmental
+    /// variable so that this is easy to set for Gecko builds, and matches the
+    /// mechanism we use to dump statistics on the Gecko style system.
+    static ref DUMP_STYLE_STATISTICS: bool = {
+        match env::var("DUMP_STYLE_STATISTICS") {
+            Ok(s) => !s.is_empty(),
+            Err(_) => false,
+        }
+    };
+}
+
+impl TraversalStatistics {
+    /// Returns whether statistics dumping is enabled.
+    pub fn should_dump() -> bool {
+        *DUMP_STYLE_STATISTICS
+    }
+}
+
 /// A thread-local style context.
 ///
 /// This context contains data that needs to be used during restyling, but is
@@ -115,6 +177,8 @@ pub struct ThreadLocalStyleContext<E: TElement> {
     /// A channel on which new animations that have been triggered by style
     /// recalculation can be sent.
     pub new_animations_sender: Sender<Animation>,
+    /// Statistics about the traversal.
+    pub statistics: TraversalStatistics,
     /// Information related to the current element, non-None during processing.
     current_element_info: Option<CurrentElementInfo>,
 }
@@ -126,6 +190,7 @@ impl<E: TElement> ThreadLocalStyleContext<E> {
             style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             bloom_filter: StyleBloom::new(),
             new_animations_sender: shared.local_context_creation_data.lock().unwrap().new_animations_sender.clone(),
+            statistics: TraversalStatistics::default(),
             current_element_info: None,
         }
     }
