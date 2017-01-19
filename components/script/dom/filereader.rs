@@ -27,7 +27,7 @@ use js::jsapi::Heap;
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JSContext;
 use js::jsval::{self, JSVal};
-use js::typedarray::Uint8Array;
+use js::typedarray::ArrayBuffer;
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use script_thread::RunnableWrapper;
 use servo_atoms::Atom;
@@ -269,7 +269,7 @@ impl FileReader {
         cx: *mut JSContext, _: ReadMetaData, bytes: &[u8]) {
         unsafe {
             rooted!(in(cx) let mut array_buffer = ptr::null_mut());
-            assert!(Uint8Array::create(cx, bytes.len() as u32, Some(bytes), array_buffer.handle_mut()).is_ok());
+            assert!(ArrayBuffer::create(cx, bytes.len() as u32, Some(bytes), array_buffer.handle_mut()).is_ok());
 
             *result.borrow_mut() = Some(FileReaderResult::ArrayBuffer(Heap::default()));
 
