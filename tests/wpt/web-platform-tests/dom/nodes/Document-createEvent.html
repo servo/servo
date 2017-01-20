@@ -151,4 +151,8 @@ someNonCreateableEvents.forEach(function (eventInterface) {
     }, 'Should throw NOT_SUPPORTED_ERR for pluralized non-legacy event interface "' + eventInterface + 's"');
   }
 });
+
+test(function() {
+  assert_equals(document.createEvent('storageevent'), "");
+}, "document.createEvent('storageevent') does not propagate the document's URL.")
 </script>
