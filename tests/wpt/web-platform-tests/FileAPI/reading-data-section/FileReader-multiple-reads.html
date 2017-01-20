@@ -62,12 +62,12 @@ async_test(function() {
   var blob_2 = new Blob(['TEST000000002'])
   var reader = new FileReader();
   reader.onloadend = this.step_func_done(function() {
-    assert_equals(reader.readyState, FileReader.LOADING,
-                  "readyState must be LOADING")
+    assert_equals(reader.readyState, FileReader.DONE,
+                  "readyState must be DONE")
     reader.readAsArrayBuffer(blob_2)
     assert_equals(reader.readyState, FileReader.LOADING, "readyState Must be LOADING")
   });
   reader.readAsArrayBuffer(blob_1)
   assert_equals(reader.readyState, FileReader.LOADING, "readyState Must be LOADING")
-}, 'test FileReader no InvalidStateError exception in onloadstart event for readAsArrayBuffer');
+}, 'test FileReader no InvalidStateError exception in loadend event handler for readAsArrayBuffer');
 </script>
