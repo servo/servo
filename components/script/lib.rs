@@ -23,7 +23,6 @@
 
 #![doc = "The script crate contains all matters DOM."]
 
-#![plugin(phf_macros)]
 #![plugin(plugins)]
 
 extern crate angle;

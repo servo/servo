@@ -16,6 +16,9 @@ debugmozjs = ['js/debugmozjs']
 
 [build-dependencies]
 cmake = "0.1"
+phf_codegen = "0.7.18"
+phf_shared = "0.7.18"
+serde_json = "0.8"
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"
@@ -57,7 +60,6 @@ offscreen_gl_context = "0.5.0"
 open = "1.1.1"
 parking_lot = "0.3"
 phf = "0.7.18"
-phf_macros = "0.7.18"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}

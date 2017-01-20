@@ -2017,15 +2017,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phf_macros"
-version = "0.7.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "phf_generator 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_shared 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "phf_shared"
 version = "0.7.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2296,7 +2287,8 @@ dependencies = [
  "open 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "phf_macros 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_codegen 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "profile_traits 0.0.1",
  "range 0.0.1",
@@ -2308,6 +2300,7 @@ dependencies = [
  "script_traits 0.0.1",
  "selectors 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
@@ -2484,7 +2477,6 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "net_tests 0.0.1",
  "net_traits_tests 0.0.1",
- "phf_macros 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugin_compiletest 0.0.1",
  "profile_tests 0.0.1",
  "script_tests 0.0.1",
@@ -3547,7 +3539,6 @@ dependencies = [
 "checksum phf 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)" = "0c6afb2057bb5f846a7b75703f90bc1cef4970c35209f712925db7768e999202"
 "checksum phf_codegen 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)" = "6b63f121bf9a128f2172a65d8313a8e0e79d63874eeb4b4b7d82e6dda6b62f7c"
 "checksum phf_generator 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)" = "50ffbd7970f75afa083c5dd7b6830c97b72b81579c7a92d8134ef2ee6c0c7eb0"
-"checksum phf_macros 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)" = "619b2c128703c63376de760377600b924fc0257487f51bc156f596cf8762e497"
 "checksum phf_shared 0.7.20 (registry+https://github.com/rust-lang/crates.io-index)" = "286385a0e50d4147bce15b2c19f0cf84c395b0e061aaf840898a7bf664c2cfb7"
 "checksum pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)" = "8cee804ecc7eaf201a4a207241472cc870e825206f6c031e3ee2a72fa425f2fa"
 "checksum pnacl-build-helper 1.4.10 (registry+https://github.com/rust-lang/crates.io-index)" = "61c9231d31aea845007443d62fcbb58bb6949ab9c18081ee1e09920e0cf1118b"

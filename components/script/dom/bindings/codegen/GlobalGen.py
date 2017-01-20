@@ -76,6 +76,7 @@ def main():
             ('PrototypeList', 'PrototypeList.rs'),
             ('RegisterBindings', 'RegisterBindings.rs'),
             ('InterfaceObjectMap', 'InterfaceObjectMap.rs'),
+            ('InterfaceObjectMapData', 'InterfaceObjectMapData.json'),
             ('InterfaceTypes', 'InterfaceTypes.rs'),
             ('InheritTypes', 'InheritTypes.rs'),
             ('Bindings', os.path.join('Bindings', 'mod.rs')),
