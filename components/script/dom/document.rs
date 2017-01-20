@@ -1547,9 +1547,15 @@ impl Document {
             loader.finish_load(&load);
         }
 
-        if let LoadType::Stylesheet(_) = load {
-            self.process_deferred_scripts();
-            self.process_pending_parsing_blocking_script();
+        match load {
+            LoadType::Stylesheet(_) => {
+                self.process_deferred_scripts();
+                self.process_pending_parsing_blocking_script();
+            },
+            LoadType::PageSource(_) => {
+                self.process_deferred_scripts();
+            },
+            _ => {},
         }
 
         if !self.loader.borrow().is_blocked() && !self.loader.borrow().events_inhibited() {
@@ -1638,7 +1644,7 @@ impl Document {
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 3.
-    pub fn process_deferred_scripts(&self) {
+    fn process_deferred_scripts(&self) {
         if self.ready_state.get() != DocumentReadyState::Interactive {
             return;
         }

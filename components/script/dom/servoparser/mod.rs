@@ -359,9 +359,8 @@ impl ServoParser {
             window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
         }
 
-        // Steps 3-12 are in other castles, namely process_deferred_scripts and finish_load.
+        // Steps 3-12 are in another castle, namely finish_load.
         let url = self.tokenizer.borrow().url().clone();
-        self.document.process_deferred_scripts();
         self.document.finish_load(LoadType::PageSource(url));
     }
 }
