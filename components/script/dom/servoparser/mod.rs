@@ -110,7 +110,7 @@ impl ServoParser {
         let document = Document::new(window,
                                      HasBrowsingContext::No,
                                      Some(url.clone()),
-                                     context_document.origin().alias(),
+                                     context_document.origin().clone(),
                                      IsHTMLDocument::HTMLDocument,
                                      None,
                                      None,

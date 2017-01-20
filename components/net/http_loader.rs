@@ -37,7 +37,7 @@ use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use openssl;
 use openssl::ssl::error::{OpensslError, SslError};
 use resource_thread::AuthCache;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashSet;
 use std::error::Error;
 use std::io::{self, Read, Write};
@@ -51,7 +51,6 @@ use std::thread;
 use time;
 use time::Tm;
 use unicase::UniCase;
-use url::Origin as UrlOrigin;
 use uuid;
 
 fn read_block<R: Read>(reader: &mut R) -> Result<Data, ()> {
@@ -389,7 +388,7 @@ fn send_response_to_devtools(devtools_chan: &Sender<DevtoolsControlMsg>,
     let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
 }
 
-fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &UrlOrigin) -> Option<Basic> {
+fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, origin: &ImmutableOrigin) -> Option<Basic> {
     if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(&origin.ascii_serialization()) {
         let user_name = auth_entry.user_name.clone();
         let password  = Some(auth_entry.password.clone());
@@ -767,7 +766,7 @@ fn http_redirect_fetch(request: Rc<Request>,
 
     // Step 9
     if cors_flag && !same_origin {
-        *request.origin.borrow_mut() = Origin::Origin(UrlOrigin::new_opaque());
+        *request.origin.borrow_mut() = Origin::Origin(ImmutableOrigin::new_opaque());
     }
 
     // Step 10

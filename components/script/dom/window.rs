@@ -62,7 +62,6 @@ use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
 use open;
-use origin::Origin;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
@@ -83,7 +82,7 @@ use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_geometry::{f32_rect_to_au_rect, max_rect};
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -660,10 +659,10 @@ impl WindowMethods for Window {
             "/" => {
                 // TODO(#12715): Should be the origin of the incumbent settings
                 //               object, not self's.
-                Some(self.Document().origin().copy())
+                Some(self.Document().origin().immutable().clone())
             },
             url => match ServoUrl::parse(&url) {
-                Ok(url) => Some(Origin::new(&url)),
+                Ok(url) => Some(url.origin().clone()),
                 Err(_) => return Err(Error::Syntax),
             }
         };
@@ -1793,13 +1792,13 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
 
 struct PostMessageHandler {
     destination: Trusted<Window>,
-    origin: Option<Origin>,
+    origin: Option<ImmutableOrigin>,
     message: StructuredCloneData,
 }
 
 impl PostMessageHandler {
     fn new(window: &Window,
-           origin: Option<Origin>,
+           origin: Option<ImmutableOrigin>,
            message: StructuredCloneData) -> PostMessageHandler {
         PostMessageHandler {
             destination: Trusted::new(window),

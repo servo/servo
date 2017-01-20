@@ -115,7 +115,6 @@ pub mod layout_wrapper;
 mod mem;
 mod microtask;
 mod network_listener;
-pub mod origin;
 pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;

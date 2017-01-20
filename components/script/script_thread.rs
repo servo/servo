@@ -77,7 +77,6 @@ use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCach
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::storage_thread::StorageType;
 use network_listener::NetworkListener;
-use origin::Origin;
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
@@ -95,7 +94,7 @@ use script_traits::WebVREventMsg;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue, AsyncJobHandler};
 use servo_config::opts;
-use servo_url::ServoUrl;
+use servo_url::{MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
@@ -155,7 +154,8 @@ struct InProgressLoad {
     is_visible: bool,
     /// The requested URL of the load.
     url: ServoUrl,
-    origin: Origin,
+    /// The origin for the document
+    origin: MutableOrigin,
 }
 
 impl InProgressLoad {
@@ -166,7 +166,7 @@ impl InProgressLoad {
            layout_chan: Sender<message::Msg>,
            window_size: Option<WindowSizeData>,
            url: ServoUrl,
-           origin: Origin) -> InProgressLoad {
+           origin: MutableOrigin) -> InProgressLoad {
         InProgressLoad {
             pipeline_id: id,
             frame_id: frame_id,
@@ -545,7 +545,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
 
-            let origin = Origin::new(&load_data.url);
+            let origin = MutableOrigin::new(load_data.url.origin());
             let new_load = InProgressLoad::new(id, frame_id, parent_info, layout_chan, window_size,
                                                load_data.url.clone(), origin);
             script_thread.start_page_load(new_load, load_data);
@@ -611,7 +611,7 @@ impl ScriptThread {
         });
     }
 
-    pub fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: Origin) {
+    pub fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
@@ -791,7 +791,7 @@ impl ScriptThread {
                 FromConstellation(ConstellationControlMsg::AttachLayout(
                         new_layout_info)) => {
                     self.profile_event(ScriptThreadEventCategory::AttachLayout, || {
-                        let origin = Origin::new(&new_layout_info.load_data.url);
+                        let origin = MutableOrigin::new(new_layout_info.load_data.url.origin());
                         self.handle_new_layout(new_layout_info, origin);
                     })
                 }
@@ -1208,7 +1208,7 @@ impl ScriptThread {
         window.set_scroll_offsets(scroll_offsets)
     }
 
-    fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: Origin) {
+    fn handle_new_layout(&self, new_layout_info: NewLayoutInfo, origin: MutableOrigin) {
         let NewLayoutInfo {
             parent_info,
             new_pipeline_id,

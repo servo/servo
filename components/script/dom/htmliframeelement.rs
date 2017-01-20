@@ -167,7 +167,7 @@ impl HTMLIFrameElement {
                 layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
             };
 
-            ScriptThread::process_attach_layout(new_layout_info, document.origin().alias());
+            ScriptThread::process_attach_layout(new_layout_info, document.origin().clone());
         } else {
             let load_info = IFrameLoadInfoWithData {
                 info: load_info,

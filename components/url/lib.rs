@@ -7,19 +7,26 @@
 #![crate_name = "servo_url"]
 #![crate_type = "rlib"]
 
-#[cfg(feature = "servo")] extern crate heapsize;
+#[cfg(feature = "servo")] #[macro_use] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 #[cfg(feature = "servo")] extern crate serde;
+#[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] extern crate url_serde;
 
+extern crate servo_rand;
 extern crate url;
+extern crate uuid;
+
+pub mod origin;
+
+pub use origin::{OpaqueOrigin, ImmutableOrigin, MutableOrigin};
 
 use std::fmt;
 use std::net::IpAddr;
 use std::ops::{Range, RangeFrom, RangeTo, RangeFull, Index};
 use std::path::Path;
 use std::sync::Arc;
-use url::{Url, Origin, Position};
+use url::{Url, Position};
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -68,8 +75,8 @@ impl ServoUrl {
         self.0.path()
     }
 
-    pub fn origin(&self) -> Origin {
-        self.0.origin()
+    pub fn origin(&self) -> ImmutableOrigin {
+        ImmutableOrigin::new(self.0.origin())
     }
 
     pub fn scheme(&self) -> &str {
