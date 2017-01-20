@@ -19,7 +19,7 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError, ReferrerPolicy};
+use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
@@ -47,6 +47,9 @@ pub trait StylesheetOwner {
     /// Returns None if there are still pending loads, or whether any load has
     /// failed since the loads started.
     fn load_finished(&self, successful: bool) -> Option<bool>;
+
+    /// Sets origin_clean flag.
+    fn set_origin_clean(&self, origin_clean: bool);
 }
 
 pub enum StylesheetContextSource {
@@ -81,6 +84,7 @@ pub struct StylesheetContext {
     data: Vec<u8>,
     /// The node document for elem when the load was initiated.
     document: Trusted<Document>,
+    origin_clean: bool,
 }
 
 impl PreInvoke for StylesheetContext {}
@@ -92,6 +96,16 @@ impl FetchResponseListener for StylesheetContext {
 
     fn process_response(&mut self,
                         metadata: Result<FetchMetadata, NetworkError>) {
+        if let Ok(FetchMetadata::Filtered { ref filtered, .. }) = metadata {
+            match *filtered {
+                FilteredMetadata::Opaque |
+                FilteredMetadata::OpaqueRedirect => {
+                    self.origin_clean = false;
+                },
+                _ => {},
+            }
+        }
+
         self.metadata = metadata.ok().map(|m| {
             match m {
                 FetchMetadata::Unfiltered(m) => m,
@@ -169,6 +183,7 @@ impl FetchResponseListener for StylesheetContext {
 
         let owner = elem.upcast::<Element>().as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
+        owner.set_origin_clean(self.origin_clean);
         if owner.parser_inserted() {
             document.decrement_script_blocking_stylesheet_count();
         }
@@ -206,6 +221,7 @@ impl<'a> StylesheetLoader<'a> {
             metadata: None,
             data: vec![],
             document: Trusted::new(&*document),
+            origin_clean: true,
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
