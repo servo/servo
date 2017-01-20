@@ -1549,7 +1549,6 @@ impl Document {
 
         if let LoadType::Script(_) = load {
             self.process_deferred_scripts();
-            self.process_asap_scripts_in_order();
         }
 
         if let Some(parser) = self.get_current_parser() {
@@ -1625,9 +1624,6 @@ impl Document {
                                        element: &HTMLScriptElement,
                                        result: ScriptResult) {
         self.asap_in_order_scripts_list.loaded(element, result);
-    }
-
-    fn process_asap_scripts_in_order(&self) {
         while let Some((element, result)) = self.asap_in_order_scripts_list.take_next_ready_to_be_executed() {
             element.execute(result);
         }
