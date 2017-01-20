@@ -434,6 +434,7 @@ impl TestBindingMethods for TestBinding {
     fn PassUnion6(&self, _: UnsignedLongOrBoolean) {}
     fn PassUnion7(&self, _: StringSequenceOrUnsignedLong) {}
     fn PassUnion8(&self, _: ByteStringSequenceOrLong) {}
+    fn PassUnion9(&self, _: UnionTypes::TestDictionaryOrLong) {}
     fn PassUnionWithTypedef(&self, _: DocumentOrTestTypedef) {}
     fn PassUnionWithTypedef2(&self, _: LongSequenceOrTestTypedef) {}
     #[allow(unsafe_code)]

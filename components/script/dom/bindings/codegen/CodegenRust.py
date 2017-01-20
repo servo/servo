@@ -758,7 +758,26 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                         "    _ => { %s },\n"
                         "}" % (indent(failOrPropagate, 8), exceptionCode))
 
-        return handleOptional(templateBody, declType, handleDefaultNull("None"))
+        dictionaries = [
+            memberType
+            for memberType in type.unroll().flatMemberTypes
+            if memberType.isDictionary()
+        ]
+        if dictionaries:
+            if defaultValue:
+                assert isinstance(defaultValue, IDLNullValue)
+                dictionary, = dictionaries
+                default = "%s::%s(%s::%s::empty(cx))" % (
+                    union_native_type(type),
+                    dictionary.name,
+                    CGDictionary.makeModuleName(dictionary.inner),
+                    CGDictionary.makeDictionaryName(dictionary.inner))
+            else:
+                default = None
+        else:
+            default = handleDefaultNull("None")
+
+        return handleOptional(templateBody, declType, default)
 
     if type.isGeckoInterface():
         assert not isEnforceRange and not isClamp
@@ -1076,8 +1095,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                               handleDefaultNull("ptr::null_mut()"))
 
     if type.isDictionary():
-        if failureCode is not None:
-            raise TypeError("Can't handle dictionaries when failureCode is not None")
         # There are no nullable dictionaries
         assert not type.nullable()
 
@@ -2217,6 +2234,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
     """
 
     imports = [
+        'dom',
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::conversions::ConversionResult',
         'dom::bindings::conversions::FromJSValConvertible',
@@ -2243,7 +2261,9 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
     # we need to wrap or unwrap them.
     unionStructs = dict()
     for (t, descriptor, dictionary) in getAllTypes(descriptors, dictionaries, callbacks, typedefs):
-        assert not descriptor or not dictionary
+        if dictionary:
+            imports.append("%s::%s" % (CGDictionary.makeModuleName(dictionary),
+                                       CGDictionary.makeDictionaryName(dictionary)))
         t = t.unroll()
         if not t.isUnion():
             continue
@@ -4028,6 +4048,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isEnum():
         name = type.inner.identifier.name
         typeName = name
+    elif type.isDictionary():
+        name = type.name
+        typeName = name
     elif type.isSequence() or type.isMozMap():
         name = type.name
         inner = getUnionTypeTemplateVars(innerContainerType(type), descriptorProvider)
@@ -4163,15 +4186,12 @@ class CGUnionConversionStruct(CGThing):
 
         dictionaryMemberTypes = filter(lambda t: t.isDictionary(), memberTypes)
         if len(dictionaryMemberTypes) > 0:
-            raise TypeError("No support for unwrapping dictionaries as member "
-                            "of a union")
+            assert len(dictionaryMemberTypes) == 1
+            typeName = dictionaryMemberTypes[0].name
+            dictionaryObject = CGGeneric(get_match(typeName))
+            names.append(typeName)
         else:
             dictionaryObject = None
-
-        if callbackObject or dictionaryObject:
-            assert False, "Not currently supported"
-        else:
-            nonPlatformObject = None
 
         objectMemberTypes = filter(lambda t: t.isObject(), memberTypes)
         if len(objectMemberTypes) > 0:
@@ -4191,7 +4211,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             mozMapObject = None
 
-        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object or mozMapObject
+        hasObjectTypes = interfaceObject or arrayObject or dateObject or object or mozMapObject
         if hasObjectTypes:
             # "object" is not distinguishable from other types
             assert not object or not (interfaceObject or arrayObject or dateObject or callbackObject or mozMapObject)
@@ -4203,6 +4223,11 @@ class CGUnionConversionStruct(CGThing):
             if mozMapObject:
                 templateBody.append(mozMapObject)
             conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
+
+        if dictionaryObject:
+            assert not hasObjectTypes
+            conversions.append(dictionaryObject)
+
         stringTypes = [t for t in memberTypes if t.isString() or t.isEnum()]
         numericTypes = [t for t in memberTypes if t.isNumeric()]
         booleanTypes = [t for t in memberTypes if t.isBoolean()]
