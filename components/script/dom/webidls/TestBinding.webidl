@@ -242,6 +242,7 @@ interface TestBinding {
   void passUnion6((unsigned long or boolean) bool);
   void passUnion7((sequence<DOMString> or unsigned long) arg);
   void passUnion8((sequence<ByteString> or long) arg);
+  void passUnion9((TestDictionary or long) arg);
   void passUnionWithTypedef((Document or TestTypedef) arg);
   void passUnionWithTypedef2((sequence<long> or TestTypedef) arg);
   void passAny(any arg);
