@@ -12721,6 +12721,12 @@
      {}
     ]
    ],
+   "mozilla/createEvent-storageevent.html": [
+    [
+     "/_mozilla/mozilla/createEvent-storageevent.html",
+     {}
+    ]
+   ],
    "mozilla/cross-origin-objects/cross-origin-objects.html": [
     [
      "/_mozilla/mozilla/cross-origin-objects/cross-origin-objects.html",
@@ -25356,6 +25362,10 @@
   ],
   "mozilla/collections.html": [
    "f1029d519aa7017a1a3d18a891a0774b9a39f847",
+   "testharness"
+  ],
+  "mozilla/createEvent-storageevent.html": [
+   "c924f6863819b14de07d3b964f276971af0768cd",
    "testharness"
   ],
   "mozilla/cross-origin-objects/cross-origin-objects.html": [
