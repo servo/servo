@@ -6,7 +6,7 @@ use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{DomObject, Reflector};
-use dom::bindings::trace::{JSTraceable, trace_reflector};
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
 use dom::element::Element;
@@ -24,10 +24,10 @@ use js::jsapi::{MutableHandle, MutableHandleObject, MutableHandleValue};
 use js::jsapi::{ObjectOpResult, PropertyDescriptor};
 use js::jsval::{UndefinedValue, PrivateValue};
 use js::rust::get_object_class;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::ptr;
 
-#[must_root]
+#[dom_struct]
 // NOTE: the browsing context for a window is managed in two places:
 // here, in script, but also in the constellation. The constellation
 // manages the session history, which in script is accessed through
@@ -37,7 +37,7 @@ pub struct BrowsingContext {
     /// Unlike other reflectors, we mutate this field because
     /// we have to brain-transplant the reflector when the WindowProxy
     /// changes Window.
-    reflector: RefCell<Reflector>,
+    reflector: Reflector,
 
     /// Has this browsing context been discarded?
     discarded: Cell<bool>,
@@ -46,32 +46,10 @@ pub struct BrowsingContext {
     frame_element: Option<JS<Element>>,
 }
 
-// We can't use the dom_struct annotation on BrowsingContext, since
-// its reflector is mutable, so we implement DomObject by hand.
-impl DomObject for BrowsingContext {
-    #[allow(unsafe_code)]
-    fn reflector(&self) -> &Reflector {
-        // TODO: This is not safe. Really really not safe.
-        let borrowed: &Reflector = &*self.reflector.borrow();
-        unsafe { &*(borrowed as *const Reflector) }
-    }
-}
-
-// Similarly, we have to trace BrowsingContext by hand.
-#[allow(unsafe_code)]
-unsafe impl JSTraceable for BrowsingContext {
-    unsafe fn trace(&self, trc: *mut JSTracer) {
-        // NOTE: Reflector::trace does not actually trace a reflector!
-        // We need to use trace_reflector instead.
-        trace_reflector(trc, "for browsing context reflector", &*self.reflector.borrow());
-        self.frame_element.trace(trc);
-    }
-}
-
 impl BrowsingContext {
     pub fn new_inherited(frame_element: Option<&Element>) -> BrowsingContext {
         BrowsingContext {
-            reflector: RefCell::new(Reflector::new()),
+            reflector: Reflector::new(),
             discarded: Cell::new(false),
             frame_element: frame_element.map(JS::from_ref),
         }
@@ -94,7 +72,7 @@ impl BrowsingContext {
             assert!(!window_proxy.is_null());
 
             // Create a new browsing context.
-            let browsing_context = box BrowsingContext::new_inherited(frame_element);
+            let mut browsing_context = box BrowsingContext::new_inherited(frame_element);
 
             // The window proxy owns the browsing context.
             // When we finalize the window proxy, it drops the browsing context it owns.
@@ -105,7 +83,7 @@ impl BrowsingContext {
 
             // Set the reflector.
             debug!("Initializing reflector of {:p} to {:p}.", browsing_context, window_proxy.get());
-            browsing_context.reflector.borrow_mut().set_jsobject(window_proxy.get());
+            browsing_context.reflector.set_jsobject(window_proxy.get());
             Root::from_ref(&*Box::into_raw(browsing_context))
         }
     }
@@ -134,7 +112,7 @@ impl BrowsingContext {
 
             let cx = window.get_cx();
             let window_jsobject = window.reflector().get_jsobject();
-            let old_window_proxy = self.reflector.borrow().get_jsobject();
+            let old_window_proxy = self.reflector.get_jsobject();
             assert!(!window_jsobject.get().is_null());
             assert!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL) != 0);
             let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
@@ -162,13 +140,12 @@ impl BrowsingContext {
 
             // Create a new reflector.
             debug!("Setting reflector of {:p} to {:p}.", self, new_window_proxy.get());
-            *self.reflector.borrow_mut() = Reflector::new();
-            self.reflector.borrow_mut().set_jsobject(new_window_proxy.get());
+            *self.reflector.rootable() = new_window_proxy.get();
         }
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
-        let window_proxy = self.reflector.borrow().get_jsobject();
+        let window_proxy = self.reflector.get_jsobject();
         assert!(!window_proxy.get().is_null());
         window_proxy.get()
     }
@@ -362,7 +339,7 @@ unsafe extern fn finalize(_fop: *mut JSFreeOp, obj: *mut JSObject) {
         // GC during obj creation or after transplanting.
         return;
     }
-    let jsobject = (*this).reflector.borrow().get_jsobject().get();
+    let jsobject = (*this).reflector.get_jsobject().get();
     debug!("BrowsingContext finalize: {:p}, with reflector {:p} from {:p}.", this, jsobject, obj);
     let _ = Box::from_raw(this);
 }
