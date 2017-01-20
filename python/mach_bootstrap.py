@@ -8,6 +8,8 @@ import os
 import platform
 import sys
 from distutils.spawn import find_executable
+from distutils.version import LooseVersion
+import subprocess
 from subprocess import PIPE, Popen
 
 SEARCH_PATHS = [
@@ -117,6 +119,11 @@ def _activate_virtualenv(topdir):
         virtualenv = _get_exec_path(VIRTUALENV_NAMES)
         if not virtualenv:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
+
+        virtualenv_version = subprocess.check_output([virtualenv, "--version"])
+        print("virtual env version = {}".format(virtualenv_version))
+        if LooseVersion(virtualenv_version) < LooseVersion("14.0.0"):
+            sys.exit("virtualenv is too old. Please upgrade to at least version 14.0.0.")
 
         process = Popen([virtualenv, "-p", python, virtualenv_path], stdout=PIPE, stderr=PIPE)
         process.wait()
