@@ -229,7 +229,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
     asap_in_order_scripts_list: PendingInOrderScriptVec,
     /// https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
-    asap_scripts_set: DOMRefCell<VecDeque<PendingScript>>,
+    asap_scripts_set: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
     scripting_enabled: Cell<bool>,
@@ -1549,7 +1549,7 @@ impl Document {
 
         if let LoadType::Script(_) = load {
             self.process_deferred_scripts();
-            self.process_asap_scripts();
+            self.process_asap_scripts_in_order();
         }
 
         if let Some(parser) = self.get_current_parser() {
@@ -1601,16 +1601,18 @@ impl Document {
     }
 
     pub fn add_asap_script(&self, script: &HTMLScriptElement) {
-        self.asap_scripts_set.borrow_mut().push_back(PendingScript::new(script));
+        self.asap_scripts_set.borrow_mut().push(JS::from_ref(script));
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 3.
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
     pub fn asap_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
-        let mut scripts = self.asap_scripts_set.borrow_mut();
-        let idx = scripts.iter().position(|entry| &*entry.element == element).unwrap();
-        scripts.swap(0, idx);
-        scripts[0].loaded(result);
+        {
+            let mut scripts = self.asap_scripts_set.borrow_mut();
+            let idx = scripts.iter().position(|entry| &**entry == element).unwrap();
+            scripts.swap_remove(idx);
+        }
+        element.execute(result);
     }
 
     pub fn push_asap_in_order_script(&self, script: &HTMLScriptElement) {
@@ -1625,12 +1627,7 @@ impl Document {
         self.asap_in_order_scripts_list.loaded(element, result);
     }
 
-    fn process_asap_scripts(&self) {
-        let pair = self.asap_scripts_set.borrow_mut().front_mut().and_then(PendingScript::take_result);
-        if let Some((element, result)) = pair {
-            self.asap_scripts_set.borrow_mut().pop_front();
-            element.execute(result);
-        }
+    fn process_asap_scripts_in_order(&self) {
         while let Some((element, result)) = self.asap_in_order_scripts_list.take_next_ready_to_be_executed() {
             element.execute(result);
         }
