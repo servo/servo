@@ -1549,26 +1549,7 @@ impl Document {
 
         if let LoadType::Stylesheet(_) = load {
             self.process_deferred_scripts();
-        }
-
-        if let Some(parser) = self.get_current_parser() {
-            let ready_to_be_executed = match self.pending_parsing_blocking_script.borrow_mut().as_mut() {
-                Some(pending) => {
-                    if self.script_blocking_stylesheets_count.get() > 0 {
-                        return;
-                    }
-                    if let Some(pair) = pending.take_result() {
-                        Some(pair)
-                    } else {
-                        return;
-                    }
-                },
-                None => None,
-            };
-            if let Some((element, result)) = ready_to_be_executed {
-                *self.pending_parsing_blocking_script.borrow_mut() = None;
-                parser.resume_with_pending_parsing_blocking_script(&element, result);
-            }
+            self.process_pending_parsing_blocking_script();
         }
 
         if !self.loader.borrow().is_blocked() && !self.loader.borrow().events_inhibited() {
@@ -1593,10 +1574,27 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
     pub fn pending_parsing_blocking_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
-        let mut blocking_script = self.pending_parsing_blocking_script.borrow_mut();
-        let entry = blocking_script.as_mut().unwrap();
-        assert!(&*entry.element == element);
-        entry.loaded(result);
+        {
+            let mut blocking_script = self.pending_parsing_blocking_script.borrow_mut();
+            let entry = blocking_script.as_mut().unwrap();
+            assert!(&*entry.element == element);
+            entry.loaded(result);
+        }
+        self.process_pending_parsing_blocking_script();
+    }
+
+    fn process_pending_parsing_blocking_script(&self) {
+        if self.script_blocking_stylesheets_count.get() > 0 {
+            return;
+        }
+        let pair = self.pending_parsing_blocking_script
+            .borrow_mut()
+            .as_mut()
+            .and_then(PendingScript::take_result);
+        if let Some((element, result)) = pair {
+            *self.pending_parsing_blocking_script.borrow_mut() = None;
+            self.get_current_parser().unwrap().resume_with_pending_parsing_blocking_script(&element, result);
+        }
     }
 
     pub fn add_asap_script(&self, script: &HTMLScriptElement) {
