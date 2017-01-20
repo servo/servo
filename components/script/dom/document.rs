@@ -1539,34 +1539,71 @@ impl Document {
         loader.fetch_async(load, request, fetch_target);
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-end
+    // https://html.spec.whatwg.org/multipage/#delay-the-load-event
     pub fn finish_load(&self, load: LoadType) {
+        // This does not delay the load event anymore.
         debug!("Document got finish_load: {:?}", load);
-        // The parser might need the loader, so restrict the lifetime of the borrow.
-        {
-            let mut loader = self.loader.borrow_mut();
-            loader.finish_load(&load);
-        }
+        self.loader.borrow_mut().finish_load(&load);
 
         match load {
             LoadType::Stylesheet(_) => {
+                // A stylesheet finishing to load may unblock any pending
+                // parsing-blocking script or deferred script.
                 self.process_pending_parsing_blocking_script();
+
+                // Step 3.
                 self.process_deferred_scripts();
             },
             LoadType::PageSource(_) => {
+                // Deferred scripts have to wait for page to finish loading,
+                // this is the first opportunity to process them.
+
+                // Step 3.
                 self.process_deferred_scripts();
             },
             _ => {},
         }
 
-        if !self.loader.borrow().is_blocked() && !self.loader.borrow().events_inhibited() {
-            self.loader.borrow_mut().inhibit_events();
-            // Schedule a task to fire a "load" event.
-            debug!("Document loads are complete.");
-            let handler = box DocumentProgressHandler::new(Trusted::new(self));
-            self.window.dom_manipulation_task_source().queue(handler, self.window.upcast()).unwrap();
+        // Step 4 is in another castle, namely at the end of
+        // process_deferred_scripts.
+
+        // Step 5 can be found in asap_script_loaded and
+        // asap_in_order_script_loaded.
+
+        if self.loader.borrow().is_blocked() {
+            // Step 6.
+            return;
         }
+
+        // The rest will ever run only once per document.
+        if self.loader.borrow().events_inhibited() {
+            return;
+        }
+        self.loader.borrow_mut().inhibit_events();
+
+        // Step 7.
+        debug!("Document loads are complete.");
+        let handler = box DocumentProgressHandler::new(Trusted::new(self));
+        self.window.dom_manipulation_task_source().queue(handler, self.window.upcast()).unwrap();
+
+        // Step 8.
+        // TODO: pageshow event.
+
+        // Step 9.
+        // TODO: pending application cache download process tasks.
+
+        // Step 10.
+        // TODO: printing steps.
+
+        // Step 11.
+        // TODO: ready for post-load tasks.
+
+        // Step 12.
+        // TODO: completely loaded.
     }
 
+    // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
     pub fn set_pending_parsing_blocking_script(&self,
                                                script: &HTMLScriptElement,
                                                load: Option<ScriptResult>) {
@@ -1574,6 +1611,7 @@ impl Document {
         *self.pending_parsing_blocking_script.borrow_mut() = Some(PendingScript::new_with_load(script, load));
     }
 
+    // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
     pub fn has_pending_parsing_blocking_script(&self) -> bool {
         self.pending_parsing_blocking_script.borrow().is_some()
     }
@@ -1603,11 +1641,12 @@ impl Document {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#set-of-scripts-that-will-execute-as-soon-as-possible
     pub fn add_asap_script(&self, script: &HTMLScriptElement) {
         self.asap_scripts_set.borrow_mut().push(JS::from_ref(script));
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
+    /// https://html.spec.whatwg.org/multipage/#the-end step 5.
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
     pub fn asap_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
         {
@@ -1618,11 +1657,12 @@ impl Document {
         element.execute(result);
     }
 
+    // https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
     pub fn push_asap_in_order_script(&self, script: &HTMLScriptElement) {
         self.asap_in_order_scripts_list.push(script);
     }
 
-    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
+    /// https://html.spec.whatwg.org/multipage/#the-end step 5.
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.c.
     pub fn asap_in_order_script_loaded(&self,
                                        element: &HTMLScriptElement,
@@ -1633,10 +1673,12 @@ impl Document {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
     pub fn add_deferred_script(&self, script: &HTMLScriptElement) {
         self.deferred_scripts.push(script);
     }
 
+    /// https://html.spec.whatwg.org/multipage/#the-end step 3.
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
     pub fn deferred_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
         self.deferred_scripts.loaded(element, result);
@@ -1665,6 +1707,7 @@ impl Document {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-end step 4.
     pub fn maybe_dispatch_dom_content_loaded(&self) {
         if self.domcontentloaded_dispatched.get() {
             return;
@@ -1675,6 +1718,7 @@ impl Document {
 
         update_with_current_time_ms(&self.dom_content_loaded_event_start);
 
+        // Step 4.1.
         let window = self.window();
         window.dom_manipulation_task_source().queue_event(self.upcast(), atom!("DOMContentLoaded"),
             EventBubbles::Bubbles, EventCancelable::NotCancelable, window);
@@ -1683,6 +1727,9 @@ impl Document {
                       ReflowQueryType::NoQuery,
                       ReflowReason::DOMContentLoaded);
         update_with_current_time_ms(&self.dom_content_loaded_event_end);
+
+        // Step 4.2.
+        // TODO: client message queue.
     }
 
     pub fn notify_constellation_load(&self) {
