@@ -236,7 +236,7 @@ partial interface Navigator {
 </script>
 <script>
 'use strict';
-var bluetooth_device;
+var bluetooth_device, bluetooth_server, bluetooth_service, bluetooth_characteristic, bluetooth_properties, bluetooth_descriptor;
 var idl_array;
 setup(function() {
     window.testRunner.setBluetoothMockDataSet(adapter_type.heart_rate);
@@ -244,9 +244,16 @@ setup(function() {
         filters: [{services: [heart_rate.name]}],
         optionalServices: [generic_access.name]
     })
-    .then(device => {
-        bluetooth_device = device;
-    });
+    .then(device => bluetooth_device = device)
+    .then(() => bluetooth_device.gatt.connect())
+    .then(server => bluetooth_server = server)
+    .then(() => bluetooth_server.getPrimaryService(generic_access.name))
+    .then(service => bluetooth_service = service)
+    .then(() => bluetooth_service.getCharacteristic(device_name.name))
+    .then(characteristic => bluetooth_characteristic = characteristic)
+    .then(() => bluetooth_properties = bluetooth_characteristic.properties)
+    .then(() => bluetooth_characteristic.characteristic.getDescriptor(number_of_digitals.name))
+    .then(descriptor => bluetooth_descriptor = descriptor);
 
     idl_array = new IdlArray();
     idl_array.add_untested_idls(document.getElementById('untested_idl').textContent);
@@ -254,6 +261,11 @@ setup(function() {
     idl_array.add_objects({
         Bluetooth: ['window.navigator.bluetooth'],
         BluetoothDevice: ['bluetooth_device'],
+        BluetoothRemoteGATTServer: ['bluetooth_server'],
+        BluetoothRemoteGATTService: ['bluetooth_service'],
+        BluetoothRemoteGATTCharacteristic: ['bluetooth_characteristic'],
+        BluetoothCharacteristicProperties: ['bluetooth_properties'],
+        BluetoothRemoteGATTDescriptor: ['bluetooth_descriptor'],
     });
 });
 idl_array.test();
