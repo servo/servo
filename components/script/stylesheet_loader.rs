@@ -4,16 +4,13 @@
 
 use document_loader::LoadType;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
-use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmllinkelement::HTMLLinkElement;
-use dom::htmlstyleelement::HTMLStyleElement;
 use dom::node::{document_from_node, window_from_node};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -50,6 +47,9 @@ pub trait StylesheetOwner {
     /// Returns None if there are still pending loads, or whether any load has
     /// failed since the loads started.
     fn load_finished(&self, successful: bool) -> Option<bool>;
+
+    /// Sets origin_clean flag.
+    fn set_origin_clean(&self, origin_clean: bool);
 }
 
 pub enum StylesheetContextSource {
@@ -84,6 +84,7 @@ pub struct StylesheetContext {
     data: Vec<u8>,
     /// The node document for elem when the load was initiated.
     document: Trusted<Document>,
+    origin_clean: bool,
 }
 
 impl PreInvoke for StylesheetContext {}
@@ -95,28 +96,11 @@ impl FetchResponseListener for StylesheetContext {
 
     fn process_response(&mut self,
                         metadata: Result<FetchMetadata, NetworkError>) {
-        let stylesheet: Option<Root<CSSStyleSheet>>;
-        let elem = self.elem.root();
-        if let Some(element) = elem.downcast::<HTMLLinkElement>() {
-            stylesheet = element.get_cssom_stylesheet();
-        } else if let Some(element) = elem.downcast::<HTMLStyleElement>() {
-            stylesheet = element.get_cssom_stylesheet();
-        } else {
-            stylesheet = None;
-        }
-
-        if let Some(stylesheet) = stylesheet {
-            match metadata {
-                Ok(FetchMetadata::Unfiltered(_)) => {
-                    stylesheet.set_origin_clean(true);
-                },
-                Ok(FetchMetadata::Filtered { ref filtered, .. }) => {
-                    let same_origin = match *filtered {
-                        FilteredMetadata::Basic(_) |
-                        FilteredMetadata::Cors(_) => true,
-                        _ => false,
-                    };
-                    stylesheet.set_origin_clean(same_origin);
+        if let Ok(FetchMetadata::Filtered { ref filtered, .. }) = metadata {
+            match *filtered {
+                FilteredMetadata::Opaque |
+                FilteredMetadata::OpaqueRedirect => {
+                    self.origin_clean = false;
                 },
                 _ => {},
             }
@@ -199,6 +183,7 @@ impl FetchResponseListener for StylesheetContext {
 
         let owner = elem.upcast::<Element>().as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
+        owner.set_origin_clean(self.origin_clean);
         if owner.parser_inserted() {
             document.decrement_script_blocking_stylesheet_count();
         }
@@ -236,6 +221,7 @@ impl<'a> StylesheetLoader<'a> {
             metadata: None,
             data: vec![],
             document: Trusted::new(&*document),
+            origin_clean: true,
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
