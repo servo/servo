@@ -1549,8 +1549,8 @@ impl Document {
 
         match load {
             LoadType::Stylesheet(_) => {
-                self.process_deferred_scripts();
                 self.process_pending_parsing_blocking_script();
+                self.process_deferred_scripts();
             },
             LoadType::PageSource(_) => {
                 self.process_deferred_scripts();
