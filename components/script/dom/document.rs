@@ -1547,7 +1547,7 @@ impl Document {
             loader.finish_load(&load);
         }
 
-        if let LoadType::Script(_) = load {
+        if let LoadType::Stylesheet(_) = load {
             self.process_deferred_scripts();
         }
 
@@ -1636,6 +1636,7 @@ impl Document {
     /// https://html.spec.whatwg.org/multipage/#prepare-a-script step 22.d.
     pub fn deferred_script_loaded(&self, element: &HTMLScriptElement, result: ScriptResult) {
         self.deferred_scripts.loaded(element, result);
+        self.process_deferred_scripts();
     }
 
     /// https://html.spec.whatwg.org/multipage/#the-end step 3.
