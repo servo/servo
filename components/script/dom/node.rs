@@ -1729,7 +1729,7 @@ impl Node {
                 let document = Document::new(window, HasBrowsingContext::No,
                                              Some(document.url()),
                                              // https://github.com/whatwg/dom/issues/378
-                                             document.origin().alias(),
+                                             document.origin().clone(),
                                              is_html_doc, None,
                                              None, DocumentActivity::Inactive,
                                              DocumentSource::NotFromParser, loader,
