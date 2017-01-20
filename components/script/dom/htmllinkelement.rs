@@ -319,6 +319,12 @@ impl StylesheetOwner for HTMLLinkElement {
 
         None
     }
+
+    fn set_origin_clean(&self, origin_clean: bool) {
+        if let Some(stylesheet) = self.get_cssom_stylesheet() {
+            stylesheet.set_origin_clean(origin_clean);
+        }
+    }
 }
 
 impl HTMLLinkElementMethods for HTMLLinkElement {
