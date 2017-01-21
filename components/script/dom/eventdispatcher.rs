@@ -9,7 +9,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::reflector::DomObject;
 use dom::document::Document;
-use dom::event::{Event, EventPhase};
+use dom::event::{Event, EventPhase, EventStatus};
 use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
 use dom::node::Node;
 use dom::virtualmethods::vtable_for;
@@ -100,12 +100,6 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
             return;
         }
     }
-}
-
-#[derive(PartialEq)]
-pub enum EventStatus {
-    Canceled,
-    NotCanceled
 }
 
 // https://dom.spec.whatwg.org/#concept-event-dispatch

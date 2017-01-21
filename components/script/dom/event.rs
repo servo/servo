@@ -10,7 +10,6 @@ use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::eventdispatcher::EventStatus;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use script_thread::Runnable;
@@ -344,6 +343,12 @@ pub enum EventDefault {
     /// The event has been handled somewhere in the DOM, and it should be prevented from being
     /// re-handled elsewhere. This doesn't affect the judgement of `DefaultPrevented`
     Handled,
+}
+
+#[derive(PartialEq)]
+pub enum EventStatus {
+    Canceled,
+    NotCanceled
 }
 
 // https://dom.spec.whatwg.org/#concept-event-fire
