@@ -19,86 +19,6 @@ use std::cell::Cell;
 use std::default::Default;
 use time;
 
-#[derive(JSTraceable, Copy, Clone, Debug, PartialEq, Eq)]
-#[repr(u16)]
-#[derive(HeapSizeOf)]
-pub enum EventPhase {
-    None      = EventConstants::NONE,
-    Capturing = EventConstants::CAPTURING_PHASE,
-    AtTarget  = EventConstants::AT_TARGET,
-    Bubbling  = EventConstants::BUBBLING_PHASE,
-}
-
-#[derive(PartialEq, HeapSizeOf, Copy, Clone)]
-pub enum EventBubbles {
-    Bubbles,
-    DoesNotBubble
-}
-
-impl From<EventBubbles> for bool {
-    fn from(bubbles: EventBubbles) -> Self {
-        match bubbles {
-            EventBubbles::Bubbles => true,
-            EventBubbles::DoesNotBubble => false
-        }
-    }
-}
-
-impl From<bool> for EventBubbles {
-    fn from(boolean: bool) -> Self {
-        match boolean {
-            true => EventBubbles::Bubbles,
-            false => EventBubbles::DoesNotBubble
-        }
-    }
-}
-
-#[derive(PartialEq, HeapSizeOf, Copy, Clone)]
-pub enum EventCancelable {
-    Cancelable,
-    NotCancelable
-}
-
-impl From<EventCancelable> for bool {
-    fn from(bubbles: EventCancelable) -> Self {
-        match bubbles {
-            EventCancelable::Cancelable => true,
-            EventCancelable::NotCancelable => false
-        }
-    }
-}
-
-impl From<bool> for EventCancelable {
-    fn from(boolean: bool) -> Self {
-        match boolean {
-            true => EventCancelable::Cancelable,
-            false => EventCancelable::NotCancelable
-        }
-    }
-}
-
-/// An enum to indicate whether the default action of an event is allowed.
-///
-/// This should've been a bool. Instead, it's an enum, because, aside from the allowed/canceled
-/// states, we also need something to stop the event from being handled again (without cancelling
-/// the event entirely). For example, an Up/Down `KeyEvent` inside a `textarea` element will
-/// trigger the cursor to go up/down if the text inside the element spans multiple lines. This enum
-/// helps us to prevent such events from being [sent to the constellation][msg] where it will be
-/// handled once again for page scrolling (which is definitely not what we'd want).
-///
-/// [msg]: https://doc.servo.org/script_traits/enum.ConstellationMsg.html#variant.KeyEvent
-///
-#[derive(JSTraceable, HeapSizeOf, Copy, Clone, PartialEq)]
-pub enum EventDefault {
-    /// The default action of the event is allowed (constructor's default)
-    Allowed,
-    /// The default action has been prevented by calling `PreventDefault`
-    Prevented,
-    /// The event has been handled somewhere in the DOM, and it should be prevented from being
-    /// re-handled elsewhere. This doesn't affect the judgement of `DefaultPrevented`
-    Handled,
-}
-
 #[dom_struct]
 pub struct Event {
     reflector_: Reflector,
@@ -261,6 +181,16 @@ impl Event {
     pub fn get_cancel_state(&self) -> EventDefault {
         self.canceled.get()
     }
+
+    pub fn set_trusted(&self, trusted: bool) {
+        self.trusted.set(trusted);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
+    pub fn fire(&self, target: &EventTarget) -> EventStatus {
+        self.set_trusted(true);
+        target.dispatch_event(self)
+    }
 }
 
 impl EventMethods for Event {
@@ -336,17 +266,84 @@ impl EventMethods for Event {
     }
 }
 
+#[derive(PartialEq, HeapSizeOf, Copy, Clone)]
+pub enum EventBubbles {
+    Bubbles,
+    DoesNotBubble
+}
 
-impl Event {
-    pub fn set_trusted(&self, trusted: bool) {
-        self.trusted.set(trusted);
+impl From<bool> for EventBubbles {
+    fn from(boolean: bool) -> Self {
+        match boolean {
+            true => EventBubbles::Bubbles,
+            false => EventBubbles::DoesNotBubble
+        }
     }
+}
 
-    // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
-    pub fn fire(&self, target: &EventTarget) -> EventStatus {
-        self.set_trusted(true);
-        target.dispatch_event(self)
+impl From<EventBubbles> for bool {
+    fn from(bubbles: EventBubbles) -> Self {
+        match bubbles {
+            EventBubbles::Bubbles => true,
+            EventBubbles::DoesNotBubble => false
+        }
     }
+}
+
+#[derive(PartialEq, HeapSizeOf, Copy, Clone)]
+pub enum EventCancelable {
+    Cancelable,
+    NotCancelable
+}
+
+impl From<bool> for EventCancelable {
+    fn from(boolean: bool) -> Self {
+        match boolean {
+            true => EventCancelable::Cancelable,
+            false => EventCancelable::NotCancelable
+        }
+    }
+}
+
+impl From<EventCancelable> for bool {
+    fn from(bubbles: EventCancelable) -> Self {
+        match bubbles {
+            EventCancelable::Cancelable => true,
+            EventCancelable::NotCancelable => false
+        }
+    }
+}
+
+#[derive(JSTraceable, Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(u16)]
+#[derive(HeapSizeOf)]
+pub enum EventPhase {
+    None      = EventConstants::NONE,
+    Capturing = EventConstants::CAPTURING_PHASE,
+    AtTarget  = EventConstants::AT_TARGET,
+    Bubbling  = EventConstants::BUBBLING_PHASE,
+}
+
+/// An enum to indicate whether the default action of an event is allowed.
+///
+/// This should've been a bool. Instead, it's an enum, because, aside from the allowed/canceled
+/// states, we also need something to stop the event from being handled again (without cancelling
+/// the event entirely). For example, an Up/Down `KeyEvent` inside a `textarea` element will
+/// trigger the cursor to go up/down if the text inside the element spans multiple lines. This enum
+/// helps us to prevent such events from being [sent to the constellation][msg] where it will be
+/// handled once again for page scrolling (which is definitely not what we'd want).
+///
+/// [msg]: https://doc.servo.org/script_traits/enum.ConstellationMsg.html#variant.KeyEvent
+///
+#[derive(JSTraceable, HeapSizeOf, Copy, Clone, PartialEq)]
+pub enum EventDefault {
+    /// The default action of the event is allowed (constructor's default)
+    Allowed,
+    /// The default action has been prevented by calling `PreventDefault`
+    Prevented,
+    /// The event has been handled somewhere in the DOM, and it should be prevented from being
+    /// re-handled elsewhere. This doesn't affect the judgement of `DefaultPrevented`
+    Handled,
 }
 
 // https://dom.spec.whatwg.org/#concept-event-fire
