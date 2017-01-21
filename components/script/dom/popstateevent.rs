@@ -11,7 +11,7 @@ use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
-use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use servo_atoms::Atom;
@@ -32,19 +32,19 @@ impl PopStateEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<PopStateEvent> {
+    pub fn new_uninitialized(window: &Window) -> Root<PopStateEvent> {
         reflect_dom_object(box PopStateEvent::new_inherited(),
-                           global,
+                           window,
                            PopStateEventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
                state: HandleValue)
                -> Root<PopStateEvent> {
-        let ev = PopStateEvent::new_uninitialized(global);
+        let ev = PopStateEvent::new_uninitialized(window);
         ev.state.set(state.get());
         {
             let event = ev.upcast::<Event>();
@@ -54,11 +54,11 @@ impl PopStateEvent {
     }
 
     #[allow(unsafe_code)]
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &PopStateEventBinding::PopStateEventInit)
                        -> Fallible<Root<PopStateEvent>> {
-        Ok(PopStateEvent::new(global,
+        Ok(PopStateEvent::new(window,
                               Atom::from(type_),
                               init.parent.bubbles,
                               init.parent.cancelable,

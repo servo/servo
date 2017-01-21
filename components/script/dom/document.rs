@@ -7,6 +7,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
+use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
@@ -2603,6 +2604,8 @@ impl DocumentMethods for Document {
     fn CreateEvent(&self, mut interface: DOMString) -> Fallible<Root<Event>> {
         interface.make_ascii_lowercase();
         match &*interface {
+            "beforeunloadevent" =>
+                Ok(Root::upcast(BeforeUnloadEvent::new_uninitialized(&self.window))),
             "closeevent" =>
                 Ok(Root::upcast(CloseEvent::new_uninitialized(self.window.upcast()))),
             "customevent" =>
@@ -2612,9 +2615,9 @@ impl DocumentMethods for Document {
             "events" | "event" | "htmlevents" | "svgevents" =>
                 Ok(Event::new_uninitialized(&self.window.upcast())),
             "focusevent" =>
-                Ok(Root::upcast(FocusEvent::new_uninitialized(self.window.upcast()))),
+                Ok(Root::upcast(FocusEvent::new_uninitialized(&self.window))),
             "hashchangeevent" =>
-                Ok(Root::upcast(HashChangeEvent::new_uninitialized(&self.window.upcast()))),
+                Ok(Root::upcast(HashChangeEvent::new_uninitialized(&self.window))),
             "keyboardevent" =>
                 Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>
@@ -2622,9 +2625,9 @@ impl DocumentMethods for Document {
             "mouseevent" | "mouseevents" =>
                 Ok(Root::upcast(MouseEvent::new_uninitialized(&self.window))),
             "pagetransitionevent" =>
-                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(self.window.upcast()))),
+                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(&self.window))),
             "popstateevent" =>
-                Ok(Root::upcast(PopStateEvent::new_uninitialized(self.window.upcast()))),
+                Ok(Root::upcast(PopStateEvent::new_uninitialized(&self.window))),
             "progressevent" =>
                 Ok(Root::upcast(ProgressEvent::new_uninitialized(self.window.upcast()))),
             "storageevent" => {

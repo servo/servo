@@ -11,7 +11,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
-use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use servo_atoms::Atom;
 use std::cell::Cell;
 
@@ -30,19 +30,19 @@ impl PageTransitionEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<PageTransitionEvent> {
+    pub fn new_uninitialized(window: &Window) -> Root<PageTransitionEvent> {
         reflect_dom_object(box PageTransitionEvent::new_inherited(),
-                           global,
+                           window,
                            PageTransitionEventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
                persisted: bool)
                -> Root<PageTransitionEvent> {
-        let ev = PageTransitionEvent::new_uninitialized(global);
+        let ev = PageTransitionEvent::new_uninitialized(window);
         ev.persisted.set(persisted);
         {
             let event = ev.upcast::<Event>();
@@ -51,11 +51,11 @@ impl PageTransitionEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &PageTransitionEventBinding::PageTransitionEventInit)
                        -> Fallible<Root<PageTransitionEvent>> {
-        Ok(PageTransitionEvent::new(global,
+        Ok(PageTransitionEvent::new(window,
                               Atom::from(type_),
                               init.parent.bubbles,
                               init.parent.cancelable,
