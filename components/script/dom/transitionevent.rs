@@ -24,7 +24,7 @@ pub struct TransitionEvent {
 }
 
 impl TransitionEvent {
-    pub fn new_inherited(init: &TransitionEventInit) -> TransitionEvent {
+    fn new_inherited(init: &TransitionEventInit) -> TransitionEvent {
         TransitionEvent {
             event: Event::new_inherited(),
             property_name: Atom::from(init.propertyName.clone()),
