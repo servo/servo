@@ -4,10 +4,10 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<%helpers:shorthand name="font" sub_properties="font-style font-variant font-weight
+<%helpers:shorthand name="font" sub_properties="font-style font-variant font-weight font-stretch
                                                 font-size line-height font-family"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
-    use properties::longhands::{font_style, font_variant, font_weight, font_size,
+    use properties::longhands::{font_style, font_variant, font_weight, font_stretch, font_size,
                                 line_height, font_family};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
@@ -15,6 +15,7 @@
         let mut style = None;
         let mut variant = None;
         let mut weight = None;
+        let mut stretch = None;
         let size;
         loop {
             // Special-case 'normal' because it is valid in each of
@@ -42,6 +43,12 @@
                     continue
                 }
             }
+            if stretch.is_none() {
+                if let Ok(value) = input.try(|input| font_stretch::parse(context, input)) {
+                    stretch = Some(value);
+                    continue
+                }
+            }
             size = Some(try!(font_size::parse(context, input)));
             break
         }
@@ -62,6 +69,7 @@
             font_style: style,
             font_variant: variant,
             font_weight: weight,
+            font_stretch: stretch,
             font_size: size,
             line_height: line_height,
             font_family: Some(font_family::SpecifiedValue(family))
@@ -83,6 +91,11 @@
 
             if let DeclaredValue::Value(ref weight) = *self.font_weight {
                 try!(weight.to_css(dest));
+                try!(write!(dest, " "));
+            }
+
+            if let DeclaredValue::Value(ref stretch) = *self.font_stretch {
+                try!(stretch.to_css(dest));
                 try!(write!(dest, " "));
             }
 
