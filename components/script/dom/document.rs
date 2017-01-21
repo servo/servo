@@ -2622,7 +2622,7 @@ impl DocumentMethods for Document {
             "mouseevent" | "mouseevents" =>
                 Ok(Root::upcast(MouseEvent::new_uninitialized(&self.window))),
             "pagetransitionevent" =>
-                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(self.window.upcast()))),
+                Ok(Root::upcast(PageTransitionEvent::new_uninitialized(&self.window))),
             "popstateevent" =>
                 Ok(Root::upcast(PopStateEvent::new_uninitialized(self.window.upcast()))),
             "progressevent" =>

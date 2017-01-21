@@ -37,7 +37,6 @@ test_interfaces([
   "MessageEvent",
   "MimeType",
   "MimeTypeArray",
-  "PageTransitionEvent",
   "Performance",
   "PerformanceTiming",
   "Plugin",
