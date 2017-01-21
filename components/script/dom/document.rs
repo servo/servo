@@ -2612,7 +2612,7 @@ impl DocumentMethods for Document {
             "events" | "event" | "htmlevents" | "svgevents" =>
                 Ok(Event::new_uninitialized(&self.window.upcast())),
             "focusevent" =>
-                Ok(Root::upcast(FocusEvent::new_uninitialized(self.window.upcast()))),
+                Ok(Root::upcast(FocusEvent::new_uninitialized(&self.window))),
             "hashchangeevent" =>
                 Ok(Root::upcast(HashChangeEvent::new_uninitialized(&self.window.upcast()))),
             "keyboardevent" =>
