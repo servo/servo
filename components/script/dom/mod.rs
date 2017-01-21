@@ -276,7 +276,6 @@ pub mod domtokenlist;
 pub mod element;
 pub mod errorevent;
 pub mod event;
-pub mod eventdispatcher;
 pub mod eventsource;
 pub mod eventtarget;
 pub mod extendableevent;
