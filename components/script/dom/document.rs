@@ -7,6 +7,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
+use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
@@ -2603,6 +2604,8 @@ impl DocumentMethods for Document {
     fn CreateEvent(&self, mut interface: DOMString) -> Fallible<Root<Event>> {
         interface.make_ascii_lowercase();
         match &*interface {
+            "beforeunloadevent" =>
+                Ok(Root::upcast(BeforeUnloadEvent::new_uninitialized(&self.window))),
             "closeevent" =>
                 Ok(Root::upcast(CloseEvent::new_uninitialized(self.window.upcast()))),
             "customevent" =>
