@@ -7,8 +7,8 @@
 <%helpers:shorthand name="font" sub_properties="font-style font-variant font-weight font-stretch
                                                 font-size line-height font-family"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
-    use properties::longhands::{font_style, font_variant, font_weight, font_stretch, font_size,
-                                line_height, font_family};
+    use properties::longhands::{font_style, font_variant, font_weight, font_stretch};
+    use properties::longhands::{font_size, line_height, font_family};
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let mut nb_normals = 0;
