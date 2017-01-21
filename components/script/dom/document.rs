@@ -2614,7 +2614,7 @@ impl DocumentMethods for Document {
             "focusevent" =>
                 Ok(Root::upcast(FocusEvent::new_uninitialized(&self.window))),
             "hashchangeevent" =>
-                Ok(Root::upcast(HashChangeEvent::new_uninitialized(&self.window.upcast()))),
+                Ok(Root::upcast(HashChangeEvent::new_uninitialized(&self.window))),
             "keyboardevent" =>
                 Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>

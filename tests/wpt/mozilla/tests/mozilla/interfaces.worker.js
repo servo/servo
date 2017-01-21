@@ -29,7 +29,6 @@ test_interfaces([
   "FileReader",
   "FileReaderSync",
   "FormData",
-  "HashChangeEvent",
   "Headers",
   "History",
   "ImageData",
