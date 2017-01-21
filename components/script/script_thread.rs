@@ -1624,7 +1624,7 @@ impl ScriptThread {
             // FIXME: Handle pseudo-elements properly
             pseudoElement: DOMString::new()
         };
-        let transition_event = TransitionEvent::new(window.upcast(),
+        let transition_event = TransitionEvent::new(&window,
                                                     atom!("transitionend"),
                                                     &init);
         transition_event.upcast::<Event>().fire(node.upcast());

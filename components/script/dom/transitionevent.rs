@@ -12,7 +12,6 @@ use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::Event;
-use dom::globalscope::GlobalScope;
 use dom::window::Window;
 use servo_atoms::Atom;
 
@@ -34,11 +33,11 @@ impl TransitionEvent {
         }
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                type_: Atom,
                init: &TransitionEventInit) -> Root<TransitionEvent> {
         let ev = reflect_dom_object(box TransitionEvent::new_inherited(init),
-                                    global,
+                                    window,
                                     TransitionEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
@@ -50,8 +49,7 @@ impl TransitionEvent {
     pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &TransitionEventInit) -> Fallible<Root<TransitionEvent>> {
-        let global = window.upcast::<GlobalScope>();
-        Ok(TransitionEvent::new(global, Atom::from(type_), init))
+        Ok(TransitionEvent::new(window, Atom::from(type_), init))
     }
 }
 
