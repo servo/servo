@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{StartedTimelineMarker, TimelineMarker, TimelineMarkerType};
-use dom::bindings::callback::ExceptionHandling::Report;
+use devtools_traits::{TimelineMarker, TimelineMarkerType};
+use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
@@ -14,36 +14,6 @@ use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
 use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
-
-struct AutoDOMEventMarker {
-    window: Root<Window>,
-    marker: Option<StartedTimelineMarker>,
-}
-
-impl AutoDOMEventMarker {
-    fn new(window: &Window) -> AutoDOMEventMarker {
-        AutoDOMEventMarker {
-            window: Root::from_ref(window),
-            marker: Some(TimelineMarker::start("DOMEvent".to_owned())),
-        }
-    }
-}
-
-impl Drop for AutoDOMEventMarker {
-    fn drop(&mut self) {
-        self.window.emit_timeline_marker(self.marker.take().unwrap().end());
-    }
-}
-
-fn handle_event(window: Option<&Window>, listener: &CompiledEventListener,
-                current_target: &EventTarget, event: &Event) {
-    let _marker;
-    if let Some(window) = window {
-        _marker = AutoDOMEventMarker::new(window);
-    }
-
-    listener.call_or_handle_event(current_target, event, Report);
-}
 
 // See dispatch_event.
 // https://dom.spec.whatwg.org/#concept-event-dispatch
@@ -204,7 +174,11 @@ fn inner_invoke(window: Option<&Window>,
         // TODO: step 2.5.
 
         // Step 2.6.
-        handle_event(window, listener, object, event);
+        let marker = TimelineMarker::start("DOMEvent".to_owned());
+        listener.call_or_handle_event(object, event, ExceptionHandling::Report);
+        if let Some(window) = window {
+            window.emit_timeline_marker(marker.end());
+        }
         if event.stop_immediate() {
             return found;
         }
