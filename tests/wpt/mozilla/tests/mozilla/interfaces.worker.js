@@ -32,7 +32,6 @@ test_interfaces([
   "Headers",
   "History",
   "ImageData",
-  "Location",
   "MediaError",
   "MessageEvent",
   "MimeType",
