@@ -55,7 +55,7 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{FrameId, FrameType, HistoryStateId, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
@@ -265,7 +265,11 @@ pub enum ConstellationControlMsg {
     /// Reload the given page.
     Reload(PipelineId),
     /// Notifies the script thread of a WebVR device event
-    WebVREvent(PipelineId, WebVREventMsg)
+    WebVREvent(PipelineId, WebVREventMsg),
+    /// Notifies a browsing context to activate the specified history state.
+    ActivateHistoryState(PipelineId, HistoryStateId),
+    /// Notifies a browsing context to remove the specified history state entries.
+    RemoveHistoryStateEntries(PipelineId, Vec<HistoryStateId>),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -299,6 +303,8 @@ impl fmt::Debug for ConstellationControlMsg {
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
             WebVREvent(..) => "WebVREvent",
+            ActivateHistoryState(..) => "ActivateHistoryStateZ",
+            RemoveHistoryStateEntries(..) => "RemoveHistoryStateEntries",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }
