@@ -2624,7 +2624,7 @@ impl DocumentMethods for Document {
             "pagetransitionevent" =>
                 Ok(Root::upcast(PageTransitionEvent::new_uninitialized(&self.window))),
             "popstateevent" =>
-                Ok(Root::upcast(PopStateEvent::new_uninitialized(self.window.upcast()))),
+                Ok(Root::upcast(PopStateEvent::new_uninitialized(&self.window))),
             "progressevent" =>
                 Ok(Root::upcast(ProgressEvent::new_uninitialized(self.window.upcast()))),
             "storageevent" => {

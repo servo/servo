@@ -41,7 +41,6 @@ test_interfaces([
   "PerformanceTiming",
   "Plugin",
   "PluginArray",
-  "PopStateEvent",
   "ProgressEvent",
   "Request",
   "Response",

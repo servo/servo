@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
-[Constructor(DOMString type, optional PopStateEventInit eventInitDict), Exposed=(Window,Worker)]
+[Constructor(DOMString type, optional PopStateEventInit eventInitDict),
+ Exposed=Window]
 interface PopStateEvent : Event {
   readonly attribute any state;
 };
