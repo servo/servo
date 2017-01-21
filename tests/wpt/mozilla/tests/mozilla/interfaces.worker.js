@@ -7,7 +7,6 @@ importScripts("interfaces.js");
 
 // IMPORTANT: Do not change the list below without review from a DOM peer!
 test_interfaces([
-  "BeforeUnloadEvent",
   "Blob",
   "CloseEvent",
   "CSSStyleDeclaration",

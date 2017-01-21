@@ -16,6 +16,7 @@ var unexpected = [
   "DrawingStyle",
   "CanvasGradient",
   "CanvasPattern",
+  "BeforeUnloadEvent",
   "PopStateEvent",
   "HashChangeEvent",
   "PageTransitionEvent",
