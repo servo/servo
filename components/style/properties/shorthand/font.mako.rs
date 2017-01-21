@@ -19,7 +19,7 @@
         let size;
         loop {
             // Special-case 'normal' because it is valid in each of
-            // font-style, font-weight and font-variant.
+            // font-style, font-weight, font-variant and font-stretch.
             // Leaves the values to None, 'normal' is the initial value for each of them.
             if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
                 nb_normals += 1;
@@ -56,7 +56,7 @@
         fn count<T>(opt: &Option<T>) -> u8 {
             if opt.is_some() { 1 } else { 0 }
         }
-        if size.is_none() || (count(&style) + count(&weight) + count(&variant) + nb_normals) > 3 {
+        if size.is_none() || (count(&style) + count(&weight) + count(&variant) + count(&stretch) + nb_normals) > 4 {
             return Err(())
         }
         let line_height = if input.try(|input| input.expect_delim('/')).is_ok() {
