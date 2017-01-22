@@ -51,7 +51,7 @@ use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::Size2D;
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, DisplayItem, OpaqueNode};
+use gfx::display_list::{ClippingRegion, OpaqueNode};
 use gfx::display_list::WebRenderImageInfo;
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
@@ -934,6 +934,14 @@ impl LayoutThread {
                         let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
                         build_state.root_stacking_context.bounds = origin;
                         build_state.root_stacking_context.overflow = origin;
+
+                        if !build_state.iframe_sizes.is_empty() {
+                            let msg = ConstellationMsg::FrameSizes(build_state.iframe_sizes.clone());
+                            if let Err(e) = self.constellation_chan.send(msg) {
+                                warn!("Layout resize to constellation failed ({}).", e);
+                            }
+                        }
+
                         rw_data.display_list = Some(Arc::new(build_state.to_display_list()));
                     }
                     (ReflowGoal::ForScriptQuery, false) => {}
@@ -953,26 +961,6 @@ impl LayoutThread {
                 document.will_paint();
             }
             let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
-
-            let mut iframe_sizes = Vec::new();
-            for item in &display_list.list {
-                match *item {
-                    DisplayItem::Iframe(ref iframe) => {
-                        let size = Size2D::new((*item).bounds().size.width.to_f32_px(),
-                                               (*item).bounds().size.height.to_f32_px());
-                        debug!("new iframe size: {:?}", size);
-                        iframe_sizes.push(((*iframe).iframe, size));
-                    },
-                    _ => {},
-                }
-            }
-
-            if iframe_sizes.len() > 0 {
-                let msg = ConstellationMsg::FrameSize(iframe_sizes);
-                if let Err(e) = self.constellation_chan.send(msg) {
-                    warn!("Layout resize to constellation failed ({}).", e);
-                }
-            }
 
             if opts::get().dump_display_list {
                 display_list.print();

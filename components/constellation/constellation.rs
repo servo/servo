@@ -1085,7 +1085,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
             // Layout sends new sizes for all subframes. This needs to be reflected by all
             // frame trees in the navigation context containing the subframe.
-            FromLayoutMsg::FrameSize(iframe_sizes) => {
+            FromLayoutMsg::FrameSizes(iframe_sizes) => {
                 debug!("constellation got frame size message");
                 self.handle_frame_size_msg(iframe_sizes);
             }
@@ -1327,10 +1327,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_frame_size_msg(&mut self,
-                             iframe_sizes: Vec<(PipelineId, Size2D<f32>)>) {
-        for size_data in iframe_sizes {
-            let (pipeline_id, untyped_size) = size_data;
-            let size = TypedSize2D::from_untyped(&untyped_size);
+                             iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, PagePx>)>) {
+        for (pipeline_id, size) in iframe_sizes {
             let result = match self.pipelines.get_mut(&pipeline_id) {
                 Some(pipeline) => {
                     if pipeline.size != Some(size) {
