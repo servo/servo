@@ -109,16 +109,16 @@ impl Event {
                     -> EventStatus {
         assert!(!self.dispatching());
         assert!(self.initialized());
-        assert_eq!(self.phase(), EventPhase::None);
+        assert_eq!(self.phase.get(), EventPhase::None);
         assert!(self.GetCurrentTarget().is_none());
 
         // Step 1.
-        self.mark_as_dispatching();
+        self.dispatching.set(true);
 
         // Step 2.
-        self.set_target(target_override.unwrap_or(target));
+        self.target.set(Some(target_override.unwrap_or(target)));
 
-        if self.stop_propagation() {
+        if self.stop_propagation.get() {
             // If the event's stop propagation flag is set, we can skip everything because
             // it prevents the calls of the invoke algorithm in the spec.
 
@@ -173,61 +173,19 @@ impl Event {
     }
 
     #[inline]
-    pub fn set_current_target(&self, val: &EventTarget) {
-        self.current_target.set(Some(val));
-    }
-
-    #[inline]
-    pub fn set_target(&self, val: &EventTarget) {
-        self.target.set(Some(val));
-    }
-
-    #[inline]
-    pub fn phase(&self) -> EventPhase {
-        self.phase.get()
-    }
-
-    #[inline]
-    pub fn set_phase(&self, val: EventPhase) {
-        self.phase.set(val)
-    }
-
-    #[inline]
-    pub fn stop_propagation(&self) -> bool {
-        self.stop_propagation.get()
-    }
-
-    #[inline]
-    pub fn stop_immediate(&self) -> bool {
-        self.stop_immediate.get()
-    }
-
-    #[inline]
-    pub fn bubbles(&self) -> bool {
-        self.bubbles.get()
-    }
-
-    #[inline]
     pub fn dispatching(&self) -> bool {
         self.dispatching.get()
     }
 
     #[inline]
-    // https://dom.spec.whatwg.org/#concept-event-dispatch Step 1.
-    pub fn mark_as_dispatching(&self) {
-        assert!(!self.dispatching.get());
-        self.dispatching.set(true);
-    }
-
-    #[inline]
     // https://dom.spec.whatwg.org/#concept-event-dispatch Steps 10-12.
-    pub fn clear_dispatching_flags(&self) {
+    fn clear_dispatching_flags(&self) {
         assert!(self.dispatching.get());
 
         self.dispatching.set(false);
         self.stop_propagation.set(false);
         self.stop_immediate.set(false);
-        self.set_phase(EventPhase::None);
+        self.phase.set(EventPhase::None);
         self.current_target.set(None);
     }
 
@@ -458,8 +416,8 @@ impl Runnable for SimpleEventRunnable {
 // See dispatch_event.
 // https://dom.spec.whatwg.org/#concept-event-dispatch
 fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&EventTarget]) {
-    assert!(!event.stop_propagation());
-    assert!(!event.stop_immediate());
+    assert!(!event.stop_propagation.get());
+    assert!(!event.stop_immediate.get());
 
     let window = match Root::downcast::<Window>(target.global()) {
         Some(window) => {
@@ -473,40 +431,40 @@ fn dispatch_to_listeners(event: &Event, target: &EventTarget, event_path: &[&Eve
     };
 
     // Step 5.
-    event.set_phase(EventPhase::Capturing);
+    event.phase.set(EventPhase::Capturing);
 
     // Step 6.
     for object in event_path.iter().rev() {
         invoke(window.r(), object, event, Some(ListenerPhase::Capturing));
-        if event.stop_propagation() {
+        if event.stop_propagation.get() {
             return;
         }
     }
-    assert!(!event.stop_propagation());
-    assert!(!event.stop_immediate());
+    assert!(!event.stop_propagation.get());
+    assert!(!event.stop_immediate.get());
 
     // Step 7.
-    event.set_phase(EventPhase::AtTarget);
+    event.phase.set(EventPhase::AtTarget);
 
     // Step 8.
     invoke(window.r(), target, event, None);
-    if event.stop_propagation() {
+    if event.stop_propagation.get() {
         return;
     }
-    assert!(!event.stop_propagation());
-    assert!(!event.stop_immediate());
+    assert!(!event.stop_propagation.get());
+    assert!(!event.stop_immediate.get());
 
-    if !event.bubbles() {
+    if !event.bubbles.get() {
         return;
     }
 
     // Step 9.1.
-    event.set_phase(EventPhase::Bubbling);
+    event.phase.set(EventPhase::Bubbling);
 
     // Step 9.2.
     for object in event_path {
         invoke(window.r(), object, event, Some(ListenerPhase::Bubbling));
-        if event.stop_propagation() {
+        if event.stop_propagation.get() {
             return;
         }
     }
@@ -518,13 +476,13 @@ fn invoke(window: Option<&Window>,
           event: &Event,
           specific_listener_phase: Option<ListenerPhase>) {
     // Step 1.
-    assert!(!event.stop_propagation());
+    assert!(!event.stop_propagation.get());
 
     // Steps 2-3.
     let listeners = object.get_listeners_for(&event.type_(), specific_listener_phase);
 
     // Step 4.
-    event.set_current_target(object);
+    event.current_target.set(Some(object));
 
     // Step 5.
     inner_invoke(window, object, event, &listeners);
@@ -557,7 +515,7 @@ fn inner_invoke(window: Option<&Window>,
         if let Some(window) = window {
             window.emit_timeline_marker(marker.end());
         }
-        if event.stop_immediate() {
+        if event.stop_immediate.get() {
             return found;
         }
 
