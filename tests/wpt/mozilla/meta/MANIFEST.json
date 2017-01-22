@@ -8294,6 +8294,12 @@
             "url": "/_mozilla/mozilla/document_url.html"
           }
         ],
+        "mozilla/double-stylesheet-load.html": [
+          {
+            "path": "mozilla/double-stylesheet-load.html",
+            "url": "/_mozilla/mozilla/double-stylesheet-load.html"
+          }
+        ],
         "mozilla/double_focus.html": [
           {
             "path": "mozilla/double_focus.html",

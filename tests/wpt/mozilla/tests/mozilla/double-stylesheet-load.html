@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Multiple in-flight stylesheet loads should not panic. (issue #15101)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+  var link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.onload = t.step_func(function() {
+    assert_true(true);
+    t.done();
+  });
+  document.head.appendChild(link);
+  link.href = "data:text/css,a{}";
+  link.href = "data:text/css,b{}";
+}, "multiple in-flight stylesheet loads don't panic");
+</script>
