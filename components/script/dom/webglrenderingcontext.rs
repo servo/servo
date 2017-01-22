@@ -436,7 +436,8 @@ impl WebGLRenderingContext {
                                          height: u32,
                                          format: TexFormat,
                                          data_type: TexDataType,
-                                         data: *mut JSObject)
+                                         data: *mut JSObject
+                                         cx: *mut JSContext)
                                          -> Result<u32, ()> {
         let element_size = data_type.element_size();
         let components_per_element = data_type.components_per_element();
