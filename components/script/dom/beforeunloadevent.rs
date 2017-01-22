@@ -15,6 +15,7 @@ use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::window::Window;
 use servo_atoms::Atom;
+use std::cell::Ref;
 
 // https://html.spec.whatwg.org/multipage/#beforeunloadevent
 #[dom_struct]
@@ -48,6 +49,10 @@ impl BeforeUnloadEvent {
                              bool::from(cancelable));
         }
         ev
+    }
+
+    pub fn return_value(&self) -> Ref<DOMString> {
+        self.return_value.borrow()
     }
 }
 
