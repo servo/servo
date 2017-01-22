@@ -32,8 +32,8 @@ use style_traits::viewport::ViewportConstraints;
 pub enum LayoutMsg {
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Inform the constellation of the size of the viewport.
-    FrameSize(PipelineId, Size2D<f32>),
+    /// Inform the constellation of the size of the pipeline's viewport.
+    FrameSize(Vec<(PipelineId, Size2D<f32>)>),
     /// Requests that the constellation inform the compositor of the a cursor change.
     SetCursor(Cursor),
     /// Notifies the constellation that the viewport has been constrained in some manner

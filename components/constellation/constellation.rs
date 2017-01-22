@@ -1083,11 +1083,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromLayoutMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
             }
-            // The compositor discovered the size of a subframe. This needs to be reflected by all
+            // Layout sends new sizes for all subframes. This needs to be reflected by all
             // frame trees in the navigation context containing the subframe.
-            FromLayoutMsg::FrameSize(pipeline_id, size) => {
+            FromLayoutMsg::FrameSize(iframe_sizes) => {
                 debug!("constellation got frame size message");
-                self.handle_frame_size_msg(pipeline_id, &TypedSize2D::from_untyped(&size));
+                self.handle_frame_size_msg(iframe_sizes);
             }
             FromLayoutMsg::SetCursor(cursor) => {
                 self.handle_set_cursor_msg(cursor)
@@ -1327,26 +1327,29 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_frame_size_msg(&mut self,
-                             pipeline_id: PipelineId,
-                             size: &TypedSize2D<f32, PagePx>) {
-        let result = match self.pipelines.get_mut(&pipeline_id) {
-            Some(pipeline) => {
-                if pipeline.size != Some(*size) {
-                    pipeline.size = Some(*size);
-                    let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
-                        visible_viewport: *size,
-                        initial_viewport: *size * ScaleFactor::new(1.0),
-                        device_pixel_ratio: self.window_size.device_pixel_ratio,
-                    }, WindowSizeType::Initial);
-                    Some(pipeline.event_loop.send(msg))
-                } else {
-                    None
+                             iframe_sizes: Vec<(PipelineId, Size2D<f32>)>) {
+        for size_data in iframe_sizes {
+            let (pipeline_id, untyped_size) = size_data;
+            let size = TypedSize2D::from_untyped(&untyped_size);
+            let result = match self.pipelines.get_mut(&pipeline_id) {
+                Some(pipeline) => {
+                    if pipeline.size != Some(size) {
+                        pipeline.size = Some(size);
+                        let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
+                            visible_viewport: size,
+                            initial_viewport: size * ScaleFactor::new(1.0),
+                            device_pixel_ratio: self.window_size.device_pixel_ratio,
+                        }, WindowSizeType::Initial);
+                        Some(pipeline.event_loop.send(msg))
+                    } else {
+                        None
+                    }
                 }
+                None => None
+            };
+            if let Some(Err(e)) = result {
+                self.handle_send_error(pipeline_id, e);
             }
-            None => None
-        };
-        if let Some(Err(e)) = result {
-            self.handle_send_error(pipeline_id, e);
         }
     }
 

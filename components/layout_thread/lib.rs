@@ -954,18 +954,23 @@ impl LayoutThread {
             }
             let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
 
+            let mut iframe_sizes = Vec::new();
             for item in &display_list.list {
                 match *item {
                     DisplayItem::Iframe(ref iframe) => {
                         let size = Size2D::new((*item).bounds().size.width.to_f32_px(),
                                                (*item).bounds().size.height.to_f32_px());
                         debug!("new iframe size: {:?}", size);
-                        let msg = ConstellationMsg::FrameSize((*iframe).iframe, size);
-                        if let Err(e) = self.constellation_chan.send(msg) {
-                            warn!("Layout resize to constellation failed ({}).", e);
-                        }
+                        iframe_sizes.push(((*iframe).iframe, size));
                     },
-                    _ => debug!("other!"),
+                    _ => {},
+                }
+            }
+
+            if iframe_sizes.len() > 0 {
+                let msg = ConstellationMsg::FrameSize(iframe_sizes);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Layout resize to constellation failed ({}).", e);
                 }
             }
 
