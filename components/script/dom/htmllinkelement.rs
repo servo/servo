@@ -79,10 +79,15 @@ impl HTMLLinkElement {
     }
 
     pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        assert!(self.stylesheet.borrow().is_none());
-        *self.stylesheet.borrow_mut() = Some(s);
+        let mut sheet = self.stylesheet.borrow_mut();
+        let must_invalidate = sheet.is_some();
+        *sheet = Some(s);
+        if must_invalidate { // If there already is a stylesheet loaded, invalidate the stylesheets
+                             // in the document.
+            let doc = document_from_node(&*self);
+            doc.invalidate_stylesheets();
+        }
     }
-
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
         self.stylesheet.borrow().clone()
