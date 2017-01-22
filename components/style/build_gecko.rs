@@ -388,10 +388,15 @@ mod bindings {
             "StyleTransition",
             "mozilla::UniquePtr",
             "mozilla::DefaultDelete",
+
+            // bindgen can't find these
+            "mozilla::binding_danger::TErrorResult",
+            "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
         ];
         let opaque_types = [
             "std::pair__PCCP",
             "std::namespace::atomic___base", "std::atomic__My_base",
+            "std::atomic___base",
             "nsAString_internal_char_traits",
             "nsAString_internal_incompatible_char_type",
             "nsACString_internal_char_traits",
