@@ -9,6 +9,7 @@ pub use dom::headers::normalize_value;
 pub use dom::bindings::cell::DOMRefCell;
 pub use dom::bindings::js::JS;
 pub use dom::node::Node;
+pub use dom::bindings::refcounted::TrustedPromise;
 
 pub mod area {
     pub use dom::htmlareaelement::{Area, Shape};
