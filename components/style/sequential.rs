@@ -18,6 +18,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
     where E: TElement,
           D: DomTraversal<E>,
 {
+    debug_assert!(!traversal.is_parallel());
     debug_assert!(token.should_traverse());
 
     fn doit<E, D>(traversal: &D, traversal_data: &mut PerLevelTraversalData,

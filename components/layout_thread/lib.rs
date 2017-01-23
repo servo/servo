@@ -124,7 +124,7 @@ use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::DomTraversal;
+use style::traversal::{DomTraversal, TraversalDriver};
 
 /// Information needed by the layout thread.
 pub struct LayoutThread {
@@ -1173,7 +1173,13 @@ impl LayoutThread {
                                                                          data.reflow_info.goal);
 
         // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
-        let traversal = RecalcStyleAndConstructFlows::new(shared_layout_context);
+        let traversal_driver = if self.parallel_flag && self.parallel_traversal.is_some() {
+            TraversalDriver::Parallel
+        } else {
+            TraversalDriver::Sequential
+        };
+
+        let traversal = RecalcStyleAndConstructFlows::new(shared_layout_context, traversal_driver);
         let dom_depth = Some(0); // This is always the root node.
         let token = {
             let stylist = &<RecalcStyleAndConstructFlows as
@@ -1189,7 +1195,8 @@ impl LayoutThread {
                     self.time_profiler_chan.clone(),
                     || {
                 // Perform CSS selector matching and flow construction.
-                if let (true, Some(pool)) = (self.parallel_flag, self.parallel_traversal.as_mut()) {
+                if traversal_driver.is_parallel() {
+                    let pool = self.parallel_traversal.as_mut().unwrap();
                     // Parallel mode
                     parallel::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
                         &traversal, element, dom_depth, token, pool);
