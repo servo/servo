@@ -573,6 +573,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
     let mut opts = Options::new();
+    opts.optflag("c", "cpu", "CPU painting");
+    opts.optflag("g", "gpu", "GPU painting");
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
@@ -618,6 +620,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
+    opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
     opts.optopt("", "config-dir",
                     "config directory following xdg spec on linux platform", "");
