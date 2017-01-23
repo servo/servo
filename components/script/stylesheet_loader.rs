@@ -10,7 +10,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -85,6 +85,9 @@ pub struct StylesheetContext {
     /// The node document for elem when the load was initiated.
     document: Trusted<Document>,
     origin_clean: bool,
+    /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
+    /// This is ignored for `HTMLStyleElement` and imports.
+    request_generation_id: Option<RequestGenerationId>,
 }
 
 impl PreInvoke for StylesheetContext {}
@@ -143,24 +146,30 @@ impl FetchResponseListener for StylesheetContext {
             let loader = StylesheetLoader::for_element(&elem);
             match self.source {
                 StylesheetContextSource::LinkElement { ref mut media, .. } => {
-                    let sheet =
-                        Arc::new(Stylesheet::from_bytes(&data, final_url,
-                                                        protocol_encoding_label,
-                                                        Some(environment_encoding),
-                                                        Origin::Author,
-                                                        media.take().unwrap(),
-                                                        Some(&loader),
-                                                        win.css_error_reporter(),
-                                                        ParserContextExtraData::default()));
-                    if elem.downcast::<HTMLLinkElement>().unwrap().is_alternate() {
-                        sheet.set_disabled(true);
-                    }
-                    elem.downcast::<HTMLLinkElement>()
-                        .unwrap()
-                        .set_stylesheet(sheet.clone());
+                    let link = elem.downcast::<HTMLLinkElement>().unwrap();
+                    // We must first check whether the generations of the context and the element match up,
+                    // else we risk applying the wrong stylesheet when responses come out-of-order.
+                    let is_stylesheet_load_applicable =
+                        self.request_generation_id.map_or(true, |gen| gen == link.get_request_generation_id());
+                    if is_stylesheet_load_applicable {
+                        let sheet =
+                            Arc::new(Stylesheet::from_bytes(&data, final_url,
+                                                            protocol_encoding_label,
+                                                            Some(environment_encoding),
+                                                            Origin::Author,
+                                                            media.take().unwrap(),
+                                                            Some(&loader),
+                                                            win.css_error_reporter(),
+                                                            ParserContextExtraData::default()));
 
-                    let win = window_from_node(&*elem);
-                    win.layout_chan().send(Msg::AddStylesheet(sheet)).unwrap();
+                        if link.is_alternate() {
+                            sheet.set_disabled(true);
+                        }
+
+                        link.set_stylesheet(sheet.clone());
+
+                        win.layout_chan().send(Msg::AddStylesheet(sheet)).unwrap();
+                    }
                 }
                 StylesheetContextSource::Import(ref import) => {
                     let import = import.read();
@@ -215,6 +224,8 @@ impl<'a> StylesheetLoader<'a> {
                 integrity_metadata: String) {
         let url = source.url();
         let document = document_from_node(self.elem);
+        let gen = self.elem.downcast::<HTMLLinkElement>()
+                           .map(HTMLLinkElement::get_request_generation_id);
         let context = Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
             source: source,
@@ -222,6 +233,7 @@ impl<'a> StylesheetLoader<'a> {
             data: vec![],
             document: Trusted::new(&*document),
             origin_clean: true,
+            request_generation_id: gen,
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
