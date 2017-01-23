@@ -1755,7 +1755,7 @@ ${helpers.single_keyword("transform-style",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::specified::{Length, LengthOrPercentage, Percentage};
+    use values::specified::{NoCalcLength, LengthOrPercentage, Percentage};
 
     pub mod computed_value {
         use properties::animated_properties::Interpolate;
@@ -1793,7 +1793,7 @@ ${helpers.single_keyword("transform-style",
     pub struct SpecifiedValue {
         horizontal: LengthOrPercentage,
         vertical: LengthOrPercentage,
-        depth: Length,
+        depth: NoCalcLength,
     }
 
     impl ToCss for computed_value::T {
@@ -1830,7 +1830,7 @@ ${helpers.single_keyword("transform-style",
         Ok(SpecifiedValue {
             horizontal: result.horizontal.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
             vertical: result.vertical.unwrap_or(LengthOrPercentage::Percentage(Percentage(0.5))),
-            depth: result.depth.unwrap_or(Length::zero()),
+            depth: result.depth.unwrap_or(NoCalcLength::zero()),
         })
     }
 

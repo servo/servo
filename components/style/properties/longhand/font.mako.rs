@@ -333,10 +333,10 @@ ${helpers.single_keyword("font-variant-caps",
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
             match self.0 {
-                LengthOrPercentage::Length(Length::NoCalc(NoCalcLength::FontRelative(value))) => {
+                LengthOrPercentage::Length(NoCalcLength::FontRelative(value)) => {
                     value.to_computed_value(context, /* use inherited */ true)
                 }
-                LengthOrPercentage::Length(Length::NoCalc(NoCalcLength::ServoCharacterWidth(value))) => {
+                LengthOrPercentage::Length(NoCalcLength::ServoCharacterWidth(value)) => {
                     value.to_computed_value(context.inherited_style().get_font().clone_font_size())
                 }
                 LengthOrPercentage::Length(ref l) => {
@@ -367,11 +367,10 @@ ${helpers.single_keyword("font-variant-caps",
         input.try(specified::LengthOrPercentage::parse_non_negative)
         .or_else(|()| {
             let ident = try!(input.expect_ident());
-            specified::Length::from_str(&ident as &str)
-                .ok_or(())
-                .map(specified::LengthOrPercentage::Length)
-        })
-        .map(SpecifiedValue)
+            NoCalcLength::from_str(&ident as &str)
+                         .ok_or(())
+                         .map(specified::LengthOrPercentage::Length)
+        }).map(SpecifiedValue)
     }
 </%helpers:longhand>
 
