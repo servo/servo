@@ -254,7 +254,11 @@ fn get_animated_properties(keyframe: &Keyframe) -> Vec<TransitionProperty> {
     let mut ret = vec![];
     // NB: declarations are already deduplicated, so we don't have to check for
     // it here.
-    for &(ref declaration, _) in keyframe.block.read().declarations.iter() {
+    for &(ref declaration, importance) in keyframe.block.read().declarations.iter() {
+        if importance.important() {
+            continue;
+        }
+
         if let Some(property) = TransitionProperty::from_declaration(declaration) {
             ret.push(property);
         }

@@ -5,7 +5,8 @@
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::keyframes::{Keyframe, KeyframesAnimation, KeyframePercentage,  KeyframeSelector};
-use style::properties::PropertyDeclarationBlock;
+use style::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue};
+use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
 
 #[test]
 fn test_empty_keyframe() {
@@ -28,6 +29,30 @@ fn test_no_property_in_keyframe() {
                 declarations: vec![
                 ],
                 important_count: 0,
+            }))
+        })),
+    ];
+    let animation = KeyframesAnimation::from_keyframes(&keyframes);
+    let expected = KeyframesAnimation {
+        steps: vec![],
+        properties_changed: vec![],
+    };
+
+    assert_eq!(format!("{:#?}", animation), format!("{:#?}", expected));
+}
+
+#[test]
+fn test_important_property_in_keyframe() {
+    let keyframes = vec![
+        Arc::new(RwLock::new(Keyframe {
+            selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(1.)]),
+            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
+                declarations: vec![
+                    (PropertyDeclaration::Width(DeclaredValue::Value(
+                        LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
+                     Importance::Important),
+                ],
+                important_count: 1,
             }))
         })),
     ];
