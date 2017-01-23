@@ -436,7 +436,8 @@ impl WebGLRenderingContext {
                                          height: u32,
                                          format: TexFormat,
                                          data_type: TexDataType,
-                                         data: *mut JSObject)
+                                         data: *mut JSObject,
+                                         cx: *mut JSContext)
                                          -> Result<u32, ()> {
         let element_size = data_type.element_size();
         let components_per_element = data_type.components_per_element();
@@ -448,12 +449,13 @@ impl WebGLRenderingContext {
         // if it is UNSIGNED_SHORT_5_6_5, UNSIGNED_SHORT_4_4_4_4,
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
+        typedarray!(in(cx) let typedarray_u8: ArrayBufferView = data);
         let received_size = if data.is_null() {
             element_size
         } else {
             if array_buffer_view_data_checked::<u16>(data).is_some() {
                 2
-            } else if array_buffer_view_data_checked::<u8>(data).is_some() {
+            } else if typedarray_u8.is_ok() {
                 1
             } else {
                 self.webgl_error(InvalidOperation);
@@ -1883,9 +1885,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        let mut data = match { array_buffer_view_data::<u8>(pixels) } {
-            Some(data) => data,
-            None => return Err(Error::Type("Not an ArrayBufferView".to_owned())),
+        typedarray!(in(_cx) let mut pixels_data : ArrayBufferView = pixels);
+        let mut data = match { pixels_data.as_mut() } {
+            Ok(data) => data.as_mut_slice(),
+            Err(_) => return Err(Error::Type("Not an ArrayBufferView".to_owned())),
         };
 
         if !self.validate_framebuffer_complete() {
@@ -2597,7 +2600,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let expected_byte_length =
             match { self.validate_tex_image_2d_data(width, height,
                                                            format, data_type,
-                                                           data_ptr) } {
+                                                           data_ptr, _cx) } {
                 Ok(byte_length) => byte_length,
                 Err(()) => return Ok(()),
             };
@@ -2703,7 +2706,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let expected_byte_length =
             match { self.validate_tex_image_2d_data(width, height,
                                                            format, data_type,
-                                                           data_ptr) } {
+                                                           data_ptr, _cx) } {
                 Ok(byte_length) => byte_length,
                 Err(()) => return Ok(()),
             };
