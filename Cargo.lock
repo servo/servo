@@ -674,6 +674,7 @@ dependencies = [
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
  "style_traits 0.0.1",
+ "webrender_traits 0.11.0 (git+https://github.com/servo/webrender)",
  "x11 2.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1037,6 +1038,7 @@ dependencies = [
  "servo_url 0.0.1",
  "style_traits 0.0.1",
  "user32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_traits 0.11.0 (git+https://github.com/servo/webrender)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
