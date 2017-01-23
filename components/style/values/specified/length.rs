@@ -989,7 +989,7 @@ impl Parse for LengthOrPercentage {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum LengthOrPercentageOrAuto {
-    Length(Length),
+    Length(NoCalcLength),
     Percentage(Percentage),
     Auto,
     Calc(Box<CalcLengthOrPercentage>),
@@ -1022,11 +1022,11 @@ impl LengthOrPercentageOrAuto {
     {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                Length::parse_dimension(value.value, unit).map(LengthOrPercentageOrAuto::Length),
+                NoCalcLength::parse_dimension(value.value, unit).map(LengthOrPercentageOrAuto::Length),
             Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAuto::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentageOrAuto::Length(Length::zero())),
+                Ok(LengthOrPercentageOrAuto::Length(NoCalcLength::zero())),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(LengthOrPercentageOrAuto::Auto),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
