@@ -567,7 +567,7 @@ impl BlockFlow {
             } else {
                 BlockType::FloatNonReplaced
             }
-        } else if self.is_inline_block() {
+        } else if self.is_inline_block_or_inline_flex() {
             if self.fragment.is_replaced() {
                 BlockType::InlineBlockReplaced
             } else {
@@ -1558,8 +1558,9 @@ impl BlockFlow {
         debug_assert_eq!(self.fragment.margin_box_inline_size(), self.base.position.size.inline);
     }
 
-    fn is_inline_block(&self) -> bool {
-        self.fragment.style().get_box().display == display::T::inline_block
+    fn is_inline_block_or_inline_flex(&self) -> bool {
+        self.fragment.style().get_box().display == display::T::inline_block ||
+        self.fragment.style().get_box().display == display::T::inline_flex
     }
 
     /// Computes the content portion (only) of the intrinsic inline sizes of this flow. This is

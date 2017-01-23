@@ -19,10 +19,11 @@
         values = """inline block inline-block
             table inline-table table-row-group table-header-group table-footer-group
             table-row table-column-group table-column table-cell table-caption
-            list-item flex none
+            list-item flex inline-flex
+            none
         """.split()
         if product == "gecko":
-            values += """inline-flex grid inline-grid ruby ruby-base ruby-base-container
+            values += """grid inline-grid ruby ruby-base ruby-base-container
                 ruby-text ruby-text-container contents flow-root -webkit-box
                 -webkit-inline-box -moz-box -moz-inline-box -moz-grid -moz-inline-grid
                 -moz-grid-group -moz-grid-line -moz-stack -moz-inline-stack -moz-deck

@@ -1953,8 +1953,10 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
     let is_item = matches!(context.inherited_style.get_box().clone_display(),
         % if product == "gecko":
         computed_values::display::T::grid |
+        computed_values::display::T::inline_grid |
         % endif
-        computed_values::display::T::flex);
+        computed_values::display::T::flex |
+        computed_values::display::T::inline_flex);
     let (blockify_root, blockify_item) = match flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
         false => (is_root_element, is_item),
         true => (false, false),
