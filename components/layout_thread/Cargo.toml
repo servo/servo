@@ -16,7 +16,6 @@ fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.0"
-heapsize_derive = "0.1"
 ipc-channel = "0.5"
 layout = {path = "../layout"}
 layout_traits = {path = "../layout_traits"}

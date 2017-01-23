@@ -15,9 +15,7 @@
 
 #![deny(unsafe_code)]
 
-extern crate alloc;
 extern crate app_units;
-#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 
@@ -48,7 +46,6 @@ extern crate harfbuzz_sys as harfbuzz;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 extern crate ipc_channel;
-#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
@@ -57,8 +54,8 @@ extern crate log;
 extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;
-#[macro_use]
 extern crate range;
+#[cfg(target_os = "macos")]
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;

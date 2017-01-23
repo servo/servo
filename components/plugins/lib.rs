@@ -23,7 +23,6 @@ extern crate clippy_lints;
 #[macro_use]
 extern crate rustc;
 extern crate rustc_plugin;
-#[macro_use]
 extern crate syntax;
 
 use rustc_plugin::Registry;

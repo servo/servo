@@ -14,7 +14,6 @@ extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 #[macro_use]
 extern crate range;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 

@@ -22,7 +22,6 @@ extern crate log;
 extern crate profile_traits;
 #[cfg(target_os = "linux")]
 extern crate regex;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;

@@ -9,13 +9,11 @@
 
 #![deny(unsafe_code)]
 
-extern crate core;
 extern crate cssparser;
 extern crate euclid;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 extern crate ipc_channel;
-extern crate serde;
 #[macro_use] extern crate serde_derive;
 extern crate webrender_traits;
 

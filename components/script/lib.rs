@@ -29,7 +29,6 @@ extern crate angle;
 extern crate app_units;
 extern crate atomic_refcell;
 extern crate audio_video_metadata;
-#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate bluetooth_traits;
@@ -83,7 +82,7 @@ extern crate script_traits;
 extern crate selectors;
 extern crate serde;
 #[macro_use] extern crate servo_atoms;
-#[macro_use] extern crate servo_config;
+extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_rand;
 extern crate servo_url;
@@ -95,7 +94,6 @@ extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 extern crate tinyfiledialogs;
 extern crate url;
-#[macro_use]
 extern crate uuid;
 extern crate webrender_traits;
 extern crate websocket;

@@ -20,7 +20,6 @@
 extern crate env_logger;
 #[cfg(not(target_os = "windows"))]
 extern crate gaol;
-#[macro_use]
 extern crate gleam;
 extern crate log;
 

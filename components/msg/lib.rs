@@ -7,12 +7,10 @@
 
 #![deny(unsafe_code)]
 
-#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate webrender_traits;

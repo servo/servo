@@ -9,8 +9,6 @@
 
 #![deny(unsafe_code)]
 
-#[macro_use]
-extern crate bitflags;
 extern crate brotli;
 extern crate content_blocker as content_blocker_parser;
 extern crate cookie as cookie_rs;
@@ -32,8 +30,6 @@ extern crate openssl;
 extern crate openssl_verify;
 extern crate profile_traits;
 extern crate rustc_serialize;
-#[macro_use]
-extern crate serde_derive;
 extern crate servo_config;
 extern crate servo_url;
 extern crate threadpool;

@@ -16,7 +16,6 @@
 
 extern crate app_units;
 extern crate atomic_refcell;
-#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate canvas_traits;
@@ -27,7 +26,6 @@ extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
 #[macro_use] extern crate html5ever_atoms;
 extern crate ipc_channel;
 extern crate libc;
@@ -37,7 +35,6 @@ extern crate msg;
 extern crate net_traits;
 extern crate ordered_float;
 extern crate parking_lot;
-#[macro_use]
 extern crate profile_traits;
 #[macro_use]
 extern crate range;
@@ -48,7 +45,6 @@ extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
-#[macro_use] extern crate servo_atoms;
 extern crate servo_config;
 extern crate servo_geometry;
 extern crate servo_url;

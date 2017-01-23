@@ -12,18 +12,15 @@
 #![plugin(plugins)]
 
 extern crate app_units;
-extern crate core;
 extern crate euclid;
 extern crate fnv;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate heapsize;
-#[macro_use] extern crate heapsize_derive;
 extern crate ipc_channel;
 #[macro_use]
 extern crate layout;
 extern crate layout_traits;
-#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]

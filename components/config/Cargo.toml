@@ -14,7 +14,6 @@ path = "lib.rs"
 servo = ["serde", "serde_derive", "url/heap_size", "url/serde", "plugins"]
 
 [dependencies]
-bitflags = "0.7"
 euclid = "0.10.1"
 getopts = "0.2.11"
 lazy_static = "0.2"
