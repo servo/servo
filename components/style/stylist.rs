@@ -183,6 +183,7 @@ impl Stylist {
         self.precomputed_pseudo_element_decls = Default::default();
         self.rules_source_order = 0;
         self.state_deps.clear();
+        self.animations.clear();
 
         self.sibling_affecting_selectors.clear();
         self.non_common_style_affecting_attributes_selectors.clear();
@@ -273,16 +274,9 @@ impl Stylist {
                 CssRule::Keyframes(ref keyframes_rule) => {
                     let keyframes_rule = keyframes_rule.read();
                     debug!("Found valid keyframes rule: {:?}", *keyframes_rule);
-                    if let Some(animation) = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes) {
-                        debug!("Found valid keyframe animation: {:?}", animation);
-                        self.animations.insert(keyframes_rule.name.clone(),
-                                               animation);
-                    } else {
-                        // If there's a valid keyframes rule, even if it doesn't
-                        // produce an animation, should shadow other animations
-                        // with the same name.
-                        self.animations.remove(&keyframes_rule.name);
-                    }
+                    let animation = KeyframesAnimation::from_keyframes(&keyframes_rule.keyframes);
+                    debug!("Found valid keyframe animation: {:?}", animation);
+                    self.animations.insert(keyframes_rule.name.clone(), animation);
                 }
                 // We don't care about any other rule.
                 _ => {}

@@ -25,6 +25,7 @@ extern crate test;
 mod animated_properties;
 mod attr;
 mod cache;
+mod keyframes;
 mod logical_geometry;
 mod media_queries;
 mod owning_handle;
