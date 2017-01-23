@@ -10,7 +10,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmllinkelement::{GenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -85,9 +85,21 @@ pub struct StylesheetContext {
     /// The node document for elem when the load was initiated.
     document: Trusted<Document>,
     origin_clean: bool,
+    /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
+    generation_id: GenerationId,
 }
 
-impl PreInvoke for StylesheetContext {}
+impl PreInvoke for StylesheetContext {
+    fn should_invoke(&self) -> bool {
+        // We must first check whether the generations of the context and the element match up,
+        // else we risk applying the wrong stylesheet when responses come out-of-order.
+        let gen = self.elem.root()
+                           .downcast::<HTMLLinkElement>()
+                           .unwrap()
+                           .get_generation_id();
+        self.generation_id == gen
+    }
+}
 
 impl FetchResponseListener for StylesheetContext {
     fn process_request_body(&mut self) {}
@@ -215,6 +227,9 @@ impl<'a> StylesheetLoader<'a> {
                 integrity_metadata: String) {
         let url = source.url();
         let document = document_from_node(self.elem);
+        let gen = self.elem.downcast::<HTMLLinkElement>()
+                           .unwrap()
+                           .get_generation_id();
         let context = Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
             source: source,
@@ -222,6 +237,7 @@ impl<'a> StylesheetLoader<'a> {
             data: vec![],
             document: Trusted::new(&*document),
             origin_clean: true,
+            generation_id: gen,
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();

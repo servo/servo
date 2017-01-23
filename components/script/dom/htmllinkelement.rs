@@ -37,6 +37,15 @@ use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwn
 
 unsafe_no_jsmanaged_fields!(Stylesheet);
 
+#[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
+pub struct GenerationId(u32);
+
+impl GenerationId {
+    fn increment(self) -> GenerationId {
+        GenerationId(self.0 + 1)
+    }
+}
+
 #[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
@@ -52,6 +61,8 @@ pub struct HTMLLinkElement {
     pending_loads: Cell<u32>,
     /// Whether any of the loads have failed.
     any_failed_load: Cell<bool>,
+    /// A monotonically increasing counter that keeps track of which stylesheet to apply.
+    generation_id: Cell<GenerationId>,
 }
 
 impl HTMLLinkElement {
@@ -65,6 +76,7 @@ impl HTMLLinkElement {
             cssom_stylesheet: MutNullableJS::new(None),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
+            generation_id: Cell::new(GenerationId(0)),
         }
     }
 
@@ -78,11 +90,14 @@ impl HTMLLinkElement {
                            HTMLLinkElementBinding::Wrap)
     }
 
-    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        assert!(self.stylesheet.borrow().is_none());
-        *self.stylesheet.borrow_mut() = Some(s);
+    pub fn get_generation_id(&self) -> GenerationId {
+        self.generation_id.get()
     }
 
+    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+        assert!(self.stylesheet.borrow().is_none()); // Useful for catching timing issues.
+        *self.stylesheet.borrow_mut() = Some(s);
+    }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
         self.stylesheet.borrow().clone()
@@ -259,6 +274,8 @@ impl HTMLLinkElement {
             Some(ref value) => &***value,
             None => "",
         };
+
+        self.generation_id.set(self.generation_id.get().increment());
 
         // TODO: #8085 - Don't load external stylesheets if the node's mq
         // doesn't match.
