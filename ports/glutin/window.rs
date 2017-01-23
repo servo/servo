@@ -420,10 +420,15 @@ impl Window {
                 self.event_queue.borrow_mut().push(
                     WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(x as f32, y as f32)));
             }
-            Event::MouseWheel(delta, phase) => {
+            Event::MouseWheel(delta, phase, pos) => {
                 let (dx, dy) = match delta {
                     MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
                     MouseScrollDelta::PixelDelta(dx, dy) => (dx, dy),
+                };
+                if let Some((x, y)) = pos {
+                    self.mouse_pos.set(Point2D::new(x, y));
+                    self.event_queue.borrow_mut().push(
+                        WindowEvent::MouseWindowMoveEventClass(TypedPoint2D::new(x as f32, y as f32)));
                 };
                 let phase = glutin_phase_to_touch_event_type(phase);
                 self.scroll_window(dx, dy, phase);
