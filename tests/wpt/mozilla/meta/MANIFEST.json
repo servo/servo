@@ -8750,6 +8750,18 @@
             "url": "/_mozilla/mozilla/node_replaceChild.html"
           }
         ],
+        "mozilla/out-of-order-stylesheet-loads-and-imports.html": [
+          {
+            "path": "mozilla/out-of-order-stylesheet-loads-and-imports.html",
+            "url": "/_mozilla/mozilla/out-of-order-stylesheet-loads-and-imports.html"
+          }
+        ],
+        "mozilla/out-of-order-stylesheet-loads.html": [
+          {
+            "path": "mozilla/out-of-order-stylesheet-loads.html",
+            "url": "/_mozilla/mozilla/out-of-order-stylesheet-loads.html"
+          }
+        ],
         "mozilla/parentNode_querySelector.html": [
           {
             "path": "mozilla/parentNode_querySelector.html",
