@@ -689,6 +689,9 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
             vec![collapsed_border; child_table_row.block_flow.base.children.len()]
         }
     };
+    for (i, border) in child_table_row.final_collapsed_borders.block_start.iter_mut().enumerate() {
+        border.combine(&child_table_row.preliminary_collapsed_borders.block_start[i])
+    }
 
     // Compute block-end borders.
     let next_block = &mut child_table_row.final_collapsed_borders.block_end;
