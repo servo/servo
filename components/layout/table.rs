@@ -681,15 +681,14 @@ fn perform_border_collapse_for_row(child_table_row: &mut TableRowFlow,
     }
 
     // Compute block-start borders.
-    match previous_block_borders {
+    child_table_row.final_collapsed_borders.block_start = match previous_block_borders {
         PreviousBlockCollapsedBorders::FromPreviousRow(previous_block_borders) => {
-            child_table_row.final_collapsed_borders.block_start = previous_block_borders
+            previous_block_borders
         }
         PreviousBlockCollapsedBorders::FromTable(collapsed_border) => {
-            child_table_row.final_collapsed_borders.block_start =
-                vec![collapsed_border; child_table_row.block_flow.base.children.len()]
+            vec![collapsed_border; child_table_row.block_flow.base.children.len()]
         }
-    }
+    };
 
     // Compute block-end borders.
     let next_block = &mut child_table_row.final_collapsed_borders.block_end;
