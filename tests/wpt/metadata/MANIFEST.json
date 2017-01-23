@@ -45873,6 +45873,12 @@
             "url": "/cssom/stylesheet-same-origin.sub.html"
           }
         ],
+        "html/dom/dynamic-markup-insertion/document-write/write-active-document.html": [
+          {
+            "path": "html/dom/dynamic-markup-insertion/document-write/write-active-document.html",
+            "url": "/html/dom/dynamic-markup-insertion/document-write/write-active-document.html"
+          }
+        ],
         "html/semantics/embedded-content/the-iframe-element/iframe-synchronously-discard.html": [
           {
             "path": "html/semantics/embedded-content/the-iframe-element/iframe-synchronously-discard.html",

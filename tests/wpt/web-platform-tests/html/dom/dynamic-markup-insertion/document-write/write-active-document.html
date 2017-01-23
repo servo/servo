@@ -1,0 +1,33 @@
+<!doctype html>
+<title>document.write only writes to active documents</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body><div id="log"></div></body>
+<script>
+  async_test(function(t) {
+    var child = document.createElement("iframe");
+    child.src = "empty.html?1";
+    child.onload = t.step_func(function() {
+      var child1 = child.contentDocument;
+      child1.write('<a id="link" href="data:text/html,Clicked.">Link.</a>');
+      var grandchild = child1.createElement("iframe");
+      grandchild.src = "empty.html?2";
+      grandchild.onload = t.step_func(function() {
+        var grandchild1 = grandchild.contentDocument;
+        grandchild1.write('<a id="link" href="data:text/html,Clicked.">Link.</a>');
+        child.onload = t.step_func(function() {
+          // This is a write to an active but not fully active document
+          grandchild1.write(' WRITE HAPPENED');
+          assert_equals(grandchild1.body.innerText.trim(), "Link. WRITE HAPPENED");
+          // This is a write to an inactive document
+          child1.write(' WRITE HAPPENED');
+          assert_equals(child1.body.innerText.trim(), "Link.");
+          t.done();
+        });
+        child1.getElementById('link').click();
+      });
+      child1.body.appendChild(grandchild);
+    });
+    document.body.appendChild(child);
+  });
+</script>
