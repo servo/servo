@@ -17,13 +17,14 @@ use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
-use style::traversal::{DomTraversal, recalc_style_at};
+use style::traversal::{DomTraversal, TraversalKind, recalc_style_at};
 use style::traversal::PerLevelTraversalData;
 use wrapper::{GetRawData, LayoutNodeHelpers, LayoutNodeLayoutData};
 use wrapper::ThreadSafeLayoutNodeHelpers;
 
 pub struct RecalcStyleAndConstructFlows {
     shared: SharedLayoutContext,
+    kind: TraversalKind,
 }
 
 impl RecalcStyleAndConstructFlows {
@@ -34,9 +35,10 @@ impl RecalcStyleAndConstructFlows {
 
 impl RecalcStyleAndConstructFlows {
     /// Creates a traversal context, taking ownership of the shared layout context.
-    pub fn new(shared: SharedLayoutContext) -> Self {
+    pub fn new(shared: SharedLayoutContext, kind: TraversalKind) -> Self {
         RecalcStyleAndConstructFlows {
             shared: shared,
+            kind: kind,
         }
     }
 
@@ -100,6 +102,10 @@ impl<E> DomTraversal<E> for RecalcStyleAndConstructFlows
 
     fn create_thread_local_context(&self) -> Self::ThreadLocalContext {
         ScopedThreadLocalLayoutContext::new(&self.shared)
+    }
+
+    fn kind(&self) -> TraversalKind {
+        self.kind
     }
 }
 

@@ -68,7 +68,7 @@ use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
 use style::timer::Timer;
-use style::traversal::{resolve_style, DomTraversal};
+use style::traversal::{resolve_style, DomTraversal, TraversalKind};
 use style_traits::ToCss;
 use stylesheet_loader::StylesheetLoader;
 
@@ -139,14 +139,19 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
     let shared_style_context = create_shared_context(&per_doc_data);
-    let traversal = RecalcStyleOnly::new(shared_style_context);
-    let known_depth = None;
-
-    if per_doc_data.num_threads == 1 || per_doc_data.work_queue.is_none() {
-        sequential::traverse_dom(&traversal, element, token);
+    let traversal_kind = if per_doc_data.num_threads == 1 || per_doc_data.work_queue.is_none() {
+        TraversalKind::Sequential
     } else {
+        TraversalKind::Parallel
+    };
+
+    let traversal = RecalcStyleOnly::new(shared_style_context, traversal_kind);
+    let known_depth = None;
+    if traversal_kind.is_parallel() {
         parallel::traverse_dom(&traversal, element, known_depth, token,
                                per_doc_data.work_queue.as_mut().unwrap());
+    } else {
+        sequential::traverse_dom(&traversal, element, token);
     }
 }
 
