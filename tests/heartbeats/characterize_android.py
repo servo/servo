@@ -85,6 +85,9 @@ def main():
     parser.add_argument("-b", "--benchmark",
                         default=benchmark,
                         help="Gets the benchmark, for example \"-b http://www.example.com\"")
+    parser.add_argument("-w", "--webrender",
+                        action='store_true',
+                        help="Use webrender backend")
     parser.add_argument("-l", "--layout_threads",
                         help="Specify the number of threads for layout, for example \"-l 5\"")
     parser.add_argument("-o", "--output",
@@ -96,6 +99,8 @@ def main():
     args = parser.parse_args()
     if args.benchmark:
         benchmark = args.benchmark
+    if args.webrender:
+        renderer = "-w"
     if args.layout_threads:
         layout_threads = int(args.layout_threads)
     if args.output:
