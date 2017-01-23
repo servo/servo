@@ -45,6 +45,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
     where E: TElement,
           D: DomTraversal<E>,
 {
+    debug_assert!(traversal.is_parallel());
     // Handle Gecko's eager initial styling. We don't currently support it
     // in conjunction with bottom-up traversal. If we did, we'd need to put
     // it on the context to make it available to the bottom-up phase.
