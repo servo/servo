@@ -210,9 +210,6 @@ def main():
     parser.add_argument("-d", "--debug",
                         action='store_true',
                         help="Use debug build instead of release build")
-    parser.add_argument("-w", "--webrender",
-                        action='store_true',
-                        help="Use webrender backend")
     parser.add_argument("-l", "--max_layout_threads",
                         help="Specify the maximum number of threads for layout, for example \"-l 5\"")
     parser.add_argument("-o", "--output",
@@ -233,8 +230,6 @@ def main():
         benchmark = args.benchmark
     if args.debug:
         build_target = "debug"
-    if args.webrender:
-        renderer = "-w"
     if args.max_layout_threads:
         max_layout_threads = int(args.max_layout_threads)
     if args.output:

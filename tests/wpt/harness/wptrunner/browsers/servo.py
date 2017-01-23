@@ -10,17 +10,20 @@ from ..executors.executorservo import ServoTestharnessExecutor, ServoRefTestExec
 
 here = os.path.join(os.path.split(__file__)[0])
 
-__wptrunner__ = {"product": "servo",
-                 "check_args": "check_args",
-                 "browser": "ServoBrowser",
-                 "executor": {"testharness": "ServoTestharnessExecutor",
-                              "reftest": "ServoRefTestExecutor",
-                              "wdspec": "ServoWdspecExecutor"},
-                 "browser_kwargs": "browser_kwargs",
-                 "executor_kwargs": "executor_kwargs",
-                 "env_options": "env_options",
-                 "run_info_extras": "run_info_extras",
-                 "update_properties": "update_properties"}
+__wptrunner__ = {
+    "product": "servo",
+    "check_args": "check_args",
+    "browser": "ServoBrowser",
+    "executor": {
+        "testharness": "ServoTestharnessExecutor",
+        "reftest": "ServoRefTestExecutor",
+        "wdspec": "ServoWdspecExecutor",
+    },
+    "browser_kwargs": "browser_kwargs",
+    "executor_kwargs": "executor_kwargs",
+    "env_options": "env_options",
+    "update_properties": "update_properties",
+}
 
 
 def check_args(**kwargs):
@@ -28,11 +31,12 @@ def check_args(**kwargs):
 
 
 def browser_kwargs(**kwargs):
-    return {"binary": kwargs["binary"],
-            "debug_info": kwargs["debug_info"],
-            "binary_args": kwargs["binary_args"],
-            "user_stylesheets": kwargs.get("user_stylesheets"),
-            "render_backend": kwargs.get("servo_backend")}
+    return {
+        "binary": kwargs["binary"],
+        "debug_info": kwargs["debug_info"],
+        "binary_args": kwargs["binary_args"],
+        "user_stylesheets": kwargs.get("user_stylesheets"),
+    }
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
@@ -51,31 +55,23 @@ def env_options():
             "supports_debugger": True}
 
 
-def run_info_extras(**kwargs):
-    return {"backend": kwargs["servo_backend"]}
-
-
 def update_properties():
-    return ["debug", "os", "version", "processor", "bits", "backend"], None
-
-
-def render_arg(render_backend):
-    return {"cpu": "--cpu", "webrender": "-w"}[render_backend]
+    return ["debug", "os", "version", "processor", "bits"], None
 
 
 class ServoBrowser(NullBrowser):
     def __init__(self, logger, binary, debug_info=None, binary_args=None,
-                 user_stylesheets=None, render_backend="webrender"):
+                 user_stylesheets=None):
         NullBrowser.__init__(self, logger)
         self.binary = binary
         self.debug_info = debug_info
         self.binary_args = binary_args or []
         self.user_stylesheets = user_stylesheets or []
-        self.render_backend = render_backend
 
     def executor_browser(self):
-        return ExecutorBrowser, {"binary": self.binary,
-                                 "debug_info": self.debug_info,
-                                 "binary_args": self.binary_args,
-                                 "user_stylesheets": self.user_stylesheets,
-                                 "render_backend": self.render_backend}
+        return ExecutorBrowser, {
+            "binary": self.binary,
+            "debug_info": self.debug_info,
+            "binary_args": self.binary_args,
+            "user_stylesheets": self.user_stylesheets,
+        }

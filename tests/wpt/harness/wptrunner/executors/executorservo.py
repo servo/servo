@@ -30,14 +30,9 @@ from ..webdriver_server import ServoDriverServer
 from .executormarionette import WdspecRun
 
 pytestrunner = None
-render_arg = None
 webdriver = None
 
 extra_timeout = 5 # seconds
-
-def do_delayed_imports():
-    global render_arg
-    from ..browsers.servo import render_arg
 
 hosts_text = """127.0.0.1 web-platform.test
 127.0.0.1 www.web-platform.test
@@ -80,8 +75,10 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         self.result_data = None
         self.result_flag = threading.Event()
 
-        args = [render_arg(self.browser.render_backend), "--hard-fail", "-u", "Servo/wptrunner",
-                "-Z", "replace-surrogates", "-z", self.test_url(test)]
+        args = [
+            "--hard-fail", "-u", "Servo/wptrunner",
+            "-Z", "replace-surrogates", "-z", self.test_url(test),
+        ]
         for stylesheet in self.browser.user_stylesheets:
             args += ["--user-stylesheet", stylesheet]
         for pref, value in test.environment.get('prefs', {}).iteritems():
@@ -213,9 +210,12 @@ class ServoRefTestExecutor(ProcessTestExecutor):
         with TempFilename(self.tempdir) as output_path:
             debug_args, command = browser_command(
                 self.binary,
-                [render_arg(self.browser.render_backend), "--hard-fail", "--exit",
-                 "-u", "Servo/wptrunner", "-Z", "disable-text-aa,load-webfonts-synchronously,replace-surrogates",
-                 "--output=%s" % output_path, full_url] + self.browser.binary_args,
+                [
+                    "--hard-fail", "--exit",
+                    "-u", "Servo/wptrunner",
+                    "-Z", "disable-text-aa,load-webfonts-synchronously,replace-surrogates",
+                    "--output=%s" % output_path, full_url
+                ] + self.browser.binary_args,
                 self.debug_info)
 
             for stylesheet in self.browser.user_stylesheets:
@@ -295,7 +295,7 @@ class ServoWdspecProtocol(Protocol):
 
     def setup(self, runner):
         try:
-            self.server = ServoDriverServer(self.logger, binary=self.browser.binary, binary_args=self.browser.binary_args, render_backend=self.browser.render_backend)
+            self.server = ServoDriverServer(self.logger, binary=self.browser.binary, binary_args=self.browser.binary_args)
             self.server.start(block=False)
             self.logger.info(
                 "WebDriver HTTP server listening at %s" % self.server.url)
