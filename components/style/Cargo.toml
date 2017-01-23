@@ -46,7 +46,7 @@ phf = "0.7.20"
 quickersort = "2.0.0"
 rayon = "0.6"
 rustc-serialize = "0.3"
-selectors = "0.15"
+selectors = "0.15.1"
 serde = {version = "0.8", optional = true}
 serde_derive = {version = "0.8", optional = true}
 servo_atoms = {path = "../atoms", optional = true}
