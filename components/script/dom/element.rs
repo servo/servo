@@ -508,13 +508,11 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         };
 
         if let Some(size) = size {
-            let value = specified::Length::NoCalc(
-                specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size)));
+            let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
                 PropertyDeclaration::Width(DeclaredValue::Value(
                     specified::LengthOrPercentageOrAuto::Length(value)))));
         }
-
 
         let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.get_width()
@@ -541,7 +539,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::Length::NoCalc(specified::NoCalcLength::Absolute(length)));
+                    specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
                     PropertyDeclaration::Width(DeclaredValue::Value(width_value))));
             }
@@ -566,7 +564,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::Length::NoCalc(specified::NoCalcLength::Absolute(length)));
+                    specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
                     PropertyDeclaration::Height(DeclaredValue::Value(height_value))));
             }
@@ -588,13 +586,11 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // scrollbar size into consideration (but we don't have a scrollbar yet!)
             //
             // https://html.spec.whatwg.org/multipage/#textarea-effective-width
-            let value = specified::Length::NoCalc(
-                specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols)));
+            let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
                 PropertyDeclaration::Width(DeclaredValue::Value(
                     specified::LengthOrPercentageOrAuto::Length(value)))));
         }
-
 
         let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
             match this.get_rows() {
@@ -609,8 +605,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // TODO(mttr) This should take scrollbar size into consideration.
             //
             // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-            let value = specified::Length::NoCalc(
-                specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat)));
+            let value = specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
             hints.push(from_declaration(
                 PropertyDeclaration::Height(DeclaredValue::Value(
                         specified::LengthOrPercentageOrAuto::Length(value)))));
