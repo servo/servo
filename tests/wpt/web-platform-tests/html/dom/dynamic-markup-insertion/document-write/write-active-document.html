@@ -9,22 +9,24 @@
     child.src = "empty.html?1";
     child.onload = t.step_func(function() {
       var child1 = child.contentDocument;
-      child1.write('<a id="link" href="data:text/html,Clicked.">Link.</a>');
+      var link = child1.createElement("a");
+      link.href = "data:text/html,Clicked.";
+      link.innerText = "Link.";
+      child1.body.appendChild(link);
       var grandchild = child1.createElement("iframe");
       grandchild.src = "empty.html?2";
       grandchild.onload = t.step_func(function() {
         var grandchild1 = grandchild.contentDocument;
-        grandchild1.write('<a id="link" href="data:text/html,Clicked.">Link.</a>');
         child.onload = t.step_func(function() {
-          // This is a write to an active but not fully active document
-          grandchild1.write(' WRITE HAPPENED');
-          assert_equals(grandchild1.body.innerText.trim(), "Link. WRITE HAPPENED");
           // This is a write to an inactive document
-          child1.write(' WRITE HAPPENED');
-          assert_equals(child1.body.innerText.trim(), "Link.");
+          child1.write('WRITE HAPPENED');
+          assert_equals(child1.body.lastChild.tagName, "IFRAME");
+          // This is a write to an active but not fully active document
+          grandchild1.write('WRITE HAPPENED');
+          assert_equals(grandchild1.body.innerHTML, "WRITE HAPPENED");
           t.done();
         });
-        child1.getElementById('link').click();
+        link.click();
       });
       child1.body.appendChild(grandchild);
     });

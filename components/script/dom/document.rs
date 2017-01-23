@@ -3264,8 +3264,10 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write
     fn Write(&self, text: Vec<DOMString>) -> ErrorResult {
+        debug!("Calling write on pipeline {}.", self.global().pipeline_id());
         if !self.is_html_document() {
             // Step 1.
+            debug!("Not an HTML document {}.", self.global().pipeline_id());
             return Err(Error::InvalidState);
         }
 
@@ -3273,6 +3275,7 @@ impl DocumentMethods for Document {
         // TODO: handle throw-on-dynamic-markup-insertion counter.
         if !self.is_active() {
             // Step 3.
+            debug!("Not an active document {}.", self.global().pipeline_id());
             return Ok(());
         }
 
@@ -3280,6 +3283,7 @@ impl DocumentMethods for Document {
         let parser = match parser.as_ref() {
             Some(parser) if parser.script_nesting_level() > 0 => parser,
             _ => {
+                debug!("No parser for {}.", self.global().pipeline_id());
                 // Either there is no parser, which means the parsing ended;
                 // or script nesting level is 0, which means the method was
                 // called from outside a parser-executed script.
