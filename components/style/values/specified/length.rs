@@ -323,7 +323,13 @@ impl NoCalcLength {
         NoCalcLength::Absolute(Au(0))
     }
 
-    /// Get an absolute length from a px values.
+    #[inline]
+    /// Checks whether the length value is zero.
+    pub fn is_zero(&self) -> bool {
+        *self == NoCalcLength::Absolute(Au(0))
+    }
+
+    /// Get an absolute length from a px value.
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> NoCalcLength {
         NoCalcLength::Absolute(Au((px_value * AU_PER_PX) as i32))
@@ -337,7 +343,7 @@ impl NoCalcLength {
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum Length {
-    /// The `NoCalcLength` type that cannot parse `calc`
+    /// The internal length type that cannot parse `calc`
     NoCalc(NoCalcLength),
     /// A calc expression.
     ///
@@ -428,8 +434,7 @@ impl Length {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
                 Length::parse_dimension(value.value, unit),
-            Token::Number(ref value) if value.value == 0. =>
-                Ok(Length::zero()),
+            Token::Number(ref value) if value.value == 0. => Ok(Length::zero()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") =>
                 input.parse_nested_block(|input| {
                     CalcLengthOrPercentage::parse_length(input, context)
@@ -443,7 +448,7 @@ impl Length {
         Length::parse_internal(input, AllowedNumericType::NonNegative)
     }
 
-    /// Get an absolute length from a px values.
+    /// Get an absolute length from a px value.
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> Length {
         Length::NoCalc(NoCalcLength::from_px(px_value))
@@ -490,7 +495,7 @@ pub struct CalcProductNode {
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub enum CalcValueNode {
-    Length(LengthInternal),
+    Length(NoCalcLength),
     Angle(Angle),
     Time(Time),
     Percentage(CSSFloat),
@@ -583,7 +588,7 @@ impl CalcLengthOrPercentage {
             (Token::Number(ref value), _) => Ok(CalcValueNode::Number(value.value)),
             (Token::Dimension(ref value, ref unit), CalcUnit::Length) |
             (Token::Dimension(ref value, ref unit), CalcUnit::LengthOrPercentage) => {
-                LengthInternal::parse_dimension(value.value, unit).map(CalcValueNode::Length)
+                NoCalcLength::parse_dimension(value.value, unit).map(CalcValueNode::Length)
             }
             (Token::Dimension(ref value, ref unit), CalcUnit::Angle) => {
                 Angle::parse_dimension(value.value, unit).map(CalcValueNode::Angle)
@@ -899,9 +904,18 @@ impl Parse for Percentage {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum LengthOrPercentage {
-    Length(Length),
+    Length(NoCalcLength),
     Percentage(Percentage),
     Calc(Box<CalcLengthOrPercentage>),
+}
+
+impl From<Length> for LengthOrPercentage {
+    fn from(len: Length) -> LengthOrPercentage {
+        match len {
+            Length::NoCalc(l) => LengthOrPercentage::Length(l),
+            Length::Calc(l, _) => LengthOrPercentage::Calc(l),
+        }
+    }
 }
 
 impl HasViewportPercentage for LengthOrPercentage {
@@ -924,10 +938,9 @@ impl ToCss for LengthOrPercentage {
     }
 }
 impl LengthOrPercentage {
-    #[inline]
     /// Returns a `zero` length.
     pub fn zero() -> LengthOrPercentage {
-        LengthOrPercentage::Length(Length::zero())
+        LengthOrPercentage::Length(NoCalcLength::zero())
     }
 
     fn parse_internal(input: &mut Parser, context: AllowedNumericType)
@@ -935,11 +948,11 @@ impl LengthOrPercentage {
     {
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                Length::parse_dimension(value.value, unit).map(LengthOrPercentage::Length),
+                NoCalcLength::parse_dimension(value.value, unit).map(LengthOrPercentage::Length),
             Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentage::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentage::Length(Length::zero())),
+                Ok(LengthOrPercentage::zero()),
             Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
                 let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
                 Ok(LengthOrPercentage::Calc(Box::new(calc)))

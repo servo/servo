@@ -198,8 +198,8 @@ impl NoViewportPercentage for BorderRadiusSize {}
 impl BorderRadiusSize {
     #[allow(missing_docs)]
     pub fn zero() -> BorderRadiusSize {
-        let zero = LengthOrPercentage::Length(Length::default());
-            BorderRadiusSize(Size2D::new(zero.clone(), zero))
+        let zero = LengthOrPercentage::Length(NoCalcLength::zero());
+        BorderRadiusSize(Size2D::new(zero.clone(), zero))
     }
 
     #[allow(missing_docs)]
@@ -292,11 +292,11 @@ pub fn parse_border_radius(context: &ParserContext, input: &mut Parser) -> Resul
     input.try(|i| BorderRadiusSize::parse(context, i)).or_else(|_| {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "thin" => Ok(BorderRadiusSize::circle(
-                             LengthOrPercentage::Length(Length::from_px(1.)))),
+                             LengthOrPercentage::Length(NoCalcLength::from_px(1.)))),
             "medium" => Ok(BorderRadiusSize::circle(
-                               LengthOrPercentage::Length(Length::from_px(3.)))),
+                               LengthOrPercentage::Length(NoCalcLength::from_px(3.)))),
             "thick" => Ok(BorderRadiusSize::circle(
-                              LengthOrPercentage::Length(Length::from_px(5.)))),
+                              LengthOrPercentage::Length(NoCalcLength::from_px(5.)))),
             _ => Err(())
         }
     })
@@ -606,10 +606,7 @@ impl Shadow {
     #[allow(missing_docs)]
     pub fn parse(context:  &ParserContext, input: &mut Parser, disable_spread_and_inset: bool) -> Result<Shadow, ()> {
         let length_count = if disable_spread_and_inset { 3 } else { 4 };
-        let mut lengths = [Length::default(),
-                           Length::default(),
-                           Length::default(),
-                           Length::default()];
+        let mut lengths = [Length::zero(), Length::zero(), Length::zero(), Length::zero()];
         let mut lengths_parsed = false;
         let mut color = None;
         let mut inset = false;
@@ -661,7 +658,7 @@ impl Shadow {
             offset_x: lengths[0].take(),
             offset_y: lengths[1].take(),
             blur_radius: lengths[2].take(),
-            spread_radius: if disable_spread_and_inset { Length::default() } else { lengths[3].take() },
+            spread_radius: if disable_spread_and_inset { Length::zero() } else { lengths[3].take() },
             color: color,
             inset: inset,
         })
