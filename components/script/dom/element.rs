@@ -454,18 +454,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                                 font_family)])))));
         }
 
-        let font_size = if let Some(this) = self.downcast::<HTMLFontElement>() {
-            this.get_size()
-        } else {
-            None
-        };
+        let font_size = self.downcast::<HTMLFontElement>().and_then(|this| this.get_size());
 
         if let Some(font_size) = font_size {
             hints.push(from_declaration(
                 PropertyDeclaration::FontSize(
                     DeclaredValue::Value(
-                        font_size::SpecifiedValue(
-                            LengthOrPercentage::Length(font_size))))))
+                        font_size::SpecifiedValue(font_size.into())))))
         }
 
         let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {

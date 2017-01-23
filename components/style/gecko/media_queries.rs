@@ -236,8 +236,7 @@ impl MediaExpressionValue {
             nsMediaFeature_ValueType::eLength => {
                 debug_assert!(css_value.mUnit == nsCSSUnit::eCSSUnit_Pixel);
                 let pixels = css_value.float_unchecked();
-                Some(MediaExpressionValue::Length(
-                        specified::Length::Absolute(Au::from_f32_px(pixels))))
+                Some(MediaExpressionValue::Length(specified::Length::from_px(pixels)))
             }
             nsMediaFeature_ValueType::eInteger => {
                 let i = css_value.integer_unchecked();

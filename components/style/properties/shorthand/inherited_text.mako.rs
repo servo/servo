@@ -74,7 +74,6 @@
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         use values::specified::{BorderWidth, Length};
-        use app_units::Au;
 
         let mut color = None;
         let mut width = None;
