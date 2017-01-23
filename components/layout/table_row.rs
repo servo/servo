@@ -927,7 +927,7 @@ fn perform_inline_direction_border_collapse_for_row(
         let first_inline_border = &mut preliminary_collapsed_borders.inline[0];
         first_inline_border.combine(
             &CollapsedBorder::inline_start(&*child_table_cell.block_flow.fragment.style,
-                                           CollapsedBorderProvenance::FromPreviousTableCell));
+                                           CollapsedBorderProvenance::FromNextTableCell));
     }
 
     let inline_collapsed_border = preliminary_collapsed_borders.inline.push_or_set(
