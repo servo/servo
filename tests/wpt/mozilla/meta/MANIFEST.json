@@ -6752,6 +6752,12 @@
             "url": "/_mozilla/css/offset_properties_inline.html"
           }
         ],
+        "css/test_font_family_parsing.html": [
+          {
+            "path": "css/test_font_family_parsing.html",
+            "url": "/_mozilla/css/test_font_family_parsing.html"
+          }
+        ],
         "css/test_variable_legal_values.html": [
           {
             "path": "css/test_variable_legal_values.html",
