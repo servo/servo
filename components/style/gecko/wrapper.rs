@@ -16,7 +16,7 @@
 
 use atomic_refcell::AtomicRefCell;
 use data::ElementData;
-use dom::{LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
+use dom::{AnimationRules, LayoutIterator, NodeInfo, TElement, TNode, UnsafeNode};
 use dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use element_state::ElementState;
 use error_reporting::StdoutErrorReporter;
@@ -35,6 +35,7 @@ use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
+use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
 use parking_lot::RwLock;
@@ -336,10 +337,13 @@ impl<'le> TElement for GeckoElement<'le> {
         declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
     }
 
-    fn get_animation_rule(&self, pseudo: Option<&PseudoElement>)
-                          -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+    fn get_animation_rules(&self, pseudo: Option<&PseudoElement>) -> AnimationRules {
         let atom_ptr = pseudo.map(|p| p.as_atom().as_ptr()).unwrap_or(ptr::null_mut());
-        unsafe { Gecko_GetAnimationRule(self.0, atom_ptr) }.into_arc_opt()
+        unsafe {
+            AnimationRules(
+                Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Animations).into_arc_opt(),
+                Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Transitions).into_arc_opt())
+        }
     }
 
     fn get_state(&self) -> ElementState {

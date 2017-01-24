@@ -3,6 +3,7 @@
 pub use nsstring::{nsACString, nsAString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
+use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoNode;
@@ -503,7 +504,8 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_GetAnimationRule(element: RawGeckoElementBorrowed,
-                                  aAtom: *mut nsIAtom)
+                                  aAtom: *mut nsIAtom,
+                                  aCascadeLevel: EffectCompositor_CascadeLevel)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {

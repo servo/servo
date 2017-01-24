@@ -3544,6 +3544,12 @@ pub mod root {
         impl Clone for StyleComplexColor {
             fn clone(&self) -> Self { *self }
         }
+        #[repr(u32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum EffectCompositor_CascadeLevel {
+            Animations = 0,
+            Transitions = 1,
+        }
         #[repr(C)]
         #[derive(Debug)]
         pub struct PropertyStyleAnimationValuePair {
