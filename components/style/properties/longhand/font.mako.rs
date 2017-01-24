@@ -122,16 +122,36 @@
         // FIXME(bholley): The fast thing to do here would be to look up the
         // string (as lowercase) in the static atoms table. We don't have an
         // API to do that yet though, so we do the simple thing for now.
+        let mut css_wide_keyword = false;
         match_ignore_ascii_case! { first_ident,
             "serif" => return Ok(FontFamily::Generic(atom!("serif"))),
             "sans-serif" => return Ok(FontFamily::Generic(atom!("sans-serif"))),
             "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
             "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
             "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
+
+            // https://drafts.csswg.org/css-fonts/#propdef-font-family
+            // "Font family names that happen to be the same as a keyword value
+            //  (‘inherit’, ‘serif’, ‘sans-serif’, ‘monospace’, ‘fantasy’, and ‘cursive’)
+            //  must be quoted to prevent confusion with the keywords with the same names.
+            //  The keywords ‘initial’ and ‘default’ are reserved for future use
+            //  and must also be quoted when used as font names.
+            //  UAs must not consider these keywords as matching the <family-name> type."
+            "inherit" => css_wide_keyword = true,
+            "initial" => css_wide_keyword = true,
+            "unset" => css_wide_keyword = true,
+            "default" => css_wide_keyword = true,
             _ => {}
         }
 
         let mut value = first_ident.into_owned();
+        // These keywords are not allowed by themselves.
+        // The only way this value can be valid with with another keyword.
+        if css_wide_keyword {
+            let ident = input.expect_ident()?;
+            value.push_str(" ");
+            value.push_str(&ident);
+        }
         while let Ok(ident) = input.try(|input| input.expect_ident()) {
             value.push_str(" ");
             value.push_str(&ident);
