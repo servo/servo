@@ -78,3 +78,26 @@ fn test_text_emphasis_position() {
     let left_under = parse_longhand!(text_emphasis_position, "left under");
     assert_eq!(left_under, SpecifiedValue(HorizontalWritingModeValue::Under, VerticalWritingModeValue::Left));
 }
+
+
+#[test]
+fn webkit_text_stroke_shorthand_should_parse_properly() {
+    use style::properties::longhands::_webkit_text_stroke_color;
+    use style::properties::longhands::_webkit_text_stroke_width;
+    use style::properties::shorthands::_webkit_text_stroke;
+    use media_queries::CSSErrorReporterTest;
+    use servo_url::ServoUrl;
+    let url = ServoUrl::parse("http://localhost").unwrap();
+    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+
+    let mut parser = Parser::new("thin red");
+    let result = _webkit_text_stroke::parse_value(&context, &mut parser).unwrap();
+    assert_eq!(result._webkit_text_stroke_color.unwrap(), parse_longhand!(_webkit_text_stroke_color, "red"));
+    assert_eq!(result._webkit_text_stroke_width.unwrap(), parse_longhand!(_webkit_text_stroke_width, "thin"));
+
+    // ensure its no longer sensitive to order
+    let mut parser = Parser::new("red thin");
+    let result = _webkit_text_stroke::parse_value(&context, &mut parser).unwrap();
+    assert_eq!(result._webkit_text_stroke_color.unwrap(), parse_longhand!(_webkit_text_stroke_color, "red"));
+    assert_eq!(result._webkit_text_stroke_width.unwrap(), parse_longhand!(_webkit_text_stroke_width, "thin"));
+}

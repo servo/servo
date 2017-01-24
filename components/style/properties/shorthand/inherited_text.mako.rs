@@ -76,25 +76,34 @@
         use values::specified::{BorderWidth, Length};
         use app_units::Au;
 
-        let (mut color, mut width, mut any) = (None, None, false);
-        % for value in "color width".split():
-            if ${value}.is_none() {
-                if let Ok(value) = input.try(|input| _webkit_text_stroke_${value}::parse(context, input)) {
-                    ${value} = Some(value);
-                    any = true;
+        let mut color = None;
+        let mut width = None;
+        loop {
+            if color.is_none() {
+                if let Ok(value) = input.try(|input| _webkit_text_stroke_color::parse(context, input)) {
+                    color = Some(value);
+                    continue
                 }
             }
-        % endfor
 
-        if !any {
-            return Err(());
+            if width.is_none() {
+                if let Ok(value) = input.try(|input| _webkit_text_stroke_width::parse(context, input)) {
+                    width = Some(value);
+                    continue
+                }
+            }
+            break
         }
 
-        Ok(Longhands {
-            _webkit_text_stroke_color: color.or(Some(CSSColor { parsed: CSSParserColor::CurrentColor,
-                                                                authored: None })),
-            _webkit_text_stroke_width: width.or(Some(BorderWidth::from_length(Length::Absolute(Au::from_px(0))))),
-        })
+        if color.is_some() || width.is_some() {
+            Ok(Longhands {
+                _webkit_text_stroke_color: color.or(Some(CSSColor { parsed: CSSParserColor::CurrentColor,
+                    authored: None })),
+                _webkit_text_stroke_width: width.or(Some(BorderWidth::from_length(Length::Absolute(Au::from_px(0))))),
+            })
+        } else {
+            Err(())
+        }
     }
 
     impl<'a> LonghandsToSerialize<'a>  {
