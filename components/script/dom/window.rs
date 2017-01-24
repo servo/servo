@@ -1583,6 +1583,15 @@ impl Window {
     pub fn evaluate_media_queries_and_report_changes(&self) {
         self.media_query_lists.evaluate_and_report_changes();
     }
+
+    /// Slow down/speed up timers based on visibility.
+    pub fn alter_resource_utilization(&self, visible: bool) {
+        if visible {
+            self.upcast::<GlobalScope>().speed_up_timers();
+        } else {
+            self.upcast::<GlobalScope>().slow_down_timers();
+        }
+    }
 }
 
 impl Window {
