@@ -696,6 +696,8 @@ pub enum WebDriverCommandMsg {
 pub enum ConstellationMsg {
     /// Exit the constellation.
     Exit,
+    /// Inform the constellation of the size of the viewport.
+    FrameSize(PipelineId, Size2D<f32>),
     /// Request that the constellation send the FrameId corresponding to the document
     /// with the provided pipeline id
     GetFrame(PipelineId, IpcSender<Option<FrameId>>),
