@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#mediaerror
-
-[Exposed=(Window,Worker)]
 interface MediaError {
   const unsigned short MEDIA_ERR_ABORTED = 1;
   const unsigned short MEDIA_ERR_NETWORK = 2;

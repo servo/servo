@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#mimetype
-[Exposed=(Window,Worker)]
 interface MimeType {
   readonly attribute DOMString type;
   readonly attribute DOMString description;
