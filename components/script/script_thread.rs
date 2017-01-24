@@ -70,7 +70,6 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
-use mitochondria::OnceCell;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
@@ -121,13 +120,13 @@ use webdriver_handlers;
 use webvr_traits::WebVRMsg;
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
-thread_local!(static SCRIPT_THREAD_ROOT: OnceCell<ScriptThread> = OnceCell::new());
+thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
-        if let Some(script_thread) = root.as_ref() {
+        if let Some(script_thread) = root.get() {
             debug!("tracing fields of ScriptThread");
-            script_thread.trace(tr);
+            (*script_thread).trace(tr);
         }
     });
 }
@@ -535,26 +534,29 @@ impl ScriptThreadFactory for ScriptThread {
             let parent_info = state.parent_info;
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
+            let script_thread = ScriptThread::new(state,
+                                                  script_port,
+                                                  script_chan.clone());
 
             SCRIPT_THREAD_ROOT.with(|root| {
-                let script_thread = root.init_once(|| ScriptThread::new(state, script_port, script_chan.clone()));
-
-                let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
-
-                let origin = Origin::new(&load_data.url);
-                let new_load = InProgressLoad::new(id, frame_id, parent_info, layout_chan, window_size,
-                                                   load_data.url.clone(), origin);
-                script_thread.start_page_load(new_load, load_data);
-
-                let reporter_name = format!("script-reporter-{}", id);
-                mem_profiler_chan.run_with_memory_reporting(|| {
-                    script_thread.start();
-                    let _ = script_thread.content_process_shutdown_chan.send(());
-                }, reporter_name, script_chan, CommonScriptMsg::CollectReports);
-
-                // This must always be the very last operation performed before the thread completes
-                failsafe.neuter();
+                root.set(Some(&script_thread as *const _));
             });
+
+            let mut failsafe = ScriptMemoryFailsafe::new(&script_thread);
+
+            let origin = Origin::new(&load_data.url);
+            let new_load = InProgressLoad::new(id, frame_id, parent_info, layout_chan, window_size,
+                                               load_data.url.clone(), origin);
+            script_thread.start_page_load(new_load, load_data);
+
+            let reporter_name = format!("script-reporter-{}", id);
+            mem_profiler_chan.run_with_memory_reporting(|| {
+                script_thread.start();
+                let _ = script_thread.content_process_shutdown_chan.send(());
+            }, reporter_name, script_chan, CommonScriptMsg::CollectReports);
+
+            // This must always be the very last operation performed before the thread completes
+            failsafe.neuter();
         }).expect("Thread spawning failed");
 
         (sender, receiver)
@@ -565,7 +567,7 @@ impl ScriptThread {
     pub fn page_headers_available(id: &PipelineId, metadata: Option<Metadata>)
                                   -> Option<Root<ServoParser>> {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = root.as_ref().unwrap();
+            let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.handle_page_headers_available(id, metadata)
         })
     }
@@ -573,7 +575,7 @@ impl ScriptThread {
     #[allow(unrooted_must_root)]
     pub fn schedule_job(job: Job, global: &GlobalScope) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = root.as_ref().unwrap();
+            let script_thread = unsafe { &*root.get().unwrap() };
             let job_queue = &*script_thread.job_queue_map;
             job_queue.schedule_job(job, global, &script_thread);
         });
@@ -581,7 +583,8 @@ impl ScriptThread {
 
     pub fn process_event(msg: CommonScriptMsg) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.as_ref() {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
                 script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
             }
         });
@@ -591,7 +594,8 @@ impl ScriptThread {
     pub fn await_stable_state<T: Runnable + Send + 'static>(task: T) {
         //TODO use microtasks when they exist
         SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.as_ref() {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
                 let _ = script_thread.chan.send(CommonScriptMsg::RunnableMsg(
                     ScriptThreadEventCategory::DomEvent,
                     box task));
@@ -601,7 +605,8 @@ impl ScriptThread {
 
     pub fn process_attach_layout(new_layout_info: NewLayoutInfo, origin: Origin) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.as_ref() {
+            if let Some(script_thread) = root.get() {
+                let script_thread = unsafe { &*script_thread };
                 script_thread.profile_event(ScriptThreadEventCategory::AttachLayout, || {
                     script_thread.handle_new_layout(new_layout_info, origin);
                 })
@@ -610,11 +615,10 @@ impl ScriptThread {
     }
 
     pub fn find_document(id: PipelineId) -> Option<Root<Document>> {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            root.as_ref().and_then(|script_thread| {
-                script_thread.documents.borrow().find_document(id)
-            })
-        })
+        SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
+            let script_thread = unsafe { &*script_thread };
+            script_thread.documents.borrow().find_document(id)
+        }))
     }
 
     /// Creates a new script thread.
@@ -2163,14 +2167,14 @@ impl ScriptThread {
 
     pub fn enqueue_promise_job(job: EnqueuedPromiseCallback, global: &GlobalScope) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = root.as_ref().unwrap();
+            let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.promise_job_queue.enqueue(job, global);
         });
     }
 
     pub fn flush_promise_jobs(global: &GlobalScope) {
         SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = root.as_ref().unwrap();
+            let script_thread = unsafe { &*root.get().unwrap() };
             let _ = script_thread.dom_manipulation_task_source.queue(
                 box FlushPromiseJobs, global);
         })
@@ -2185,6 +2189,14 @@ struct FlushPromiseJobs;
 impl Runnable for FlushPromiseJobs {
     fn main_thread_handler(self: Box<FlushPromiseJobs>, script_thread: &ScriptThread) {
         script_thread.do_flush_promise_jobs();
+    }
+}
+
+impl Drop for ScriptThread {
+    fn drop(&mut self) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            root.set(None);
+        });
     }
 }
 
