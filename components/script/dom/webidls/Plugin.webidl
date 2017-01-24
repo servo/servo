@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#dom-plugin
-[LegacyUnenumerableNamedProperties, Exposed=(Window,Worker)]
+[LegacyUnenumerableNamedProperties, Exposed=Window]
 interface Plugin {
   readonly attribute DOMString name;
   readonly attribute DOMString description;
