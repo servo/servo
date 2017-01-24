@@ -6,7 +6,7 @@
 #[macro_use]
 extern crate lazy_static;
 #[cfg(feature = "bindgen")]
-extern crate libbindgen;
+extern crate bindgen;
 #[cfg(feature = "bindgen")]
 extern crate regex;
 extern crate walkdir;
