@@ -15,7 +15,7 @@ use dom::document::Document;
 use dom::element::{Element, ElementCreator};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
+use dom::node::{ChildrenMutation, Node, UnbindContext, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
@@ -160,6 +160,15 @@ impl VirtualMethods for HTMLStyleElement {
         if self.upcast::<Node>().is_in_doc() {
             self.parse_own_css();
         }
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(context);
+        }
+
+        let doc = document_from_node(self);
+        doc.invalidate_stylesheets();
     }
 }
 

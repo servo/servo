@@ -6474,6 +6474,42 @@
             "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
           }
         ],
+        "mozilla/remove_link_styles.html": [
+          {
+            "path": "mozilla/remove_link_styles.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/remove_link_styles_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/remove_link_styles.html"
+          }
+        ],
+        "mozilla/remove_style_styles.html": [
+          {
+            "path": "mozilla/remove_style_styles.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/remove_style_styles_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/remove_style_styles.html"
+          }
+        ],
+        "mozilla/reparse_style_elements.html": [
+          {
+            "path": "mozilla/reparse_style_elements.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/reparse_style_elements_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/reparse_style_elements.html"
+          }
+        ],
         "mozilla/restyle-out-of-document.html": [
           {
             "path": "mozilla/restyle-out-of-document.html",
@@ -21874,6 +21910,42 @@
             ]
           ],
           "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
+        }
+      ],
+      "mozilla/remove_link_styles.html": [
+        {
+          "path": "mozilla/remove_link_styles.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/remove_link_styles_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/remove_link_styles.html"
+        }
+      ],
+      "mozilla/remove_style_styles.html": [
+        {
+          "path": "mozilla/remove_style_styles.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/remove_style_styles_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/remove_style_styles.html"
+        }
+      ],
+      "mozilla/reparse_style_elements.html": [
+        {
+          "path": "mozilla/reparse_style_elements.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/reparse_style_elements_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/reparse_style_elements.html"
         }
       ],
       "mozilla/restyle-out-of-document.html": [
