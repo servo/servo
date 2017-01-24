@@ -30,6 +30,7 @@ use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_MatchesE
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko_Namespace};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
+use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
@@ -333,6 +334,12 @@ impl<'le> TElement for GeckoElement<'le> {
     fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>> {
         let declarations = unsafe { Gecko_GetServoDeclarationBlock(self.0) };
         declarations.map(|s| s.as_arc_opt()).unwrap_or(None)
+    }
+
+    fn get_animation_rule(&self, pseudo: Option<&PseudoElement>)
+                          -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+        let atom_ptr = pseudo.map(|p| p.as_atom().as_ptr()).unwrap_or(ptr::null_mut());
+        unsafe { Gecko_GetAnimationRule(self.0, atom_ptr) }.into_arc_opt()
     }
 
     fn get_state(&self) -> ElementState {

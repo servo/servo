@@ -248,6 +248,12 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// Get this element's style attribute.
     fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>>;
 
+    /// Get this element's animation rule.
+    fn get_animation_rule(&self, _pseudo: Option<&PseudoElement>)
+                          -> Option<Arc<RwLock<PropertyDeclarationBlock>>> {
+        None
+    }
+
     /// Get this element's state, for non-tree-structural pseudos.
     fn get_state(&self) -> ElementState;
 

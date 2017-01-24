@@ -502,6 +502,11 @@ extern "C" {
      -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
+    pub fn Gecko_GetAnimationRule(element: RawGeckoElementBorrowed,
+                                  aAtom: *mut nsIAtom)
+     -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
      -> *mut nsIAtom;
 }
