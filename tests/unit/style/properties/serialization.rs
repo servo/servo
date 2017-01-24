@@ -5,7 +5,7 @@
 pub use std::sync::Arc;
 pub use style::computed_values::display::T::inline_block;
 pub use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance, PropertyId};
-pub use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length};
+pub use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, NoCalcLength};
 pub use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 pub use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 pub use style::values::RGBA;
@@ -19,15 +19,15 @@ fn property_declaration_block_should_serialize_correctly() {
 
     let declarations = vec![
         (PropertyDeclaration::Width(
-            DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(70f32)))),
+            DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)))),
          Importance::Normal),
 
         (PropertyDeclaration::MinHeight(
-            DeclaredValue::Value(LengthOrPercentage::Length(Length::from_px(20f32)))),
+            DeclaredValue::Value(LengthOrPercentage::Length(NoCalcLength::from_px(20f32)))),
          Importance::Normal),
 
         (PropertyDeclaration::Height(
-            DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(20f32)))),
+            DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
          Importance::Important),
 
         (PropertyDeclaration::Display(
@@ -113,7 +113,7 @@ mod shorthand_serialization {
         fn all_equal_properties_should_serialize_to_one_value() {
             let mut properties = Vec::new();
 
-            let px_70 = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(70f32)));
+            let px_70 = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)));
             properties.push(PropertyDeclaration::MarginTop(px_70.clone()));
             properties.push(PropertyDeclaration::MarginRight(px_70.clone()));
             properties.push(PropertyDeclaration::MarginBottom(px_70.clone()));
@@ -127,8 +127,8 @@ mod shorthand_serialization {
         fn equal_vertical_and_equal_horizontal_properties_should_serialize_to_two_value() {
             let mut properties = Vec::new();
 
-            let vertical_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(10f32)));
-            let horizontal_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(5f32)));
+            let vertical_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(10f32)));
+            let horizontal_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(5f32)));
 
             properties.push(PropertyDeclaration::MarginTop(vertical_px.clone()));
             properties.push(PropertyDeclaration::MarginRight(horizontal_px.clone()));
@@ -143,9 +143,9 @@ mod shorthand_serialization {
         fn different_vertical_and_equal_horizontal_properties_should_serialize_to_three_values() {
             let mut properties = Vec::new();
 
-            let top_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(8f32)));
-            let bottom_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(10f32)));
-            let horizontal_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(5f32)));
+            let top_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(8f32)));
+            let bottom_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(10f32)));
+            let horizontal_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(5f32)));
 
             properties.push(PropertyDeclaration::MarginTop(top_px));
             properties.push(PropertyDeclaration::MarginRight(horizontal_px.clone()));
@@ -160,10 +160,10 @@ mod shorthand_serialization {
         fn different_properties_should_serialize_to_four_values() {
             let mut properties = Vec::new();
 
-            let top_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(8f32)));
-            let right_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(12f32)));
-            let bottom_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(10f32)));
-            let left_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(Length::from_px(14f32)));
+            let top_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(8f32)));
+            let right_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(12f32)));
+            let bottom_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(10f32)));
+            let left_px = DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(14f32)));
 
             properties.push(PropertyDeclaration::MarginTop(top_px));
             properties.push(PropertyDeclaration::MarginRight(right_px));
@@ -178,8 +178,8 @@ mod shorthand_serialization {
         fn padding_should_serialize_correctly() {
             let mut properties = Vec::new();
 
-            let px_10 = DeclaredValue::Value(LengthOrPercentage::Length(Length::from_px(10f32)));
-            let px_15 = DeclaredValue::Value(LengthOrPercentage::Length(Length::from_px(15f32)));
+            let px_10 = DeclaredValue::Value(LengthOrPercentage::Length(NoCalcLength::from_px(10f32)));
+            let px_15 = DeclaredValue::Value(LengthOrPercentage::Length(NoCalcLength::from_px(15f32)));
             properties.push(PropertyDeclaration::PaddingTop(px_10.clone()));
             properties.push(PropertyDeclaration::PaddingRight(px_15.clone()));
             properties.push(PropertyDeclaration::PaddingBottom(px_10));
@@ -637,7 +637,7 @@ mod shorthand_serialization {
             let font_variant = DeclaredValue::Value(FontVariant::normal);
             let font_weight = DeclaredValue::Value(FontWeight::Bolder);
             let font_size = DeclaredValue::Value(FontSizeContainer(
-                LengthOrPercentage::Length(Length::from_px(4f32)))
+                LengthOrPercentage::Length(NoCalcLength::from_px(4f32)))
             );
             let font_stretch = DeclaredValue::Value(FontStretch::expanded);
             let line_height = DeclaredValue::Value(LineHeight::Number(3f32));
@@ -718,14 +718,14 @@ mod shorthand_serialization {
             let position_x = single_vec_value_typedef!(position_x,
                 HorizontalPosition {
                     keyword: None,
-                    position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
                 }
             );
 
             let position_y = single_vec_value_typedef!(position_y,
                 VerticalPosition {
                     keyword: None,
-                    position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
+                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
                 }
             );
 
@@ -738,8 +738,8 @@ mod shorthand_serialization {
             let size = single_vec_variant_value!(size,
                 size::single_value::SpecifiedValue::Explicit(
                     size::single_value::ExplicitSize {
-                        width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
-                        height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
+                        width: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)),
+                        height: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(50f32))
                     }
                 )
             );
@@ -778,14 +778,14 @@ mod shorthand_serialization {
             let position_x = single_vec_value_typedef!(position_x,
                 HorizontalPosition {
                     keyword: None,
-                    position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
                 }
             );
 
             let position_y = single_vec_value_typedef!(position_y,
                 VerticalPosition {
                     keyword: None,
-                    position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
+                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
                 }
             );
 
@@ -798,8 +798,8 @@ mod shorthand_serialization {
             let size = single_vec_variant_value!(size,
                 size::single_value::SpecifiedValue::Explicit(
                     size::single_value::ExplicitSize {
-                        width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
-                        height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
+                        width: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)),
+                        height: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(50f32))
                     }
                 )
             );
@@ -837,14 +837,14 @@ mod shorthand_serialization {
             let position_x = single_vec_value_typedef!(position_x,
                 HorizontalPosition {
                     keyword: None,
-                    position: Some(LengthOrPercentage::Length(Length::from_px(0f32))),
+                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(0f32))),
                 }
             );
 
             let position_y = single_vec_value_typedef!(position_y,
                 VerticalPosition {
                     keyword: None,
-                    position: Some(LengthOrPercentage::Length(Length::from_px(0f32))),
+                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(0f32))),
                 }
             );
 
@@ -922,11 +922,11 @@ mod shorthand_serialization {
                 Position {
                     horizontal: HorizontalPosition {
                         keyword: None,
-                        position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                        position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
                     },
                     vertical: VerticalPosition {
                         keyword: None,
-                        position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
+                        position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
                     },
                 }
             );
@@ -934,8 +934,8 @@ mod shorthand_serialization {
             let size = single_vec_variant_value!(size,
                 size::single_value::SpecifiedValue::Explicit(
                     size::single_value::ExplicitSize {
-                        width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
-                        height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
+                        width: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)),
+                        height: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(50f32))
                     }
                 )
             );
@@ -976,11 +976,11 @@ mod shorthand_serialization {
                 Position {
                     horizontal: HorizontalPosition {
                         keyword: None,
-                        position: Some(LengthOrPercentage::Length(Length::from_px(7f32))),
+                        position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
                     },
                     vertical: VerticalPosition {
                         keyword: None,
-                        position: Some(LengthOrPercentage::Length(Length::from_px(4f32))),
+                        position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
                     },
                 }
             );
@@ -988,8 +988,8 @@ mod shorthand_serialization {
             let size = single_vec_variant_value!(size,
                 size::single_value::SpecifiedValue::Explicit(
                     size::single_value::ExplicitSize {
-                        width: LengthOrPercentageOrAuto::Length(Length::from_px(70f32)),
-                        height: LengthOrPercentageOrAuto::Length(Length::from_px(50f32))
+                        width: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)),
+                        height: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(50f32))
                     }
                 )
             );

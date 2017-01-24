@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use cssparser::{Parser, SourcePosition};
 use euclid::size::TypedSize2D;
 use servo_url::ServoUrl;
@@ -207,7 +206,7 @@ fn test_mq_default_expressions() {
         assert!(q.media_type == MediaQueryType::All, css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match *q.expressions[0].kind_for_testing() {
-            ExpressionKind::Width(Range::Min(ref w)) => assert!(*w == specified::Length::Absolute(Au::from_px(100))),
+            ExpressionKind::Width(Range::Min(ref w)) => assert!(*w == specified::Length::from_px(100.)),
             _ => panic!("wrong expression type"),
         }
     });
@@ -219,7 +218,7 @@ fn test_mq_default_expressions() {
         assert!(q.media_type == MediaQueryType::All, css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match *q.expressions[0].kind_for_testing() {
-            ExpressionKind::Width(Range::Max(ref w)) => assert!(*w == specified::Length::Absolute(Au::from_px(43))),
+            ExpressionKind::Width(Range::Max(ref w)) => assert!(*w == specified::Length::from_px(43.)),
             _ => panic!("wrong expression type"),
         }
     });
@@ -234,7 +233,7 @@ fn test_mq_expressions() {
         assert!(q.media_type == MediaQueryType::Known(MediaType::Screen), css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match *q.expressions[0].kind_for_testing() {
-            ExpressionKind::Width(Range::Min(ref w)) => assert!(*w == specified::Length::Absolute(Au::from_px(100))),
+            ExpressionKind::Width(Range::Min(ref w)) => assert!(*w == specified::Length::from_px(100.)),
             _ => panic!("wrong expression type"),
         }
     });
@@ -246,7 +245,7 @@ fn test_mq_expressions() {
         assert!(q.media_type == MediaQueryType::Known(MediaType::Print), css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match *q.expressions[0].kind_for_testing() {
-            ExpressionKind::Width(Range::Max(ref w)) => assert!(*w == specified::Length::Absolute(Au::from_px(43))),
+            ExpressionKind::Width(Range::Max(ref w)) => assert!(*w == specified::Length::from_px(43.)),
             _ => panic!("wrong expression type"),
         }
     });
@@ -258,7 +257,7 @@ fn test_mq_expressions() {
         assert!(q.media_type == MediaQueryType::Known(MediaType::Print), css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match *q.expressions[0].kind_for_testing() {
-            ExpressionKind::Width(Range::Eq(ref w)) => assert!(*w == specified::Length::Absolute(Au::from_px(43))),
+            ExpressionKind::Width(Range::Eq(ref w)) => assert!(*w == specified::Length::from_px(43.)),
             _ => panic!("wrong expression type"),
         }
     });
@@ -270,7 +269,7 @@ fn test_mq_expressions() {
         assert!(q.media_type == MediaQueryType::Unknown(Atom::from("fridge")), css.to_owned());
         assert!(q.expressions.len() == 1, css.to_owned());
         match *q.expressions[0].kind_for_testing() {
-            ExpressionKind::Width(Range::Max(ref w)) => assert!(*w == specified::Length::Absolute(Au::from_px(52))),
+            ExpressionKind::Width(Range::Max(ref w)) => assert!(*w == specified::Length::from_px(52.)),
             _ => panic!("wrong expression type"),
         }
     });
@@ -295,11 +294,11 @@ fn test_mq_multiple_expressions() {
         assert!(q.media_type == MediaQueryType::All, css.to_owned());
         assert!(q.expressions.len() == 2, css.to_owned());
         match *q.expressions[0].kind_for_testing() {
-            ExpressionKind::Width(Range::Min(ref w)) => assert!(*w == specified::Length::Absolute(Au::from_px(100))),
+            ExpressionKind::Width(Range::Min(ref w)) => assert!(*w == specified::Length::from_px(100.)),
             _ => panic!("wrong expression type"),
         }
         match *q.expressions[1].kind_for_testing() {
-            ExpressionKind::Width(Range::Max(ref w)) => assert!(*w == specified::Length::Absolute(Au::from_px(200))),
+            ExpressionKind::Width(Range::Max(ref w)) => assert!(*w == specified::Length::from_px(200.)),
             _ => panic!("wrong expression type"),
         }
     });
@@ -311,11 +310,11 @@ fn test_mq_multiple_expressions() {
         assert!(q.media_type == MediaQueryType::Known(MediaType::Screen), css.to_owned());
         assert!(q.expressions.len() == 2, css.to_owned());
         match *q.expressions[0].kind_for_testing() {
-            ExpressionKind::Width(Range::Min(ref w)) => assert!(*w == specified::Length::Absolute(Au::from_px(100))),
+            ExpressionKind::Width(Range::Min(ref w)) => assert!(*w == specified::Length::from_px(100.)),
             _ => panic!("wrong expression type"),
         }
         match *q.expressions[1].kind_for_testing() {
-            ExpressionKind::Width(Range::Max(ref w)) => assert!(*w == specified::Length::Absolute(Au::from_px(200))),
+            ExpressionKind::Width(Range::Max(ref w)) => assert!(*w == specified::Length::from_px(200.)),
             _ => panic!("wrong expression type"),
         }
     });
