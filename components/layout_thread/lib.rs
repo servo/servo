@@ -933,17 +933,6 @@ impl LayoutThread {
                         let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
                         build_state.root_stacking_context.bounds = origin;
                         build_state.root_stacking_context.overflow = origin;
-
-                        if !build_state.iframe_sizes.is_empty() {
-                            // build_state.iframe_sizes is only used here, so its okay to replace
-                            // it with an empty vector
-                            let iframe_sizes = std::mem::replace(&mut build_state.iframe_sizes, vec![]);
-                            let msg = ConstellationMsg::FrameSizes(iframe_sizes);
-                            if let Err(e) = self.constellation_chan.send(msg) {
-                                warn!("Layout resize to constellation failed ({}).", e);
-                            }
-                        }
-
                         rw_data.display_list = Some(Arc::new(build_state.to_display_list()));
                     }
                     (ReflowGoal::ForScriptQuery, false) => {}

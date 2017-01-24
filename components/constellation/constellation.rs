@@ -817,6 +817,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation exiting");
                 self.handle_exit();
             }
+            // The compositor discovered the size of a subframe. This needs to be reflected by all
+            // frame trees in the navigation context containing the subframe.
+            FromCompositorMsg::FrameSize(pipeline_id, size) => {
+                debug!("constellation got frame size message");
+                self.handle_frame_size_msg(pipeline_id, &TypedSize2D::from_untyped(&size));
+            }
             FromCompositorMsg::GetFrame(pipeline_id, resp_chan) => {
                 debug!("constellation got get root pipeline message");
                 self.handle_get_frame(pipeline_id, resp_chan);
@@ -1083,12 +1089,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromLayoutMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
             }
-            // Layout sends new sizes for all subframes. This needs to be reflected by all
-            // frame trees in the navigation context containing the subframe.
-            FromLayoutMsg::FrameSizes(iframe_sizes) => {
-                debug!("constellation got frame size message");
-                self.handle_frame_size_msg(iframe_sizes);
-            }
             FromLayoutMsg::SetCursor(cursor) => {
                 self.handle_set_cursor_msg(cursor)
             }
@@ -1327,30 +1327,30 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_frame_size_msg(&mut self,
-                             iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, PagePx>)>) {
-        for (pipeline_id, size) in iframe_sizes {
-            let result = {
-                let pipeline = match self.pipelines.get_mut(&pipeline_id) {
-                    Some(pipeline) => pipeline,
-                    None => continue,
-                };
+                             pipeline_id: PipelineId,
+                             size: &TypedSize2D<f32, PagePx>) {
+        let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
+            visible_viewport: *size,
+            initial_viewport: *size * ScaleFactor::new(1.0),
+            device_pixel_ratio: self.window_size.device_pixel_ratio,
+        }, WindowSizeType::Initial);
 
-                if pipeline.size == Some(size) {
-                    continue;
+        // Store the new rect inside the pipeline
+        let result = {
+            // Find the pipeline that corresponds to this rectangle. It's possible that this
+            // pipeline may have already exited before we process this message, so just
+            // early exit if that occurs.
+            match self.pipelines.get_mut(&pipeline_id) {
+                Some(pipeline) => {
+                    pipeline.size = Some(*size);
+                    pipeline.event_loop.send(msg)
                 }
-
-                pipeline.size = Some(size);
-                let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
-                    visible_viewport: size,
-                    initial_viewport: size * ScaleFactor::new(1.0),
-                    device_pixel_ratio: self.window_size.device_pixel_ratio,
-                }, WindowSizeType::Initial);
-
-                pipeline.event_loop.send(msg)
-            };
-            if let Err(e) = result {
-                self.handle_send_error(pipeline_id, e);
+                None => return,
             }
+        };
+
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
         }
     }
 
