@@ -761,20 +761,6 @@ impl HasViewportPercentage for CalcLengthOrPercentage {
 impl ToCss for CalcLengthOrPercentage {
     #[allow(unused_assignments)]
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        macro_rules! count {
-            ( $( $val:ident ),* ) => {
-                {
-                    let mut count = 0;
-                    $(
-                        if let Some(_) = self.$val {
-                            count += 1;
-                        }
-                    )*
-                    count
-                 }
-            };
-        }
-
         let mut first_value = true;
         macro_rules! first_value_check {
             () => {
@@ -798,12 +784,7 @@ impl ToCss for CalcLengthOrPercentage {
             };
         }
 
-        let count = count!(ch, em, ex, absolute, rem, vh, vmax, vmin, vw, percentage);
-        assert!(count > 0);
-
-        if count > 1 {
-           try!(write!(dest, "calc("));
-        }
+        try!(write!(dest, "calc("));
 
         serialize!(ch, em, ex, rem, vh, vmax, vmin, vw);
         if let Some(val) = self.absolute {
@@ -816,11 +797,7 @@ impl ToCss for CalcLengthOrPercentage {
             try!(write!(dest, "{}%", val * 100.));
         }
 
-        if count > 1 {
-           try!(write!(dest, ")"));
-        }
-
-        Ok(())
+        write!(dest, ")")
      }
 }
 
