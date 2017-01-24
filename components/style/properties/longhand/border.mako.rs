@@ -598,7 +598,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
             try!(self.corners[3].to_css(dest));
 
             if self.fill {
-                try!(dest.write_str("fill"));
+                try!(dest.write_str(" fill"));
             }
             Ok(())
         }
@@ -612,7 +612,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
             }
 
             if self.fill {
-                try!(dest.write_str("fill"));
+                try!(dest.write_str(" fill"));
             }
             Ok(())
         }
