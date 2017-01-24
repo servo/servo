@@ -7,9 +7,8 @@
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
-use js::jsapi::{HandleObject, JSContext, JSObject};
-use std::cell::UnsafeCell;
-use std::ptr;
+use js::jsapi::{HandleObject, JSContext, JSObject, Heap};
+use std::default::Default;
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
@@ -34,13 +33,13 @@ pub fn reflect_dom_object<T, U>(
 // If you're renaming or moving this field, update the path in plugins::reflector as well
 pub struct Reflector {
     #[ignore_heap_size_of = "defined and measured in rust-mozjs"]
-    object: UnsafeCell<*mut JSObject>,
+    object: Heap<*mut JSObject>,
 }
 
 #[allow(unrooted_must_root)]
 impl PartialEq for Reflector {
     fn eq(&self, other: &Reflector) -> bool {
-        unsafe { *self.object.get() == *other.object.get() }
+        self.object.get() == other.object.get()
     }
 }
 
@@ -48,30 +47,27 @@ impl Reflector {
     /// Get the reflector.
     #[inline]
     pub fn get_jsobject(&self) -> HandleObject {
-        unsafe { HandleObject::from_marked_location(self.object.get()) }
+        self.object.handle()
     }
 
     /// Initialize the reflector. (May be called only once.)
     pub fn set_jsobject(&mut self, object: *mut JSObject) {
-        unsafe {
-            let obj = self.object.get();
-            assert!((*obj).is_null());
-            assert!(!object.is_null());
-            *obj = object;
-        }
+        assert!(self.object.get().is_null());
+        assert!(!object.is_null());
+        self.object.set(object);
     }
 
     /// Return a pointer to the memory location at which the JS reflector
     /// object is stored. Used to root the reflector, as
     /// required by the JSAPI rooting APIs.
-    pub fn rootable(&self) -> *mut *mut JSObject {
-        self.object.get()
+    pub fn rootable(&self) -> &Heap<*mut JSObject> {
+        &self.object
     }
 
     /// Create an uninitialized `Reflector`.
     pub fn new() -> Reflector {
         Reflector {
-            object: UnsafeCell::new(ptr::null_mut()),
+            object: Heap::default(),
         }
     }
 }
