@@ -411,16 +411,13 @@ class MachCommands(CommandBase):
 
     @Command('test-wpt-failure',
              description='Run the tests harness that verifies that the test failures are reported correctly',
-             category='testing')
-    def test_wpt_failure(self):
+             category='testing',
+             parser=create_parser_wpt)
+    def test_wpt_failure(self, **kwargs):
         self.ensure_bootstrapped()
-        return not call([
-            "bash",
-            path.join("tests", "wpt", "run.sh"),
-            "--no-pause-after-test",
-            "--include",
-            "infrastructure/failing-test.html"
-        ], env=self.build_env())
+        kwargs["pause_after_test"] = False
+        kwargs["include"] = ["infrastructure/failing-test.html"]
+        return not self._test_wpt(**kwargs)
 
     @Command('test-wpt',
              description='Run the regular web platform test suite',
