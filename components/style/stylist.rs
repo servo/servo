@@ -21,6 +21,7 @@ use rule_tree::{RuleTree, StrongRuleNode, StyleSource};
 use selector_parser::{ElementExt, SelectorImpl, PseudoElement, Snapshot};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
+use selectors::matching::AFFECTED_BY_ANIMATIONS;
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{MatchingReason, StyleRelations, matches_complex_selector};
 use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
@@ -386,6 +387,7 @@ impl Stylist {
         self.push_applicable_declarations(element,
                                           None,
                                           None,
+                                          None,
                                           Some(pseudo),
                                           &mut declarations,
                                           MatchingReason::ForStyling);
@@ -490,6 +492,7 @@ impl Stylist {
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
                                         style_attribute: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
+                                        animation_rule: Option<Arc<RwLock<PropertyDeclarationBlock>>>,
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V,
                                         reason: MatchingReason) -> StyleRelations
@@ -560,7 +563,16 @@ impl Stylist {
 
             debug!("style attr: {:?}", relations);
 
-            // Step 5: Author-supplied `!important` rules.
+            // Step 5: Animations.
+            if let Some(anim) = animation_rule {
+                relations |= AFFECTED_BY_ANIMATIONS;
+                Push::push(
+                    applicable_declarations,
+                    ApplicableDeclarationBlock::from_declarations(anim.clone(), Importance::Normal));
+            }
+            debug!("animation: {:?}", relations);
+
+            // Step 6: Author-supplied `!important` rules.
             map.author.get_all_matching_rules(element,
                                               parent_bf,
                                               applicable_declarations,
@@ -570,7 +582,7 @@ impl Stylist {
 
             debug!("author important: {:?}", relations);
 
-            // Step 6: `!important` style attributes.
+            // Step 7: `!important` style attributes.
             if let Some(sa) = style_attribute {
                 if sa.read().any_important() {
                     relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
@@ -582,7 +594,7 @@ impl Stylist {
 
             debug!("style attr important: {:?}", relations);
 
-            // Step 7: User `!important` rules.
+            // Step 8: User `!important` rules.
             map.user.get_all_matching_rules(element,
                                             parent_bf,
                                             applicable_declarations,
@@ -595,7 +607,7 @@ impl Stylist {
             debug!("skipping non-agent rules");
         }
 
-        // Step 8: UA `!important` rules.
+        // Step 9: UA `!important` rules.
         map.user_agent.get_all_matching_rules(element,
                                               parent_bf,
                                               applicable_declarations,
