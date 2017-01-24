@@ -1329,23 +1329,26 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_frame_size_msg(&mut self,
                              iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, PagePx>)>) {
         for (pipeline_id, size) in iframe_sizes {
-            let result = match self.pipelines.get_mut(&pipeline_id) {
-                Some(pipeline) => {
-                    if pipeline.size != Some(size) {
-                        pipeline.size = Some(size);
-                        let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
-                            visible_viewport: size,
-                            initial_viewport: size * ScaleFactor::new(1.0),
-                            device_pixel_ratio: self.window_size.device_pixel_ratio,
-                        }, WindowSizeType::Initial);
-                        Some(pipeline.event_loop.send(msg))
-                    } else {
-                        None
-                    }
+            let result = {
+                let pipeline = match self.pipelines.get_mut(&pipeline_id) {
+                    Some(pipeline) => pipeline,
+                    None => continue,
+                };
+
+                if pipeline.size == Some(size) {
+                    continue;
                 }
-                None => None
+
+                pipeline.size = Some(size);
+                let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
+                    visible_viewport: size,
+                    initial_viewport: size * ScaleFactor::new(1.0),
+                    device_pixel_ratio: self.window_size.device_pixel_ratio,
+                }, WindowSizeType::Initial);
+
+                pipeline.event_loop.send(msg)
             };
-            if let Some(Err(e)) = result {
+            if let Err(e) = result {
                 self.handle_send_error(pipeline_id, e);
             }
         }
