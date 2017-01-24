@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::{ArrayBufferViewContents, ConversionResult, FromJSValConvertible, ToJSValConvertible};
-use dom::bindings::conversions::{array_buffer_to_vec, array_buffer_view_data, array_buffer_view_data_checked};
+use dom::bindings::conversions::{array_buffer_to_vec};
 use dom::bindings::conversions::{array_buffer_view_to_vec, array_buffer_view_to_vec_checked};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -449,11 +449,12 @@ impl WebGLRenderingContext {
         // if it is UNSIGNED_SHORT_5_6_5, UNSIGNED_SHORT_4_4_4_4,
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
-        typedarray!(in(cx) let typedarray_u8: ArrayBufferView = data);
+        typedarray!(in(cx) let typedarray_u8: Uint8Array = data);
+        typedarray!(in(cx) let typedarray_u16: Uint16Array = data);
         let received_size = if data.is_null() {
             element_size
         } else {
-            if array_buffer_view_data_checked::<u16>(data).is_some() {
+            if typedarray_u16.is_ok() {
                 2
             } else if typedarray_u8.is_ok() {
                 1
@@ -1885,7 +1886,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        typedarray!(in(_cx) let mut pixels_data : ArrayBufferView = pixels);
+        typedarray!(in(_cx) let mut pixels_data: ArrayBufferView = pixels);
         let mut data = match { pixels_data.as_mut() } {
             Ok(data) => data.as_mut_slice(),
             Err(_) => return Err(Error::Type("Not an ArrayBufferView".to_owned())),
