@@ -14,9 +14,6 @@
 
 extern crate app_units;
 extern crate atomic_refcell;
-#[allow(unused_extern_crates)]
-#[macro_use]
-extern crate bitflags;
 extern crate canvas_traits;
 extern crate core;
 extern crate cssparser;
@@ -35,7 +32,6 @@ extern crate profile_traits;
 extern crate range;
 extern crate script_traits;
 extern crate selectors;
-#[macro_use] extern crate servo_atoms;
 extern crate servo_url;
 extern crate style;
 

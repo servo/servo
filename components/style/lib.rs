@@ -39,12 +39,9 @@
 
 extern crate app_units;
 extern crate atomic_refcell;
-#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
-#[macro_use] #[no_link]
-extern crate cfg_if;
-extern crate core;
+#[cfg(feature = "gecko")] #[macro_use] #[no_link] extern crate cfg_if;
 #[macro_use]
 extern crate cssparser;
 extern crate encoding;
@@ -54,7 +51,6 @@ extern crate fnv;
 extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate html5ever_atoms;
-#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -74,8 +70,6 @@ extern crate quickersort;
 extern crate rayon;
 extern crate rustc_serialize;
 extern crate selectors;
-#[cfg(feature = "servo")]
-extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
 extern crate servo_config;

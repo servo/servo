@@ -4,10 +4,6 @@
 
 /// Implementation of Quartz (CoreGraphics) fonts.
 
-extern crate core_foundation;
-extern crate core_graphics;
-extern crate core_text;
-
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use core_foundation::base::CFIndex;

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate app_units;
-#[macro_use] extern crate euclid;
+extern crate euclid;
 #[macro_use] extern crate heapsize;
 
 use app_units::{Au, MAX_AU};

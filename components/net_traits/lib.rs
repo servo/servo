@@ -16,7 +16,6 @@ extern crate hyper;
 extern crate hyper_serde;
 extern crate image as piston_image;
 extern crate ipc_channel;
-#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]

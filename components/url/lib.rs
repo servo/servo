@@ -9,7 +9,6 @@
 
 #![cfg_attr(feature = "servo", feature(plugin))]
 
-#[cfg(feature = "servo")] extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;

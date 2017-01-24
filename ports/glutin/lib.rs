@@ -8,7 +8,6 @@
 
 #[macro_use] extern crate bitflags;
 extern crate compositing;
-#[allow(unused_extern_crates)]
 #[cfg(target_os = "android")] extern crate egl;
 extern crate euclid;
 extern crate gleam;

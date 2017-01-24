@@ -8,7 +8,6 @@
 
 extern crate ipc_channel;
 extern crate msg;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 pub extern crate rust_webvr as webvr;
