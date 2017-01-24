@@ -13810,6 +13810,10 @@ pub mod root {
     pub type RawGeckoPresContextBorrowedMut = *mut root::RawGeckoPresContext;
     pub type RawGeckoAnimationValueListBorrowedMut =
         *mut root::RawGeckoAnimationValueList;
+    pub type RawServoAnimationValueBorrowedList =
+        root::nsTArray<*const root::RawServoAnimationValue>;
+    pub type RawServoAnimationValueBorrowedListBorrowed =
+        *const root::RawServoAnimationValueBorrowedList;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsCSSTokenSerializationType {

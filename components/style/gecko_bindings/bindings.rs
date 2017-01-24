@@ -8,6 +8,7 @@ use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawGeckoAnimationValueList;
 use gecko_bindings::structs::RawServoAnimationValue;
+use gecko_bindings::structs::RawServoAnimationValueBorrowedList;
 use gecko_bindings::structs::RawGeckoPresContext;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::structs::ThreadSafeURIHolder;
@@ -224,6 +225,8 @@ pub type RawGeckoAnimationValueListBorrowed<'a> = &'a RawGeckoAnimationValueList
 pub type RawGeckoAnimationValueListBorrowedOrNull<'a> = Option<&'a RawGeckoAnimationValueList>;
 pub type RawGeckoAnimationValueListBorrowedMut<'a> = &'a mut RawGeckoAnimationValueList;
 pub type RawGeckoAnimationValueListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoAnimationValueList>;
+pub type RawServoAnimationValueBorrowedListBorrowed<'a> = &'a RawServoAnimationValueBorrowedList;
+pub type RawServoAnimationValueBorrowedListBorrowedOrNull<'a> = Option<&'a RawServoAnimationValueBorrowedList>;
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
@@ -1216,6 +1219,10 @@ extern "C" {
                                              previous_style:
                                                  ServoComputedValuesBorrowed)
      -> ServoComputedValuesStrong;
+}
+extern "C" {
+    pub fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueBorrowedListBorrowed)
+     -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_AnimationValues_Populate(arg1:

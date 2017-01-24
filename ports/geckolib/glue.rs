@@ -39,6 +39,7 @@ use style::gecko_bindings::bindings::RawGeckoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
+use style::gecko_bindings::bindings::RawServoAnimationValueBorrowedListBorrowed;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
@@ -158,6 +159,24 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     debug!("Servo_TraverseSubtree: {:?}", element);
     traverse_subtree(element, raw_data,
                      behavior == structs::TraversalRootBehavior::UnstyledChildrenOnly);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueBorrowedListBorrowed)
+     -> RawServoDeclarationBlockStrong
+{
+    let uncomputed_values = value.into_iter()
+                                 .map(|v| {
+                                     let raw_anim = unsafe { v.as_ref().unwrap() };
+                                     let anim = AnimationValue::as_arc(&raw_anim);
+                                     (anim.uncompute(), Importance::Normal)
+                                 })
+                                 .collect();
+
+    Arc::new(RwLock::new(PropertyDeclarationBlock {
+        declarations: uncomputed_values,
+        important_count: 0,
+    })).into_strong()
 }
 
 /// Takes a ServoAnimationValues and populates it with the animation values corresponding
