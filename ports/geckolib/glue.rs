@@ -40,6 +40,7 @@ use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowedListBorrowed;
+use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
@@ -59,7 +60,7 @@ use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock, PropertyId};
 use style::properties::{apply_declarations, parse_one_declaration};
-use style::properties::animated_properties::AnimationValue;
+use style::properties::animated_properties::{AnimationValue, Interpolate};
 use style::restyle_hints::RestyleHint;
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
@@ -159,6 +160,21 @@ pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
     debug!("Servo_TraverseSubtree: {:?}", element);
     traverse_subtree(element, raw_data,
                      behavior == structs::TraversalRootBehavior::UnstyledChildrenOnly);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValues_Interpolate(from: RawServoAnimationValueBorrowed,
+                                                    to: RawServoAnimationValueBorrowed,
+                                                    progress: f64)
+     -> RawServoAnimationValueStrong
+{
+    let from_value = AnimationValue::as_arc(&from);
+    let to_value = AnimationValue::as_arc(&to);
+    if let Ok(value) = from_value.interpolate(to_value, progress) {
+        Arc::new(value).into_strong()
+    } else {
+        RawServoAnimationValueStrong::null()
+    }
 }
 
 #[no_mangle]

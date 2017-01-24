@@ -1221,6 +1221,12 @@ extern "C" {
      -> ServoComputedValuesStrong;
 }
 extern "C" {
+    pub fn Servo_AnimationValues_Interpolate(from: RawServoAnimationValueBorrowed,
+                                             to: RawServoAnimationValueBorrowed,
+                                             progress: f64)
+     -> RawServoAnimationValueStrong;
+}
+extern "C" {
     pub fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueBorrowedListBorrowed)
      -> RawServoDeclarationBlockStrong;
 }
