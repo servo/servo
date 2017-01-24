@@ -1134,7 +1134,7 @@ pub type LengthOrAuto = Either<Length, Auto>;
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum LengthOrPercentageOrAutoOrContent {
     /// A `<length>`.
-    Length(Length),
+    Length(NoCalcLength),
     /// A percentage.
     Percentage(Percentage),
     /// A `calc` node.
@@ -1172,11 +1172,11 @@ impl Parse for LengthOrPercentageOrAutoOrContent {
         let context = AllowedNumericType::NonNegative;
         match try!(input.next()) {
             Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
-                Length::parse_dimension(value.value, unit).map(LengthOrPercentageOrAutoOrContent::Length),
+                NoCalcLength::parse_dimension(value.value, unit).map(LengthOrPercentageOrAutoOrContent::Length),
             Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
                 Ok(LengthOrPercentageOrAutoOrContent::Percentage(Percentage(value.unit_value))),
             Token::Number(ref value) if value.value == 0. =>
-                Ok(LengthOrPercentageOrAutoOrContent::Length(Length::zero())),
+                Ok(LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero())),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
                 Ok(LengthOrPercentageOrAutoOrContent::Auto),
             Token::Ident(ref value) if value.eq_ignore_ascii_case("content") =>
