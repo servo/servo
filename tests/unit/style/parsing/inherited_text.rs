@@ -82,11 +82,12 @@ fn test_text_emphasis_position() {
 
 #[test]
 fn webkit_text_stroke_shorthand_should_parse_properly() {
+    use media_queries::CSSErrorReporterTest;
+    use servo_url::ServoUrl;
     use style::properties::longhands::_webkit_text_stroke_color;
     use style::properties::longhands::_webkit_text_stroke_width;
     use style::properties::shorthands::_webkit_text_stroke;
-    use media_queries::CSSErrorReporterTest;
-    use servo_url::ServoUrl;
+
     let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
 
