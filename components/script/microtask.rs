@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Implementation of [microtasks](https://html.spec.whatwg.org/multipage/#microtask) and
+//! microtask queues. It is up to implementations of event loops to store a queue and
+//! perform checkpoints at appropriate times, as well as enqueue microtasks as required.
+
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
@@ -11,19 +15,6 @@ use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use std::rc::Rc;
 
-/// A promise callback scheduled to run during the next microtask checkpoint (#4283).
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct EnqueuedPromiseCallback {
-    #[ignore_heap_size_of = "Rc has unclear ownership"]
-    pub callback: Rc<PromiseJobCallback>,
-    pub pipeline: PipelineId,
-}
-
-#[derive(JSTraceable, HeapSizeOf)]
-pub enum Microtask {
-    Promise(EnqueuedPromiseCallback),
-}
-
 /// A collection of microtasks in FIFO order.
 #[derive(JSTraceable, HeapSizeOf, Default)]
 pub struct MicrotaskQueue {
@@ -31,6 +22,19 @@ pub struct MicrotaskQueue {
     microtask_queue: DOMRefCell<Vec<Microtask>>,
     /// https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint
     performing_a_microtask_checkpoint: Cell<bool>,
+}
+
+#[derive(JSTraceable, HeapSizeOf)]
+pub enum Microtask {
+    Promise(EnqueuedPromiseCallback),
+}
+
+/// A promise callback scheduled to run during the next microtask checkpoint (#4283).
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct EnqueuedPromiseCallback {
+    #[ignore_heap_size_of = "Rc has unclear ownership"]
+    pub callback: Rc<PromiseJobCallback>,
+    pub pipeline: PipelineId,
 }
 
 impl MicrotaskQueue {
