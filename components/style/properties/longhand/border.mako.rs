@@ -308,15 +308,15 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.0.to_css(dest));
             try!(dest.write_str(" "));
-            self.0.to_css(dest)
+            self.1.to_css(dest)
         }
     }
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.0.to_css(dest));
-            if self.1.is_some() {
+            if let Some(second) = self.1 {
                 try!(dest.write_str(" "));
-                try!(self.0.to_css(dest));
+                try!(second.to_css(dest));
             }
             Ok(())
         }
