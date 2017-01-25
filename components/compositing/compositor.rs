@@ -342,15 +342,13 @@ fn initialize_png(width: usize, height: usize) -> RenderTargetInfo {
 
 struct RenderNotifier {
     compositor_proxy: Box<CompositorProxy>,
-    constellation_chan: Sender<ConstellationMsg>,
 }
 
 impl RenderNotifier {
     fn new(compositor_proxy: Box<CompositorProxy>,
-           constellation_chan: Sender<ConstellationMsg>) -> RenderNotifier {
+           _: Sender<ConstellationMsg>) -> RenderNotifier {
         RenderNotifier {
             compositor_proxy: compositor_proxy,
-            constellation_chan: constellation_chan,
         }
     }
 }
@@ -365,16 +363,8 @@ impl webrender_traits::RenderNotifier for RenderNotifier {
     }
 
     fn pipeline_size_changed(&mut self,
-                             pipeline_id: webrender_traits::PipelineId,
-                             size: Option<webrender_traits::LayoutSize>) {
-        let pipeline_id = pipeline_id.from_webrender();
-
-        if let Some(size) = size {
-            let msg = ConstellationMsg::FrameSize(pipeline_id, size.to_untyped());
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Compositor resize to constellation failed ({}).", e);
-            }
-        }
+                             _: webrender_traits::PipelineId,
+                             _: Option<webrender_traits::LayoutSize>) {
     }
 }
 
