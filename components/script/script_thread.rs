@@ -98,6 +98,7 @@ use servo_config::opts;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
+use std::default::Default;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
@@ -700,7 +701,7 @@ impl ScriptThread {
 
             content_process_shutdown_chan: state.content_process_shutdown_chan,
 
-            microtask_queue: MicrotaskQueue::new(),
+            microtask_queue: MicrotaskQueue::default(),
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
 

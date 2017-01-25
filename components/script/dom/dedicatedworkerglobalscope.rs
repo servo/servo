@@ -236,11 +236,15 @@ impl DedicatedWorkerGlobalScope {
 
             let reporter_name = format!("dedicated-worker-reporter-{}", random::<u64>());
             scope.upcast::<GlobalScope>().mem_profiler_chan().run_with_memory_reporting(|| {
+                // https://html.spec.whatwg.org/multipage/#event-loop-processing-model
+                // Step 1
                 while let Ok(event) = global.receive_event() {
                     if scope.is_closing() {
                         break;
                     }
+                    // Step 3
                     global.handle_event(event);
+                    // Step 6
                     global.upcast::<WorkerGlobalScope>().perform_a_microtask_checkpoint();
                 }
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);

@@ -25,12 +25,8 @@ pub enum Microtask {
 }
 
 /// A collection of microtasks in FIFO order.
-#[derive(JSTraceable, HeapSizeOf)]
+#[derive(JSTraceable, HeapSizeOf, Default)]
 pub struct MicrotaskQueue {
-    /// A snapshot of `microtask_queue` that was taken at the start of the microtask checkpoint.
-    /// Used to work around mutability errors when appending new microtasks while performing
-    /// a microtask checkpoint.
-    flushing_queue: DOMRefCell<Vec<Microtask>>,
     /// The list of enqueued microtasks that will be invoked at the next microtask checkpoint.
     microtask_queue: DOMRefCell<Vec<Microtask>>,
     /// https://html.spec.whatwg.org/multipage/#performing-a-microtask-checkpoint
@@ -38,15 +34,6 @@ pub struct MicrotaskQueue {
 }
 
 impl MicrotaskQueue {
-    /// Create a new PromiseJobQueue instance.
-    pub fn new() -> MicrotaskQueue {
-        MicrotaskQueue {
-            microtask_queue: DOMRefCell::new(vec![]),
-            flushing_queue: DOMRefCell::new(vec![]),
-            performing_a_microtask_checkpoint: Cell::new(false),
-        }
-    }
-
     /// Add a new microtask to this queue. It will be invoked as part of the next
     /// microtask checkpoint.
     pub fn enqueue(&self, job: Microtask) {
@@ -67,14 +54,12 @@ impl MicrotaskQueue {
 
         // Steps 2-7
         while !self.microtask_queue.borrow().is_empty() {
-            {
-                let mut pending_queue = self.microtask_queue.borrow_mut();
-                *self.flushing_queue.borrow_mut() = pending_queue.drain(..).collect();
-            }
-            // N.B. borrowing this vector is safe w.r.t. mutability, since any promise job that
-            // is enqueued while invoking these callbacks will be placed in `pending_queue`;
-            // `flushing_queue` is a static snapshot during this checkpoint.
-            for job in &*self.flushing_queue.borrow() {
+            rooted_vec!(let mut pending_queue);
+            mem::swap(
+                &mut *pending_queue,
+                &mut *self.microtask_queue.borrow_mut());
+
+            for job in &pending_queue {
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
@@ -83,7 +68,6 @@ impl MicrotaskQueue {
                     }
                 }
             }
-            self.flushing_queue.borrow_mut().clear();
         }
 
         //TODO: Step 8 - notify about rejected promises

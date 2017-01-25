@@ -116,7 +116,7 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
-            microtask_queue: MicrotaskQueue::new(),
+            microtask_queue: MicrotaskQueue::default(),
         }
     }
 
