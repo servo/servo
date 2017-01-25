@@ -13,6 +13,7 @@ use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
 use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
+use std::mem;
 use std::rc::Rc;
 
 /// A collection of microtasks in FIFO order.
@@ -63,7 +64,7 @@ impl MicrotaskQueue {
                 &mut *pending_queue,
                 &mut *self.microtask_queue.borrow_mut());
 
-            for job in &pending_queue {
+            for job in pending_queue.iter() {
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
