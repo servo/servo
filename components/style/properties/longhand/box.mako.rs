@@ -1251,6 +1251,12 @@ ${helpers.single_keyword("animation-fill-mode",
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+
+            if self.0.is_empty() {
+                try!(dest.write_str("none"));
+                return Ok(())
+            }
+
             let mut first = true;
             for operation in &self.0 {
                 if !first {
