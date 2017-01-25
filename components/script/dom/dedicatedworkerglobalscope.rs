@@ -230,7 +230,7 @@ impl DedicatedWorkerGlobalScope {
             }
 
             {
-                let _ar = AutoWorkerReset::new(&global, worker);
+                let _ar = AutoWorkerReset::new(&global, worker.clone());
                 scope.execute_script(DOMString::from(source));
             }
 
@@ -245,6 +245,7 @@ impl DedicatedWorkerGlobalScope {
                     // Step 3
                     global.handle_event(event);
                     // Step 6
+                    let _ar = AutoWorkerReset::new(&global, worker.clone());
                     global.upcast::<WorkerGlobalScope>().perform_a_microtask_checkpoint();
                 }
             }, reporter_name, parent_sender, CommonScriptMsg::CollectReports);
