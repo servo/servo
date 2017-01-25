@@ -1181,7 +1181,7 @@ impl XMLHttpRequest {
         self.response_json.get()
     }
 
-    fn document_text_html(&self) -> Root<Document>{
+    fn document_text_html(&self) -> Root<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
@@ -1190,8 +1190,7 @@ impl XMLHttpRequest {
         ServoParser::parse_html_document(
             &document,
             DOMString::from(decoded),
-            wr.get_url(),
-            Some(wr.pipeline_id()));
+            wr.get_url());
         document
     }
 
@@ -1204,8 +1203,7 @@ impl XMLHttpRequest {
         ServoParser::parse_xml_document(
             &document,
             DOMString::from(decoded),
-            wr.get_url(),
-            Some(wr.pipeline_id()));
+            wr.get_url());
         document
     }
 

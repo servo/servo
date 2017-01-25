@@ -1817,17 +1817,9 @@ impl ScriptThread {
         document.set_https_state(metadata.https_state);
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
-            ServoParser::parse_xml_document(
-                &document,
-                parse_input,
-                final_url,
-                Some(incomplete.pipeline_id));
+            ServoParser::parse_xml_document(&document, parse_input, final_url);
         } else {
-            ServoParser::parse_html_document(
-                &document,
-                parse_input,
-                final_url,
-                Some(incomplete.pipeline_id));
+            ServoParser::parse_html_document(&document, parse_input, final_url);
         }
 
         if incomplete.is_frozen {

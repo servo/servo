@@ -20,9 +20,8 @@ use dom::globalscope::GlobalScope;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
-use dom::node::{Node, NodeDamage, NodeSiblingIterator};
+use dom::node::{Node, NodeSiblingIterator};
 use dom::text::Text;
-use dom::window::ReflowReason;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
 use html5ever::tokenizer::buffer_queue::BufferQueue;
@@ -35,13 +34,11 @@ use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
-use script_layout_interface::message::ReflowQueryType;
 use script_thread::ScriptThread;
 use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::mem;
-use style::context::ReflowGoal;
 
 mod html;
 mod xml;
@@ -63,9 +60,6 @@ pub struct ServoParser {
     reflector: Reflector,
     /// The document associated with this parser.
     document: JS<Document>,
-    /// The pipeline associated with this parse, unavailable if this parse
-    /// does not correspond to a page load.
-    pipeline: Option<PipelineId>,
     /// Input received from network.
     #[ignore_heap_size_of = "Defined in html5ever"]
     network_input: DOMRefCell<BufferQueue>,
@@ -89,9 +83,8 @@ enum LastChunkState {
 }
 
 impl ServoParser {
-    pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl, owner: Option<PipelineId>) {
+    pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
         let parser = ServoParser::new(document,
-                                      owner,
                                       Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
                                       LastChunkState::NotReceived);
         parser.parse_chunk(String::from(input));
@@ -131,7 +124,6 @@ impl ServoParser {
         };
 
         let parser = ServoParser::new(&document,
-                                      None,
                                       Tokenizer::Html(self::html::Tokenizer::new(&document,
                                                                                  url.clone(),
                                                                                  Some(fragment_context))),
@@ -145,9 +137,8 @@ impl ServoParser {
         }
     }
 
-    pub fn parse_xml_document(document: &Document, input: DOMString, url: ServoUrl, owner: Option<PipelineId>) {
+    pub fn parse_xml_document(document: &Document, input: DOMString, url: ServoUrl) {
         let parser = ServoParser::new(document,
-                                      owner,
                                       Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
                                       LastChunkState::NotReceived);
         parser.parse_chunk(String::from(input));
@@ -234,14 +225,12 @@ impl ServoParser {
 
     #[allow(unrooted_must_root)]
     fn new_inherited(document: &Document,
-                     pipeline: Option<PipelineId>,
                      tokenizer: Tokenizer,
                      last_chunk_state: LastChunkState)
                      -> Self {
         ServoParser {
             reflector: Reflector::new(),
             document: JS::from_ref(document),
-            pipeline: pipeline,
             network_input: DOMRefCell::new(BufferQueue::new()),
             script_input: DOMRefCell::new(BufferQueue::new()),
             tokenizer: DOMRefCell::new(tokenizer),
@@ -253,11 +242,10 @@ impl ServoParser {
 
     #[allow(unrooted_must_root)]
     fn new(document: &Document,
-           pipeline: Option<PipelineId>,
            tokenizer: Tokenizer,
            last_chunk_state: LastChunkState)
            -> Root<Self> {
-        reflect_dom_object(box ServoParser::new_inherited(document, pipeline, tokenizer, last_chunk_state),
+        reflect_dom_object(box ServoParser::new_inherited(document, tokenizer, last_chunk_state),
                            document.window(),
                            ServoParserBinding::Wrap)
     }
@@ -344,16 +332,6 @@ impl ServoParser {
         // Step 2.
         self.tokenizer.borrow_mut().end();
         self.document.set_current_parser(None);
-
-        if self.pipeline.is_some() {
-            // Initial reflow.
-            self.document.disarm_reflow_timeout();
-            self.document.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-            let window = self.document.window();
-            window.reflow(ReflowGoal::ForDisplay,
-                          ReflowQueryType::NoQuery,
-                          ReflowReason::FirstLoad);
-        }
 
         // Steps 3-12 are in another castle, namely finish_load.
         let url = self.tokenizer.borrow().url().clone();
