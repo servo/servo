@@ -4,8 +4,7 @@
 
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
-use parsing::parse;
-use style::parser::{Parse, ParserContext};
+use style::parser::{ParserContext};
 use style::stylesheets::Origin;
 use style_traits::ToCss;
 
