@@ -458,11 +458,11 @@ ${helpers.predefined_type("opacity",
                 computed_value::Filter::DropShadow(shadow) => {
                     try!(dest.write_str("drop-shadow("));
                     try!(shadow.offset_x.to_css(dest));
-                    try!(dest.write_str(", "));
+                    try!(dest.write_str(" "));
                     try!(shadow.offset_y.to_css(dest));
-                    try!(dest.write_str(", "));
+                    try!(dest.write_str(" "));
                     try!(shadow.blur_radius.to_css(dest));
-                    try!(dest.write_str(", "));
+                    try!(dest.write_str(" "));
                     try!(shadow.color.to_css(dest));
                     try!(dest.write_str(")"));
                 }
@@ -496,12 +496,12 @@ ${helpers.predefined_type("opacity",
                 SpecifiedFilter::DropShadow(ref shadow) => {
                     try!(dest.write_str("drop-shadow("));
                     try!(shadow.offset_x.to_css(dest));
-                    try!(dest.write_str(", "));
+                    try!(dest.write_str(" "));
                     try!(shadow.offset_y.to_css(dest));
-                    try!(dest.write_str(", "));
+                    try!(dest.write_str(" "));
                     try!(shadow.blur_radius.to_css(dest));
                     if let Some(ref color) = shadow.color {
-                        try!(dest.write_str(", "));
+                        try!(dest.write_str(" "));
                         try!(color.to_css(dest));
                     }
                     try!(dest.write_str(")"));
