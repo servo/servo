@@ -122,30 +122,24 @@ ${helpers.single_keyword("unicode-bidi",
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut space = false;
-            if self.underline {
-                try!(dest.write_str("underline"));
-                space = true;
-            }
-            if self.overline {
-                if space {
-                    try!(dest.write_str(" "));
+            let mut has_any = false;
+            macro_rules! write_value {
+                ($line:ident => $css:expr) => {
+                    if self.$line {
+                        if has_any {
+                            dest.write_str(" ")?;
+                        }
+                        dest.write_str($css)?;
+                        has_any = true;
+                    }
                 }
-                try!(dest.write_str("overline"));
-                space = true;
             }
-            if self.line_through {
-                if space {
-                    try!(dest.write_str(" "));
-                }
-                try!(dest.write_str("line-through"));
-                space = true;
-            }
-            if self.blink {
-                if space {
-                    try!(dest.write_str(" "));
-                }
-                try!(dest.write_str("blink"));
+            write_value!(underline => "underline");
+            write_value!(overline => "overline");
+            write_value!(line_through => "line-through");
+            write_value!(blink => "blink");
+            if !has_any {
+                dest.write_str("none")?;
             }
             Ok(())
         }
