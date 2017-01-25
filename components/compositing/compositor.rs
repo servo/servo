@@ -17,7 +17,7 @@ use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, CONTROL};
-use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId, TraversalDirection};
+use msg::constellation_msg::{PipelineId, TraversalDirection};
 use net_traits::image::base::{Image, PixelFormat};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
@@ -66,8 +66,7 @@ trait ConvertPipelineIdFromWebRender {
 impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
     fn from_webrender(&self) -> PipelineId {
         PipelineId {
-            namespace_id: PipelineNamespaceId(self.0),
-            index: PipelineIndex(self.1),
+            id: self.0,
         }
     }
 }
