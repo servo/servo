@@ -179,7 +179,7 @@ impl PendingRestyle {
     }
 }
 
-// https://dom.spec.whatwg.org/#document
+/// https://dom.spec.whatwg.org/#document
 #[dom_struct]
 pub struct Document {
     node: Node,
