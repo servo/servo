@@ -19,7 +19,8 @@
     impl NoViewportPercentage for SpecifiedValue {}
 
     pub mod computed_value {
-        use std::fmt;
+        use cssparser::CssStringWriter;
+        use std::fmt::{self, Write};
         use Atom;
         use style_traits::ToCss;
         pub use self::FontFamily as SingleComputedValue;
@@ -72,7 +73,16 @@
 
         impl ToCss for FontFamily {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.atom().with_str(|s| dest.write_str(s))
+                match *self {
+                    FontFamily::FamilyName(ref name) => {
+                        dest.write_char('"')?;
+                        write!(CssStringWriter::new(dest), "{}", name)?;
+                        dest.write_char('"')
+                    }
+
+                    // All generic values accepted by the parser are known to not require escaping.
+                    FontFamily::Generic(ref name) => write!(dest, "{}", name),
+                }
             }
         }
 
@@ -112,16 +122,36 @@
         // FIXME(bholley): The fast thing to do here would be to look up the
         // string (as lowercase) in the static atoms table. We don't have an
         // API to do that yet though, so we do the simple thing for now.
+        let mut css_wide_keyword = false;
         match_ignore_ascii_case! { first_ident,
             "serif" => return Ok(FontFamily::Generic(atom!("serif"))),
             "sans-serif" => return Ok(FontFamily::Generic(atom!("sans-serif"))),
             "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
             "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
             "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
+
+            // https://drafts.csswg.org/css-fonts/#propdef-font-family
+            // "Font family names that happen to be the same as a keyword value
+            //  (‘inherit’, ‘serif’, ‘sans-serif’, ‘monospace’, ‘fantasy’, and ‘cursive’)
+            //  must be quoted to prevent confusion with the keywords with the same names.
+            //  The keywords ‘initial’ and ‘default’ are reserved for future use
+            //  and must also be quoted when used as font names.
+            //  UAs must not consider these keywords as matching the <family-name> type."
+            "inherit" => css_wide_keyword = true,
+            "initial" => css_wide_keyword = true,
+            "unset" => css_wide_keyword = true,
+            "default" => css_wide_keyword = true,
             _ => {}
         }
 
         let mut value = first_ident.into_owned();
+        // These keywords are not allowed by themselves.
+        // The only way this value can be valid with with another keyword.
+        if css_wide_keyword {
+            let ident = input.expect_ident()?;
+            value.push_str(" ");
+            value.push_str(&ident);
+        }
         while let Ok(ident) = input.try(|input| input.expect_ident()) {
             value.push_str(" ");
             value.push_str(&ident);

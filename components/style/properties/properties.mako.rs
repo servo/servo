@@ -410,7 +410,9 @@ pub enum CSSWideKeyword {
 
 impl Parse for CSSWideKeyword {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { try!(input.expect_ident()),
+        let ident = input.expect_ident()?;
+        input.expect_exhausted()?;
+        match_ignore_ascii_case! { ident,
             "initial" => Ok(CSSWideKeyword::InitialKeyword),
             "inherit" => Ok(CSSWideKeyword::InheritKeyword),
             "unset" => Ok(CSSWideKeyword::UnsetKeyword),

@@ -49,7 +49,9 @@ def abort(message):
 
 def render(filename, **context):
     try:
-        lookup = TemplateLookup(directories=[BASE])
+        lookup = TemplateLookup(directories=[BASE],
+                                input_encoding="utf8",
+                                strict_undefined=True)
         template = Template(open(filename, "rb").read(),
                             filename=filename,
                             input_encoding="utf8",
