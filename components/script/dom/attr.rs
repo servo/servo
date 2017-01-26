@@ -170,7 +170,7 @@ impl AttrMethods for Attr {
 impl Attr {
     pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
         assert!(Some(owner) == self.owner().r());
-        owner.will_mutate_attr();
+        owner.will_mutate_attr(self);
         self.swap_value(&mut value);
         if self.identifier.namespace == ns!() {
             vtable_for(owner.upcast())
