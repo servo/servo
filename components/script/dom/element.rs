@@ -971,7 +971,7 @@ impl Element {
 
     pub fn push_attribute(&self, attr: &Attr) {
         assert!(attr.GetOwnerElement().r() == Some(self));
-        self.will_mutate_attr();
+        self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(JS::from_ref(attr));
         if attr.namespace() == &ns!() {
             vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None));
@@ -1097,8 +1097,8 @@ impl Element {
         let idx = self.attrs.borrow().iter().position(|attr| find(&attr));
 
         idx.map(|idx| {
-            self.will_mutate_attr();
             let attr = Root::from_ref(&*(*self.attrs.borrow())[idx]);
+            self.will_mutate_attr(&attr);
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
             if attr.namespace() == &ns!() {
@@ -1236,9 +1236,9 @@ impl Element {
         self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
     }
 
-    pub fn will_mutate_attr(&self) {
+    pub fn will_mutate_attr(&self, attr: &Attr) {
         let node = self.upcast::<Node>();
-        node.owner_doc().element_attr_will_change(self);
+        node.owner_doc().element_attr_will_change(self, attr);
     }
 
     // https://dom.spec.whatwg.org/#insert-adjacent
@@ -1511,7 +1511,7 @@ impl ElementMethods for Element {
             }
 
             // Step 4.
-            self.will_mutate_attr();
+            self.will_mutate_attr(attr);
             attr.set_owner(Some(self));
             self.attrs.borrow_mut()[position] = JS::from_ref(attr);
             old_attr.set_owner(None);

@@ -2148,7 +2148,7 @@ impl Document {
         }
     }
 
-    pub fn element_attr_will_change(&self, el: &Element) {
+    pub fn element_attr_will_change(&self, el: &Element, _attr: &Attr) {
         let mut snapshot = self.ensure_snapshot(el);
         if snapshot.attrs.is_none() {
             let attrs = el.attrs()
