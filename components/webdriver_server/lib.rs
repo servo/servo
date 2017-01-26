@@ -300,10 +300,13 @@ impl Handler {
     fn handle_new_session(&mut self) -> WebDriverResult<WebDriverResponse> {
         if self.session.is_none() {
             let session = WebDriverSession::new();
+
             let mut capabilities = BTreeMap::new();
             capabilities.insert("browserName".to_owned(), "servo".to_json());
-            capabilities.insert("browserVersion".to_owned(), "0.0.1".to_json());
+            capabilities.insert("browserVersion".to_owned(),
+                                env!("CARGO_PKG_VERSION").to_json());
             capabilities.insert("acceptInsecureCerts".to_owned(), false.to_json());
+
             let rv = Ok(WebDriverResponse::NewSession(
                 NewSessionResponse::new(
                     session.id.to_string(),
