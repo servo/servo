@@ -101,8 +101,9 @@ struct WebDriverSession {
     id: Uuid,
     frame_id: Option<FrameId>,
 
-    /// Time to wait for injected scripts to run before interrupting them.
-    script_timeout: u32,
+    /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
+    /// specifies that the script should run indefinitely.
+    script_timeout: Option<u32>,
 
     /// Time to wait for a page to finish loading upon navigation.
     load_timeout: u32,
@@ -118,7 +119,7 @@ impl WebDriverSession {
             id: Uuid::new_v4(),
             frame_id: None,
 
-            script_timeout: 30_000,
+            script_timeout: Some(30_000),
             load_timeout: 300_000,
             implicit_wait_timeout: 0,
         }
@@ -709,7 +710,7 @@ impl Handler {
         // values should be limited to u32 in the standard.
         let value = parameters.ms as u32;
         match &parameters.type_[..] {
-            "script" => session.script_timeout = value,
+            "script" => session.script_timeout = Some(value),
             "page load" => session.load_timeout = value,
             "implicit" => session.implicit_wait_timeout = value,
             x => {
@@ -745,10 +746,15 @@ impl Handler {
         let func_body = &parameters.script;
         let args_string = "window.webdriverCallback";
 
-        let script = format!("setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
-                             session.script_timeout,
-                             func_body,
-                             args_string);
+        let script = match session.script_timeout {
+            Some(timeout) => {
+                format!("setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
+                        timeout,
+                        func_body,
+                        args_string)
+            }
+            None => format!("(function(callback) {{ {} }})({})", func_body, args_string),
+        };
 
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
