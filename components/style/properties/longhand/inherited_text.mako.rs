@@ -335,11 +335,11 @@ ${helpers.single_keyword("text-align-last",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+            specified::Length::parse(context, input).map(SpecifiedValue::Specified)
         }
     }
 </%helpers:longhand>
@@ -416,11 +416,11 @@ ${helpers.single_keyword("text-align-last",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::LengthOrPercentage::parse_non_negative(input)
+            specified::LengthOrPercentage::parse(context, input)
                                           .map(SpecifiedValue::Specified)
         }
     }
