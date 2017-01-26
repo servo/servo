@@ -15,7 +15,29 @@ import servo.packages as packages
 from servo.util import extract, download_file, host_triple
 
 
-def salt(context, force=False):
+def run_as_root(command):
+    if os.geteuid() != 0:
+        try:
+            # Check if sudo'ing possible
+            subprocess.check_call(['sudo', '-v'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            command.insert(0, 'sudo')
+        except:
+            command = ['su', 'root', '-c', ' '.join(command)]
+
+    return subprocess.call(command)
+
+
+def install_salt_dependencies(context, force):
+    print("Installing missing Salt dependencies...")
+    if context.distro == 'Ubuntu':
+        run_as_root(['apt-get', 'install', '-y', 'build-essential', 'libssl-dev', 'libffi-dev', 'python-dev'])
+    elif context.distro in ('CentOS', 'CentOS Linux', 'Fedora'):
+        run_as_root(['dnf', 'install', '-y', 'gcc', 'libffi-devel', 'python-devel', 'openssl-devel'])
+
+    return salt(context, force, retry=True)
+
+
+def salt(context, force=False, retry=False):
     # Ensure Salt is installed in the virtualenv
     # It's not instaled globally because it's a large, non-required dependency,
     # and the installation fails on Windows
@@ -29,6 +51,9 @@ def salt(context, force=False):
     process.wait()
     if process.returncode:
         out, err = process.communicate()
+        if "pycrypto/setup.py" in err and not retry:
+            return install_salt_dependencies(context, force)
+
         print('failed to install Salt via pip:')
         print('Output: {}\nError: {}'.format(out, err))
         return 1
@@ -86,7 +111,6 @@ def salt(context, force=False):
             pillar_file.write(json.dumps(pillar[filename]) + '\n')
 
     cmd = [
-        'sudo',
         # sudo escapes from the venv, need to use full path
         find_executable('salt-call'),
         '--local',
@@ -106,7 +130,7 @@ def salt(context, force=False):
         # the actual highstate.
         # Hence `--retcode-passthrough` is not helpful in dry-run mode,
         # so only detect failures of the actual salt-call binary itself.
-        retcode = subprocess.call(cmd + ['test=True'])
+        retcode = run_as_root(cmd + ['test=True'])
         if retcode != 0:
             print('Something went wrong while bootstrapping')
             return retcode
@@ -120,7 +144,7 @@ def salt(context, force=False):
         print('')
 
     print('Running Salt bootstrap')
-    retcode = subprocess.call(cmd + ['--retcode-passthrough'])
+    retcode = run_as_root(cmd + ['--retcode-passthrough'])
     if retcode == 0:
         print('Salt bootstrapping complete')
     else:
@@ -219,7 +243,8 @@ def bootstrap(context, force=False):
         bootstrapper = windows_msvc
     elif "linux-gnu" in host_triple():
         distro, version, _ = platform.linux_distribution()
-        if distro == 'Ubuntu' and version == '14.04':
+        if distro in ('CentOS', 'CentOS Linux', 'Fedora', 'Ubuntu'):
+            context.distro = distro
             bootstrapper = salt
 
     if bootstrapper is None:
