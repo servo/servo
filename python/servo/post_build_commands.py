@@ -25,7 +25,7 @@ from mach.decorators import (
 from servo.command_base import (
     CommandBase,
     call, check_call,
-    is_windows, is_macosx, set_osmesa_env,
+    is_linux, is_windows, is_macosx, set_osmesa_env,
     get_browserhtml_path,
 )
 
@@ -59,11 +59,13 @@ class PostBuildCommands(CommandBase):
                      help='Launch with Browser.html')
     @CommandArgument('--headless', '-z', action='store_true',
                      help='Launch in headless mode')
+    @CommandArgument('--software', '-s', action='store_true',
+                     help='Launch with software rendering')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
     def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None, browserhtml=False,
-            headless=False):
+            headless=False, software=False):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -114,6 +116,13 @@ class PostBuildCommands(CommandBase):
         if headless:
             set_osmesa_env(args[0], env)
             args.append('-z')
+
+        if software:
+            if not is_linux():
+                print("Software rendering is only supported on Linux at the moment.")
+                return
+
+            env['LIBGL_ALWAYS_SOFTWARE'] = "1"
 
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
