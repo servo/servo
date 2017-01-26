@@ -347,10 +347,18 @@ impl Length {
         }
     }
 
+    /// Parse a positive or negative length
+    #[inline]
+    pub fn parse_any(input: &mut Parser) -> Result<Length, ()> {
+        Length::parse_internal(input, AllowedNumericType::All)
+    }
+
     /// Parse a non-negative length
+    #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<Length, ()> {
         Length::parse_internal(input, AllowedNumericType::NonNegative)
     }
+
 
     /// Parse a given absolute or relative dimension.
     pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
@@ -902,6 +910,12 @@ impl LengthOrPercentage {
             },
             _ => Err(())
         }
+    }
+
+    /// Parse any length.
+    #[inline]
+    pub fn parse_any(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
+        LengthOrPercentage::parse_internal(input, AllowedNumericType::All)
     }
 
     /// Parse a non-negative length.

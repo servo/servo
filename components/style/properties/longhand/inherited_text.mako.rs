@@ -334,7 +334,7 @@ ${helpers.single_keyword("text-align-last",
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
+            specified::Length::parse_any(input).map(SpecifiedValue::Specified)
         }
     }
 </%helpers:longhand>
@@ -415,7 +415,7 @@ ${helpers.single_keyword("text-align-last",
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::LengthOrPercentage::parse_non_negative(input)
+            specified::LengthOrPercentage::parse_any(input)
                                           .map(SpecifiedValue::Specified)
         }
     }
