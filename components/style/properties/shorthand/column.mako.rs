@@ -101,7 +101,6 @@
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let mut need_space = false;
-            try!(self.column_rule_width.to_css(dest));
 
             if let DeclaredValue::Value(ref width) = *self.column_rule_width {
                 try!(width.to_css(dest));
