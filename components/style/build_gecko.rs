@@ -491,6 +491,7 @@ mod bindings {
             "RawGeckoNode",
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
+            "RawServoAnimationValueList",
             "RawGeckoPresContext",
             "RawGeckoPresContextOwned",
             "ThreadSafeURIHolder",
@@ -593,6 +594,7 @@ mod bindings {
         let servo_borrow_types = [
             "nsCSSValue",
             "RawGeckoAnimationValueList",
+            "RawServoAnimationValueList",
         ];
         for &ty in structs_types.iter() {
             builder = builder.hide_type(ty)

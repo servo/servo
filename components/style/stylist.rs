@@ -8,7 +8,7 @@
 
 use {Atom, LocalName};
 use data::ComputedStyle;
-use dom::{PresentationalHintsSynthetizer, TElement};
+use dom::{AnimationRules, PresentationalHintsSynthetizer, TElement};
 use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
@@ -21,6 +21,7 @@ use rule_tree::{RuleTree, StrongRuleNode, StyleSource};
 use selector_parser::{ElementExt, SelectorImpl, PseudoElement, Snapshot};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
+use selectors::matching::{AFFECTED_BY_ANIMATIONS, AFFECTED_BY_TRANSITIONS};
 use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONAL_HINTS};
 use selectors::matching::{MatchingReason, StyleRelations, matches_complex_selector};
 use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
@@ -386,6 +387,7 @@ impl Stylist {
         self.push_applicable_declarations(element,
                                           None,
                                           None,
+                                          AnimationRules(None, None),
                                           Some(pseudo),
                                           &mut declarations,
                                           MatchingReason::ForStyling);
@@ -490,6 +492,7 @@ impl Stylist {
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
                                         style_attribute: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
+                                        animation_rules: AnimationRules,
                                         pseudo_element: Option<&PseudoElement>,
                                         applicable_declarations: &mut V,
                                         reason: MatchingReason) -> StyleRelations
@@ -560,7 +563,18 @@ impl Stylist {
 
             debug!("style attr: {:?}", relations);
 
-            // Step 5: Author-supplied `!important` rules.
+            // Step 5: Animations.
+            // The animations sheet (CSS animations, script-generated animations,
+            // and CSS transitions that are no longer tied to CSS markup)
+            if let Some(anim) = animation_rules.0 {
+                relations |= AFFECTED_BY_ANIMATIONS;
+                Push::push(
+                    applicable_declarations,
+                    ApplicableDeclarationBlock::from_declarations(anim.clone(), Importance::Normal));
+            }
+            debug!("animation: {:?}", relations);
+
+            // Step 6: Author-supplied `!important` rules.
             map.author.get_all_matching_rules(element,
                                               parent_bf,
                                               applicable_declarations,
@@ -570,7 +584,7 @@ impl Stylist {
 
             debug!("author important: {:?}", relations);
 
-            // Step 6: `!important` style attributes.
+            // Step 7: `!important` style attributes.
             if let Some(sa) = style_attribute {
                 if sa.read().any_important() {
                     relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
@@ -582,7 +596,7 @@ impl Stylist {
 
             debug!("style attr important: {:?}", relations);
 
-            // Step 7: User `!important` rules.
+            // Step 8: User `!important` rules.
             map.user.get_all_matching_rules(element,
                                             parent_bf,
                                             applicable_declarations,
@@ -595,7 +609,7 @@ impl Stylist {
             debug!("skipping non-agent rules");
         }
 
-        // Step 8: UA `!important` rules.
+        // Step 9: UA `!important` rules.
         map.user_agent.get_all_matching_rules(element,
                                               parent_bf,
                                               applicable_declarations,
@@ -604,6 +618,16 @@ impl Stylist {
                                               Importance::Important);
 
         debug!("UA important: {:?}", relations);
+
+        // Step 10: Transitions.
+        // The transitions sheet (CSS transitions that are tied to CSS markup)
+        if let Some(anim) = animation_rules.1 {
+            relations |= AFFECTED_BY_TRANSITIONS;
+            Push::push(
+                applicable_declarations,
+                ApplicableDeclarationBlock::from_declarations(anim.clone(), Importance::Normal));
+        }
+        debug!("transition: {:?}", relations);
 
         debug!("push_applicable_declarations: shareable: {:?}", relations);
 

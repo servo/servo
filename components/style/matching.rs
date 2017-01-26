@@ -589,12 +589,14 @@ pub trait MatchMethods : TElement {
         let mut applicable_declarations: Vec<ApplicableDeclarationBlock> = Vec::with_capacity(16);
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
+        let animation_rules = self.get_animation_rules(None);
 
         // Compute the primary rule node.
         let mut primary_relations =
             stylist.push_applicable_declarations(self,
                                                  parent_bf,
                                                  style_attribute,
+                                                 animation_rules,
                                                  None,
                                                  &mut applicable_declarations,
                                                  MatchingReason::ForStyling);
@@ -604,7 +606,9 @@ pub trait MatchMethods : TElement {
         let mut per_pseudo: PseudoRuleNodes = HashMap::with_hasher(Default::default());
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             debug_assert!(applicable_declarations.is_empty());
+            let pseudo_animation_rules = self.get_animation_rules(Some(&pseudo));
             stylist.push_applicable_declarations(self, parent_bf, None,
+                                                 pseudo_animation_rules,
                                                  Some(&pseudo.clone()),
                                                  &mut applicable_declarations,
                                                  MatchingReason::ForStyling);

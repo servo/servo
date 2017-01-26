@@ -227,6 +227,11 @@ pub trait PresentationalHintsSynthetizer {
         where V: Push<ApplicableDeclarationBlock>;
 }
 
+/// The animation rules. The first one is for Animation cascade level, and the second one is for
+/// Transition cascade level.
+pub struct AnimationRules(pub Option<Arc<RwLock<PropertyDeclarationBlock>>>,
+                          pub Option<Arc<RwLock<PropertyDeclarationBlock>>>);
+
 /// The element trait, the main abstraction the style crate acts over.
 pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
     /// The concrete node type.
@@ -247,6 +252,11 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     /// Get this element's style attribute.
     fn style_attribute(&self) -> Option<&Arc<RwLock<PropertyDeclarationBlock>>>;
+
+    /// Get this element's animation rules.
+    fn get_animation_rules(&self, _pseudo: Option<&PseudoElement>) -> AnimationRules {
+        AnimationRules(None, None)
+    }
 
     /// Get this element's state, for non-tree-structural pseudos.
     fn get_state(&self) -> ElementState;

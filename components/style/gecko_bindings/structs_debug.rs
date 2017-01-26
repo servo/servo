@@ -5273,6 +5273,12 @@ pub mod root {
         impl Clone for StyleComplexColor {
             fn clone(&self) -> Self { *self }
         }
+        #[repr(u32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum EffectCompositor_CascadeLevel {
+            Animations = 0,
+            Transitions = 1,
+        }
         #[repr(C)]
         #[derive(Debug)]
         pub struct PropertyStyleAnimationValuePair {
@@ -17953,6 +17959,10 @@ pub mod root {
     pub type RawGeckoPresContextBorrowedMut = *mut root::RawGeckoPresContext;
     pub type RawGeckoAnimationValueListBorrowedMut =
         *mut root::RawGeckoAnimationValueList;
+    pub type RawServoAnimationValueBorrowedList =
+        root::nsTArray<*const root::RawServoAnimationValue>;
+    pub type RawServoAnimationValueBorrowedListBorrowed =
+        *const root::RawServoAnimationValueBorrowedList;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsCSSTokenSerializationType {
