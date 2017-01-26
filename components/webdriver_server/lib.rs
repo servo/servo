@@ -304,8 +304,6 @@ impl Handler {
             capabilities.insert("browserName".to_owned(), "servo".to_json());
             capabilities.insert("browserVersion".to_owned(), "0.0.1".to_json());
             capabilities.insert("acceptSslCerts".to_owned(), false.to_json());
-            capabilities.insert("takeScreenshot".to_owned(), true.to_json());
-            capabilities.insert("takeElementScreenshot".to_owned(), false.to_json());
             let rv = Ok(WebDriverResponse::NewSession(
                 NewSessionResponse::new(
                     session.id.to_string(),
