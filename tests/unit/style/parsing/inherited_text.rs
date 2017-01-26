@@ -8,6 +8,17 @@ use style::parser::ParserContext;
 use style::stylesheets::Origin;
 
 #[test]
+fn negative_letter_spacing_should_parse_properly() {
+    use style::properties::longhands::letter_spacing;
+    use style::properties::longhands::letter_spacing::SpecifiedValue;
+    use style::values::specified::length::{FontRelativeLength, Length};
+
+    let negative_value = parse_longhand!(letter_spacing, "-0.5em");
+    let expected = SpecifiedValue::Specified(Length::FontRelative(FontRelativeLength::Em(-0.5)));
+    assert_eq!(negative_value, expected);
+}
+
+#[test]
 fn text_emphasis_style_longhand_should_parse_properly() {
     use style::properties::longhands::text_emphasis_style;
     use style::properties::longhands::text_emphasis_style::{ShapeKeyword, SpecifiedValue, KeywordValue};
