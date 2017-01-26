@@ -39,7 +39,6 @@ use style::gecko_bindings::bindings::RawGeckoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
-use style::gecko_bindings::bindings::RawServoAnimationValueBorrowedListBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
@@ -50,6 +49,7 @@ use style::gecko_bindings::structs::{ThreadSafePrincipalHolder, ThreadSafeURIHol
 use style::gecko_bindings::structs::{nsRestyleHint, nsChangeHint};
 use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
+use style::gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
 use style::gecko_bindings::structs::ServoStyleSheet;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
@@ -186,6 +186,7 @@ pub extern "C" fn Servo_AnimationValues_Interpolate(from: RawServoAnimationValue
 pub extern "C" fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueBorrowedListBorrowed)
      -> RawServoDeclarationBlockStrong
 {
+    let value = unsafe { value.as_ref().unwrap() };
     let uncomputed_values = value.into_iter()
                                  .map(|v| {
                                      let raw_anim = unsafe { v.as_ref().unwrap() };
