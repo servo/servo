@@ -39,7 +39,7 @@ mod common {
 
 #[cfg(feature = "bindgen")]
 mod bindings {
-    use libbindgen::{Builder, CodegenConfig};
+    use bindgen::{Builder, CodegenConfig};
     use regex::Regex;
     use std::cmp;
     use std::collections::HashSet;
@@ -267,9 +267,6 @@ mod bindings {
             "mozilla::HalfCorner",
             "mozilla::PropertyStyleAnimationValuePair",
             "mozilla::TraversalRootBehavior",
-            "mozilla::DisplayItemClip",  // Needed because bindgen generates
-                                         // specialization tests for this even
-                                         // though it shouldn't.
             "mozilla::StyleShapeRadius",
             ".*ThreadSafe.*Holder",
             "AnonymousContent",
@@ -299,13 +296,6 @@ mod bindings {
             "nsCSSKeyword",
             "nsCSSPropertyID",
             "nsCSSProps",
-
-            // FIXME(emilio): These three can go away once
-            // https://github.com/servo/rust-bindgen/pull/397 has landed.
-            "nsStyleStructID",
-            "nsStyleAnimType",
-            "UseCounter",
-
             "nsCSSRect",
             "nsCSSRect_heap",
             "nsCSSShadowArray",
@@ -371,14 +361,11 @@ mod bindings {
             "nsStyleXUL",
             "nsTArray",
             "nsTArrayHeader",
-            "pair",
             "Position",
             "Runnable",
             "ServoAttrSnapshot",
             "ServoElementSnapshot",
             "SheetParsingMode",
-            "Side",  // must be a rust-bindgen bug that requires both of these
-            "mozilla::Side",
             "StaticRefPtr",
             "StyleAnimation",
             "StyleBasicShape",
@@ -388,15 +375,18 @@ mod bindings {
             "StyleTransition",
             "mozilla::UniquePtr",
             "mozilla::DefaultDelete",
-
-            // bindgen can't find these
-            "mozilla::binding_danger::TErrorResult",
+            "mozilla::Side",
             "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
         ];
         let opaque_types = [
             "std::pair__PCCP",
             "std::namespace::atomic___base", "std::atomic__My_base",
             "std::atomic___base",
+            "mozilla::gfx::.*",
+            "FallibleTArray",
+            "mozilla::dom::Sequence",
+            "mozilla::dom::Optional",
+            "mozilla::dom::Nullable",
             "nsAString_internal_char_traits",
             "nsAString_internal_incompatible_char_type",
             "nsACString_internal_char_traits",

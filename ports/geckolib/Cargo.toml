@@ -10,7 +10,7 @@ path = "lib.rs"
 crate-type = ["staticlib", "rlib"]
 
 [features]
-bindgen = ["style/bindgen"]
+bindgen = ["style/use_bindgen"]
 
 [dependencies]
 app_units = "0.3"
