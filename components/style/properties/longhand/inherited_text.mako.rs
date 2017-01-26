@@ -262,7 +262,9 @@ ${helpers.single_keyword("text-align-last",
                    spec="https://drafts.csswg.org/css-text/#propdef-letter-spacing">
     use std::fmt;
     use style_traits::ToCss;
+    use style_traits::values::specified::AllowedNumericType;
     use values::HasViewportPercentage;
+
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
@@ -334,7 +336,7 @@ ${helpers.single_keyword("text-align-last",
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::Length::parse_any(input).map(SpecifiedValue::Specified)
+            specified::Length::parse(_context, input).map(SpecifiedValue::Specified)
         }
     }
 </%helpers:longhand>
@@ -343,6 +345,7 @@ ${helpers.single_keyword("text-align-last",
                    spec="https://drafts.csswg.org/css-text/#propdef-word-spacing">
     use std::fmt;
     use style_traits::ToCss;
+    use style_traits::values::specified::AllowedNumericType;
     use values::HasViewportPercentage;
 
     impl HasViewportPercentage for SpecifiedValue {
@@ -415,7 +418,7 @@ ${helpers.single_keyword("text-align-last",
         if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
             Ok(SpecifiedValue::Normal)
         } else {
-            specified::LengthOrPercentage::parse_any(input)
+            specified::LengthOrPercentage::parse(_context, input)
                                           .map(SpecifiedValue::Specified)
         }
     }
