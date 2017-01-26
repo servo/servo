@@ -444,6 +444,7 @@ impl Length {
     }
 
     /// Parse a non-negative length
+    #[inline]
     pub fn parse_non_negative(input: &mut Parser) -> Result<Length, ()> {
         Length::parse_internal(input, AllowedNumericType::NonNegative)
     }
