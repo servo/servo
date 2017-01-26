@@ -96,11 +96,12 @@ def _get_exec_path(names, is_valid_path=lambda _path: True):
     return None
 
 
-def _get_virtualenv_script_dir():
+def _get_virtualenv_script_dir(absolute=True):
     # Virtualenv calls its scripts folder "bin" on linux/OSX/MSYS64 but "Scripts" on Windows
-    if os.name == "nt" and os.sep != "/":
-        return "Scripts"
-    return "bin"
+    script_dir = "Scripts" if os.name == "nt" and os.sep != "/" else "bin"
+    if absolute:
+        return os.path.join(os.path.dirname(__file__), "_virtualenv", script_dir)
+    return script_dir
 
 
 def _activate_virtualenv(topdir):
@@ -110,8 +111,7 @@ def _activate_virtualenv(topdir):
     if not python:
         sys.exit('Failed to find python executable for starting virtualenv.')
 
-    script_dir = _get_virtualenv_script_dir()
-    activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
+    activate_path = os.path.join(_get_virtualenv_script_dir(), "activate_this.py")
     need_pip_upgrade = False
     if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
         virtualenv = _get_exec_path(VIRTUALENV_NAMES)
