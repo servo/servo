@@ -13,7 +13,6 @@ import subprocess
 
 import servo.packages as packages
 from servo.util import extract, download_file, host_triple
-from mach_bootstrap import _get_virtualenv_script_dir
 
 
 def run_as_root(command):
@@ -28,7 +27,6 @@ def run_as_root(command):
     return subprocess.call(command)
 
 
-# This install needed dependencies for Salt
 def install_salt_dependencies(context, force):
     print("Installing missing Salt dependencies...")
     if context.distro == 'Ubuntu':
@@ -43,25 +41,23 @@ def salt(context, force=False, retry=False):
     # Ensure Salt is installed in the virtualenv
     # It's not instaled globally because it's a large, non-required dependency,
     # and the installation fails on Windows
-    virtualenv_script_dir = os.path.join(context.topdir, 'python', '_virtualenv', _get_virtualenv_script_dir())
-    if not os.path.exists(os.path.join(virtualenv_script_dir, 'salt-call')):
-        print("Installing Salt...", end='')
-        reqs_path = os.path.join(context.topdir, 'python', 'requirements-salt.txt')
-        process = subprocess.Popen(
-            ["pip", "install", "-q", "-I", "-r", reqs_path],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        process.wait()
-        if process.returncode:
-            out, err = process.communicate()
-            if "pycrypto/setup.py" in err and not retry:
-                return install_salt_dependencies(context, force)
+    print("Checking Salt installation...", end='')
+    reqs_path = os.path.join(context.topdir, 'python', 'requirements-salt.txt')
+    process = subprocess.Popen(
+        ["pip", "install", "-q", "-I", "-r", reqs_path],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    process.wait()
+    if process.returncode:
+        out, err = process.communicate()
+        if "pycrypto/setup.py" in err and not retry:
+            return install_salt_dependencies(context, force)
 
-            print('failed to install Salt via pip:')
-            print('Output: {}\nError: {}'.format(out, err))
-            return 1
-        print("done")
+        print('failed to install Salt via pip:')
+        print('Output: {}\nError: {}'.format(out, err))
+        return 1
+    print("done")
 
     salt_root = os.path.join(context.sharedir, 'salt')
     config_dir = os.path.join(salt_root, 'etc', 'salt')
