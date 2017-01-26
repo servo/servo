@@ -85,7 +85,7 @@ use layout_traits::LayoutThreadFactory;
 use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
+use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, StateId, TraversalDirection};
 use net_traits::{self, IpcSend, ResourceThreads};
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::pub_domains::reg_host;
@@ -99,7 +99,7 @@ use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorM
 use script_traits::{DocumentActivity, DocumentState, LayoutControlMsg, LoadData};
 use script_traits::{IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
-use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
+use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg, PushOrReplaceState};
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
 use script_traits::{SWManagerMsg, ScopeThings, WindowSizeType};
 use script_traits::WebVREventMsg;
@@ -859,7 +859,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(pipeline_id, direction) => {
                 debug!("constellation got traverse history message from compositor");
-                self.handle_traverse_history_msg(pipeline_id, direction);
+                self.handle_traverse_history_msg(pipeline_id, direction, None);
             }
             FromCompositorMsg::WindowSize(new_size, size_type) => {
                 debug!("constellation got window resize message");
@@ -924,9 +924,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_load_complete_msg(pipeline_id)
             }
             // Handle a forward or back request
-            FromScriptMsg::TraverseHistory(pipeline_id, direction) => {
+            FromScriptMsg::TraverseHistory(pipeline_id, direction, sender) => {
                 debug!("constellation got traverse history message from script");
-                self.handle_traverse_history_msg(pipeline_id, direction);
+                self.handle_traverse_history_msg(pipeline_id, direction, Some(sender));
             }
             // Handle a joint session history length request.
             FromScriptMsg::JointSessionHistoryLength(pipeline_id, sender) => {
@@ -1018,7 +1018,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got Alert message");
                 self.handle_alert(pipeline_id, message, sender);
             }
-
+            FromScriptMsg::HistoryStateChanged(pipeline_id, state_id, url, replace) => {
+                debug!("constellation got HistoryStateChanged message");
+                self.handle_history_state_changed(pipeline_id, state_id, url, replace);
+            }
+            FromScriptMsg::UrlHashChanged(pipeline_id, url) => {
+                debug!("constellation got UrlHashChanged message");
+                self.handle_url_hash_changed(pipeline_id, url);
+            }
             FromScriptMsg::ScrollFragmentPoint(pipeline_id, scroll_root_id, point, smooth) => {
                 self.compositor_proxy.send(ToCompositorMsg::ScrollFragmentPoint(pipeline_id,
                                                                                 scroll_root_id,
@@ -1660,7 +1667,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_traverse_history_msg(&mut self,
                                    pipeline_id: Option<PipelineId>,
-                                   direction: TraversalDirection) {
+                                   direction: TraversalDirection,
+                                   sender: Option<IpcSender<()>>) {
         let top_level_frame_id = pipeline_id
             .map(|pipeline_id| self.get_top_level_frame_for_pipeline(pipeline_id))
             .unwrap_or(self.root_frame_id);
@@ -1691,6 +1699,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         for (_, entry) in table {
             self.traverse_to_entry(entry);
+        }
+        // If the traversal was triggered from script, it must be treated synchronously.
+        if let Some(sender) = sender {
+            let _ = sender.send(());
         }
     }
 
@@ -1958,6 +1970,47 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    fn handle_history_state_changed(&mut self,
+                                    pipeline_id: PipelineId,
+                                    state_id: StateId,
+                                    url: ServoUrl,
+                                    replace: PushOrReplaceState) {
+        if !self.pipeline_is_in_current_frame(pipeline_id) {
+            return warn!("History state changed in non-fully active pipeline {}", pipeline_id);
+        }
+        let frame_id = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.frame_id,
+            None => return warn!("History state changed after pipeline {} closed.", pipeline_id),
+        };
+        match self.frames.get_mut(&frame_id) {
+            Some(frame) => {
+                match replace {
+                    PushOrReplaceState::Push => {
+                        frame.load_state_change(state_id, url);
+                    },
+                    PushOrReplaceState::Replace => frame.replace_state(state_id, url),
+                }
+            },
+            None => return warn!("History state changed after frame {} closed.", frame_id),
+        }
+
+        if replace == PushOrReplaceState::Push {
+            let top_level_frame_id = self.get_top_level_frame_for_pipeline(pipeline_id);
+            self.clear_joint_session_future(top_level_frame_id)
+        }
+    }
+
+    fn handle_url_hash_changed(&mut self, pipeline_id: PipelineId, url: ServoUrl) {
+        let frame_id = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.frame_id,
+            None => return warn!("History state changed after pipeline {} closed.", pipeline_id),
+        };
+        match self.frames.get_mut(&frame_id) {
+            Some(frame) => frame.change_url(url),
+            None => return warn!("History state changed after frame {} closed.", frame_id),
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#traverse-the-history
     fn traverse_to_entry(&mut self, entry: FrameState) {
         // Step 1.
@@ -2020,8 +2073,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         // Deactivate the old pipeline, and activate the new one.
-        self.update_activity(old_pipeline_id);
-        self.update_activity(pipeline_id);
+        if old_pipeline_id != pipeline_id {
+            self.update_activity(old_pipeline_id);
+            self.update_activity(pipeline_id);
+        }
+
+        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+            let msg = ConstellationControlMsg::UpdateActiveState(pipeline_id, entry.state_id, entry.url.clone());
+            // TODO(cbrewster): Handle send error.
+            let _ = pipeline.event_loop.send(msg);
+        }
 
         // Set paint permissions correctly for the compositor layers.
         self.send_frame_tree();
@@ -2395,13 +2456,34 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .map(|frame| frame.id)
             .collect();
         for frame_id in frame_ids {
-            let evicted = match self.frames.get_mut(&frame_id) {
-                Some(frame) => frame.remove_forward_entries(),
+            let (evicted, current_pipeline) = match self.frames.get_mut(&frame_id) {
+                Some(frame) => (frame.remove_forward_entries(), frame.pipeline_id()),
                 None => continue,
             };
+            let mut discarded_history_states = vec!();
             for entry in evicted {
                 if let Some(pipeline_id) = entry.pipeline_id() {
-                    self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+                    if pipeline_id != current_pipeline {
+                        self.close_pipeline(pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+                    } else {
+                        if let Some(state_id) = entry.state_id {
+                            discarded_history_states.push(state_id);
+                        }
+                    }
+                }
+            }
+
+            if !discarded_history_states.is_empty() {
+                let result = match self.pipelines.get(&current_pipeline) {
+                    Some(pipeline) => {
+                        let msg = ConstellationControlMsg::RemoveStateEntries(current_pipeline,
+                            discarded_history_states);
+                        pipeline.event_loop.send(msg)
+                    },
+                    None => return warn!("Pipeline {} closed after removing state entries", current_pipeline),
+                };
+                if let Err(e) = result {
+                    self.handle_send_error(current_pipeline, e);
                 }
             }
         }

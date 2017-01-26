@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use msg::constellation_msg::{FrameId, PipelineId};
+use msg::constellation_msg::{FrameId, PipelineId, StateId};
 use pipeline::Pipeline;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -58,6 +58,31 @@ impl Frame {
         self.prev.push(current);
         self.current.instant = Instant::now();
         self.current.replace_pipeline(pipeline_id, url);
+    }
+
+    /// Set the current frame entry using the given state id and url and push the current frame
+    /// entry into the past. The pipeline id of the new entry is the same as the pipeline id
+    /// of the previous entry.
+    pub fn load_state_change(&mut self, state_id: StateId, url: ServoUrl) {
+        let current = self.current.clone();
+        self.prev.push(current);
+        self.current.instant = Instant::now();
+        self.current.state_id = Some(state_id);
+        self.current.url = url;
+    }
+
+    pub fn change_url(&mut self, url: ServoUrl) {
+        let current = self.current.clone();
+        self.prev.push(current);
+        self.current.instant = Instant::now();
+        self.current.state_id = None;
+        self.current.url = url;
+    }
+
+    /// Replace the state id and url of the current entry.
+    pub fn replace_state(&mut self, state_id: StateId, url: ServoUrl) {
+        self.current.state_id = Some(state_id);
+        self.current.url = url;
     }
 
     /// Set the future to be empty.
@@ -119,6 +144,9 @@ pub struct FrameState {
     /// The URL for this entry, used to reload the pipeline if it has been discarded
     pub url: ServoUrl,
 
+    /// The state id of the active history state
+    pub state_id: Option<StateId>,
+
     /// The frame that this session history entry is part of
     pub frame_id: FrameId,
 
@@ -132,6 +160,7 @@ impl FrameState {
             instant: Instant::now(),
             pipeline_id: Rc::new(Cell::new(Some(pipeline_id))),
             url: url,
+            state_id: None,
             frame_id: frame_id,
         }
     }
@@ -141,6 +170,7 @@ impl FrameState {
     pub fn replace_pipeline(&mut self, pipeline_id: PipelineId, url: ServoUrl) {
         self.pipeline_id = Rc::new(Cell::new(Some(pipeline_id)));
         self.url = url;
+        self.state_id = None;
     }
 
     fn discard_pipeline(&self) -> Option<PipelineId> {
@@ -268,8 +298,15 @@ impl<'a> Iterator for FullFrameTreeIterator<'a> {
                     continue;
                 },
             };
-            let child_frame_ids = frame.entry_iter()
+            let mut session_pipelines = frame.entry_iter()
                 .filter_map(|entry| entry.pipeline_id())
+                .collect::<Vec<_>>();
+
+            // The session history may contain multiple entries with the same PipelineId.
+            // These duplicates need to be removed.
+            session_pipelines.dedup();
+
+            let child_frame_ids = session_pipelines.iter()
                 .filter_map(|pipeline_id| pipelines.get(&pipeline_id))
                 .flat_map(|pipeline| pipeline.children.iter());
             self.stack.extend(child_frame_ids);

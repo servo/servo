@@ -42,6 +42,7 @@ use hyper_serde::Serde;
 use ipc_channel::SerializeError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use msg::constellation_msg::StateId;
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
 use servo_url::ServoUrl;
@@ -386,6 +387,12 @@ pub enum CoreResourceMsg {
     GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
     GetCookiesDataForUrl(ServoUrl, IpcSender<Vec<Serde<Cookie>>>, CookieSource),
+    /// Set the serialized history state for a given state id
+    SetHistoryState(StateId, Vec<u8>),
+    /// Get serialized history state for a given state id
+    GetHistoryState(StateId, IpcSender<Option<Vec<u8>>>),
+    /// Remove history states associated with the given state ids
+    RemoveHistoryStates(Vec<StateId>),
     /// Cancel a network request corresponding to a given `ResourceId`
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop

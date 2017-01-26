@@ -70,7 +70,7 @@ use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use microtask::{MicrotaskQueue, Microtask};
-use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace, StateId};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
@@ -113,7 +113,7 @@ use style::dom::{TNode, UnsafeNode};
 use style::thread_state;
 use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSource};
 use task_source::file_reading::FileReadingTaskSource;
-use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::history_traversal::{HistoryTraversalTask, HistoryTraversalTaskSource};
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
 use time::Tm;
@@ -249,6 +249,8 @@ pub enum MainThreadScriptMsg {
     DOMManipulation(DOMManipulationTask),
     /// Tasks that originate from the user interaction task source
     UserInteraction(UserInteractionTask),
+    /// Tasks that originate from the history traversal task source
+    HistoryTraversal(HistoryTraversalTask),
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -1021,6 +1023,10 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::Reload(pipeline_id) =>
                 self.handle_reload(pipeline_id),
+            ConstellationControlMsg::UpdateActiveState(pipeline_id, state_id, url) =>
+                self.handle_update_active_state(pipeline_id, state_id, url),
+            ConstellationControlMsg::RemoveStateEntries(pipeline_id, state_ids) =>
+                self.handle_remove_state_entries(pipeline_id, state_ids),
             ConstellationControlMsg::ExitPipeline(pipeline_id, discard_browsing_context) =>
                 self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context),
             ConstellationControlMsg::WebVREvent(pipeline_id, event) =>
@@ -1052,6 +1058,8 @@ impl ScriptThread {
             MainThreadScriptMsg::DOMManipulation(task) =>
                 task.handle_task(self),
             MainThreadScriptMsg::UserInteraction(task) =>
+                task.handle_task(self),
+            MainThreadScriptMsg::HistoryTraversal(task) =>
                 task.handle_task(self),
         }
     }
@@ -2074,6 +2082,20 @@ impl ScriptThread {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
             window.Location().Reload();
+        }
+    }
+
+    fn handle_update_active_state(&self, pipeline_id: PipelineId, state_id: Option<StateId>, url: ServoUrl) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        if let Some(window) = window {
+            window.History().set_active_state(state_id, url);
+        }
+    }
+
+    fn handle_remove_state_entries(&self, pipeline_id: PipelineId, state_ids: Vec<StateId>) {
+        let window = self.documents.borrow().find_window(pipeline_id);
+        if let Some(window) = window {
+            window.History().remove_states(state_ids);
         }
     }
 

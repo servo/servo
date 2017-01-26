@@ -284,7 +284,7 @@ impl Window {
         self.networking_task_source.clone()
     }
 
-    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn history_traversal_task_source(&self) -> HistoryTraversalTaskSource {
         self.history_traversal_task_source.clone()
     }
 
@@ -1423,6 +1423,12 @@ impl Window {
                 if let Some(fragment) = url.fragment() {
                     doc.check_and_scroll_fragment(fragment);
                     doc.set_url(url.clone());
+                    self.History().clear_active_state();
+                    let global_scope = self.upcast::<GlobalScope>();
+                    global_scope
+                        .constellation_chan()
+                        .send(ConstellationMsg::UrlHashChanged(global_scope.pipeline_id(), url.clone()))
+                        .unwrap();
                     return
                 }
         }

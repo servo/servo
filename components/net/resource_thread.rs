@@ -16,6 +16,7 @@ use http_loader::HttpState;
 use hyper::client::pool::Pool;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
+use msg::constellation_msg::StateId;
 use net_traits::{CookieSource, CoreResourceThread};
 use net_traits::{CoreResourceMsg, FetchResponseMsg};
 use net_traits::{CustomResponseMediator, ResourceId};
@@ -48,6 +49,7 @@ pub struct ResourceGroup {
     auth_cache: Arc<RwLock<AuthCache>>,
     hsts_list: Arc<RwLock<HstsList>>,
     connector: Arc<Pool<Connector>>,
+    history_states: Arc<RwLock<HashMap<StateId, Vec<u8>>>>,
 }
 
 /// Returns a tuple of (public, private) senders to the new threads.
@@ -110,12 +112,14 @@ fn create_resource_groups(config_dir: Option<&Path>)
         auth_cache: Arc::new(RwLock::new(auth_cache)),
         hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
         connector: create_http_connector("certs"),
+        history_states: Arc::new(RwLock::new(HashMap::new())),
     };
     let private_resource_group = ResourceGroup {
         cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
         auth_cache: Arc::new(RwLock::new(AuthCache::new())),
         hsts_list: Arc::new(RwLock::new(HstsList::new())),
         connector: create_http_connector("certs"),
+        history_states: Arc::new(RwLock::new(HashMap::new())),
     };
     (resource_group, private_resource_group)
 }
@@ -168,6 +172,33 @@ impl ResourceChannelManager {
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                 let mut cookie_jar = group.cookie_jar.write().unwrap();
                 consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
+            }
+            CoreResourceMsg::SetHistoryState(state_id, state) => {
+                match group.history_states.write() {
+                    Ok(mut history_states) => {
+                        history_states.insert(state_id, state);
+                    },
+                    Err(_) => warn!("Error while setting history state."),
+                }
+            }
+            CoreResourceMsg::GetHistoryState(state_id, consumer) => {
+                match group.history_states.read() {
+                    Ok(history_states) => {
+                        let _ = consumer.send(history_states.get(&state_id).cloned());
+                    },
+                    Err(_) => warn!("Error while getting history state."),
+                }
+                let _ = consumer.send(None);
+            }
+            CoreResourceMsg::RemoveHistoryStates(state_ids) => {
+                match group.history_states.write() {
+                    Ok(mut history_states) => {
+                        for state_id in state_ids {
+                            history_states.remove(&state_id);
+                        }
+                    },
+                    Err(_) => warn!("Error while removing unreachable history states."),
+                }
             }
             CoreResourceMsg::NetworkMediator(mediator_chan) => {
                 self.resource_manager.swmanager_chan = Some(mediator_chan)
