@@ -170,9 +170,14 @@ impl DOMString {
         self.0.push_str(string)
     }
 
-    /// Truncates this `DOMString`, removing all contents.
+    /// Clears this `DOMString`, removing all contents.
     pub fn clear(&mut self) {
         self.0.clear()
+    }
+
+    /// Shortens this String to the specified length.
+    pub fn truncate(&mut self, new_len: usize) {
+        self.0.truncate(new_len);
     }
 
     /// An iterator over the bytes of this `DOMString`.
