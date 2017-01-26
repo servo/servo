@@ -35,7 +35,7 @@ extern crate websocket;
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
 use heapsize::HeapSizeOf;
-use hyper::header::{ContentType, Headers};
+use hyper::header::{ContentType, Headers, ReferrerPolicy as ReferrerPolicyHeader};
 use hyper::http::RawStatus;
 use hyper::mime::{Attr, Mime};
 use hyper_serde::Serde;
@@ -131,6 +131,29 @@ pub enum ReferrerPolicy {
     StrictOrigin,
     /// "strict-origin-when-cross-origin"
     StrictOriginWhenCrossOrigin,
+}
+
+impl<'a> From<&'a ReferrerPolicyHeader> for ReferrerPolicy {
+    fn from(policy: &'a ReferrerPolicyHeader) -> Self {
+        match *policy {
+            ReferrerPolicyHeader::NoReferrer =>
+                ReferrerPolicy::NoReferrer,
+            ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
+                ReferrerPolicy::NoReferrerWhenDowngrade,
+            ReferrerPolicyHeader::SameOrigin =>
+                ReferrerPolicy::SameOrigin,
+            ReferrerPolicyHeader::Origin =>
+                ReferrerPolicy::Origin,
+            ReferrerPolicyHeader::OriginWhenCrossOrigin =>
+                ReferrerPolicy::OriginWhenCrossOrigin,
+            ReferrerPolicyHeader::UnsafeUrl =>
+                ReferrerPolicy::UnsafeUrl,
+            ReferrerPolicyHeader::StrictOrigin =>
+                ReferrerPolicy::StrictOrigin,
+            ReferrerPolicyHeader::StrictOriginWhenCrossOrigin =>
+                ReferrerPolicy::StrictOriginWhenCrossOrigin,
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize)]

@@ -57,7 +57,7 @@ use dom::window::{ReflowReason, Window};
 use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
-use hyper::header::{ContentType, HttpDate, LastModified};
+use hyper::header::{ContentType, HttpDate, LastModified, Headers};
 use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
@@ -97,6 +97,7 @@ use servo_config::opts;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
+use std::ops::Deref;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
@@ -1745,28 +1746,11 @@ impl ScriptThread {
             None => None,
         };
 
-        let referrer_policy = if let Some(headers) = metadata.headers {
-            headers.get::<ReferrerPolicyHeader>().map(|h| match *h {
-                ReferrerPolicyHeader::NoReferrer =>
-                    ReferrerPolicy::NoReferrer,
-                ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
-                    ReferrerPolicy::NoReferrerWhenDowngrade,
-                ReferrerPolicyHeader::SameOrigin =>
-                    ReferrerPolicy::SameOrigin,
-                ReferrerPolicyHeader::Origin =>
-                    ReferrerPolicy::Origin,
-                ReferrerPolicyHeader::OriginWhenCrossOrigin =>
-                    ReferrerPolicy::OriginWhenCrossOrigin,
-                ReferrerPolicyHeader::UnsafeUrl =>
-                    ReferrerPolicy::UnsafeUrl,
-                ReferrerPolicyHeader::StrictOrigin =>
-                    ReferrerPolicy::StrictOrigin,
-                ReferrerPolicyHeader::StrictOriginWhenCrossOrigin =>
-                    ReferrerPolicy::StrictOriginWhenCrossOrigin,
-            })
-        } else {
-            None
-        };
+        let referrer_policy = metadata.headers
+                                      .as_ref()
+                                      .map(Serde::deref)
+                                      .and_then(Headers::get::<ReferrerPolicyHeader>)
+                                      .map(ReferrerPolicy::from);
 
         let document = Document::new(&window,
                                      Some(&browsing_context),
