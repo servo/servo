@@ -1274,21 +1274,6 @@ impl ScriptThread {
         reports_chan.send(reports);
     }
 
-    /// To slow/speed up timers and manage any other script thread resource based on visibility.
-    /// Returns true if successful.
-    fn alter_resource_utilization(&self, id: PipelineId, visible: bool) -> bool {
-        let window = self.documents.borrow().find_window(id);
-        if let Some(window) = window {
-            if visible {
-                window.upcast::<GlobalScope>().speed_up_timers();
-            } else {
-                window.upcast::<GlobalScope>().slow_down_timers();
-            }
-            return true;
-        }
-        false
-    }
-
     /// Updates iframe element after a change in visibility
     fn handle_visibility_change_complete_msg(&self, parent_pipeline_id: PipelineId, id: FrameId, visible: bool) {
         let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, id);
@@ -1299,20 +1284,23 @@ impl ScriptThread {
 
     /// Handle visibility change message
     fn handle_visibility_change_msg(&self, id: PipelineId, visible: bool) {
-        let resources_altered = self.alter_resource_utilization(id, visible);
-
         // Separate message sent since parent script thread could be different (Iframe of different
         // domain)
         self.constellation_chan.send(ConstellationMsg::VisibilityChangeComplete(id, visible)).unwrap();
 
-        if !resources_altered {
-            let mut loads = self.incomplete_loads.borrow_mut();
-            if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-                load.is_visible = visible;
+        let window = self.documents.borrow().find_window(id);
+        match window {
+            Some(window) => {
+                window.alter_resource_utilization(visible);
                 return;
             }
-        } else {
-            return;
+            None => {
+                let mut loads = self.incomplete_loads.borrow_mut();
+                if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
+                    load.is_visible = visible;
+                    return;
+                }
+            }
         }
 
         warn!("change visibility message sent to nonexistent pipeline");
@@ -1867,7 +1855,7 @@ impl ScriptThread {
         }
 
         if !incomplete.is_visible {
-            self.alter_resource_utilization(incomplete.pipeline_id, false);
+            window.alter_resource_utilization(false);
         }
 
         document.get_current_parser().unwrap()
