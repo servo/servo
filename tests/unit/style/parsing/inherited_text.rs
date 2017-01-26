@@ -19,6 +19,18 @@ fn negative_letter_spacing_should_parse_properly() {
 }
 
 #[test]
+fn negative_word_spacing_should_parse_properly() {
+    use style::properties::longhands::word_spacing;
+    use style::properties::longhands::word_spacing::SpecifiedValue;
+    use style::values::specified::length::{FontRelativeLength, Length, LengthOrPercentage};
+
+    let negative_value = parse_longhand!(word_spacing, "-0.5em");
+    let expected = SpecifiedValue::Specified(LengthOrPercentage::Length(
+                                             Length::FontRelative(FontRelativeLength::Em(-0.5))));
+    assert_eq!(negative_value, expected);
+}
+
+#[test]
 fn text_emphasis_style_longhand_should_parse_properly() {
     use style::properties::longhands::text_emphasis_style;
     use style::properties::longhands::text_emphasis_style::{ShapeKeyword, SpecifiedValue, KeywordValue};
@@ -89,7 +101,6 @@ fn test_text_emphasis_position() {
     let left_under = parse_longhand!(text_emphasis_position, "left under");
     assert_eq!(left_under, SpecifiedValue(HorizontalWritingModeValue::Under, VerticalWritingModeValue::Left));
 }
-
 
 #[test]
 fn webkit_text_stroke_shorthand_should_parse_properly() {
