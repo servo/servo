@@ -147,8 +147,6 @@ struct InProgressLoad {
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
     layout_chan: Sender<message::Msg>,
-    /// The current viewport clipping rectangle applying to this pipeline, if any.
-    clip_rect: Option<Rect<f32>>,
     /// Window is frozen (navigated away while loading for example).
     is_frozen: bool,
     /// Window is visible.
@@ -173,7 +171,6 @@ impl InProgressLoad {
             parent_info: parent_info,
             layout_chan: layout_chan,
             window_size: window_size,
-            clip_rect: None,
             is_frozen: false,
             is_visible: true,
             url: url,
@@ -1166,9 +1163,8 @@ impl ScriptThread {
             }
             return;
         }
-        let mut loads = self.incomplete_loads.borrow_mut();
-        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.clip_rect = Some(rect);
+        let loads = self.incomplete_loads.borrow();
+        if loads.iter().any(|load| load.pipeline_id == id) {
             return;
         }
         warn!("Page rect message sent to nonexistent pipeline");
