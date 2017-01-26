@@ -306,6 +306,10 @@ impl EventTarget {
         event.dispatch(self, None)
     }
 
+    pub fn remove_all_listeners(&self) {
+        *self.handlers.borrow_mut() = Default::default();
+    }
+
     /// https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handlers-11
     fn set_inline_event_listener(&self,
                                  ty: Atom,

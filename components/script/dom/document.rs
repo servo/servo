@@ -16,6 +16,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, Documen
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
+use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
@@ -131,7 +132,7 @@ use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
 use style::restyle_hints::{RestyleHint, RESTYLE_STYLE_ATTRIBUTE};
 use style::selector_parser::{RestyleDamage, Snapshot};
-use style::str::{split_html_space_chars, str_join};
+use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use task_source::TaskSource;
 use time;
@@ -1756,6 +1757,37 @@ impl Document {
         // TODO: client message queue.
     }
 
+    // https://html.spec.whatwg.org/multipage/#abort-a-document
+    fn abort(&self) {
+        // We need to inhibit the loader before anything else.
+        self.loader.borrow_mut().inhibit_events();
+
+        // Step 1.
+        for iframe in self.iter_iframes() {
+            if let Some(document) = iframe.GetContentDocument() {
+                // TODO: abort the active documents of every child browsing context.
+                document.abort();
+                // TODO: salvageable flag.
+            }
+        }
+
+        // Step 2.
+        self.script_blocking_stylesheets_count.set(0);
+        *self.pending_parsing_blocking_script.borrow_mut() = None;
+        *self.asap_scripts_set.borrow_mut() = vec![];
+        self.asap_in_order_scripts_list.clear();
+        self.deferred_scripts.clear();
+
+        // TODO: https://github.com/servo/servo/issues/15236
+        self.window.cancel_all_tasks();
+
+        // Step 3.
+        if let Some(parser) = self.get_current_parser() {
+            parser.abort();
+            // TODO: salvageable flag.
+        }
+    }
+
     pub fn notify_constellation_load(&self) {
         let global_scope = self.window.upcast::<GlobalScope>();
         let pipeline_id = global_scope.pipeline_id();
@@ -3280,6 +3312,149 @@ impl DocumentMethods for Document {
         elements
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-document-open
+    fn Open(&self, type_: DOMString, replace: DOMString) -> Fallible<Root<Document>> {
+        if !self.is_html_document() {
+            // Step 1.
+            return Err(Error::InvalidState);
+        }
+
+        // Step 2.
+        // TODO: handle throw-on-dynamic-markup-insertion counter.
+
+        if !self.is_active() {
+            // Step 3.
+            return Ok(Root::from_ref(self));
+        }
+
+        let entry_responsible_document = GlobalScope::entry().as_window().Document();
+
+        if !self.origin.same_origin(&entry_responsible_document.origin) {
+            // Step 4.
+            return Err(Error::Security);
+        }
+
+        if self.get_current_parser().map_or(false, |parser| parser.script_nesting_level() > 0) {
+            // Step 5.
+            return Ok(Root::from_ref(self));
+        }
+
+        // Step 6.
+        // TODO: ignore-opens-during-unload counter check.
+
+        // Step 7: first argument already bound to `type_`.
+
+        // Step 8.
+        // TODO: check session history's state.
+        let replace = replace.eq_ignore_ascii_case("replace");
+
+        // Step 9.
+        // TODO: salvageable flag.
+
+        // Step 10.
+        // TODO: prompt to unload.
+
+        // Step 11.
+        // TODO: unload.
+
+        // Step 12.
+        self.abort();
+
+        // Step 13.
+        for node in self.upcast::<Node>().traverse_preorder() {
+            node.upcast::<EventTarget>().remove_all_listeners();
+        }
+
+        // Step 14.
+        // TODO: remove any tasks associated with the Document in any task source.
+
+        // Step 15.
+        Node::replace_all(None, self.upcast::<Node>());
+
+        // Steps 16-18.
+        // Let's not?
+        // TODO: https://github.com/whatwg/html/issues/1698
+
+        // Step 19.
+        self.implementation.set(None);
+        self.location.set(None);
+        self.images.set(None);
+        self.embeds.set(None);
+        self.links.set(None);
+        self.forms.set(None);
+        self.scripts.set(None);
+        self.anchors.set(None);
+        self.applets.set(None);
+        *self.stylesheets.borrow_mut() = None;
+        self.stylesheets_changed_since_reflow.set(true);
+        self.animation_frame_ident.set(0);
+        self.animation_frame_list.borrow_mut().clear();
+        self.pending_restyles.borrow_mut().clear();
+        self.target_element.set(None);
+        *self.last_click_info.borrow_mut() = None;
+
+        // Step 20.
+        self.set_encoding(UTF_8);
+
+        // Step 21.
+        // TODO: reload override buffer.
+
+        // Step 22.
+        // TODO: salvageable flag.
+
+        let url = entry_responsible_document.url();
+
+        // Step 23.
+        self.set_url(url.clone());
+
+        // Step 24.
+        // TODO: mute iframe load.
+
+        // Step 27.
+        let type_ = if type_.eq_ignore_ascii_case("replace") {
+            "text/html"
+        } else if let Some(position) = type_.find(';') {
+            &type_[0..position]
+        } else {
+            &*type_
+        };
+        let type_ = type_.trim_matches(HTML_SPACE_CHARACTERS);
+
+        // Step 25.
+        let resource_threads =
+            self.window.upcast::<GlobalScope>().resource_threads().clone();
+        *self.loader.borrow_mut() =
+            DocumentLoader::new_with_threads(resource_threads, Some(url.clone()));
+        ServoParser::parse_html_script_input(self, url, type_);
+
+        // Step 26.
+        self.ready_state.set(DocumentReadyState::Interactive);
+
+        // Step 28 is handled when creating the parser in step 25.
+
+        // Step 29.
+        // TODO: truncate session history.
+
+        // Step 30.
+        // TODO: remove history traversal tasks.
+
+        // Step 31.
+        // TODO: remove earlier entries.
+
+        if !replace {
+            // Step 32.
+            // TODO: add history entry.
+        }
+
+        // Step 33.
+        // TODO: clear fired unload flag.
+
+        // Step 34 is handled when creating the parser in step 25.
+
+        // Step 35.
+        Ok(Root::from_ref(self))
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-document-write
     fn Write(&self, text: Vec<DOMString>) -> ErrorResult {
         if !self.is_html_document() {
@@ -3294,9 +3469,8 @@ impl DocumentMethods for Document {
             return Ok(());
         }
 
-        let parser = self.get_current_parser();
-        let parser = match parser.as_ref() {
-            Some(parser) if parser.script_nesting_level() > 0 => parser,
+        let parser = match self.get_current_parser() {
+            Some(ref parser) if parser.can_write() => Root::from_ref(&**parser),
             _ => {
                 // Either there is no parser, which means the parsing ended;
                 // or script nesting level is 0, which means the method was
@@ -3307,8 +3481,8 @@ impl DocumentMethods for Document {
                     return Ok(());
                 }
                 // Step 5.
-                // TODO: call document.open().
-                return Err(Error::InvalidState);
+                self.Open("text/html".into(), "".into())?;
+                self.get_current_parser().unwrap()
             }
         };
 
@@ -3326,6 +3500,30 @@ impl DocumentMethods for Document {
     fn Writeln(&self, mut text: Vec<DOMString>) -> ErrorResult {
         text.push("\n".into());
         self.Write(text)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-close
+    fn Close(&self) -> ErrorResult {
+        if !self.is_html_document() {
+            // Step 1.
+            return Err(Error::InvalidState);
+        }
+
+        // Step 2.
+        // TODO: handle throw-on-dynamic-markup-insertion counter.
+
+        let parser = match self.get_current_parser() {
+            Some(ref parser) if parser.is_script_created() => Root::from_ref(&**parser),
+            _ => {
+                // Step 3.
+                return Ok(());
+            }
+        };
+
+        // Step 4-6.
+        parser.close();
+
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
@@ -3496,6 +3694,7 @@ impl PendingInOrderScriptVec {
     fn is_empty(&self) -> bool {
         self.scripts.borrow().is_empty()
     }
+
     fn push(&self, element: &HTMLScriptElement) {
         self.scripts.borrow_mut().push_back(PendingScript::new(element));
     }
@@ -3514,6 +3713,10 @@ impl PendingInOrderScriptVec {
         }
         scripts.pop_front();
         pair
+    }
+
+    fn clear(&self) {
+        *self.scripts.borrow_mut() = Default::default();
     }
 }
 
