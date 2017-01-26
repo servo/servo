@@ -30,14 +30,23 @@ bitflags! {
     /// expensive, and so we use RestyleHints to short-circuit work we know is
     /// unnecessary.
     pub flags RestyleHint: u32 {
-        #[doc = "Rerun selector matching on the element."]
+        /// Rerun selector matching on the element.
         const RESTYLE_SELF = 0x01,
-        #[doc = "Rerun selector matching on all of the element's descendants."]
-        // NB: In Gecko, we have RESTYLE_SUBTREE which is inclusive of self, but heycam isn't aware
-        // of a good reason for that.
+
+        /// Rerun selector matching on all of the element's descendants.
+        ///
+        /// NB: In Gecko, we have RESTYLE_SUBTREE which is inclusive of self,
+        /// but heycam isn't aware of a good reason for that.
         const RESTYLE_DESCENDANTS = 0x02,
-        #[doc = "Rerun selector matching on all later siblings of the element and all of their descendants."]
+
+        /// Rerun selector matching on all later siblings of the element and all
+        /// of their descendants.
         const RESTYLE_LATER_SIBLINGS = 0x08,
+
+        /// Don't re-run selector-matching on the element, only the style
+        /// attribute has changed, and this change didn't have any other
+        /// dependencies.
+        const RESTYLE_STYLE_ATTRIBUTE = 0x10,
     }
 }
 
