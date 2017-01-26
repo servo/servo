@@ -265,7 +265,6 @@ ${helpers.single_keyword("text-align-last",
     use style_traits::values::specified::AllowedNumericType;
     use values::HasViewportPercentage;
 
-
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
