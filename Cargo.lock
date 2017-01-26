@@ -1675,6 +1675,8 @@ dependencies = [
  "plugins 0.0.1",
  "serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.23 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo_rand 0.0.1",
+ "uuid 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.11.0 (git+https://github.com/servo/webrender)",
 ]
 

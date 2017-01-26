@@ -5,8 +5,10 @@
 //! The high-level interface from script to constellation. Using this abstract interface helps
 //! reduce coupling between these two components.
 
+use servo_rand::{self, Rng};
 use std::cell::Cell;
 use std::fmt;
+use uuid::Uuid;
 use webrender_traits;
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
@@ -291,6 +293,15 @@ impl fmt::Display for FrameId {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let FrameIndex(index) = self.index;
         write!(fmt, "({},{})", namespace_id, index)
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct StateId(#[ignore_heap_size_of = "no heapsize for uuid"] Uuid);
+
+impl StateId {
+    pub fn new() -> StateId {
+        StateId(servo_rand::thread_rng().gen())
     }
 }
 
