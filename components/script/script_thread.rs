@@ -57,7 +57,7 @@ use dom::window::{ReflowReason, Window};
 use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
-use hyper::header::{ContentType, HttpDate, LastModified};
+use hyper::header::{ContentType, HttpDate, LastModified, Headers};
 use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
@@ -97,6 +97,7 @@ use servo_config::opts;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
+use std::ops::Deref;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
@@ -147,8 +148,6 @@ struct InProgressLoad {
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
     layout_chan: Sender<message::Msg>,
-    /// The current viewport clipping rectangle applying to this pipeline, if any.
-    clip_rect: Option<Rect<f32>>,
     /// Window is frozen (navigated away while loading for example).
     is_frozen: bool,
     /// Window is visible.
@@ -173,7 +172,6 @@ impl InProgressLoad {
             parent_info: parent_info,
             layout_chan: layout_chan,
             window_size: window_size,
-            clip_rect: None,
             is_frozen: false,
             is_visible: true,
             url: url,
@@ -1166,9 +1164,8 @@ impl ScriptThread {
             }
             return;
         }
-        let mut loads = self.incomplete_loads.borrow_mut();
-        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.clip_rect = Some(rect);
+        let loads = self.incomplete_loads.borrow();
+        if loads.iter().any(|load| load.pipeline_id == id) {
             return;
         }
         warn!("Page rect message sent to nonexistent pipeline");
@@ -1749,28 +1746,11 @@ impl ScriptThread {
             None => None,
         };
 
-        let referrer_policy = if let Some(headers) = metadata.headers {
-            headers.get::<ReferrerPolicyHeader>().map(|h| match *h {
-                ReferrerPolicyHeader::NoReferrer =>
-                    ReferrerPolicy::NoReferrer,
-                ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
-                    ReferrerPolicy::NoReferrerWhenDowngrade,
-                ReferrerPolicyHeader::SameOrigin =>
-                    ReferrerPolicy::SameOrigin,
-                ReferrerPolicyHeader::Origin =>
-                    ReferrerPolicy::Origin,
-                ReferrerPolicyHeader::OriginWhenCrossOrigin =>
-                    ReferrerPolicy::OriginWhenCrossOrigin,
-                ReferrerPolicyHeader::UnsafeUrl =>
-                    ReferrerPolicy::UnsafeUrl,
-                ReferrerPolicyHeader::StrictOrigin =>
-                    ReferrerPolicy::StrictOrigin,
-                ReferrerPolicyHeader::StrictOriginWhenCrossOrigin =>
-                    ReferrerPolicy::StrictOriginWhenCrossOrigin,
-            })
-        } else {
-            None
-        };
+        let referrer_policy = metadata.headers
+                                      .as_ref()
+                                      .map(Serde::deref)
+                                      .and_then(Headers::get::<ReferrerPolicyHeader>)
+                                      .map(ReferrerPolicy::from);
 
         let document = Document::new(&window,
                                      Some(&browsing_context),
@@ -1837,17 +1817,9 @@ impl ScriptThread {
         document.set_https_state(metadata.https_state);
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
-            ServoParser::parse_xml_document(
-                &document,
-                parse_input,
-                final_url,
-                Some(incomplete.pipeline_id));
+            ServoParser::parse_xml_document(&document, parse_input, final_url);
         } else {
-            ServoParser::parse_html_document(
-                &document,
-                parse_input,
-                final_url,
-                Some(incomplete.pipeline_id));
+            ServoParser::parse_html_document(&document, parse_input, final_url);
         }
 
         if incomplete.is_frozen {

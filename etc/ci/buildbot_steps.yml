@@ -128,4 +128,4 @@ windows-gnu-nightly:
 windows-msvc-nightly:
   - mach.bat build --release
   - mach.bat package --release
-  - .\etc\ci\upload_nightly.sh windows-msvc
+  - bash -l ./etc/ci/upload_nightly.sh windows-msvc

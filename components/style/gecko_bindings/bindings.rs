@@ -3,13 +3,11 @@
 pub use nsstring::{nsACString, nsAString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
-use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawGeckoAnimationValueList;
 use gecko_bindings::structs::RawServoAnimationValue;
-use gecko_bindings::structs::RawServoAnimationValueBorrowedList;
 use gecko_bindings::structs::RawGeckoPresContext;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::structs::ThreadSafeURIHolder;
@@ -152,6 +150,8 @@ use gecko_bindings::structs::nscoord;
 use gecko_bindings::structs::nsresult;
 use gecko_bindings::structs::Loader;
 use gecko_bindings::structs::ServoStyleSheet;
+use gecko_bindings::structs::EffectCompositor_CascadeLevel;
+use gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
 pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
@@ -226,8 +226,6 @@ pub type RawGeckoAnimationValueListBorrowed<'a> = &'a RawGeckoAnimationValueList
 pub type RawGeckoAnimationValueListBorrowedOrNull<'a> = Option<&'a RawGeckoAnimationValueList>;
 pub type RawGeckoAnimationValueListBorrowedMut<'a> = &'a mut RawGeckoAnimationValueList;
 pub type RawGeckoAnimationValueListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoAnimationValueList>;
-pub type RawServoAnimationValueBorrowedListBorrowed<'a> = &'a RawServoAnimationValueBorrowedList;
-pub type RawServoAnimationValueBorrowedListBorrowedOrNull<'a> = Option<&'a RawServoAnimationValueBorrowedList>;
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
@@ -503,9 +501,10 @@ extern "C" {
      -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
-    pub fn Gecko_GetAnimationRule(element: RawGeckoElementBorrowed,
-                                  aAtom: *mut nsIAtom,
-                                  aCascadeLevel: EffectCompositor_CascadeLevel)
+    pub fn Gecko_GetAnimationRule(aElement: RawGeckoElementBorrowed,
+                                  aPseudoTag: *mut nsIAtom,
+                                  aCascadeLevel:
+                                      EffectCompositor_CascadeLevel)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
@@ -1228,16 +1227,6 @@ extern "C" {
      -> ServoComputedValuesStrong;
 }
 extern "C" {
-    pub fn Servo_AnimationValues_Interpolate(from: RawServoAnimationValueBorrowed,
-                                             to: RawServoAnimationValueBorrowed,
-                                             progress: f64)
-     -> RawServoAnimationValueStrong;
-}
-extern "C" {
-    pub fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueBorrowedListBorrowed)
-     -> RawServoDeclarationBlockStrong;
-}
-extern "C" {
     pub fn Servo_AnimationValues_Populate(arg1:
                                               RawGeckoAnimationValueListBorrowedMut,
                                           arg2:
@@ -1246,6 +1235,19 @@ extern "C" {
                                           arg4:
                                               ServoComputedValuesBorrowedOrNull,
                                           arg5: RawGeckoPresContextBorrowed);
+}
+extern "C" {
+    pub fn Servo_AnimationValues_Interpolate(from:
+                                                 RawServoAnimationValueBorrowed,
+                                             to:
+                                                 RawServoAnimationValueBorrowed,
+                                             progress: f64)
+     -> RawServoAnimationValueStrong;
+}
+extern "C" {
+    pub fn Servo_AnimationValues_Uncompute(value:
+                                               RawServoAnimationValueBorrowedListBorrowed)
+     -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString_internal)
