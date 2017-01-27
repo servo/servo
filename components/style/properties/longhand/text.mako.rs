@@ -18,6 +18,7 @@
     use style_traits::ToCss;
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
+    use cssparser;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
     impl NoViewportPercentage for SpecifiedValue {}
@@ -75,7 +76,9 @@
             match *self {
                 Side::Clip => dest.write_str("clip"),
                 Side::Ellipsis => dest.write_str("ellipsis"),
-                Side::String(ref s) => dest.write_str(s)
+                Side::String(ref s) => {
+                    cssparser::serialize_string(s, dest)
+                }
             }
         }
     }
