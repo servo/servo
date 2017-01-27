@@ -2692,7 +2692,7 @@ clip-path
         use properties::longhands::content::computed_value::T;
         use properties::longhands::content::computed_value::ContentItem;
         use gecko_bindings::structs::nsStyleContentType::*;
-        use gecko_bindings::bindings::Gecko_ClearStyleContents;
+        use gecko_bindings::bindings::Gecko_ClearAndResizeStyleContents;
 
         // Converts a string as utf16, and returns an owned, zero-terminated raw buffer.
         fn as_utf16_and_forget(s: &str) -> *mut u16 {
@@ -2704,19 +2704,21 @@ clip-path
             ptr
         }
 
-        // Ensure destructors run, otherwise we could leak.
-        if !self.gecko.mContents.is_empty() {
-            unsafe {
-                Gecko_ClearStyleContents(&mut self.gecko);
-            }
-        }
-
         match v {
             T::none |
-            T::normal => {}, // Do nothing, already cleared.
+            T::normal => {
+                // Ensure destructors run, otherwise we could leak.
+                if !self.gecko.mContents.is_empty() {
+                    unsafe {
+                        Gecko_ClearAndResizeStyleContents(&mut self.gecko, 0);
+                    }
+                }
+            },
             T::Content(items) => {
-                // NB: set_len also reserves the appropriate space.
-                unsafe { self.gecko.mContents.set_len(items.len() as u32) }
+                unsafe {
+                    Gecko_ClearAndResizeStyleContents(&mut self.gecko,
+                                                      items.len() as u32);
+                }
                 for (i, item) in items.into_iter().enumerate() {
                     // TODO: Servo lacks support for attr(), and URIs.
                     // NB: Gecko compares the mString value if type is not image

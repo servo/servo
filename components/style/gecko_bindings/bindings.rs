@@ -644,7 +644,8 @@ extern "C" {
     pub fn Gecko_DropElementSnapshot(snapshot: ServoElementSnapshotOwned);
 }
 extern "C" {
-    pub fn Gecko_ClearStyleContents(content: *mut nsStyleContent);
+    pub fn Gecko_ClearAndResizeStyleContents(content: *mut nsStyleContent,
+                                             how_many: u32);
 }
 extern "C" {
     pub fn Gecko_CopyStyleContentsFrom(content: *mut nsStyleContent,
