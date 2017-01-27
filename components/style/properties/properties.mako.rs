@@ -2019,7 +2019,11 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         }
     }
 
-    % if "align-items" in data.longhands_by_name:
+    // This implements an out-of-date spec. The new spec moves the handling of
+    // this to layout, which Gecko implements but Servo doesn't.
+    //
+    // See https://github.com/servo/servo/issues/15229
+    % if product == "servo" and "align-items" in data.longhands_by_name:
     {
         use computed_values::align_self::T as align_self;
         use computed_values::align_items::T as align_items;
@@ -2031,9 +2035,6 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                     align_items::flex_start => align_self::flex_start,
                     align_items::flex_end => align_self::flex_end,
                     align_items::center => align_self::center,
-                    % if product == "gecko":
-                        align_items::normal => align_self::normal,
-                    % endif
                 };
             style.mutate_position().set_align_self(self_align);
         }
