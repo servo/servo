@@ -7,12 +7,14 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::cssrule::CSSRule;
 use dom::element::Element;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
 use parking_lot::RwLock;
+use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
 use style::parser::ParserContextExtraData;
@@ -34,7 +36,7 @@ pub struct CSSStyleDeclaration {
 #[must_root]
 pub enum CSSStyleOwner {
     Element(JS<Element>),
-    CSSRule(JS<Window>,
+    CSSRule(JS<CSSRule>,
             #[ignore_heap_size_of = "Arc"]
             Arc<RwLock<PropertyDeclarationBlock>>),
 }
@@ -84,10 +86,10 @@ impl CSSStyleOwner {
                 }
                 result
             }
-            CSSStyleOwner::CSSRule(ref win, ref pdb) => {
+            CSSStyleOwner::CSSRule(ref rule, ref pdb) => {
                 let result = f(&mut *pdb.write(), &mut changed);
                 if changed {
-                    win.Document().invalidate_stylesheets();
+                    rule.global().as_window().Document().invalidate_stylesheets();
                 }
                 result
             }
@@ -119,7 +121,16 @@ impl CSSStyleOwner {
     fn window(&self) -> Root<Window> {
         match *self {
             CSSStyleOwner::Element(ref el) => window_from_node(&**el),
-            CSSStyleOwner::CSSRule(ref window, _) => Root::from_ref(&**window),
+            CSSStyleOwner::CSSRule(ref rule, _) => Root::from_ref(rule.global().as_window()),
+        }
+    }
+
+    fn base_url(&self) -> ServoUrl {
+        match *self {
+            CSSStyleOwner::Element(ref el) => window_from_node(&**el).get_url(),
+            CSSStyleOwner::CSSRule(ref rule, _) => {
+                rule.parent_stylesheet().style_stylesheet().base_url.clone()
+            }
         }
     }
 }
@@ -228,7 +239,7 @@ impl CSSStyleDeclaration {
             // Step 6
             let window = self.owner.window();
             let declarations =
-                parse_one_declaration(id, &value, &window.get_url(),
+                parse_one_declaration(id, &value, &self.owner.base_url(),
                                       window.css_error_reporter(),
                                       ParserContextExtraData::default());
 
@@ -414,7 +425,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         self.owner.mutate_associated_block(|mut pdb, mut _changed| {
             // Step 3
             *pdb = parse_style_attribute(&value,
-                                         &window.get_url(),
+                                         &self.owner.base_url(),
                                          window.css_error_reporter(),
                                          ParserContextExtraData::default());
         });

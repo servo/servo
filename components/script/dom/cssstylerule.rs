@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSStyleRuleBinding::{self, CSSStyleRuleMethods};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -58,8 +59,8 @@ impl CSSStyleRuleMethods for CSSStyleRule {
     fn Style(&self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             CSSStyleDeclaration::new(self.global().as_window(),
-                                     CSSStyleOwner::CSSRule(JS::from_ref(self.global().as_window()),
-                                                                 self.stylerule.read().block.clone()),
+                                     CSSStyleOwner::CSSRule(JS::from_ref(self.upcast()),
+                                                            self.stylerule.read().block.clone()),
                                      None,
                                      CSSModificationAccess::ReadWrite)
         })
