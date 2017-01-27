@@ -56,7 +56,7 @@ use hyper::method::Method;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
+use msg::constellation_msg::{PipelineId, PipelineNamespaceId, StateId, TraversalDirection};
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -185,6 +185,16 @@ pub struct NewLayoutInfo {
     pub layout_threads: usize,
 }
 
+/// When updating the state object of the history, should it replace the current state or push
+/// a new entry?
+#[derive(Debug, Deserialize, Serialize)]
+pub enum PushOrReplaceState {
+    /// Push a new entry
+    Push,
+    /// Replace the current entry
+    Replace,
+}
+
 /// When a pipeline is closed, should its browsing context be discarded too?
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum DiscardBrowsingContext {
@@ -264,6 +274,10 @@ pub enum ConstellationControlMsg {
     ReportCSSError(PipelineId, String, usize, usize, String),
     /// Reload the given page.
     Reload(PipelineId),
+    /// Notifies the history to update the active state entry.
+    UpdateActiveState(PipelineId, Option<StateId>, ServoUrl),
+    /// Notifies the history to remove inaccessible state entries.
+    RemoveStateEntries(PipelineId, Vec<StateId>),
     /// Notifies the script thread of a WebVR device event
     WebVREvent(PipelineId, WebVREventMsg)
 }
@@ -298,6 +312,8 @@ impl fmt::Debug for ConstellationControlMsg {
             FramedContentChanged(..) => "FramedContentChanged",
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
+            UpdateActiveState(..) => "UpdateActiveState",
+            RemoveStateEntries(..) => "RemoveStateEntries",
             WebVREvent(..) => "WebVREvent",
         };
         write!(formatter, "ConstellationMsg::{}", variant)

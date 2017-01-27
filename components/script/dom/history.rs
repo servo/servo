@@ -2,33 +2,30 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HistoryBinding;
 use dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
 use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::structuredclone::StructuredCloneData;
+use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom::popstateevent::PopStateEvent;
 use dom::window::Window;
 use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSContext, Heap};
 use js::jsval::{JSVal, NullValue};
 use msg::constellation_msg::{StateId, TraversalDirection};
-use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::{PushOrReplaceState, ScriptMsg as ConstellationMsg};
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::HashMap;
 use url::Position;
-
-enum PushOrReplace {
-    Push,
-    Replace,
-}
 
 // https://html.spec.whatwg.org/multipage/#the-history-interface
 #[dom_struct]
@@ -62,7 +59,7 @@ impl History {
                  data: HandleValue,
                  title: DOMString,
                  url: Option<USVString>,
-                 replace: PushOrReplace) -> ErrorResult {
+                 replace: PushOrReplaceState) -> ErrorResult {
         // Step 1.
         let document = self.window.Document();
 
@@ -78,10 +75,12 @@ impl History {
         rooted!(in(cx) let mut state = NullValue());
         cloned_data.read(self.window.upcast::<GlobalScope>(), state.handle_mut());
 
+        let global_scope = self.window.upcast::<GlobalScope>();
+
         let url = match url {
             Some(url) => {
                 // Step 6.
-                let global_url = self.window.upcast::<GlobalScope>().get_url();
+                let global_url = global_scope.get_url();
                 // 6.1
                 let url = match global_url.join(&url.0) {
                     // 6.2
@@ -110,32 +109,59 @@ impl History {
         };
 
         // Step 8.
-        let new_entry = HistoryEntry::new(state.get(), url.clone(), title);
+        let new_entry = HistoryEntry::new(state.get(), title);
         let mut history_entries = self.history_entries.borrow_mut();
-        match replace {
-            PushOrReplace::Push => {
+        let state_id = match replace {
+            PushOrReplaceState::Push => {
                 let new_state_id = StateId::new();
                 self.active_state.set(Some(new_state_id));
                 history_entries.insert(new_state_id, new_entry);
-                // Notify Constellation
+                new_state_id
             },
-            PushOrReplace::Replace => {
+            PushOrReplaceState::Replace => {
                 let current_state_id = match self.active_state.get() {
                     Some(state_id) => state_id,
                     None => StateId::new(),
                 };
                 history_entries.insert(current_state_id, new_entry);
-                // Notify Constellation
+                current_state_id
             }
-        }
+        };
+        // Notify Constellation
+        let msg = ConstellationMsg::HistoryStateChanged(global_scope.pipeline_id(), state_id, url.clone(), replace);
+        let _ = global_scope.constellation_chan().send(msg);
 
         // Step 10.
+        // TODO(cbrewster): We can set the document url without ever notifying the constellation
+        // This seems like it could be bad in the case of reloading a document that was discarded due to
+        // being in the distant history.
         document.set_url(url);
         Ok(())
     }
 
-    pub fn set_active_state(&self, state_id: Option<StateId>) {
+    pub fn set_active_state(&self, state_id: Option<StateId>, url: ServoUrl) {
+        if state_id == self.active_state.get() {
+            return;
+        }
+
         self.active_state.set(state_id);
+        let handle = match state_id {
+            Some(state_id) => {
+                let history_entries = self.history_entries.borrow();
+                let state = history_entries.get(&state_id).expect("Activated nonexistent history state.");
+                state.state.handle()
+            },
+            None => Heap::new(NullValue()).handle(),
+        };
+        self.window.Document().set_url(url);
+        PopStateEvent::dispatch_jsval(self.window.upcast::<EventTarget>(), &*self.window, handle);
+    }
+
+    pub fn remove_states(&self, state_ids: Vec<StateId>) {
+        let mut history_entries = self.history_entries.borrow_mut();
+        for state_id in state_ids {
+            history_entries.remove(&state_id);
+        }
     }
 }
 
@@ -202,7 +228,7 @@ impl HistoryMethods for History {
                         data: HandleValue,
                         title: DOMString,
                         url: Option<USVString>) -> ErrorResult {
-        self.update_state(cx, data, title, url, PushOrReplace::Push)
+        self.update_state(cx, data, title, url, PushOrReplaceState::Push)
     }
 
     #[allow(unsafe_code)]
@@ -212,21 +238,19 @@ impl HistoryMethods for History {
                            data: HandleValue,
                            title: DOMString,
                            url: Option<USVString>) -> ErrorResult {
-        self.update_state(cx, data, title, url, PushOrReplace::Replace)
+        self.update_state(cx, data, title, url, PushOrReplaceState::Replace)
     }
 }
 
 #[derive(HeapSizeOf, JSTraceable)]
 struct HistoryEntry {
-    url: ServoUrl,
     title: DOMString,
     state: Heap<JSVal>,
 }
 
 impl HistoryEntry {
-    fn new(state: JSVal, url: ServoUrl, title: DOMString) -> HistoryEntry {
+    fn new(state: JSVal, title: DOMString) -> HistoryEntry {
         HistoryEntry {
-            url: url,
             title: title,
             state: Heap::new(state),
         }
