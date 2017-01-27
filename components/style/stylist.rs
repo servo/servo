@@ -13,9 +13,9 @@ use error_reporting::StdoutErrorReporter;
 use keyframes::KeyframesAnimation;
 use media_queries::Device;
 use parking_lot::RwLock;
+use pdqsort::sort_by;
 use properties::{self, CascadeFlags, ComputedValues, INHERIT_ALL, Importance};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use quickersort::sort_by;
 use restyle_hints::{RestyleHint, DependencySet};
 use rule_tree::{RuleTree, StrongRuleNode, StyleSource};
 use selector_parser::{ElementExt, SelectorImpl, PseudoElement, Snapshot};
@@ -827,7 +827,7 @@ pub struct SelectorMap {
 
 #[inline]
 fn sort_by_key<T, F: Fn(&T) -> K, K: Ord>(v: &mut [T], f: F) {
-    sort_by(v, &|a, b| f(a).cmp(&f(b)))
+    sort_by(v, |a, b| f(a).cmp(&f(b)))
 }
 
 impl SelectorMap {
