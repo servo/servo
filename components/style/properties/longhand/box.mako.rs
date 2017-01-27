@@ -950,6 +950,7 @@ ${helpers.single_keyword("animation-fill-mode",
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
+    use values::specified::Length;
     use values::specified::LengthOrPercentage;
 
     impl HasViewportPercentage for SpecifiedValue {
@@ -1083,22 +1084,24 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         use values::CSSFloat;
         use values::computed;
 
+        // https://drafts.csswg.org/css-transforms/#mathematical-description
+        // Note that the matrix elements are addressed in column-major order.
         #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct ComputedMatrix {
-            pub m11: CSSFloat, pub m12: CSSFloat, pub m13: CSSFloat, pub m14: CSSFloat,
-            pub m21: CSSFloat, pub m22: CSSFloat, pub m23: CSSFloat, pub m24: CSSFloat,
-            pub m31: CSSFloat, pub m32: CSSFloat, pub m33: CSSFloat, pub m34: CSSFloat,
-            pub m41: CSSFloat, pub m42: CSSFloat, pub m43: CSSFloat, pub m44: CSSFloat,
+            pub m11: CSSFloat, pub m21: CSSFloat, pub m31: CSSFloat, pub m41: CSSFloat,
+            pub m12: CSSFloat, pub m22: CSSFloat, pub m32: CSSFloat, pub m42: CSSFloat,
+            pub m13: CSSFloat, pub m23: CSSFloat, pub m33: CSSFloat, pub m43: CSSFloat,
+            pub m14: CSSFloat, pub m24: CSSFloat, pub m34: CSSFloat, pub m44: CSSFloat,
         }
 
         impl ComputedMatrix {
-            pub fn identity() -> ComputedMatrix {
+            pub fn identity() -> Self {
                 ComputedMatrix {
-                    m11: 1.0, m12: 0.0, m13: 0.0, m14: 0.0,
-                    m21: 0.0, m22: 1.0, m23: 0.0, m24: 0.0,
-                    m31: 0.0, m32: 0.0, m33: 1.0, m34: 0.0,
-                    m41: 0.0, m42: 0.0, m43: 0.0, m44: 1.0
+                    m11: 1.0, m21: 0.0, m31: 0.0, m41: 0.0,
+                    m12: 0.0, m22: 1.0, m32: 0.0, m42: 0.0,
+                    m13: 0.0, m23: 0.0, m33: 1.0, m43: 0.0,
+                    m14: 0.0, m24: 0.0, m34: 0.0, m44: 1.0,
                 }
             }
         }
@@ -1121,8 +1124,6 @@ ${helpers.predefined_type("scroll-snap-coordinate",
         pub struct T(pub Option<Vec<ComputedOperation>>);
     }
 
-    pub use self::computed_value::ComputedMatrix as SpecifiedMatrix;
-
     fn parse_two_lengths_or_percentages(context: &ParserContext, input: &mut Parser)
                                         -> Result<(specified::LengthOrPercentage,
                                                    specified::LengthOrPercentage),()> {
@@ -1144,39 +1145,453 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     }
 
     fn parse_two_angles(context: &ParserContext, input: &mut Parser)
-                       -> Result<(specified::Angle, specified::Angle),()> {
-        let first = try!(specified::Angle::parse(context, input));
+                       -> Result<(SpecifiedAngle, SpecifiedAngle),()> {
+        let first = try!(SpecifiedAngle::parse(context, input));
         let second = input.try(|input| {
             try!(input.expect_comma());
-            specified::Angle::parse(context, input)
-        }).unwrap_or(specified::Angle(0.0));
+            SpecifiedAngle::parse(context, input)
+        }).unwrap_or(SpecifiedAngle::zero());
         Ok((first, second))
+    }
+
+    // https://drafts.csswg.org/css-transforms/#mathematical-description
+    // Note that the matrix elements are addressed in column-major order.
+    #[derive(Clone, Copy, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedMatrix {
+        Matrix(CSSFloat, CSSFloat, CSSFloat, CSSFloat, CSSFloat, CSSFloat),
+        Matrix3D(self::computed_value::ComputedMatrix),
+    }
+
+    impl fmt::Display for SpecifiedMatrix {
+        fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            match *self {
+                SpecifiedMatrix::Matrix(a, b, c, d, e, f) => {
+                    try!(formatter.write_str("matrix("));
+                        try!(formatter.write_str(a.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(b.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(c.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(d.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(e.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(f.to_string().as_str()));
+                    formatter.write_str(")")
+                }
+                SpecifiedMatrix::Matrix3D(ref matrix) => {
+                    let self::computed_value::ComputedMatrix {
+                        m11, m21, m31, m41,
+                        m12, m22, m32, m42,
+                        m13, m23, m33, m43,
+                        m14, m24, m34, m44
+                    } = *matrix;
+
+                    try!(formatter.write_str("matrix3d("));
+                        try!(formatter.write_str(m11.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m12.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m13.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m14.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m21.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m22.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m23.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m24.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m31.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m32.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m33.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m34.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m41.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m42.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m43.to_string().as_str()));
+                        try!(formatter.write_str(", "));
+                        try!(formatter.write_str(m44.to_string().as_str()));
+                    formatter.write_str(")")
+                }
+            }
+        }
+    }
+
+    impl ToCss for SpecifiedMatrix {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            write!(dest, "{}", self)
+        }
+    }
+
+    impl ToComputedValue for SpecifiedMatrix {
+        type ComputedValue = computed_value::ComputedMatrix;
+
+        #[inline]
+        // Assumes computed::Angle implicitly uses radians
+        fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+            match *self {
+                SpecifiedMatrix::Matrix(a, b, c, d, e, f) =>
+                    self::computed_value::ComputedMatrix {
+                        m11: a,   m21: c,   m31: 0.0, m41: e,
+                        m12: b,   m22: d,   m32: 0.0, m42: f,
+                        m13: 0.0, m23: 0.0, m33: 1.0, m43: 0.0,
+                        m14: 0.0, m24: 0.0, m34: 0.0, m44: 1.0
+                    },
+                SpecifiedMatrix::Matrix3D(matrix) => matrix
+            }
+        }
+
+        #[inline]
+        /// [The canonical unit for an angle is `deg`.](https://drafts.csswg.org/css-values-3/#angles)
+        fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+            SpecifiedMatrix::Matrix3D(*computed)
+        }
     }
 
     #[derive(Copy, Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    enum TranslateKind {
-        Translate,
-        TranslateX,
-        TranslateY,
-        TranslateZ,
-        Translate3D,
+    pub enum AngleUnits {
+        Degree,
+        Gradian,
+        Radian,
+        Turn,
+    }
+
+    impl fmt::Display for AngleUnits {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            let s = match *self {
+                AngleUnits::Degree  => "deg",
+                AngleUnits::Gradian => "grad",
+                AngleUnits::Radian  => "rad",
+                AngleUnits::Turn    => "turn",
+            };
+            f.write_str(s)
+        }
+    }
+
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedAngle {
+        value: CSSFloat,
+        unit: AngleUnits,
+    }
+
+    impl SpecifiedAngle {
+        pub fn degrees(value: CSSFloat)  -> Self { SpecifiedAngle { value: value, unit: AngleUnits::Degree } }
+        pub fn gradians(value: CSSFloat) -> Self { SpecifiedAngle { value: value, unit: AngleUnits::Gradian } }
+        pub fn turns(value: CSSFloat)    -> Self { SpecifiedAngle { value: value, unit: AngleUnits::Turn } }
+        pub fn radians(value: CSSFloat)  -> Self { SpecifiedAngle { value: value, unit: AngleUnits::Radian } }
+
+        #[allow(missing_docs)]
+        fn parse_dimension(value: CSSFloat, unit: &str) -> Result<SpecifiedAngle, ()> {
+            match_ignore_ascii_case! { unit,
+                "deg"  => Ok(SpecifiedAngle::degrees(value)),
+                "grad" => Ok(SpecifiedAngle::gradians(value)),
+                "turn" => Ok(SpecifiedAngle::turns(value)),
+                "rad"  => Ok(SpecifiedAngle::radians(value)),
+                _ => Err(())
+            }
+        }
+
+        pub fn zero() -> Self {
+            SpecifiedAngle::degrees(0.0)
+        }
+    }
+
+    impl ToCss for SpecifiedAngle {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            write!(dest, "{}{}", self.value, self.unit)
+        }
+    }
+
+    impl Parse for SpecifiedAngle {
+        /// Parses an angle according to CSS-VALUES § 6.1.
+        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            use cssparser::Token;
+            use std::ascii::AsciiExt;
+            use values::specified::CalcLengthOrPercentage;
+
+            match try!(input.next()) {
+                Token::Dimension(ref value, ref unit) => SpecifiedAngle::parse_dimension(value.value, unit),
+                Token::Number(ref value) if value.value == 0. => Ok(SpecifiedAngle::zero()),
+                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                    input
+                        .parse_nested_block(CalcLengthOrPercentage::parse_angle)
+                        .map(|angle| SpecifiedAngle::from_computed_value(&angle))
+                },
+                _ => Err(())
+            }
+        }
+    }
+
+    impl ToComputedValue for SpecifiedAngle {
+        type ComputedValue = computed::Angle;
+
+        #[inline]
+        /// Assumes `computed::Angle` implicitly uses radians
+        fn to_computed_value(&self, _: &Context) -> Self::ComputedValue {
+            use std::f32::consts::PI;
+            const RAD_PER_GRAD: CSSFloat = PI / 200.0;
+            const RAD_PER_TURN: CSSFloat = PI * 2.0;
+
+            match self.unit {
+                AngleUnits::Degree  => computed::Angle(self.value.to_radians()),
+                AngleUnits::Gradian => computed::Angle(self.value * RAD_PER_GRAD),
+                AngleUnits::Turn    => computed::Angle(self.value * RAD_PER_TURN),
+                AngleUnits::Radian  => computed::Angle(self.value),
+            }
+        }
+
+        #[inline]
+        /// [The canonical unit for an angle is `deg`.](https://drafts.csswg.org/css-values-3/#angles)
+        fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+            SpecifiedAngle::degrees(computed.radians().to_degrees())
+        }
     }
 
     #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    enum SpecifiedOperation {
+    pub enum SpecifiedSkew {
+        Skew(SpecifiedAngle, SpecifiedAngle),
+        SkewX(SpecifiedAngle),
+        SkewY(SpecifiedAngle),
+    }
+
+    impl fmt::Display for SpecifiedSkew {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match *self {
+                SpecifiedSkew::Skew(ref ax, ref ay) => {
+                    try!(f.write_str("skew("));
+                        try!(ax.to_css(f));
+                        try!(f.write_str(", "));
+                        try!(ay.to_css(f));
+                    f.write_str(")")
+                }
+                SpecifiedSkew::SkewX(ref ax) => {
+                    try!(f.write_str("skewX("));
+                        try!(ax.to_css(f));
+                    f.write_str(")")
+                }
+                SpecifiedSkew::SkewY(ref ay) => {
+                    try!(f.write_str("skewY("));
+                        try!(ay.to_css(f));
+                    f.write_str(")")
+                }
+            }
+        }
+    }
+
+    impl ToCss for SpecifiedSkew {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            write!(dest, "{}", self)
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedTranslate {
+        Translate(specified::LengthOrPercentage,
+                  specified::LengthOrPercentage),
+        TranslateX(specified::LengthOrPercentage),
+        TranslateY(specified::LengthOrPercentage),
+        TranslateZ(specified::Length),
+        Translate3D(specified::LengthOrPercentage,
+                    specified::LengthOrPercentage,
+                    specified::Length),
+    }
+
+    impl fmt::Display for SpecifiedTranslate {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match *self {
+                SpecifiedTranslate::Translate(ref tx, ref ty) => {
+                    try!(f.write_str("translate("));
+                        try!(tx.to_css(f));
+                        try!(f.write_str(", "));
+                        try!(ty.to_css(f));
+                    f.write_str(")")
+                }
+                SpecifiedTranslate::TranslateX(ref tx) => {
+                    try!(f.write_str("translateX("));
+                        try!(tx.to_css(f));
+                    f.write_str(")")
+                }
+                SpecifiedTranslate::TranslateY(ref ty) => {
+                    try!(f.write_str("translateY("));
+                        try!(ty.to_css(f));
+                    f.write_str(")")
+                }
+                SpecifiedTranslate::TranslateZ(ref tz) => {
+                    try!(f.write_str("translateZ("));
+                        try!(tz.to_css(f));
+                    f.write_str(")")
+                }
+                SpecifiedTranslate::Translate3D(ref tx, ref ty, ref tz) => {
+                    try!(f.write_str("translate3d("));
+                        try!(tx.to_css(f));
+                        try!(f.write_str(", "));
+                        try!(ty.to_css(f));
+                        try!(f.write_str(", "));
+                        try!(tz.to_css(f));
+                    f.write_str(")")
+                }
+            }
+        }
+    }
+
+    impl ToCss for SpecifiedTranslate {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            write!(dest, "{}", self)
+        }
+    }
+
+    impl HasViewportPercentage for SpecifiedTranslate {
+        fn has_viewport_percentage(&self) -> bool {
+            match *self {
+                SpecifiedTranslate::Translate(ref tx, ref ty) =>
+                    tx.has_viewport_percentage() || ty.has_viewport_percentage(),
+                SpecifiedTranslate::TranslateX(ref tx) =>
+                    tx.has_viewport_percentage(),
+                SpecifiedTranslate::TranslateY(ref ty) =>
+                    ty.has_viewport_percentage(),
+                SpecifiedTranslate::TranslateZ(ref tz) =>
+                    tz.has_viewport_percentage(),
+                SpecifiedTranslate::Translate3D(ref tx, ref ty, ref tz) =>
+                    tx.has_viewport_percentage() || ty.has_viewport_percentage() || tz.has_viewport_percentage(),
+            }
+        }
+    }
+
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedScale {
+        Scale(CSSFloat, CSSFloat),
+        ScaleX(CSSFloat),
+        ScaleY(CSSFloat),
+        ScaleZ(CSSFloat),
+        Scale3D(CSSFloat, CSSFloat, CSSFloat),
+    }
+
+    impl fmt::Display for SpecifiedScale {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match *self {
+                SpecifiedScale::Scale(sx, sy) => {
+                    try!(f.write_str("scale("));
+                        try!(f.write_str(sx.to_string().as_str()));
+                        try!(f.write_str(", "));
+                        try!(f.write_str(sy.to_string().as_str()));
+                    f.write_str(")")
+                }
+                SpecifiedScale::ScaleX(sx)  => {
+                    try!(f.write_str("scaleX("));
+                        try!(f.write_str(sx.to_string().as_str()));
+                    f.write_str(")")
+                }
+                SpecifiedScale::ScaleY(sy) => {
+                    try!(f.write_str("scaleY("));
+                        try!(f.write_str(sy.to_string().as_str()));
+                    f.write_str(")")
+                }
+                SpecifiedScale::ScaleZ(sz)  => {
+                    try!(f.write_str("scaleZ("));
+                        try!(f.write_str(sz.to_string().as_str()));
+                    f.write_str(")")
+                }
+                SpecifiedScale::Scale3D(sx, sy, sz) => {
+                    try!(f.write_str("scale3D("));
+                        try!(f.write_str(sx.to_string().as_str()));
+                        try!(f.write_str(", "));
+                        try!(f.write_str(sy.to_string().as_str()));
+                        try!(f.write_str(", "));
+                        try!(f.write_str(sz.to_string().as_str()));
+                    f.write_str(")")
+                }
+            }
+        }
+    }
+
+    impl ToCss for SpecifiedScale {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            write!(dest, "{}", self)
+        }
+    }
+
+    #[derive(Copy, Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedRotate {
+        Rotate(SpecifiedAngle),
+        RotateX(SpecifiedAngle),
+        RotateY(SpecifiedAngle),
+        RotateZ(SpecifiedAngle),
+        Rotate3D(CSSFloat, CSSFloat, CSSFloat, SpecifiedAngle),
+    }
+
+    impl fmt::Display for SpecifiedRotate {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match *self {
+                SpecifiedRotate::Rotate(ref theta) => {
+                    try!(f.write_str("rotate("));
+                        try!(theta.to_css(f));
+                    f.write_str(")")
+                }
+                SpecifiedRotate::RotateX(ref theta)  => {
+                    try!(f.write_str("rotateX("));
+                        try!(theta.to_css(f));
+                    f.write_str(")")
+                }
+                SpecifiedRotate::RotateY(ref theta) => {
+                    try!(f.write_str("rotateY("));
+                        try!(theta.to_css(f));
+                    f.write_str(")")
+                }
+                SpecifiedRotate::RotateZ(ref theta)  => {
+                    try!(f.write_str("rotateZ("));
+                        try!(theta.to_css(f));
+                    f.write_str(")")
+                }
+                SpecifiedRotate::Rotate3D(ax, ay, az, ref theta) => {
+                    try!(f.write_str("rotate3D("));
+                        try!(f.write_str(ax.to_string().as_str()));
+                        try!(f.write_str(", "));
+                        try!(f.write_str(ay.to_string().as_str()));
+                        try!(f.write_str(", "));
+                        try!(f.write_str(az.to_string().as_str()));
+                        try!(f.write_str(", "));
+                        try!(theta.to_css(f));
+                        try!(f.write_str(az.to_string().as_str()));
+                    f.write_str(")")
+                }
+            }
+        }
+    }
+
+    impl ToCss for SpecifiedRotate {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            write!(dest, "{}", self)
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedOperation {
         Matrix(SpecifiedMatrix),
-        Skew(specified::Angle, specified::Angle),
-        Translate(TranslateKind,
-                  specified::LengthOrPercentage,
-                  specified::LengthOrPercentage,
-                  specified::Length),
-        Scale(CSSFloat, CSSFloat, CSSFloat),
-        Rotate(CSSFloat, CSSFloat, CSSFloat, specified::Angle),
+        Skew(SpecifiedSkew),
+        Translate(SpecifiedTranslate),
+        Scale(SpecifiedScale),
+        Rotate(SpecifiedRotate),
         Perspective(specified::Length),
     }
 
+    /// https://drafts.csswg.org/css-transforms/#serialization-of-the-computed-value
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
             // TODO(pcwalton)
@@ -1187,69 +1602,27 @@ ${helpers.predefined_type("scroll-snap-coordinate",
     impl HasViewportPercentage for SpecifiedOperation {
         fn has_viewport_percentage(&self) -> bool {
             match *self {
-                SpecifiedOperation::Translate(_, ref l1, ref l2, ref l3) => {
-                    l1.has_viewport_percentage() ||
-                    l2.has_viewport_percentage() ||
-                    l3.has_viewport_percentage()
-                },
+                SpecifiedOperation::Translate(ref translate) => translate.has_viewport_percentage(),
                 SpecifiedOperation::Perspective(ref length) => length.has_viewport_percentage(),
                 _ => false
             }
         }
     }
 
+    /// https://drafts.csswg.org/css-transforms/#serialization-of-transform-functions
     impl ToCss for SpecifiedOperation {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
-                // todo(gw): implement serialization for transform
-                // types other than translate.
-                SpecifiedOperation::Matrix(..) => {
-                    Ok(())
-                }
-                SpecifiedOperation::Skew(..) => {
-                    Ok(())
-                }
-                SpecifiedOperation::Translate(kind, ref tx, ref ty, ref tz) => {
-                    match kind {
-                        TranslateKind::Translate => {
-                            try!(dest.write_str("translate("));
-                            try!(tx.to_css(dest));
-                            try!(dest.write_str(", "));
-                            try!(ty.to_css(dest));
-                            dest.write_str(")")
-                        }
-                        TranslateKind::TranslateX => {
-                            try!(dest.write_str("translateX("));
-                            try!(tx.to_css(dest));
-                            dest.write_str(")")
-                        }
-                        TranslateKind::TranslateY => {
-                            try!(dest.write_str("translateY("));
-                            try!(ty.to_css(dest));
-                            dest.write_str(")")
-                        }
-                        TranslateKind::TranslateZ => {
-                            try!(dest.write_str("translateZ("));
-                            try!(tz.to_css(dest));
-                            dest.write_str(")")
-                        }
-                        TranslateKind::Translate3D => {
-                            try!(dest.write_str("translate3d("));
-                            try!(tx.to_css(dest));
-                            try!(dest.write_str(", "));
-                            try!(ty.to_css(dest));
-                            try!(dest.write_str(", "));
-                            try!(tz.to_css(dest));
-                            dest.write_str(")")
-                        }
-                    }
-                }
-                SpecifiedOperation::Scale(..) => {
-                    Ok(())
-                }
-                SpecifiedOperation::Rotate(..) => {
-                    Ok(())
-                }
+                SpecifiedOperation::Matrix(ref matrix) =>
+                    matrix.to_css(dest),
+                SpecifiedOperation::Skew(ref skew) =>
+                    skew.to_css(dest),
+                SpecifiedOperation::Translate(ref translate) =>
+                    translate.to_css(dest),
+                SpecifiedOperation::Scale(ref scale) =>
+                    scale.to_css(dest),
+                SpecifiedOperation::Rotate(ref rotate) =>
+                    rotate.to_css(dest),
                 SpecifiedOperation::Perspective(_) => {
                     Ok(())
                 }
@@ -1266,7 +1639,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
 
     #[derive(Clone, Debug, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue(Vec<SpecifiedOperation>);
+    pub struct SpecifiedValue(pub Vec<SpecifiedOperation>);
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -1314,12 +1687,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                             return Err(())
                         }
                         result.push(SpecifiedOperation::Matrix(
-                                SpecifiedMatrix {
-                                    m11: values[0], m12: values[1], m13: 0.0, m14: 0.0,
-                                    m21: values[2], m22: values[3], m23: 0.0, m24: 0.0,
-                                    m31:       0.0, m32:       0.0, m33: 1.0, m34: 0.0,
-                                    m41: values[4], m42: values[5], m43: 0.0, m44: 1.0
-                                }));
+                            SpecifiedMatrix::Matrix(values[0], values[1], values[2], values[3], values[4], values[5])
+                        ));
                         Ok(())
                     }))
                 },
@@ -1332,22 +1701,20 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                             return Err(())
                         }
                         result.push(SpecifiedOperation::Matrix(
-                                SpecifiedMatrix {
-                                    m11: values[ 0], m12: values[ 1], m13: values[ 2], m14: values[ 3],
-                                    m21: values[ 4], m22: values[ 5], m23: values[ 6], m24: values[ 7],
-                                    m31: values[ 8], m32: values[ 9], m33: values[10], m34: values[11],
-                                    m41: values[12], m42: values[13], m43: values[14], m44: values[15]
-                                }));
+                            SpecifiedMatrix::Matrix3D(self::computed_value::ComputedMatrix {
+                                m11: values[ 0], m21: values[ 4], m31: values[ 8], m41: values[12],
+                                m12: values[ 1], m22: values[ 5], m32: values[ 9], m42: values[13],
+                                m13: values[ 2], m23: values[ 6], m33: values[10], m43: values[14],
+                                m14: values[ 3], m24: values[ 7], m34: values[11], m44: values[15],
+                            })));
                         Ok(())
                     }))
                 },
                 "translate" => {
                     try!(input.parse_nested_block(|input| {
                         let (tx, ty) = try!(parse_two_lengths_or_percentages(context, input));
-                        result.push(SpecifiedOperation::Translate(TranslateKind::Translate,
-                                                                  tx,
-                                                                  ty,
-                                                                  specified::Length::zero()));
+                        result.push(SpecifiedOperation::Translate(
+                            SpecifiedTranslate::Translate(tx, ty)));
                         Ok(())
                     }))
                 },
@@ -1355,21 +1722,15 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                     try!(input.parse_nested_block(|input| {
                         let tx = try!(specified::LengthOrPercentage::parse(context, input));
                         result.push(SpecifiedOperation::Translate(
-                            TranslateKind::TranslateX,
-                            tx,
-                            specified::LengthOrPercentage::zero(),
-                            specified::Length::zero()));
-                        Ok(())
+                            SpecifiedTranslate::TranslateX(tx)));
+                         Ok(())
                     }))
                 },
                 "translatey" => {
                     try!(input.parse_nested_block(|input| {
                         let ty = try!(specified::LengthOrPercentage::parse(context, input));
                         result.push(SpecifiedOperation::Translate(
-                            TranslateKind::TranslateY,
-                            specified::LengthOrPercentage::zero(),
-                            ty,
-                            specified::Length::zero()));
+                            SpecifiedTranslate::TranslateY(ty)));
                         Ok(())
                     }))
                 },
@@ -1377,10 +1738,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                     try!(input.parse_nested_block(|input| {
                         let tz = try!(specified::Length::parse(context, input));
                         result.push(SpecifiedOperation::Translate(
-                            TranslateKind::TranslateZ,
-                            specified::LengthOrPercentage::zero(),
-                            specified::LengthOrPercentage::zero(),
-                            tz));
+                            SpecifiedTranslate::TranslateZ(tz)));
                         Ok(())
                     }))
                 },
@@ -1392,10 +1750,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         try!(input.expect_comma());
                         let tz = try!(specified::Length::parse(context, input));
                         result.push(SpecifiedOperation::Translate(
-                            TranslateKind::Translate3D,
-                            tx,
-                            ty,
-                            tz));
+                            SpecifiedTranslate::Translate3D(tx, ty, tz)));
                         Ok(())
                     }))
 
@@ -1403,28 +1758,28 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 "scale" => {
                     try!(input.parse_nested_block(|input| {
                         let (sx, sy) = try!(parse_two_floats(input));
-                        result.push(SpecifiedOperation::Scale(sx, sy, 1.0));
+                        result.push(SpecifiedOperation::Scale(SpecifiedScale::Scale(sx, sy)));
                         Ok(())
                     }))
                 },
                 "scalex" => {
                     try!(input.parse_nested_block(|input| {
                         let sx = try!(specified::parse_number(input));
-                        result.push(SpecifiedOperation::Scale(sx, 1.0, 1.0));
+                        result.push(SpecifiedOperation::Scale(SpecifiedScale::ScaleX(sx)));
                         Ok(())
                     }))
                 },
                 "scaley" => {
                     try!(input.parse_nested_block(|input| {
                         let sy = try!(specified::parse_number(input));
-                        result.push(SpecifiedOperation::Scale(1.0, sy, 1.0));
+                        result.push(SpecifiedOperation::Scale(SpecifiedScale::ScaleY(sy)));
                         Ok(())
                     }))
                 },
                 "scalez" => {
                     try!(input.parse_nested_block(|input| {
                         let sz = try!(specified::parse_number(input));
-                        result.push(SpecifiedOperation::Scale(1.0, 1.0, sz));
+                        result.push(SpecifiedOperation::Scale(SpecifiedScale::ScaleZ(sz)));
                         Ok(())
                     }))
                 },
@@ -1435,35 +1790,35 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         let sy = try!(specified::parse_number(input));
                         try!(input.expect_comma());
                         let sz = try!(specified::parse_number(input));
-                        result.push(SpecifiedOperation::Scale(sx, sy, sz));
+                        result.push(SpecifiedOperation::Scale(SpecifiedScale::Scale3D(sx, sy, sz)));
                         Ok(())
                     }))
                 },
                 "rotate" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Rotate(0.0, 0.0, 1.0, theta));
+                        let theta = try!(SpecifiedAngle::parse(context,input));
+                        result.push(SpecifiedOperation::Rotate(SpecifiedRotate::Rotate(theta)));
                         Ok(())
                     }))
                 },
                 "rotatex" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Rotate(1.0, 0.0, 0.0, theta));
+                        let theta = try!(SpecifiedAngle::parse(context,input));
+                        result.push(SpecifiedOperation::Rotate(SpecifiedRotate::RotateX(theta)));
                         Ok(())
                     }))
                 },
                 "rotatey" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Rotate(0.0, 1.0, 0.0, theta));
+                        let theta = try!(SpecifiedAngle::parse(context,input));
+                        result.push(SpecifiedOperation::Rotate(SpecifiedRotate::RotateY(theta)));
                         Ok(())
                     }))
                 },
                 "rotatez" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Rotate(0.0, 0.0, 1.0, theta));
+                        let theta = try!(SpecifiedAngle::parse(context,input));
+                        result.push(SpecifiedOperation::Rotate(SpecifiedRotate::RotateZ(theta)));
                         Ok(())
                     }))
                 },
@@ -1475,30 +1830,30 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                         try!(input.expect_comma());
                         let az = try!(specified::parse_number(input));
                         try!(input.expect_comma());
-                        let theta = try!(specified::Angle::parse(context,input));
+                        let theta = try!(SpecifiedAngle::parse(context,input));
                         // TODO(gw): Check the axis can be normalized!!
-                        result.push(SpecifiedOperation::Rotate(ax, ay, az, theta));
+                        result.push(SpecifiedOperation::Rotate(SpecifiedRotate::Rotate3D(ax, ay, az, theta)));
                         Ok(())
                     }))
                 },
                 "skew" => {
                     try!(input.parse_nested_block(|input| {
                         let (theta_x, theta_y) = try!(parse_two_angles(context, input));
-                        result.push(SpecifiedOperation::Skew(theta_x, theta_y));
+                        result.push(SpecifiedOperation::Skew(SpecifiedSkew::Skew(theta_x, theta_y)));
                         Ok(())
                     }))
                 },
                 "skewx" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta_x = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Skew(theta_x, specified::Angle(0.0)));
+                        let theta_x = try!(SpecifiedAngle::parse(context,input));
+                        result.push(SpecifiedOperation::Skew(SpecifiedSkew::SkewX(theta_x)));
                         Ok(())
                     }))
                 },
                 "skewy" => {
                     try!(input.parse_nested_block(|input| {
-                        let theta_y = try!(specified::Angle::parse(context,input));
-                        result.push(SpecifiedOperation::Skew(specified::Angle(0.0), theta_y));
+                        let theta_y = try!(SpecifiedAngle::parse(context,input));
+                        result.push(SpecifiedOperation::Skew(SpecifiedSkew::SkewY(theta_y)));
                         Ok(())
                     }))
                 },
@@ -1532,23 +1887,64 @@ ${helpers.predefined_type("scroll-snap-coordinate",
             let mut result = vec!();
             for operation in &self.0 {
                 match *operation {
-                    SpecifiedOperation::Matrix(ref matrix) => {
-                        result.push(computed_value::ComputedOperation::Matrix(*matrix));
+                    SpecifiedOperation::Matrix(matrix) => {
+                        result.push(self::computed_value::ComputedOperation::Matrix(matrix.to_computed_value(context)));
                     }
-                    SpecifiedOperation::Translate(_, ref tx, ref ty, ref tz) => {
+                    SpecifiedOperation::Translate(ref translate) => {
+                        let zero_lop = specified::LengthOrPercentage::zero();
+                        let zero_length = specified::Length::zero();
+
+                        let (tx, ty, tz) = match *translate {
+                            SpecifiedTranslate::Translate(ref tx, ref ty) =>
+                                (tx, ty, &zero_length),
+                            SpecifiedTranslate::TranslateX(ref tx) =>
+                                (tx, &zero_lop, &zero_length),
+                            SpecifiedTranslate::TranslateY(ref ty) =>
+                                (&zero_lop, ty, &zero_length),
+                            SpecifiedTranslate::TranslateZ(ref tz) =>
+                                (&zero_lop, &zero_lop, tz),
+                            SpecifiedTranslate::Translate3D(ref tx, ref ty, ref tz) =>
+                                (tx, ty, tz),
+                        };
                         result.push(computed_value::ComputedOperation::Translate(tx.to_computed_value(context),
                                                                                  ty.to_computed_value(context),
                                                                                  tz.to_computed_value(context)));
                     }
-                    SpecifiedOperation::Scale(sx, sy, sz) => {
-                        result.push(computed_value::ComputedOperation::Scale(sx, sy, sz));
+                    SpecifiedOperation::Scale(scale) => {
+                        let op = match scale {
+                            SpecifiedScale::Scale(sx, sy) => computed_value::ComputedOperation::Scale(sx,  sy, 1.0),
+                            SpecifiedScale::ScaleX(sx)    => computed_value::ComputedOperation::Scale(sx, 1.0, 1.0),
+                            SpecifiedScale::ScaleY(sy)    => computed_value::ComputedOperation::Scale(1.0, sy, 1.0),
+                            SpecifiedScale::ScaleZ(sz)    => computed_value::ComputedOperation::Scale(1.0, 1.0, sz),
+                            SpecifiedScale::Scale3D(sx, sy, sz) => computed_value::ComputedOperation::Scale(sx, sy, sz),
+                        };
+                        result.push(op);
                     }
-                    SpecifiedOperation::Rotate(ax, ay, az, theta) => {
+                    SpecifiedOperation::Rotate(rotate) => {
+                        let (ax, ay, az, theta) = match rotate {
+                            SpecifiedRotate::Rotate(theta) | SpecifiedRotate::RotateZ(theta) =>
+                                (0.0, 0.0, 1.0, theta),
+                            SpecifiedRotate::RotateX(theta) =>
+                                (1.0, 0.0, 0.0, theta),
+                            SpecifiedRotate::RotateY(theta) =>
+                                (0.0, 1.0, 0.0, theta),
+                            SpecifiedRotate::Rotate3D(ax, ay, az, theta) =>
+                                (ax, ay, az, theta),
+                        };
                         let len = (ax * ax + ay * ay + az * az).sqrt();
-                        result.push(computed_value::ComputedOperation::Rotate(ax / len, ay / len, az / len, theta));
+                        result.push(computed_value::ComputedOperation::Rotate(
+                            ax / len, ay / len, az / len, theta.to_computed_value(context)));
                     }
-                    SpecifiedOperation::Skew(theta_x, theta_y) => {
-                        result.push(computed_value::ComputedOperation::Skew(theta_x, theta_y));
+                    SpecifiedOperation::Skew(ref skew) => {
+                        let (ax, ay) = match *skew {
+                            SpecifiedSkew::Skew(ax, ay) =>
+                                (ax.to_computed_value(context), ay.to_computed_value(context)),
+                            SpecifiedSkew::SkewX(ax) =>
+                                (ax.to_computed_value(context), computed::Angle(0.0)),
+                            SpecifiedSkew::SkewY(ay) =>
+                                (computed::Angle(0.0), ay.to_computed_value(context)),
+                        };
+                        result.push(computed_value::ComputedOperation::Skew(ax, ay));
                     }
                     SpecifiedOperation::Perspective(ref d) => {
                         result.push(computed_value::ComputedOperation::Perspective(d.to_computed_value(context)));
@@ -1566,24 +1962,27 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 for operation in computed {
                     match *operation {
                         computed_value::ComputedOperation::Matrix(ref matrix) => {
-                            result.push(SpecifiedOperation::Matrix(*matrix));
+                            result.push(SpecifiedOperation::Matrix(SpecifiedMatrix::from_computed_value(matrix)));
                         }
                         computed_value::ComputedOperation::Translate(ref tx, ref ty, ref tz) => {
                             // XXXManishearth we lose information here; perhaps we should try to
                             // recover the original function? Not sure if this can be observed.
-                            result.push(SpecifiedOperation::Translate(TranslateKind::Translate,
-                                              ToComputedValue::from_computed_value(tx),
-                                              ToComputedValue::from_computed_value(ty),
-                                              ToComputedValue::from_computed_value(tz)));
+                            result.push(SpecifiedOperation::Translate(SpecifiedTranslate::Translate3D(
+                                            ToComputedValue::from_computed_value(tx),
+                                            ToComputedValue::from_computed_value(ty),
+                                            ToComputedValue::from_computed_value(tz))));
                         }
                         computed_value::ComputedOperation::Scale(sx, sy, sz) => {
-                            result.push(SpecifiedOperation::Scale(sx, sy, sz));
+                            result.push(SpecifiedOperation::Scale(SpecifiedScale::Scale3D(sx, sy, sz)));
                         }
-                        computed_value::ComputedOperation::Rotate(ax, ay, az, theta) => {
-                            result.push(SpecifiedOperation::Rotate(ax, ay, az, theta));
+                        computed_value::ComputedOperation::Rotate(ax, ay, az, ref theta) => {
+                            result.push(SpecifiedOperation::Rotate(
+                                SpecifiedRotate::Rotate3D(ax, ay, az, SpecifiedAngle::from_computed_value(theta))));
                         }
-                        computed_value::ComputedOperation::Skew(theta_x, theta_y) => {
-                            result.push(SpecifiedOperation::Skew(theta_x, theta_y));
+                        computed_value::ComputedOperation::Skew(ref theta_x, ref theta_y) => {
+                            result.push(SpecifiedOperation::Skew(SpecifiedSkew::Skew(
+                                SpecifiedAngle::from_computed_value(theta_x),
+                                SpecifiedAngle::from_computed_value(theta_y))));
                         }
                         computed_value::ComputedOperation::Perspective(ref d) => {
                             result.push(SpecifiedOperation::Perspective(

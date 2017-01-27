@@ -1115,3 +1115,43 @@ mod shorthand_serialization {
         }
     }
 }
+
+mod longhand_serialization {
+    #[test]
+    fn transform_specified_value_should_serialize_correctly() {
+        use style::properties::longhands::transform::{SpecifiedAngle, SpecifiedMatrix, SpecifiedOperation};
+        use style::properties::longhands::transform::{SpecifiedRotate, SpecifiedScale, SpecifiedSkew};
+        use style::properties::longhands::transform::{SpecifiedTranslate, SpecifiedValue};
+        use style::values::specified::{Length, LengthOrPercentage, ViewportPercentageLength};
+        use style_traits::ToCss;
+
+        let declarations = vec![
+            SpecifiedOperation::Matrix(SpecifiedMatrix::Matrix(1.0, 2.0, 3.0, 4.0, 4.5, 5.5 )),
+            SpecifiedOperation::Skew(SpecifiedSkew::Skew(SpecifiedAngle::degrees(-360.0), SpecifiedAngle::turns(0.5))),
+            SpecifiedOperation::Scale(SpecifiedScale::Scale(10.5, -2.)),
+            SpecifiedOperation::Rotate(SpecifiedRotate::Rotate(SpecifiedAngle::degrees(45.0))),
+            SpecifiedOperation::Translate(
+                SpecifiedTranslate::Translate3D(
+                    LengthOrPercentage::Length(
+                        Length::ViewportPercentage(ViewportPercentageLength::Vw(3.0))),
+                        LengthOrPercentage::zero(),
+                        Length::from_px(1.0)))
+        ];
+
+        let ops = SpecifiedValue(declarations);
+        let css_string = ops.to_css_string();
+
+        let expected_string = vec![
+            "matrix(1, 2, 3, 4, 4.5, 5.5)",
+            "skew(-360deg, 0.5turn)",
+            "scale(10.5, -2)",
+            "rotate(45deg)",
+            "translate3d(3vw, 0px, 1px)",
+        ].join(" ");
+
+        assert_eq!(
+            css_string,
+            expected_string
+        );
+    }
+}
