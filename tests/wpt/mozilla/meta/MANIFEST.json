@@ -15284,6 +15284,12 @@
             "url": "/_mozilla/mozilla/style_no_trailing_space.html"
           }
         ],
+        "mozilla/style_remove_prop.html": [
+          {
+            "path": "mozilla/style_remove_prop.html",
+            "url": "/_mozilla/mozilla/style_remove_prop.html"
+          }
+        ],
         "mozilla/textcontent.html": [
           {
             "path": "mozilla/textcontent.html",
