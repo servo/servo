@@ -27,7 +27,7 @@ pub struct ImageData {
 impl ImageData {
     #[allow(unsafe_code)]
     pub fn new(global: &GlobalScope, width: u32, height: u32, data: Option<Vec<u8>>) -> Root<ImageData> {
-        let mut imagedata = box ImageData {
+        let imagedata = box ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,

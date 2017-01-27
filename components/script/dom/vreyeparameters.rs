@@ -31,7 +31,7 @@ impl VREyeParameters {
     #[allow(unrooted_must_root)]
     fn new_inherited(parameters: WebVREyeParameters, global: &GlobalScope) -> VREyeParameters {
         let fov = VRFieldOfView::new(&global, parameters.field_of_view.clone());
-        let mut result = VREyeParameters {
+        let result = VREyeParameters {
             reflector_: Reflector::new(),
             parameters: DOMRefCell::new(parameters),
             offset: Heap::default(),

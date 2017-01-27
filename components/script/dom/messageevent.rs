@@ -16,7 +16,6 @@ use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use servo_atoms::Atom;
-use std::default::Default;
 
 #[dom_struct]
 pub struct MessageEvent {
@@ -38,13 +37,12 @@ impl MessageEvent {
                            data: HandleValue,
                            origin: DOMString,
                            lastEventId: DOMString) -> Root<MessageEvent> {
-        let mut ev = box MessageEvent {
+        let ev = box MessageEvent {
             event: Event::new_inherited(),
-            data: Heap::default(),
+            data: Heap::new(data.get()),
             origin: origin,
             lastEventId: lastEventId,
         };
-        ev.data.set(data.get());
         reflect_dom_object(ev, global, MessageEventBinding::Wrap)
     }
 
