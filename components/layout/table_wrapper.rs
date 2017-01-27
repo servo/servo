@@ -341,6 +341,8 @@ impl Flow for TableWrapperFlow {
                    "table_wrapper"
                });
 
+        self.block_flow.initialize_container_size_for_root(shared_context);
+
         let mut intermediate_column_inline_sizes = self.column_intrinsic_inline_sizes
                                                        .iter()
                                                        .map(|column_intrinsic_inline_size| {
