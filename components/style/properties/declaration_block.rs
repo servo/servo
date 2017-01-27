@@ -192,7 +192,10 @@ impl PropertyDeclarationBlock {
     }
 
     /// Set the declaration importance for a given property, if found.
-    pub fn set_importance(&mut self, property: &PropertyId, new_importance: Importance) {
+    ///
+    /// Returns whether any declaration was updated.
+    pub fn set_importance(&mut self, property: &PropertyId, new_importance: Importance) -> bool {
+        let mut updated_at_least_one = false;
         for &mut (ref declaration, ref mut importance) in &mut self.declarations {
             if declaration.id().is_or_is_longhand_of(property) {
                 match (*importance, new_importance) {
@@ -202,23 +205,35 @@ impl PropertyDeclarationBlock {
                     (Importance::Important, Importance::Normal) => {
                         self.important_count -= 1;
                     }
-                    _ => {}
+                    _ => {
+                        continue;
+                    }
                 }
+                updated_at_least_one = true;
                 *importance = new_importance;
             }
         }
+        updated_at_least_one
     }
 
     /// https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
-    pub fn remove_property(&mut self, property: &PropertyId) {
+    ///
+    /// Returns whether any declaration was actually removed.
+    pub fn remove_property(&mut self, property: &PropertyId) -> bool {
         let important_count = &mut self.important_count;
+        let mut removed_at_least_one = false;
         self.declarations.retain(|&(ref declaration, importance)| {
             let remove = declaration.id().is_or_is_longhand_of(property);
-            if remove && importance.important() {
-                *important_count -= 1
+            if remove {
+                removed_at_least_one = true;
+                if importance.important() {
+                    *important_count -= 1
+                }
             }
             !remove
-        })
+        });
+
+        removed_at_least_one
     }
 
     /// Take a declaration block known to contain a single property and serialize it.
