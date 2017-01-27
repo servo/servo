@@ -10,6 +10,7 @@ use IFrameLoadInfoWithData;
 use LayoutControlMsg;
 use LoadData;
 use MozBrowserEvent;
+use PushOrReplaceState;
 use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
 use canvas_traits::CanvasMsg;
@@ -18,7 +19,7 @@ use euclid::point::Point2D;
 use euclid::size::{Size2D, TypedSize2D};
 use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{FrameId, PipelineId, TraversalDirection};
+use msg::constellation_msg::{FrameId, PipelineId, StateId, TraversalDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
@@ -151,6 +152,8 @@ pub enum ScriptMsg {
     RegisterServiceWorker(ScopeThings, ServoUrl),
     /// Enter or exit fullscreen
     SetFullscreenState(bool),
+    /// Notifies the constellation that a new history state has been pushed or replaced.
+    HistoryStateChanged(PipelineId, StateId, ServoUrl, PushOrReplaceState),
     /// Requests that the compositor shut down.
     Exit,
 }
