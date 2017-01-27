@@ -1666,7 +1666,6 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
     }
     match inheritedbox_style.clone_text_orientation() {
     % if product == "servo":
-        computed_values::text_orientation::T::sideways_right => {},
         computed_values::text_orientation::T::sideways_left => {
             flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
@@ -1676,6 +1675,7 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
         computed_values::text_orientation::T::mixed => {},
         computed_values::text_orientation::T::upright => {},
     % endif
+        computed_values::text_orientation::T::sideways_right => {},
         computed_values::text_orientation::T::sideways => {
             if flags.intersects(logical_geometry::FLAG_VERTICAL_LR) {
                 flags.insert(logical_geometry::FLAG_SIDEWAYS_LEFT);

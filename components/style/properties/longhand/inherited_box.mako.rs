@@ -28,13 +28,14 @@ ${helpers.single_keyword("direction", "ltr rtl", need_clone=True, animatable=Fal
 
 // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
 // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
-// FIXME(bholley): sideways-right is needed as an alias to sideways in gecko.
+<% text_orientation_gecko_alias_values = { "sideways-right": "sideways" } %>
 ${helpers.single_keyword("text-orientation",
                          "sideways",
                          experimental=True,
                          need_clone=True,
                          extra_gecko_values="mixed upright",
-                         extra_servo_values="sideways-right sideways-left",
+                         extra_servo_values="sideways-left sideways-right",
+                         gecko_alias_values=text_orientation_gecko_alias_values,
                          animatable=False,
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation")}
 
