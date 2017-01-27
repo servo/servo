@@ -1232,3 +1232,159 @@ mod shorthand_serialization {
         }
     }
 }
+
+mod longhand_serialization {
+    mod transform {
+        use style::properties::longhands::transform::{SpecifiedAngle, SpecifiedMatrix, SpecifiedRotate};
+        use style::properties::longhands::transform::{SpecifiedScale, SpecifiedSkew, SpecifiedTranslate};
+        use style::values::specified::{Length, LengthOrPercentage, ViewportPercentageLength};
+        use style::values::specified::NoCalcLength::ViewportPercentage;
+        use style_traits::ToCss;
+
+        #[inline(always)]
+        fn validate_serialization<T: ToCss>(op: &T, expected_string: &'static str) {
+            let css_string = op.to_css_string();
+
+            assert_eq!(css_string, expected_string);
+        }
+
+        #[test]
+        fn transform_specified_matrix_should_serialize_correctly() {
+            use style::properties::longhands::transform::computed_value::ComputedMatrix;
+
+            validate_serialization(
+                &SpecifiedMatrix::Matrix(0.0, 1.0, 2.0, 3.0, 4.0, 5.0),
+                "matrix(0, 1, 2, 3, 4, 5)"
+            );
+
+            validate_serialization(
+                &SpecifiedMatrix::Matrix3D(ComputedMatrix {
+                    m11: 0.00, m12: 0.25, m13: 0.50, m14: 0.75,
+                    m21: 1.00, m22: 1.25, m23: 1.50, m24: 1.75,
+                    m31: 2.00, m32: 2.25, m33: 2.50, m34: 2.75,
+                    m41: 3.00, m42: 3.25, m43: 3.50, m44: 3.75,
+                }),
+                "matrix3d(0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 3.25, 3.5, 3.75)"
+            );
+        }
+
+        #[test]
+        fn transform_specified_skew_should_serialize_correctly() {
+            validate_serialization(
+                &SpecifiedSkew::Skew(
+                    SpecifiedAngle::radians(-0.25)
+                ),
+                "skew(-0.25rad)"
+            );
+
+            validate_serialization(
+                &SpecifiedSkew::SkewX(
+                    SpecifiedAngle::turns(1.0)
+                ),
+                "skewX(1turn)"
+            );
+
+            validate_serialization(
+                &SpecifiedSkew::SkewY(
+                    SpecifiedAngle::gradians(1.0)
+                ),
+                "skewY(1grad)"
+            );
+
+            validate_serialization(
+                &SpecifiedSkew::SkewXY(
+                    SpecifiedAngle::degrees(-360.0),
+                    SpecifiedAngle::turns(0.5)
+                ),
+                "skew(-360deg, 0.5turn)"
+            );
+        }
+
+        #[test]
+        fn transform_specified_scale_should_serialize_correctly() {
+            validate_serialization(
+                &SpecifiedScale::Scale(2.0),
+                "scale(2)"
+            );
+
+            validate_serialization(
+                &SpecifiedScale::ScaleXY(10.5, -2.0),
+                "scale(10.5, -2)"
+            );
+
+            validate_serialization(
+                &SpecifiedScale::Scale3D(1.0, 2.0, 3.0),
+                "scale3d(1, 2, 3)"
+            );
+        }
+
+        #[test]
+        fn transform_specified_rotate_should_serialize_correctly() {
+            validate_serialization(
+                &SpecifiedRotate::Rotate(
+                    SpecifiedAngle::degrees(-45.0)
+                ),
+                "rotate(-45deg)"
+            );
+
+            validate_serialization(
+                &SpecifiedRotate::RotateX(
+                    SpecifiedAngle::degrees(45.0)
+                ),
+                "rotateX(45deg)"
+            );
+
+            validate_serialization(
+                &SpecifiedRotate::RotateY(
+                    SpecifiedAngle::radians(100.0),
+                ),
+                "rotateY(100rad)"
+            );
+
+            validate_serialization(
+                &SpecifiedRotate::RotateZ(
+                    SpecifiedAngle::gradians(-100.0)
+                ),
+                "rotateZ(-100grad)"
+            );
+
+            validate_serialization(
+                &SpecifiedRotate::Rotate3D(
+                    1.0,
+                    1.0,
+                    0.0,
+                    SpecifiedAngle::degrees(400.0)
+                ),
+                "rotate3d(1, 1, 0, 400deg)"
+            );
+        }
+
+        #[test]
+        fn transform_specified_translate_should_serialize_correctly() {
+            validate_serialization(
+                &SpecifiedTranslate::Translate(
+                    LengthOrPercentage::zero()
+                ),
+                "translate(0px)"
+            );
+
+            validate_serialization(
+                &SpecifiedTranslate::Translate3D(
+                    LengthOrPercentage::Length(ViewportPercentage(ViewportPercentageLength::Vw(3.0))),
+                    LengthOrPercentage::zero(),
+                    Length::from_px(1.0)
+                ),
+                "translate3d(3vw, 0px, 1px)"
+            );
+
+            validate_serialization(
+                &SpecifiedTranslate::Translate3D(
+                    LengthOrPercentage::Length(ViewportPercentage(ViewportPercentageLength::Vw(3.0))),
+                    LengthOrPercentage::zero(),
+                    Length::from_px(1.0)
+                ),
+                "translate3d(3vw, 0px, 1px)"
+            );
+        }
+    }
+}
