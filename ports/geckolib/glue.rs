@@ -35,8 +35,10 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedV
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
+use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
 use style::gecko_bindings::bindings::RawGeckoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
+use style::gecko_bindings::bindings::RawGeckoKeyframeListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
@@ -51,6 +53,7 @@ use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
 use style::gecko_bindings::structs::ServoStyleSheet;
+use style::gecko_bindings::structs::nsTimingFunction;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
@@ -1139,3 +1142,30 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
 
     assert_subtree_is_clean(root);
 }
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSetBorrowed,
+                                                      name: *const nsACString,
+                                                      timing_function: *const nsTimingFunction,
+                                                      _style: ServoComputedValuesBorrowed,
+                                                      keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
+    let style_timing_function = unsafe { timing_function.as_ref().unwrap() };
+
+    if let Some(ref animation) = data.stylist.animations().get(&name) {
+       for step in &animation.steps {
+          let timing_function = *style_timing_function;
+
+          let _keyframe = unsafe {
+                Gecko_AnimationAppendKeyframe(keyframes,
+                                              step.start_percentage.0 as f32,
+                                              &timing_function)
+          };
+          // Set each PropertyValuePair.
+       }
+       return true
+    }
+    false
+}
+
