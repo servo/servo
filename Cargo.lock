@@ -103,7 +103,7 @@ dependencies = [
  "core-foundation 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -286,7 +286,7 @@ dependencies = [
  "azure 0.10.0 (git+https://github.com/servo/rust-azure)",
  "canvas_traits 0.0.1",
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -302,7 +302,7 @@ name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -429,7 +429,7 @@ dependencies = [
 name = "compositing"
 version = "0.0.1"
 dependencies = [
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "gleam 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -460,7 +460,7 @@ dependencies = [
  "compositing 0.0.1",
  "debugger 0.0.1",
  "devtools_traits 0.0.1",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gaol 0.0.1 (git+https://github.com/servo/gaol)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
@@ -699,7 +699,7 @@ dependencies = [
  "cocoa 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "compositing 0.0.1",
  "devtools 0.0.1",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin_app 0.0.1",
  "libc 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -836,7 +836,7 @@ dependencies = [
 
 [[package]]
 name = "euclid"
-version = "0.10.3"
+version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -939,7 +939,7 @@ dependencies = [
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -968,7 +968,7 @@ dependencies = [
  "core-graphics 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dwrote 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fontsan 0.3.2 (git+https://github.com/servo/fontsan)",
  "freetype 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1062,7 +1062,7 @@ version = "0.0.1"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "compositing 0.0.1",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1347,7 +1347,7 @@ dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
@@ -1393,7 +1393,7 @@ name = "layout_thread"
 version = "0.0.1"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx 0.0.1",
  "gfx_traits 0.0.1",
@@ -1499,7 +1499,7 @@ dependencies = [
  "devtools 0.0.1",
  "devtools_traits 0.0.1",
  "env_logger 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gaol 0.0.1 (git+https://github.com/servo/gaol)",
  "gfx 0.0.1",
  "gleam 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1880,7 +1880,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cgl 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gl_generator 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2280,7 +2280,7 @@ dependencies = [
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2345,7 +2345,7 @@ dependencies = [
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2368,7 +2368,7 @@ dependencies = [
 name = "script_tests"
 version = "0.0.1"
 dependencies = [
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "plugins 0.0.1",
  "script 0.0.1",
@@ -2384,7 +2384,7 @@ dependencies = [
  "canvas_traits 0.0.1",
  "cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gfx_traits 0.0.1",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2573,7 +2573,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cgl 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "cmake 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "expat-sys 2.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "glx 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2599,7 +2599,7 @@ name = "servo_config"
 version = "0.0.1"
 dependencies = [
  "env_logger 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2626,7 +2626,7 @@ name = "servo_geometry"
 version = "0.0.1"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2766,7 +2766,7 @@ dependencies = [
  "cfg-if 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2807,7 +2807,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "html5ever-atoms 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "owning_ref 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2828,7 +2828,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_derive 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2844,7 +2844,7 @@ dependencies = [
  "atomic_refcell 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "env_logger 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "geckoservo 0.0.1",
  "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3239,7 +3239,7 @@ name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
  "cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3270,7 +3270,7 @@ dependencies = [
  "core-graphics 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "dwrote 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3292,7 +3292,7 @@ dependencies = [
  "byteorder 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dwrote 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.30 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3488,7 +3488,7 @@ dependencies = [
 "checksum energymon-sys 0.3.0 (git+https://github.com/energymon/energymon-sys.git)" = "<none>"
 "checksum enum_primitive 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "be4551092f4d519593039259a9ed8daedf0da12e5109c5280338073eaeb81180"
 "checksum env_logger 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "99971fb1b635fe7a0ee3c4d065845bb93cca80a23b5613b5613391ece5de4144"
-"checksum euclid 0.10.3 (registry+https://github.com/rust-lang/crates.io-index)" = "0c274f13773ec277a48408d0c7a8dc935ad4bfe190f4cfccd0126d203afc3c83"
+"checksum euclid 0.10.5 (registry+https://github.com/rust-lang/crates.io-index)" = "f93a556290e09f379cbfaa4f75ac52a72a3d2deb7d04076f312cdb2e6acba28e"
 "checksum expat-sys 2.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "cef36cd1a8a02d28b91d97347c63247b9e4cb8a8e36df36f8201dc87a1c0859c"
 "checksum flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)" = "3eeb481e957304178d2e782f2da1257f1434dfecbae883bafb61ada2a9fea3bb"
 "checksum fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "6cc484842f1e2884faf56f529f960cc12ad8c71ce96cc7abba0a067c98fee344"
