@@ -232,7 +232,7 @@ pub struct Document {
     asap_scripts_set: DOMRefCell<Vec<JS<HTMLScriptElement>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-n-noscript
     /// True if scripting is enabled for all scripts in this document
-    scripting_enabled: Cell<bool>,
+    scripting_enabled: bool,
     /// https://html.spec.whatwg.org/multipage/#animation-frame-callback-identifier
     /// Current identifier of animation frame callback
     animation_frame_ident: Cell<u32>,
@@ -689,7 +689,7 @@ impl Document {
 
     /// Return whether scripting is enabled or not
     pub fn is_scripting_enabled(&self) -> bool {
-        self.scripting_enabled.get()
+        self.scripting_enabled
     }
 
     /// Return the element that currently has focus.
@@ -1948,7 +1948,7 @@ impl Document {
             deferred_scripts: Default::default(),
             asap_in_order_scripts_list: Default::default(),
             asap_scripts_set: Default::default(),
-            scripting_enabled: Cell::new(browsing_context.is_some()),
+            scripting_enabled: browsing_context.is_some(),
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DOMRefCell::new(vec![]),
             running_animation_callbacks: Cell::new(false),
