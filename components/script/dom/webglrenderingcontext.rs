@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::{ArrayBufferViewContents, ConversionResult, FromJSValConvertible, ToJSValConvertible};
-use dom::bindings::conversions::{array_buffer_to_vec};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS, Root};
@@ -590,9 +589,6 @@ unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
           <T as FromJSValConvertible>::Config: Clone,
 {
     assert!(!sequence_or_abv.is_null());
-    //if let Some(v) = array_buffer_view_to_vec_checked::<T>(sequence_or_abv) {
-        //return Ok(v);
-    //}
     rooted!(in(cx) let mut val = UndefinedValue());
     sequence_or_abv.to_jsval(cx, val.handle_mut());
 
@@ -996,10 +992,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        let data_vec = match array_buffer_to_vec::<u8>(data) {
-            Some(data) => data,
-            // Not an ArrayBuffer object, maybe an ArrayBufferView?
-            None => try!(fallible_array_buffer_view_to_vec(_cx, data)),
+        typedarray!(in(_cx) let array_buffer: ArrayBuffer = data);
+        let data_vec = match array_buffer {
+            Ok(mut data) => data.as_slice().to_vec(),
+            Err(_) => try!(fallible_array_buffer_view_to_vec(_cx, data)),
         };
 
         let bound_buffer = match target {
@@ -1064,10 +1060,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        let data_vec = match array_buffer_to_vec::<u8>(data) {
-            Some(data) => data,
-            // Not an ArrayBuffer object, maybe an ArrayBufferView?
-            None => try!(fallible_array_buffer_view_to_vec(_cx, data)),
+        typedarray!(in(_cx) let array_buffer: ArrayBuffer = data);
+        let data_vec = match array_buffer {
+            Ok(mut data) => data.as_slice().to_vec(),
+            Err(_) => try!(fallible_array_buffer_view_to_vec(_cx, data)),
         };
 
         let bound_buffer = match target {
