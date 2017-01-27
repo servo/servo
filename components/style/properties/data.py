@@ -37,6 +37,7 @@ class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
                  gecko_enum_prefix=None, custom_consts=None,
                  extra_gecko_values=None, extra_servo_values=None,
+                 gecko_alias_values=None,
                  gecko_strip_moz_prefix=True,
                  gecko_inexhaustive=None):
         self.name = name
@@ -48,7 +49,8 @@ class Keyword(object):
         self.gecko_enum_prefix = gecko_enum_prefix
         self.extra_gecko_values = (extra_gecko_values or "").split()
         self.extra_servo_values = (extra_servo_values or "").split()
-        self.consts_map = {} if custom_consts is None else custom_consts
+        self.gecko_alias_values = gecko_alias_values or {}
+        self.consts_map = custom_consts or {}
         self.gecko_strip_moz_prefix = gecko_strip_moz_prefix
         self.gecko_inexhaustive = gecko_inexhaustive or (gecko_enum_prefix is None)
 
@@ -66,9 +68,15 @@ class Keyword(object):
         else:
             raise Exception("Bad product: " + product)
 
+    def values_and_aliases_for(self, product):
+        if product == "gecko":
+            return self.gecko_values() + self.gecko_alias_values.keys()
+        else:
+            return self.servo_values()
+
     def gecko_constant(self, value):
         moz_stripped = value.replace("-moz-", '') if self.gecko_strip_moz_prefix else value
-        mapped = self.consts_map.get(value)
+        mapped = self.consts_map.get(value) or self.gecko_alias_values.get(value)
         if self.gecko_enum_prefix:
             parts = moz_stripped.split('-')
             parts = mapped if mapped else [p.title() for p in parts]

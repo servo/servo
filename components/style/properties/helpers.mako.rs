@@ -343,16 +343,18 @@
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix', 'gecko_enum_prefix',
-            'extra_gecko_values', 'extra_servo_values',
+            'extra_gecko_values', 'extra_servo_values', 'gecko_alias_values',
             'custom_consts', 'gecko_inexhaustive',
         ]}
     %>
 
     <%def name="inner_body()">
         % if extra_specified:
+            <% values_and_aliases = data.longhands_by_name[name].keyword.values_and_aliases_for(product) + \
+                extra_specified.split() %>
             use style_traits::ToCss;
             define_css_keyword_enum! { SpecifiedValue:
-                % for value in data.longhands_by_name[name].keyword.values_for(product) + extra_specified.split():
+                % for value in values_and_aliases:
                     "${value}" => ${to_rust_ident(value)},
                 % endfor
             }
@@ -362,7 +364,7 @@
         pub mod computed_value {
             use style_traits::ToCss;
             define_css_keyword_enum! { T:
-                % for value in data.longhands_by_name[name].keyword.values_for(product):
+                % for value in data.longhands_by_name[name].keyword.values_and_aliases_for(product):
                     "${value}" => ${to_rust_ident(value)},
                 % endfor
             }
