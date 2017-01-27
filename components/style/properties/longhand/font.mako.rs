@@ -107,56 +107,66 @@
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T(vec![FontFamily::Generic(atom!("serif"))])
     }
+
     /// <family-name>#
     /// <family-name> = <string> | [ <ident>+ ]
     /// TODO: <generic-family>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        input.parse_comma_separated(parse_one_family).map(SpecifiedValue)
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        Vec::<FontFamily>::parse(context, input).map(SpecifiedValue)
     }
-    pub fn parse_one_family(input: &mut Parser) -> Result<FontFamily, ()> {
-        if let Ok(value) = input.try(|input| input.expect_string()) {
-            return Ok(FontFamily::FamilyName(Atom::from(&*value)))
-        }
-        let first_ident = try!(input.expect_ident());
 
-        // FIXME(bholley): The fast thing to do here would be to look up the
-        // string (as lowercase) in the static atoms table. We don't have an
-        // API to do that yet though, so we do the simple thing for now.
-        let mut css_wide_keyword = false;
-        match_ignore_ascii_case! { first_ident,
-            "serif" => return Ok(FontFamily::Generic(atom!("serif"))),
-            "sans-serif" => return Ok(FontFamily::Generic(atom!("sans-serif"))),
-            "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
-            "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
-            "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
+    impl Parse for Vec<FontFamily> {
+        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            input.parse_comma_separated(|input| FontFamily::parse(context, input))
+        }
+    }
 
-            // https://drafts.csswg.org/css-fonts/#propdef-font-family
-            // "Font family names that happen to be the same as a keyword value
-            //  (‘inherit’, ‘serif’, ‘sans-serif’, ‘monospace’, ‘fantasy’, and ‘cursive’)
-            //  must be quoted to prevent confusion with the keywords with the same names.
-            //  The keywords ‘initial’ and ‘default’ are reserved for future use
-            //  and must also be quoted when used as font names.
-            //  UAs must not consider these keywords as matching the <family-name> type."
-            "inherit" => css_wide_keyword = true,
-            "initial" => css_wide_keyword = true,
-            "unset" => css_wide_keyword = true,
-            "default" => css_wide_keyword = true,
-            _ => {}
-        }
+    impl Parse for FontFamily {
+        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            if let Ok(value) = input.try(|input| input.expect_string()) {
+                return Ok(FontFamily::FamilyName(Atom::from(&*value)))
+            }
+            let first_ident = try!(input.expect_ident());
 
-        let mut value = first_ident.into_owned();
-        // These keywords are not allowed by themselves.
-        // The only way this value can be valid with with another keyword.
-        if css_wide_keyword {
-            let ident = input.expect_ident()?;
-            value.push_str(" ");
-            value.push_str(&ident);
+            // FIXME(bholley): The fast thing to do here would be to look up the
+            // string (as lowercase) in the static atoms table. We don't have an
+            // API to do that yet though, so we do the simple thing for now.
+            let mut css_wide_keyword = false;
+            match_ignore_ascii_case! { first_ident,
+                "serif" => return Ok(FontFamily::Generic(atom!("serif"))),
+                "sans-serif" => return Ok(FontFamily::Generic(atom!("sans-serif"))),
+                "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
+                "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
+                "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
+
+                // https://drafts.csswg.org/css-fonts/#propdef-font-family
+                // "Font family names that happen to be the same as a keyword value
+                //  (‘inherit’, ‘serif’, ‘sans-serif’, ‘monospace’, ‘fantasy’, and ‘cursive’)
+                //  must be quoted to prevent confusion with the keywords with the same names.
+                //  The keywords ‘initial’ and ‘default’ are reserved for future use
+                //  and must also be quoted when used as font names.
+                //  UAs must not consider these keywords as matching the <family-name> type."
+                "inherit" => css_wide_keyword = true,
+                "initial" => css_wide_keyword = true,
+                "unset" => css_wide_keyword = true,
+                "default" => css_wide_keyword = true,
+                _ => {}
+            }
+
+            let mut value = first_ident.into_owned();
+            // These keywords are not allowed by themselves.
+            // The only way this value can be valid with with another keyword.
+            if css_wide_keyword {
+                let ident = input.expect_ident()?;
+                value.push_str(" ");
+                value.push_str(&ident);
+            }
+            while let Ok(ident) = input.try(|input| input.expect_ident()) {
+                value.push_str(" ");
+                value.push_str(&ident);
+            }
+            Ok(FontFamily::FamilyName(Atom::from(value)))
         }
-        while let Ok(ident) = input.try(|input| input.expect_ident()) {
-            value.push_str(" ");
-            value.push_str(&ident);
-        }
-        Ok(FontFamily::FamilyName(Atom::from(value)))
     }
 </%helpers:longhand>
 

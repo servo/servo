@@ -11,7 +11,6 @@
 use computed_values::font_family::FontFamily;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error, Parse};
-use properties::longhands::font_family::parse_one_family;
 use std::fmt;
 use std::iter;
 use style_traits::ToCss;
@@ -181,40 +180,44 @@ impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
 
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
         match_ignore_ascii_case! { name,
-            "font-family" => {
-                self.rule.family = parse_one_family(input)?;
-            },
-            "src" => {
-                self.rule.sources = input.parse_comma_separated(|input| {
-                    parse_one_src(self.context, input)
-                })?;
-            },
+            "font-family" => self.rule.family = Parse::parse(self.context, input)?,
+            "src" => self.rule.sources = Parse::parse(self.context, input)?,
             _ => return Err(())
         }
         Ok(())
     }
 }
 
-fn parse_one_src(context: &ParserContext, input: &mut Parser) -> Result<Source, ()> {
-    if input.try(|input| input.expect_function_matching("local")).is_ok() {
-        return Ok(Source::Local(try!(input.parse_nested_block(parse_one_family))))
+impl Parse for Vec<Source> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        input.parse_comma_separated(|input| Source::parse(context, input))
     }
+}
 
-    let url = try!(SpecifiedUrl::parse(context, input));
+impl Parse for Source {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Source, ()> {
+        if input.try(|input| input.expect_function_matching("local")).is_ok() {
+            return input.parse_nested_block(|input| {
+                FontFamily::parse(context, input)
+            }).map(Source::Local)
+        }
 
-    // Parsing optional format()
-    let format_hints = if input.try(|input| input.expect_function_matching("format")).is_ok() {
-        try!(input.parse_nested_block(|input| {
-            input.parse_comma_separated(|input| {
-                Ok((try!(input.expect_string())).into_owned())
-            })
+        let url = SpecifiedUrl::parse(context, input)?;
+
+        // Parsing optional format()
+        let format_hints = if input.try(|input| input.expect_function_matching("format")).is_ok() {
+            input.parse_nested_block(|input| {
+                input.parse_comma_separated(|input| {
+                    Ok(input.expect_string()?.into_owned())
+                })
+            })?
+        } else {
+            vec![]
+        };
+
+        Ok(Source::Url(UrlSource {
+            url: url,
+            format_hints: format_hints,
         }))
-    } else {
-        vec![]
-    };
-
-    Ok(Source::Url(UrlSource {
-        url: url,
-        format_hints: format_hints,
-    }))
+    }
 }

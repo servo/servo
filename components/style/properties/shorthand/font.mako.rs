@@ -7,8 +7,10 @@
 <%helpers:shorthand name="font" sub_properties="font-style font-variant font-weight font-stretch
                                                 font-size line-height font-family"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
+    use parser::Parse;
     use properties::longhands::{font_style, font_variant, font_weight, font_stretch};
     use properties::longhands::{font_size, line_height, font_family};
+    use properties::longhands::font_family::computed_value::FontFamily;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let mut nb_normals = 0;
@@ -64,7 +66,7 @@
         } else {
             None
         };
-        let family = try!(input.parse_comma_separated(font_family::parse_one_family));
+        let family = Vec::<FontFamily>::parse(context, input)?;
         Ok(Longhands {
             font_style: style,
             font_variant: variant,
