@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
 use dom::bindings::conversions::{ArrayBufferViewContents, ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use dom::bindings::conversions::{array_buffer_to_vec};
-use dom::bindings::conversions::{array_buffer_view_to_vec, array_buffer_view_to_vec_checked};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS, Root};
@@ -591,10 +590,9 @@ unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
           <T as FromJSValConvertible>::Config: Clone,
 {
     assert!(!sequence_or_abv.is_null());
-    if let Some(v) = array_buffer_view_to_vec_checked::<T>(sequence_or_abv) {
-        return Ok(v);
-    }
-
+    //if let Some(v) = array_buffer_view_to_vec_checked::<T>(sequence_or_abv) {
+        //return Ok(v);
+    //}
     rooted!(in(cx) let mut val = UndefinedValue());
     sequence_or_abv.to_jsval(cx, val.handle_mut());
 
@@ -608,13 +606,13 @@ unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe fn fallible_array_buffer_view_to_vec<T>(abv: *mut JSObject) -> Result<Vec<T>, Error>
-    where T: ArrayBufferViewContents
+unsafe fn fallible_array_buffer_view_to_vec(cx: *mut JSContext, abv: *mut JSObject) -> Result<Vec<u8>, Error>
 {
     assert!(!abv.is_null());
-    match array_buffer_view_to_vec::<T>(abv) {
-        Some(v) => Ok(v),
-        None => Err(Error::Type("Not an ArrayBufferView".to_owned())),
+    typedarray!(in(cx) let array_buffer_view: ArrayBufferView = abv);
+    match array_buffer_view {
+        Ok(mut v) => Ok(v.as_slice().to_vec()),
+        Err(_) => Err(Error::Type("Not an ArrayBufferView".to_owned())),
     }
 }
 
@@ -1001,7 +999,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data_vec = match array_buffer_to_vec::<u8>(data) {
             Some(data) => data,
             // Not an ArrayBuffer object, maybe an ArrayBufferView?
-            None => try!(fallible_array_buffer_view_to_vec::<u8>(data)),
+            None => try!(fallible_array_buffer_view_to_vec(_cx, data)),
         };
 
         let bound_buffer = match target {
@@ -1069,7 +1067,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data_vec = match array_buffer_to_vec::<u8>(data) {
             Some(data) => data,
             // Not an ArrayBuffer object, maybe an ArrayBufferView?
-            None => try!(fallible_array_buffer_view_to_vec::<u8>(data)),
+            None => try!(fallible_array_buffer_view_to_vec(_cx, data)),
         };
 
         let bound_buffer = match target {
@@ -1101,7 +1099,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     unsafe fn CompressedTexImage2D(&self, _cx: *mut JSContext, _target: u32, _level: i32, _internal_format: u32,
                             _width: i32, _height: i32, _border: i32, pixels: *mut JSObject) -> Fallible<()> {
-        let _data = try!(fallible_array_buffer_view_to_vec::<u8>(pixels) );
+        let _data = try!(fallible_array_buffer_view_to_vec(_cx, pixels) );
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
         self.webgl_error(InvalidEnum);
@@ -1113,7 +1111,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     unsafe fn CompressedTexSubImage2D(&self, _cx: *mut JSContext, _target: u32, _level: i32,
                                _xoffset: i32, _yoffset: i32, _width: i32, _height: i32,
                                _format: u32, pixels: *mut JSObject) -> Fallible<()> {
-        let _data = try!(fallible_array_buffer_view_to_vec::<u8>(pixels));
+        let _data = try!(fallible_array_buffer_view_to_vec(_cx, pixels));
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
         self.webgl_error(InvalidEnum);
@@ -2577,7 +2575,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data = if data_ptr.is_null() {
             None
         } else {
-            Some(try!(fallible_array_buffer_view_to_vec::<u8>(data_ptr)))
+            Some(try!(fallible_array_buffer_view_to_vec(_cx, data_ptr)))
         };
 
         let validator = TexImage2DValidator::new(self, target, level,
@@ -2683,7 +2681,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data = if data_ptr.is_null() {
             None
         } else {
-            Some(try!(fallible_array_buffer_view_to_vec::<u8>(data_ptr)))
+            Some(try!(fallible_array_buffer_view_to_vec(_cx, data_ptr)))
         };
 
 
