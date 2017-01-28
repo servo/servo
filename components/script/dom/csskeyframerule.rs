@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CSSKeyframeRuleBinding::{self, CSSKeyframeRuleMethods};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
@@ -47,8 +48,8 @@ impl CSSKeyframeRuleMethods for CSSKeyframeRule {
     fn Style(&self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             CSSStyleDeclaration::new(self.global().as_window(),
-                                     CSSStyleOwner::CSSRule(JS::from_ref(self.global().as_window()),
-                                                                 self.keyframerule.read().block.clone()),
+                                     CSSStyleOwner::CSSRule(JS::from_ref(self.upcast()),
+                                                            self.keyframerule.read().block.clone()),
                                      None,
                                      CSSModificationAccess::ReadWrite)
         })
