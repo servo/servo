@@ -1117,10 +1117,13 @@ pub type LengthOrNumber = Either<Length, Number>;
 impl LengthOrNumber {
     /// Parse a non-negative LengthOrNumber.
     pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(v) = input.try(Length::parse_non_negative) {
-            Ok(Either::First(v))
+        // We try to parse as a Number first because, for cases like LengthOrNumber,
+        // we want "0" to be parsed as a plain Number rather than a Length (0px); this
+        // matches the behaviour of all major browsers
+        if let Ok(v) = input.try(Number::parse_non_negative) {
+            Ok(Either::Second(v))
         } else {
-            Number::parse_non_negative(input).map(Either::Second)
+            Length::parse_non_negative(input).map(Either::First)
         }
     }
 }
