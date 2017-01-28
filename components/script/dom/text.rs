@@ -81,10 +81,10 @@ impl TextMethods for Text {
 
     // https://dom.spec.whatwg.org/#dom-text-wholetext
     fn WholeText(&self) -> DOMString {
-        let first = self.upcast::<Node>().inclusively_preceding_siblings()
+        let first = self.upcast::<Node>().inclusively_preceding_siblings::<Node>()
                                          .take_while(|node| node.is::<Text>())
                                          .last().unwrap();
-        let nodes = first.inclusively_following_siblings()
+        let nodes = first.inclusively_following_siblings::<Node>()
                          .take_while(|node| node.is::<Text>());
         let mut text = String::new();
         for ref node in nodes {

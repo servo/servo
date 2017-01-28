@@ -75,7 +75,7 @@ impl HTMLTableElement {
     // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
     fn get_first_section_of_type(&self, atom: &LocalName) -> Option<Root<HTMLTableSectionElement>> {
         self.upcast::<Node>()
-            .child_elements()
+            .children::<Element>()
             .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == atom)
             .and_then(|n| n.downcast().map(Root::from_ref))
     }
@@ -99,7 +99,7 @@ impl HTMLTableElement {
         let node = self.upcast::<Node>();
 
         if let Some(section) = section {
-            let reference_element = node.child_elements().find(reference_predicate);
+            let reference_element = node.children::<Element>().find(reference_predicate);
             let reference_node = reference_element.r().map(|e| e.upcast());
 
             try!(node.InsertBefore(section.upcast(), reference_node));
@@ -138,7 +138,7 @@ impl HTMLTableElement {
     fn get_rows(&self) -> TableRowFilter {
         TableRowFilter {
             sections: self.upcast::<Node>()
-                          .children()
+                          .children::<Node>()
                           .filter_map(|ref node|
                                 node.downcast::<HTMLTableSectionElement>().map(|_| JS::from_ref(&**node)))
                           .collect()
@@ -155,7 +155,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn GetCaption(&self) -> Option<Root<HTMLTableCaptionElement>> {
-        self.upcast::<Node>().children().filter_map(Root::downcast).next()
+        self.upcast::<Node>().children::<Node>().filter_map(Root::downcast).next()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
@@ -276,9 +276,9 @@ impl HTMLTableElementMethods for HTMLTableElement {
                                                  &document_from_node(self));
         let node = self.upcast::<Node>();
         let last_tbody =
-            node.rev_children()
-                .filter_map(Root::downcast::<Element>)
-                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody"));
+            node.rev_children::<HTMLTableSectionElement>()
+                .map(Root::upcast::<Element>)
+                .find(|n| n.local_name() == &local_name!("tbody"));
         let reference_element =
             last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
@@ -303,9 +303,9 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
         if number_of_row_elements == 0 {
             // append new row to last or new tbody in table
-            if let Some(last_tbody) = node.rev_children()
-                .filter_map(Root::downcast::<Element>)
-                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody")) {
+            if let Some(last_tbody) = node.rev_children::<HTMLTableSectionElement>()
+                .map(Root::upcast::<Element>)
+                .find(|n| n.local_name() == &local_name!("tbody")) {
                     last_tbody.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
                                                .expect("InsertRow failed to append first row.");
                 } else {

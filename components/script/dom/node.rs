@@ -75,6 +75,7 @@ use std::cell::{Cell, UnsafeCell};
 use std::cmp::max;
 use std::default::Default;
 use std::iter;
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::Range;
 use std::sync::Arc;
@@ -241,7 +242,7 @@ impl Node {
         self.children_count.set(self.children_count.get() + 1);
 
         let parent_in_doc = self.is_in_doc();
-        for node in new_child.traverse_preorder() {
+        for node in new_child.traverse_preorder::<Node>() {
             node.set_flag(IS_IN_DOC, parent_in_doc);
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(HAS_DIRTY_DESCENDANTS));
@@ -282,7 +283,7 @@ impl Node {
         child.parent_node.set(None);
         self.children_count.set(self.children_count.get() - 1);
 
-        for node in child.traverse_preorder() {
+        for node in child.traverse_preorder::<Node>() {
             // Out-of-document elements never have the descendants flag set.
             node.set_flag(IS_IN_DOC | HAS_DIRTY_DESCENDANTS, false);
             vtable_for(&&*node).unbind_from_tree(&context);
@@ -300,11 +301,11 @@ impl Node {
 
 pub struct QuerySelectorIterator {
     selectors: SelectorList<SelectorImpl>,
-    iterator: TreeIterator,
+    iterator: TreeIterator<Node>,
 }
 
 impl<'a> QuerySelectorIterator {
-     fn new(iter: TreeIterator, selectors: SelectorList<SelectorImpl>)
+     fn new(iter: TreeIterator<Node>, selectors: SelectorList<SelectorImpl>)
                   -> QuerySelectorIterator {
         QuerySelectorIterator {
             selectors: selectors,
@@ -335,7 +336,7 @@ impl<'a> Iterator for QuerySelectorIterator {
 impl Node {
     pub fn teardown(&self) {
         self.style_and_layout_data.get().map(|d| self.dispose(d));
-        for kid in self.children() {
+        for kid in self.children::<Node>() {
             kid.teardown();
         }
     }
@@ -356,7 +357,7 @@ impl Node {
         debug!("{:?}", s);
 
         // FIXME: this should have a pure version?
-        for kid in self.children() {
+        for kid in self.children::<Node>() {
             kid.dump_indent(indent + 1)
         }
     }
@@ -391,7 +392,7 @@ impl Node {
 
     // https://dom.spec.whatwg.org/#concept-tree-index
     pub fn index(&self) -> u32 {
-        self.preceding_siblings().count() as u32
+        self.preceding_siblings::<Node>().count() as u32
     }
 
     pub fn children_count(&self) -> u32 {
@@ -461,19 +462,24 @@ impl Node {
     }
 
     /// Iterates over this node and all its descendants, in preorder.
-    pub fn traverse_preorder(&self) -> TreeIterator {
-        TreeIterator::new(self)
+    pub fn traverse_preorder<T>(&self) -> TreeIterator<T>
+        where T: DerivedFrom<Node> {
+        TreeIterator::<T>::new(self)
     }
 
-    pub fn inclusively_following_siblings(&self) -> NodeSiblingIterator {
-        NodeSiblingIterator {
+    pub fn inclusively_following_siblings<T>(&self) -> SiblingIterator<T>
+        where T: DerivedFrom<Node> {
+        SiblingIterator {
             current: Some(Root::from_ref(self)),
+            phantom: PhantomData,
         }
     }
 
-    pub fn inclusively_preceding_siblings(&self) -> ReverseSiblingIterator {
+    pub fn inclusively_preceding_siblings<T>(&self) -> ReverseSiblingIterator<T>
+        where T: DerivedFrom<Node> {
         ReverseSiblingIterator {
             current: Some(Root::from_ref(self)),
+            phantom: PhantomData,
         }
     }
 
@@ -485,35 +491,40 @@ impl Node {
         parent.ancestors().any(|ancestor| &*ancestor == self)
     }
 
-    pub fn following_siblings(&self) -> NodeSiblingIterator {
-        NodeSiblingIterator {
+    pub fn following_siblings<T>(&self) -> SiblingIterator<T> where T: DerivedFrom<Node> {
+        SiblingIterator {
             current: self.GetNextSibling(),
+            phantom: PhantomData,
         }
     }
 
-    pub fn preceding_siblings(&self) -> ReverseSiblingIterator {
+    pub fn preceding_siblings<T>(&self) -> ReverseSiblingIterator<T> where T: DerivedFrom<Node> {
         ReverseSiblingIterator {
             current: self.GetPreviousSibling(),
+            phantom: PhantomData,
         }
     }
 
-    pub fn following_nodes(&self, root: &Node) -> FollowingNodeIterator {
-        FollowingNodeIterator {
+    pub fn following_nodes<T>(&self, root: &Node) -> FollowingIterator<T> where T: DerivedFrom<Node> {
+        FollowingIterator {
             current: Some(Root::from_ref(self)),
             root: Root::from_ref(root),
+            phantom: PhantomData,
         }
     }
 
-    pub fn preceding_nodes(&self, root: &Node) -> PrecedingNodeIterator {
-        PrecedingNodeIterator {
+    pub fn preceding_nodes<T>(&self, root: &Node) -> PrecedingIterator<T> where T: DerivedFrom<Node> {
+        PrecedingIterator {
             current: Some(Root::from_ref(self)),
             root: Root::from_ref(root),
+            phantom: PhantomData,
         }
     }
 
-    pub fn descending_last_children(&self) -> LastChildIterator {
+    pub fn descending_last_children<T>(&self) -> LastChildIterator<T> where T: DerivedFrom<Node> {
         LastChildIterator {
             current: self.GetLastChild(),
+            phantom: PhantomData,
         }
     }
 
@@ -684,7 +695,7 @@ impl Node {
             Err(()) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
-                Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
+                Ok(self.traverse_preorder::<Node>().filter_map(Root::downcast).find(|element| {
                     matches(&selectors.0, element, None)
                 }))
             }
@@ -703,7 +714,7 @@ impl Node {
             Err(()) => Err(Error::Syntax),
             // Step 3.
             Ok(selectors) => {
-                let mut descendants = self.traverse_preorder();
+                let mut descendants = self.traverse_preorder::<Node>();
                 // Skip the root of the tree.
                 assert!(&*descendants.next().unwrap() == self);
                 Ok(QuerySelectorIterator::new(descendants, selectors))
@@ -719,15 +730,17 @@ impl Node {
         Ok(NodeList::new_simple_list(&window, iter))
     }
 
-    pub fn ancestors(&self) -> AncestorIterator {
+    pub fn ancestors(&self) -> AncestorIterator<Node> {
         AncestorIterator {
-            current: self.GetParentNode()
+            current: self.GetParentNode(),
+            phantom: PhantomData,
         }
     }
 
-    pub fn inclusive_ancestors(&self) -> AncestorIterator {
+    pub fn inclusive_ancestors(&self) -> AncestorIterator<Node> {
         AncestorIterator {
-            current: Some(Root::from_ref(self))
+            current: Some(Root::from_ref(self)),
+            phantom: PhantomData,
         }
     }
 
@@ -747,20 +760,18 @@ impl Node {
         self.is_in_doc() && self.owner_doc().browsing_context().is_some()
     }
 
-    pub fn children(&self) -> NodeSiblingIterator {
-        NodeSiblingIterator {
+    pub fn children<T>(&self) -> SiblingIterator<T> where T: DerivedFrom<Node> {
+        SiblingIterator {
             current: self.GetFirstChild(),
+            phantom: PhantomData,
         }
     }
 
-    pub fn rev_children(&self) -> ReverseSiblingIterator {
+    pub fn rev_children<T>(&self) -> ReverseSiblingIterator<T> where T: DerivedFrom<Node> {
         ReverseSiblingIterator {
             current: self.GetLastChild(),
+            phantom: PhantomData,
         }
-    }
-
-    pub fn child_elements(&self) -> impl Iterator<Item=Root<Element>> {
-        self.children().filter_map(Root::downcast as fn(_) -> _).peekable()
     }
 
     pub fn remove_self(&self) {
@@ -843,8 +854,8 @@ impl Node {
             index if index < -1 => return Err(Error::IndexSize),
             -1 => {
                 let last_child = self.upcast::<Node>().GetLastChild();
-                match last_child.and_then(|node| node.inclusively_preceding_siblings()
-                                                     .filter_map(Root::downcast::<Element>)
+                match last_child.and_then(|node| node.inclusively_preceding_siblings::<Element>()
+                                                     //.filter_map(Root::downcast::<Element>)
                                                      .filter(|elem| is_delete_type(elem))
                                                      .next()) {
                     Some(element) => element,
@@ -1116,74 +1127,23 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
 // Iteration and traversal
 //
 
-pub struct NodeSiblingIterator {
+pub struct SiblingIterator<T: DerivedFrom<Node>> {
     current: Option<Root<Node>>,
+    phantom: PhantomData<T>,
 }
 
-impl Iterator for NodeSiblingIterator {
-    type Item = Root<Node>;
+impl<T> Iterator for SiblingIterator<T> where T: DerivedFrom<Node> {
+    type Item = Root<T>;
 
-    fn next(&mut self) -> Option<Root<Node>> {
+    fn next(&mut self) -> Option<Self::Item> {
         let current = match self.current.take() {
             None => return None,
             Some(current) => current,
         };
-        self.current = current.GetNextSibling();
-        Some(current)
-    }
-}
-
-pub struct ReverseSiblingIterator {
-    current: Option<Root<Node>>,
-}
-
-impl Iterator for ReverseSiblingIterator {
-    type Item = Root<Node>;
-
-    fn next(&mut self) -> Option<Root<Node>> {
-        let current = match self.current.take() {
-            None => return None,
-            Some(current) => current,
-        };
-        self.current = current.GetPreviousSibling();
-        Some(current)
-    }
-}
-
-pub struct FollowingNodeIterator {
-    current: Option<Root<Node>>,
-    root: Root<Node>,
-}
-
-impl FollowingNodeIterator {
-    /// Skips iterating the children of the current node
-    pub fn next_skipping_children(&mut self) -> Option<Root<Node>> {
-        let current = match self.current.take() {
-            None => return None,
-            Some(current) => current,
-        };
-
-        self.next_skipping_children_impl(current)
-    }
-
-    fn next_skipping_children_impl(&mut self, current: Root<Node>) -> Option<Root<Node>> {
-        if self.root == current {
-            self.current = None;
-            return None;
-        }
-
-        if let Some(next_sibling) = current.GetNextSibling() {
-            self.current = Some(next_sibling);
-            return current.GetNextSibling()
-        }
-
-        for ancestor in current.inclusive_ancestors() {
-            if self.root == ancestor {
-                break;
-            }
-            if let Some(next_sibling) = ancestor.GetNextSibling() {
-                self.current = Some(next_sibling);
-                return ancestor.GetNextSibling()
+        while let Some(next_sibling) = current.GetNextSibling() {
+            if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
+                self.current = Some(Root::upcast(next_sibling.clone()));
+                return Some(next_sibling);
             }
         }
         self.current = None;
@@ -1191,35 +1151,117 @@ impl FollowingNodeIterator {
     }
 }
 
-impl Iterator for FollowingNodeIterator {
-    type Item = Root<Node>;
+pub struct ReverseSiblingIterator<T: DerivedFrom<Node>> {
+    current: Option<Root<Node>>,
+    phantom: PhantomData<T>,
+}
 
-    // https://dom.spec.whatwg.org/#concept-tree-following
-    fn next(&mut self) -> Option<Root<Node>> {
+impl<T> Iterator for ReverseSiblingIterator<T> where T: DerivedFrom<Node> {
+    type Item = Root<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+        while let Some(previous_sibling) = current.GetPreviousSibling() {
+            if let Some(previous_sibling) = Root::downcast::<T>(previous_sibling) {
+                self.current = Some(Root::upcast(previous_sibling.clone()));
+                return Some(previous_sibling);
+            }
+        }
+        self.current = None;
+        None
+    }
+}
+
+
+pub struct FollowingIterator<T: DerivedFrom<Node>> {
+    current: Option<Root<Node>>,
+    root: Root<Node>,
+    phantom: PhantomData<T>,
+}
+
+impl<T> FollowingIterator<T> where T: DerivedFrom<Node> {
+    /// Skips iterating the children of the current node
+    pub fn next_skipping_children(&mut self) -> Option<Root<T>> {
         let current = match self.current.take() {
             None => return None,
             Some(current) => current,
         };
 
-        if let Some(first_child) = current.GetFirstChild() {
-            self.current = Some(first_child);
-            return current.GetFirstChild()
+        self.next_skipping_children_impl(current)
+    }
+
+    fn next_skipping_children_impl(&mut self, current: Root<Node>) -> Option<Root<T>> {
+        if self.root == current {
+            self.current = None;
+            return None;
+        }
+
+        while let Some(next_sibling) = current.GetNextSibling() {
+            if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
+                self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
+                return Some(next_sibling.clone())
+            }
+        }
+
+        for ancestor in current.inclusive_ancestors() {
+            if self.root == ancestor {
+                break;
+            }
+            while let Some(next_sibling) = ancestor.GetNextSibling() {
+                if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
+                    self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
+                    return Some(next_sibling.clone())
+                }
+            }
+        }
+        self.current = None;
+        None
+    }
+}
+
+impl<T> Iterator for FollowingIterator<T> where T: DerivedFrom<Node> {
+    type Item = Root<T>;
+
+    // https://dom.spec.whatwg.org/#concept-tree-following
+    fn next(&mut self) -> Option<Root<T>> {
+        let current = match self.current.take() {
+            None => return None,
+            Some(current) => current,
+        };
+
+        while let Some(first_child) = current.GetFirstChild() {
+            if let Some(first_child) = Root::downcast::<T>(first_child) {
+                self.current = Some(Root::upcast::<Node>(first_child.clone()));
+                return Some(first_child);
+            }
+        }
+
+        while let Some(first_child) = current.GetFirstChild() {
+            if let Some(first_child) = Root::downcast::<T>(first_child) {
+                self.current = Some(Root::upcast::<Node>(first_child.clone()));
+                return Some(first_child);
+            }
         }
 
         self.next_skipping_children_impl(current)
     }
+
 }
 
-pub struct PrecedingNodeIterator {
+pub struct PrecedingIterator<T: DerivedFrom<Node>> {
     current: Option<Root<Node>>,
     root: Root<Node>,
+    phantom: PhantomData<T>,
 }
 
-impl Iterator for PrecedingNodeIterator {
-    type Item = Root<Node>;
+impl<T> Iterator for PrecedingIterator<T> where T: DerivedFrom<Node> {
+    type Item = Root<T>;
 
     // https://dom.spec.whatwg.org/#concept-tree-preceding
-    fn next(&mut self) -> Option<Root<Node>> {
+    fn next(&mut self) -> Option<Self::Item> {
         let current = match self.current.take() {
             None => return None,
             Some(current) => current,
@@ -1230,66 +1272,78 @@ impl Iterator for PrecedingNodeIterator {
         } else if let Some(previous_sibling) = current.GetPreviousSibling() {
             if self.root == previous_sibling {
                 None
-            } else if let Some(last_child) = previous_sibling.descending_last_children().last() {
-                Some(last_child)
+            } else if let Some(last_child) = previous_sibling.descending_last_children::<T>().last() {
+                Some(Root::upcast::<Node>(last_child))
             } else {
-                Some(previous_sibling)
+                Some(Root::upcast::<Node>(previous_sibling))
             }
         } else {
-            current.GetParentNode()
+            if let Some(parent_node) = current.GetParentNode() {
+                Some(Root::upcast::<Node>(parent_node))
+            } else {
+                None
+            }
         };
-        self.current.clone()
+
+        //TODO: dominotree - not sure how to handle failures here - is returning None okay if it can't cast to T?
+        return Root::downcast::<T>(current);
     }
 }
 
-pub struct LastChildIterator {
+pub struct LastChildIterator<T: DerivedFrom<Node>> {
     current: Option<Root<Node>>,
+    phantom: PhantomData<T>,
 }
 
-impl Iterator for LastChildIterator {
-    type Item = Root<Node>;
+impl<T> Iterator for LastChildIterator<T> where T: DerivedFrom<Node> {
+    type Item = Root<T>;
 
-    fn next(&mut self) -> Option<Root<Node>> {
+    fn next(&mut self) -> Option<Self::Item> {
         let current = match self.current.take() {
             None => return None,
-            Some(current) => current,
+            //TODO - dominotree - really not sure about this unwrap() here - figure out how to handle "bad" types
+            Some(current) => Root::downcast::<T>(current).unwrap(),
         };
-        self.current = current.GetLastChild();
+        self.current = Root::upcast::<Node>(current.clone()).GetLastChild();
         Some(current)
     }
 }
 
-pub struct AncestorIterator {
+pub struct AncestorIterator<T: DerivedFrom<Node>> {
     current: Option<Root<Node>>,
+    phantom: PhantomData<T>,
 }
 
-impl Iterator for AncestorIterator {
-    type Item = Root<Node>;
+impl<T> Iterator for AncestorIterator<T> where T: DerivedFrom<Node> {
+    type Item = Root<T>;
 
-    fn next(&mut self) -> Option<Root<Node>> {
+    fn next(&mut self) -> Option<Self::Item> {
         let current = match self.current.take() {
             None => return None,
-            Some(current) => current,
+            //TODO - dominotree - really not sure about this unwrap() here - figure out how to handle "bad" types
+            Some(current) => Root::downcast::<T>(current).unwrap(),
         };
-        self.current = current.GetParentNode();
+        self.current = Root::upcast::<Node>(current.clone()).GetParentNode();
         Some(current)
     }
 }
 
-pub struct TreeIterator {
+pub struct TreeIterator<T: DerivedFrom<Node>> {
     current: Option<Root<Node>>,
     depth: usize,
+    phantom: PhantomData<T>,
 }
 
-impl TreeIterator {
-    fn new(root: &Node) -> TreeIterator {
+impl<T> TreeIterator<T> where T: DerivedFrom<Node> {
+    fn new(root: &Node) -> TreeIterator<T> {
         TreeIterator {
             current: Some(Root::from_ref(root)),
             depth: 0,
+            phantom: PhantomData,
         }
     }
 
-    pub fn next_skipping_children(&mut self) -> Option<Root<Node>> {
+    pub fn next_skipping_children(&mut self) -> Option<Root<T>> {
         let current = match self.current.take() {
             None => return None,
             Some(current) => current,
@@ -1298,36 +1352,41 @@ impl TreeIterator {
         self.next_skipping_children_impl(current)
     }
 
-    fn next_skipping_children_impl(&mut self, current: Root<Node>) -> Option<Root<Node>> {
+    fn next_skipping_children_impl(&mut self, current: Root<Node>) -> Option<Root<T>> {
         for ancestor in current.inclusive_ancestors() {
             if self.depth == 0 {
                 break;
             }
             if let Some(next_sibling) = ancestor.GetNextSibling() {
-                self.current = Some(next_sibling);
-                return Some(current);
+                if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
+                    self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
+                    return Root::downcast::<T>(current);
+                }
             }
             self.depth -= 1;
         }
         debug_assert!(self.depth == 0);
         self.current = None;
-        Some(current)
+        //TODO: dominotree - not sure how to handle failures here - is returning None okay if it can't cast to T?
+        return Root::downcast::<T>(current);
     }
 }
 
-impl Iterator for TreeIterator {
-    type Item = Root<Node>;
+impl<T> Iterator for TreeIterator<T> where T: DerivedFrom<Node> {
+    type Item = Root<T>;
 
     // https://dom.spec.whatwg.org/#concept-tree-order
-    fn next(&mut self) -> Option<Root<Node>> {
+    fn next(&mut self) -> Option<Self::Item> {
         let current = match self.current.take() {
             None => return None,
             Some(current) => current,
         };
         if let Some(first_child) = current.GetFirstChild() {
-            self.current = Some(first_child);
-            self.depth += 1;
-            return Some(current);
+            if let Some(first_child) = Root::downcast::<T>(first_child) {
+                self.depth += 1;
+                self.current = Some(Root::upcast::<Node>(first_child.clone()));
+                return Some(first_child);
+            }
         };
 
         self.next_skipping_children_impl(current)
@@ -1395,11 +1454,11 @@ impl Node {
         node.remove_self();
         if &*old_doc != document {
             // Step 3.
-            for descendant in node.traverse_preorder() {
+            for descendant in node.traverse_preorder::<Node>() {
                 descendant.set_owner_doc(document);
             }
             // Step 4.
-            for descendant in node.traverse_preorder() {
+            for descendant in node.traverse_preorder::<Node>() {
                 vtable_for(&descendant).adopting_steps(&old_doc);
             }
         }
@@ -1454,22 +1513,20 @@ impl Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
-                    if node.children()
-                           .any(|c| c.is::<Text>())
+                    if node.children::<Text>().count() > 0
                     {
                         return Err(Error::HierarchyRequest);
                     }
-                    match node.child_elements().count() {
+                    match node.children::<Element>().count() {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if !parent.child_elements().next().is_none() {
+                            if !parent.children::<Element>().next().is_none() {
                                 return Err(Error::HierarchyRequest);
                             }
                             if let Some(child) = child {
-                                if child.inclusively_following_siblings()
-                                    .any(|child| child.is_doctype()) {
-                                        return Err(Error::HierarchyRequest);
+                                if child.inclusively_following_siblings::<DocumentType>().count() > 0 {
+                                    return Err(Error::HierarchyRequest);
                                 }
                             }
                         },
@@ -1479,26 +1536,23 @@ impl Node {
                 },
                 // Step 6.2
                 NodeTypeId::Element(_) => {
-                    if !parent.child_elements().next().is_none() {
+                    if !parent.children::<Element>().next().is_none() {
                         return Err(Error::HierarchyRequest);
                     }
                     if let Some(ref child) = child {
-                        if child.inclusively_following_siblings()
-                            .any(|child| child.is_doctype()) {
-                                return Err(Error::HierarchyRequest);
+                        if child.inclusively_following_siblings::<DocumentType>().count() > 0 {
+                            return Err(Error::HierarchyRequest);
                         }
                     }
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if parent.children()
-                             .any(|c| c.is_doctype())
-                    {
+                    if parent.children::<DocumentType>().count() > 0 {
                         return Err(Error::HierarchyRequest);
                     }
                     match child {
                         Some(child) => {
-                            if parent.children()
+                            if parent.children::<Node>()
                                      .take_while(|c| &**c != child)
                                      .any(|c| c.is::<Element>())
                             {
@@ -1506,7 +1560,7 @@ impl Node {
                             }
                         },
                         None => {
-                            if !parent.child_elements().next().is_none() {
+                            if !parent.children::<Element>().next().is_none() {
                                 return Err(Error::HierarchyRequest);
                             }
                         },
@@ -1960,7 +2014,7 @@ impl NodeMethods for Node {
         match self.type_id() {
             NodeTypeId::DocumentFragment |
             NodeTypeId::Element(..) => {
-                let content = Node::collect_text_contents(self.traverse_preorder());
+                let content = Node::collect_text_contents(self.traverse_preorder::<Node>());
                 Some(content)
             }
             NodeTypeId::CharacterData(..) => {
@@ -2044,20 +2098,18 @@ impl NodeMethods for Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
-                    if node.children()
-                           .any(|c| c.is::<Text>())
+                    if node.children::<Text>().count() > 0
                     {
                         return Err(Error::HierarchyRequest);
                     }
-                    match node.child_elements().count() {
+                    match node.children::<Element>().count() {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if self.child_elements().any(|c| c.upcast::<Node>() != child) {
+                            if self.children::<Element>().any(|c| c.upcast::<Node>() != child) {
                                 return Err(Error::HierarchyRequest);
                             }
-                            if child.following_siblings()
-                                    .any(|child| child.is_doctype()) {
+                            if child.following_siblings::<DocumentType>().count() > 0 {
                                 return Err(Error::HierarchyRequest);
                             }
                         },
@@ -2067,25 +2119,19 @@ impl NodeMethods for Node {
                 },
                 // Step 6.2
                 NodeTypeId::Element(..) => {
-                    if self.child_elements()
-                           .any(|c| c.upcast::<Node>() != child) {
+                    if self.children::<Element>().any(|c| c.upcast::<Node>() != child) {
                         return Err(Error::HierarchyRequest);
                     }
-                    if child.following_siblings()
-                            .any(|child| child.is_doctype())
-                    {
+                    if child.following_siblings::<DocumentType>().count() > 0 {
                         return Err(Error::HierarchyRequest);
                     }
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if self.children()
-                           .any(|c| c.is_doctype() &&
-                                &*c != child)
-                    {
+                    if self.children::<DocumentType>().any(|c| c.upcast::<Node>() != child) {
                         return Err(Error::HierarchyRequest);
                     }
-                    if self.children()
+                    if self.children::<Node>()
                            .take_while(|c| &**c != child)
                            .any(|c| c.is::<Element>())
                     {
@@ -2151,7 +2197,7 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-normalize
     fn Normalize(&self) {
-        let mut children = self.children().enumerate().peekable();
+        let mut children = self.children::<Node>().enumerate().peekable();
         while let Some((_, node)) = children.next() {
             if let Some(text) = node.downcast::<Text>() {
                 let cdata = text.upcast::<CharacterData>();
@@ -2313,7 +2359,7 @@ impl NodeMethods for Node {
                     NodeConstants::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC;
             }
 
-            for child in lastself.traverse_preorder() {
+            for child in lastself.traverse_preorder::<Node>() {
                 if &*child == other {
                     // step 6.
                     return NodeConstants::DOCUMENT_POSITION_PRECEDING;
@@ -2507,22 +2553,22 @@ impl<'a> ChildrenMutation<'a> {
             // Add/remove at start of container: Return the first following element.
             ChildrenMutation::Prepend { next, .. } |
             ChildrenMutation::Replace { prev: None, next: Some(next), .. } => {
-                next.inclusively_following_siblings().filter(|node| node.is::<Element>()).next()
+                next.inclusively_following_siblings::<Element>().map(Root::upcast).next()
             }
             // Add/remove at end of container: Return the last preceding element.
             ChildrenMutation::Append { prev, .. } |
             ChildrenMutation::Replace { prev: Some(prev), next: None, .. } => {
-                prev.inclusively_preceding_siblings().filter(|node| node.is::<Element>()).next()
+                prev.inclusively_preceding_siblings::<Element>().map(Root::upcast).next()
             }
             // Insert or replace in the middle:
             ChildrenMutation::Insert { prev, next, .. } |
             ChildrenMutation::Replace { prev: Some(prev), next: Some(next), .. } => {
-                if prev.inclusively_preceding_siblings().all(|node| !node.is::<Element>()) {
+                if prev.inclusively_preceding_siblings::<Node>().all(|node| !node.is::<Element>()) {
                     // Before the first element: Return the first following element.
-                    next.inclusively_following_siblings().filter(|node| node.is::<Element>()).next()
-                } else if next.inclusively_following_siblings().all(|node| !node.is::<Element>()) {
+                    next.inclusively_following_siblings::<Element>().map(Root::upcast).next()
+                } else if next.inclusively_following_siblings::<Node>().all(|node| !node.is::<Element>()) {
                     // After the last element: Return the last preceding element.
-                    prev.inclusively_preceding_siblings().filter(|node| node.is::<Element>()).next()
+                    prev.inclusively_preceding_siblings::<Element>().map(Root::upcast).next()
                 } else {
                     None
                 }

@@ -19,6 +19,8 @@
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
+// TODO: dominotree remove this
+#![allow(unrooted_must_root)]
 
 #![doc = "The script crate contains all matters DOM."]
 

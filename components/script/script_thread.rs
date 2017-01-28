@@ -1266,7 +1266,7 @@ impl ScriptThread {
         for (_, document) in self.documents.borrow().iter() {
             let current_url = document.url();
 
-            for child in document.upcast::<Node>().traverse_preorder() {
+            for child in document.upcast::<Node>().traverse_preorder::<Node>() {
                 dom_tree_size += heap_size_of_self_and_children(&*child);
             }
             dom_tree_size += heap_size_of_self_and_children(document.window());

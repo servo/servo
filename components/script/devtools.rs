@@ -93,7 +93,7 @@ fn find_node_by_unique_id(documents: &Documents,
                           node_id: &str)
                           -> Option<Root<Node>> {
     documents.find_document(pipeline).and_then(|document|
-        document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
+        document.upcast::<Node>().traverse_preorder::<Node>().find(|candidate| candidate.unique_id() == node_id)
     )
 }
 
@@ -104,7 +104,7 @@ pub fn handle_get_children(documents: &Documents,
     match find_node_by_unique_id(documents, pipeline, &*node_id) {
         None => return reply.send(None).unwrap(),
         Some(parent) => {
-            let children = parent.children()
+            let children = parent.children::<Node>()
                                  .map(|child| child.summarize())
                                  .collect();
 

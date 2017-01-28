@@ -132,8 +132,7 @@ impl VirtualMethods for HTMLLabelElement {
 impl HTMLLabelElement {
     pub fn first_labelable_descendant(&self) -> Option<Root<HTMLElement>> {
         self.upcast::<Node>()
-            .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLElement>)
+            .traverse_preorder::<HTMLElement>()
             .filter(|elem| elem.is_labelable_element())
             .next()
     }
