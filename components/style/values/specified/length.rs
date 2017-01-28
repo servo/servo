@@ -1117,10 +1117,10 @@ pub type LengthOrNumber = Either<Length, Number>;
 impl LengthOrNumber {
     /// Parse a non-negative LengthOrNumber.
     pub fn parse_non_negative(input: &mut Parser) -> Result<Self, ()> {
-        if let Ok(v) = input.try(Length::parse_non_negative) {
-            Ok(Either::First(v))
+        if let Ok(v) = input.try(Number::parse_non_negative) {
+            Ok(Either::Second(v))
         } else {
-            Number::parse_non_negative(input).map(Either::Second)
+            Length::parse_non_negative(input).map(Either::First)
         }
     }
 }
