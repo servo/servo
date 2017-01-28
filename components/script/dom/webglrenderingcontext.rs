@@ -135,6 +135,7 @@ pub struct WebGLRenderingContext {
     #[ignore_heap_size_of = "Defined in webrender_traits"]
     last_error: Cell<Option<WebGLError>>,
     texture_unpacking_settings: Cell<TextureUnpacking>,
+    texture_unpacking_alignment: Cell<u32>,
     bound_framebuffer: MutNullableJS<WebGLFramebuffer>,
     bound_renderbuffer: MutNullableJS<WebGLRenderbuffer>,
     bound_texture_2d: MutNullableJS<WebGLTexture>,
@@ -170,6 +171,7 @@ impl WebGLRenderingContext {
                 canvas: JS::from_ref(canvas),
                 last_error: Cell::new(None),
                 texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
+                texture_unpacking_alignment: Cell::new(4),
                 bound_framebuffer: MutNullableJS::new(None),
                 bound_texture_2d: MutNullableJS::new(None),
                 bound_texture_cube_map: MutNullableJS::new(None),
@@ -496,6 +498,7 @@ impl WebGLRenderingContext {
                                          height: u32,
                                          format: TexFormat,
                                          data_type: TexDataType,
+                                         unpacking_alignment: u32,
                                          data: *mut JSObject)
                                          -> Result<u32, ()> {
         let element_size = data_type.element_size();
@@ -527,8 +530,17 @@ impl WebGLRenderingContext {
         }
 
         // NOTE: width and height are positive or zero due to validate()
-        let expected_byte_length = width * height * element_size * components / components_per_element;
-        return Ok(expected_byte_length);
+        if height == 0 {
+            return Ok(0);
+        } else {
+            // We need to be careful here to not count unpack
+            // alignment at the end of the image, otherwise (for
+            // example) passing a single byte for uploading a 1x1
+            // GL_ALPHA/GL_UNSIGNED_BYTE texture would throw an error.
+            let cpp = element_size * components / components_per_element;
+            let stride = (width * cpp + unpacking_alignment - 1) & !(unpacking_alignment - 1);
+            return Ok(stride * (height - 1) + width * cpp);
+        }
     }
 
     /// Flips the pixels in the Vec on the Y axis if
@@ -538,7 +550,8 @@ impl WebGLRenderingContext {
                        internal_format: TexFormat,
                        data_type: TexDataType,
                        width: usize,
-                       height: usize) -> Vec<u8> {
+                       height: usize,
+                       unpacking_alignment: usize) -> Vec<u8> {
         if !self.texture_unpacking_settings.get().contains(FLIP_Y_AXIS) {
             return pixels;
         }
@@ -546,16 +559,16 @@ impl WebGLRenderingContext {
         let cpp = (data_type.element_size() *
                    internal_format.components() / data_type.components_per_element()) as usize;
 
-        let stride = width * cpp;
-
-        // This should have already been validated.
-        assert!(stride * height <= pixels.len());
+        let stride = (width * cpp + unpacking_alignment - 1) & !(unpacking_alignment - 1);
 
         let mut flipped = Vec::<u8>::with_capacity(pixels.len());
 
         for y in 0..height {
             let flipped_y = height - 1 - y;
-            flipped.extend_from_slice(&pixels[(flipped_y * stride)..((flipped_y + 1) * stride)]);
+            let start = flipped_y * stride;
+
+            flipped.extend_from_slice(&pixels[start..(start + width * cpp)]);
+            flipped.extend(vec![0u8; stride - width * cpp]);
         }
 
         flipped
@@ -636,12 +649,13 @@ impl WebGLRenderingContext {
                     width: u32,
                     height: u32,
                     _border: u32,
+                    unpacking_alignment: u32,
                     pixels: Vec<u8>) { // NB: pixels should NOT be premultipied
         // FINISHME: Consider doing premultiply and flip in a single mutable Vec.
         let pixels = self.premultiply_pixels(internal_format, data_type, pixels);
 
         let pixels = self.flip_teximage_y(pixels, internal_format, data_type,
-                                          width as usize, height as usize);
+                                          width as usize, height as usize, unpacking_alignment as usize);
 
         // TexImage2D depth is always equal to 1
         handle_potential_webgl_error!(self, texture.initialize(target,
@@ -650,6 +664,15 @@ impl WebGLRenderingContext {
                                                                internal_format,
                                                                level,
                                                                Some(data_type)));
+
+        // Set the unpack alignment.  For textures coming from arrays,
+        // this will be the current value of the context's
+        // GL_UNPACK_ALIGNMENT, while for textures from images or
+        // canvas (produced by rgba8_image_to_tex_image_data()), it
+        // will be 1.
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::PixelStorei(constants::UNPACK_ALIGNMENT, unpacking_alignment as i32)))
+            .unwrap();
 
         // TODO(emilio): convert colorspace if requested
         let msg = WebGLCommand::TexImage2D(target.as_gl_constant(), level as i32,
@@ -677,6 +700,7 @@ impl WebGLRenderingContext {
                         height: u32,
                         format: TexFormat,
                         data_type: TexDataType,
+                        unpacking_alignment: u32,
                         pixels: Vec<u8>) {  // NB: pixels should NOT be premultipied
         // We have already validated level
         let image_info = texture.image_info_for_target(&target, level);
@@ -700,7 +724,16 @@ impl WebGLRenderingContext {
         let pixels = self.premultiply_pixels(format, data_type, pixels);
 
         let pixels = self.flip_teximage_y(pixels, format, data_type,
-                                          width as usize, height as usize);
+                                          width as usize, height as usize, unpacking_alignment as usize);
+
+        // Set the unpack alignment.  For textures coming from arrays,
+        // this will be the current value of the context's
+        // GL_UNPACK_ALIGNMENT, while for textures from images or
+        // canvas (produced by rgba8_image_to_tex_image_data()), it
+        // will be 1.
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::PixelStorei(constants::UNPACK_ALIGNMENT, unpacking_alignment as i32)))
+            .unwrap();
 
         // TODO(emilio): convert colorspace if requested
         let msg = WebGLCommand::TexSubImage2D(target.as_gl_constant(),
@@ -2017,13 +2050,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     1 | 2 | 4 | 8 => (),
                     _ => return self.webgl_error(InvalidValue),
                 }
+                self.texture_unpacking_alignment.set(param_value as u32);
+                return;
             },
             _ => return self.webgl_error(InvalidEnum),
         }
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(WebGLCommand::PixelStorei(param_name, param_value)))
-            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
@@ -2752,10 +2783,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
 
+        let unpacking_alignment = self.texture_unpacking_alignment.get();
+
         let expected_byte_length =
             match { self.validate_tex_image_2d_data(width, height,
-                                                           format, data_type,
-                                                           data_ptr) } {
+                                                    format, data_type,
+                                                    unpacking_alignment, data_ptr) } {
                 Ok(byte_length) => byte_length,
                 Err(()) => return Ok(()),
             };
@@ -2778,7 +2811,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         self.tex_image_2d(texture, target, data_type, format,
-                          level, width, height, border, buff);
+                          level, width, height, border, unpacking_alignment, buff);
 
         Ok(())
     }
@@ -2819,7 +2852,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let pixels = self.rgba8_image_to_tex_image_data(format, data_type, pixels);
 
         self.tex_image_2d(texture, target, data_type, format,
-                          level, width, height, border, pixels);
+                          level, width, height, border, 1, pixels);
         Ok(())
     }
 
@@ -2860,10 +2893,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
 
+        let unpacking_alignment = self.texture_unpacking_alignment.get();
+
         let expected_byte_length =
             match { self.validate_tex_image_2d_data(width, height,
-                                                           format, data_type,
-                                                           data_ptr) } {
+                                                    format, data_type,
+                                                    unpacking_alignment, data_ptr) } {
                 Ok(byte_length) => byte_length,
                 Err(()) => return Ok(()),
             };
@@ -2886,7 +2921,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         self.tex_sub_image_2d(texture, target, level, xoffset, yoffset,
-                              width, height, format, data_type, buff);
+                              width, height, format, data_type, unpacking_alignment, buff);
         Ok(())
     }
 
@@ -2925,7 +2960,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let pixels = self.rgba8_image_to_tex_image_data(format, data_type, pixels);
 
         self.tex_sub_image_2d(texture, target, level, xoffset, yoffset,
-                              width, height, format, data_type, pixels);
+                              width, height, format, data_type, 1, pixels);
         Ok(())
     }
 
