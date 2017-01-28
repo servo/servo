@@ -1148,11 +1148,12 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
 pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSetBorrowed,
                                                       name: *const nsACString,
                                                       timing_function: *const nsTimingFunction,
-                                                      _style: ServoComputedValuesBorrowed,
+                                                      style: ServoComputedValuesBorrowed,
                                                       keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
     let style_timing_function = unsafe { timing_function.as_ref().unwrap() };
+    let style = ComputedValues::as_arc(&style);
 
     if let Some(ref animation) = data.stylist.animations().get(&name) {
        for step in &animation.steps {
@@ -1171,7 +1172,15 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
 
           match step.value {
               KeyframesStepValue::ComputedValues => {
-                  unimplemented!();
+                  for (index, property) in animation.properties_changed.iter().enumerate() {
+                      let block = style.to_declaration_block(property.clone().into());
+                      unsafe {
+                          (*keyframe).mPropertyValues.set_len((index + 1) as u32);
+                          (*keyframe).mPropertyValues[index].mProperty = property.clone().into();
+                          (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
+                              Arc::new(RwLock::new(block)));
+                      }
+                  }
               },
               KeyframesStepValue::Declarations { ref block } => {
                   let guard = block.read();

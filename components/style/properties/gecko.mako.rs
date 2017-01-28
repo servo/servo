@@ -51,11 +51,14 @@ use gecko::values::GeckoStyleCoordConvertible;
 use gecko::values::round_border_to_device_pixels;
 use logical_geometry::WritingMode;
 use properties::longhands;
+use properties::{DeclaredValue, Importance, LonghandId};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use std::fmt::{self, Debug};
 use std::mem::{transmute, zeroed};
 use std::ptr;
 use std::sync::Arc;
 use std::cmp;
+use values::computed::ToComputedValue;
 
 pub mod style_structs {
     % for style_struct in data.style_structs:
@@ -154,6 +157,28 @@ impl ComputedValues {
     // FIXME(bholley): Implement this properly.
     #[inline]
     pub fn is_multicol(&self) -> bool { false }
+
+    pub fn to_declaration_block(&self, property: PropertyDeclarationId) -> PropertyDeclarationBlock {
+        match property {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    PropertyDeclarationId::Longhand(LonghandId::${prop.camel_case}) => {
+                        PropertyDeclarationBlock {
+                            declarations: vec![
+                                (PropertyDeclaration::${prop.camel_case}(DeclaredValue::Value(
+                                    longhands::${prop.ident}::SpecifiedValue::from_computed_value(
+                                      &self.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}()))),
+                                 Importance::Normal)
+                            ],
+                            important_count: 0
+                        }
+                    },
+                % endif
+            % endfor
+            PropertyDeclarationId::Custom(_name) => unimplemented!(),
+            _ => unimplemented!()
+        }
+    }
 }
 
 <%def name="declare_style_struct(style_struct)">

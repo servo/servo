@@ -22,6 +22,7 @@ use properties::longhands::box_shadow::single_value::computed_value::T as BoxSha
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
+#[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
 use std::cmp;
 use std::fmt;
 use style_traits::ToCss;
@@ -117,6 +118,23 @@ impl From<TransitionProperty> for nsCSSPropertyID {
                 % endif
             % endfor
             TransitionProperty::All => nsCSSPropertyID::eCSSPropertyExtra_all_properties,
+        }
+    }
+}
+
+/// Convert to PropertyDeclarationId.
+#[cfg(feature = "gecko")]
+#[allow(non_upper_case_globals)]
+impl<'a> From<TransitionProperty> for PropertyDeclarationId<'a> {
+    fn from(transition_property: TransitionProperty) -> PropertyDeclarationId<'a> {
+        match transition_property {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    TransitionProperty::${prop.camel_case}
+                        => PropertyDeclarationId::Longhand(LonghandId::${prop.camel_case}),
+                % endif
+            % endfor
+            TransitionProperty::All => panic!(),
         }
     }
 }
