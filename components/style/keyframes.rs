@@ -302,7 +302,7 @@ impl KeyframesAnimation {
         }
 
         if steps.last().unwrap().start_percentage.0 != 1. {
-            steps.push(KeyframesStep::new(KeyframePercentage::new(0.),
+            steps.push(KeyframesStep::new(KeyframePercentage::new(1.),
                                           KeyframesStepValue::ComputedValues));
         }
 
