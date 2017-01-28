@@ -185,7 +185,6 @@ fn compute_damage(old: &ServoComputedValues, new: &ServoComputedValues) -> Servo
         get_font.font_family, get_font.font_style, get_font.font_variant, get_font.font_weight,
         get_font.font_size, get_font.font_stretch,
         get_inheritedbox.direction, get_inheritedbox.writing_mode,
-        get_inheritedbox.text_orientation,
         get_text.text_decoration, get_text.unicode_bidi,
         get_inheritedtable.empty_cells, get_inheritedtable.caption_side,
         get_column.column_width, get_column.column_count

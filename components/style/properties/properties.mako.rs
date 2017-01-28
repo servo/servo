@@ -1664,24 +1664,17 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
             flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
     }
+    % if product == "gecko":
     match inheritedbox_style.clone_text_orientation() {
-    % if product == "servo":
-        computed_values::text_orientation::T::sideways_right => {},
-        computed_values::text_orientation::T::sideways_left => {
-            flags.insert(logical_geometry::FLAG_VERTICAL_LR);
-        },
-    % elif product == "gecko":
-        // FIXME(bholley): Need to make sure these are correct when we add
-        // full writing-mode support.
         computed_values::text_orientation::T::mixed => {},
-        computed_values::text_orientation::T::upright => {},
-    % endif
+        computed_values::text_orientation::T::upright => {
+            flags.insert(logical_geometry::FLAG_UPRIGHT);
+        },
         computed_values::text_orientation::T::sideways => {
-            if flags.intersects(logical_geometry::FLAG_VERTICAL_LR) {
-                flags.insert(logical_geometry::FLAG_SIDEWAYS_LEFT);
-            }
+            flags.insert(logical_geometry::FLAG_SIDEWAYS);
         },
     }
+    % endif
     flags
 }
 
@@ -1915,8 +1908,10 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                 PropertyDeclaration::Float(_) |
                 PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_) |
                 PropertyDeclaration::WritingMode(_) |
-                PropertyDeclaration::Direction(_) |
-                PropertyDeclaration::TextOrientation(_)
+                PropertyDeclaration::Direction(_)
+                % if product == 'gecko':
+                    | PropertyDeclaration::TextOrientation(_)
+                % endif
             );
             if
                 % if category_to_cascade_now == "early":

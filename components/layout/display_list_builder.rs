@@ -1659,11 +1659,9 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Determine the orientation and cursor to use.
         let (orientation, cursor) = if self.style.writing_mode.is_vertical() {
-            if self.style.writing_mode.is_sideways_left() {
-                (TextOrientation::SidewaysLeft, Cursor::VerticalText)
-            } else {
-                (TextOrientation::SidewaysRight, Cursor::VerticalText)
-            }
+            // TODO: Distinguish between 'sideways-lr' and 'sideways-rl' writing modes in CSS
+            // Writing Modes Level 4.
+            (TextOrientation::SidewaysRight, Cursor::VerticalText)
         } else {
             (TextOrientation::Upright, Cursor::Text)
         };

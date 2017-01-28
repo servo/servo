@@ -23,7 +23,7 @@ use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;
 use std::sync::Arc;
-use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
+use style::computed_values::{line_height, text_rendering, text_transform};
 use style::computed_values::{word_break, white_space};
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
@@ -418,25 +418,12 @@ impl TextRunScanner {
 #[inline]
 fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
                                 -> LogicalSize<Au> {
-    // This does nothing, but it will fail to build
-    // when more values are added to the `text-orientation` CSS property.
-    // This will be a reminder to update the code below.
-    let dummy: Option<text_orientation::T> = None;
-    match dummy {
-        Some(text_orientation::T::sideways_right) |
-        Some(text_orientation::T::sideways_left) |
-        Some(text_orientation::T::sideways) |
-        None => {}
-    }
-
-    // In vertical sideways or horizontal upright text,
-    // the "width" of text metrics is always inline
-    // This will need to be updated when other text orientations are supported.
+    // TODO: When the text-orientation property is supported, the block and inline directions may
+    // be swapped for horizontal glyphs in vertical lines.
     LogicalSize::new(
         writing_mode,
         metrics.bounding_box.size.width,
         metrics.bounding_box.size.height)
-
 }
 
 /// Returns the metrics of the font represented by the given `style_structs::Font`, respectively.

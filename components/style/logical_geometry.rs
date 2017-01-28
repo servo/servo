@@ -29,7 +29,8 @@ bitflags!(
         const FLAG_RTL = 1 << 0,
         const FLAG_VERTICAL = 1 << 1,
         const FLAG_VERTICAL_LR = 1 << 2,
-        const FLAG_SIDEWAYS_LEFT = 1 << 3
+        const FLAG_SIDEWAYS = 1 << 3,
+        const FLAG_UPRIGHT = 1 << 4,
     }
 );
 
@@ -48,7 +49,8 @@ impl WritingMode {
     /// Assuming .is_vertical(), does the inline direction go top to bottom?
     #[inline]
     pub fn is_inline_tb(&self) -> bool {
-        !(self.intersects(FLAG_SIDEWAYS_LEFT) ^ self.intersects(FLAG_RTL))
+        // https://drafts.csswg.org/css-writing-modes-3/#logical-to-physical
+        !self.intersects(FLAG_RTL)
     }
 
     #[inline]
@@ -57,8 +59,13 @@ impl WritingMode {
     }
 
     #[inline]
-    pub fn is_sideways_left(&self) -> bool {
-        self.intersects(FLAG_SIDEWAYS_LEFT)
+    pub fn is_sideways(&self) -> bool {
+        self.intersects(FLAG_SIDEWAYS)
+    }
+
+    #[inline]
+    pub fn is_upright(&self) -> bool {
+        self.intersects(FLAG_UPRIGHT)
     }
 
     #[inline]
@@ -135,8 +142,8 @@ impl fmt::Display for WritingMode {
             } else {
                 try!(write!(formatter, " RL"));
             }
-            if self.intersects(FLAG_SIDEWAYS_LEFT) {
-                try!(write!(formatter, " SidewaysL"));
+            if self.intersects(FLAG_SIDEWAYS) {
+                try!(write!(formatter, " Sideways"));
             }
         } else {
             try!(write!(formatter, "H"));

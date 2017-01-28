@@ -249,8 +249,8 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-indent;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textJustify;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-justify;
-  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textOrientation;
-  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-orientation;
+  //[SetterThrows, TreatNullAs=EmptyString] attribute DOMString textOrientation;
+  //[SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-orientation;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textRendering;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-rendering;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textTransform;
