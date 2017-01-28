@@ -58,12 +58,13 @@ use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
+use style::keyframes::KeyframesStepValue;
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock, PropertyId};
 use style::properties::{apply_declarations, parse_one_declaration};
-use style::properties::animated_properties::{AnimationValue, Interpolate};
+use style::properties::animated_properties::{AnimationValue, Interpolate, TransitionProperty};
 use style::restyle_hints::RestyleHint;
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
@@ -1162,12 +1163,39 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
               *style_timing_function
           };
 
-          let _keyframe = unsafe {
+          let keyframe = unsafe {
                 Gecko_AnimationAppendKeyframe(keyframes,
                                               step.start_percentage.0 as f32,
                                               &timing_function)
           };
-          // Set each PropertyValuePair.
+
+          match step.value {
+              KeyframesStepValue::ComputedValues => {
+                  unimplemented!();
+              },
+              KeyframesStepValue::Declarations { ref block } => {
+                  let guard = block.read();
+                  // Filter out non-animatable properties.
+                  let animatable =
+                      guard.declarations
+                           .iter()
+                           .filter(|&&(ref declaration, _)| {
+                               declaration.is_animatable()
+                           });
+                  for (index, &(ref declaration, _)) in animatable.enumerate() {
+                      unsafe {
+                          (*keyframe).mPropertyValues.set_len((index + 1) as u32);
+                          (*keyframe).mPropertyValues[index].mProperty =
+                              TransitionProperty::from_declaration(declaration).unwrap().into();
+                          (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
+                              Arc::new(RwLock::new(
+                                  PropertyDeclarationBlock { declarations: vec![ (declaration.clone(),
+                                                                                  Importance::Normal) ],
+                                                             important_count: 0 })));
+                      }
+                  }
+              },
+          }
        }
        return true
     }
