@@ -65,6 +65,7 @@ use ref_slice::ref_slice;
 use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
 use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::message::Msg;
+use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{MatchingReason, matches};
 use selectors::parser::SelectorList;
@@ -1730,7 +1731,8 @@ impl Node {
                                              // https://github.com/whatwg/dom/issues/378
                                              document.origin().alias(),
                                              is_html_doc, None,
-                                             None, DocumentSource::NotFromParser, loader,
+                                             None, DocumentActivity::Inactive,
+                                             DocumentSource::NotFromParser, loader,
                                              None, None);
                 Root::upcast::<Node>(document)
             },

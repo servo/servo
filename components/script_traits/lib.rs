@@ -194,6 +194,22 @@ pub enum DiscardBrowsingContext {
     No,
 }
 
+/// Is a document fully active, active or inactive?
+/// A document is active if it is the current active document in its session history,
+/// it is fuly active if it is active and all of its ancestors are active,
+/// and it is inactive otherwise.
+/// https://html.spec.whatwg.org/multipage/#active-document
+/// https://html.spec.whatwg.org/multipage/#fully-active
+#[derive(Copy, Clone, PartialEq, Eq, Hash, HeapSizeOf, Debug, Deserialize, Serialize)]
+pub enum DocumentActivity {
+    /// An inactive document
+    Inactive,
+    /// An active but not fully active document
+    Active,
+    /// A fully active document
+    FullyActive,
+}
+
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -215,10 +231,8 @@ pub enum ConstellationControlMsg {
     SetScrollState(PipelineId, Vec<(UntrustedNodeAddress, Point2D<f32>)>),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
-    /// Notifies script thread to suspend all its timers
-    Freeze(PipelineId),
-    /// Notifies script thread to resume all its timers
-    Thaw(PipelineId),
+    /// Notifies script thread of a change to one of its document's activity
+    SetDocumentActivity(PipelineId, DocumentActivity),
     /// Notifies script thread whether frame is visible
     ChangeFrameVisibilityStatus(PipelineId, bool),
     /// Notifies script thread that frame visibility change is complete
@@ -281,8 +295,7 @@ impl fmt::Debug for ConstellationControlMsg {
             Viewport(..) => "Viewport",
             SetScrollState(..) => "SetScrollState",
             GetTitle(..) => "GetTitle",
-            Freeze(..) => "Freeze",
-            Thaw(..) => "Thaw",
+            SetDocumentActivity(..) => "SetDocumentActivity",
             ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
             Navigate(..) => "Navigate",

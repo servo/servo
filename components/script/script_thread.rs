@@ -83,7 +83,8 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, EnqueuedPromiseCallback};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx, PromiseJobQueue};
-use script_traits::{CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, EventResult};
+use script_traits::{CompositorEvent, ConstellationControlMsg};
+use script_traits::{DocumentActivity, DiscardBrowsingContext, EventResult};
 use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
@@ -148,8 +149,8 @@ struct InProgressLoad {
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
     layout_chan: Sender<message::Msg>,
-    /// Window is frozen (navigated away while loading for example).
-    is_frozen: bool,
+    /// The activity level of the document (inactive, active or fully active).
+    activity: DocumentActivity,
     /// Window is visible.
     is_visible: bool,
     /// The requested URL of the load.
@@ -172,7 +173,7 @@ impl InProgressLoad {
             parent_info: parent_info,
             layout_chan: layout_chan,
             window_size: window_size,
-            is_frozen: false,
+            activity: DocumentActivity::FullyActive,
             is_visible: true,
             url: url,
             origin: origin,
@@ -963,10 +964,8 @@ impl ScriptThread {
                 self.handle_resize_inactive_msg(id, new_size),
             ConstellationControlMsg::GetTitle(pipeline_id) =>
                 self.handle_get_title_msg(pipeline_id),
-            ConstellationControlMsg::Freeze(pipeline_id) =>
-                self.handle_freeze_msg(pipeline_id),
-            ConstellationControlMsg::Thaw(pipeline_id) =>
-                self.handle_thaw_msg(pipeline_id),
+            ConstellationControlMsg::SetDocumentActivity(pipeline_id, activity) =>
+                self.handle_set_document_activity_msg(pipeline_id, activity),
             ConstellationControlMsg::ChangeFrameVisibilityStatus(pipeline_id, visible) =>
                 self.handle_visibility_change_msg(pipeline_id, visible),
             ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id, frame_id, visible) =>
@@ -1303,37 +1302,20 @@ impl ScriptThread {
         warn!("change visibility message sent to nonexistent pipeline");
     }
 
-    /// Handles freeze message
-    fn handle_freeze_msg(&self, id: PipelineId) {
+    /// Handles activity change message
+    fn handle_set_document_activity_msg(&self, id: PipelineId, activity: DocumentActivity) {
+        debug!("Setting activity of {} to be {:?}.", id, activity);
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.window().freeze();
-            document.fully_deactivate();
+            document.set_activity(activity);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
         if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.is_frozen = true;
+            load.activity = activity;
             return;
         }
-        warn!("freeze sent to nonexistent pipeline");
-    }
-
-    /// Handles thaw message
-    fn handle_thaw_msg(&self, id: PipelineId) {
-        let document = self.documents.borrow().find_document(id);
-        if let Some(document) = document {
-            self.rebuild_and_force_reflow(&document, ReflowReason::CachedPageNeededReflow);
-            document.window().thaw();
-            document.fully_activate();
-            return;
-        }
-        let mut loads = self.incomplete_loads.borrow_mut();
-        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.is_frozen = false;
-            return;
-        }
-        warn!("thaw sent to nonexistent pipeline");
+        warn!("change of activity sent to nonexistent pipeline");
     }
 
     fn handle_focus_iframe_msg(&self,
@@ -1759,15 +1741,12 @@ impl ScriptThread {
                                      is_html_document,
                                      content_type,
                                      last_modified,
+                                     incomplete.activity,
                                      DocumentSource::FromParser,
                                      loader,
                                      referrer,
                                      referrer_policy);
         document.set_ready_state(DocumentReadyState::Loading);
-
-        if !incomplete.is_frozen {
-            document.fully_activate();
-        }
 
         self.documents.borrow_mut().insert(incomplete.pipeline_id, &*document);
 
@@ -1822,8 +1801,8 @@ impl ScriptThread {
             ServoParser::parse_html_document(&document, parse_input, final_url);
         }
 
-        if incomplete.is_frozen {
-            window.upcast::<GlobalScope>().suspend();
+        if incomplete.activity != DocumentActivity::FullyActive {
+            window.suspend();
         }
 
         if !incomplete.is_visible {
