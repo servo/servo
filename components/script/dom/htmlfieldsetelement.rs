@@ -6,7 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::js::Root;
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -14,16 +14,18 @@ use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmllegendelement::HTMLLegendElement;
-use dom::node::{Node, window_from_node};
+use dom::node::{Node, UnbindContext, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
+use std::default::Default;
 use style::element_state::*;
 
 #[dom_struct]
 pub struct HTMLFieldSetElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 impl HTMLFieldSetElement {
@@ -33,7 +35,8 @@ impl HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
-                                                      local_name, prefix, document)
+                                                      local_name, prefix, document),
+            form_owner: Default::default(),
         }
     }
 
@@ -148,9 +151,43 @@ impl VirtualMethods for HTMLFieldSetElement {
                     }
                 }
             },
+            &local_name!("form") => {
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        self.form_attribute_set();
+                    },
+                    AttributeMutation::Removed => {
+                        self.form_attribute_removed();
+                    },
+                }
+            },
             _ => {},
         }
     }
+
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
+        self.bind_form_control_to_tree();
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+        self.unbind_form_control_from_tree();
+    }
 }
 
-impl FormControl for HTMLFieldSetElement {}
+impl FormControl for HTMLFieldSetElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}

@@ -162,7 +162,11 @@ bitflags! {
         /// Whether any ancestor is a fragmentation container
         const CAN_BE_FRAGMENTED = 0x40,
         #[doc = "Specifies whether this node needs to be dirted when viewport size changed."]
-        const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 0x80
+        const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 0x80,
+
+        #[doc = "Specifies whether the parser has set an associated form owner for \
+                 this element. Only applicable for form - associatable elements."]
+        const PARSER_ASSOCIATED_FORM_OWNER = 0x90,
     }
 }
 
@@ -286,6 +290,8 @@ impl Node {
         for node in child.traverse_preorder() {
             // Out-of-document elements never have the descendants flag set.
             node.set_flag(IS_IN_DOC | HAS_DIRTY_DESCENDANTS, false);
+        }
+        for node in child.traverse_preorder() {
             vtable_for(&&*node).unbind_from_tree(&context);
             node.style_and_layout_data.get().map(|d| node.dispose(d));
         }
@@ -2656,3 +2662,32 @@ impl Into<LayoutElementType> for ElementTypeId {
     }
 }
 
+/// Helper trait to insert an element into vector whose elements
+/// are maintained in tree order
+pub trait VecPreOrderInsertionHelper<T> {
+    fn insert_pre_order(&mut self, elem: &T, tree_root: &Node);
+}
+
+impl<T> VecPreOrderInsertionHelper<T> for Vec<JS<T>>
+    where T: DerivedFrom<Node> + DomObject
+{
+    fn insert_pre_order(&mut self, elem: &T, tree_root: &Node) {
+        if self.is_empty() {
+            self.push(JS::from_ref(elem));
+            return;
+        }
+
+        let elem_node = elem.upcast::<Node>();
+        let mut head: usize = 0;
+        for node in tree_root.traverse_preorder() {
+            let head_node = Root::upcast::<Node>(Root::from_ref(&*self[head]));
+            if head_node == node {
+                head += 1;
+            }
+            if elem_node == node.r() || head == self.len() {
+                break;
+            }
+        }
+        self.insert(head, JS::from_ref(elem));
+    }
+}
