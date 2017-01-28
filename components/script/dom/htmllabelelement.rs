@@ -3,17 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
-use dom::element::Element;
+use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
 use dom::node::{document_from_node, Node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -22,7 +23,7 @@ use style::attr::AttrValue;
 
 #[dom_struct]
 pub struct HTMLLabelElement {
-    htmlelement: HTMLElement,
+    htmlelement: HTMLElement
 }
 
 impl HTMLLabelElement {
@@ -31,7 +32,7 @@ impl HTMLLabelElement {
                      document: &Document) -> HTMLLabelElement {
         HTMLLabelElement {
             htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+                HTMLElement::new_inherited(local_name, prefix, document),
         }
     }
 
@@ -128,6 +129,16 @@ impl VirtualMethods for HTMLLabelElement {
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        match attr.local_name() {
+            &local_name!("form") => {
+                self.form_attribute_mutated(mutation);
+            },
+            _ => {},
+        }
+    }
 }
 
 impl HTMLLabelElement {
@@ -140,4 +151,19 @@ impl HTMLLabelElement {
     }
 }
 
-impl FormControl for HTMLLabelElement {}
+impl FormControl for HTMLLabelElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.GetControl().map(Root::upcast::<Element>).and_then(|elem| {
+            elem.as_maybe_form_control().and_then(|control| control.form_owner())
+        })
+    }
+
+    fn set_form_owner(&self, _: Option<&HTMLFormElement>) {
+        // Label is a special case for form owner, it reflects its control's
+        // form owner. Therefore it doesn't hold form owner itself.
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}
