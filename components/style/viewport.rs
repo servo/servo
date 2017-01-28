@@ -25,7 +25,7 @@ use style_traits::ToCss;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::{Stylesheet, Origin};
 use values::computed::{Context, ToComputedValue};
-use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
+use values::specified::{NoCalcLength, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
 macro_rules! declare_viewport_descriptor {
     ( $( $variant_name: expr => $variant: ident($data: ident), )+ ) => {
@@ -150,14 +150,14 @@ impl FromMeta for ViewportLength {
 
         Some(match value {
             v if v.eq_ignore_ascii_case("device-width") =>
-                specified!(Length::ViewportPercentage(ViewportPercentageLength::Vw(100.))),
+                specified!(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.))),
             v if v.eq_ignore_ascii_case("device-height") =>
-                specified!(Length::ViewportPercentage(ViewportPercentageLength::Vh(100.))),
+                specified!(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(100.))),
             _ => {
                 match value.parse::<f32>() {
-                    Ok(n) if n >= 0. => specified!(Length::from_px(n.max(1.).min(10000.))),
+                    Ok(n) if n >= 0. => specified!(NoCalcLength::from_px(n.max(1.).min(10000.))),
                     Ok(_) => return None,
-                    Err(_) => specified!(Length::from_px(1.))
+                    Err(_) => specified!(NoCalcLength::from_px(1.))
                 }
             }
         })

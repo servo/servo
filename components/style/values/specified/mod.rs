@@ -26,7 +26,7 @@ pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword,
 pub use self::image::{SizeKeyword, VerticalDirection};
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
-pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, CalcUnit};
+pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength, CalcUnit};
 
 pub mod basic_shape;
 pub mod grid;
@@ -109,13 +109,14 @@ impl<'a> Mul<CSSFloat> for &'a SimplifiedSumNode {
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub enum SimplifiedValueNode {
-    Length(Length),
+    Length(NoCalcLength),
     Angle(Angle),
     Time(Time),
     Percentage(CSSFloat),
     Number(CSSFloat),
     Sum(Box<SimplifiedSumNode>),
 }
+
 impl<'a> Mul<CSSFloat> for &'a SimplifiedValueNode {
     type Output = SimplifiedValueNode;
 
@@ -197,8 +198,8 @@ impl NoViewportPercentage for BorderRadiusSize {}
 impl BorderRadiusSize {
     #[allow(missing_docs)]
     pub fn zero() -> BorderRadiusSize {
-        let zero = LengthOrPercentage::Length(Length::Absolute(Au(0)));
-            BorderRadiusSize(Size2D::new(zero.clone(), zero))
+        let zero = LengthOrPercentage::Length(NoCalcLength::zero());
+        BorderRadiusSize(Size2D::new(zero.clone(), zero))
     }
 
     #[allow(missing_docs)]
@@ -291,11 +292,11 @@ pub fn parse_border_radius(context: &ParserContext, input: &mut Parser) -> Resul
     input.try(|i| BorderRadiusSize::parse(context, i)).or_else(|_| {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "thin" => Ok(BorderRadiusSize::circle(
-                             LengthOrPercentage::Length(Length::from_px(1.)))),
+                             LengthOrPercentage::Length(NoCalcLength::from_px(1.)))),
             "medium" => Ok(BorderRadiusSize::circle(
-                               LengthOrPercentage::Length(Length::from_px(3.)))),
+                               LengthOrPercentage::Length(NoCalcLength::from_px(3.)))),
             "thick" => Ok(BorderRadiusSize::circle(
-                              LengthOrPercentage::Length(Length::from_px(5.)))),
+                              LengthOrPercentage::Length(NoCalcLength::from_px(5.)))),
             _ => Err(())
         }
     })
@@ -604,12 +605,8 @@ impl Shadow {
     // disable_spread_and_inset is for filter: drop-shadow(...)
     #[allow(missing_docs)]
     pub fn parse(context:  &ParserContext, input: &mut Parser, disable_spread_and_inset: bool) -> Result<Shadow, ()> {
-        use app_units::Au;
         let length_count = if disable_spread_and_inset { 3 } else { 4 };
-        let mut lengths = [Length::Absolute(Au(0)),
-                           Length::Absolute(Au(0)),
-                           Length::Absolute(Au(0)),
-                           Length::Absolute(Au(0))];
+        let mut lengths = [Length::zero(), Length::zero(), Length::zero(), Length::zero()];
         let mut lengths_parsed = false;
         let mut color = None;
         let mut inset = false;
@@ -661,7 +658,7 @@ impl Shadow {
             offset_x: lengths[0].take(),
             offset_y: lengths[1].take(),
             blur_radius: lengths[2].take(),
-            spread_radius: if disable_spread_and_inset { Length::Absolute(Au(0)) } else { lengths[3].take() },
+            spread_radius: if disable_spread_and_inset { Length::zero() } else { lengths[3].take() },
             color: color,
             inset: inset,
         })

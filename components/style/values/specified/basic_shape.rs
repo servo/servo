@@ -299,7 +299,6 @@ impl ToComputedValue for InsetRect {
 /// the keywords are folded into the percentages
 fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
     -> fmt::Result where W: fmt::Write {
-        use values::specified::Length;
         use values::specified::position::Keyword;
 
         // keyword-percentage pairs can be folded into a single percentage
@@ -327,7 +326,7 @@ fn serialize_basicshape_position<W>(position: &Position, dest: &mut W)
         // 0 length should be replaced with 0%
         fn replace_with_percent(input: LengthOrPercentage) -> LengthOrPercentage {
             match input {
-                LengthOrPercentage::Length(Length::Absolute(au)) if au.0 == 0 => {
+                LengthOrPercentage::Length(ref l) if l.is_zero() => {
                     LengthOrPercentage::Percentage(Percentage(0.0))
                 }
                 _ => {

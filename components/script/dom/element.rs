@@ -4,7 +4,6 @@
 
 //! Element nodes.
 
-use app_units::Au;
 use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
@@ -455,18 +454,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                                 font_family)])))));
         }
 
-        let font_size = if let Some(this) = self.downcast::<HTMLFontElement>() {
-            this.get_size()
-        } else {
-            None
-        };
+        let font_size = self.downcast::<HTMLFontElement>().and_then(|this| this.get_size());
 
         if let Some(font_size) = font_size {
             hints.push(from_declaration(
                 PropertyDeclaration::FontSize(
                     DeclaredValue::Value(
-                        font_size::SpecifiedValue(
-                            LengthOrPercentage::Length(font_size))))))
+                        font_size::SpecifiedValue(font_size.into())))))
         }
 
         let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
@@ -476,7 +470,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         };
 
         if let Some(cellspacing) = cellspacing {
-            let width_value = specified::Length::Absolute(Au::from_px(cellspacing as i32));
+            let width_value = specified::Length::from_px(cellspacing as f32);
             hints.push(from_declaration(
                 PropertyDeclaration::BorderSpacing(DeclaredValue::Value(
                     border_spacing::SpecifiedValue {
@@ -509,12 +503,11 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         };
 
         if let Some(size) = size {
-            let value = specified::Length::ServoCharacterWidth(specified::CharacterWidth(size));
+            let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
                 PropertyDeclaration::Width(DeclaredValue::Value(
                     specified::LengthOrPercentageOrAuto::Length(value)))));
         }
-
 
         let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.get_width()
@@ -541,7 +534,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::Length::Absolute(length));
+                    specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
                     PropertyDeclaration::Width(DeclaredValue::Value(width_value))));
             }
@@ -566,7 +559,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::Length::Absolute(length));
+                    specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
                     PropertyDeclaration::Height(DeclaredValue::Value(height_value))));
             }
@@ -588,12 +581,11 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // scrollbar size into consideration (but we don't have a scrollbar yet!)
             //
             // https://html.spec.whatwg.org/multipage/#textarea-effective-width
-            let value = specified::Length::ServoCharacterWidth(specified::CharacterWidth(cols));
+            let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
                 PropertyDeclaration::Width(DeclaredValue::Value(
                     specified::LengthOrPercentageOrAuto::Length(value)))));
         }
-
 
         let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
             match this.get_rows() {
@@ -608,7 +600,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // TODO(mttr) This should take scrollbar size into consideration.
             //
             // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-            let value = specified::Length::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
+            let value = specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
             hints.push(from_declaration(
                 PropertyDeclaration::Height(DeclaredValue::Value(
                         specified::LengthOrPercentageOrAuto::Length(value)))));
@@ -622,8 +614,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         };
 
         if let Some(border) = border {
-            let width_value = specified::BorderWidth::from_length(
-                specified::Length::Absolute(Au::from_px(border as i32)));
+            let width_value = specified::BorderWidth::from_length(specified::Length::from_px(border as f32));
             hints.push(from_declaration(
                 PropertyDeclaration::BorderTopWidth(DeclaredValue::Value(width_value.clone()))));
             hints.push(from_declaration(

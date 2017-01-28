@@ -57,8 +57,7 @@
 <%helpers:shorthand name="flex" sub_properties="flex-grow flex-shrink flex-basis" extra_prefixes="webkit"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
     use parser::Parse;
-    use app_units::Au;
-    use values::specified::{Number, Length, LengthOrPercentageOrAutoOrContent};
+    use values::specified::{Number, NoCalcLength, LengthOrPercentageOrAutoOrContent};
 
     pub fn parse_flexibility(input: &mut Parser)
                              -> Result<(Number, Option<Number>),()> {
@@ -102,7 +101,7 @@
         Ok(Longhands {
             flex_grow: grow.or(Some(Number(1.0))),
             flex_shrink: shrink.or(Some(Number(1.0))),
-            flex_basis: basis.or(Some(LengthOrPercentageOrAutoOrContent::Length(Length::Absolute(Au(0)))))
+            flex_basis: basis.or(Some(LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero())))
         })
     }
 
