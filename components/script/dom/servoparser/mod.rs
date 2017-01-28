@@ -431,6 +431,7 @@ impl FetchResponseListener for ParserContext {
 
     fn process_response(&mut self, meta_result: Result<FetchMetadata, NetworkError>) {
         let mut ssl_error = None;
+        let mut network_error = None;
         let metadata = match meta_result {
             Ok(meta) => {
                 Some(match meta {
@@ -441,6 +442,13 @@ impl FetchResponseListener for ParserContext {
             Err(NetworkError::SslValidation(url, reason)) => {
                 ssl_error = Some(reason);
                 let mut meta = Metadata::default(url);
+                let mime: Option<Mime> = "text/html".parse().ok();
+                meta.set_content_type(mime.as_ref());
+                Some(meta)
+            },
+            Err(NetworkError::Internal(reason)) => {
+                network_error = Some(reason);
+                let mut meta = Metadata::default(self.url.clone());
                 let mime: Option<Mime> = "text/html".parse().ok();
                 meta.set_content_type(mime.as_ref());
                 Some(meta)
@@ -481,6 +489,14 @@ impl FetchResponseListener for ParserContext {
                 if let Some(reason) = ssl_error {
                     self.is_synthesized_document = true;
                     let page_bytes = read_resource_file("badcert.html").unwrap();
+                    let page = String::from_utf8(page_bytes).unwrap();
+                    let page = page.replace("${reason}", &reason);
+                    parser.push_input_chunk(page);
+                    parser.parse_sync();
+                }
+                if let Some(reason) = network_error {
+                    self.is_synthesized_document = true;
+                    let page_bytes = read_resource_file("neterror.html").unwrap();
                     let page = String::from_utf8(page_bytes).unwrap();
                     let page = page.replace("${reason}", &reason);
                     parser.push_input_chunk(page);
@@ -527,16 +543,7 @@ impl FetchResponseListener for ParserContext {
             None => return,
         };
 
-        if let Err(NetworkError::Internal(ref reason)) = status {
-            // Show an error page for network errors,
-            // certificate errors are handled earlier.
-            self.is_synthesized_document = true;
-            let page_bytes = read_resource_file("neterror.html").unwrap();
-            let page = String::from_utf8(page_bytes).unwrap();
-            let page = page.replace("${reason}", reason);
-            parser.push_input_chunk(page);
-            parser.parse_sync();
-        } else if let Err(err) = status {
+        if let Err(err) = status {
             // TODO(Savago): we should send a notification to callers #5463.
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }

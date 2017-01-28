@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test for issue #15017</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<html>
+    <iframe src="http://aowiejfoiawjef" id="foo"></iframe>
+</html>
+<script>
+    var t = async_test("Load resource with network error")
+    var iframe = document.getElementById('foo')
+    iframe.onload = t.step_func(function(e) { t.done() })
+</script>
