@@ -221,7 +221,7 @@ impl HTMLCollection {
     pub fn elements_iter_after<'a>(&'a self, after: &'a Node) -> impl Iterator<Item=Root<Element>> + 'a {
         // Iterate forwards from a node.
         HTMLCollectionElementsIter {
-            node_iter: after.following_nodes(&self.root),
+            node_iter: after.following_nodes::<Node>(&self.root),
             root: Root::from_ref(&self.root),
             filter: &self.filter,
         }
@@ -235,7 +235,7 @@ impl HTMLCollection {
     pub fn elements_iter_before<'a>(&'a self, before: &'a Node) -> impl Iterator<Item=Root<Element>> + 'a {
         // Iterate backwards from a node.
         HTMLCollectionElementsIter {
-            node_iter: before.preceding_nodes(&self.root),
+            node_iter: before.preceding_nodes::<Node>(&self.root),
             root: Root::from_ref(&self.root),
             filter: &self.filter,
         }

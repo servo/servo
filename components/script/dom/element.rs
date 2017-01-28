@@ -1913,12 +1913,12 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
     fn GetPreviousElementSibling(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().preceding_siblings().filter_map(Root::downcast).next()
+        self.upcast::<Node>().preceding_siblings().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
     fn GetNextElementSibling(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().following_siblings().filter_map(Root::downcast).next()
+        self.upcast::<Node>().following_siblings().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
@@ -1929,17 +1929,17 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
     fn GetFirstElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().child_elements().next()
+        self.upcast::<Node>().children().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
     fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().rev_children().filter_map(Root::downcast::<Element>).next()
+        self.upcast::<Node>().rev_children().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(&self) -> u32 {
-        self.upcast::<Node>().child_elements().count() as u32
+        self.upcast::<Node>().children::<Element>().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
@@ -2255,10 +2255,8 @@ impl VirtualMethods for Element {
         } else {
             if flags.intersects(HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
                 if let Some(next_child) = mutation.next_child() {
-                    for child in next_child.inclusively_following_siblings() {
-                        if child.is::<Element>() {
-                            child.dirty(NodeDamage::OtherNodeDamage);
-                        }
+                    for child in next_child.inclusively_following_siblings::<Element>() {
+                        child.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                     }
                 }
             }
@@ -2315,19 +2313,19 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn first_child_element(&self) -> Option<Root<Element>> {
-        self.node.child_elements().next()
+        self.node.children().next()
     }
 
     fn last_child_element(&self) -> Option<Root<Element>> {
-        self.node.rev_children().filter_map(Root::downcast).next()
+        self.node.rev_children().next()
     }
 
     fn prev_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.preceding_siblings().filter_map(Root::downcast).next()
+        self.node.preceding_siblings().next()
     }
 
     fn next_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.following_siblings().filter_map(Root::downcast).next()
+        self.node.following_siblings().next()
     }
 
     fn is_root(&self) -> bool {
@@ -2338,7 +2336,7 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn is_empty(&self) -> bool {
-        self.node.children().all(|node| !node.is::<Element>() && match node.downcast::<Text>() {
+        self.node.children::<Node>().all(|node| !node.is::<Element>() && match node.downcast::<Text>() {
             None => true,
             Some(text) => text.upcast::<CharacterData>().data().is_empty()
         })
@@ -2701,7 +2699,7 @@ impl Element {
                 self.set_enabled_state(false);
                 return;
             }
-            if let Some(ref legend) = ancestor.children().find(|n| n.is::<HTMLLegendElement>()) {
+            if let Some(ref legend) = ancestor.children::<Node>().find(|n| n.is::<HTMLLegendElement>()) {
                 // XXXabinader: should we save previous ancestor to avoid this iteration?
                 if node.ancestors().any(|ancestor| ancestor == *legend) {
                     continue;

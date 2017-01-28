@@ -481,9 +481,7 @@ impl Document {
     /// Refresh the cached first base element in the DOM.
     /// https://github.com/w3c/web-platform-tests/issues/2122
     pub fn refresh_base_element(&self) {
-        let base = self.upcast::<Node>()
-                       .traverse_preorder()
-                       .filter_map(Root::downcast::<HTMLBaseElement>)
+        let base = self.upcast::<Node>().traverse_preorder::<HTMLBaseElement>()
                        .find(|element| element.upcast::<Element>().has_attribute(&local_name!("href")));
         self.base_element.set(base.r());
     }
@@ -601,7 +599,7 @@ impl Document {
                 let new_node = element.upcast::<Node>();
                 let mut head: usize = 0;
                 let root = root.upcast::<Node>();
-                for node in root.traverse_preorder() {
+                for node in root.traverse_preorder::<Node>() {
                     if let Some(elem) = node.downcast() {
                         if &*(*elements)[head] == elem {
                             head += 1;
@@ -680,7 +678,6 @@ impl Document {
         };
         let doc_node = self.upcast::<Node>();
         doc_node.traverse_preorder()
-                .filter_map(Root::downcast)
                 .find(|node| check_anchor(&node))
                 .map(Root::upcast)
     }
@@ -783,7 +780,7 @@ impl Document {
 
     pub fn dirty_all_nodes(&self) {
         let root = self.upcast::<Node>();
-        for node in root.traverse_preorder() {
+        for node in root.traverse_preorder::<Node>() {
             node.dirty(NodeDamage::OtherNodeDamage)
         }
     }
@@ -1810,7 +1807,6 @@ impl Document {
     pub fn iter_iframes(&self) -> impl Iterator<Item=Root<HTMLIFrameElement>> {
         self.upcast::<Node>()
             .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLIFrameElement>)
     }
 
     /// Find an iframe element in the document.
@@ -2116,7 +2112,7 @@ impl Document {
         let mut stylesheets = self.stylesheets.borrow_mut();
         if stylesheets.is_none() {
             *stylesheets = Some(self.upcast::<Node>()
-                .traverse_preorder()
+                .traverse_preorder::<Node>()
                 .filter_map(|node| {
                     node.get_stylesheet()
                         .map(|stylesheet| StylesheetInDocument {
@@ -2494,12 +2490,12 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(&self) -> Option<Root<DocumentType>> {
-        self.upcast::<Node>().children().filter_map(Root::downcast).next()
+        self.upcast::<Node>().children().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().child_elements().next()
+        self.upcast::<Node>().children().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-getelementsbytagname
@@ -2794,7 +2790,7 @@ impl DocumentMethods for Document {
             if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
                 // Step 1.
                 root.upcast::<Node>()
-                    .child_elements()
+                    .children::<Element>()
                     .find(|node| {
                         node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
                     })
@@ -2802,7 +2798,7 @@ impl DocumentMethods for Document {
             } else {
                 // Step 2.
                 root.upcast::<Node>()
-                    .traverse_preorder()
+                    .traverse_preorder::<Node>()
                     .find(|node| node.is::<HTMLTitleElement>())
             }
         });
@@ -2825,7 +2821,7 @@ impl DocumentMethods for Document {
         };
 
         let elem = if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
-            let elem = root.upcast::<Node>().child_elements().find(|node| {
+            let elem = root.upcast::<Node>().children::<Element>().find(|node| {
                 node.namespace() == &ns!(svg) && node.local_name() == &local_name!("title")
             });
             match elem {
@@ -2841,7 +2837,7 @@ impl DocumentMethods for Document {
             }
         } else if root.namespace() == &ns!(html) {
             let elem = root.upcast::<Node>()
-                           .traverse_preorder()
+                           .traverse_preorder::<Node>()
                            .find(|node| node.is::<HTMLTitleElement>());
             match elem {
                 Some(elem) => elem,
@@ -2871,7 +2867,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-head
     fn GetHead(&self) -> Option<Root<HTMLHeadElement>> {
         self.get_html_element()
-            .and_then(|root| root.upcast::<Node>().children().filter_map(Root::downcast).next())
+            .and_then(|root| root.upcast::<Node>().children().next())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-currentscript
@@ -2883,7 +2879,7 @@ impl DocumentMethods for Document {
     fn GetBody(&self) -> Option<Root<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let node = root.upcast::<Node>();
-            node.children().find(|child| {
+            node.children::<Node>().find(|child| {
                 match child.type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => true,
@@ -3022,17 +3018,17 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild
     fn GetFirstElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().child_elements().next()
+        self.upcast::<Node>().children().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
     fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().rev_children().filter_map(Root::downcast).next()
+        self.upcast::<Node>().rev_children().next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
     fn ChildElementCount(&self) -> u32 {
-        self.upcast::<Node>().child_elements().count() as u32
+        self.upcast::<Node>().children::<Element>().count() as u32
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-prepend
@@ -3196,7 +3192,7 @@ impl DocumentMethods for Document {
         let root = self.upcast::<Node>();
         {
             // Step 1.
-            let mut elements = root.traverse_preorder()
+            let mut elements = root.traverse_preorder::<Node>()
                                    .filter(|node| filter_by_name(&name, &node))
                                    .peekable();
             if let Some(first) = elements.next() {
@@ -3364,7 +3360,7 @@ impl DocumentMethods for Document {
         self.abort();
 
         // Step 13.
-        for node in self.upcast::<Node>().traverse_preorder() {
+        for node in self.upcast::<Node>().traverse_preorder::<Node>() {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
 

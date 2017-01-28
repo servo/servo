@@ -54,7 +54,7 @@ impl HTMLBodyElement {
         let root_elem = self.upcast::<Element>().root_element();
         let root_node = root_elem.upcast::<Node>();
         root_node.is_parent_of(self_node) &&
-            self_node.preceding_siblings().all(|n| !n.is::<HTMLBodyElement>())
+            self_node.preceding_siblings::<HTMLBodyElement>().next().is_none()
     }
 
 }
