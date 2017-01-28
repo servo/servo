@@ -48,6 +48,9 @@
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         use cssparser::Token;
         use std::ascii::AsciiExt;
+        // We try to parse as a Number first because, for 'line-height', we want "0" to be
+        // parsed as a plain Number rather than a Length (0px); this matches the behaviour
+        // of all major browsers
         input.try(specified::Number::parse_non_negative)
         .map(|n| SpecifiedValue::Number(n.0))
         .or_else(|()| {
