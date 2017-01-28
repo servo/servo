@@ -115,15 +115,6 @@ fn border_image_outset_should_return_number_on_plain_zero() {
 }
 
 #[test]
-fn border_image_outset_should_not_return_number_on_length_zero() {
-    let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
-    let mut parser = Parser::new("0px");
-    let result = border_image_outset::parse(&context, &mut parser);
-    assert_ne!(result.unwrap(), parse_longhand!(border_image_outset, "0"));
-}
-
-#[test]
 fn border_image_outset_should_return_length_on_length_zero() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));

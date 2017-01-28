@@ -117,19 +117,6 @@ fn line_height_should_return_number_on_plain_zero() {
 }
 
 #[test]
-fn line_height_should_not_return_number_on_length_zero() {
-    use media_queries::CSSErrorReporterTest;
-    use servo_url::ServoUrl;
-    use style::properties::longhands::line_height;
-
-    let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
-    let mut parser = Parser::new("0em");
-    let result = line_height::parse(&context, &mut parser);
-    assert_ne!(result.unwrap(), parse_longhand!(line_height, "0"));
-}
-
-#[test]
 fn line_height_should_return_length_on_length_zero() {
     use media_queries::CSSErrorReporterTest;
     use servo_url::ServoUrl;
