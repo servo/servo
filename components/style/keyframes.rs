@@ -11,8 +11,10 @@ use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
 use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use properties::{PropertyDeclarationId, LonghandId, DeclaredValue};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
+use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
@@ -196,6 +198,35 @@ impl KeyframesStep {
             start_percentage: percentage,
             value: value,
             declared_timing_function: declared_timing_function,
+        }
+    }
+
+    /// Return specified TransitionTimingFunction if this KeyframesSteps has 'animation-timing-function'.
+    pub fn get_animation_timing_function(&self) -> Option<SpecifiedTimingFunction> {
+        if !self.declared_timing_function {
+            return None;
+        }
+        match self.value {
+            KeyframesStepValue::Declarations { ref block } => {
+                let guard = block.read();
+                let &(ref declaration, _) =
+                    guard.get(PropertyDeclarationId::Longhand(LonghandId::AnimationTimingFunction)).unwrap();
+                match *declaration {
+                    PropertyDeclaration::AnimationTimingFunction(ref value) => {
+                        match *value {
+                            DeclaredValue::Value(ref value) => {
+                                // Use the first value.
+                                Some(value.0[0])
+                            },
+                            _ => None,
+                        }
+                    },
+                    _ => panic!(),
+                }
+            },
+            KeyframesStepValue::ComputedValues => {
+                panic!("Shouldn't happen to set animation-timing-function in missing keyframes")
+            },
         }
     }
 }

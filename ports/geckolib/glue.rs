@@ -1155,7 +1155,12 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
 
     if let Some(ref animation) = data.stylist.animations().get(&name) {
        for step in &animation.steps {
-          let timing_function = *style_timing_function;
+          // Override timing_function if the keyframe has animation-timing-function.
+          let timing_function = if let Some(val) = step.get_animation_timing_function() {
+              val.into()
+          } else {
+              *style_timing_function
+          };
 
           let _keyframe = unsafe {
                 Gecko_AnimationAppendKeyframe(keyframes,
