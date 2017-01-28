@@ -429,13 +429,11 @@ impl HTMLImageElement {
         }
 
         let map = self.upcast::<Node>()
-                      .following_siblings()
-                      .filter_map(Root::downcast::<HTMLMapElement>)
+                      .following_siblings::<HTMLMapElement>()
                       .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
 
         let elements: Vec<Root<HTMLAreaElement>> = map.unwrap().upcast::<Node>()
-                      .children()
-                      .filter_map(Root::downcast::<HTMLAreaElement>)
+                      .children::<HTMLAreaElement>()
                       .collect();
         Some(elements)
     }

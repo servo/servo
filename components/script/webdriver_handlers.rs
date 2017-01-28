@@ -43,7 +43,7 @@ fn find_node_by_unique_id(documents: &Documents,
                           node_id: String)
                           -> Option<Root<Node>> {
     documents.find_document(pipeline).and_then(|document|
-        document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
+        document.upcast::<Node>().traverse_preorder::<Node>().find(|candidate| candidate.unique_id() == node_id)
     )
 }
 
