@@ -129,7 +129,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
-use style::restyle_hints::RestyleHint;
+use style::restyle_hints::{RestyleHint, RESTYLE_STYLE_ATTRIBUTE};
 use style::selector_parser::{RestyleDamage, Snapshot};
 use style::str::{split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
@@ -2148,8 +2148,17 @@ impl Document {
         }
     }
 
-    pub fn element_attr_will_change(&self, el: &Element, _attr: &Attr) {
-        let mut snapshot = self.ensure_snapshot(el);
+    pub fn element_attr_will_change(&self, el: &Element, attr: &Attr) {
+        // FIXME(emilio): Kind of a shame we have to duplicate this.
+        let mut entry = self.ensure_pending_restyle(el);
+        if entry.snapshot.is_none() {
+            entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));
+        }
+        if attr.local_name() == &local_name!("style") {
+            entry.hint |= RESTYLE_STYLE_ATTRIBUTE;
+        }
+
+        let mut snapshot = entry.snapshot.as_mut().unwrap();
         if snapshot.attrs.is_none() {
             let attrs = el.attrs()
                           .iter()
