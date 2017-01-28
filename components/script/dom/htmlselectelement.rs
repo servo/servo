@@ -92,13 +92,13 @@ impl HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#concept-select-option-list
     fn list_of_options(&self) -> impl Iterator<Item=Root<HTMLOptionElement>> {
         self.upcast::<Node>()
-            .children()
+            .children::<Node>()
             .flat_map(|node| {
                 if node.is::<HTMLOptionElement>() {
                     let node = Root::downcast::<HTMLOptionElement>(node).unwrap();
                     Choice3::First(iter::once(node))
                 } else if node.is::<HTMLOptGroupElement>() {
-                    Choice3::Second(node.children().filter_map(Root::downcast))
+                    Choice3::Second(node.children())
                 } else {
                     Choice3::Third(iter::empty())
                 }
