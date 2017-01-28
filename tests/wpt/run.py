@@ -32,7 +32,14 @@ def run_tests(paths=None, **kwargs):
     mozlog.commandline.log_formatters["servo"] = \
         (grouping_formatter.GroupingFormatter, "A grouping output formatter")
 
+    use_mach_logging = False
     if len(kwargs["test_list"]) == 1:
+        file_ext = os.path.splitext(kwargs["test_list"][0])[1].lower()
+        single_file_exts = frozenset([".htm", ".html", ".js", ".xhtml"])
+        if file_ext in single_file_exts:
+            use_mach_logging = True
+
+    if use_mach_logging:
         wptrunner.setup_logging(kwargs, {"mach": sys.stdout})
     else:
         wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
