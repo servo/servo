@@ -7,18 +7,19 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, window_from_node};
+use dom::node::{Node, UnbindContext, window_from_node};
 use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use net_traits::image::base::Image;
+use std::default::Default;
 use std::sync::Arc;
 
 #[dom_struct]
@@ -26,6 +27,7 @@ pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "Arc"]
     image: DOMRefCell<Option<Arc<Image>>>,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 impl HTMLObjectElement {
@@ -36,6 +38,7 @@ impl HTMLObjectElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
             image: DOMRefCell::new(None),
+            form_owner: Default::default(),
         }
     }
 
@@ -113,9 +116,44 @@ impl VirtualMethods for HTMLObjectElement {
                     self.process_data_url();
                 }
             },
+            &local_name!("form") => {
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        self.form_attribute_set();
+                    },
+                    AttributeMutation::Removed => {
+                         self.form_attribute_removed();
+                    },
+                }
+            },
             _ => {},
         }
     }
+
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
+
+        self.bind_form_control_to_tree();
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+        self.unbind_form_control_from_tree();
+    }
 }
 
-impl FormControl for HTMLObjectElement {}
+impl FormControl for HTMLObjectElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}

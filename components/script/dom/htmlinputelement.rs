@@ -99,6 +99,7 @@ pub struct HTMLInputElement {
     value_dirty: Cell<bool>,
 
     filelist: MutNullableJS<FileList>,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 #[derive(JSTraceable)]
@@ -155,6 +156,7 @@ impl HTMLInputElement {
             activation_state: DOMRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
             filelist: MutNullableJS::new(None),
+            form_owner: Default::default(),
         }
     }
 
@@ -1043,7 +1045,17 @@ impl VirtualMethods for HTMLInputElement {
                         el.set_read_write_state(!el.disabled_state());
                     }
                 }
-            }
+            },
+            &local_name!("form") => {
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        self.form_attribute_set();
+                    },
+                    AttributeMutation::Removed => {
+                        self.form_attribute_removed();
+                    }
+                }
+            },
             _ => {},
         }
     }
@@ -1065,11 +1077,14 @@ impl VirtualMethods for HTMLInputElement {
             s.bind_to_tree(tree_in_doc);
         }
 
+        self.bind_form_control_to_tree();
         self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
+
+        self.unbind_form_control_from_tree();
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
@@ -1162,7 +1177,19 @@ impl VirtualMethods for HTMLInputElement {
     }
 }
 
-impl FormControl for HTMLInputElement {}
+impl FormControl for HTMLInputElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}
 
 impl Validatable for HTMLInputElement {
     fn is_instance_validatable(&self) -> bool {

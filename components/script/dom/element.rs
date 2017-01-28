@@ -19,6 +19,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
+use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS};
@@ -1315,6 +1316,14 @@ impl Element {
         }
         let document = document_from_node(self);
         document.get_allow_fullscreen()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#home-subtree
+    pub fn is_in_same_home_subtree<T>(&self, other: &T) -> bool
+        where T: DerivedFrom<Element> + DomObject
+    {
+        let other = other.upcast::<Element>();
+        self.root_element() == other.root_element()
     }
 }
 

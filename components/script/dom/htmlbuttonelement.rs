@@ -7,7 +7,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -25,6 +25,7 @@ use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use std::cell::Cell;
+use std::default::Default;
 use style::element_state::*;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
@@ -39,7 +40,8 @@ enum ButtonType {
 #[dom_struct]
 pub struct HTMLButtonElement {
     htmlelement: HTMLElement,
-    button_type: Cell<ButtonType>
+    button_type: Cell<ButtonType>,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 impl HTMLButtonElement {
@@ -50,7 +52,8 @@ impl HTMLButtonElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       local_name, prefix, document),
-            button_type: Cell::new(ButtonType::Submit)
+            button_type: Cell::new(ButtonType::Submit),
+            form_owner: Default::default(),
         }
     }
 
@@ -210,6 +213,16 @@ impl VirtualMethods for HTMLButtonElement {
                         self.button_type.set(ButtonType::Submit);
                     }
                 }
+            },
+            &local_name!("form") => {
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        self.form_attribute_set();
+                    }
+                    AttributeMutation::Removed => {
+                        self.form_attribute_removed();
+                    }
+                }
             }
             _ => {},
         }
@@ -220,11 +233,15 @@ impl VirtualMethods for HTMLButtonElement {
             s.bind_to_tree(tree_in_doc);
         }
 
+        self.bind_form_control_to_tree();
+
         self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
+
+        self.unbind_form_control_from_tree();
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
@@ -236,7 +253,19 @@ impl VirtualMethods for HTMLButtonElement {
     }
 }
 
-impl FormControl for HTMLButtonElement {}
+impl FormControl for HTMLButtonElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}
 
 impl Validatable for HTMLButtonElement {
     fn is_instance_validatable(&self) -> bool {

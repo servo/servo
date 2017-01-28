@@ -3,18 +3,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
-use dom::element::Element;
+use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{document_from_node, Node};
+use dom::node::{document_from_node, Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
 use style::attr::AttrValue;
@@ -22,6 +23,7 @@ use style::attr::AttrValue;
 #[dom_struct]
 pub struct HTMLLabelElement {
     htmlelement: HTMLElement,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 impl HTMLLabelElement {
@@ -30,7 +32,8 @@ impl HTMLLabelElement {
                      document: &Document) -> HTMLLabelElement {
         HTMLLabelElement {
             htmlelement:
-                HTMLElement::new_inherited(local_name, prefix, document)
+                HTMLElement::new_inherited(local_name, prefix, document),
+                form_owner: Default::default(),
         }
     }
 
@@ -127,6 +130,36 @@ impl VirtualMethods for HTMLLabelElement {
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        match attr.local_name() {
+            &local_name!("form") => {
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        self.form_attribute_set();
+                    },
+                    AttributeMutation::Removed => {
+                         self.form_attribute_removed();
+                    },
+                }
+            },
+            _ => {},
+        }
+    }
+
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
+
+        self.bind_form_control_to_tree();
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+        self.unbind_form_control_from_tree();
+    }
 }
 
 impl HTMLLabelElement {
@@ -139,4 +172,16 @@ impl HTMLLabelElement {
     }
 }
 
-impl FormControl for HTMLLabelElement {}
+impl FormControl for HTMLLabelElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}

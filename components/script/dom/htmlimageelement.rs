@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::js::{LayoutJS, MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
@@ -24,9 +24,10 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmlmapelement::HTMLMapElement;
 use dom::mouseevent::MouseEvent;
-use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
+use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -66,6 +67,7 @@ pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     current_request: DOMRefCell<ImageRequest>,
     pending_request: DOMRefCell<ImageRequest>,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 impl HTMLImageElement {
@@ -219,6 +221,7 @@ impl HTMLImageElement {
                 image: None,
                 metadata: None
             }),
+            form_owner: Default::default(),
         }
     }
 
@@ -482,6 +485,19 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
+        }
+
+        self.bind_form_control_to_tree();
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        self.super_type().unwrap().unbind_from_tree(context);
+        self.unbind_form_control_from_tree();
+    }
+
     fn handle_event(&self, event: &Event) {
        if (event.type_() == atom!("click")) {
            let area_elements = self.areas();
@@ -517,6 +533,24 @@ impl VirtualMethods for HTMLImageElement {
                index += 1;
            }
        }
+    }
+}
+
+impl FormControl for HTMLImageElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+
+    fn is_reassociatable(&self) -> bool {
+        false
     }
 }
 
