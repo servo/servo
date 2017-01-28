@@ -35,9 +35,6 @@ pub struct PerDocumentStyleDataImpl {
     /// Whether the stylesheets list above has changed since the last restyle.
     pub stylesheets_changed: bool,
 
-    /// Whether the device has changed since the last restyle.
-    pub device_changed: bool,
-
     // FIXME(bholley): Hook these up to something.
     /// Unused. Will go away when we actually implement transitions and
     /// animations properly.
@@ -85,7 +82,6 @@ impl PerDocumentStyleData {
             stylist: Arc::new(Stylist::new(device)),
             stylesheets: vec![],
             stylesheets_changed: true,
-            device_changed: true,
             new_animations_sender: new_anims_sender,
             new_animations_receiver: new_anims_receiver,
             running_animations: Arc::new(RwLock::new(HashMap::new())),
@@ -113,30 +109,29 @@ impl PerDocumentStyleData {
 }
 
 impl PerDocumentStyleDataImpl {
+    /// Reset the device state because it may have changed.
+    ///
+    /// Implies also a stylesheet flush.
+    pub fn reset_device(&mut self) {
+        {
+            let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
+            Arc::get_mut(&mut stylist.device).unwrap().reset();
+        }
+        self.stylesheets_changed = true;
+        self.flush_stylesheets();
+    }
+
     /// Recreate the style data if the stylesheets have changed.
     pub fn flush_stylesheets(&mut self) {
-        let mut stylist = if self.device_changed || self.stylesheets_changed {
-            Some(Arc::get_mut(&mut self.stylist).unwrap())
-        } else {
-            None
-        };
-
-        if self.device_changed {
-            Arc::get_mut(&mut stylist.as_mut().unwrap().device).unwrap().reset();
-            self.device_changed = false;
-            // Force a stylesheet flush if the device has changed.
-            self.stylesheets_changed = true;
-        }
-
         if self.stylesheets_changed {
-            let _ = stylist.unwrap().update(&self.stylesheets, None, true);
+            let mut stylist = Arc::get_mut(&mut self.stylist).unwrap();
+            stylist.update(&self.stylesheets, None, true);
             self.stylesheets_changed = false;
         }
     }
 
     /// Get the default computed values for this document.
     pub fn default_computed_values(&self) -> &Arc<ComputedValues> {
-        debug_assert!(!self.device_changed, "A device flush was pending");
         self.stylist.device.default_values_arc()
     }
 }
