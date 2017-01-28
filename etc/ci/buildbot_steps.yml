@@ -108,7 +108,7 @@ windows-dev:
 windows-gnu-dev:
   - ./mach build --dev
   - ./mach test-unit
-  - ./mach build-geckolib
+  - ./mach build-geckolib --verbose
 
 windows-msvc-dev:
   - mach.bat build --dev
