@@ -232,6 +232,7 @@ mod bindings {
             .include(add_include("gfxFontConstants.h"))
             .include(add_include("nsThemeConstants.h"))
             .include(add_include("mozilla/dom/AnimationEffectReadOnlyBinding.h"))
+            .include(add_include("mozilla/Keyframe.h"))
             .include(add_include("mozilla/ServoElementSnapshot.h"))
             .include(add_include("mozilla/dom/Element.h"))
             .include(add_include("mozilla/ServoBindings.h"))
@@ -288,6 +289,7 @@ mod bindings {
             "HalfCorner",
             "Image",
             "ImageURL",
+            "Keyframe",
             "nsAttrName",
             "nsAttrValue",
             "nsBorderColors",
@@ -362,6 +364,7 @@ mod bindings {
             "nsTArray",
             "nsTArrayHeader",
             "Position",
+            "PropertyValuePair",
             "Runnable",
             "ServoAttrSnapshot",
             "ServoElementSnapshot",
@@ -489,9 +492,11 @@ mod bindings {
         let structs_types = [
             "RawGeckoDocument",
             "RawGeckoElement",
+            "RawGeckoKeyframeList",
             "RawGeckoNode",
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
+            "RawServoDeclarationBlock",
             "RawGeckoPresContext",
             "RawGeckoPresContextOwned",
             "ThreadSafeURIHolder",
@@ -500,6 +505,7 @@ mod bindings {
             "TraversalRootBehavior",
             "FontFamilyList",
             "FontFamilyType",
+            "Keyframe",
             "ServoElementSnapshot",
             "SheetParsingMode",
             "StyleBasicShape",
@@ -554,6 +560,7 @@ mod bindings {
             "nsStyleVariables",
             "nsStyleVisibility",
             "nsStyleXUL",
+            "nsTimingFunction",
             "nscoord",
             "nsresult",
             "Loader",
@@ -596,6 +603,7 @@ mod bindings {
         let servo_borrow_types = [
             "nsCSSValue",
             "RawGeckoAnimationValueList",
+            "RawGeckoKeyframeList",
         ];
         for &ty in structs_types.iter() {
             builder = builder.hide_type(ty)
