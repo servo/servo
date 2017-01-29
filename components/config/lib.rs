@@ -7,15 +7,12 @@
 
 #![deny(unsafe_code)]
 
-#[allow(unused_extern_crates)] #[macro_use] extern crate bitflags;
-extern crate core;
 extern crate euclid;
 extern crate getopts;
-#[allow(unused_extern_crates)] #[macro_use] extern crate lazy_static;
+#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 extern crate num_cpus;
 extern crate rustc_serialize;
-#[cfg(feature = "servo")] extern crate serde;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 extern crate servo_geometry;
 extern crate servo_url;

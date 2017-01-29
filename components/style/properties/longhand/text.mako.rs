@@ -18,6 +18,7 @@
     use style_traits::ToCss;
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
+    use cssparser;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
     impl NoViewportPercentage for SpecifiedValue {}
@@ -75,7 +76,9 @@
             match *self {
                 Side::Clip => dest.write_str("clip"),
                 Side::Ellipsis => dest.write_str("ellipsis"),
-                Side::String(ref s) => dest.write_str(s)
+                Side::String(ref s) => {
+                    cssparser::serialize_string(s, dest)
+                }
             }
         }
     }
@@ -117,29 +120,29 @@ ${helpers.single_keyword("unicode-bidi",
         pub underline: bool,
         pub overline: bool,
         pub line_through: bool,
-        // 'blink' is accepted in the parser but ignored.
-        // Just not blinking the text is a conforming implementation per CSS 2.1.
+        pub blink: bool,
     }
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut space = false;
-            if self.underline {
-                try!(dest.write_str("underline"));
-                space = true;
-            }
-            if self.overline {
-                if space {
-                    try!(dest.write_str(" "));
+            let mut has_any = false;
+            macro_rules! write_value {
+                ($line:ident => $css:expr) => {
+                    if self.$line {
+                        if has_any {
+                            dest.write_str(" ")?;
+                        }
+                        dest.write_str($css)?;
+                        has_any = true;
+                    }
                 }
-                try!(dest.write_str("overline"));
-                space = true;
             }
-            if self.line_through {
-                if space {
-                    try!(dest.write_str(" "));
-                }
-                try!(dest.write_str("line-through"));
+            write_value!(underline => "underline");
+            write_value!(overline => "overline");
+            write_value!(line_through => "line-through");
+            write_value!(blink => "blink");
+            if !has_any {
+                dest.write_str("none")?;
             }
             Ok(())
         }
@@ -148,7 +151,7 @@ ${helpers.single_keyword("unicode-bidi",
         pub type T = super::SpecifiedValue;
         #[allow(non_upper_case_globals)]
         pub const none: T = super::SpecifiedValue {
-            underline: false, overline: false, line_through: false
+            underline: false, overline: false, line_through: false, blink: false
         };
     }
     #[inline] pub fn get_initial_value() -> computed_value::T {
@@ -157,12 +160,11 @@ ${helpers.single_keyword("unicode-bidi",
     /// none | [ underline || overline || line-through || blink ]
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut result = SpecifiedValue {
-            underline: false, overline: false, line_through: false,
+            underline: false, overline: false, line_through: false, blink: false
         };
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(result)
         }
-        let mut blink = false;
         let mut empty = true;
 
         while input.try(|input| {
@@ -174,8 +176,8 @@ ${helpers.single_keyword("unicode-bidi",
                                       else { empty = false; result.overline = true },
                         "line-through" => if result.line_through { return Err(()) }
                                           else { empty = false; result.line_through = true },
-                        "blink" => if blink { return Err(()) }
-                                   else { empty = false; blink = true },
+                        "blink" => if result.blink { return Err(()) }
+                                   else { empty = false; result.blink = true },
                         _ => return Err(())
                     }
                 } else {

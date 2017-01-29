@@ -176,7 +176,7 @@ impl PromiseJobQueue {
 /// promise job queue, and enqueues a runnable to perform a microtask checkpoint if one
 /// is not already pending.
 #[allow(unsafe_code)]
-unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
+unsafe extern "C" fn enqueue_job(cx: *mut JSContext,
                                  job: HandleObject,
                                  _allocation_site: HandleObject,
                                  _data: *mut c_void) -> bool {
@@ -184,7 +184,7 @@ unsafe extern "C" fn enqueue_job(_cx: *mut JSContext,
         let global = GlobalScope::from_object(job.get());
         let pipeline = global.pipeline_id();
         global.enqueue_promise_job(EnqueuedPromiseCallback {
-            callback: PromiseJobCallback::new(job.get()),
+            callback: PromiseJobCallback::new(cx, job.get()),
             pipeline: pipeline,
         });
         true

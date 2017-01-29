@@ -6,7 +6,9 @@
 
 #![deny(missing_docs)]
 
+use context::TraversalStatistics;
 use dom::{TElement, TNode};
+use std::borrow::Borrow;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
 /// Do a sequential DOM traversal for layout or styling, generic over `D`.
@@ -16,6 +18,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
     where E: TElement,
           D: DomTraversal<E>,
 {
+    debug_assert!(!traversal.is_parallel());
     debug_assert!(token.should_traverse());
 
     fn doit<E, D>(traversal: &D, traversal_data: &mut PerLevelTraversalData,
@@ -56,5 +59,11 @@ pub fn traverse_dom<E, D>(traversal: &D,
         }
     } else {
         doit(traversal, &mut traversal_data, &mut tlc, root.as_node());
+    }
+
+    // Dump statistics to stdout if requested.
+    let tlsc = tlc.borrow();
+    if TraversalStatistics::should_dump() {
+        println!("{}", tlsc.statistics);
     }
 }

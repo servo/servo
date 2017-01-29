@@ -20,7 +20,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use dom::blob::{Blob, BlobImpl};
-use dom::document::{Document, IsHTMLDocument};
+use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -40,7 +40,8 @@ use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
-use html5ever::serialize::{self, SerializeOpts};
+use html5ever::serialize;
+use html5ever::serialize::SerializeOpts;
 use hyper::header::{ContentLength, ContentType};
 use hyper::header::Headers;
 use hyper::method::Method;
@@ -57,6 +58,7 @@ use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
 use network_listener::{NetworkListener, PreInvoke};
+use script_traits::DocumentActivity;
 use servo_atoms::Atom;
 use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
@@ -1180,7 +1182,7 @@ impl XMLHttpRequest {
         self.response_json.get()
     }
 
-    fn document_text_html(&self) -> Root<Document>{
+    fn document_text_html(&self) -> Root<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let decoded = charset.decode(&self.response.borrow(), DecoderTrap::Replace).unwrap();
@@ -1189,8 +1191,7 @@ impl XMLHttpRequest {
         ServoParser::parse_html_document(
             &document,
             DOMString::from(decoded),
-            wr.get_url(),
-            Some(wr.pipeline_id()));
+            wr.get_url());
         document
     }
 
@@ -1203,8 +1204,7 @@ impl XMLHttpRequest {
         ServoParser::parse_xml_document(
             &document,
             DOMString::from(decoded),
-            wr.get_url(),
-            Some(wr.pipeline_id()));
+            wr.get_url());
         document
     }
 
@@ -1223,12 +1223,13 @@ impl XMLHttpRequest {
             DOMString::from(format!("{}", mime))
         });
         Document::new(win,
-                      None,
+                      HasBrowsingContext::No,
                       parsed_url,
                       doc.origin().alias(),
                       is_html_document,
                       content_type,
                       None,
+                      DocumentActivity::Inactive,
                       DocumentSource::FromParser,
                       docloader,
                       None,

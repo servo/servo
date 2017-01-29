@@ -29,7 +29,7 @@ pub struct VRPose {
 unsafe fn update_or_create_typed_array(cx: *mut JSContext,
                       src: Option<&[f32]>,
                       dst: &DOMRefCell<Heap<*mut JSObject>>) {
-    let mut dst = dst.borrow_mut();
+    let dst = dst.borrow();
     match src {
         Some(ref data) => {
             if dst.get().is_null() {

@@ -15,7 +15,7 @@ use dom::document::Document;
 use dom::element::{Element, ElementCreator};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::node::{ChildrenMutation, Node, document_from_node, window_from_node};
+use dom::node::{ChildrenMutation, Node, UnbindContext, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
@@ -50,8 +50,8 @@ impl HTMLStyleElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
-            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
-            in_stack_of_open_elements: Cell::new(creator == ElementCreator::ParserCreated),
+            parser_inserted: Cell::new(creator.is_parser_created()),
+            in_stack_of_open_elements: Cell::new(creator.is_parser_created()),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
         }
@@ -161,6 +161,15 @@ impl VirtualMethods for HTMLStyleElement {
             self.parse_own_css();
         }
     }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(context);
+        }
+
+        let doc = document_from_node(self);
+        doc.invalidate_stylesheets();
+    }
 }
 
 impl StylesheetOwner for HTMLStyleElement {
@@ -190,6 +199,12 @@ impl StylesheetOwner for HTMLStyleElement {
 
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
+    }
+
+    fn set_origin_clean(&self, origin_clean: bool) {
+        if let Some(stylesheet) = self.get_cssom_stylesheet() {
+            stylesheet.set_origin_clean(origin_clean);
+        }
     }
 }
 

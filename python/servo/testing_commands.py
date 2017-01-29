@@ -30,8 +30,9 @@ from mach.decorators import (
 
 from servo.command_base import (
     BuildNotFound, CommandBase,
-    call, cd, check_call, host_triple, set_osmesa_env,
+    call, cd, check_call, set_osmesa_env,
 )
+from servo.util import host_triple
 
 from wptrunner import wptcommandline
 from update import updatecommandline
@@ -410,16 +411,13 @@ class MachCommands(CommandBase):
 
     @Command('test-wpt-failure',
              description='Run the tests harness that verifies that the test failures are reported correctly',
-             category='testing')
-    def test_wpt_failure(self):
+             category='testing',
+             parser=create_parser_wpt)
+    def test_wpt_failure(self, **kwargs):
         self.ensure_bootstrapped()
-        return not call([
-            "bash",
-            path.join("tests", "wpt", "run.sh"),
-            "--no-pause-after-test",
-            "--include",
-            "infrastructure/failing-test.html"
-        ], env=self.build_env())
+        kwargs["pause_after_test"] = False
+        kwargs["include"] = ["infrastructure/failing-test.html"]
+        return not self._test_wpt(**kwargs)
 
     @Command('test-wpt',
              description='Run the regular web platform test suite',

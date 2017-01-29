@@ -24,7 +24,8 @@ use error_reporting::ParseErrorReporter;
 use euclid::size::Size2D;
 use computed_values;
 use font_metrics::FontMetricsProvider;
-#[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
+#[cfg(feature = "gecko")] use gecko_bindings::bindings;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{Parse, ParserContext, ParserContextExtraData};
@@ -409,7 +410,9 @@ pub enum CSSWideKeyword {
 
 impl Parse for CSSWideKeyword {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { try!(input.expect_ident()),
+        let ident = input.expect_ident()?;
+        input.expect_exhausted()?;
+        match_ignore_ascii_case! { ident,
             "initial" => Ok(CSSWideKeyword::InitialKeyword),
             "inherit" => Ok(CSSWideKeyword::InheritKeyword),
             "unset" => Ok(CSSWideKeyword::UnsetKeyword),
@@ -734,7 +737,6 @@ enum StaticId {
     Shorthand(ShorthandId),
 }
 include!(concat!(env!("OUT_DIR"), "/static_ids.rs"));
-
 impl PropertyId {
     /// Returns a given property from the string `s`.
     ///
@@ -757,37 +759,52 @@ impl PropertyId {
     #[allow(non_upper_case_globals)]
     pub fn from_nscsspropertyid(id: nsCSSPropertyID) -> Result<Self, ()> {
         use gecko_bindings::structs::*;
-        <%
-            def alias_to_nscsspropertyid(alias):
-                if alias == "word-wrap":
-                    return "nsCSSPropertyID_eCSSPropertyAlias_WordWrap"
-                return "nsCSSPropertyID::eCSSPropertyAlias_%s" % to_camel_case(alias)
-            def to_nscsspropertyid(ident):
-                if ident == "float":
-                    ident = "float_"
-                return "nsCSSPropertyID::eCSSProperty_%s" % ident
-        %>
         match id {
             % for property in data.longhands:
-                ${to_nscsspropertyid(property.ident)} => {
+                ${helpers.to_nscsspropertyid(property.ident)} => {
                     Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
                 }
                 % for alias in property.alias:
-                    ${alias_to_nscsspropertyid(alias)} => {
+                    ${helpers.alias_to_nscsspropertyid(alias)} => {
                         Ok(PropertyId::Longhand(LonghandId::${property.camel_case}))
                     }
                 % endfor
             % endfor
             % for property in data.shorthands:
-                ${to_nscsspropertyid(property.ident)} => {
+                ${helpers.to_nscsspropertyid(property.ident)} => {
                     Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
                 }
                 % for alias in property.alias:
-                    ${alias_to_nscsspropertyid(alias)} => {
+                    ${helpers.alias_to_nscsspropertyid(alias)} => {
                         Ok(PropertyId::Shorthand(ShorthandId::${property.camel_case}))
                     }
                 % endfor
             % endfor
+            _ => Err(())
+        }
+    }
+
+    /// Returns a property id from Gecko's nsCSSPropertyID.
+    #[cfg(feature = "gecko")]
+    #[allow(non_upper_case_globals)]
+    pub fn to_nscsspropertyid(&self) -> Result<nsCSSPropertyID, ()> {
+        use gecko_bindings::structs::*;
+
+        match *self {
+            PropertyId::Longhand(id) => match id {
+                % for property in data.longhands:
+                    LonghandId::${property.camel_case} => {
+                        Ok(${helpers.to_nscsspropertyid(property.ident)})
+                    }
+                % endfor
+            },
+            PropertyId::Shorthand(id) => match id {
+                % for property in data.shorthands:
+                    ShorthandId::${property.camel_case} => {
+                        Ok(${helpers.to_nscsspropertyid(property.ident)})
+                    }
+                % endfor
+            },
             _ => Err(())
         }
     }
@@ -876,6 +893,33 @@ impl ToCss for PropertyDeclaration {
     }
 }
 
+<%def name="property_pref_check(property)">
+    % if property.experimental and product == "servo":
+        if !PREFS.get("${property.experimental}")
+            .as_boolean().unwrap_or(false) {
+            return PropertyDeclarationParseResult::ExperimentalProperty
+        }
+    % endif
+    % if product == "gecko":
+        <%
+            # gecko can't use the identifier `float`
+            # and instead uses `float_`
+            # XXXManishearth make this an attr on the property
+            # itself?
+            pref_ident = property.ident
+            if pref_ident == "float":
+                pref_ident = "float_"
+        %>
+        if structs::root::mozilla::SERVO_PREF_ENABLED_${pref_ident} {
+            let id = structs::${helpers.to_nscsspropertyid(property.ident)};
+            let enabled = unsafe { bindings::Gecko_PropertyId_IsPrefEnabled(id) };
+            if !enabled {
+                return PropertyDeclarationParseResult::ExperimentalProperty
+            }
+        }
+    % endif
+</%def>
+
 impl PropertyDeclaration {
     /// Given a property declaration, return the property declaration id.
     pub fn id(&self) -> PropertyDeclarationId {
@@ -946,8 +990,12 @@ impl PropertyDeclaration {
     /// > The <declaration-list> inside of <keyframe-block> accepts any CSS property
     /// > except those defined in this specification,
     /// > but does accept the `animation-play-state` property and interprets it specially.
+    ///
+    /// This will not actually parse Importance values, and will always set things
+    /// to Importance::Normal. Parsing Importance values is the job of PropertyDeclarationParser,
+    /// we only set them here so that we don't have to reallocate
     pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser,
-                 result_list: &mut Vec<PropertyDeclaration>,
+                 result_list: &mut Vec<(PropertyDeclaration, Importance)>,
                  in_keyframe_block: bool)
                  -> PropertyDeclarationParseResult {
         match id {
@@ -961,7 +1009,7 @@ impl PropertyDeclaration {
                         Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                     }
                 };
-                result_list.push(PropertyDeclaration::Custom(name, value));
+                result_list.push((PropertyDeclaration::Custom(name, value), Importance::Normal));
                 return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
             }
             PropertyId::Longhand(id) => match id {
@@ -978,15 +1026,13 @@ impl PropertyDeclaration {
                                 return PropertyDeclarationParseResult::UnknownProperty
                             }
                         % endif
-                        % if property.experimental and product == "servo":
-                            if !PREFS.get("${property.experimental}")
-                                .as_boolean().unwrap_or(false) {
-                                return PropertyDeclarationParseResult::ExperimentalProperty
-                            }
-                        % endif
+
+                        ${property_pref_check(property)}
+
                         match longhands::${property.ident}::parse_declared(context, input) {
                             Ok(value) => {
-                                result_list.push(PropertyDeclaration::${property.camel_case}(value));
+                                result_list.push((PropertyDeclaration::${property.camel_case}(value),
+                                                  Importance::Normal));
                                 PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                             },
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
@@ -1010,33 +1056,30 @@ impl PropertyDeclaration {
                             return PropertyDeclarationParseResult::UnknownProperty
                         }
                     % endif
-                    % if shorthand.experimental and product == "servo":
-                        if !PREFS.get("${shorthand.experimental}")
-                            .as_boolean().unwrap_or(false) {
-                            return PropertyDeclarationParseResult::ExperimentalProperty
-                        }
-                    % endif
+
+                    ${property_pref_check(shorthand)}
+
                     match input.try(|i| CSSWideKeyword::parse(context, i)) {
                         Ok(CSSWideKeyword::InheritKeyword) => {
                             % for sub_property in shorthand.sub_properties:
-                                result_list.push(
+                                result_list.push((
                                     PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Inherit));
+                                        DeclaredValue::Inherit), Importance::Normal));
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
                         Ok(CSSWideKeyword::InitialKeyword) => {
                             % for sub_property in shorthand.sub_properties:
-                                result_list.push(
+                                result_list.push((
                                     PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Initial));
+                                        DeclaredValue::Initial), Importance::Normal));
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
                         Ok(CSSWideKeyword::UnsetKeyword) => {
                             % for sub_property in shorthand.sub_properties:
-                                result_list.push(PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Unset));
+                                result_list.push((PropertyDeclaration::${sub_property.camel_case}(
+                                        DeclaredValue::Unset), Importance::Normal));
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
@@ -1611,24 +1654,17 @@ pub fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Wri
             flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
     }
+    % if product == "gecko":
     match inheritedbox_style.clone_text_orientation() {
-    % if product == "servo":
-        computed_values::text_orientation::T::sideways_right => {},
-        computed_values::text_orientation::T::sideways_left => {
-            flags.insert(logical_geometry::FLAG_VERTICAL_LR);
-        },
-    % elif product == "gecko":
-        // FIXME(bholley): Need to make sure these are correct when we add
-        // full writing-mode support.
         computed_values::text_orientation::T::mixed => {},
-        computed_values::text_orientation::T::upright => {},
-    % endif
+        computed_values::text_orientation::T::upright => {
+            flags.insert(logical_geometry::FLAG_UPRIGHT);
+        },
         computed_values::text_orientation::T::sideways => {
-            if flags.intersects(logical_geometry::FLAG_VERTICAL_LR) {
-                flags.insert(logical_geometry::FLAG_SIDEWAYS_LEFT);
-            }
+            flags.insert(logical_geometry::FLAG_SIDEWAYS);
         },
     }
+    % endif
     flags
 }
 
@@ -1862,8 +1898,10 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                 PropertyDeclaration::Float(_) |
                 PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_) |
                 PropertyDeclaration::WritingMode(_) |
-                PropertyDeclaration::Direction(_) |
-                PropertyDeclaration::TextOrientation(_)
+                PropertyDeclaration::Direction(_)
+                % if product == 'gecko':
+                    | PropertyDeclaration::TextOrientation(_)
+                % endif
             );
             if
                 % if category_to_cascade_now == "early":
@@ -1902,8 +1940,10 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
     let is_item = matches!(context.inherited_style.get_box().clone_display(),
         % if product == "gecko":
         computed_values::display::T::grid |
+        computed_values::display::T::inline_grid |
         % endif
-        computed_values::display::T::flex);
+        computed_values::display::T::flex |
+        computed_values::display::T::inline_flex);
     let (blockify_root, blockify_item) = match flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
         false => (is_root_element, is_item),
         true => (false, false),
@@ -1927,7 +1967,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
             % endif
 
             // Values that are not changed by blockification.
-            T::block | T::flex | T::list_item | T::table => None,
+            T::none | T::block | T::flex | T::list_item | T::table => None,
             % if product == "gecko":
             T::contents | T::grid | T::_webkit_box => None,
             % endif
@@ -1964,7 +2004,11 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         }
     }
 
-    % if "align-items" in data.longhands_by_name:
+    // This implements an out-of-date spec. The new spec moves the handling of
+    // this to layout, which Gecko implements but Servo doesn't.
+    //
+    // See https://github.com/servo/servo/issues/15229
+    % if product == "servo" and "align-items" in data.longhands_by_name:
     {
         use computed_values::align_self::T as align_self;
         use computed_values::align_items::T as align_items;
@@ -1976,9 +2020,6 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                     align_items::flex_start => align_self::flex_start,
                     align_items::flex_end => align_self::flex_end,
                     align_items::center => align_self::center,
-                    % if product == "gecko":
-                        align_items::normal => align_self::normal,
-                    % endif
                 };
             style.mutate_position().set_align_self(self_align);
         }

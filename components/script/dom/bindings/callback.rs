@@ -5,19 +5,21 @@
 //! Base classes to work with IDL callbacks.
 
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, Root, MutHeapJSVal};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::settings_stack::AutoEntryScript;
+use dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Heap, MutableHandleObject};
-use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};
-use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment};
+use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject, AddRawValueRoot};
+use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment, RemoveRawValueRoot};
 use js::jsapi::JSAutoCompartment;
 use js::jsapi::JS_GetProperty;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::{JSVal, UndefinedValue, ObjectValue};
+use js::rust::Runtime;
 use std::default::Default;
 use std::ffi::CString;
 use std::mem::drop;
+use std::ops::Deref;
 use std::ptr;
 use std::rc::Rc;
 
@@ -30,25 +32,68 @@ pub enum ExceptionHandling {
     Rethrow,
 }
 
-
 /// A common base class for representing IDL callback function and
 /// callback interface types.
-#[derive(Default, JSTraceable)]
+#[derive(JSTraceable)]
+#[must_root]
 pub struct CallbackObject {
     /// The underlying `JSObject`.
     callback: Heap<*mut JSObject>,
+    permanent_js_root: MutHeapJSVal,
+
+    /// The ["callback context"], that is, the global to use as incumbent
+    /// global when calling the callback.
+    ///
+    /// Looking at the WebIDL standard, it appears as though there would always
+    /// be a value here, but [sometimes] callback functions are created by
+    /// hand-waving without defining the value of the callback context, and
+    /// without any JavaScript code on the stack to grab an incumbent global
+    /// from.
+    ///
+    /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
+    /// [sometimes]: https://github.com/whatwg/html/issues/2248
+    incumbent: Option<JS<GlobalScope>>
+}
+
+impl Default for CallbackObject {
+    #[allow(unrooted_must_root)]
+    fn default() -> CallbackObject {
+        CallbackObject::new()
+    }
 }
 
 impl CallbackObject {
+    #[allow(unrooted_must_root)]
     fn new() -> CallbackObject {
         CallbackObject {
             callback: Heap::default(),
+            permanent_js_root: MutHeapJSVal::new(),
+            incumbent: GlobalScope::incumbent().map(|i| JS::from_ref(&*i)),
         }
     }
 
     pub fn get(&self) -> *mut JSObject {
         self.callback.get()
     }
+
+    #[allow(unsafe_code)]
+    unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
+        self.callback.set(callback);
+        self.permanent_js_root.set(ObjectValue(callback));
+        assert!(AddRawValueRoot(cx, self.permanent_js_root.get_unsafe(),
+                                b"CallbackObject::root\n" as *const _ as *const _));
+    }
+}
+
+impl Drop for CallbackObject {
+    #[allow(unsafe_code)]
+    fn drop(&mut self) {
+        unsafe {
+            let cx = Runtime::get();
+            RemoveRawValueRoot(cx, self.permanent_js_root.get_unsafe());
+        }
+    }
+
 }
 
 impl PartialEq for CallbackObject {
@@ -62,24 +107,33 @@ impl PartialEq for CallbackObject {
 /// callback interface types.
 pub trait CallbackContainer {
     /// Create a new CallbackContainer object for the given `JSObject`.
-    fn new(callback: *mut JSObject) -> Rc<Self>;
+    unsafe fn new(cx: *mut JSContext, callback: *mut JSObject) -> Rc<Self>;
     /// Returns the underlying `CallbackObject`.
     fn callback_holder(&self) -> &CallbackObject;
     /// Returns the underlying `JSObject`.
     fn callback(&self) -> *mut JSObject {
         self.callback_holder().get()
     }
+    /// Returns the ["callback context"], that is, the global to use as
+    /// incumbent global when calling the callback.
+    ///
+    /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
+    fn incumbent(&self) -> Option<&GlobalScope> {
+        self.callback_holder().incumbent.as_ref().map(JS::deref)
+    }
 }
 
 
 /// A common base class for representing IDL callback function types.
 #[derive(JSTraceable, PartialEq)]
+#[must_root]
 pub struct CallbackFunction {
     object: CallbackObject,
 }
 
 impl CallbackFunction {
     /// Create a new `CallbackFunction` for this object.
+    #[allow(unrooted_must_root)]
     pub fn new() -> CallbackFunction {
         CallbackFunction {
             object: CallbackObject::new(),
@@ -93,14 +147,17 @@ impl CallbackFunction {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub fn init(&mut self, callback: *mut JSObject) {
-        self.object.callback.set(callback);
+    pub unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
+        self.object.init(cx, callback);
     }
 }
 
 
+
+
 /// A common base class for representing IDL callback interface types.
 #[derive(JSTraceable, PartialEq)]
+#[must_root]
 pub struct CallbackInterface {
     object: CallbackObject,
 }
@@ -120,8 +177,8 @@ impl CallbackInterface {
 
     /// Initialize the callback function with a value.
     /// Should be called once this object is done moving.
-    pub fn init(&mut self, callback: *mut JSObject) {
-        self.object.callback.set(callback);
+    pub unsafe fn init(&mut self, cx: *mut JSContext, callback: *mut JSObject) {
+        self.object.init(cx, callback);
     }
 
     /// Returns the property with the given `name`, if it is a callable object,
@@ -175,6 +232,9 @@ pub struct CallSetup {
     /// https://heycam.github.io/webidl/#es-invoking-callback-functions
     /// steps 8 and 18.2.
     entry_script: Option<AutoEntryScript>,
+    /// https://heycam.github.io/webidl/#es-invoking-callback-functions
+    /// steps 9 and 18.1.
+    incumbent_script: Option<AutoIncumbentScript>,
 }
 
 impl CallSetup {
@@ -187,12 +247,14 @@ impl CallSetup {
         let cx = global.get_cx();
 
         let aes = AutoEntryScript::new(&global);
+        let ais = callback.incumbent().map(AutoIncumbentScript::new);
         CallSetup {
             exception_global: global,
             cx: cx,
             old_compartment: unsafe { JS_EnterCompartment(cx, callback.callback()) },
             handling: handling,
             entry_script: Some(aes),
+            incumbent_script: ais,
         }
     }
 
@@ -211,6 +273,7 @@ impl Drop for CallSetup {
                                                  self.exception_global.reflector().get_jsobject().get());
                 report_pending_exception(self.cx, true);
             }
+            drop(self.incumbent_script.take());
             drop(self.entry_script.take().unwrap());
         }
     }

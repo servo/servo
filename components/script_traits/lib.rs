@@ -48,7 +48,6 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use gfx_traits::DevicePixel;
 use gfx_traits::Epoch;
 use gfx_traits::ScrollRootId;
 use heapsize::HeapSizeOf;
@@ -195,6 +194,22 @@ pub enum DiscardBrowsingContext {
     No,
 }
 
+/// Is a document fully active, active or inactive?
+/// A document is active if it is the current active document in its session history,
+/// it is fuly active if it is active and all of its ancestors are active,
+/// and it is inactive otherwise.
+/// https://html.spec.whatwg.org/multipage/#active-document
+/// https://html.spec.whatwg.org/multipage/#fully-active
+#[derive(Copy, Clone, PartialEq, Eq, Hash, HeapSizeOf, Debug, Deserialize, Serialize)]
+pub enum DocumentActivity {
+    /// An inactive document
+    Inactive,
+    /// An active but not fully active document
+    Active,
+    /// A fully active document
+    FullyActive,
+}
+
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -216,10 +231,8 @@ pub enum ConstellationControlMsg {
     SetScrollState(PipelineId, Vec<(UntrustedNodeAddress, Point2D<f32>)>),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
-    /// Notifies script thread to suspend all its timers
-    Freeze(PipelineId),
-    /// Notifies script thread to resume all its timers
-    Thaw(PipelineId),
+    /// Notifies script thread of a change to one of its document's activity
+    SetDocumentActivity(PipelineId, DocumentActivity),
     /// Notifies script thread whether frame is visible
     ChangeFrameVisibilityStatus(PipelineId, bool),
     /// Notifies script thread that frame visibility change is complete
@@ -282,8 +295,7 @@ impl fmt::Debug for ConstellationControlMsg {
             Viewport(..) => "Viewport",
             SetScrollState(..) => "SetScrollState",
             GetTitle(..) => "GetTitle",
-            Freeze(..) => "Freeze",
-            Thaw(..) => "Thaw",
+            SetDocumentActivity(..) => "SetDocumentActivity",
             ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
             Navigate(..) => "Navigate",
@@ -642,6 +654,12 @@ pub struct StackingContextScrollState {
     pub scroll_offset: Point2D<f32>,
 }
 
+/// One hardware pixel.
+///
+/// This unit corresponds to the smallest addressable element of the display hardware.
+#[derive(Copy, Clone, Debug)]
+pub enum DevicePixel {}
+
 /// Data about the window size.
 #[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct WindowSizeData {
@@ -691,8 +709,6 @@ pub enum WebDriverCommandMsg {
 pub enum ConstellationMsg {
     /// Exit the constellation.
     Exit,
-    /// Inform the constellation of the size of the viewport.
-    FrameSize(PipelineId, Size2D<f32>),
     /// Request that the constellation send the FrameId corresponding to the document
     /// with the provided pipeline id
     GetFrame(PipelineId, IpcSender<Option<FrameId>>),

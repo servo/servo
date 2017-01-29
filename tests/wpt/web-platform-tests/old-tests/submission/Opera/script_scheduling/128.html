@@ -28,7 +28,7 @@ t.step(function() {
 });
 
 onload = t.step_func(function() {
-  assert_array_equals(eventOrder, ["inline script #1", "inline script #2", "inline script #3", "end inline script #2", "end inline script #1"]);
+  assert_array_equals(eventOrder, ["inline script #1", "inline script #3", "inline script #2", "end inline script #2", "end inline script #1"]);
   t.done();
 });
 </script>

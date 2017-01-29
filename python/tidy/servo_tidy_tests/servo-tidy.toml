@@ -5,9 +5,15 @@ skip-check-length = false
 skip-check-licenses = false
 wrong-key = false
 
+[blocked-packages]
+
 [wrong]
 wrong-key = true
 
 [ignore]
-files = []
-directories = []
+files = [
+  "./fake/file.html",
+]
+directories = [
+  "./fake/dir",
+]

@@ -203,6 +203,7 @@ ${helpers.single_keyword("background-attachment",
 
 ${helpers.single_keyword("background-clip",
                          "border-box padding-box content-box",
+                         extra_gecko_values="text",
                          vector=True, extra_prefixes="webkit",
                          spec="https://drafts.csswg.org/css-backgrounds/#the-background-clip",
                          animatable=False)}
@@ -415,5 +416,5 @@ ${helpers.single_keyword("background-blend-mode",
                          """normal multiply screen overlay darken lighten color-dodge
                             color-burn hard-light soft-light difference exclusion hue
                             saturation color luminosity""",
-                         vector="true", products="gecko", animatable=False,
+                         vector=True, products="gecko", animatable=False,
                          spec="https://drafts.fxtf.org/compositing/#background-blend-mode")}

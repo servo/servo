@@ -21,7 +21,6 @@ debugmozjs = ["libservo/debugmozjs"]
 compositing = {path = "../../components/compositing"}
 devtools = {path = "../../components/devtools"}
 euclid = "0.10.1"
-gfx_traits = {path = "../../components/gfx_traits"}
 gleam = "0.2.8"
 glutin_app = {path = "../glutin"}
 libc = "0.2"
@@ -35,6 +34,11 @@ servo_config = {path = "../../components/config"}
 servo_geometry = {path = "../../components/geometry"}
 servo_url = {path = "../../components/url"}
 style_traits = {path = "../../components/style_traits"}
+
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender"
+default-features = false
+features = ["serde_derive", "ipc"]
 
 [target.'cfg(target_os="macos")'.dependencies]
 objc = "0.2"

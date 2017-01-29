@@ -12,7 +12,6 @@
 #![allow(non_snake_case)]
 #![deny(unsafe_code)]
 
-#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate heapsize;
@@ -20,7 +19,6 @@ extern crate heapsize;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate msg;
-extern crate serde;
 #[macro_use] extern crate serde_derive;
 extern crate servo_url;
 extern crate time;

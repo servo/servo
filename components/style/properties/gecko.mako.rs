@@ -51,11 +51,14 @@ use gecko::values::GeckoStyleCoordConvertible;
 use gecko::values::round_border_to_device_pixels;
 use logical_geometry::WritingMode;
 use properties::longhands;
+use properties::{DeclaredValue, Importance, LonghandId};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use std::fmt::{self, Debug};
 use std::mem::{transmute, zeroed};
 use std::ptr;
 use std::sync::Arc;
 use std::cmp;
+use values::computed::ToComputedValue;
 
 pub mod style_structs {
     % for style_struct in data.style_structs:
@@ -154,6 +157,28 @@ impl ComputedValues {
     // FIXME(bholley): Implement this properly.
     #[inline]
     pub fn is_multicol(&self) -> bool { false }
+
+    pub fn to_declaration_block(&self, property: PropertyDeclarationId) -> PropertyDeclarationBlock {
+        match property {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    PropertyDeclarationId::Longhand(LonghandId::${prop.camel_case}) => {
+                        PropertyDeclarationBlock {
+                            declarations: vec![
+                                (PropertyDeclaration::${prop.camel_case}(DeclaredValue::Value(
+                                    longhands::${prop.ident}::SpecifiedValue::from_computed_value(
+                                      &self.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}()))),
+                                 Importance::Normal)
+                            ],
+                            important_count: 0
+                        }
+                    },
+                % endif
+            % endfor
+            PropertyDeclarationId::Custom(_name) => unimplemented!(),
+            _ => unimplemented!()
+        }
+    }
 }
 
 <%def name="declare_style_struct(style_struct)">
@@ -1021,8 +1046,13 @@ fn static_assert() {
     #[allow(non_snake_case)]
     pub fn copy_animation_${ident}_from(&mut self, other: &Self) {
         unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };
-        self.gecko.mAnimation${gecko_ffi_name}Count = other.gecko.mAnimation${gecko_ffi_name}Count;
-        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate() {
+
+        let count = other.gecko.mAnimation${gecko_ffi_name}Count;
+        self.gecko.mAnimation${gecko_ffi_name}Count = count;
+
+        // The length of mAnimations is often greater than mAnimationXXCount,
+        // don't copy values over the count.
+        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate().take(count as usize) {
             animation.m${gecko_ffi_name} = other.gecko.mAnimations[index].m${gecko_ffi_name};
         }
     }
@@ -1038,7 +1068,9 @@ fn static_assert() {
 <%def name="impl_animation_time_value(ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
     pub fn set_animation_${ident}(&mut self, v: longhands::animation_${ident}::computed_value::T) {
+        assert!(v.0.len() > 0);
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+
         self.gecko.mAnimation${gecko_ffi_name}Count = v.0.len() as u32;
         for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
             gecko.m${gecko_ffi_name} = servo.seconds() * 1000.;
@@ -1060,7 +1092,9 @@ fn static_assert() {
         use properties::longhands::animation_${ident}::single_value::computed_value::T as Keyword;
         use gecko_bindings::structs;
 
+        assert!(v.0.len() > 0);
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+
         self.gecko.mAnimation${gecko_ffi_name}Count = v.0.len() as u32;
 
         for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
@@ -1242,7 +1276,7 @@ fn static_assert() {
             T::left   => true,
             T::right  => true
         };
-        self.gecko.mBreakBefore = result;
+        self.gecko.mBreakAfter = result;
     }
 
     ${impl_simple_copy('page_break_after', 'mBreakAfter')}
@@ -1365,9 +1399,14 @@ fn static_assert() {
     pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
         use nsstring::nsCString;
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
-        self.gecko.mAnimationNameCount = v.0.len() as u32;
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
-            gecko.mName.assign_utf8(&nsCString::from(servo.0.to_string()));
+
+        if v.0.len() > 0 {
+            self.gecko.mAnimationNameCount = v.0.len() as u32;
+            for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
+                gecko.mName.assign_utf8(&nsCString::from(servo.0.to_string()));
+            }
+        } else {
+            unsafe { self.gecko.mAnimations[0].mName.truncate(); }
         }
     }
     pub fn animation_name_at(&self, index: usize)
@@ -1379,8 +1418,13 @@ fn static_assert() {
     }
     pub fn copy_animation_name_from(&mut self, other: &Self) {
         unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };
-        self.gecko.mAnimationNameCount = other.gecko.mAnimationNameCount;
-        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate() {
+
+        let count = other.gecko.mAnimationNameCount;
+        self.gecko.mAnimationNameCount = count;
+
+        // The length of mAnimations is often greater than mAnimationXXCount,
+        // don't copy values over the count.
+        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate().take(count as usize) {
             animation.mName.assign(&other.gecko.mAnimations[index].mName);
         }
     }
@@ -1400,7 +1444,9 @@ fn static_assert() {
         use std::f32;
         use properties::longhands::animation_iteration_count::single_value::SpecifiedValue as AnimationIterationCount;
 
+        assert!(v.0.len() > 0);
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+
         self.gecko.mAnimationIterationCountCount = v.0.len() as u32;
         for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
             match servo {
@@ -1424,6 +1470,7 @@ fn static_assert() {
     ${impl_copy_animation_value('iteration_count', 'IterationCount')}
 
     pub fn set_animation_timing_function(&mut self, v: longhands::animation_timing_function::computed_value::T) {
+        assert!(v.0.len() > 0);
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
 
         self.gecko.mAnimationTimingFunctionCount = v.0.len() as u32;
@@ -1432,16 +1479,10 @@ fn static_assert() {
         }
     }
     ${impl_animation_count('timing_function', 'TimingFunction')}
+    ${impl_copy_animation_value('timing_function', 'TimingFunction')}
     pub fn animation_timing_function_at(&self, index: usize)
         -> longhands::animation_timing_function::computed_value::SingleComputedValue {
         self.gecko.mAnimations[index].mTimingFunction.into()
-    }
-    pub fn copy_animation_timing_function_from(&mut self, other: &Self) {
-        unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };
-        self.gecko.mAnimationTimingFunctionCount = other.gecko.mAnimationTimingFunctionCount;
-        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate() {
-            animation.mTimingFunction = other.gecko.mAnimations[index].mTimingFunction;
-        }
     }
 
     <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "none mandatory proximity") %>
@@ -1565,6 +1606,14 @@ fn static_assert() {
             T::border_box => StyleGeometryBox::Border,
             T::padding_box => StyleGeometryBox::Padding,
             T::content_box => StyleGeometryBox::Content,
+            % if shorthand == "mask":
+            T::fill_box => StyleGeometryBox::Fill,
+            T::stroke_box => StyleGeometryBox::Stroke,
+            T::view_box => StyleGeometryBox::View,
+            T::no_clip => StyleGeometryBox::NoClip,
+            % elif shorthand == "background":
+            T::text => StyleGeometryBox::Text,
+            % endif
         }
     </%self:simple_image_array_property>
 
@@ -1576,6 +1625,11 @@ fn static_assert() {
             T::border_box => StyleGeometryBox::Border,
             T::padding_box => StyleGeometryBox::Padding,
             T::content_box => StyleGeometryBox::Content,
+            % if shorthand == "mask":
+            T::fill_box => StyleGeometryBox::Fill,
+            T::stroke_box => StyleGeometryBox::Stroke,
+            T::view_box => StyleGeometryBox::View,
+            % endif
         }
     </%self:simple_image_array_property>
 
@@ -1745,9 +1799,9 @@ fn static_assert() {
     }
 
     <%
-        fill_fields = "mRepeat mClip mOrigin mPositionX mPositionY mImage"
+        fill_fields = "mRepeat mClip mOrigin mPositionX mPositionY mImage mSize"
         if shorthand == "background":
-            fill_fields += " mAttachment"
+            fill_fields += " mAttachment mBlendMode"
         else:
             # mSourceURI uses mImageCount
             fill_fields += " mMaskMode mComposite"
@@ -2220,6 +2274,9 @@ fn static_assert() {
         if v.line_through {
             bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8;
         }
+        if v.blink {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_BLINK as u8;
+        }
         self.gecko.mTextDecorationLine = bits;
     }
 
@@ -2593,7 +2650,7 @@ clip-path
         use properties::longhands::content::computed_value::T;
         use properties::longhands::content::computed_value::ContentItem;
         use gecko_bindings::structs::nsStyleContentType::*;
-        use gecko_bindings::bindings::Gecko_ClearStyleContents;
+        use gecko_bindings::bindings::Gecko_ClearAndResizeStyleContents;
 
         // Converts a string as utf16, and returns an owned, zero-terminated raw buffer.
         fn as_utf16_and_forget(s: &str) -> *mut u16 {
@@ -2605,19 +2662,21 @@ clip-path
             ptr
         }
 
-        // Ensure destructors run, otherwise we could leak.
-        if !self.gecko.mContents.is_empty() {
-            unsafe {
-                Gecko_ClearStyleContents(&mut self.gecko);
-            }
-        }
-
         match v {
             T::none |
-            T::normal => {}, // Do nothing, already cleared.
+            T::normal => {
+                // Ensure destructors run, otherwise we could leak.
+                if !self.gecko.mContents.is_empty() {
+                    unsafe {
+                        Gecko_ClearAndResizeStyleContents(&mut self.gecko, 0);
+                    }
+                }
+            },
             T::Content(items) => {
-                // NB: set_len also reserves the appropriate space.
-                unsafe { self.gecko.mContents.set_len(items.len() as u32) }
+                unsafe {
+                    Gecko_ClearAndResizeStyleContents(&mut self.gecko,
+                                                      items.len() as u32);
+                }
                 for (i, item) in items.into_iter().enumerate() {
                     // TODO: Servo lacks support for attr(), and URIs.
                     // NB: Gecko compares the mString value if type is not image

@@ -11,12 +11,12 @@ use std::mem::replace;
 use std::time::Instant;
 
 /// A frame in the frame tree.
-/// Each frame is the constrellation's view of a browsing context.
+/// Each frame is the constellation's view of a browsing context.
 /// Each browsing context has a session history, caused by
 /// navigation and traversing the history. Each frame has its
 /// current entry, plus past and future entries. The past is sorted
-/// chronologically, the future is sorted reverse chronoogically:
-/// in partiucular prev.pop() is the latest past entry, and
+/// chronologically, the future is sorted reverse chronologically:
+/// in particular prev.pop() is the latest past entry, and
 /// next.pop() is the earliest future entry.
 #[derive(Debug, Clone)]
 pub struct Frame {
@@ -76,6 +76,13 @@ impl Frame {
     pub fn remove_forward_entries(&mut self) -> Vec<FrameState> {
         replace(&mut self.next, vec!())
     }
+
+    /// Update the current entry of the Frame from an entry that has been traversed to.
+    pub fn update_current(&mut self, pipeline_id: PipelineId, entry: &FrameState) {
+        self.pipeline_id = pipeline_id;
+        self.instant = entry.instant;
+        self.url = entry.url.clone();
+    }
 }
 
 /// An entry in a frame's session history.
@@ -97,6 +104,15 @@ pub struct FrameState {
 
     /// The frame that this session history entry is part of
     pub frame_id: FrameId,
+}
+
+impl FrameState {
+    /// Updates the entry's pipeline and url. This is used when navigating with replacement
+    /// enabled.
+    pub fn replace_pipeline(&mut self, pipeline_id: PipelineId, url: ServoUrl) {
+        self.pipeline_id = Some(pipeline_id);
+        self.url = url;
+    }
 }
 
 /// Represents a pending change in the frame tree, that will be applied

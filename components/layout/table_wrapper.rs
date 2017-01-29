@@ -341,6 +341,8 @@ impl Flow for TableWrapperFlow {
                    "table_wrapper"
                });
 
+        self.block_flow.initialize_container_size_for_root(shared_context);
+
         let mut intermediate_column_inline_sizes = self.column_intrinsic_inline_sizes
                                                        .iter()
                                                        .map(|column_intrinsic_inline_size| {
@@ -766,7 +768,13 @@ fn initial_computed_inline_size(block: &mut BlockFlow,
                                                        containing_block_inline_size);
     match inline_size_from_style {
         MaybeAuto::Auto => {
-            MaybeAuto::Specified(min(containing_block_inline_size, preferred_width_of_all_columns))
+            if preferred_width_of_all_columns + table_border_padding <= containing_block_inline_size {
+                MaybeAuto::Specified(preferred_width_of_all_columns + table_border_padding)
+            } else if minimum_width_of_all_columns > containing_block_inline_size {
+                MaybeAuto::Specified(minimum_width_of_all_columns)
+            } else {
+                MaybeAuto::Auto
+            }
         }
         MaybeAuto::Specified(inline_size_from_style) => {
             MaybeAuto::Specified(max(inline_size_from_style - table_border_padding,

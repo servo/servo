@@ -6,6 +6,7 @@
 
 mod ns_com_ptr;
 mod ns_css_shadow_array;
+mod ns_css_value;
 mod ns_style_auto_array;
 pub mod ns_style_coord;
 mod ns_t_array;

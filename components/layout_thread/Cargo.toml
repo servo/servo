@@ -16,7 +16,6 @@ fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.0"
-heapsize_derive = "0.1"
 ipc-channel = "0.5"
 layout = {path = "../layout"}
 layout_traits = {path = "../layout_traits"}
@@ -31,7 +30,7 @@ rayon = "0.6"
 script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-selectors = "0.15"
+selectors = "0.15.1"
 serde_derive = "0.8"
 serde_json = "0.8"
 servo_config = {path = "../config"}

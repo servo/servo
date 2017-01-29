@@ -3,7 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate cmake;
+extern crate phf_codegen;
+extern crate phf_shared;
+extern crate serde_json;
+
+use serde_json::Value;
 use std::env;
+use std::fmt;
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 use std::time::Instant;
 
 fn main() {
@@ -34,4 +43,33 @@ fn main() {
     build.build();
 
     println!("Binding generation completed in {}s", start.elapsed().as_secs());
+
+    let json = PathBuf::from(env::var("OUT_DIR").unwrap()).join("build").join("InterfaceObjectMapData.json");
+    let json: Value = serde_json::from_reader(File::open(&json).unwrap()).unwrap();
+    let mut map = phf_codegen::Map::new();
+    for (key, value) in json.as_object().unwrap() {
+        map.entry(Bytes(key), value.as_str().unwrap());
+    }
+    let phf = PathBuf::from(env::var("OUT_DIR").unwrap()).join("InterfaceObjectMapPhf.rs");
+    let mut phf = File::create(&phf).unwrap();
+    write!(&mut phf, "pub static MAP: phf::Map<&'static [u8], unsafe fn(*mut JSContext, HandleObject)> = ").unwrap();
+    map.build(&mut phf).unwrap();
+    write!(&mut phf, ";\n").unwrap();
+}
+
+#[derive(Eq, PartialEq, Hash)]
+struct Bytes<'a>(&'a str);
+
+impl<'a> fmt::Debug for Bytes<'a> {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("b\"")?;
+        formatter.write_str(self.0)?;
+        formatter.write_str("\" as &'static [u8]")
+    }
+}
+
+impl<'a> phf_shared::PhfHash for Bytes<'a> {
+    fn phf_hash<H: std::hash::Hasher>(&self, hasher: &mut H) {
+        self.0.as_bytes().phf_hash(hasher)
+    }
 }

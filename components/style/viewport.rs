@@ -25,7 +25,7 @@ use style_traits::ToCss;
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::{Stylesheet, Origin};
 use values::computed::{Context, ToComputedValue};
-use values::specified::{Length, LengthOrPercentageOrAuto, ViewportPercentageLength};
+use values::specified::{NoCalcLength, LengthOrPercentageOrAuto, ViewportPercentageLength};
 
 macro_rules! declare_viewport_descriptor {
     ( $( $variant_name: expr => $variant: ident($data: ident), )+ ) => {
@@ -85,7 +85,7 @@ macro_rules! declare_viewport_descriptor_inner {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
                     $(
-                        ViewportDescriptor::$assigned_variant(val) => {
+                        ViewportDescriptor::$assigned_variant(ref val) => {
                             try!(dest.write_str($assigned_variant_name));
                             try!(dest.write_str(": "));
                             try!(val.to_css(dest));
@@ -121,7 +121,7 @@ trait FromMeta: Sized {
 /// See:
 /// * http://dev.w3.org/csswg/css-device-adapt/#min-max-width-desc
 /// * http://dev.w3.org/csswg/css-device-adapt/#extend-to-zoom
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum ViewportLength {
@@ -134,7 +134,7 @@ impl ToCss for ViewportLength {
         where W: fmt::Write,
     {
         match *self {
-            ViewportLength::Specified(length) => length.to_css(dest),
+            ViewportLength::Specified(ref length) => length.to_css(dest),
             ViewportLength::ExtendToZoom => write!(dest, "extend-to-zoom"),
         }
     }
@@ -150,14 +150,14 @@ impl FromMeta for ViewportLength {
 
         Some(match value {
             v if v.eq_ignore_ascii_case("device-width") =>
-                specified!(Length::ViewportPercentage(ViewportPercentageLength::Vw(100.))),
+                specified!(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vw(100.))),
             v if v.eq_ignore_ascii_case("device-height") =>
-                specified!(Length::ViewportPercentage(ViewportPercentageLength::Vh(100.))),
+                specified!(NoCalcLength::ViewportPercentage(ViewportPercentageLength::Vh(100.))),
             _ => {
                 match value.parse::<f32>() {
-                    Ok(n) if n >= 0. => specified!(Length::from_px(n.max(1.).min(10000.))),
+                    Ok(n) if n >= 0. => specified!(NoCalcLength::from_px(n.max(1.).min(10000.))),
                     Ok(_) => return None,
-                    Err(_) => specified!(Length::from_px(1.))
+                    Err(_) => specified!(NoCalcLength::from_px(1.))
                 }
             }
         })
@@ -244,11 +244,11 @@ impl ToCss for ViewportDescriptorDeclaration {
     }
 }
 
-fn parse_shorthand(input: &mut Parser) -> Result<[ViewportLength; 2], ()> {
+fn parse_shorthand(input: &mut Parser) -> Result<(ViewportLength, ViewportLength), ()> {
     let min = try!(ViewportLength::parse(input));
     match input.try(|input| ViewportLength::parse(input)) {
-        Err(()) => Ok([min, min]),
-        Ok(max) => Ok([min, max])
+        Err(()) => Ok((min.clone(), min)),
+        Ok(max) => Ok((min, max))
     }
 }
 
@@ -282,8 +282,8 @@ impl<'a, 'b> DeclarationParser for ViewportRuleParser<'a, 'b> {
                 let shorthand = try!(parse_shorthand(input));
                 let important = input.try(parse_important).is_ok();
 
-                Ok(vec![declaration!($min(value: shorthand[0], important: important)),
-                        declaration!($max(value: shorthand[1], important: important))])
+                Ok(vec![declaration!($min(value: shorthand.0, important: important)),
+                        declaration!($max(value: shorthand.1, important: important))])
             }}
         }
 
@@ -631,11 +631,11 @@ impl MaybeNew for ViewportConstraints {
         // collapse the list of declarations into descriptor values
         for declaration in &rule.declarations {
             match declaration.descriptor {
-                ViewportDescriptor::MinWidth(value) => min_width = Some(value),
-                ViewportDescriptor::MaxWidth(value) => max_width = Some(value),
+                ViewportDescriptor::MinWidth(ref value) => min_width = Some(value),
+                ViewportDescriptor::MaxWidth(ref value) => max_width = Some(value),
 
-                ViewportDescriptor::MinHeight(value) => min_height = Some(value),
-                ViewportDescriptor::MaxHeight(value) => max_height = Some(value),
+                ViewportDescriptor::MinHeight(ref value) => min_height = Some(value),
+                ViewportDescriptor::MaxHeight(ref value) => max_height = Some(value),
 
                 ViewportDescriptor::Zoom(value) => initial_zoom = value.to_f32(),
                 ViewportDescriptor::MinZoom(value) => min_zoom = value.to_f32(),
@@ -654,7 +654,7 @@ impl MaybeNew for ViewportConstraints {
                     (None, None) => None,
                     (a, None) => a,
                     (None, b) => b,
-                    (a, b) => Some(a.unwrap().$op(b.unwrap())),
+                    (Some(a), Some(b)) => Some(a.$op(b)),
                 }
             }
         }
@@ -709,14 +709,14 @@ impl MaybeNew for ViewportConstraints {
         macro_rules! to_pixel_length {
             ($value:ident, $dimension:ident, $extend_to:ident => $auto_extend_to:expr) => {
                 if let Some($value) = $value {
-                    match $value {
-                        ViewportLength::Specified(length) => match length {
-                            LengthOrPercentageOrAuto::Length(value) =>
+                    match *$value {
+                        ViewportLength::Specified(ref length) => match *length {
+                            LengthOrPercentageOrAuto::Length(ref value) =>
                                 Some(value.to_computed_value(&context)),
                             LengthOrPercentageOrAuto::Percentage(value) =>
                                 Some(initial_viewport.$dimension.scale_by(value.0)),
                             LengthOrPercentageOrAuto::Auto => None,
-                            LengthOrPercentageOrAuto::Calc(calc) => {
+                            LengthOrPercentageOrAuto::Calc(ref calc) => {
                                 let calc = calc.to_computed_value(&context);
                                 Some(initial_viewport.$dimension.scale_by(calc.percentage()) + calc.length())
                             }

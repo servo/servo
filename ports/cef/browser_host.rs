@@ -8,6 +8,7 @@ use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_t, cef_brows
 use types::cef_event_flags_t::{EVENTFLAG_ALT_DOWN, EVENTFLAG_CONTROL_DOWN, EVENTFLAG_SHIFT_DOWN};
 use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
 use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event, cef_window_handle_t};
+use webrender_traits::ScrollLocation;
 use wrappers::CefWrap;
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
@@ -471,7 +472,7 @@ full_cef_class_impl! {
             let delta_y: c_int = delta_y;
             let delta = TypedPoint2D::new(delta_x as f32, delta_y as f32);
             let origin = TypedPoint2D::new((*event).x as i32, (*event).y as i32);
-            this.downcast().send_window_event(WindowEvent::Scroll(delta,
+            this.downcast().send_window_event(WindowEvent::Scroll(ScrollLocation::Delta(delta),
                                                                   origin,
                                                                   TouchEventType::Move))
         }}

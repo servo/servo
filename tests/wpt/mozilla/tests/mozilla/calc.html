@@ -15,38 +15,39 @@
 var div = document.getElementById('inner');
 
 var widthTests = [
-    ['calc(10px)', '10px', '10px'],
+    ['calc(10px)', 'calc(10px)', '10px'],
 
     // Basic Arithmetic
-    ['calc(10px + 10px)', '20px', '20px'],
-    ['calc(10px - 5px)', '5px', '5px'],
-    ['calc(2 * 10px)', '20px', '20px'],
-    ['calc(10px / 2)', '5px', '5px'],
+    ['calc(10px + 10px)', 'calc(20px)', '20px'],
+    ['calc(10px - 5px)', 'calc(5px)', '5px'],
+    ['calc(2 * 10px)', 'calc(20px)', '20px'],
+    ['calc(10px / 2)', 'calc(5px)', '5px'],
 
     // Parse ok
-    ['calc(20px/2)', '10px', '10px'],
-    ['calc(10px*2)', '20px', '20px'],
+    ['calc(20px/2)', 'calc(10px)', '10px'],
+    ['calc(10px*2)', 'calc(20px)', '20px'],
 
     // Parse errors - value left over from previous test
-    ['calc(10px-10px)', '20px', '20px'],
-    ['calc(5px+5px)', '20px', '20px'],
+    ['calc(10px-10px)', 'calc(20px)', '20px'],
+    ['calc(5px+5px)', 'calc(20px)', '20px'],
+    ['calc()', 'calc(20px)', '20px'],
 
     // Combining units
     ['calc(10px + 10em)', 'calc(10em + 10px)', '170px'],
     ['calc(10px + 10em - 10px)', 'calc(10em + 0px)', '160px'],
 
     // Fold absolute units
-    ['calc(1px + 1pt + 1pc + 1in + 1cm + 1mm)', '155.88333333333333px', '155.88333333333333px'],
+    ['calc(1px + 1pt + 1pc + 1in + 1cm + 1mm)', 'calc(155.88333333333333px)', '155.88333333333333px'],
 
     // Alphabetical order
     ['calc(0ch + 0px + 0pt + 0pc + 0in + 0cm + 0mm + 0rem + 0em + 0ex + 0% + 0vw + 0vh + 0vmin + 0vmax)',
-     'calc(0ch + 0em + 0ex + 0px + 0rem + 0vh + 0vmax + 0vmin + 0vw + 0%)',
+     'calc(0ch + 0em + 0ex + 0rem + 0vh + 0vmax + 0vmin + 0vw + 0px + 0%)',
      '0px'],
 
     // Simplification
-    ['calc((2 - 1) * 10px)', '10px', '10px'],
-    ['calc(((3 - 1) * (8 + 4)) * 10px)', '240px', '240px'],
-    ['calc(5 * (20px / 2 + 7 * (3em + 12px/4 + (8 - 2) * 2rem)))', 'calc(105em + 155px + 420rem)', '8555px'],
+    ['calc((2 - 1) * 10px)', 'calc(10px)', '10px'],
+    ['calc(((3 - 1) * (8 + 4)) * 10px)', 'calc(240px)', '240px'],
+    ['calc(5 * (20px / 2 + 7 * (3em + 12px/4 + (8 - 2) * 2rem)))', 'calc(105em + 420rem + 155px)', '8555px'],
 
 ];
 
@@ -75,7 +76,7 @@ var lengthProperties = [
 lengthProperties.forEach(function(prop) {
     test(function() {
         div.style.setProperty(prop, 'calc(1px)');
-        assert_equals(div.style.getPropertyValue(prop), '1px');
+        assert_equals(div.style.getPropertyValue(prop), 'calc(1px)');
     }, 'calc for ' + prop);
 });
 
@@ -130,7 +131,7 @@ numberProperties.forEach(function(prop) {
 
 var otherProperties = [
   ['border-width', 'calc(1px)', '1px 1px 1px 1px'],
-  ['border-spacing', 'calc(1px)', '1px 1px'],
+  ['border-spacing', 'calc(1px)', 'calc(1px) calc(1px)'],
   ['transform-origin', 'calc(1px + 0%)', 'calc(1px + 0%) 50% 0px'],
   ['perspective-origin', 'calc(1px + 0%)', 'calc(1px + 0%) 50%'],
   ['background-size', 'calc(1px + 0%)', 'calc(1px + 0%) auto'],

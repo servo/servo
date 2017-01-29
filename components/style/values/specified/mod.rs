@@ -26,7 +26,7 @@ pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword,
 pub use self::image::{SizeKeyword, VerticalDirection};
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
-pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, CalcUnit};
+pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength, CalcUnit};
 
 pub mod basic_shape;
 pub mod grid;
@@ -109,20 +109,21 @@ impl<'a> Mul<CSSFloat> for &'a SimplifiedSumNode {
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub enum SimplifiedValueNode {
-    Length(Length),
+    Length(NoCalcLength),
     Angle(Angle),
     Time(Time),
     Percentage(CSSFloat),
     Number(CSSFloat),
     Sum(Box<SimplifiedSumNode>),
 }
+
 impl<'a> Mul<CSSFloat> for &'a SimplifiedValueNode {
     type Output = SimplifiedValueNode;
 
     #[inline]
     fn mul(self, scalar: CSSFloat) -> SimplifiedValueNode {
         match *self {
-            SimplifiedValueNode::Length(l) => SimplifiedValueNode::Length(l * scalar),
+            SimplifiedValueNode::Length(ref l) => SimplifiedValueNode::Length(l.clone() * scalar),
             SimplifiedValueNode::Percentage(p) => SimplifiedValueNode::Percentage(p * scalar),
             SimplifiedValueNode::Angle(Angle(a)) => SimplifiedValueNode::Angle(Angle(a * scalar)),
             SimplifiedValueNode::Time(Time(t)) => SimplifiedValueNode::Time(Time(t * scalar)),
@@ -187,7 +188,7 @@ pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
     }
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
@@ -197,8 +198,8 @@ impl NoViewportPercentage for BorderRadiusSize {}
 impl BorderRadiusSize {
     #[allow(missing_docs)]
     pub fn zero() -> BorderRadiusSize {
-        let zero = LengthOrPercentage::Length(Length::Absolute(Au(0)));
-            BorderRadiusSize(Size2D::new(zero, zero))
+        let zero = LengthOrPercentage::Length(NoCalcLength::zero());
+        BorderRadiusSize(Size2D::new(zero.clone(), zero))
     }
 
     #[allow(missing_docs)]
@@ -208,7 +209,7 @@ impl BorderRadiusSize {
 
     #[allow(missing_docs)]
     pub fn circle(radius: LengthOrPercentage) -> BorderRadiusSize {
-        BorderRadiusSize(Size2D::new(radius, radius))
+        BorderRadiusSize(Size2D::new(radius.clone(), radius))
     }
 }
 
@@ -216,7 +217,8 @@ impl Parse for BorderRadiusSize {
     #[inline]
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let first = try!(LengthOrPercentage::parse_non_negative(input));
-        let second = input.try(LengthOrPercentage::parse_non_negative).unwrap_or(first);
+        let second = input.try(LengthOrPercentage::parse_non_negative)
+            .unwrap_or_else(|()| first.clone());
         Ok(BorderRadiusSize(Size2D::new(first, second)))
     }
 }
@@ -290,11 +292,11 @@ pub fn parse_border_radius(context: &ParserContext, input: &mut Parser) -> Resul
     input.try(|i| BorderRadiusSize::parse(context, i)).or_else(|_| {
         match_ignore_ascii_case! { try!(input.expect_ident()),
             "thin" => Ok(BorderRadiusSize::circle(
-                             LengthOrPercentage::Length(Length::from_px(1.)))),
+                             LengthOrPercentage::Length(NoCalcLength::from_px(1.)))),
             "medium" => Ok(BorderRadiusSize::circle(
-                               LengthOrPercentage::Length(Length::from_px(3.)))),
+                               LengthOrPercentage::Length(NoCalcLength::from_px(3.)))),
             "thick" => Ok(BorderRadiusSize::circle(
-                              LengthOrPercentage::Length(Length::from_px(5.)))),
+                              LengthOrPercentage::Length(NoCalcLength::from_px(5.)))),
             _ => Err(())
         }
     })
@@ -312,7 +314,7 @@ pub fn parse_border_width(input: &mut Parser) -> Result<Length, ()> {
     })
 }
 
-#[derive(Clone, PartialEq, Copy, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum BorderWidth {
@@ -349,7 +351,7 @@ impl ToCss for BorderWidth {
             BorderWidth::Thin => dest.write_str("thin"),
             BorderWidth::Medium => dest.write_str("medium"),
             BorderWidth::Thick => dest.write_str("thick"),
-            BorderWidth::Width(length) => length.to_css(dest)
+            BorderWidth::Width(ref length) => length.to_css(dest)
         }
     }
 }
@@ -358,7 +360,7 @@ impl HasViewportPercentage for BorderWidth {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             BorderWidth::Thin | BorderWidth::Medium | BorderWidth::Thick => false,
-            BorderWidth::Width(length) => length.has_viewport_percentage()
+            BorderWidth::Width(ref length) => length.has_viewport_percentage()
          }
     }
 }
@@ -375,7 +377,7 @@ impl ToComputedValue for BorderWidth {
             BorderWidth::Thin => Length::from_px(1.).to_computed_value(context),
             BorderWidth::Medium => Length::from_px(3.).to_computed_value(context),
             BorderWidth::Thick => Length::from_px(5.).to_computed_value(context),
-            BorderWidth::Width(length) => length.to_computed_value(context)
+            BorderWidth::Width(ref length) => length.to_computed_value(context)
         }
     }
 
@@ -603,9 +605,8 @@ impl Shadow {
     // disable_spread_and_inset is for filter: drop-shadow(...)
     #[allow(missing_docs)]
     pub fn parse(context:  &ParserContext, input: &mut Parser, disable_spread_and_inset: bool) -> Result<Shadow, ()> {
-        use app_units::Au;
         let length_count = if disable_spread_and_inset { 3 } else { 4 };
-        let mut lengths = [Length::Absolute(Au(0)); 4];
+        let mut lengths = [Length::zero(), Length::zero(), Length::zero(), Length::zero()];
         let mut lengths_parsed = false;
         let mut color = None;
         let mut inset = false;
@@ -654,10 +655,10 @@ impl Shadow {
         }
 
         Ok(Shadow {
-            offset_x: lengths[0],
-            offset_y: lengths[1],
-            blur_radius: lengths[2],
-            spread_radius: if disable_spread_and_inset { Length::Absolute(Au(0)) } else { lengths[3] },
+            offset_x: lengths[0].take(),
+            offset_y: lengths[1].take(),
+            blur_radius: lengths[2].take(),
+            spread_radius: if disable_spread_and_inset { Length::zero() } else { lengths[3].take() },
             color: color,
             inset: inset,
         })

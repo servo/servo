@@ -11,7 +11,6 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use event_loop::EventLoop;
 use gfx::font_cache_thread::FontCacheThread;
-use gfx_traits::DevicePixel;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
@@ -20,7 +19,8 @@ use net_traits::{IpcSend, ResourceThreads};
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
-use script_traits::{ConstellationControlMsg, DiscardBrowsingContext, InitialScriptState};
+use script_traits::{ConstellationControlMsg, DevicePixel, DiscardBrowsingContext};
+use script_traits::{DocumentActivity, InitialScriptState};
 use script_traits::{LayoutControlMsg, LayoutMsg, LoadData, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders, ScriptMsg};
 use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
@@ -367,17 +367,11 @@ impl Pipeline {
         }
     }
 
-    /// Notify this pipeline that it is no longer fully active.
-    pub fn freeze(&self) {
-        if let Err(e) = self.event_loop.send(ConstellationControlMsg::Freeze(self.id)) {
-            warn!("Sending freeze message failed ({}).", e);
-        }
-    }
-
-    /// Notify this pipeline that it is fully active.
-    pub fn thaw(&self) {
-        if let Err(e) = self.event_loop.send(ConstellationControlMsg::Thaw(self.id)) {
-            warn!("Sending freeze message failed ({}).", e);
+    /// Notify this pipeline of its activity.
+    pub fn set_activity(&self, activity: DocumentActivity) {
+        let msg = ConstellationControlMsg::SetDocumentActivity(self.id, activity);
+        if let Err(e) = self.event_loop.send(msg) {
+            warn!("Sending activity message failed ({}).", e);
         }
     }
 

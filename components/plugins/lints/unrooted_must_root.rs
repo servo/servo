@@ -169,7 +169,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
         let cx = self.cx;
 
         fn require_rooted(cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr) {
-            let ty = cx.tcx.tables().expr_ty(&subexpr);
+            let ty = cx.tables.expr_ty(&subexpr);
             if is_unrooted_ty(cx, ty, in_new_function) {
                 cx.span_lint(UNROOTED_MUST_ROOT,
                              subexpr.span,
@@ -203,7 +203,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
         let cx = self.cx;
 
         if let hir::PatKind::Binding(hir::BindingMode::BindByValue(_), _, _, _) = pat.node {
-            let ty = cx.tcx.tables().pat_ty(pat);
+            let ty = cx.tables.pat_ty(pat);
             if is_unrooted_ty(cx, ty, self.in_new_function) {
                 cx.span_lint(UNROOTED_MUST_ROOT,
                             pat.span,

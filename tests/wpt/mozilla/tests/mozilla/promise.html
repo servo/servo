@@ -58,6 +58,7 @@
       var p = new Promise(function() {});
       var start = Date.now();
       t.resolvePromiseDelayed(p, 'success', 100);
+      test.step_timeout(function() { window.gc() }, 0);
       return p.then(function(v) {
           var end = Date.now();
           assert_greater_than_equal(end - start, 100);

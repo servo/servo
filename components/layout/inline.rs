@@ -15,6 +15,7 @@ use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, Mutab
 use flow::OpaqueFlow;
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
+use fragment::IS_ELLIPSIS;
 use fragment::SpecificFragmentInfo;
 use gfx::display_list::OpaqueNode;
 use gfx::font::FontMetrics;
@@ -330,6 +331,15 @@ impl LineBreaker {
             let fragment = match self.next_unbroken_fragment(&mut old_fragment_iter) {
                 None => break,
                 Some(fragment) => fragment,
+            };
+
+            // Do not reflow truncated fragments. Reflow the original fragment only.
+            let fragment = if fragment.flags.contains(IS_ELLIPSIS) {
+                continue
+            } else if let SpecificFragmentInfo::TruncatedFragment(info) = fragment.specific {
+                info.full
+            } else {
+                fragment
             };
 
             // Try to append the fragment.
@@ -707,13 +717,9 @@ impl LineBreaker {
 
         if let Some(string) = ellipsis {
             let ellipsis = fragment.transform_into_ellipsis(layout_context, string);
-            if let Some(truncation_info) =
-                    fragment.truncate_to_inline_size(available_inline_size -
-                                                     ellipsis.margin_box_inline_size()) {
-                let fragment = fragment.transform_with_split_info(&truncation_info.split,
-                                                                  truncation_info.text_run);
-                self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
-            }
+            let truncated = fragment.truncate_to_inline_size(available_inline_size -
+                                                             ellipsis.margin_box_inline_size());
+            self.push_fragment_to_line_ignoring_text_overflow(truncated, layout_context);
             self.push_fragment_to_line_ignoring_text_overflow(ellipsis, layout_context);
         } else {
             self.push_fragment_to_line_ignoring_text_overflow(fragment, layout_context);
@@ -1145,6 +1151,7 @@ impl InlineFlow {
             match (display_value, vertical_align_value) {
                 (display::T::inline, vertical_align::T::top) |
                 (display::T::block, vertical_align::T::top) |
+                (display::T::inline_flex, vertical_align::T::top) |
                 (display::T::inline_block, vertical_align::T::top) if
                         inline_metrics.space_above_baseline >= Au(0) => {
                     *largest_block_size_for_top_fragments = max(
@@ -1153,6 +1160,7 @@ impl InlineFlow {
                 }
                 (display::T::inline, vertical_align::T::bottom) |
                 (display::T::block, vertical_align::T::bottom) |
+                (display::T::inline_flex, vertical_align::T::bottom) |
                 (display::T::inline_block, vertical_align::T::bottom) if
                         inline_metrics.space_below_baseline >= Au(0) => {
                     *largest_block_size_for_bottom_fragments = max(

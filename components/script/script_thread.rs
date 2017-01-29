@@ -41,7 +41,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
 use dom::browsingcontext::BrowsingContext;
-use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument, TouchEventResult};
+use dom::document::{Document, DocumentSource, FocusType, HasBrowsingContext, IsHTMLDocument, TouchEventResult};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
@@ -57,7 +57,7 @@ use dom::window::{ReflowReason, Window};
 use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
-use hyper::header::{ContentType, HttpDate, LastModified};
+use hyper::header::{ContentType, HttpDate, LastModified, Headers};
 use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
@@ -83,7 +83,8 @@ use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, EnqueuedPromiseCallback};
 use script_runtime::{ScriptPort, StackRootTLS, get_reports, new_rt_and_cx, PromiseJobQueue};
-use script_traits::{CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, EventResult};
+use script_traits::{CompositorEvent, ConstellationControlMsg};
+use script_traits::{DocumentActivity, DiscardBrowsingContext, EventResult};
 use script_traits::{InitialScriptState, LayoutMsg, LoadData, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
@@ -97,6 +98,7 @@ use servo_config::opts;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
+use std::ops::Deref;
 use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
@@ -147,10 +149,8 @@ struct InProgressLoad {
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
     layout_chan: Sender<message::Msg>,
-    /// The current viewport clipping rectangle applying to this pipeline, if any.
-    clip_rect: Option<Rect<f32>>,
-    /// Window is frozen (navigated away while loading for example).
-    is_frozen: bool,
+    /// The activity level of the document (inactive, active or fully active).
+    activity: DocumentActivity,
     /// Window is visible.
     is_visible: bool,
     /// The requested URL of the load.
@@ -173,8 +173,7 @@ impl InProgressLoad {
             parent_info: parent_info,
             layout_chan: layout_chan,
             window_size: window_size,
-            clip_rect: None,
-            is_frozen: false,
+            activity: DocumentActivity::FullyActive,
             is_visible: true,
             url: url,
             origin: origin,
@@ -239,8 +238,6 @@ enum MixedMessage {
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
-    /// Notify a document that all pending loads are complete.
-    DocumentLoadsComplete(PipelineId),
     /// Notifies the script that a window associated with a particular pipeline
     /// should be closed (only dispatched to ScriptThread).
     ExitWindow(PipelineId),
@@ -394,13 +391,15 @@ impl<'a> Iterator for DocumentsIter<'a> {
     }
 }
 
-
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[allow(unrooted_must_root)]
 pub struct ScriptThread {
     /// The documents for pipelines managed by this thread
     documents: DOMRefCell<Documents>,
+    /// The browsing contexts known by this thread
+    /// TODO: this map grows, but never shrinks. Issue #15258.
+    browsing_contexts: DOMRefCell<HashMap<FrameId, JS<BrowsingContext>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
     /// A map to store service worker registrations for a given origin
@@ -583,13 +582,6 @@ impl ScriptThread {
         });
     }
 
-    pub fn parsing_complete(id: PipelineId) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.handle_parsing_complete(id);
-        });
-    }
-
     pub fn process_event(msg: CommonScriptMsg) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
@@ -661,6 +653,7 @@ impl ScriptThread {
 
         ScriptThread {
             documents: DOMRefCell::new(Documents::new()),
+            browsing_contexts: DOMRefCell::new(HashMap::new()),
             incomplete_loads: DOMRefCell::new(vec!()),
             registration_map: DOMRefCell::new(HashMap::new()),
             job_queue_map: Rc::new(JobQueue::new()),
@@ -974,10 +967,8 @@ impl ScriptThread {
                 self.handle_resize_inactive_msg(id, new_size),
             ConstellationControlMsg::GetTitle(pipeline_id) =>
                 self.handle_get_title_msg(pipeline_id),
-            ConstellationControlMsg::Freeze(pipeline_id) =>
-                self.handle_freeze_msg(pipeline_id),
-            ConstellationControlMsg::Thaw(pipeline_id) =>
-                self.handle_thaw_msg(pipeline_id),
+            ConstellationControlMsg::SetDocumentActivity(pipeline_id, activity) =>
+                self.handle_set_document_activity_msg(pipeline_id, activity),
             ConstellationControlMsg::ChangeFrameVisibilityStatus(pipeline_id, visible) =>
                 self.handle_visibility_change_msg(pipeline_id, visible),
             ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id, frame_id, visible) =>
@@ -1034,8 +1025,6 @@ impl ScriptThread {
                 self.handle_navigate(parent_pipeline_id, None, load_data, replace),
             MainThreadScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
-            MainThreadScriptMsg::DocumentLoadsComplete(id) =>
-                self.handle_loads_complete(id),
             MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) => {
                 // The category of the runnable is ignored by the pattern, however
                 // it is still respected by profiling (see categorize_msg).
@@ -1177,9 +1166,8 @@ impl ScriptThread {
             }
             return;
         }
-        let mut loads = self.incomplete_loads.borrow_mut();
-        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.clip_rect = Some(rect);
+        let loads = self.incomplete_loads.borrow();
+        if loads.iter().any(|load| load.pipeline_id == id) {
             return;
         }
         warn!("Page rect message sent to nonexistent pipeline");
@@ -1255,29 +1243,6 @@ impl ScriptThread {
         }
     }
 
-    fn handle_loads_complete(&self, pipeline: PipelineId) {
-        let doc = match { self.documents.borrow().find_document(pipeline) } {
-            Some(doc) => doc,
-            None => return warn!("Message sent to closed pipeline {}.", pipeline),
-        };
-        if doc.loader().is_blocked() {
-            debug!("Script thread got loads complete while loader is blocked.");
-            return;
-        }
-
-        doc.mut_loader().inhibit_events();
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 7
-        // Schedule a task to fire a "load" event (if no blocking loads have arrived in the mean time)
-        // NOTE: we can end up executing this code more than once, in case more blocking loads arrive.
-        let handler = box DocumentProgressHandler::new(Trusted::new(&doc));
-        self.dom_manipulation_task_source.queue(handler, doc.window().upcast()).unwrap();
-
-        if let Some(fragment) = doc.url().fragment() {
-            doc.check_and_scroll_fragment(fragment);
-        };
-    }
-
     fn collect_reports(&self, reports_chan: ReportsChan) {
         let mut path_seg = String::from("url(");
         let mut dom_tree_size = 0;
@@ -1308,21 +1273,6 @@ impl ScriptThread {
         reports_chan.send(reports);
     }
 
-    /// To slow/speed up timers and manage any other script thread resource based on visibility.
-    /// Returns true if successful.
-    fn alter_resource_utilization(&self, id: PipelineId, visible: bool) -> bool {
-        let window = self.documents.borrow().find_window(id);
-        if let Some(window) = window {
-            if visible {
-                window.upcast::<GlobalScope>().speed_up_timers();
-            } else {
-                window.upcast::<GlobalScope>().slow_down_timers();
-            }
-            return true;
-        }
-        false
-    }
-
     /// Updates iframe element after a change in visibility
     fn handle_visibility_change_complete_msg(&self, parent_pipeline_id: PipelineId, id: FrameId, visible: bool) {
         let iframe = self.documents.borrow().find_iframe(parent_pipeline_id, id);
@@ -1333,60 +1283,42 @@ impl ScriptThread {
 
     /// Handle visibility change message
     fn handle_visibility_change_msg(&self, id: PipelineId, visible: bool) {
-        let resources_altered = self.alter_resource_utilization(id, visible);
-
         // Separate message sent since parent script thread could be different (Iframe of different
         // domain)
         self.constellation_chan.send(ConstellationMsg::VisibilityChangeComplete(id, visible)).unwrap();
 
-        if !resources_altered {
-            let mut loads = self.incomplete_loads.borrow_mut();
-            if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-                load.is_visible = visible;
+        let window = self.documents.borrow().find_window(id);
+        match window {
+            Some(window) => {
+                window.alter_resource_utilization(visible);
                 return;
             }
-        } else {
-            return;
+            None => {
+                let mut loads = self.incomplete_loads.borrow_mut();
+                if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
+                    load.is_visible = visible;
+                    return;
+                }
+            }
         }
 
         warn!("change visibility message sent to nonexistent pipeline");
     }
 
-    /// Handles freeze message
-    fn handle_freeze_msg(&self, id: PipelineId) {
-        let window = self.documents.borrow().find_window(id);
-        if let Some(window) = window {
-            window.freeze();
-            return;
-        }
-        let mut loads = self.incomplete_loads.borrow_mut();
-        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.is_frozen = true;
-            return;
-        }
-        warn!("freeze sent to nonexistent pipeline");
-    }
-
-    /// Handles thaw message
-    fn handle_thaw_msg(&self, id: PipelineId) {
+    /// Handles activity change message
+    fn handle_set_document_activity_msg(&self, id: PipelineId, activity: DocumentActivity) {
+        debug!("Setting activity of {} to be {:?}.", id, activity);
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            if let Some(context) = document.browsing_context() {
-                let needed_reflow = context.set_reflow_status(false);
-                if needed_reflow {
-                    self.rebuild_and_force_reflow(&document, ReflowReason::CachedPageNeededReflow);
-                }
-            }
-            document.window().thaw();
-            document.fully_activate();
+            document.set_activity(activity);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
         if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.is_frozen = false;
+            load.activity = activity;
             return;
         }
-        warn!("thaw sent to nonexistent pipeline");
+        warn!("change of activity sent to nonexistent pipeline");
     }
 
     fn handle_focus_iframe_msg(&self,
@@ -1451,7 +1383,6 @@ impl ScriptThread {
         let window = self.documents.borrow().find_window(id)
             .expect("ScriptThread: received a resize msg for a pipeline not in this script thread. This is a bug.");
         window.set_window_size(new_size);
-        window.browsing_context().set_reflow_status(true);
     }
 
     /// We have gotten a window.close from script, which we pass on to the compositor.
@@ -1586,29 +1517,26 @@ impl ScriptThread {
             load.pipeline_id == id
         });
 
-        if let Some(idx) = idx {
+        let chan = if let Some(idx) = idx {
             let load = self.incomplete_loads.borrow_mut().remove(idx);
-
-            // Tell the layout thread to begin shutting down, and wait until it
-            // processed this message.
-            let (response_chan, response_port) = channel();
-            let chan = &load.layout_chan;
-            if chan.send(message::Msg::PrepareToExit(response_chan)).is_ok() {
-                debug!("shutting down layout for page {}", id);
-                response_port.recv().unwrap();
-                chan.send(message::Msg::ExitNow).ok();
-            }
-        }
-
-        if let Some(document) = self.documents.borrow_mut().remove(id) {
-            shut_down_layout(document.window());
+            load.layout_chan.clone()
+        } else if let Some(document) = self.documents.borrow_mut().remove(id) {
+            let window = document.window();
             if discard_bc == DiscardBrowsingContext::Yes {
-                if let Some(context) = document.browsing_context() {
-                    context.discard();
-                }
+                window.browsing_context().discard();
             }
-            let _ = self.constellation_chan.send(ConstellationMsg::PipelineExited(id));
-        }
+            window.clear_js_runtime();
+            window.layout_chan().clone()
+        } else {
+            return warn!("Exiting nonexistant pipeline {}.", id);
+        };
+
+        let (response_chan, response_port) = channel();
+        chan.send(message::Msg::PrepareToExit(response_chan)).ok();
+        debug!("shutting down layout for page {}", id);
+        response_port.recv().unwrap();
+        chan.send(message::Msg::ExitNow).ok();
+        self.constellation_chan.send(ConstellationMsg::PipelineExited(id)).ok();
 
         debug!("Exited pipeline {}.", id);
     }
@@ -1663,7 +1591,7 @@ impl ScriptThread {
             // FIXME: Handle pseudo-elements properly
             pseudoElement: DOMString::new()
         };
-        let transition_event = TransitionEvent::new(window.upcast(),
+        let transition_event = TransitionEvent::new(&window,
                                                     atom!("transitionend"),
                                                     &init);
         transition_event.upcast::<Event>().fire(node.upcast());
@@ -1765,8 +1693,18 @@ impl ScriptThread {
                                  self.webvr_thread.clone());
         let frame_element = frame_element.r().map(Castable::upcast);
 
-        let browsing_context = BrowsingContext::new(&window, frame_element);
-        window.init_browsing_context(&browsing_context);
+        match self.browsing_contexts.borrow_mut().entry(incomplete.frame_id) {
+            hash_map::Entry::Vacant(entry) => {
+                let browsing_context = BrowsingContext::new(&window, frame_element);
+                entry.insert(JS::from_ref(&*browsing_context));
+                window.init_browsing_context(&browsing_context);
+            },
+            hash_map::Entry::Occupied(entry) => {
+                let browsing_context = entry.get();
+                browsing_context.set_window_proxy(&window);
+                window.init_browsing_context(browsing_context);
+            },
+        }
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
@@ -1783,7 +1721,7 @@ impl ScriptThread {
         });
 
         let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
-                                                      Some(incomplete.url.clone()));
+                                                      Some(final_url.clone()));
 
         let is_html_document = match metadata.content_type {
             Some(Serde(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _))))
@@ -1800,45 +1738,25 @@ impl ScriptThread {
             None => None,
         };
 
-        let referrer_policy = if let Some(headers) = metadata.headers {
-            headers.get::<ReferrerPolicyHeader>().map(|h| match *h {
-                ReferrerPolicyHeader::NoReferrer =>
-                    ReferrerPolicy::NoReferrer,
-                ReferrerPolicyHeader::NoReferrerWhenDowngrade =>
-                    ReferrerPolicy::NoReferrerWhenDowngrade,
-                ReferrerPolicyHeader::SameOrigin =>
-                    ReferrerPolicy::SameOrigin,
-                ReferrerPolicyHeader::Origin =>
-                    ReferrerPolicy::Origin,
-                ReferrerPolicyHeader::OriginWhenCrossOrigin =>
-                    ReferrerPolicy::OriginWhenCrossOrigin,
-                ReferrerPolicyHeader::UnsafeUrl =>
-                    ReferrerPolicy::UnsafeUrl,
-                ReferrerPolicyHeader::StrictOrigin =>
-                    ReferrerPolicy::StrictOrigin,
-                ReferrerPolicyHeader::StrictOriginWhenCrossOrigin =>
-                    ReferrerPolicy::StrictOriginWhenCrossOrigin,
-            })
-        } else {
-            None
-        };
+        let referrer_policy = metadata.headers
+                                      .as_ref()
+                                      .map(Serde::deref)
+                                      .and_then(Headers::get::<ReferrerPolicyHeader>)
+                                      .map(ReferrerPolicy::from);
 
         let document = Document::new(&window,
-                                     Some(&browsing_context),
+                                     HasBrowsingContext::Yes,
                                      Some(final_url.clone()),
                                      incomplete.origin,
                                      is_html_document,
                                      content_type,
                                      last_modified,
+                                     incomplete.activity,
                                      DocumentSource::FromParser,
                                      loader,
                                      referrer,
                                      referrer_policy);
         document.set_ready_state(DocumentReadyState::Loading);
-
-        if !incomplete.is_frozen {
-            document.fully_activate();
-        }
 
         self.documents.borrow_mut().insert(incomplete.pipeline_id, &*document);
 
@@ -1888,25 +1806,17 @@ impl ScriptThread {
         document.set_https_state(metadata.https_state);
 
         if is_html_document == IsHTMLDocument::NonHTMLDocument {
-            ServoParser::parse_xml_document(
-                &document,
-                parse_input,
-                final_url,
-                Some(incomplete.pipeline_id));
+            ServoParser::parse_xml_document(&document, parse_input, final_url);
         } else {
-            ServoParser::parse_html_document(
-                &document,
-                parse_input,
-                final_url,
-                Some(incomplete.pipeline_id));
+            ServoParser::parse_html_document(&document, parse_input, final_url);
         }
 
-        if incomplete.is_frozen {
-            window.upcast::<GlobalScope>().suspend();
+        if incomplete.activity != DocumentActivity::FullyActive {
+            window.suspend();
         }
 
         if !incomplete.is_visible {
-            self.alter_resource_utilization(incomplete.pipeline_id, false);
+            window.alter_resource_utilization(false);
         }
 
         document.get_current_parser().unwrap()
@@ -2168,33 +2078,6 @@ impl ScriptThread {
         context.process_response_eof(Ok(()));
     }
 
-    fn handle_parsing_complete(&self, id: PipelineId) {
-        let document = match { self.documents.borrow().find_document(id) } {
-            Some(document) => document,
-            None => return,
-        };
-
-        let final_url = document.url();
-
-        // https://html.spec.whatwg.org/multipage/#the-end step 1
-        document.set_ready_state(DocumentReadyState::Interactive);
-
-        // TODO: Execute step 2 here.
-
-        // Kick off the initial reflow of the page.
-        debug!("kicking off initial reflow of {:?}", final_url);
-        document.disarm_reflow_timeout();
-        document.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        let window = window_from_node(&*document);
-        window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
-
-        // No more reflow required
-        window.browsing_context().set_reflow_status(false);
-
-        // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
-        document.process_deferred_scripts();
-    }
-
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
                                   line: usize, column: usize, msg: String) {
         let sender = match self.devtools_chan {
@@ -2264,29 +2147,6 @@ impl Drop for ScriptThread {
             root.set(None);
         });
     }
-}
-
-/// Shuts down layout for the given window.
-fn shut_down_layout(window: &Window) {
-    // Tell the layout thread to begin shutting down, and wait until it
-    // processed this message.
-    let (response_chan, response_port) = channel();
-    let chan = window.layout_chan().clone();
-    if chan.send(message::Msg::PrepareToExit(response_chan)).is_ok() {
-        let _ = response_port.recv();
-    }
-
-    // The browsing context is cleared by window.clear_js_runtime(), so we need to save a copy
-    let browsing_context = window.browsing_context();
-
-    // Drop our references to the JSContext and DOM objects.
-    window.clear_js_runtime();
-
-    // Discard the browsing context.
-    browsing_context.discard();
-
-    // Destroy the layout thread. If there were node leaks, layout will now crash safely.
-    chan.send(message::Msg::ExitNow).ok();
 }
 
 fn dom_last_modified(tm: &Tm) -> String {

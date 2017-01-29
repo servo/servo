@@ -10,11 +10,51 @@ use std::fmt;
 use style_traits::ToCss;
 use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, None_, Normal, specified};
+use values::specified::length::{FontRelativeLength, ViewportPercentageLength};
 
 pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use super::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use values::specified::{Angle, BorderStyle, Time, UrlOrNone};
+
+impl ToComputedValue for specified::NoCalcLength {
+    type ComputedValue = Au;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Au {
+        match *self {
+            specified::NoCalcLength::Absolute(length) => length,
+            specified::NoCalcLength::FontRelative(length) =>
+                length.to_computed_value(context, /* use inherited */ false),
+            specified::NoCalcLength::ViewportPercentage(length) =>
+                length.to_computed_value(context.viewport_size()),
+            specified::NoCalcLength::ServoCharacterWidth(length) =>
+                length.to_computed_value(context.style().get_font().clone_font_size())
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Au) -> Self {
+        specified::NoCalcLength::Absolute(*computed)
+    }
+}
+
+impl ToComputedValue for specified::Length {
+    type ComputedValue = Au;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Au {
+        match *self {
+            specified::Length::NoCalc(l) => l.to_computed_value(context),
+            specified::Length::Calc(ref calc, range) => range.clamp(calc.to_computed_value(context).length()),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Au) -> Self {
+        specified::Length::NoCalc(specified::NoCalcLength::from_computed_value(computed))
+    }
+}
 
 #[derive(Clone, PartialEq, Copy, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -105,13 +145,19 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
             length += absolute;
         }
 
-        for val in &[self.vw, self.vh, self.vmin, self.vmax] {
+        for val in &[self.vw.map(ViewportPercentageLength::Vw),
+                     self.vh.map(ViewportPercentageLength::Vh),
+                     self.vmin.map(ViewportPercentageLength::Vmin),
+                     self.vmax.map(ViewportPercentageLength::Vmax)] {
             if let Some(val) = *val {
                 length += val.to_computed_value(context.viewport_size());
             }
         }
 
-        for val in &[self.ch, self.em, self.ex, self.rem] {
+        for val in &[self.ch.map(FontRelativeLength::Ch),
+                     self.em.map(FontRelativeLength::Em),
+                     self.ex.map(FontRelativeLength::Ex),
+                     self.rem.map(FontRelativeLength::Rem)] {
             if let Some(val) = *val {
                 length += val.to_computed_value(context, /* use inherited */ false);
             }
@@ -119,7 +165,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
 
         CalcLengthOrPercentage {
             length: length,
-            percentage: self.percentage.map(|p| p.0),
+            percentage: self.percentage,
         }
     }
 
@@ -127,7 +173,7 @@ impl ToComputedValue for specified::CalcLengthOrPercentage {
     fn from_computed_value(computed: &CalcLengthOrPercentage) -> Self {
         specified::CalcLengthOrPercentage {
             absolute: Some(computed.length),
-            percentage: computed.percentage.map(specified::Percentage),
+            percentage: computed.percentage,
             ..Default::default()
         }
     }
@@ -187,13 +233,13 @@ impl ToComputedValue for specified::LengthOrPercentage {
 
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentage {
         match *self {
-            specified::LengthOrPercentage::Length(value) => {
+            specified::LengthOrPercentage::Length(ref value) => {
                 LengthOrPercentage::Length(value.to_computed_value(context))
             }
             specified::LengthOrPercentage::Percentage(value) => {
                 LengthOrPercentage::Percentage(value.0)
             }
-            specified::LengthOrPercentage::Calc(calc) => {
+            specified::LengthOrPercentage::Calc(ref calc) => {
                 LengthOrPercentage::Calc(calc.to_computed_value(context))
             }
         }
@@ -209,9 +255,9 @@ impl ToComputedValue for specified::LengthOrPercentage {
             LengthOrPercentage::Percentage(value) => {
                 specified::LengthOrPercentage::Percentage(specified::Percentage(value))
             }
-            LengthOrPercentage::Calc(calc) => {
+            LengthOrPercentage::Calc(ref calc) => {
                 specified::LengthOrPercentage::Calc(
-                    ToComputedValue::from_computed_value(&calc)
+                    Box::new(ToComputedValue::from_computed_value(calc))
                 )
             }
         }
@@ -270,7 +316,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrAuto {
         match *self {
-            specified::LengthOrPercentageOrAuto::Length(value) => {
+            specified::LengthOrPercentageOrAuto::Length(ref value) => {
                 LengthOrPercentageOrAuto::Length(value.to_computed_value(context))
             }
             specified::LengthOrPercentageOrAuto::Percentage(value) => {
@@ -279,7 +325,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
             specified::LengthOrPercentageOrAuto::Auto => {
                 LengthOrPercentageOrAuto::Auto
             }
-            specified::LengthOrPercentageOrAuto::Calc(calc) => {
+            specified::LengthOrPercentageOrAuto::Calc(ref calc) => {
                 LengthOrPercentageOrAuto::Calc(calc.to_computed_value(context))
             }
         }
@@ -299,7 +345,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAuto {
             }
             LengthOrPercentageOrAuto::Calc(calc) => {
                 specified::LengthOrPercentageOrAuto::Calc(
-                    ToComputedValue::from_computed_value(&calc)
+                    Box::new(ToComputedValue::from_computed_value(&calc))
                 )
             }
         }
@@ -347,13 +393,13 @@ impl ToComputedValue for specified::LengthOrPercentageOrAutoOrContent {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrAutoOrContent {
         match *self {
-            specified::LengthOrPercentageOrAutoOrContent::Length(value) => {
+            specified::LengthOrPercentageOrAutoOrContent::Length(ref value) => {
                 LengthOrPercentageOrAutoOrContent::Length(value.to_computed_value(context))
             },
             specified::LengthOrPercentageOrAutoOrContent::Percentage(value) => {
                 LengthOrPercentageOrAutoOrContent::Percentage(value.0)
             },
-            specified::LengthOrPercentageOrAutoOrContent::Calc(calc) => {
+            specified::LengthOrPercentageOrAutoOrContent::Calc(ref calc) => {
                 LengthOrPercentageOrAutoOrContent::Calc(calc.to_computed_value(context))
             },
             specified::LengthOrPercentageOrAutoOrContent::Auto => {
@@ -385,7 +431,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrAutoOrContent {
             }
             LengthOrPercentageOrAutoOrContent::Calc(calc) => {
                 specified::LengthOrPercentageOrAutoOrContent::Calc(
-                    ToComputedValue::from_computed_value(&calc)
+                    Box::new(ToComputedValue::from_computed_value(&calc))
                 )
             }
         }
@@ -432,13 +478,13 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> LengthOrPercentageOrNone {
         match *self {
-            specified::LengthOrPercentageOrNone::Length(value) => {
+            specified::LengthOrPercentageOrNone::Length(ref value) => {
                 LengthOrPercentageOrNone::Length(value.to_computed_value(context))
             }
             specified::LengthOrPercentageOrNone::Percentage(value) => {
                 LengthOrPercentageOrNone::Percentage(value.0)
             }
-            specified::LengthOrPercentageOrNone::Calc(calc) => {
+            specified::LengthOrPercentageOrNone::Calc(ref calc) => {
                 LengthOrPercentageOrNone::Calc(calc.to_computed_value(context))
             }
             specified::LengthOrPercentageOrNone::None => {
@@ -461,7 +507,7 @@ impl ToComputedValue for specified::LengthOrPercentageOrNone {
             }
             LengthOrPercentageOrNone::Calc(calc) => {
                 specified::LengthOrPercentageOrNone::Calc(
-                    ToComputedValue::from_computed_value(&calc)
+                    Box::new(ToComputedValue::from_computed_value(&calc))
                 )
             }
         }

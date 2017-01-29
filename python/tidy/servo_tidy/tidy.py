@@ -31,6 +31,7 @@ config = {
     "skip-check-licenses": False,
     "check-ordered-json-keys": [],
     "lint-scripts": [],
+    "blocked-packages": {},
     "ignore": {
         "files": [
             os.path.join(".", "."),   # ignore hidden files
@@ -81,27 +82,6 @@ WEBIDL_STANDARDS = [
     " accessible to\n// web pages."
 ]
 
-# Packages which we avoid using in Servo.
-# For each blocked package, we can list the exceptions,
-# which are packages allowed to use the blocked package.
-BLOCKED_PACKAGES = {
-    "rand": [
-        "deque",
-        "gaol",
-        "ipc-channel",
-        "num-bigint",
-        "parking_lot_core",
-        "phf_generator",
-        "rayon",
-        "servo_rand",
-        "tempdir",
-        "tempfile",
-        "uuid",
-        "websocket",
-        "ws",
-    ],
-}
-
 
 def is_iter_empty(iterator):
     try:
@@ -112,7 +92,10 @@ def is_iter_empty(iterator):
 
 
 def normilize_paths(paths):
-    return [os.path.join(*path.split('/')) for path in paths]
+    if isinstance(paths, basestring):
+        return os.path.join(*paths.split('/'))
+    else:
+        return [os.path.join(*path.split('/')) for path in paths]
 
 
 # A simple wrapper for iterators to show progress
@@ -366,7 +349,7 @@ def check_lock(file_name, contents):
         for dependency in package.get("dependencies", []):
             dependency = dependency.split()
             dependency_name = dependency[0]
-            whitelist = BLOCKED_PACKAGES.get(dependency_name)
+            whitelist = config['blocked-packages'].get(dependency_name)
             if whitelist is not None:
                 if package_name not in whitelist:
                     fmt = "Package {} {} depends on blocked package {}."
@@ -847,6 +830,17 @@ def check_config_file(config_file, print_text=True):
     if print_text:
         print '\rChecking the config file...'
 
+    config_content = toml.loads(conf_file)
+    exclude = config_content.get("ignore", {})
+
+    # Check for invalid listed ignored directories
+    exclude_dirs = exclude.get("directories", [])
+    skip_dirs = ["./target", "./tests"]
+    invalid_dirs = [d for d in exclude_dirs if not os.path.isdir(d) and not any(s in d for s in skip_dirs)]
+
+    # Check for invalid listed ignored files
+    invalid_files = [f for f in exclude.get("files", []) if not os.path.exists(f)]
+
     current_table = ""
     for idx, line in enumerate(lines):
         # Ignore comment lines
@@ -856,10 +850,26 @@ def check_config_file(config_file, print_text=True):
         # Check for invalid tables
         if re.match("\[(.*?)\]", line.strip()):
             table_name = re.findall(r"\[(.*?)\]", line)[0].strip()
-            if table_name not in ("configs", "ignore", "check_ext"):
+            if table_name not in ("configs", "blocked-packages", "ignore", "check_ext"):
                 yield config_file, idx + 1, "invalid config table [%s]" % table_name
             current_table = table_name
             continue
+
+        # Print invalid listed ignored directories
+        if current_table == "ignore" and invalid_dirs:
+            for d in invalid_dirs:
+                if line.strip().strip('\'",') == d:
+                    yield config_file, idx + 1, "ignored directory '%s' doesn't exist" % d
+                    invalid_dirs.remove(d)
+                    break
+
+        # Print invalid listed ignored files
+        if current_table == "ignore" and invalid_files:
+            for f in invalid_files:
+                if line.strip().strip('\'",') == f:
+                    yield config_file, idx + 1, "ignored file '%s' doesn't exist" % f
+                    invalid_files.remove(f)
+                    break
 
         # Skip if there is no equal sign in line, assuming it's not a key
         if "=" not in line:
@@ -875,11 +885,10 @@ def check_config_file(config_file, print_text=True):
             yield config_file, idx + 1, "invalid config key '%s'" % key
 
     # Parse config file
-    parse_config(conf_file)
+    parse_config(config_content)
 
 
-def parse_config(content):
-    config_file = toml.loads(content)
+def parse_config(config_file):
     exclude = config_file.get("ignore", {})
     # Add list of ignored directories to config
     config["ignore"]["directories"] += normilize_paths(exclude.get("directories", []))
@@ -892,7 +901,10 @@ def parse_config(content):
     dirs_to_check = config_file.get("check_ext", {})
     # Fix the paths (OS-dependent)
     for path, exts in dirs_to_check.items():
-        config['check_ext'][normilize_paths([path])[0]] = exts
+        config['check_ext'][normilize_paths(path)] = exts
+
+    # Add list of blocked packages
+    config["blocked-packages"] = config_file.get("blocked-packages", {})
 
     # Override default configs
     user_configs = config_file.get("configs", [])

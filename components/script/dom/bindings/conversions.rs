@@ -362,7 +362,7 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
         let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
         return Ok(&*dom_class);
     }
-    debug!("not a dom object");
+    trace!("not a dom object");
     Err(())
 }
 
@@ -380,27 +380,27 @@ pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject,
 {
     let dom_class = try!(get_dom_class(obj).or_else(|_| {
         if IsWrapper(obj) {
-            debug!("found wrapper");
+            trace!("found wrapper");
             obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
             if obj.is_null() {
-                debug!("unwrapping security wrapper failed");
+                trace!("unwrapping security wrapper failed");
                 Err(())
             } else {
                 assert!(!IsWrapper(obj));
-                debug!("unwrapped successfully");
+                trace!("unwrapped successfully");
                 get_dom_class(obj)
             }
         } else {
-            debug!("not a dom wrapper");
+            trace!("not a dom wrapper");
             Err(())
         }
     }));
 
     if proto_check(dom_class) {
-        debug!("good prototype");
+        trace!("good prototype");
         Ok(private_from_object(obj))
     } else {
-        debug!("bad prototype");
+        trace!("bad prototype");
         Err(())
     }
 }

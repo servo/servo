@@ -90,12 +90,12 @@ impl Promise {
     #[allow(unsafe_code, unrooted_must_root)]
     unsafe fn new_with_js_promise(obj: HandleObject, cx: *mut JSContext) -> Rc<Promise> {
         assert!(IsPromiseObject(obj));
-        let mut promise = Promise {
+        let promise = Promise {
             reflector: Reflector::new(),
             permanent_js_root: MutHeapJSVal::new(),
         };
-        promise.init_reflector(obj.get());
-        let promise = Rc::new(promise);
+        let mut promise = Rc::new(promise);
+        Rc::get_mut(&mut promise).unwrap().init_reflector(obj.get());
         promise.initialize(cx);
         promise
     }

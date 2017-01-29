@@ -16,15 +16,7 @@ use selector_parser::RestyleDamage;
 use servo_config::opts;
 use std::borrow::BorrowMut;
 use std::mem;
-use std::sync::atomic::{AtomicUsize, ATOMIC_USIZE_INIT, Ordering};
 use stylist::Stylist;
-
-/// Style sharing candidate cache hits. These are only used when
-/// `-Z style-sharing-stats` is given.
-pub static STYLE_SHARING_CACHE_HITS: AtomicUsize = ATOMIC_USIZE_INIT;
-
-/// Style sharing candidate cache misses.
-pub static STYLE_SHARING_CACHE_MISSES: AtomicUsize = ATOMIC_USIZE_INIT;
 
 /// A per-traversal-level chunk of data. This is sent down by the traversal, and
 /// currently only holds the dom depth for the bloom filter.
@@ -68,6 +60,23 @@ pub enum LogBehavior {
 use self::LogBehavior::*;
 impl LogBehavior {
     fn allow(&self) -> bool { matches!(*self, MayLog) }
+}
+
+/// The kind of traversals we could perform.
+#[derive(Debug, Copy, Clone)]
+pub enum TraversalDriver {
+    /// A potentially parallel traversal.
+    Parallel,
+    /// A sequential traversal.
+    Sequential,
+}
+
+impl TraversalDriver {
+    /// Returns whether this represents a parallel traversal or not.
+    #[inline]
+    pub fn is_parallel(&self) -> bool {
+        matches!(*self, TraversalDriver::Parallel)
+    }
 }
 
 /// A DOM Traversal trait, that is used to generically implement styling for
@@ -292,6 +301,14 @@ pub trait DomTraversal<E: TElement> : Sync {
 
     /// Creates a thread-local context.
     fn create_thread_local_context(&self) -> Self::ThreadLocalContext;
+
+    /// Whether we're performing a parallel traversal.
+    ///
+    /// NB: We do this check on runtime. We could guarantee correctness in this
+    /// regard via the type system via a `TraversalDriver` trait for this trait,
+    /// that could be one of two concrete types. It's not clear whether the
+    /// potential code size impact of that is worth it.
+    fn is_parallel(&self) -> bool;
 }
 
 /// Helper for the function below.
@@ -386,6 +403,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
           D: DomTraversal<E>
 {
     context.thread_local.begin_element(element, &data);
+    context.thread_local.statistics.elements_traversed += 1;
     debug_assert!(data.get_restyle().map_or(true, |r| r.snapshot.is_none()),
                   "Snapshots should be expanded by the caller");
 
@@ -418,6 +436,19 @@ pub fn recalc_style_at<E, D>(traversal: &D,
        (element.has_dirty_descendants() || !propagated_hint.is_empty() || inherited_style_changed) {
         preprocess_children(traversal, element, propagated_hint, inherited_style_changed);
     }
+
+    // Make sure the dirty descendants bit is not set for the root of a
+    // display:none subtree, even if the style didn't change (since, if
+    // the style did change, we'd have already cleared it in compute_style).
+    //
+    // This keeps the tree in a valid state without requiring the DOM to
+    // check display:none on the parent when inserting new children (which
+    // can be moderately expensive). Instead, DOM implementations can
+    // unconditionally set the dirty descendants bit on any styled parent,
+    // and let the traversal sort it out.
+    if data.styles().is_display_none() {
+        unsafe { element.unset_dirty_descendants(); }
+    }
 }
 
 // Computes style, returning true if the inherited styles changed for this
@@ -433,6 +464,7 @@ fn compute_style<E, D>(_traversal: &D,
     where E: TElement,
           D: DomTraversal<E>,
 {
+    context.thread_local.statistics.elements_styled += 1;
     let shared_context = context.shared;
     // Ensure the bloom filter is up to date.
     let dom_depth = context.thread_local.bloom_filter
@@ -459,11 +491,8 @@ fn compute_style<E, D>(_traversal: &D,
         StyleSharingResult::CannotShare => {
             let match_results;
             let shareable_element = {
-                if opts::get().style_sharing_stats {
-                    STYLE_SHARING_CACHE_MISSES.fetch_add(1, Ordering::Relaxed);
-                }
-
                 // Perform the CSS selector matching.
+                context.thread_local.statistics.elements_matched += 1;
                 let filter = context.thread_local.bloom_filter.filter();
                 match_results = element.match_element(context, Some(filter));
                 if match_results.primary_is_shareable() {
@@ -492,9 +521,7 @@ fn compute_style<E, D>(_traversal: &D,
             }
         }
         StyleSharingResult::StyleWasShared(index) => {
-            if opts::get().style_sharing_stats {
-                STYLE_SHARING_CACHE_HITS.fetch_add(1, Ordering::Relaxed);
-            }
+            context.thread_local.statistics.styles_shared += 1;
             context.thread_local.style_sharing_candidate_cache.touch(index);
         }
     }

@@ -10,7 +10,6 @@ name = "net"
 path = "lib.rs"
 
 [dependencies]
-bitflags = "0.7"
 brotli = "1.0.6"
 content-blocker = "0.2.1"
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
@@ -32,8 +31,6 @@ openssl-verify = "0.1"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3"
-serde = "0.8"
-serde_derive = "0.8"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 threadpool = "1.0"

@@ -10,7 +10,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmllinkelement::{RequestGenerationId, HTMLLinkElement};
 use dom::node::{document_from_node, window_from_node};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -19,8 +19,8 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use net_traits::{FetchResponseListener, FetchMetadata, Metadata, NetworkError, ReferrerPolicy};
-use net_traits::request::{CredentialsMode, Destination, RequestInit, Type as RequestType};
+use net_traits::{FetchResponseListener, FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
+use net_traits::request::{CorsSettings, CredentialsMode, Destination, RequestInit, RequestMode, Type as RequestType};
 use network_listener::{NetworkListener, PreInvoke};
 use parking_lot::RwLock;
 use script_layout_interface::message::Msg;
@@ -47,6 +47,9 @@ pub trait StylesheetOwner {
     /// Returns None if there are still pending loads, or whether any load has
     /// failed since the loads started.
     fn load_finished(&self, successful: bool) -> Option<bool>;
+
+    /// Sets origin_clean flag.
+    fn set_origin_clean(&self, origin_clean: bool);
 }
 
 pub enum StylesheetContextSource {
@@ -81,6 +84,10 @@ pub struct StylesheetContext {
     data: Vec<u8>,
     /// The node document for elem when the load was initiated.
     document: Trusted<Document>,
+    origin_clean: bool,
+    /// A token which must match the generation id of the `HTMLLinkElement` for it to load the stylesheet.
+    /// This is ignored for `HTMLStyleElement` and imports.
+    request_generation_id: Option<RequestGenerationId>,
 }
 
 impl PreInvoke for StylesheetContext {}
@@ -92,6 +99,16 @@ impl FetchResponseListener for StylesheetContext {
 
     fn process_response(&mut self,
                         metadata: Result<FetchMetadata, NetworkError>) {
+        if let Ok(FetchMetadata::Filtered { ref filtered, .. }) = metadata {
+            match *filtered {
+                FilteredMetadata::Opaque |
+                FilteredMetadata::OpaqueRedirect => {
+                    self.origin_clean = false;
+                },
+                _ => {},
+            }
+        }
+
         self.metadata = metadata.ok().map(|m| {
             match m {
                 FetchMetadata::Unfiltered(m) => m,
@@ -129,21 +146,30 @@ impl FetchResponseListener for StylesheetContext {
             let loader = StylesheetLoader::for_element(&elem);
             match self.source {
                 StylesheetContextSource::LinkElement { ref mut media, .. } => {
-                    let sheet =
-                        Arc::new(Stylesheet::from_bytes(&data, final_url,
-                                                        protocol_encoding_label,
-                                                        Some(environment_encoding),
-                                                        Origin::Author,
-                                                        media.take().unwrap(),
-                                                        Some(&loader),
-                                                        win.css_error_reporter(),
-                                                        ParserContextExtraData::default()));
-                    elem.downcast::<HTMLLinkElement>()
-                        .unwrap()
-                        .set_stylesheet(sheet.clone());
+                    let link = elem.downcast::<HTMLLinkElement>().unwrap();
+                    // We must first check whether the generations of the context and the element match up,
+                    // else we risk applying the wrong stylesheet when responses come out-of-order.
+                    let is_stylesheet_load_applicable =
+                        self.request_generation_id.map_or(true, |gen| gen == link.get_request_generation_id());
+                    if is_stylesheet_load_applicable {
+                        let sheet =
+                            Arc::new(Stylesheet::from_bytes(&data, final_url,
+                                                            protocol_encoding_label,
+                                                            Some(environment_encoding),
+                                                            Origin::Author,
+                                                            media.take().unwrap(),
+                                                            Some(&loader),
+                                                            win.css_error_reporter(),
+                                                            ParserContextExtraData::default()));
 
-                    let win = window_from_node(&*elem);
-                    win.layout_chan().send(Msg::AddStylesheet(sheet)).unwrap();
+                        if link.is_alternate() {
+                            sheet.set_disabled(true);
+                        }
+
+                        link.set_stylesheet(sheet.clone());
+
+                        win.layout_chan().send(Msg::AddStylesheet(sheet)).unwrap();
+                    }
                 }
                 StylesheetContextSource::Import(ref import) => {
                     let import = import.read();
@@ -166,6 +192,7 @@ impl FetchResponseListener for StylesheetContext {
 
         let owner = elem.upcast::<Element>().as_stylesheet_owner()
             .expect("Stylesheet not loaded by <style> or <link> element!");
+        owner.set_origin_clean(self.origin_clean);
         if owner.parser_inserted() {
             document.decrement_script_blocking_stylesheet_count();
         }
@@ -193,15 +220,20 @@ impl<'a> StylesheetLoader<'a> {
 }
 
 impl<'a> StylesheetLoader<'a> {
-    pub fn load(&self, source: StylesheetContextSource, integrity_metadata: String) {
+    pub fn load(&self, source: StylesheetContextSource, cors_setting: Option<CorsSettings>,
+                integrity_metadata: String) {
         let url = source.url();
         let document = document_from_node(self.elem);
+        let gen = self.elem.downcast::<HTMLLinkElement>()
+                           .map(HTMLLinkElement::get_request_generation_id);
         let context = Arc::new(Mutex::new(StylesheetContext {
             elem: Trusted::new(&*self.elem),
             source: source,
             metadata: None,
             data: vec![],
             document: Trusted::new(&*document),
+            origin_clean: true,
+            request_generation_id: gen,
         }));
 
         let (action_sender, action_receiver) = ipc::channel().unwrap();
@@ -228,8 +260,18 @@ impl<'a> StylesheetLoader<'a> {
             url: url.clone(),
             type_: RequestType::Style,
             destination: Destination::Style,
-            credentials_mode: CredentialsMode::Include,
-            use_url_credentials: true,
+            // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+            // Step 1
+            mode: match cors_setting {
+                Some(_) => RequestMode::CorsMode,
+                None => RequestMode::NoCors,
+            },
+            // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
+            // Step 3-4
+            credentials_mode: match cors_setting {
+                Some(CorsSettings::Anonymous) => CredentialsMode::CredentialsSameOrigin,
+                _ => CredentialsMode::Include,
+            },
             origin: document.url(),
             pipeline_id: Some(self.elem.global().pipeline_id()),
             referrer_url: Some(document.url()),
@@ -244,6 +286,8 @@ impl<'a> StylesheetLoader<'a> {
 
 impl<'a> StyleStylesheetLoader for StylesheetLoader<'a> {
     fn request_stylesheet(&self, import: &Arc<RwLock<ImportRule>>) {
-        self.load(StylesheetContextSource::Import(import.clone()), "".to_owned())
+        //TODO (mrnayak) : Whether we should use the original loader's CORS setting?
+        //Fix this when spec has more details.
+        self.load(StylesheetContextSource::Import(import.clone()), None, "".to_owned())
     }
 }

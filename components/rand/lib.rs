@@ -77,14 +77,14 @@ impl<'a> SeedableRng<&'a [usize]> for ServoRng {
     /// Note that this RNG does not reseed itself, so care is needed to reseed the RNG
     /// is required to be cryptographically sound.
     fn from_seed(seed: &[usize]) -> ServoRng {
-        debug!("Creating new manually-reseeded ServoRng.");
+        trace!("Creating new manually-reseeded ServoRng.");
         let isaac_rng = IsaacWordRng::from_seed(as_isaac_seed(seed));
         let reseeding_rng = ReseedingRng::new(isaac_rng, u64::MAX, ServoReseeder);
         ServoRng { rng: reseeding_rng }
     }
     /// Reseed the RNG.
     fn reseed(&mut self, seed: &'a [usize]) {
-        debug!("Manually reseeding ServoRng.");
+        trace!("Manually reseeding ServoRng.");
         self.rng.reseed((ServoReseeder, as_isaac_seed(seed)))
     }
 }
@@ -95,7 +95,7 @@ impl ServoRng {
     /// This uses the shared `OsRng`, so avoids consuming
     /// a file descriptor.
     pub fn new() -> ServoRng {
-        debug!("Creating new ServoRng.");
+        trace!("Creating new ServoRng.");
         let mut os_rng = OS_RNG.lock().expect("Poisoned lock.");
         let isaac_rng = IsaacWordRng::rand(&mut *os_rng);
         let reseeding_rng = ReseedingRng::new(isaac_rng, RESEED_THRESHOLD, ServoReseeder);
@@ -108,7 +108,7 @@ struct ServoReseeder;
 
 impl Reseeder<IsaacWordRng> for ServoReseeder {
     fn reseed(&mut self, rng: &mut IsaacWordRng) {
-        debug!("Reseeding ServoRng.");
+        trace!("Reseeding ServoRng.");
         let mut os_rng = OS_RNG.lock().expect("Poisoned lock.");
         *rng = IsaacWordRng::rand(&mut *os_rng);
     }

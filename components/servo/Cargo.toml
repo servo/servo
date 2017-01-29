@@ -24,7 +24,6 @@ debugmozjs = ["script/debugmozjs"]
 backtrace = "0.2"
 bluetooth_traits = {path = "../bluetooth_traits"}
 bluetooth = {path = "../bluetooth"}
-browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "crate"}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 compositing = {path = "../compositing"}
@@ -32,7 +31,7 @@ constellation = {path = "../constellation"}
 debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
-env_logger = "0.3"
+env_logger = "0.4"
 euclid = "0.10.1"
 gfx = {path = "../gfx"}
 gleam = "0.2"

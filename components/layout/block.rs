@@ -518,6 +518,8 @@ bitflags! {
     flags BlockFlowFlags: u8 {
         #[doc = "If this is set, then this block flow is the root flow."]
         const IS_ROOT = 0b0000_0001,
+        #[doc = "If this is set, then this block flow has overflow and it will scroll."]
+        const HAS_SCROLLING_OVERFLOW = 0b0000_0010,
     }
 }
 
@@ -565,7 +567,7 @@ impl BlockFlow {
             } else {
                 BlockType::FloatNonReplaced
             }
-        } else if self.is_inline_block() {
+        } else if self.is_inline_block_or_inline_flex() {
             if self.fragment.is_replaced() {
                 BlockType::InlineBlockReplaced
             } else {
@@ -1556,8 +1558,9 @@ impl BlockFlow {
         debug_assert_eq!(self.fragment.margin_box_inline_size(), self.base.position.size.inline);
     }
 
-    fn is_inline_block(&self) -> bool {
-        self.fragment.style().get_box().display == display::T::inline_block
+    fn is_inline_block_or_inline_flex(&self) -> bool {
+        self.fragment.style().get_box().display == display::T::inline_block ||
+        self.fragment.style().get_box().display == display::T::inline_flex
     }
 
     /// Computes the content portion (only) of the intrinsic inline sizes of this flow. This is
@@ -1675,7 +1678,7 @@ impl BlockFlow {
         }
     }
 
-    pub fn has_scrolling_overflow(&self) -> bool {
+    pub fn style_permits_scrolling_overflow(&self) -> bool {
         match (self.fragment.style().get_box().overflow_x,
                self.fragment.style().get_box().overflow_y.0) {
             (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
@@ -1698,6 +1701,19 @@ impl BlockFlow {
 
         self.base.floats = Floats::new(self.base.writing_mode);
 
+        self.initialize_container_size_for_root(shared_context);
+
+        // Our inline-size was set to the inline-size of the containing block by the flow's parent.
+        // Now compute the real value.
+        self.propagate_and_compute_used_inline_size(shared_context);
+
+        self.guess_inline_size_for_block_formatting_context_if_necessary()
+    }
+
+    /// If this is the root flow, initialize values that would normally be set by the parent.
+    ///
+    /// Should be called during `assign_inline_sizes` for flows that may be the root.
+    pub fn initialize_container_size_for_root(&mut self, shared_context: &SharedStyleContext) {
         if self.is_root() {
             debug!("Setting root position");
             self.base.position.start = LogicalPoint::zero(self.base.writing_mode);
@@ -1705,12 +1721,6 @@ impl BlockFlow {
                 self.base.writing_mode, shared_context.viewport_size).inline;
             self.base.block_container_writing_mode = self.base.writing_mode;
         }
-
-        // Our inline-size was set to the inline-size of the containing block by the flow's parent.
-        // Now compute the real value.
-        self.propagate_and_compute_used_inline_size(shared_context);
-
-        self.guess_inline_size_for_block_formatting_context_if_necessary()
     }
 
     fn guess_inline_size_for_block_formatting_context_if_necessary(&mut self) {
@@ -1823,6 +1833,19 @@ impl BlockFlow {
                                               Au::from_f32_px(clip_rect.size.height)));
         self.base.clip = ClippingRegion::from_rect(&clip_rect)
     }
+
+    pub fn mark_scrolling_overflow(&mut self, has_scrolling_overflow: bool) {
+        if has_scrolling_overflow {
+            self.flags.insert(HAS_SCROLLING_OVERFLOW);
+        } else {
+            self.flags.remove(HAS_SCROLLING_OVERFLOW);
+        }
+    }
+
+    pub fn has_scrolling_overflow(&mut self) -> bool {
+        self.flags.contains(HAS_SCROLLING_OVERFLOW)
+    }
+
 }
 
 impl Flow for BlockFlow {

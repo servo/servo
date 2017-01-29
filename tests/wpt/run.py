@@ -31,7 +31,11 @@ def run_tests(paths=None, **kwargs):
 
     mozlog.commandline.log_formatters["servo"] = \
         (grouping_formatter.GroupingFormatter, "A grouping output formatter")
-    wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
+
+    if len(kwargs["test_list"]) == 1:
+        wptrunner.setup_logging(kwargs, {"mach": sys.stdout})
+    else:
+        wptrunner.setup_logging(kwargs, {"servo": sys.stdout})
 
     success = wptrunner.run_tests(**kwargs)
     return 0 if success else 1

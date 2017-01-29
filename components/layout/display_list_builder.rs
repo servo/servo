@@ -14,12 +14,12 @@ use app_units::{AU_PER_PX, Au};
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
 use context::SharedLayoutContext;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::FlowRef;
 use fragment::{CoordinateSystem, Fragment, ImageFragmentInfo, ScannedTextFragmentInfo};
-use fragment::SpecificFragmentInfo;
+use fragment::{SpecificFragmentInfo, TruncatedFragmentInfo};
 use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayList, DisplayListSection};
@@ -32,6 +32,7 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc;
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto};
+use msg::constellation_msg::PipelineId;
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::UsePlaceholder;
 use range::Range;
@@ -56,6 +57,7 @@ use style::servo::restyle_damage::REPAINT;
 use style::values::{RGBA, computed};
 use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{HorizontalDirection, VerticalDirection};
+use style_traits::PagePx;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_traits::{ColorF, GradientStop, ScrollPolicy};
@@ -105,6 +107,10 @@ pub struct DisplayListBuildState<'a> {
     /// The current scroll root id, used to keep track of state when
     /// recursively building and processing the display list.
     pub current_scroll_root_id: ScrollRootId,
+
+    /// Vector containing iframe sizes, used to inform the constellation about
+    /// new iframe sizes
+    pub iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, PagePx>)>,
 }
 
 impl<'a> DisplayListBuildState<'a> {
@@ -118,6 +124,7 @@ impl<'a> DisplayListBuildState<'a> {
             processing_scroll_root_element: false,
             current_stacking_context_id: StackingContextId::root(),
             current_scroll_root_id: ScrollRootId::root(),
+            iframe_sizes: Vec::new(),
         }
     }
 
@@ -128,14 +135,7 @@ impl<'a> DisplayListBuildState<'a> {
 
     fn add_stacking_context(&mut self,
                             parent_id: StackingContextId,
-                            mut stacking_context: StackingContext) {
-        self.update_overflow_for_stacking_context(&mut stacking_context);
-        self.add_stacking_context_without_calcuating_overflow(parent_id, stacking_context);
-    }
-
-    fn add_stacking_context_without_calcuating_overflow(&mut self,
-                                                        parent_id: StackingContextId,
-                                                        stacking_context: StackingContext) {
+                            stacking_context: StackingContext) {
         let contexts = self.stacking_context_children.entry(parent_id).or_insert(Vec::new());
         contexts.push(stacking_context);
     }
@@ -191,24 +191,6 @@ impl<'a> DisplayListBuildState<'a> {
 
         DisplayList {
             list: list,
-        }
-    }
-
-    fn update_overflow_for_stacking_context(&mut self, stacking_context: &mut StackingContext) {
-        if stacking_context.context_type != StackingContextType::Real {
-            return;
-        }
-
-        let children = self.stacking_context_children.get_mut(&stacking_context.id);
-        if let Some(children) = children {
-            for child in children {
-                if child.context_type == StackingContextType::Real {
-                    // This child might be transformed, so we need to take into account
-                    // its transformed overflow rect too, but at the correct position.
-                    let overflow = child.overflow_rect_in_parent_space();
-                    stacking_context.overflow = stacking_context.overflow.union(&overflow);
-                }
-            }
         }
     }
 
@@ -1402,7 +1384,11 @@ impl FragmentDisplayListBuilding for Fragment {
             self.stacking_relative_content_box(stacking_relative_border_box);
 
         match self.specific {
-            SpecificFragmentInfo::ScannedText(ref text_fragment) => {
+            SpecificFragmentInfo::TruncatedFragment(box TruncatedFragmentInfo {
+                text_info: Some(ref text_fragment),
+                ..
+            }) |
+            SpecificFragmentInfo::ScannedText(box ref text_fragment) => {
                 // Create items for shadows.
                 //
                 // NB: According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front
@@ -1410,7 +1396,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
                 for text_shadow in self.style.get_inheritedtext().text_shadow.0.iter().rev() {
                     self.build_display_list_for_text_fragment(state,
-                                                              &**text_fragment,
+                                                              &*text_fragment,
                                                               &stacking_relative_content_box,
                                                               Some(text_shadow),
                                                               clip);
@@ -1418,7 +1404,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
                 // Create the main text display item.
                 self.build_display_list_for_text_fragment(state,
-                                                          &**text_fragment,
+                                                          &*text_fragment,
                                                           &stacking_relative_content_box,
                                                           None,
                                                           clip);
@@ -1428,7 +1414,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                    self.style(),
                                                                    stacking_relative_border_box,
                                                                    &stacking_relative_content_box,
-                                                                   &**text_fragment,
+                                                                   &*text_fragment,
                                                                    clip);
                 }
             }
@@ -1443,6 +1429,7 @@ impl FragmentDisplayListBuilding for Fragment {
             SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) |
+            SpecificFragmentInfo::TruncatedFragment(_) |
             SpecificFragmentInfo::Svg(_) => {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_fragment(state,
@@ -1462,6 +1449,10 @@ impl FragmentDisplayListBuilding for Fragment {
                         base: base,
                         iframe: fragment_info.pipeline_id,
                     });
+
+                    let size = Size2D::new(item.bounds().size.width.to_f32_px(),
+                                           item.bounds().size.height.to_f32_px());
+                    state.iframe_sizes.push((fragment_info.pipeline_id, TypedSize2D::from_untyped(&size)));
 
                     state.add_display_item(item);
                 }
@@ -1668,11 +1659,9 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Determine the orientation and cursor to use.
         let (orientation, cursor) = if self.style.writing_mode.is_vertical() {
-            if self.style.writing_mode.is_sideways_left() {
-                (TextOrientation::SidewaysLeft, Cursor::VerticalText)
-            } else {
-                (TextOrientation::SidewaysRight, Cursor::VerticalText)
-            }
+            // TODO: Distinguish between 'sideways-lr' and 'sideways-rl' writing modes in CSS
+            // Writing Modes Level 4.
+            (TextOrientation::SidewaysRight, Cursor::VerticalText)
         } else {
             (TextOrientation::Upright, Cursor::Text)
         };
@@ -1842,12 +1831,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
     }
 
     fn collect_scroll_root_for_block(&mut self, state: &mut DisplayListBuildState) -> ScrollRootId {
-        if !self.has_scrolling_overflow() {
+        if !self.style_permits_scrolling_overflow() {
             return state.current_scroll_root_id;
         }
 
-        let scroll_root_id = ScrollRootId::new_of_type(self.fragment.node.id() as usize,
-                                                       self.fragment.fragment_type());
         let coordinate_system = if self.fragment.establishes_stacking_context() {
             CoordinateSystem::Own
         } else {
@@ -1859,13 +1846,24 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             &self.base.early_absolute_position_info.relative_containing_block_size,
             self.base.early_absolute_position_info.relative_containing_block_mode,
             coordinate_system);
+        let clip = self.fragment.stacking_relative_content_box(&border_box);
 
+        let has_scrolling_overflow = self.base.overflow.scroll.origin != Point2D::zero() ||
+                                     self.base.overflow.scroll.size.width > clip.size.width ||
+                                     self.base.overflow.scroll.size.height > clip.size.height;
+        self.mark_scrolling_overflow(has_scrolling_overflow);
+        if !has_scrolling_overflow {
+            return state.current_scroll_root_id;
+        }
+
+        let scroll_root_id = ScrollRootId::new_of_type(self.fragment.node.id() as usize,
+                                                       self.fragment.fragment_type());
         let parent_scroll_root_id = state.current_scroll_root_id;
         state.add_scroll_root(
             ScrollRoot {
                 id: scroll_root_id,
                 parent_id: parent_scroll_root_id,
-                clip: self.fragment.stacking_relative_content_box(&border_box),
+                clip: clip,
                 size: self.base.overflow.scroll.size,
             }
         );
@@ -1898,10 +1896,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             state.stacking_context_children.remove(&stacking_context_id).unwrap_or_else(Vec::new);
         for child in new_children {
             if child.context_type == StackingContextType::PseudoFloat {
-                state.add_stacking_context_without_calcuating_overflow(stacking_context_id, child);
+                state.add_stacking_context(stacking_context_id, child);
             } else {
-                state.add_stacking_context_without_calcuating_overflow(parent_stacking_context_id,
-                                                                       child);
+                state.add_stacking_context(parent_stacking_context_id, child);
             }
         }
     }
@@ -1942,9 +1939,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             DisplayListSection::BlockBackgroundsAndBorders
         };
 
-        if self.has_scrolling_overflow() {
-            state.processing_scroll_root_element = true;
-        }
+        state.processing_scroll_root_element = self.has_scrolling_overflow();
 
         // Add the box that starts the block context.
         self.fragment

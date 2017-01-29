@@ -11,8 +11,7 @@ use euclid::Point2D;
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use gfx_traits::{DevicePixel, ScrollRootId};
-use gfx_traits::{Epoch, FragmentType};
+use gfx_traits::{Epoch, FragmentType, ScrollRootId};
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -22,7 +21,7 @@ use msg::constellation_msg::{PipelineId, PipelineIndex, PipelineNamespaceId, Tra
 use net_traits::image::base::{Image, PixelFormat};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
-use script_traits::{ConstellationMsg, LayoutControlMsg, LoadData, MouseButton};
+use script_traits::{ConstellationMsg, DevicePixel, LayoutControlMsg, LoadData, MouseButton};
 use script_traits::{MouseEventType, StackingContextScrollState};
 use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId, WindowSizeData, WindowSizeType};
 use script_traits::CompositorEvent::{self, MouseMoveEvent, MouseButtonEvent, TouchEvent, TouchpadPressureEvent};
@@ -40,7 +39,7 @@ use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use webrender;
-use webrender_traits::{self, ScrollEventPhase, ServoScrollRootId, LayoutPoint};
+use webrender_traits::{self, ScrollEventPhase, ServoScrollRootId, LayoutPoint, ScrollLocation};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
@@ -228,8 +227,8 @@ pub struct IOCompositor<Window: WindowMethods> {
 struct ScrollZoomEvent {
     /// Change the pinch zoom level by this factor
     magnification: f32,
-    /// Scroll by this offset
-    delta: TypedPoint2D<f32, DevicePixel>,
+    /// Scroll by this offset, or to Start or End
+    scroll_location: ScrollLocation,
     /// Apply changes to the frame at this location
     cursor: TypedPoint2D<i32, DevicePixel>,
     /// The scroll event phase.
@@ -343,15 +342,13 @@ fn initialize_png(width: usize, height: usize) -> RenderTargetInfo {
 
 struct RenderNotifier {
     compositor_proxy: Box<CompositorProxy>,
-    constellation_chan: Sender<ConstellationMsg>,
 }
 
 impl RenderNotifier {
     fn new(compositor_proxy: Box<CompositorProxy>,
-           constellation_chan: Sender<ConstellationMsg>) -> RenderNotifier {
+           _: Sender<ConstellationMsg>) -> RenderNotifier {
         RenderNotifier {
             compositor_proxy: compositor_proxy,
-            constellation_chan: constellation_chan,
         }
     }
 }
@@ -366,16 +363,8 @@ impl webrender_traits::RenderNotifier for RenderNotifier {
     }
 
     fn pipeline_size_changed(&mut self,
-                             pipeline_id: webrender_traits::PipelineId,
-                             size: Option<webrender_traits::LayoutSize>) {
-        let pipeline_id = pipeline_id.from_webrender();
-
-        if let Some(size) = size {
-            let msg = ConstellationMsg::FrameSize(pipeline_id, size.to_untyped());
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Compositor resize to constellation failed ({}).", e);
-            }
-        }
+                             _: webrender_traits::PipelineId,
+                             _: Option<webrender_traits::LayoutSize>) {
     }
 }
 
@@ -1038,7 +1027,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
                 match point.cast() {
-                    Some(point) => self.on_scroll_window_event(delta, point),
+                    Some(point) => self.on_scroll_window_event(ScrollLocation::Delta(
+                                                               webrender_traits::LayerPoint::from_untyped(
+                                                               &delta.to_untyped())),
+                                                               point),
                     None => error!("Point cast failed."),
                 }
             }
@@ -1046,7 +1038,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let cursor = TypedPoint2D::new(-1, -1);  // Make sure this hits the base layer.
                 self.pending_scroll_zoom_events.push(ScrollZoomEvent {
                     magnification: magnification,
-                    delta: scroll_delta,
+                    scroll_location: ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(
+                                                           &scroll_delta.to_untyped())),
                     cursor: cursor,
                     phase: ScrollEventPhase::Move(true),
                     event_count: 1,
@@ -1107,7 +1100,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_scroll_window_event(&mut self,
-                              delta: TypedPoint2D<f32, DevicePixel>,
+                              scroll_location: ScrollLocation,
                               cursor: TypedPoint2D<i32, DevicePixel>) {
         let event_phase = match (self.scroll_in_progress, self.in_scroll_transaction) {
             (false, None) => ScrollEventPhase::Start,
@@ -1118,7 +1111,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.in_scroll_transaction = Some(Instant::now());
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
-            delta: delta,
+            scroll_location: scroll_location,
             cursor: cursor,
             phase: event_phase,
             event_count: 1,
@@ -1126,12 +1119,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_scroll_start_window_event(&mut self,
-                                    delta: TypedPoint2D<f32, DevicePixel>,
+                                    scroll_location: ScrollLocation,
                                     cursor: TypedPoint2D<i32, DevicePixel>) {
         self.scroll_in_progress = true;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
-            delta: delta,
+            scroll_location: scroll_location,
             cursor: cursor,
             phase: ScrollEventPhase::Start,
             event_count: 1,
@@ -1139,12 +1132,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_scroll_end_window_event(&mut self,
-                                  delta: TypedPoint2D<f32, DevicePixel>,
+                                  scroll_location: ScrollLocation,
                                   cursor: TypedPoint2D<i32, DevicePixel>) {
         self.scroll_in_progress = false;
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: 1.0,
-            delta: delta,
+            scroll_location: scroll_location,
             cursor: cursor,
             phase: ScrollEventPhase::End,
             event_count: 1,
@@ -1157,14 +1150,34 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Batch up all scroll events into one, or else we'll do way too much painting.
         let mut last_combined_event: Option<ScrollZoomEvent> = None;
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
-            let this_delta = scroll_event.delta;
             let this_cursor = scroll_event.cursor;
+
+            let this_delta = match scroll_event.scroll_location {
+                ScrollLocation::Delta(delta) => delta,
+                ScrollLocation::Start | ScrollLocation::End => {
+                    // If this is an event which is scrolling to the start or end of the page,
+                    // disregard other pending events and exit the loop.
+                    last_combined_event = Some(scroll_event);
+                    break;
+                }
+            };
+
             if let Some(combined_event) = last_combined_event {
                 if combined_event.phase != scroll_event.phase {
-                    let delta = (combined_event.delta / self.scale).to_untyped();
+                    let combined_delta = match combined_event.scroll_location {
+                        ScrollLocation::Delta(delta) => delta,
+                        ScrollLocation::Start | ScrollLocation::End => {
+                            // If this is an event which is scrolling to the start or end of the page,
+                            // disregard other pending events and exit the loop.
+                            last_combined_event = Some(scroll_event);
+                            break;
+                        }
+                    };
+                    let delta = (TypedPoint2D::from_untyped(&combined_delta.to_untyped()) / self.scale)
+                                 .to_untyped();
+                    let delta = webrender_traits::LayerPoint::from_untyped(&delta);
                     let cursor =
                         (combined_event.cursor.to_f32() / self.scale).to_untyped();
-                    let delta = webrender_traits::LayerPoint::from_untyped(&delta);
                     let location = webrender_traits::ScrollLocation::Delta(delta);
                     let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
                     self.webrender_api.scroll(location, cursor, combined_event.phase);
@@ -1176,7 +1189,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 (last_combined_event @ &mut None, _) => {
                     *last_combined_event = Some(ScrollZoomEvent {
                         magnification: scroll_event.magnification,
-                        delta: this_delta,
+                        scroll_location: ScrollLocation::Delta(webrender_traits::LayerPoint::from_untyped(
+                                                               &this_delta.to_untyped())),
                         cursor: this_cursor,
                         phase: scroll_event.phase,
                         event_count: 1,
@@ -1188,30 +1202,41 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     // fling. This causes events to get bunched up occasionally, causing
                     // nasty-looking "pops". To mitigate this, during a fling we average
                     // deltas instead of summing them.
-                    let old_event_count =
-                        ScaleFactor::new(last_combined_event.event_count as f32);
-                    last_combined_event.event_count += 1;
-                    let new_event_count =
-                        ScaleFactor::new(last_combined_event.event_count as f32);
-                    last_combined_event.delta =
-                        (last_combined_event.delta * old_event_count + this_delta) /
-                        new_event_count;
+                    if let ScrollLocation::Delta(delta) = last_combined_event.scroll_location {
+                        let old_event_count =
+                            ScaleFactor::new(last_combined_event.event_count as f32);
+                        last_combined_event.event_count += 1;
+                        let new_event_count =
+                            ScaleFactor::new(last_combined_event.event_count as f32);
+                        last_combined_event.scroll_location = ScrollLocation::Delta(
+                            (delta * old_event_count + this_delta) /
+                            new_event_count);
+                    }
                 }
                 (&mut Some(ref mut last_combined_event), _) => {
-                    last_combined_event.delta = last_combined_event.delta + this_delta;
-                    last_combined_event.event_count += 1
+                    if let ScrollLocation::Delta(delta) = last_combined_event.scroll_location {
+                        last_combined_event.scroll_location = ScrollLocation::Delta(delta + this_delta);
+                        last_combined_event.event_count += 1
+                    }
                 }
             }
         }
 
         // TODO(gw): Support zoom (WR issue #28).
         if let Some(combined_event) = last_combined_event {
-            let delta = (combined_event.delta / self.scale).to_untyped();
-            let delta = webrender_traits::LayoutPoint::from_untyped(&delta);
+            let scroll_location = match combined_event.scroll_location {
+                ScrollLocation::Delta(delta) => {
+                    let scaled_delta = (TypedPoint2D::from_untyped(&delta.to_untyped()) / self.scale)
+                                       .to_untyped();
+                    let calculated_delta = webrender_traits::LayoutPoint::from_untyped(&scaled_delta);
+                                           ScrollLocation::Delta(calculated_delta)
+                },
+                // Leave ScrollLocation unchanged if it is Start or End location.
+                sl @ ScrollLocation::Start | sl @ ScrollLocation::End => sl,
+            };
             let cursor = (combined_event.cursor.to_f32() / self.scale).to_untyped();
-            let location = webrender_traits::ScrollLocation::Delta(delta);
             let cursor = webrender_traits::WorldPoint::from_untyped(&cursor);
-            self.webrender_api.scroll(location, cursor, combined_event.phase);
+            self.webrender_api.scroll(scroll_location, cursor, combined_event.phase);
             self.waiting_for_results_of_scroll = true
         }
 
@@ -1306,7 +1331,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_pinch_zoom_window_event(&mut self, magnification: f32) {
         self.pending_scroll_zoom_events.push(ScrollZoomEvent {
             magnification: magnification,
-            delta: TypedPoint2D::zero(), // TODO: Scroll to keep the center in view?
+            scroll_location: ScrollLocation::Delta(TypedPoint2D::zero()), // TODO: Scroll to keep the center in view?
             cursor:  TypedPoint2D::new(-1, -1), // Make sure this hits the base layer.
             phase: ScrollEventPhase::Move(true),
             event_count: 1,
@@ -1703,6 +1728,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 }
+
 
 /// Why we performed a composite. This is used for debugging.
 #[derive(Copy, Clone, PartialEq, Debug)]

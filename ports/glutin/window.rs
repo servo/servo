@@ -13,7 +13,6 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 #[cfg(target_os = "windows")]
 use gdi32;
-use gfx_traits::DevicePixel;
 use gleam::gl;
 use glutin;
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, MouseScrollDelta, VirtualKeyCode};
@@ -25,7 +24,7 @@ use msg::constellation_msg::{ALT, CONTROL, KeyState, NONE, SHIFT, SUPER};
 use net_traits::net_error_list::NetError;
 #[cfg(any(target_os = "linux", target_os = "macos"))]
 use osmesa_sys;
-use script_traits::{TouchEventType, TouchpadPressurePhase};
+use script_traits::{DevicePixel, TouchEventType, TouchpadPressurePhase};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files;
@@ -43,6 +42,7 @@ use std::sync::mpsc::{Sender, channel};
 use style_traits::cursor::Cursor;
 #[cfg(target_os = "windows")]
 use user32;
+use webrender_traits::ScrollLocation;
 #[cfg(target_os = "windows")]
 use winapi;
 
@@ -426,8 +426,9 @@ impl Window {
                     MouseScrollDelta::LineDelta(dx, dy) => (dx, dy * LINE_HEIGHT),
                     MouseScrollDelta::PixelDelta(dx, dy) => (dx, dy),
                 };
+                let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(dx, dy));
                 let phase = glutin_phase_to_touch_event_type(phase);
-                self.scroll_window(dx, dy, phase);
+                self.scroll_window(scroll_location, phase);
             },
             Event::Touch(touch) => {
                 use script_traits::TouchId;
@@ -462,16 +463,19 @@ impl Window {
     }
 
     /// Helper function to send a scroll event.
-    fn scroll_window(&self, mut dx: f32, mut dy: f32, phase: TouchEventType) {
+    fn scroll_window(&self, scroll_location: ScrollLocation, phase: TouchEventType) {
         // Scroll events snap to the major axis of movement, with vertical
         // preferred over horizontal.
-        if dy.abs() >= dx.abs() {
-            dx = 0.0;
-        } else {
-            dy = 0.0;
+        if let ScrollLocation::Delta(mut delta) = scroll_location {
+            if delta.y.abs() >= delta.x.abs() {
+                delta.x = 0.0;
+            } else {
+                delta.y = 0.0;
+            }
         }
+
         let mouse_pos = self.mouse_pos.get();
-        let event = WindowEvent::Scroll(TypedPoint2D::new(dx as f32, dy as f32),
+        let event = WindowEvent::Scroll(scroll_location,
                                         TypedPoint2D::new(mouse_pos.x as i32, mouse_pos.y as i32),
                                         phase);
         self.event_queue.borrow_mut().push(event);
@@ -1035,33 +1039,46 @@ impl WindowMethods for Window {
 
             (NONE, None, Key::PageDown) |
             (NONE, Some(' '), _) => {
-                self.scroll_window(0.0,
+               let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(0.0,
                                    -self.framebuffer_size()
                                         .to_f32()
                                         .to_untyped()
-                                        .height + 2.0 * LINE_HEIGHT,
+                                        .height + 2.0 * LINE_HEIGHT));
+                self.scroll_window(scroll_location,
                                    TouchEventType::Move);
             }
             (NONE, None, Key::PageUp) |
             (SHIFT, Some(' '), _) => {
-                self.scroll_window(0.0,
+                let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(0.0,
                                    self.framebuffer_size()
                                        .to_f32()
                                        .to_untyped()
-                                       .height - 2.0 * LINE_HEIGHT,
+                                       .height - 2.0 * LINE_HEIGHT));
+                self.scroll_window(scroll_location,
                                    TouchEventType::Move);
             }
+
+            (NONE, None, Key::Home) => {
+                self.scroll_window(ScrollLocation::Start, TouchEventType::Move);
+            }
+
+            (NONE, None, Key::End) => {
+                self.scroll_window(ScrollLocation::End, TouchEventType::Move);
+            }
+
             (NONE, None, Key::Up) => {
-                self.scroll_window(0.0, 3.0 * LINE_HEIGHT, TouchEventType::Move);
+                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(0.0, 3.0 * LINE_HEIGHT)),
+                                   TouchEventType::Move);
             }
             (NONE, None, Key::Down) => {
-                self.scroll_window(0.0, -3.0 * LINE_HEIGHT, TouchEventType::Move);
+                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(0.0, -3.0 * LINE_HEIGHT)),
+                                   TouchEventType::Move);
             }
             (NONE, None, Key::Left) => {
-                self.scroll_window(LINE_HEIGHT, 0.0, TouchEventType::Move);
+                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(LINE_HEIGHT, 0.0)), TouchEventType::Move);
             }
             (NONE, None, Key::Right) => {
-                self.scroll_window(-LINE_HEIGHT, 0.0, TouchEventType::Move);
+                self.scroll_window(ScrollLocation::Delta(TypedPoint2D::new(-LINE_HEIGHT, 0.0)), TouchEventType::Move);
             }
             (CMD_OR_CONTROL, Some('r'), _) => {
                 if let Some(true) = PREFS.get("shell.builtin-key-shortcuts.enabled").as_boolean() {

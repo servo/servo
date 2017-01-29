@@ -10,13 +10,12 @@ use dom::bindings::error::{ErrorInfo, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::settings_stack::{AutoEntryScript, entry_global};
+use dom::bindings::settings_stack::{AutoEntryScript, entry_global, incumbent_global};
 use dom::bindings::str::DOMString;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventdispatcher::EventStatus;
+use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -339,13 +338,13 @@ impl GlobalScope {
     /// Evaluate JS code on this global scope.
     pub fn evaluate_js_on_global_with_result(
             &self, code: &str, rval: MutableHandleValue) {
-        self.evaluate_script_on_global_with_result(code, "", rval)
+        self.evaluate_script_on_global_with_result(code, "", rval, 1)
     }
 
     /// Evaluate a JS script on this global scope.
     #[allow(unsafe_code)]
     pub fn evaluate_script_on_global_with_result(
-            &self, code: &str, filename: &str, rval: MutableHandleValue) {
+            &self, code: &str, filename: &str, rval: MutableHandleValue, line_number: u32) {
         let metadata = time::TimerMetadata {
             url: if filename.is_empty() {
                 self.get_url().as_str().into()
@@ -367,7 +366,7 @@ impl GlobalScope {
 
                 let _ac = JSAutoCompartment::new(cx, globalhandle.get());
                 let _aes = AutoEntryScript::new(self);
-                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 1);
+                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), line_number);
                 unsafe {
                     if !Evaluate2(cx, options.ptr, code.as_ptr(),
                                   code.len() as libc::size_t,
@@ -527,6 +526,13 @@ impl GlobalScope {
     /// ["entry"]: https://html.spec.whatwg.org/multipage/#entry
     pub fn entry() -> Root<Self> {
         entry_global()
+    }
+
+    /// Returns the ["incumbent"] global object.
+    ///
+    /// ["incumbent"]: https://html.spec.whatwg.org/multipage/#incumbent
+    pub fn incumbent() -> Option<Root<Self>> {
+        incumbent_global()
     }
 }
 

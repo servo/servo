@@ -546,6 +546,27 @@ impl<'a> GlyphStore {
         }
     }
 
+    // Scan the glyphs for a given range until we reach a given advance. Returns the index
+    // and advance of the glyph in the range at the given advance, if reached. Otherwise, returns the
+    // the number of glyphs and the advance for the given range.
+    #[inline]
+    pub fn range_index_of_advance(&self, range: &Range<ByteIndex>, advance: Au, extra_word_spacing: Au) -> (usize, Au) {
+        let mut index = 0;
+        let mut current_advance = Au(0);
+        for glyph in self.iter_glyphs_for_byte_range(range) {
+            if glyph.char_is_space() {
+                current_advance += glyph.advance() + extra_word_spacing
+            } else {
+                current_advance += glyph.advance()
+            }
+            if current_advance > advance {
+                break;
+            }
+            index += 1;
+        }
+        (index, current_advance)
+    }
+
     #[inline]
     pub fn advance_for_byte_range(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         if range.begin() == ByteIndex(0) && range.end() == self.len() {

@@ -13,7 +13,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_qualified_name};
-use dom::document::{Document, IsHTMLDocument};
+use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
@@ -23,6 +23,7 @@ use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::Node;
 use dom::text::Text;
 use dom::xmldocument::XMLDocument;
+use script_traits::DocumentActivity;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]
@@ -77,12 +78,13 @@ impl DOMImplementationMethods for DOMImplementation {
 
         // Step 1.
         let doc = XMLDocument::new(win,
-                                   None,
+                                   HasBrowsingContext::No,
                                    None,
                                    self.document.origin().alias(),
                                    IsHTMLDocument::NonHTMLDocument,
                                    Some(DOMString::from(content_type)),
                                    None,
+                                   DocumentActivity::Inactive,
                                    DocumentSource::NotFromParser,
                                    loader);
         // Step 2-3.
@@ -123,12 +125,13 @@ impl DOMImplementationMethods for DOMImplementation {
 
         // Step 1-2.
         let doc = Document::new(win,
-                                None,
+                                HasBrowsingContext::No,
                                 None,
                                 self.document.origin().alias(),
                                 IsHTMLDocument::HTMLDocument,
                                 None,
                                 None,
+                                DocumentActivity::Inactive,
                                 DocumentSource::NotFromParser,
                                 loader,
                                 None,

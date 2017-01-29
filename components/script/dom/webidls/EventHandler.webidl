@@ -25,7 +25,7 @@ callback OnBeforeUnloadEventHandlerNonNull = DOMString? (Event event);
 typedef OnBeforeUnloadEventHandlerNonNull? OnBeforeUnloadEventHandler;
 
 // https://html.spec.whatwg.org/multipage/#globaleventhandlers
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[NoInterfaceObject, Exposed=Window]
 interface GlobalEventHandlers {
            attribute EventHandler onabort;
            attribute EventHandler onblur;
@@ -95,7 +95,7 @@ partial interface GlobalEventHandlers {
 };
 
 // https://html.spec.whatwg.org/multipage/#windoweventhandlers
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[NoInterfaceObject, Exposed=Window]
 interface WindowEventHandlers {
            attribute EventHandler onafterprint;
            attribute EventHandler onbeforeprint;
@@ -115,7 +115,7 @@ interface WindowEventHandlers {
 };
 
 // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
-[NoInterfaceObject, Exposed=(Window,Worker)]
+[NoInterfaceObject, Exposed=Window]
 interface DocumentAndElementEventHandlers {
           attribute EventHandler oncopy;
           attribute EventHandler oncut;

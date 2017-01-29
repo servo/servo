@@ -13,12 +13,12 @@ use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::ToCss;
 use values::HasViewportPercentage;
-use values::computed::{CalcLengthOrPercentage, Context};
+use values::computed::{self, CalcLengthOrPercentage, Context};
 use values::computed::{LengthOrPercentage as ComputedLengthOrPercentage, ToComputedValue};
 use values::computed::position as computed_position;
 use values::specified::{LengthOrPercentage, Percentage};
 
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// A [position][pos].
 ///
@@ -38,7 +38,7 @@ impl ToCss for Position {
             try!(dest.write_str(" "));
             space_present = true;
         };
-        if let Some(horiz_pos) = self.horizontal.position {
+        if let Some(ref horiz_pos) = self.horizontal.position {
             try!(horiz_pos.to_css(dest));
             try!(dest.write_str(" "));
             space_present = true;
@@ -47,7 +47,7 @@ impl ToCss for Position {
             try!(vert_key.to_css(dest));
             space_present = false;
         };
-        if let Some(vert_pos) = self.vertical.position {
+        if let Some(ref vert_pos) = self.vertical.position {
             if space_present == false {
                 try!(dest.write_str(" "));
             }
@@ -71,23 +71,23 @@ impl Position {
                second_keyword: Option<PositionComponent>)
                -> Result<Position, ()> {
         // Unwrap for checking if values are at right place.
-        let first_key = first_keyword.unwrap_or(PositionComponent::Keyword(Keyword::Left));
-        let second_key = second_keyword.unwrap_or(PositionComponent::Keyword(Keyword::Top));
+        let first_key = first_keyword.clone().unwrap_or(PositionComponent::Keyword(Keyword::Left));
+        let second_key = second_keyword.clone().unwrap_or(PositionComponent::Keyword(Keyword::Top));
 
         // Check if position specified after center keyword.
-        if let PositionCategory::OtherKeyword = category(first_key) {
+        if let PositionCategory::OtherKeyword = category(&first_key) {
             if let Some(_) = first_position {
                 return Err(());
             };
         };
-        if let PositionCategory::OtherKeyword = category(second_key) {
+        if let PositionCategory::OtherKeyword = category(&second_key) {
             if let Some(_) = second_position {
                 return Err(());
             };
         };
 
         // Check first and second keywords for both 2 and 4 value positions.
-        let (horiz_keyword, vert_keyword) = match (category(first_key), category(second_key)) {
+        let (horiz_keyword, vert_keyword) = match (category(&first_key), category(&second_key)) {
             // Don't allow two vertical keywords or two horizontal keywords.
             // also don't allow length/percentage values in the wrong position
             (PositionCategory::HorizontalKeyword, PositionCategory::HorizontalKeyword) |
@@ -186,12 +186,12 @@ impl Parse for Position {
                 Position::new(Some(second), Some(fourth), Some(first), Some(third))
             } else {
                 // Handle 3 value background position there are several options:
-                if let PositionCategory::LengthOrPercentage = category(first) {
+                if let PositionCategory::LengthOrPercentage = category(&first) {
                     // "length keyword length"
                     Position::new(Some(first), Some(third), None, Some(second))
                 } else {
-                    if let PositionCategory::LengthOrPercentage = category(second) {
-                        if let PositionCategory::LengthOrPercentage = category(third) {
+                    if let PositionCategory::LengthOrPercentage = category(&second) {
+                        if let PositionCategory::LengthOrPercentage = category(&third) {
                             // "keyword length length"
                             Position::new(Some(second), Some(third), Some(first), None)
                         } else {
@@ -206,14 +206,14 @@ impl Parse for Position {
             }
         } else {
             // Handle 2 value background position.
-            if let PositionCategory::LengthOrPercentage = category(first) {
-                if let PositionCategory::LengthOrPercentage = category(second) {
+            if let PositionCategory::LengthOrPercentage = category(&first) {
+                if let PositionCategory::LengthOrPercentage = category(&second) {
                     Position::new(Some(first), Some(second), None, None)
                 } else {
                     Position::new(Some(first), None, None, Some(second))
                 }
             } else {
-                if let PositionCategory::LengthOrPercentage = category(second) {
+                if let PositionCategory::LengthOrPercentage = category(&second) {
                     Position::new(None, Some(second), Some(first), None)
                 } else {
                     Position::new(None, None, Some(first), Some(second))
@@ -249,7 +249,7 @@ impl ToComputedValue for Position {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct HorizontalPosition {
@@ -259,7 +259,7 @@ pub struct HorizontalPosition {
 
 impl HasViewportPercentage for HorizontalPosition {
     fn has_viewport_percentage(&self) -> bool {
-        self.position.map_or(false, |pos| pos.has_viewport_percentage())
+        self.position.as_ref().map_or(false, |pos| pos.has_viewport_percentage())
     }
 }
 
@@ -271,7 +271,7 @@ impl ToCss for HorizontalPosition {
             keyword_present = true;
         };
 
-        if let Some(position) = self.position {
+        if let Some(ref position) = self.position {
             if keyword_present {
                 try!(dest.write_str(" "));
             }
@@ -287,7 +287,7 @@ impl Parse for HorizontalPosition {
         let first = try!(PositionComponent::parse(context, input));
         let second = input.try(|i| PositionComponent::parse(context, i)).ok();
 
-        let (keyword, position) = if let PositionCategory::LengthOrPercentage = category(first) {
+        let (keyword, position) = if let PositionCategory::LengthOrPercentage = category(&first) {
             // "length keyword?"
             (second, Some(first))
         } else {
@@ -298,7 +298,7 @@ impl Parse for HorizontalPosition {
         // Unwrapping and checking keyword.
         let keyword = match keyword {
             Some(PositionComponent::Keyword(key)) => {
-                match category(keyword.unwrap()) {
+                match category(keyword.as_ref().unwrap()) {
                     PositionCategory::VerticalKeyword |
                     PositionCategory::VerticalLogicalKeyword => return Err(()),
                     _ => Some(key),
@@ -339,10 +339,10 @@ impl ToComputedValue for HorizontalPosition {
         let horizontal = match keyword {
             // FIXME(canaltinova): Support logical keywords.
             Keyword::Right | Keyword::XEnd => {
-                if let Some(x) = self.position {
-                    let (length, percentage) = match x {
+                if let Some(ref x) = self.position {
+                    let (length, percentage) = match *x {
                         LengthOrPercentage::Percentage(Percentage(y)) => (Au(0), Some(1.0 - y)),
-                        LengthOrPercentage::Length(y) => (-y.to_computed_value(context), Some(1.0)),
+                        LengthOrPercentage::Length(ref y) => (-y.to_computed_value(context), Some(1.0)),
                         _ => (Au(0), None),
                     };
                     ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage {
@@ -357,8 +357,8 @@ impl ToComputedValue for HorizontalPosition {
                 keyword.to_length_or_percentage().to_computed_value(context)
             },
              _ => {
-                let horiz = self.position
-                                .unwrap_or(LengthOrPercentage::Percentage(Percentage(0.0)));
+                let zero = LengthOrPercentage::Percentage(Percentage(0.0));
+                let horiz = self.position.as_ref().unwrap_or(&zero);
                 horiz.to_computed_value(context)
             },
         };
@@ -375,7 +375,7 @@ impl ToComputedValue for HorizontalPosition {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct VerticalPosition {
@@ -385,7 +385,7 @@ pub struct VerticalPosition {
 
 impl HasViewportPercentage for VerticalPosition {
     fn has_viewport_percentage(&self) -> bool {
-        self.position.map_or(false, |pos| pos.has_viewport_percentage())
+        self.position.as_ref().map_or(false, |pos| pos.has_viewport_percentage())
     }
 }
 
@@ -397,7 +397,7 @@ impl ToCss for VerticalPosition {
             keyword_present = true;
         };
 
-        if let Some(position) = self.position {
+        if let Some(ref position) = self.position {
             if keyword_present {
                 try!(dest.write_str(" "));
             }
@@ -413,7 +413,7 @@ impl Parse for VerticalPosition {
         let first = try!(PositionComponent::parse(context, input));
         let second = input.try(|i| PositionComponent::parse(context, i)).ok();
 
-        let (keyword, position) = if let PositionCategory::LengthOrPercentage = category(first) {
+        let (keyword, position) = if let PositionCategory::LengthOrPercentage = category(&first) {
             // "length keyword?"
             (second, Some(first))
         } else {
@@ -424,7 +424,7 @@ impl Parse for VerticalPosition {
         // Unwrapping and checking keyword.
         let keyword = match keyword {
             Some(PositionComponent::Keyword(key)) => {
-                match category(keyword.unwrap()) {
+                match category(keyword.as_ref().unwrap()) {
                     PositionCategory::HorizontalKeyword |
                     PositionCategory::HorizontalLogicalKeyword => return Err(()),
                     _ => Some(key),
@@ -465,10 +465,10 @@ impl ToComputedValue for VerticalPosition {
         let vertical = match keyword {
             // FIXME(canaltinova): Support logical keywords.
             Keyword::Bottom | Keyword::YEnd => {
-                if let Some(x) = self.position {
-                    let (length, percentage) = match x {
+                if let Some(ref x) = self.position {
+                    let (length, percentage) = match *x {
                         LengthOrPercentage::Percentage(Percentage(y)) => (Au(0), Some(1.0 - y)),
-                        LengthOrPercentage::Length(y) => (-y.to_computed_value(context), Some(1.0)),
+                        LengthOrPercentage::Length(ref y) => (-y.to_computed_value(context), Some(1.0)),
                         _ => (Au(0), None),
                     };
                     ComputedLengthOrPercentage::Calc(CalcLengthOrPercentage {
@@ -483,8 +483,8 @@ impl ToComputedValue for VerticalPosition {
                 keyword.to_length_or_percentage().to_computed_value(context)
             },
              _ => {
-                let vert = self.position
-                               .unwrap_or(LengthOrPercentage::Percentage(Percentage(0.0)));
+                let zero = LengthOrPercentage::Percentage(Percentage(0.0));
+                let vert = self.position.as_ref().unwrap_or(&zero);
                 vert.to_computed_value(context)
             },
         };
@@ -539,7 +539,7 @@ enum PositionCategory {
 /// A position component.
 ///
 /// http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
-#[derive(Clone, PartialEq, Copy)]
+#[derive(Clone, PartialEq)]
 pub enum PositionComponent {
     /// A `<length>`
     Length(LengthOrPercentage),
@@ -547,8 +547,8 @@ pub enum PositionComponent {
     Keyword(Keyword),
 }
 
-fn category(p: PositionComponent) -> PositionCategory {
-    if let PositionComponent::Keyword(keyword) = p {
+fn category(p: &PositionComponent) -> PositionCategory {
+    if let PositionComponent::Keyword(keyword) = *p {
         match keyword {
             Keyword::Left | Keyword::Right =>
                 PositionCategory::HorizontalKeyword,
@@ -569,7 +569,7 @@ fn category(p: PositionComponent) -> PositionCategory {
 impl HasViewportPercentage for PositionComponent {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
-            PositionComponent::Length(length) => length.has_viewport_percentage(),
+            PositionComponent::Length(ref length) => length.has_viewport_percentage(),
             _ => false
         }
     }
@@ -578,10 +578,12 @@ impl HasViewportPercentage for PositionComponent {
 impl PositionComponent {
     /// Convert the given position component to a length or a percentage.
     #[inline]
-    pub fn to_length_or_percentage(self) -> LengthOrPercentage {
-        match self {
-            PositionComponent::Length(value) => value,
-            PositionComponent::Keyword(keyword) => keyword.to_length_or_percentage(),
+    pub fn to_length_or_percentage_computed(&self, cx: &Context) -> computed::LengthOrPercentage {
+        match *self {
+            PositionComponent::Length(ref value) => value.to_computed_value(cx),
+            PositionComponent::Keyword(keyword) => {
+                keyword.to_length_or_percentage().to_computed_value(cx)
+            }
         }
     }
 }

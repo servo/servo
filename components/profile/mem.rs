@@ -610,8 +610,8 @@ mod system_reporter {
                     Some(cap) => cap,
                     None => continue,
                 };
-                let perms = cap.at(1).unwrap();
-                let pathname = cap.at(2).unwrap();
+                let perms = cap.get(1).unwrap().as_str();
+                let pathname = cap.get(2).unwrap().as_str();
 
                 // Construct the segment name from its pathname and permissions.
                 curr_seg_name.clear();
@@ -635,7 +635,7 @@ mod system_reporter {
                     Some(cap) => cap,
                     None => continue,
                 };
-                let rss = cap.at(1).unwrap().parse::<usize>().unwrap() * 1024;
+                let rss = cap.get(1).unwrap().as_str().parse::<usize>().unwrap() * 1024;
 
                 if rss > 0 {
                     // Aggregate small segments into "other".

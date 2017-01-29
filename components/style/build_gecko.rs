@@ -39,7 +39,7 @@ mod common {
 
 #[cfg(feature = "bindgen")]
 mod bindings {
-    use libbindgen::{Builder, CodegenConfig};
+    use bindgen::{Builder, CodegenConfig};
     use regex::Regex;
     use std::cmp;
     use std::collections::HashSet;
@@ -91,7 +91,7 @@ mod bindings {
         added_paths.insert(path);
         // Find all includes and add them recursively
         for cap in INCLUDE_RE.captures_iter(&content) {
-            if let Some(path) = search_include(cap.at(1).unwrap()) {
+            if let Some(path) = search_include(cap.get(1).unwrap().as_str()) {
                 add_headers_recursively(path, added_paths);
             }
         }
@@ -99,7 +99,7 @@ mod bindings {
 
     fn add_include(name: &str) -> String {
         let mut added_paths = ADDED_PATHS.lock().unwrap();
-        let file = search_include(name).unwrap();
+        let file = search_include(name).expect("Include not found!");
         let result = String::from(file.to_str().unwrap());
         add_headers_recursively(file, &mut *added_paths);
         result
@@ -108,7 +108,7 @@ mod bindings {
     trait BuilderExt {
         fn get_initial_builder(build_type: BuildType) -> Builder;
         fn include<T: Into<String>>(self, file: T) -> Builder;
-        fn zero_size_type(self, ty: &str) -> Builder;
+        fn zero_size_type(self, ty: &str, structs_list: &[&str]) -> Builder;
         fn borrowed_type(self, ty: &str) -> Builder;
         fn mutable_borrowed_type(self, ty: &str) -> Builder;
     }
@@ -172,10 +172,14 @@ mod bindings {
         // Not 100% sure of how safe this is, but it's what we're using
         // in the XPCOM ffi too
         // https://github.com/nikomatsakis/rust-memory-model/issues/2
-        fn zero_size_type(self, ty: &str) -> Builder {
-            self.hide_type(ty)
-                .raw_line(format!("enum {}Void {{ }}", ty))
-                .raw_line(format!("pub struct {0}({0}Void);", ty))
+        fn zero_size_type(self, ty: &str, structs_list: &[&str]) -> Builder {
+            if !structs_list.contains(&ty) {
+                self.hide_type(ty)
+                    .raw_line(format!("enum {}Void {{ }}", ty))
+                    .raw_line(format!("pub struct {0}({0}Void);", ty))
+            } else {
+                self
+            }
         }
         fn borrowed_type(self, ty: &str) -> Builder {
             self.hide_type(format!("{}Borrowed", ty))
@@ -208,7 +212,8 @@ mod bindings {
         }
         let mut result = builder.generate().expect("Unable to generate bindings").to_string();
         for fixup in fixups.iter() {
-            result = Regex::new(&format!(r"\b{}\b", fixup.pat)).unwrap().replace_all(&result, fixup.rep.as_str());
+            result = Regex::new(&format!(r"\b{}\b", fixup.pat)).unwrap().replace_all(&result, fixup.rep.as_str())
+                .into_owned().into();
         }
         File::create(&out_file).unwrap().write_all(&result.into_bytes()).expect("Unable to write output");
     }
@@ -222,12 +227,17 @@ mod bindings {
                 ..CodegenConfig::nothing()
             })
             .header(add_include("nsStyleStruct.h"))
+            .include(add_include("mozilla/ServoPropPrefList.h"))
+            .header(add_include("mozilla/StyleAnimationValue.h"))
             .include(add_include("gfxFontConstants.h"))
             .include(add_include("nsThemeConstants.h"))
             .include(add_include("mozilla/dom/AnimationEffectReadOnlyBinding.h"))
+            .include(add_include("mozilla/Keyframe.h"))
             .include(add_include("mozilla/ServoElementSnapshot.h"))
             .include(add_include("mozilla/dom/Element.h"))
             .include(add_include("mozilla/ServoBindings.h"))
+            .include(add_include("nsMediaFeatures.h"))
+            .include(add_include("nsMediaList.h"))
             // FIXME(emilio): Incrementally remove these "pub use"s. Probably
             // mozilla::css and mozilla::dom are easier.
             .raw_line("pub use self::root::*;")
@@ -246,7 +256,8 @@ mod bindings {
             "NS_STYLE_.*",
             "NS_RADIUS_.*",
             "BORDER_COLOR_.*",
-            "BORDER_STYLE_.*"
+            "BORDER_STYLE_.*",
+            "mozilla::SERVO_PREF_.*",
         ];
         let whitelist = [
             "RawGecko.*",
@@ -255,10 +266,8 @@ mod bindings {
             "mozilla::CSSPseudoClassType",
             "mozilla::css::SheetParsingMode",
             "mozilla::HalfCorner",
+            "mozilla::PropertyStyleAnimationValuePair",
             "mozilla::TraversalRootBehavior",
-            "mozilla::DisplayItemClip",  // Needed because bindgen generates
-                                         // specialization tests for this even
-                                         // though it shouldn't.
             "mozilla::StyleShapeRadius",
             ".*ThreadSafe.*Holder",
             "AnonymousContent",
@@ -280,6 +289,7 @@ mod bindings {
             "HalfCorner",
             "Image",
             "ImageURL",
+            "Keyframe",
             "nsAttrName",
             "nsAttrValue",
             "nsBorderColors",
@@ -287,6 +297,7 @@ mod bindings {
             "nsChangeHint",
             "nsCSSKeyword",
             "nsCSSPropertyID",
+            "nsCSSProps",
             "nsCSSRect",
             "nsCSSRect_heap",
             "nsCSSShadowArray",
@@ -307,6 +318,10 @@ mod bindings {
             "nsMainThreadPtrHandle",
             "nsMainThreadPtrHolder",
             "nsMargin",
+            "nsMediaExpression",
+            "nsMediaFeature",
+            "nsMediaFeatures",
+            "nsMediaList",
             "nsRect",
             "nsRestyleHint",
             "nsresult",
@@ -348,14 +363,12 @@ mod bindings {
             "nsStyleXUL",
             "nsTArray",
             "nsTArrayHeader",
-            "pair",
             "Position",
+            "PropertyValuePair",
             "Runnable",
             "ServoAttrSnapshot",
             "ServoElementSnapshot",
             "SheetParsingMode",
-            "Side",  // must be a rust-bindgen bug that requires both of these
-            "mozilla::Side",
             "StaticRefPtr",
             "StyleAnimation",
             "StyleBasicShape",
@@ -365,9 +378,19 @@ mod bindings {
             "StyleTransition",
             "mozilla::UniquePtr",
             "mozilla::DefaultDelete",
+            "mozilla::Side",
+            "mozilla::binding_danger::AssertAndSuppressCleanupPolicy",
+            "RawServoAnimationValueBorrowedListBorrowed",
         ];
         let opaque_types = [
+            "std::pair__PCCP",
             "std::namespace::atomic___base", "std::atomic__My_base",
+            "std::atomic___base",
+            "mozilla::gfx::.*",
+            "FallibleTArray",
+            "mozilla::dom::Sequence",
+            "mozilla::dom::Optional",
+            "mozilla::dom::Nullable",
             "nsAString_internal_char_traits",
             "nsAString_internal_incompatible_char_type",
             "nsACString_internal_char_traits",
@@ -392,13 +415,15 @@ mod bindings {
                                         // for clang.
             "nsPIDOMWindow",  // <- Takes the vtable from a template parameter, and we can't
                               //    generate it conditionally.
-            "RawGeckoPresContext", // Just passing it through.
             "JS::Rooted",
             "mozilla::Maybe",
             "gfxSize",  // <- union { struct { T width; T height; }; T components[2] };
             "gfxSize_Super",  // Ditto.
             "mozilla::ErrorResult",  // Causes JSWhyMagic to be included & handled incorrectly.
+            "mozilla::StyleAnimationValue",
+            "StyleAnimationValue", // pulls in a whole bunch of stuff we don't need in the bindings
         ];
+
         struct MappedGenericType {
             generic: bool,
             gecko: &'static str,
@@ -467,14 +492,20 @@ mod bindings {
         let structs_types = [
             "RawGeckoDocument",
             "RawGeckoElement",
+            "RawGeckoKeyframeList",
             "RawGeckoNode",
+            "RawGeckoAnimationValueList",
+            "RawServoAnimationValue",
+            "RawServoDeclarationBlock",
             "RawGeckoPresContext",
+            "RawGeckoPresContextOwned",
             "ThreadSafeURIHolder",
             "ThreadSafePrincipalHolder",
             "CSSPseudoClassType",
             "TraversalRootBehavior",
             "FontFamilyList",
             "FontFamilyType",
+            "Keyframe",
             "ServoElementSnapshot",
             "SheetParsingMode",
             "StyleBasicShape",
@@ -489,6 +520,7 @@ mod bindings {
             "nsCursorImage",
             "nsFont",
             "nsIAtom",
+            "nsMediaFeature",
             "nsRestyleHint",
             "nsStyleBackground",
             "nsStyleBorder",
@@ -528,10 +560,13 @@ mod bindings {
             "nsStyleVariables",
             "nsStyleVisibility",
             "nsStyleXUL",
+            "nsTimingFunction",
             "nscoord",
             "nsresult",
             "Loader",
             "ServoStyleSheet",
+            "EffectCompositor_CascadeLevel",
+            "RawServoAnimationValueBorrowedListBorrowed",
         ];
         struct ArrayType {
             cpp_type: &'static str,
@@ -547,6 +582,7 @@ mod bindings {
             "RawServoDeclarationBlock",
             "RawServoStyleRule",
             "RawServoImportRule",
+            "RawServoAnimationValue",
         ];
         struct ServoOwnedType {
             name: &'static str,
@@ -566,6 +602,8 @@ mod bindings {
         ];
         let servo_borrow_types = [
             "nsCSSValue",
+            "RawGeckoAnimationValueList",
+            "RawGeckoKeyframeList",
         ];
         for &ty in structs_types.iter() {
             builder = builder.hide_type(ty)
@@ -588,7 +626,7 @@ mod bindings {
                 .hide_type(format!("{}Strong", ty))
                 .raw_line(format!("pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;", ty))
                 .borrowed_type(ty)
-                .zero_size_type(ty);
+                .zero_size_type(ty, &structs_types);
         }
         for &ServoOwnedType { name, opaque } in servo_owned_types.iter() {
             builder = builder
@@ -599,7 +637,7 @@ mod bindings {
                                   name))
                 .mutable_borrowed_type(name);
             if opaque {
-                builder = builder.zero_size_type(name);
+                builder = builder.zero_size_type(name, &structs_types);
             }
         }
         for &ty in servo_immutable_borrow_types.iter() {

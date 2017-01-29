@@ -4,8 +4,6 @@
 
 use document_loader::LoadType;
 use dom::attr::Attr;
-use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
@@ -18,8 +16,8 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
-use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventdispatcher::EventStatus;
+use dom::element::{cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute};
+use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
@@ -56,14 +54,11 @@ pub struct HTMLScriptElement {
     /// (currently unused)
     non_blocking: Cell<bool>,
 
-    /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
-    ready_to_be_parser_executed: Cell<bool>,
-
     /// Document of the parser that created this element
     parser_document: JS<Document>,
 
-    /// The source this script was loaded from
-    load: DOMRefCell<Option<Result<ScriptOrigin, NetworkError>>>,
+    /// Track line line_number
+    line_number: u64,
 }
 
 impl HTMLScriptElement {
@@ -73,11 +68,10 @@ impl HTMLScriptElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
             already_started: Cell::new(false),
-            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
-            non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
-            ready_to_be_parser_executed: Cell::new(false),
+            parser_inserted: Cell::new(creator.is_parser_created()),
+            non_blocking: Cell::new(!creator.is_parser_created()),
             parser_document: JS::from_ref(document),
-            load: DOMRefCell::new(None),
+            line_number: creator.return_line_number(),
         }
     }
 
@@ -113,23 +107,23 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 ];
 
 #[derive(HeapSizeOf, JSTraceable)]
-pub struct ScriptOrigin {
+pub struct ClassicScript {
     text: DOMString,
     url: ServoUrl,
     external: bool,
 }
 
-impl ScriptOrigin {
-    fn internal(text: DOMString, url: ServoUrl) -> ScriptOrigin {
-        ScriptOrigin {
+impl ClassicScript {
+    fn internal(text: DOMString, url: ServoUrl) -> ClassicScript {
+        ClassicScript {
             text: text,
             url: url,
             external: false,
         }
     }
 
-    fn external(text: DOMString, url: ServoUrl) -> ScriptOrigin {
-        ScriptOrigin {
+    fn external(text: DOMString, url: ServoUrl) -> ClassicScript {
+        ClassicScript {
             text: text,
             url: url,
             external: true,
@@ -137,10 +131,14 @@ impl ScriptOrigin {
     }
 }
 
+pub type ScriptResult = Result<ClassicScript, NetworkError>;
+
 /// The context required for asynchronously loading an external script source.
 struct ScriptContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLScriptElement>,
+    /// The kind of external script.
+    kind: ExternalScriptKind,
     /// The (fallback) character encoding argument to the "fetch a classic
     /// script" algorithm.
     character_encoding: EncodingRef,
@@ -200,17 +198,22 @@ impl FetchResponseListener for ScriptContext {
 
             // Step 7.
             let source_text = encoding.decode(&self.data, DecoderTrap::Replace).unwrap();
-            ScriptOrigin::external(DOMString::from(source_text), metadata.final_url)
+            ClassicScript::external(DOMString::from(source_text), metadata.final_url)
         });
 
         // Step 9.
         // https://html.spec.whatwg.org/multipage/#prepare-a-script
         // Step 18.6 (When the chosen algorithm asynchronously completes).
         let elem = self.elem.root();
-        *elem.load.borrow_mut() = Some(load);
-        elem.ready_to_be_parser_executed.set(true);
-
         let document = document_from_node(&*elem);
+
+        match self.kind {
+            ExternalScriptKind::Asap => document.asap_script_loaded(&elem, load),
+            ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(&elem, load),
+            ExternalScriptKind::Deferred => document.deferred_script_loaded(&elem, load),
+            ExternalScriptKind::ParsingBlocking => document.pending_parsing_blocking_script_loaded(&elem, load),
+        }
+
         document.finish_load(LoadType::Script(self.url.clone()));
     }
 }
@@ -219,6 +222,7 @@ impl PreInvoke for ScriptContext {}
 
 /// https://html.spec.whatwg.org/multipage/#fetch-a-classic-script
 fn fetch_a_classic_script(script: &HTMLScriptElement,
+                          kind: ExternalScriptKind,
                           url: ServoUrl,
                           cors_setting: Option<CorsSettings>,
                           integrity_metadata: String,
@@ -254,6 +258,7 @@ fn fetch_a_classic_script(script: &HTMLScriptElement,
 
     let context = Arc::new(Mutex::new(ScriptContext {
         elem: Trusted::new(script),
+        kind: kind,
         character_encoding: character_encoding,
         data: vec!(),
         metadata: None,
@@ -358,12 +363,7 @@ impl HTMLScriptElement {
                               .unwrap_or_else(|| doc.encoding());
 
         // Step 14.
-        let cors_setting = match self.GetCrossOrigin() {
-            Some(ref s) if *s == "anonymous" => Some(CorsSettings::Anonymous),
-            Some(ref s) if *s == "use-credentials" => Some(CorsSettings::UseCredentials),
-            None => None,
-            _ => unreachable!()
-        };
+        let cors_setting = cors_setting_for_element(element);
 
         // TODO: Step 15: Module script credentials mode.
 
@@ -394,7 +394,7 @@ impl HTMLScriptElement {
                 return;
             }
 
-            // Step 20.3: The "from an external file"" flag is stored in ScriptOrigin.
+            // Step 20.3: The "from an external file"" flag is stored in ClassicScript.
 
             // Step 20.4-20.5.
             let url = match base_url.join(&src) {
@@ -422,50 +422,42 @@ impl HTMLScriptElement {
             };
 
             // Step 20.6.
-            fetch_a_classic_script(self, url, cors_setting, integrity_metadata.to_owned(), encoding);
+            fetch_a_classic_script(self, kind, url, cors_setting, integrity_metadata.to_owned(), encoding);
 
             // Step 22.
             match kind {
                 ExternalScriptKind::Deferred => doc.add_deferred_script(self),
-                ExternalScriptKind::ParsingBlocking => doc.set_pending_parsing_blocking_script(Some(self)),
+                ExternalScriptKind::ParsingBlocking => doc.set_pending_parsing_blocking_script(self, None),
                 ExternalScriptKind::AsapInOrder => doc.push_asap_in_order_script(self),
                 ExternalScriptKind::Asap => doc.add_asap_script(self),
             }
         } else {
             // Step 21.
             assert!(!text.is_empty());
-            *self.load.borrow_mut() = Some(Ok(ScriptOrigin::internal(text, base_url)));
-            self.ready_to_be_parser_executed.set(true);
+            let result = Ok(ClassicScript::internal(text, base_url));
 
             // Step 22.
             if was_parser_inserted &&
                doc.get_current_parser().map_or(false, |parser| parser.script_nesting_level() <= 1) &&
                doc.get_script_blocking_stylesheets_count() > 0 {
                 // Step 22.e: classic, has no src, was parser-inserted, is blocked on stylesheet.
-                doc.set_pending_parsing_blocking_script(Some(self));
+                doc.set_pending_parsing_blocking_script(self, Some(result));
             } else {
                 // Step 22.f: otherwise.
-                self.execute();
+                self.execute(result);
             }
         }
     }
 
-    pub fn is_ready_to_be_executed(&self) -> bool {
-        self.ready_to_be_parser_executed.get()
-    }
-
     /// https://html.spec.whatwg.org/multipage/#execute-the-script-block
-    pub fn execute(&self) {
-        assert!(self.ready_to_be_parser_executed.get());
-
+    pub fn execute(&self, result: Result<ClassicScript, NetworkError>) {
         // Step 1.
         let doc = document_from_node(self);
         if self.parser_inserted.get() && &*doc != &*self.parser_document {
             return;
         }
 
-        let load = self.load.borrow_mut().take().unwrap();
-        let script = match load {
+        let script = match result {
             // Step 2.
             Err(e) => {
                 warn!("error loading script {:?}", e);
@@ -475,11 +467,6 @@ impl HTMLScriptElement {
 
             Ok(script) => script,
         };
-
-        // TODO(#12446): beforescriptexecute.
-        if self.dispatch_before_script_execute_event() == EventStatus::Canceled {
-            return;
-        }
 
         // Step 3.
         let neutralized_doc = if script.external {
@@ -500,9 +487,10 @@ impl HTMLScriptElement {
 
         // Step 5.a.2.
         let window = window_from_node(self);
+        let line_number = if script.external { 1 } else { self.line_number as u32 };
         rooted!(in(window.get_cx()) let mut rval = UndefinedValue());
         window.upcast::<GlobalScope>().evaluate_script_on_global_with_result(
-            &script.text, script.url.as_str(), rval.handle_mut());
+            &script.text, script.url.as_str(), rval.handle_mut(), line_number);
 
         // Step 6.
         document.set_current_script(old_script.r());
@@ -512,32 +500,15 @@ impl HTMLScriptElement {
             doc.decr_ignore_destructive_writes_counter();
         }
 
-        // TODO(#12446): afterscriptexecute.
-        self.dispatch_after_script_execute_event();
-
         // Step 8.
         if script.external {
             self.dispatch_load_event();
-        } else {
-            window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("load"), &window);
         }
     }
 
     pub fn queue_error_event(&self) {
         let window = window_from_node(self);
         window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("error"), &window);
-    }
-
-    pub fn dispatch_before_script_execute_event(&self) -> EventStatus {
-        self.dispatch_event(atom!("beforescriptexecute"),
-                            EventBubbles::Bubbles,
-                            EventCancelable::Cancelable)
-    }
-
-    pub fn dispatch_after_script_execute_event(&self) {
-        self.dispatch_event(atom!("afterscriptexecute"),
-                            EventBubbles::Bubbles,
-                            EventCancelable::NotCancelable);
     }
 
     pub fn dispatch_load_event(&self) {
@@ -677,6 +648,17 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-charset
     make_setter!(SetCharset, "charset");
 
+    // https://html.spec.whatwg.org/multipage/#dom-script-async
+    fn Async(&self) -> bool {
+        self.non_blocking.get() || self.upcast::<Element>().has_attribute(&local_name!("async"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-async
+    fn SetAsync(&self, value: bool) {
+        self.non_blocking.set(false);
+        self.upcast::<Element>().set_bool_attribute(&local_name!("async"), value);
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
     make_bool_getter!(Defer, "defer");
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
@@ -699,28 +681,12 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {
-        let element = self.upcast::<Element>();
-        let attr = element.get_attribute(&ns!(), &local_name!("crossorigin"));
-
-        if let Some(mut val) = attr.map(|v| v.Value()) {
-            val.make_ascii_lowercase();
-            if val == "anonymous" || val == "use-credentials" {
-                return Some(val);
-            }
-            return Some(DOMString::from("anonymous"));
-        }
-        None
+        reflect_cross_origin_attribute(self.upcast::<Element>())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
     fn SetCrossOrigin(&self, value: Option<DOMString>) {
-        let element = self.upcast::<Element>();
-        match value {
-            Some(val) => element.set_string_attribute(&local_name!("crossorigin"), val),
-            None => {
-                element.remove_attribute(&ns!(), &local_name!("crossorigin"));
-            }
-        }
+        set_cross_origin_attribute(self.upcast::<Element>(), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text

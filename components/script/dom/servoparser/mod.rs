@@ -4,7 +4,7 @@
 
 use document_loader::{DocumentLoader, LoadType};
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::ServoParserBinding;
@@ -14,12 +14,12 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
-use dom::document::{Document, DocumentSource, IsHTMLDocument};
+use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlimageelement::HTMLImageElement;
-use dom::htmlscriptelement::HTMLScriptElement;
+use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::node::{Node, NodeSiblingIterator};
 use dom::text::Text;
 use encoding::all::UTF_8;
@@ -35,6 +35,7 @@ use network_listener::PreInvoke;
 use profile_traits::time::{TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{TimerMetadataReflowType, ProfilerCategory, profile};
 use script_thread::ScriptThread;
+use script_traits::DocumentActivity;
 use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -60,9 +61,6 @@ pub struct ServoParser {
     reflector: Reflector,
     /// The document associated with this parser.
     document: JS<Document>,
-    /// The pipeline associated with this parse, unavailable if this parse
-    /// does not correspond to a page load.
-    pipeline: Option<PipelineId>,
     /// Input received from network.
     #[ignore_heap_size_of = "Defined in html5ever"]
     network_input: DOMRefCell<BufferQueue>,
@@ -86,16 +84,10 @@ enum LastChunkState {
 }
 
 impl ServoParser {
-    pub fn parse_html_document(
-            document: &Document,
-            input: DOMString,
-            url: ServoUrl,
-            owner: Option<PipelineId>) {
-        let parser = ServoParser::new(
-            document,
-            owner,
-            Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
-            LastChunkState::NotReceived);
+    pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
+        let parser = ServoParser::new(document,
+                                      Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
+                                      LastChunkState::NotReceived);
         parser.parse_chunk(String::from(input));
     }
 
@@ -107,49 +99,50 @@ impl ServoParser {
         let url = context_document.url();
 
         // Step 1.
-        let loader = DocumentLoader::new(&*context_document.loader());
-        let document = Document::new(window, None, Some(url.clone()),
+        let loader = DocumentLoader::new_with_threads(context_document.loader().resource_threads().clone(),
+                                                      Some(url.clone()));
+        let document = Document::new(window,
+                                     HasBrowsingContext::No,
+                                     Some(url.clone()),
                                      context_document.origin().alias(),
                                      IsHTMLDocument::HTMLDocument,
-                                     None, None,
+                                     None,
+                                     None,
+                                     DocumentActivity::Inactive,
                                      DocumentSource::FromParser,
                                      loader,
-                                     None, None);
+                                     None,
+                                     None);
 
         // Step 2.
         document.set_quirks_mode(context_document.quirks_mode());
 
         // Step 11.
         let form = context_node.inclusive_ancestors()
-                               .find(|element| element.is::<HTMLFormElement>());
+            .find(|element| element.is::<HTMLFormElement>());
         let fragment_context = FragmentContext {
             context_elem: context_node,
             form_elem: form.r(),
         };
 
-        let parser = ServoParser::new(
-            &document,
-            None,
-            Tokenizer::Html(
-                self::html::Tokenizer::new(&document, url.clone(), Some(fragment_context))),
-            LastChunkState::Received);
+        let parser = ServoParser::new(&document,
+                                      Tokenizer::Html(self::html::Tokenizer::new(&document,
+                                                                                 url.clone(),
+                                                                                 Some(fragment_context))),
+                                      LastChunkState::Received);
         parser.parse_chunk(String::from(input));
 
         // Step 14.
         let root_element = document.GetDocumentElement().expect("no document element");
-        FragmentParsingResult { inner: root_element.upcast::<Node>().children() }
+        FragmentParsingResult {
+            inner: root_element.upcast::<Node>().children(),
+        }
     }
 
-    pub fn parse_xml_document(
-            document: &Document,
-            input: DOMString,
-            url: ServoUrl,
-            owner: Option<PipelineId>) {
-        let parser = ServoParser::new(
-            document,
-            owner,
-            Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
-            LastChunkState::NotReceived);
+    pub fn parse_xml_document(document: &Document, input: DOMString, url: ServoUrl) {
+        let parser = ServoParser::new(document,
+                                      Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
+                                      LastChunkState::NotReceived);
         parser.parse_chunk(String::from(input));
     }
 
@@ -171,11 +164,12 @@ impl ServoParser {
     ///     ^
     ///     insertion point
     /// ```
-    pub fn resume_with_pending_parsing_blocking_script(&self, script: &HTMLScriptElement) {
+    pub fn resume_with_pending_parsing_blocking_script(&self, script: &HTMLScriptElement, result: ScriptResult) {
         assert!(self.suspended.get());
         self.suspended.set(false);
 
-        mem::swap(&mut *self.script_input.borrow_mut(), &mut *self.network_input.borrow_mut());
+        mem::swap(&mut *self.script_input.borrow_mut(),
+                  &mut *self.network_input.borrow_mut());
         while let Some(chunk) = self.script_input.borrow_mut().pop_front() {
             self.network_input.borrow_mut().push_back(chunk);
         }
@@ -184,7 +178,7 @@ impl ServoParser {
         assert_eq!(script_nesting_level, 0);
 
         self.script_nesting_level.set(script_nesting_level + 1);
-        script.execute();
+        script.execute(result);
         self.script_nesting_level.set(script_nesting_level);
 
         if !self.suspended.get() {
@@ -196,7 +190,7 @@ impl ServoParser {
     pub fn write(&self, text: Vec<DOMString>) {
         assert!(self.script_nesting_level.get() > 0);
 
-        if self.document.get_pending_parsing_blocking_script().is_some() {
+        if self.document.has_pending_parsing_blocking_script() {
             // There is already a pending parsing blocking script so the
             // parser is suspended, we just append everything to the
             // script input and abort these steps.
@@ -232,16 +226,13 @@ impl ServoParser {
     }
 
     #[allow(unrooted_must_root)]
-    fn new_inherited(
-            document: &Document,
-            pipeline: Option<PipelineId>,
-            tokenizer: Tokenizer,
-            last_chunk_state: LastChunkState)
-            -> Self {
+    fn new_inherited(document: &Document,
+                     tokenizer: Tokenizer,
+                     last_chunk_state: LastChunkState)
+                     -> Self {
         ServoParser {
             reflector: Reflector::new(),
             document: JS::from_ref(document),
-            pipeline: pipeline,
             network_input: DOMRefCell::new(BufferQueue::new()),
             script_input: DOMRefCell::new(BufferQueue::new()),
             tokenizer: DOMRefCell::new(tokenizer),
@@ -252,16 +243,13 @@ impl ServoParser {
     }
 
     #[allow(unrooted_must_root)]
-    fn new(
-            document: &Document,
-            pipeline: Option<PipelineId>,
-            tokenizer: Tokenizer,
-            last_chunk_state: LastChunkState)
-            -> Root<Self> {
-        reflect_dom_object(
-            box ServoParser::new_inherited(document, pipeline, tokenizer, last_chunk_state),
-            document.window(),
-            ServoParserBinding::Wrap)
+    fn new(document: &Document,
+           tokenizer: Tokenizer,
+           last_chunk_state: LastChunkState)
+           -> Root<Self> {
+        reflect_dom_object(box ServoParser::new_inherited(document, tokenizer, last_chunk_state),
+                           document.window(),
+                           ServoParserBinding::Wrap)
     }
 
     fn push_input_chunk(&self, chunk: String) {
@@ -309,7 +297,7 @@ impl ServoParser {
     }
 
     fn tokenize<F>(&self, mut feed: F)
-        where F: FnMut(&mut Tokenizer) -> Result<(), Root<HTMLScriptElement>>
+        where F: FnMut(&mut Tokenizer) -> Result<(), Root<HTMLScriptElement>>,
     {
         loop {
             assert!(!self.suspended.get());
@@ -326,27 +314,30 @@ impl ServoParser {
             script.prepare();
             self.script_nesting_level.set(script_nesting_level);
 
-            if self.document.get_pending_parsing_blocking_script().is_some() {
+            if self.document.has_pending_parsing_blocking_script() {
                 self.suspended.set(true);
                 return;
             }
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-end
     fn finish(&self) {
         assert!(!self.suspended.get());
         assert!(self.last_chunk_received.get());
         assert!(self.script_input.borrow().is_empty());
         assert!(self.network_input.borrow().is_empty());
 
-        self.tokenizer.borrow_mut().end();
-        debug!("finished parsing");
+        // Step 1.
+        self.document.set_ready_state(DocumentReadyState::Interactive);
 
+        // Step 2.
+        self.tokenizer.borrow_mut().end();
         self.document.set_current_parser(None);
 
-        if let Some(pipeline) = self.pipeline {
-            ScriptThread::parsing_complete(pipeline);
-        }
+        // Steps 3-12 are in another castle, namely finish_load.
+        let url = self.tokenizer.borrow().url().clone();
+        self.document.finish_load(LoadType::PageSource(url));
     }
 }
 
@@ -386,6 +377,13 @@ impl Tokenizer {
         match *self {
             Tokenizer::Html(ref mut tokenizer) => tokenizer.end(),
             Tokenizer::Xml(ref mut tokenizer) => tokenizer.end(),
+        }
+    }
+
+    fn url(&self) -> &ServoUrl {
+        match *self {
+            Tokenizer::Html(ref tokenizer) => tokenizer.url(),
+            Tokenizer::Xml(ref tokenizer) => tokenizer.url(),
         }
     }
 
@@ -433,14 +431,13 @@ impl FetchResponseListener for ParserContext {
 
     fn process_request_eof(&mut self) {}
 
-    fn process_response(&mut self,
-                        meta_result: Result<FetchMetadata, NetworkError>) {
+    fn process_response(&mut self, meta_result: Result<FetchMetadata, NetworkError>) {
         let mut ssl_error = None;
         let metadata = match meta_result {
             Ok(meta) => {
                 Some(match meta {
                     FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
                 })
             },
             Err(NetworkError::SslValidation(url, reason)) => {
@@ -452,10 +449,8 @@ impl FetchResponseListener for ParserContext {
             },
             Err(_) => None,
         };
-        let content_type =
-            metadata.clone().and_then(|meta| meta.content_type).map(Serde::into_inner);
-        let parser = match ScriptThread::page_headers_available(&self.id,
-                                                                metadata) {
+        let content_type = metadata.clone().and_then(|meta| meta.content_type).map(Serde::into_inner);
+        let parser = match ScriptThread::page_headers_available(&self.id, metadata) {
             Some(parser) => parser,
             None => return,
         };
@@ -483,7 +478,8 @@ impl FetchResponseListener for ParserContext {
                 parser.parse_sync();
                 parser.tokenizer.borrow_mut().set_plaintext_state();
             },
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => { // Handle text/html
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, _))) => {
+                // Handle text/html
                 if let Some(reason) = ssl_error {
                     self.is_synthesized_document = true;
                     let page_bytes = read_resource_file("badcert.html").unwrap();
@@ -502,7 +498,8 @@ impl FetchResponseListener for ParserContext {
 
                 // Show warning page for unknown mime types.
                 let page = format!("<html><body><p>Unknown content type ({}/{}).</p></body></html>",
-                    toplevel.as_str(), sublevel.as_str());
+                                   toplevel.as_str(),
+                                   sublevel.as_str());
                 self.is_synthesized_document = true;
                 parser.push_input_chunk(page);
                 parser.parse_sync();
@@ -510,7 +507,7 @@ impl FetchResponseListener for ParserContext {
             None => {
                 // No content-type header.
                 // Merge with #4212 when fixed.
-            }
+            },
         }
     }
 
@@ -546,9 +543,6 @@ impl FetchResponseListener for ParserContext {
             debug!("Failed to load page URL {}, error: {:?}", self.url, err);
         }
 
-        parser.document
-            .finish_load(LoadType::PageSource(self.url.clone()));
-
         parser.last_chunk_received.set(true);
         if !parser.suspended.get() {
             parser.parse_sync();
@@ -576,6 +570,6 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<No
                 let text = Text::new(String::from(t).into(), &parent.owner_doc());
                 parent.InsertBefore(text.upcast(), reference_child).unwrap();
             }
-        }
+        },
     }
 }

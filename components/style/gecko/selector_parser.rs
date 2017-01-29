@@ -123,63 +123,37 @@ impl ToCss for PseudoElement {
     }
 }
 
-/// Our representation of a non tree-structural pseudo-class.
-///
-/// FIXME(emilio): Find a way to autogenerate this.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum NonTSPseudoClass {
-    /// :any-link
-    AnyLink,
-    /// :link
-    Link,
-    /// :visited
-    Visited,
-    /// :active
-    Active,
-    /// :focus
-    Focus,
-    /// :fullscreen
-    Fullscreen,
-    /// :hover
-    Hover,
-    /// :enabled
-    Enabled,
-    /// :disabled
-    Disabled,
-    /// :checked
-    Checked,
-    /// :indeterminate
-    Indeterminate,
-    /// :read-write
-    ReadWrite,
-    /// :read-only
-    ReadOnly,
-
-    // Internal pseudo-classes
-    /// :-moz-browser-frame
-    MozBrowserFrame,
+bitflags! {
+    flags NonTSPseudoClassFlag: u8 {
+        // See NonTSPseudoClass::is_internal()
+        const PSEUDO_CLASS_INTERNAL = 0x01,
+    }
 }
+
+macro_rules! pseudo_class_list {
+    ($(($css:expr, $name:ident, $_gecko_type:tt, $_state:tt, $_flags:tt),)*) => {
+        #[doc = "Our representation of a non tree-structural pseudo-class."]
+        #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+        pub enum NonTSPseudoClass {
+            $(
+                #[doc = $css]
+                $name,
+            )*
+        }
+    }
+}
+include!("non_ts_pseudo_class_list.rs");
 
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        use self::NonTSPseudoClass::*;
-        dest.write_str(match *self {
-            AnyLink => ":any-link",
-            Link => ":link",
-            Visited => ":visited",
-            Active => ":active",
-            Focus => ":focus",
-            Fullscreen => ":fullscreen",
-            Hover => ":hover",
-            Enabled => ":enabled",
-            Disabled => ":disabled",
-            Checked => ":checked",
-            Indeterminate => ":indeterminate",
-            ReadWrite => ":read-write",
-            ReadOnly => ":read-only",
-
-            MozBrowserFrame => ":-moz-browser-frame",
-        })
+        macro_rules! pseudo_class_list {
+            ($(($css:expr, $name:ident, $_gecko_type:tt, $_state:tt, $_flags:tt),)*) => {
+                match *self {
+                    $(NonTSPseudoClass::$name => concat!(":", $css),)*
+                }
+            }
+        }
+        dest.write_str(include!("non_ts_pseudo_class_list.rs"))
     }
 }
 
@@ -187,66 +161,51 @@ impl NonTSPseudoClass {
     /// A pseudo-class is internal if it can only be used inside
     /// user agent style sheets.
     pub fn is_internal(&self) -> bool {
-        use self::NonTSPseudoClass::*;
-        match *self {
-            AnyLink |
-            Link |
-            Visited |
-            Active |
-            Focus |
-            Fullscreen |
-            Hover |
-            Enabled |
-            Disabled |
-            Checked |
-            Indeterminate |
-            ReadWrite |
-            ReadOnly => false,
-            MozBrowserFrame => true,
+        macro_rules! check_flag {
+            (_) => (false);
+            ($flags:expr) => ($flags.contains(PSEUDO_CLASS_INTERNAL));
         }
+        macro_rules! pseudo_class_list {
+            ($(($_css:expr, $name:ident, $_gecko_type:tt, $_state:tt, $flags:tt),)*) => {
+                match *self {
+                    $(NonTSPseudoClass::$name => check_flag!($flags),)*
+                }
+            }
+        }
+        include!("non_ts_pseudo_class_list.rs")
     }
 
     /// Get the state flag associated with a pseudo-class, if any.
     pub fn state_flag(&self) -> ElementState {
-        use element_state::*;
-        use self::NonTSPseudoClass::*;
-        match *self {
-            Active => IN_ACTIVE_STATE,
-            Focus => IN_FOCUS_STATE,
-            Fullscreen => IN_FULLSCREEN_STATE,
-            Hover => IN_HOVER_STATE,
-            Enabled => IN_ENABLED_STATE,
-            Disabled => IN_DISABLED_STATE,
-            Checked => IN_CHECKED_STATE,
-            Indeterminate => IN_INDETERMINATE_STATE,
-            ReadOnly | ReadWrite => IN_READ_WRITE_STATE,
-
-            AnyLink |
-            Link |
-            Visited |
-            MozBrowserFrame => ElementState::empty(),
+        macro_rules! flag {
+            (_) => (ElementState::empty());
+            ($state:ident) => (::element_state::$state);
         }
+        macro_rules! pseudo_class_list {
+            ($(($_css:expr, $name:ident, $_gecko_type:tt, $state:tt, $_flags:tt),)*) => {
+                match *self {
+                    $(NonTSPseudoClass::$name => flag!($state),)*
+                }
+            }
+        }
+        include!("non_ts_pseudo_class_list.rs")
     }
 
     /// Convert NonTSPseudoClass to Gecko's CSSPseudoClassType.
     pub fn to_gecko_pseudoclasstype(&self) -> Option<CSSPseudoClassType> {
-        use gecko_bindings::structs::CSSPseudoClassType::*;
-        use self::NonTSPseudoClass::*;
-        Some(match *self {
-            AnyLink => anyLink,
-            Link => link,
-            Visited => visited,
-            Active => active,
-            Focus => focus,
-            Fullscreen => fullscreen,
-            Hover => hover,
-            Enabled => enabled,
-            Disabled => disabled,
-            Checked => checked,
-            Indeterminate => indeterminate,
-            MozBrowserFrame => mozBrowserFrame,
-            ReadWrite | ReadOnly => { return None; }
-        })
+        macro_rules! gecko_type {
+            (_) => (None);
+            ($gecko_type:ident) =>
+                (Some(::gecko_bindings::structs::CSSPseudoClassType::$gecko_type));
+        }
+        macro_rules! pseudo_class_list {
+            ($(($_css:expr, $name:ident, $gecko_type:tt, $_state:tt, $_flags:tt),)*) => {
+                match *self {
+                    $(NonTSPseudoClass::$name => gecko_type!($gecko_type),)*
+                }
+            }
+        }
+        include!("non_ts_pseudo_class_list.rs")
     }
 }
 
@@ -281,28 +240,15 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
     type Impl = SelectorImpl;
 
     fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
-        use self::NonTSPseudoClass::*;
-        let pseudo_class = match_ignore_ascii_case! { &name,
-            "any-link" => AnyLink,
-            "link" => Link,
-            "visited" => Visited,
-            "active" => Active,
-            "focus" => Focus,
-            "fullscreen" => Fullscreen,
-            "hover" => Hover,
-            "enabled" => Enabled,
-            "disabled" => Disabled,
-            "checked" => Checked,
-            "indeterminate" => Indeterminate,
-            "read-write" => ReadWrite,
-            "read-only" => ReadOnly,
-
-            // Internal
-            "-moz-browser-frame" => MozBrowserFrame,
-
-            _ => return Err(())
-        };
-
+        macro_rules! pseudo_class_list {
+            ($(($css:expr, $name:ident, $_gecko_type:tt, $_state:tt, $_flags:tt),)*) => {
+                match_ignore_ascii_case! { &name,
+                    $($css => NonTSPseudoClass::$name,)*
+                    _ => return Err(())
+                }
+            }
+        }
+        let pseudo_class = include!("non_ts_pseudo_class_list.rs");
         if !pseudo_class.is_internal() || self.in_user_agent_stylesheet() {
             Ok(pseudo_class)
         } else {

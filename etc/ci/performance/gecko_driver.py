@@ -6,13 +6,22 @@
 
 from contextlib import contextmanager
 import json
+import os
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
+import sys
 
 
 @contextmanager
 def create_gecko_session():
-    firefox_binary = "./firefox/firefox/firefox"
+    try:
+        firefox_binary = os.environ['FIREFOX_BIN']
+    except KeyError:
+        print("+=============================================================+")
+        print("| You must set the path to your firefox binary to FIREFOX_BIN |")
+        print("+=============================================================+")
+        sys.exit()
+
     driver = webdriver.Firefox(firefox_binary=firefox_binary)
     yield driver
     # driver.quit() gives an "'NoneType' object has no attribute 'path'" error.
@@ -89,6 +98,7 @@ def run_gecko_test(testcase, timeout):
             return generate_placeholder(testcase)
 
     return [timings]
+
 
 if __name__ == '__main__':
     # Just for manual testing

@@ -18,7 +18,6 @@ extern crate servo;
 extern crate compositing;
 
 extern crate euclid;
-extern crate gfx_traits;
 extern crate gleam;
 extern crate glutin_app;
 extern crate script_traits;
@@ -29,6 +28,7 @@ extern crate style_traits;
 
 extern crate net_traits;
 extern crate msg;
+extern crate webrender_traits;
 
 extern crate libc;
 

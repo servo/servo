@@ -15,10 +15,11 @@ use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::document::{Document, IsHTMLDocument};
+use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::servoparser::ServoParser;
 use dom::window::Window;
+use script_traits::DocumentActivity;
 
 #[dom_struct]
 pub struct DOMParser {
@@ -59,34 +60,36 @@ impl DOMParserMethods for DOMParser {
         match ty {
             Text_html => {
                 let document = Document::new(&self.window,
-                                             None,
+                                             HasBrowsingContext::No,
                                              Some(url.clone()),
                                              doc.origin().alias(),
                                              IsHTMLDocument::HTMLDocument,
                                              Some(content_type),
                                              None,
+                                             DocumentActivity::Inactive,
                                              DocumentSource::FromParser,
                                              loader,
                                              None,
                                              None);
-                ServoParser::parse_html_document(&document, s, url, None);
+                ServoParser::parse_html_document(&document, s, url);
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             }
             Text_xml | Application_xml | Application_xhtml_xml => {
                 // FIXME: this should probably be FromParser when we actually parse the string (#3756).
                 let document = Document::new(&self.window,
-                                             None,
+                                             HasBrowsingContext::No,
                                              Some(url.clone()),
                                              doc.origin().alias(),
                                              IsHTMLDocument::NonHTMLDocument,
                                              Some(content_type),
                                              None,
+                                             DocumentActivity::Inactive,
                                              DocumentSource::NotFromParser,
                                              loader,
                                              None,
                                              None);
-                ServoParser::parse_xml_document(&document, s, url, None);
+                ServoParser::parse_xml_document(&document, s, url);
                 Ok(document)
             }
         }

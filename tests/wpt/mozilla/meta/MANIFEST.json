@@ -1580,6 +1580,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/flex_root_percent_size.html": [
+          {
+            "path": "css/flex_root_percent_size.html",
+            "references": [
+              [
+                "/_mozilla/css/flex_root_percent_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/flex_root_percent_size.html"
+          }
+        ],
         "css/flex_row_direction.html": [
           {
             "path": "css/flex_row_direction.html",
@@ -5220,6 +5232,18 @@
             "url": "/_mozilla/css/table_intrinsic_style_specified_width_a.html"
           }
         ],
+        "css/table_margin_a.html": [
+          {
+            "path": "css/table_margin_a.html",
+            "references": [
+              [
+                "/_mozilla/css/table_margin_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_margin_a.html"
+          }
+        ],
         "css/table_margin_auto_a.html": [
           {
             "path": "css/table_margin_auto_a.html",
@@ -5230,6 +5254,18 @@
               ]
             ],
             "url": "/_mozilla/css/table_margin_auto_a.html"
+          }
+        ],
+        "css/table_overflow.html": [
+          {
+            "path": "css/table_overflow.html",
+            "references": [
+              [
+                "/_mozilla/css/table_overflow_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_overflow.html"
           }
         ],
         "css/table_padding_a.html": [
@@ -5278,6 +5314,18 @@
               ]
             ],
             "url": "/_mozilla/css/table_preferred_width_a.html"
+          }
+        ],
+        "css/table_root_percent_width.html": [
+          {
+            "path": "css/table_root_percent_width.html",
+            "references": [
+              [
+                "/_mozilla/css/table_root_percent_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_root_percent_width.html"
           }
         ],
         "css/table_row_direction_a.html": [
@@ -5542,6 +5590,18 @@
               ]
             ],
             "url": "/_mozilla/css/text_overflow_ellipsis.html"
+          }
+        ],
+        "css/text_overflow_reflow.html": [
+          {
+            "path": "css/text_overflow_reflow.html",
+            "references": [
+              [
+                "/_mozilla/css/text_overflow_reflow_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_overflow_reflow.html"
           }
         ],
         "css/text_overflow_string.html": [
@@ -6438,6 +6498,42 @@
             "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
           }
         ],
+        "mozilla/remove_link_styles.html": [
+          {
+            "path": "mozilla/remove_link_styles.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/remove_link_styles_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/remove_link_styles.html"
+          }
+        ],
+        "mozilla/remove_style_styles.html": [
+          {
+            "path": "mozilla/remove_style_styles.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/remove_style_styles_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/remove_style_styles.html"
+          }
+        ],
+        "mozilla/reparse_style_elements.html": [
+          {
+            "path": "mozilla/reparse_style_elements.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/reparse_style_elements_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/reparse_style_elements.html"
+          }
+        ],
         "mozilla/restyle-out-of-document.html": [
           {
             "path": "mozilla/restyle-out-of-document.html",
@@ -6708,6 +6804,24 @@
           {
             "path": "css/meta_viewport_resize.html",
             "url": "/_mozilla/css/meta_viewport_resize.html"
+          }
+        ],
+        "css/offset_properties_inline.html": [
+          {
+            "path": "css/offset_properties_inline.html",
+            "url": "/_mozilla/css/offset_properties_inline.html"
+          }
+        ],
+        "css/stylesheet_media_queries.html": [
+          {
+            "path": "css/stylesheet_media_queries.html",
+            "url": "/_mozilla/css/stylesheet_media_queries.html"
+          }
+        ],
+        "css/test_font_family_parsing.html": [
+          {
+            "path": "css/test_font_family_parsing.html",
+            "url": "/_mozilla/css/test_font_family_parsing.html"
           }
         ],
         "css/test_variable_legal_values.html": [
@@ -7428,6 +7542,12 @@
           {
             "path": "mozilla/bluetooth/idl-BluetoothUUID.html",
             "url": "/_mozilla/mozilla/bluetooth/idl-BluetoothUUID.html"
+          }
+        ],
+        "mozilla/bluetooth/interfaces.html": [
+          {
+            "path": "mozilla/bluetooth/interfaces.html",
+            "url": "/_mozilla/mozilla/bluetooth/interfaces.html"
           }
         ],
         "mozilla/bluetooth/readValue/characteristic/blocklisted-characteristic.html": [
@@ -8420,6 +8540,12 @@
             "url": "/_mozilla/mozilla/globals/entry.worker.html"
           }
         ],
+        "mozilla/hit_test_multiple_sc.html": [
+          {
+            "path": "mozilla/hit_test_multiple_sc.html",
+            "url": "/_mozilla/mozilla/hit_test_multiple_sc.html"
+          }
+        ],
         "mozilla/hit_test_nested_sc.html": [
           {
             "path": "mozilla/hit_test_nested_sc.html",
@@ -8558,6 +8684,12 @@
             "url": "/_mozilla/mozilla/localeCompare.html"
           }
         ],
+        "mozilla/media_query_list_gc.html": [
+          {
+            "path": "mozilla/media_query_list_gc.html",
+            "url": "/_mozilla/mozilla/media_query_list_gc.html"
+          }
+        ],
         "mozilla/mime_sniffing_font_context.html": [
           {
             "path": "mozilla/mime_sniffing_font_context.html",
@@ -8660,6 +8792,12 @@
             "url": "/_mozilla/mozilla/navigator.html"
           }
         ],
+        "mozilla/nested_asap_script.html": [
+          {
+            "path": "mozilla/nested_asap_script.html",
+            "url": "/_mozilla/mozilla/nested_asap_script.html"
+          }
+        ],
         "mozilla/node_compareDocumentPosition.html": [
           {
             "path": "mozilla/node_compareDocumentPosition.html",
@@ -8700,6 +8838,18 @@
           {
             "path": "mozilla/node_replaceChild.html",
             "url": "/_mozilla/mozilla/node_replaceChild.html"
+          }
+        ],
+        "mozilla/out-of-order-stylesheet-loads-and-imports.html": [
+          {
+            "path": "mozilla/out-of-order-stylesheet-loads-and-imports.html",
+            "url": "/_mozilla/mozilla/out-of-order-stylesheet-loads-and-imports.html"
+          }
+        ],
+        "mozilla/out-of-order-stylesheet-loads.html": [
+          {
+            "path": "mozilla/out-of-order-stylesheet-loads.html",
+            "url": "/_mozilla/mozilla/out-of-order-stylesheet-loads.html"
           }
         ],
         "mozilla/parentNode_querySelector.html": [
@@ -15164,6 +15314,12 @@
             "url": "/_mozilla/mozilla/style_no_trailing_space.html"
           }
         ],
+        "mozilla/style_remove_prop.html": [
+          {
+            "path": "mozilla/style_remove_prop.html",
+            "url": "/_mozilla/mozilla/style_remove_prop.html"
+          }
+        ],
         "mozilla/textcontent.html": [
           {
             "path": "mozilla/textcontent.html",
@@ -15192,6 +15348,12 @@
           {
             "path": "mozilla/trace_null.html",
             "url": "/_mozilla/mozilla/trace_null.html"
+          }
+        ],
+        "mozilla/track_line.html": [
+          {
+            "path": "mozilla/track_line.html",
+            "url": "/_mozilla/mozilla/track_line.html"
           }
         ],
         "mozilla/union.html": [
@@ -16890,6 +17052,18 @@
             ]
           ],
           "url": "/_mozilla/css/flex_nochild.html"
+        }
+      ],
+      "css/flex_root_percent_size.html": [
+        {
+          "path": "css/flex_root_percent_size.html",
+          "references": [
+            [
+              "/_mozilla/css/flex_root_percent_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/flex_root_percent_size.html"
         }
       ],
       "css/flex_row_direction.html": [
@@ -20532,6 +20706,18 @@
           "url": "/_mozilla/css/table_intrinsic_style_specified_width_a.html"
         }
       ],
+      "css/table_margin_a.html": [
+        {
+          "path": "css/table_margin_a.html",
+          "references": [
+            [
+              "/_mozilla/css/table_margin_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_margin_a.html"
+        }
+      ],
       "css/table_margin_auto_a.html": [
         {
           "path": "css/table_margin_auto_a.html",
@@ -20542,6 +20728,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_margin_auto_a.html"
+        }
+      ],
+      "css/table_overflow.html": [
+        {
+          "path": "css/table_overflow.html",
+          "references": [
+            [
+              "/_mozilla/css/table_overflow_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_overflow.html"
         }
       ],
       "css/table_padding_a.html": [
@@ -20590,6 +20788,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_preferred_width_a.html"
+        }
+      ],
+      "css/table_root_percent_width.html": [
+        {
+          "path": "css/table_root_percent_width.html",
+          "references": [
+            [
+              "/_mozilla/css/table_root_percent_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_root_percent_width.html"
         }
       ],
       "css/table_row_direction_a.html": [
@@ -20866,6 +21076,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_overflow_ellipsis.html"
+        }
+      ],
+      "css/text_overflow_reflow.html": [
+        {
+          "path": "css/text_overflow_reflow.html",
+          "references": [
+            [
+              "/_mozilla/css/text_overflow_reflow_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_overflow_reflow.html"
         }
       ],
       "css/text_overflow_string.html": [
@@ -21760,6 +21982,42 @@
             ]
           ],
           "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
+        }
+      ],
+      "mozilla/remove_link_styles.html": [
+        {
+          "path": "mozilla/remove_link_styles.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/remove_link_styles_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/remove_link_styles.html"
+        }
+      ],
+      "mozilla/remove_style_styles.html": [
+        {
+          "path": "mozilla/remove_style_styles.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/remove_style_styles_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/remove_style_styles.html"
+        }
+      ],
+      "mozilla/reparse_style_elements.html": [
+        {
+          "path": "mozilla/reparse_style_elements.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/reparse_style_elements_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/reparse_style_elements.html"
         }
       ],
       "mozilla/restyle-out-of-document.html": [

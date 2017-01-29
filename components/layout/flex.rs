@@ -868,6 +868,8 @@ impl Flow for FlexFlow {
             return
         }
 
+        self.block_flow.initialize_container_size_for_root(shared_context);
+
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;

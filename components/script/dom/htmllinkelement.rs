@@ -15,9 +15,10 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
+use dom::element::{cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute};
 use dom::globalscope::GlobalScope;
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, document_from_node, window_from_node};
+use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
@@ -36,6 +37,15 @@ use stylesheet_loader::{StylesheetLoader, StylesheetContextSource, StylesheetOwn
 
 unsafe_no_jsmanaged_fields!(Stylesheet);
 
+#[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
+pub struct RequestGenerationId(u32);
+
+impl RequestGenerationId {
+    fn increment(self) -> RequestGenerationId {
+        RequestGenerationId(self.0 + 1)
+    }
+}
+
 #[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
@@ -51,6 +61,8 @@ pub struct HTMLLinkElement {
     pending_loads: Cell<u32>,
     /// Whether any of the loads have failed.
     any_failed_load: Cell<bool>,
+    /// A monotonically increasing counter that keeps track of which stylesheet to apply.
+    request_generation_id: Cell<RequestGenerationId>,
 }
 
 impl HTMLLinkElement {
@@ -59,11 +71,12 @@ impl HTMLLinkElement {
         HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             rel_list: Default::default(),
-            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
+            parser_inserted: Cell::new(creator.is_parser_created()),
             stylesheet: DOMRefCell::new(None),
             cssom_stylesheet: MutNullableJS::new(None),
             pending_loads: Cell::new(0),
             any_failed_load: Cell::new(false),
+            request_generation_id: Cell::new(RequestGenerationId(0)),
         }
     }
 
@@ -77,11 +90,14 @@ impl HTMLLinkElement {
                            HTMLLinkElementBinding::Wrap)
     }
 
-    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        assert!(self.stylesheet.borrow().is_none());
-        *self.stylesheet.borrow_mut() = Some(s);
+    pub fn get_request_generation_id(&self) -> RequestGenerationId {
+        self.request_generation_id.get()
     }
 
+    pub fn set_stylesheet(&self, s: Arc<Stylesheet>) {
+        assert!(self.stylesheet.borrow().is_none()); // Useful for catching timing issues.
+        *self.stylesheet.borrow_mut() = Some(s);
+    }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
         self.stylesheet.borrow().clone()
@@ -99,6 +115,17 @@ impl HTMLLinkElement {
             })
         })
     }
+
+    pub fn is_alternate(&self) -> bool {
+        let rel = get_attr(self.upcast(), &local_name!("rel"));
+        match rel {
+            Some(ref value) => {
+                value.split(HTML_SPACE_CHARACTERS)
+                    .any(|s| s.eq_ignore_ascii_case("alternate"))
+            },
+            None => false,
+        }
+    }
 }
 
 fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
@@ -112,17 +139,8 @@ fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
 fn string_is_stylesheet(value: &Option<String>) -> bool {
     match *value {
         Some(ref value) => {
-            let mut found_stylesheet = false;
-            for s in value.split(HTML_SPACE_CHARACTERS).into_iter() {
-                if s.eq_ignore_ascii_case("alternate") {
-                    return false;
-                }
-
-                if s.eq_ignore_ascii_case("stylesheet") {
-                    found_stylesheet = true;
-                }
-            }
-            found_stylesheet
+            value.split(HTML_SPACE_CHARACTERS)
+                .any(|s| s.eq_ignore_ascii_case("stylesheet"))
         },
         None => false,
     }
@@ -210,6 +228,15 @@ impl VirtualMethods for HTMLLinkElement {
             }
         }
     }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(context);
+        }
+
+        let document = document_from_node(self);
+        document.invalidate_stylesheets();
+    }
 }
 
 
@@ -237,6 +264,9 @@ impl HTMLLinkElement {
 
         let element = self.upcast::<Element>();
 
+        // Step 3
+        let cors_setting = cors_setting_for_element(element);
+
         let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
         let value = mq_attribute.r().map(|a| a.value());
         let mq_str = match value {
@@ -254,13 +284,15 @@ impl HTMLLinkElement {
             None => "",
         };
 
+        self.request_generation_id.set(self.request_generation_id.get().increment());
+
         // TODO: #8085 - Don't load external stylesheets if the node's mq
         // doesn't match.
         let loader = StylesheetLoader::for_element(self.upcast());
         loader.load(StylesheetContextSource::LinkElement {
             url: url,
             media: Some(media),
-        }, integrity_metadata.to_owned());
+        }, cors_setting, integrity_metadata.to_owned());
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
@@ -312,6 +344,12 @@ impl StylesheetOwner for HTMLLinkElement {
         }
 
         None
+    }
+
+    fn set_origin_clean(&self, origin_clean: bool) {
+        if let Some(stylesheet) = self.get_cssom_stylesheet() {
+            stylesheet.set_origin_clean(origin_clean);
+        }
     }
 }
 
@@ -376,6 +414,16 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-target
     make_setter!(SetTarget, "target");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-crossorigin
+    fn GetCrossOrigin(&self) -> Option<DOMString> {
+        reflect_cross_origin_attribute(self.upcast::<Element>())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-crossorigin
+    fn SetCrossOrigin(&self, value: Option<DOMString>) {
+        set_cross_origin_attribute(self.upcast::<Element>(), value);
+    }
 
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
     fn GetSheet(&self) -> Option<Root<DOMStyleSheet>> {

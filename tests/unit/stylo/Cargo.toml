@@ -15,14 +15,14 @@ doctest = false
 app_units = "0.3"
 atomic_refcell = "0.1"
 cssparser = {version = "0.7"}
-env_logger = "0.3"
+env_logger = "0.4"
 euclid = "0.10.1"
 lazy_static = "0.2"
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 num_cpus = "1.1.0"
 parking_lot = "0.3"
-selectors = "0.15"
+selectors = "0.15.1"
 servo_url = {path = "../../../components/url"}
 style_traits = {path = "../../../components/style_traits"}
 geckoservo = {path = "../../../ports/geckolib"}

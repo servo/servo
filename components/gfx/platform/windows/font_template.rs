@@ -40,11 +40,10 @@ impl FontTemplateData {
     }
 
     pub fn native_font(&self) -> Option<NativeFontHandle> {
-        if self.bytes.is_some() {
-            panic!("Can't create fonts yet");
+        if self.bytes.is_none() {
+            Some(descriptor_from_atom(&self.identifier))
+        } else {
+            None
         }
-
-        let descriptor = descriptor_from_atom(&self.identifier);
-        Some(descriptor)
     }
 }

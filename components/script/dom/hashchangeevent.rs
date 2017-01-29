@@ -11,7 +11,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::{DOMString, USVString};
 use dom::event::Event;
-use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use servo_atoms::Atom;
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
@@ -31,13 +31,13 @@ impl HashChangeEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<HashChangeEvent> {
+    pub fn new_uninitialized(window: &Window) -> Root<HashChangeEvent> {
         reflect_dom_object(box HashChangeEvent::new_inherited(String::new(), String::new()),
-                           global,
+                           window,
                            HashChangeEventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
@@ -45,7 +45,7 @@ impl HashChangeEvent {
                new_url: String)
                -> Root<HashChangeEvent> {
         let ev = reflect_dom_object(box HashChangeEvent::new_inherited(old_url, new_url),
-                                    global,
+                                    window,
                                     HashChangeEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
@@ -54,11 +54,11 @@ impl HashChangeEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &HashChangeEventBinding::HashChangeEventInit)
                        -> Fallible<Root<HashChangeEvent>> {
-        Ok(HashChangeEvent::new(global,
+        Ok(HashChangeEvent::new(window,
                                 Atom::from(type_),
                                 init.parent.bubbles,
                                 init.parent.cancelable,

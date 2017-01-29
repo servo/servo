@@ -20,7 +20,7 @@
 //!    calls `trace()` on the field.
 //!    For example, for fields of type `JS<T>`, `JS<T>::trace()` calls
 //!    `trace_reflector()`.
-//! 4. `trace_reflector()` calls `JS_CallUnbarrieredObjectTracer()` with a
+//! 4. `trace_reflector()` calls `JS::TraceEdge()` with a
 //!    pointer to the `JSObject` for the reflector. This notifies the GC, which
 //!    will add the object to the graph, and will trace that object as well.
 //! 5. When the GC finishes tracing, it [`finalizes`](../index.html#destruction)
@@ -54,7 +54,7 @@ use hyper::method::Method;
 use hyper::mime::Mime;
 use hyper::status::StatusCode;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use js::glue::{CallObjectTracer, CallUnbarrieredObjectTracer, CallValueTracer};
+use js::glue::{CallObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::Runtime;
@@ -74,7 +74,7 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_layout_interface::OpaqueStyleAndLayoutData;
 use script_layout_interface::reporter::CSSErrorReporter;
 use script_layout_interface::rpc::LayoutRPC;
-use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase};
+use script_traits::{DocumentActivity, TimerEventId, TimerSource, TouchpadPressurePhase};
 use script_traits::{UntrustedNodeAddress, WindowSizeData, WindowSizeType};
 use serde::{Deserialize, Serialize};
 use servo_atoms::Atom;
@@ -129,7 +129,7 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
             return;
         }
 
-        debug!("tracing value {}", description);
+        trace!("tracing value {}", description);
         CallValueTracer(tracer,
                         val.ptr.get() as *mut _,
                         GCTraceKindToAscii(val.get().trace_kind()));
@@ -139,18 +139,14 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
 /// Trace the `JSObject` held by `reflector`.
 #[allow(unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
-    unsafe {
-        debug!("tracing reflector {}", description);
-        CallUnbarrieredObjectTracer(tracer,
-                                    reflector.rootable(),
-                                    GCTraceKindToAscii(TraceKind::Object));
-    }
+    trace!("tracing reflector {}", description);
+    trace_object(tracer, description, reflector.rootable())
 }
 
 /// Trace a `JSObject`.
 pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
     unsafe {
-        debug!("tracing {}", description);
+        trace!("tracing {}", description);
         CallObjectTracer(tracer,
                          obj.ptr.get() as *mut _,
                          GCTraceKindToAscii(TraceKind::Object));
@@ -331,7 +327,7 @@ unsafe_no_jsmanaged_fields!(TrustedPromise);
 unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-unsafe_no_jsmanaged_fields!(FrameId, FrameType, WindowSizeData, WindowSizeType, PipelineId);
+unsafe_no_jsmanaged_fields!(DocumentActivity, FrameId, FrameType, WindowSizeData, WindowSizeType, PipelineId);
 unsafe_no_jsmanaged_fields!(TimerEventId, TimerSource);
 unsafe_no_jsmanaged_fields!(TimelineMarkerType);
 unsafe_no_jsmanaged_fields!(WorkerId);
@@ -581,7 +577,7 @@ unsafe impl JSTraceable for RwLock<MediaList> {
 }
 
 /// Holds a set of JSTraceables that need to be rooted
-pub struct RootedTraceableSet {
+struct RootedTraceableSet {
     set: Vec<*const JSTraceable>,
 }
 
@@ -734,7 +730,7 @@ impl<'a, T: JSTraceable> DerefMut for RootedVec<'a, T> {
 
 /// SM Callback that traces the rooted traceables
 pub unsafe fn trace_traceables(tracer: *mut JSTracer) {
-    debug!("tracing stack-rooted traceables");
+    trace!("tracing stack-rooted traceables");
     ROOTED_TRACEABLES.with(|ref traceables| {
         let traceables = traceables.borrow();
         traceables.trace(tracer);

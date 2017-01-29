@@ -29,7 +29,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use dom::cssstylesheet::CSSStyleSheet;
-use dom::document::{Document, DocumentSource, IsHTMLDocument};
+use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
@@ -65,6 +65,7 @@ use ref_slice::ref_slice;
 use script_layout_interface::{HTMLCanvasData, OpaqueStyleAndLayoutData, SVGSVGData};
 use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddress};
 use script_layout_interface::message::Msg;
+use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{MatchingReason, matches};
 use selectors::parser::SelectorList;
@@ -524,8 +525,15 @@ impl Node {
         TrustedNodeAddress(&*self as *const Node as *const libc::c_void)
     }
 
-    pub fn bounding_content_box(&self) -> Rect<Au> {
-        window_from_node(self).content_box_query(self.to_trusted_node_address())
+    /// Returns the rendered bounding content box if the element is rendered,
+    /// and none otherwise.
+    pub fn bounding_content_box(&self) -> Option<Rect<Au>> {
+        window_from_node(self)
+            .content_box_query(self.to_trusted_node_address())
+    }
+
+    pub fn bounding_content_box_or_zero(&self) -> Rect<Au> {
+        self.bounding_content_box().unwrap_or_else(Rect::zero)
     }
 
     pub fn content_boxes(&self) -> Vec<Rect<Au>> {
@@ -1718,12 +1726,13 @@ impl Node {
                 };
                 let window = document.window();
                 let loader = DocumentLoader::new(&*document.loader());
-                let document = Document::new(window, None,
+                let document = Document::new(window, HasBrowsingContext::No,
                                              Some(document.url()),
                                              // https://github.com/whatwg/dom/issues/378
                                              document.origin().alias(),
                                              is_html_doc, None,
-                                             None, DocumentSource::NotFromParser, loader,
+                                             None, DocumentActivity::Inactive,
+                                             DocumentSource::NotFromParser, loader,
                                              None, None);
                 Root::upcast::<Node>(document)
             },

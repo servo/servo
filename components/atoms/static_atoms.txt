@@ -54,8 +54,6 @@ click
 keydown
 keypress
 abort
-beforescriptexecute
-afterscriptexecute
 invalid
 change
 open

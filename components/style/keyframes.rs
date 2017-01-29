@@ -11,8 +11,10 @@ use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
 use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use properties::{PropertyDeclarationId, LonghandId, DeclaredValue};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
+use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
@@ -198,6 +200,35 @@ impl KeyframesStep {
             declared_timing_function: declared_timing_function,
         }
     }
+
+    /// Return specified TransitionTimingFunction if this KeyframesSteps has 'animation-timing-function'.
+    pub fn get_animation_timing_function(&self) -> Option<SpecifiedTimingFunction> {
+        if !self.declared_timing_function {
+            return None;
+        }
+        match self.value {
+            KeyframesStepValue::Declarations { ref block } => {
+                let guard = block.read();
+                let &(ref declaration, _) =
+                    guard.get(PropertyDeclarationId::Longhand(LonghandId::AnimationTimingFunction)).unwrap();
+                match *declaration {
+                    PropertyDeclaration::AnimationTimingFunction(ref value) => {
+                        match *value {
+                            DeclaredValue::Value(ref value) => {
+                                // Use the first value.
+                                Some(value.0[0])
+                            },
+                            _ => None,
+                        }
+                    },
+                    _ => panic!(),
+                }
+            },
+            KeyframesStepValue::ComputedValues => {
+                panic!("Shouldn't happen to set animation-timing-function in missing keyframes")
+            },
+        }
+    }
 }
 
 /// This structure represents a list of animation steps computed from the list
@@ -271,7 +302,7 @@ impl KeyframesAnimation {
         }
 
         if steps.last().unwrap().start_percentage.0 != 1. {
-            steps.push(KeyframesStep::new(KeyframePercentage::new(0.),
+            steps.push(KeyframesStep::new(KeyframePercentage::new(1.),
                                           KeyframesStepValue::ComputedValues));
         }
 
@@ -325,14 +356,14 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
 
     fn parse_block(&mut self, prelude: Self::Prelude, input: &mut Parser)
                    -> Result<Self::QualifiedRule, ()> {
-        let mut declarations = Vec::new();
         let parser = KeyframeDeclarationParser {
             context: self.context,
+            declarations: vec![],
         };
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
             match declaration {
-                Ok(d) => declarations.extend(d.into_iter().map(|d| (d, Importance::Normal))),
+                Ok(_) => (),
                 Err(range) => {
                     let pos = range.start;
                     let message = format!("Unsupported keyframe property declaration: '{}'",
@@ -345,7 +376,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         Ok(Arc::new(RwLock::new(Keyframe {
             selector: prelude,
             block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: declarations,
+                declarations: iter.parser.declarations,
                 important_count: 0,
             })),
         })))
@@ -354,24 +385,35 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
 
 struct KeyframeDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
+    declarations: Vec<(PropertyDeclaration, Importance)>
 }
 
 /// Default methods reject all at rules.
 impl<'a, 'b> AtRuleParser for KeyframeDeclarationParser<'a, 'b> {
     type Prelude = ();
-    type AtRule = Vec<PropertyDeclaration>;
+    type AtRule = ();
 }
 
 impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
-    type Declaration = Vec<PropertyDeclaration>;
+    /// We parse rules directly into the declarations object
+    type Declaration = ();
 
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<Vec<PropertyDeclaration>, ()> {
+    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
         let id = try!(PropertyId::parse(name.into()));
-        let mut results = Vec::new();
-        match PropertyDeclaration::parse(id, self.context, input, &mut results, true) {
+        let old_len = self.declarations.len();
+        match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, true) {
             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
-            _ => return Err(())
+            _ => {
+                self.declarations.truncate(old_len);
+                return Err(());
+            }
         }
-        Ok(results)
+        // In case there is still unparsed text in the declaration, we should roll back.
+        if !input.is_exhausted() {
+            self.declarations.truncate(old_len);
+            Err(())
+        } else {
+            Ok(())
+        }
     }
 }

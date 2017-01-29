@@ -562,8 +562,7 @@ class JSToNativeConversionInfo():
     """
     An object representing information about a JS-to-native conversion.
     """
-    def __init__(self, template, default=None, declType=None,
-                 needsRooting=False):
+    def __init__(self, template, default=None, declType=None):
         """
         template: A string representing the conversion code.  This will have
                   template substitution performed on it as follows:
@@ -575,16 +574,12 @@ class JSToNativeConversionInfo():
         declType: A CGThing representing the native C++ type we're converting
                   to.  This is allowed to be None if the conversion code is
                   supposed to be used as-is.
-
-        needsRooting: A boolean indicating whether the caller has to root
-                      the result
         """
         assert isinstance(template, str)
         assert declType is None or isinstance(declType, CGThing)
         self.template = template
         self.default = default
         self.declType = declType
-        self.needsRooting = needsRooting
 
 
 def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
@@ -665,11 +660,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     else:
         failOrPropagate = failureCode
 
-    needsRooting = typeNeedsRooting(type, descriptorProvider)
-
     def handleOptional(template, declType, default):
         assert (defaultValue is None) == (default is None)
-        return JSToNativeConversionInfo(template, default, declType, needsRooting=needsRooting)
+        return JSToNativeConversionInfo(template, default, declType)
 
     # Unfortunately, .capitalize() on a string will lowercase things inside the
     # string, which we do not want.
@@ -765,7 +758,26 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                         "    _ => { %s },\n"
                         "}" % (indent(failOrPropagate, 8), exceptionCode))
 
-        return handleOptional(templateBody, declType, handleDefaultNull("None"))
+        dictionaries = [
+            memberType
+            for memberType in type.unroll().flatMemberTypes
+            if memberType.isDictionary()
+        ]
+        if dictionaries:
+            if defaultValue:
+                assert isinstance(defaultValue, IDLNullValue)
+                dictionary, = dictionaries
+                default = "%s::%s(%s::%s::empty(cx))" % (
+                    union_native_type(type),
+                    dictionary.name,
+                    CGDictionary.makeModuleName(dictionary.inner),
+                    CGDictionary.makeDictionaryName(dictionary.inner))
+            else:
+                default = None
+        else:
+            default = handleDefaultNull("None")
+
+        return handleOptional(templateBody, declType, default)
 
     if type.isGeckoInterface():
         assert not isEnforceRange and not isClamp
@@ -776,7 +788,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if descriptor.interface.isCallback():
             name = descriptor.nativeType
             declType = CGWrapper(CGGeneric(name), pre="Rc<", post=">")
-            template = "%s::new(${val}.get().to_object())" % name
+            template = "%s::new(cx, ${val}.get().to_object())" % name
             if type.nullable():
                 declType = CGWrapper(declType, pre="Option<", post=">")
                 template = wrapObjectTemplate("Some(%s)" % template, "None",
@@ -1035,7 +1047,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         else:
             default = None
 
-        return JSToNativeConversionInfo(template, default, finalDeclType, needsRooting=needsRooting)
+        return JSToNativeConversionInfo(template, default, finalDeclType)
 
     if type.isAny():
         assert not isEnforceRange and not isClamp
@@ -1083,8 +1095,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                               handleDefaultNull("ptr::null_mut()"))
 
     if type.isDictionary():
-        if failureCode is not None:
-            raise TypeError("Can't handle dictionaries when failureCode is not None")
         # There are no nullable dictionaries
         assert not type.nullable()
 
@@ -1104,7 +1114,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isVoid():
         # This one only happens for return values, and its easy: Just
         # ignore the jsval.
-        return JSToNativeConversionInfo("", None, None, needsRooting=False)
+        return JSToNativeConversionInfo("", None, None)
 
     if not type.isPrimitive():
         raise TypeError("Need conversion for argument type '%s'" % str(type))
@@ -2195,7 +2205,7 @@ class CGGeneric(CGThing):
 
 class CGCallbackTempRoot(CGGeneric):
     def __init__(self, name):
-        CGGeneric.__init__(self, "%s::new(${val}.get().to_object())" % name)
+        CGGeneric.__init__(self, "%s::new(cx, ${val}.get().to_object())" % name)
 
 
 def getAllTypes(descriptors, dictionaries, callbacks, typedefs):
@@ -2224,6 +2234,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
     """
 
     imports = [
+        'dom',
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::conversions::ConversionResult',
         'dom::bindings::conversions::FromJSValConvertible',
@@ -2250,7 +2261,9 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
     # we need to wrap or unwrap them.
     unionStructs = dict()
     for (t, descriptor, dictionary) in getAllTypes(descriptors, dictionaries, callbacks, typedefs):
-        assert not descriptor or not dictionary
+        if dictionary:
+            imports.append("%s::%s" % (CGDictionary.makeModuleName(dictionary),
+                                       CGDictionary.makeDictionaryName(dictionary)))
         t = t.unroll()
         if not t.isUnion():
             continue
@@ -4035,6 +4048,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isEnum():
         name = type.inner.identifier.name
         typeName = name
+    elif type.isDictionary():
+        name = type.name
+        typeName = name
     elif type.isSequence() or type.isMozMap():
         name = type.name
         inner = getUnionTypeTemplateVars(innerContainerType(type), descriptorProvider)
@@ -4170,15 +4186,12 @@ class CGUnionConversionStruct(CGThing):
 
         dictionaryMemberTypes = filter(lambda t: t.isDictionary(), memberTypes)
         if len(dictionaryMemberTypes) > 0:
-            raise TypeError("No support for unwrapping dictionaries as member "
-                            "of a union")
+            assert len(dictionaryMemberTypes) == 1
+            typeName = dictionaryMemberTypes[0].name
+            dictionaryObject = CGGeneric(get_match(typeName))
+            names.append(typeName)
         else:
             dictionaryObject = None
-
-        if callbackObject or dictionaryObject:
-            assert False, "Not currently supported"
-        else:
-            nonPlatformObject = None
 
         objectMemberTypes = filter(lambda t: t.isObject(), memberTypes)
         if len(objectMemberTypes) > 0:
@@ -4198,7 +4211,7 @@ class CGUnionConversionStruct(CGThing):
         else:
             mozMapObject = None
 
-        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object or mozMapObject
+        hasObjectTypes = interfaceObject or arrayObject or dateObject or object or mozMapObject
         if hasObjectTypes:
             # "object" is not distinguishable from other types
             assert not object or not (interfaceObject or arrayObject or dateObject or callbackObject or mozMapObject)
@@ -4210,6 +4223,11 @@ class CGUnionConversionStruct(CGThing):
             if mozMapObject:
                 templateBody.append(mozMapObject)
             conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
+
+        if dictionaryObject:
+            assert not hasObjectTypes
+            conversions.append(dictionaryObject)
+
         stringTypes = [t for t in memberTypes if t.isString() or t.isEnum()]
         numericTypes = [t for t in memberTypes if t.isNumeric()]
         booleanTypes = [t for t in memberTypes if t.isBoolean()]
@@ -4444,10 +4462,11 @@ class ClassConstructor(ClassItem):
                 "});\n"
                 "// Note: callback cannot be moved after calling init.\n"
                 "match Rc::get_mut(&mut ret) {\n"
-                "    Some(ref mut callback) => callback.parent.init(%s),\n"
+                "    Some(ref mut callback) => unsafe { callback.parent.init(%s, %s) },\n"
                 "    None => unreachable!(),\n"
                 "};\n"
-                "ret") % (cgClass.name, '\n'.join(initializers), self.args[0].name))
+                "ret") % (cgClass.name, '\n'.join(initializers),
+                          self.args[0].name, self.args[1].name))
 
     def declare(self, cgClass):
         args = ', '.join([a.declare() for a in self.args])
@@ -6236,11 +6255,11 @@ class CGCallback(CGClass):
                          bases=[ClassBase(baseName)],
                          constructors=self.getConstructors(),
                          methods=realMethods + getters + setters,
-                         decorators="#[derive(JSTraceable, PartialEq)]")
+                         decorators="#[derive(JSTraceable, PartialEq)]\n#[allow_unrooted_interior]")
 
     def getConstructors(self):
         return [ClassConstructor(
-            [Argument("*mut JSObject", "aCallback")],
+            [Argument("*mut JSContext", "aCx"), Argument("*mut JSObject", "aCallback")],
             bodyInHeader=True,
             visibility="pub",
             explicit=False,
@@ -6336,8 +6355,8 @@ class CGCallbackFunctionImpl(CGGeneric):
     def __init__(self, callback):
         impl = string.Template("""\
 impl CallbackContainer for ${type} {
-    fn new(callback: *mut JSObject) -> Rc<${type}> {
-        ${type}::new(callback)
+    unsafe fn new(cx: *mut JSContext, callback: *mut JSObject) -> Rc<${type}> {
+        ${type}::new(cx, callback)
     }
 
     fn callback_holder(&self) -> &CallbackObject {
@@ -6821,6 +6840,15 @@ class GlobalGenRoots():
         ], "\n")), pre="pub flags Globals: u8 {\n", post="\n}")
         globals_ = CGWrapper(CGIndenter(global_flags), pre="bitflags! {\n", post="\n}")
 
+        phf = CGGeneric("include!(concat!(env!(\"OUT_DIR\"), \"/InterfaceObjectMapPhf.rs\"));")
+
+        return CGList([
+            CGGeneric(AUTOGENERATED_WARNING_COMMENT),
+            CGList([imports, globals_, phf], "\n\n")
+        ])
+
+    @staticmethod
+    def InterfaceObjectMapData(config):
         pairs = []
         for d in config.getDescriptors(hasInterfaceObject=True, isInline=False):
             binding = toBindingNamespace(d.name)
@@ -6829,19 +6857,13 @@ class GlobalGenRoots():
                 pairs.append((ctor.identifier.name, binding, binding))
         pairs.sort(key=operator.itemgetter(0))
         mappings = [
-            CGGeneric('b"%s" => codegen::Bindings::%s::%s::DefineDOMInterface as unsafe fn(_, _),' % pair)
+            CGGeneric('"%s": "codegen::Bindings::%s::%s::DefineDOMInterface as unsafe fn(_, _)"' % pair)
             for pair in pairs
         ]
-        mapType = "phf::Map<&'static [u8], unsafe fn(*mut JSContext, HandleObject)>"
-        phf = CGWrapper(
-            CGIndenter(CGList(mappings, "\n")),
-            pre="pub static MAP: %s = phf_map! {\n" % mapType,
-            post="\n};\n")
-
-        return CGList([
-            CGGeneric(AUTOGENERATED_WARNING_COMMENT),
-            CGList([imports, globals_, phf], "\n\n")
-        ])
+        return CGWrapper(
+            CGList(mappings, ",\n"),
+            pre="{\n",
+            post="\n}\n")
 
     @staticmethod
     def PrototypeList(config):

@@ -96,18 +96,40 @@ pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
     }).expect("Thread spawning failed");
 }
 
+/// Represents the current WebDriver session and holds relevant session state.
 struct WebDriverSession {
     id: Uuid,
-    frame_id: Option<FrameId>
+    frame_id: Option<FrameId>,
+
+    /// Time to wait for injected scripts to run before interrupting them.  A [`None`] value
+    /// specifies that the script should run indefinitely.
+    script_timeout: Option<u32>,
+
+    /// Time to wait for a page to finish loading upon navigation.
+    load_timeout: u32,
+
+    /// Time to wait for the element location strategy when retrieving elements, and when
+    /// waiting for an element to become interactable.
+    implicit_wait_timeout: u32,
+}
+
+impl WebDriverSession {
+    pub fn new() -> WebDriverSession {
+        WebDriverSession {
+            id: Uuid::new_v4(),
+            frame_id: None,
+
+            script_timeout: Some(30_000),
+            load_timeout: 300_000,
+            implicit_wait_timeout: 0,
+        }
+    }
 }
 
 struct Handler {
     session: Option<WebDriverSession>,
     constellation_chan: Sender<ConstellationMsg>,
-    script_timeout: u32,
-    load_timeout: u32,
     resize_timeout: u32,
-    implicit_wait_timeout: u32
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -230,24 +252,12 @@ impl ToJson for SetPrefsParameters {
     }
 }
 
-impl WebDriverSession {
-    pub fn new() -> WebDriverSession {
-        WebDriverSession {
-            id: Uuid::new_v4(),
-            frame_id: None
-        }
-    }
-}
-
 impl Handler {
     pub fn new(constellation_chan: Sender<ConstellationMsg>) -> Handler {
         Handler {
             session: None,
             constellation_chan: constellation_chan,
-            script_timeout: 30_000,
-            load_timeout: 300_000,
             resize_timeout: 500,
-            implicit_wait_timeout: 0
         }
     }
 
@@ -303,9 +313,7 @@ impl Handler {
             let mut capabilities = BTreeMap::new();
             capabilities.insert("browserName".to_owned(), "servo".to_json());
             capabilities.insert("browserVersion".to_owned(), "0.0.1".to_json());
-            capabilities.insert("acceptSslCerts".to_owned(), false.to_json());
-            capabilities.insert("takeScreenshot".to_owned(), true.to_json());
-            capabilities.insert("takeElementScreenshot".to_owned(), false.to_json());
+            capabilities.insert("acceptInsecureCerts".to_owned(), false.to_json());
             let rv = Ok(WebDriverResponse::NewSession(
                 NewSessionResponse::new(
                     session.id.to_string(),
@@ -355,19 +363,25 @@ impl Handler {
 
     fn wait_for_load(&self,
                      sender: IpcSender<LoadStatus>,
-                     receiver: IpcReceiver<LoadStatus>) -> WebDriverResult<WebDriverResponse> {
-        let timeout = self.load_timeout;
+                     receiver: IpcReceiver<LoadStatus>)
+                     -> WebDriverResult<WebDriverResponse> {
+        let session = try!(self.session
+            .as_ref()
+            .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, "")));
+
+        let timeout = session.load_timeout;
         let timeout_chan = sender;
         thread::spawn(move || {
             thread::sleep(Duration::from_millis(timeout as u64));
             let _ = timeout_chan.send(LoadStatus::LoadTimeout);
         });
 
-        //Wait to get a load event
+        // wait to get a load event
         match receiver.recv().unwrap() {
             LoadStatus::LoadComplete => Ok(WebDriverResponse::Void),
-            LoadStatus::LoadTimeout => Err(WebDriverError::new(ErrorStatus::Timeout,
-                                                               "Load timed out"))
+            LoadStatus::LoadTimeout => {
+                Err(WebDriverError::new(ErrorStatus::Timeout, "Load timed out"))
+            }
         }
     }
 
@@ -683,15 +697,23 @@ impl Handler {
         }
     }
 
-    fn handle_set_timeouts(&mut self, parameters: &TimeoutsParameters) -> WebDriverResult<WebDriverResponse> {
-        //TODO: this conversion is crazy, spec should limit these to u32 and check upstream
+    fn handle_set_timeouts(&mut self,
+                           parameters: &TimeoutsParameters)
+                           -> WebDriverResult<WebDriverResponse> {
+        let mut session = try!(self.session
+            .as_mut()
+            .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, "")));
+
+        // TODO: this conversion is crazy, spec should limit these to u32 and check upstream
         let value = parameters.ms as u32;
         match &parameters.type_[..] {
-            "implicit" => self.implicit_wait_timeout = value,
-            "page load" => self.load_timeout = value,
-            "script" => self.script_timeout = value,
-            x => return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
-                                                format!("Unknown timeout type {}", x)))
+            "script" => session.script_timeout = Some(value),
+            "page load" => session.load_timeout = value,
+            "implicit" => session.implicit_wait_timeout = value,
+            x => {
+                return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
+                                               format!("Unknown timeout type {}", x)))
+            }
         }
         Ok(WebDriverResponse::Void)
     }
@@ -712,13 +734,24 @@ impl Handler {
     }
 
     fn handle_execute_async_script(&self,
-                                   parameters: &JavascriptCommandParameters) -> WebDriverResult<WebDriverResponse> {
+                                   parameters: &JavascriptCommandParameters)
+                                   -> WebDriverResult<WebDriverResponse> {
+        let session = try!(self.session
+            .as_ref()
+            .ok_or(WebDriverError::new(ErrorStatus::SessionNotCreated, "")));
+
         let func_body = &parameters.script;
         let args_string = "window.webdriverCallback";
 
-        let script = format!(
-            "setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
-            self.script_timeout, func_body, args_string);
+        let script = match session.script_timeout {
+            Some(timeout) => {
+                format!("setTimeout(webdriverTimeout, {}); (function(callback) {{ {} }})({})",
+                        timeout,
+                        func_body,
+                        args_string)
+            }
+            None => format!("(function(callback) {{ {} }})({})", func_body, args_string),
+        };
 
         let (sender, receiver) = ipc::channel().unwrap();
         let command = WebDriverScriptCommand::ExecuteAsyncScript(script, sender);
@@ -877,7 +910,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::SwitchToParentFrame => self.handle_switch_to_parent_frame(),
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
-            WebDriverCommand::GetCookie(ref name) => self.handle_get_cookie(name),
+            WebDriverCommand::GetNamedCookie(ref name) => self.handle_get_cookie(name),
             WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),
             WebDriverCommand::GetElementRect(ref element) => self.handle_element_rect(element),

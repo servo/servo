@@ -118,7 +118,11 @@ def _activate_virtualenv(topdir):
         if not virtualenv:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
 
-        process = Popen([virtualenv, "-p", python, virtualenv_path], stdout=PIPE, stderr=PIPE)
+        process = Popen(
+            [virtualenv, "-p", python, "--system-site-packages", virtualenv_path],
+            stdout=PIPE,
+            stderr=PIPE
+        )
         process.wait()
         if process.returncode:
             out, err = process.communicate()
@@ -153,7 +157,7 @@ def _activate_virtualenv(topdir):
         if not pip:
             sys.exit("Python pip is either not installed or not found in virtualenv.")
 
-        process = Popen([pip, "install", "-q", "-U", "pip"], stdout=PIPE, stderr=PIPE)
+        process = Popen([pip, "install", "-q", "-I", "-U", "pip"], stdout=PIPE, stderr=PIPE)
         process.wait()
         if process.returncode:
             out, err = process.communicate()
@@ -175,7 +179,7 @@ def _activate_virtualenv(topdir):
         if not pip:
             sys.exit("Python pip is either not installed or not found in virtualenv.")
 
-        process = Popen([pip, "install", "-q", "-r", req_path], stdout=PIPE, stderr=PIPE)
+        process = Popen([pip, "install", "-q", "-I", "-r", req_path], stdout=PIPE, stderr=PIPE)
         process.wait()
         if process.returncode:
             out, err = process.communicate()

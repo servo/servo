@@ -16,6 +16,9 @@ debugmozjs = ['js/debugmozjs']
 
 [build-dependencies]
 cmake = "0.1"
+phf_codegen = "0.7.18"
+phf_shared = "0.7.18"
+serde_json = "0.8"
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"
@@ -57,17 +60,16 @@ offscreen_gl_context = "0.5.0"
 open = "1.1.1"
 parking_lot = "0.3"
 phf = "0.7.18"
-phf_macros = "0.7.18"
 plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 ref_filter_map = "1.0.1"
 ref_slice = "1.0"
-regex = "0.1.43"
+regex = "0.2"
 rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-selectors = "0.15"
+selectors = "0.15.1"
 serde = "0.8"
 servo_atoms = {path = "../atoms"}
 servo_config = {path = "../config", features = ["servo"] }

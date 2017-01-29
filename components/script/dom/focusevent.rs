@@ -12,7 +12,6 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use std::default::Default;
@@ -31,9 +30,9 @@ impl FocusEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<FocusEvent> {
+    pub fn new_uninitialized(window: &Window) -> Root<FocusEvent> {
         reflect_dom_object(box FocusEvent::new_inherited(),
-                           global,
+                           window,
                            FocusEventBinding::Wrap)
     }
 
@@ -44,7 +43,7 @@ impl FocusEvent {
                view: Option<&Window>,
                detail: i32,
                related_target: Option<&EventTarget>) -> Root<FocusEvent> {
-        let ev = FocusEvent::new_uninitialized(window.upcast());
+        let ev = FocusEvent::new_uninitialized(window);
         ev.upcast::<UIEvent>().InitUIEvent(type_,
                                            bool::from(can_bubble),
                                            bool::from(cancelable),

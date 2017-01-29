@@ -4,7 +4,6 @@
 
 //! Element nodes.
 
-use app_units::Au;
 use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
@@ -79,6 +78,7 @@ use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever_atoms::{Prefix, LocalName, Namespace, QualName};
 use js::jsapi::{HandleValue, JSAutoCompartment};
+use net_traits::request::CorsSettings;
 use parking_lot::RwLock;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
@@ -145,8 +145,23 @@ impl fmt::Debug for Element {
 
 #[derive(PartialEq, HeapSizeOf)]
 pub enum ElementCreator {
-    ParserCreated,
+    ParserCreated(u64),
     ScriptCreated,
+}
+
+impl ElementCreator {
+    pub fn is_parser_created(&self) -> bool {
+        match *self {
+            ElementCreator::ParserCreated(_) => true,
+            ElementCreator::ScriptCreated => false,
+        }
+    }
+    pub fn return_line_number(&self) -> u64 {
+        match *self {
+            ElementCreator::ParserCreated(l) => l,
+            ElementCreator::ScriptCreated => 1,
+        }
+    }
 }
 
 pub enum AdjacentPosition {
@@ -439,18 +454,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                                 font_family)])))));
         }
 
-        let font_size = if let Some(this) = self.downcast::<HTMLFontElement>() {
-            this.get_size()
-        } else {
-            None
-        };
+        let font_size = self.downcast::<HTMLFontElement>().and_then(|this| this.get_size());
 
         if let Some(font_size) = font_size {
             hints.push(from_declaration(
                 PropertyDeclaration::FontSize(
                     DeclaredValue::Value(
-                        font_size::SpecifiedValue(
-                            LengthOrPercentage::Length(font_size))))))
+                        font_size::SpecifiedValue(font_size.into())))))
         }
 
         let cellspacing = if let Some(this) = self.downcast::<HTMLTableElement>() {
@@ -460,11 +470,11 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         };
 
         if let Some(cellspacing) = cellspacing {
-            let width_value = specified::Length::Absolute(Au::from_px(cellspacing as i32));
+            let width_value = specified::Length::from_px(cellspacing as f32);
             hints.push(from_declaration(
                 PropertyDeclaration::BorderSpacing(DeclaredValue::Value(
                     border_spacing::SpecifiedValue {
-                        horizontal: width_value,
+                        horizontal: width_value.clone(),
                         vertical: width_value,
                     }))));
         }
@@ -493,12 +503,11 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         };
 
         if let Some(size) = size {
-            let value = specified::Length::ServoCharacterWidth(specified::CharacterWidth(size));
+            let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(size));
             hints.push(from_declaration(
                 PropertyDeclaration::Width(DeclaredValue::Value(
                     specified::LengthOrPercentageOrAuto::Length(value)))));
         }
-
 
         let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.get_width()
@@ -525,7 +534,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let width_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::Length::Absolute(length));
+                    specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
                     PropertyDeclaration::Width(DeclaredValue::Value(width_value))));
             }
@@ -550,7 +559,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             }
             LengthOrPercentageOrAuto::Length(length) => {
                 let height_value = specified::LengthOrPercentageOrAuto::Length(
-                    specified::Length::Absolute(length));
+                    specified::NoCalcLength::Absolute(length));
                 hints.push(from_declaration(
                     PropertyDeclaration::Height(DeclaredValue::Value(height_value))));
             }
@@ -572,12 +581,11 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // scrollbar size into consideration (but we don't have a scrollbar yet!)
             //
             // https://html.spec.whatwg.org/multipage/#textarea-effective-width
-            let value = specified::Length::ServoCharacterWidth(specified::CharacterWidth(cols));
+            let value = specified::NoCalcLength::ServoCharacterWidth(specified::CharacterWidth(cols));
             hints.push(from_declaration(
                 PropertyDeclaration::Width(DeclaredValue::Value(
                     specified::LengthOrPercentageOrAuto::Length(value)))));
         }
-
 
         let rows = if let Some(this) = self.downcast::<HTMLTextAreaElement>() {
             match this.get_rows() {
@@ -592,7 +600,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             // TODO(mttr) This should take scrollbar size into consideration.
             //
             // https://html.spec.whatwg.org/multipage/#textarea-effective-height
-            let value = specified::Length::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
+            let value = specified::NoCalcLength::FontRelative(specified::FontRelativeLength::Em(rows as CSSFloat));
             hints.push(from_declaration(
                 PropertyDeclaration::Height(DeclaredValue::Value(
                         specified::LengthOrPercentageOrAuto::Length(value)))));
@@ -606,14 +614,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         };
 
         if let Some(border) = border {
-            let width_value = specified::BorderWidth::from_length(
-                specified::Length::Absolute(Au::from_px(border as i32)));
+            let width_value = specified::BorderWidth::from_length(specified::Length::from_px(border as f32));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderTopWidth(DeclaredValue::Value(width_value))));
+                PropertyDeclaration::BorderTopWidth(DeclaredValue::Value(width_value.clone()))));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderLeftWidth(DeclaredValue::Value(width_value))));
+                PropertyDeclaration::BorderLeftWidth(DeclaredValue::Value(width_value.clone()))));
             hints.push(from_declaration(
-                PropertyDeclaration::BorderBottomWidth(DeclaredValue::Value(width_value))));
+                PropertyDeclaration::BorderBottomWidth(DeclaredValue::Value(width_value.clone()))));
             hints.push(from_declaration(
                 PropertyDeclaration::BorderRightWidth(DeclaredValue::Value(width_value))));
         }
@@ -1588,7 +1595,7 @@ impl ElementMethods for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(&self) -> Root<DOMRect> {
         let win = window_from_node(self);
-        let rect = self.upcast::<Node>().bounding_content_box();
+        let rect = self.upcast::<Node>().bounding_content_box_or_zero();
         DOMRect::new(win.upcast(),
                      rect.origin.x.to_f64_px(),
                      rect.origin.y.to_f64_px(),
@@ -2881,4 +2888,36 @@ impl Runnable for ElementPerformFullscreenExit {
         let _ac = JSAutoCompartment::new(promise_cx, promise.reflector().get_jsobject().get());
         promise.resolve(promise.global().get_cx(), HandleValue::undefined());
     }
+}
+
+pub fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
+    let attr = element.get_attribute(&ns!(), &local_name!("crossorigin"));
+
+    if let Some(mut val) = attr.map(|v| v.Value()) {
+        val.make_ascii_lowercase();
+        if val == "anonymous" || val == "use-credentials" {
+            return Some(val);
+        }
+        return Some(DOMString::from("anonymous"));
+    }
+    None
+}
+
+pub fn set_cross_origin_attribute(element: &Element, value: Option<DOMString>) {
+    match value {
+        Some(val) => element.set_string_attribute(&local_name!("crossorigin"), val),
+        None => {
+            element.remove_attribute(&ns!(), &local_name!("crossorigin"));
+        }
+    }
+}
+
+pub fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
+    reflect_cross_origin_attribute(element).map_or(None, |attr| {
+        match &*attr {
+            "anonymous" => Some(CorsSettings::Anonymous),
+            "use-credentials" => Some(CorsSettings::UseCredentials),
+            _ => unreachable!()
+        }
+    })
 }

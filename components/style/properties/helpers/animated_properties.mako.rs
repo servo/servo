@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+<%namespace name="helpers" file="/helpers.mako.rs" />
+
 use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA};
 use euclid::{Point2D, Size2D};
-use properties::PropertyDeclaration;
+#[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
+use properties::{DeclaredValue, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::background_position_x::computed_value::T as BackgroundPositionX;
 use properties::longhands::background_position_y::computed_value::T as BackgroundPositionY;
@@ -19,6 +22,7 @@ use properties::longhands::box_shadow::single_value::computed_value::T as BoxSha
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
+#[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
 use std::cmp;
 use std::fmt;
 use style_traits::ToCss;
@@ -26,7 +30,7 @@ use super::ComputedValues;
 use values::Either;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
-use values::computed::{CalcLengthOrPercentage, LengthOrPercentage};
+use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::position::{HorizontalPosition, Position, VerticalPosition};
 use values::computed::ToComputedValue;
 
@@ -97,6 +101,40 @@ impl ToCss for TransitionProperty {
                     TransitionProperty::${prop.camel_case} => dest.write_str("${prop.name}"),
                 % endif
             % endfor
+        }
+    }
+}
+
+/// Convert to nsCSSPropertyID.
+#[cfg(feature = "gecko")]
+#[allow(non_upper_case_globals)]
+impl From<TransitionProperty> for nsCSSPropertyID {
+    fn from(transition_property: TransitionProperty) -> nsCSSPropertyID {
+        match transition_property {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    TransitionProperty::${prop.camel_case}
+                        => ${helpers.to_nscsspropertyid(prop.ident)},
+                % endif
+            % endfor
+            TransitionProperty::All => nsCSSPropertyID::eCSSPropertyExtra_all_properties,
+        }
+    }
+}
+
+/// Convert to PropertyDeclarationId.
+#[cfg(feature = "gecko")]
+#[allow(non_upper_case_globals)]
+impl<'a> From<TransitionProperty> for PropertyDeclarationId<'a> {
+    fn from(transition_property: TransitionProperty) -> PropertyDeclarationId<'a> {
+        match transition_property {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    TransitionProperty::${prop.camel_case}
+                        => PropertyDeclarationId::Longhand(LonghandId::${prop.camel_case}),
+                % endif
+            % endfor
+            TransitionProperty::All => panic!(),
         }
     }
 }
@@ -191,6 +229,17 @@ impl AnimatedProperty {
     }
 }
 
+
+% if product == "gecko":
+    use gecko_bindings::structs::RawServoAnimationValue;
+    use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
+
+    unsafe impl HasFFI for AnimationValue {
+        type FFIType = RawServoAnimationValue;
+    }
+    unsafe impl HasArcFFI for AnimationValue {}
+% endif
+
 /// An enum to represent a single computed value belonging to an animated
 /// property in order to be interpolated with another one. When interpolating,
 /// both values need to belong to the same property.
@@ -228,6 +277,40 @@ impl AnimationValue {
                     }
                 % endif
             % endfor
+        }
+    }
+
+    /// Construct an AnimationValue from a property declaration
+    pub fn from_declaration(decl: &PropertyDeclaration, context: &Context, initial: &ComputedValues) -> Option<Self> {
+        match *decl {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    PropertyDeclaration::${prop.camel_case}(ref val) => {
+                        let computed = match *val {
+                            // https://bugzilla.mozilla.org/show_bug.cgi?id=1326131
+                            DeclaredValue::WithVariables{..} => unimplemented!(),
+                            DeclaredValue::Value(ref val) => val.to_computed_value(context),
+                            % if not prop.style_struct.inherited:
+                                DeclaredValue::Unset |
+                            % endif
+                            DeclaredValue::Initial => {
+                                let initial_struct = initial.get_${prop.style_struct.name_lower}();
+                                initial_struct.clone_${prop.ident}()
+                            },
+                            % if prop.style_struct.inherited:
+                                DeclaredValue::Unset |
+                            % endif
+                            DeclaredValue::Inherit => {
+                                let inherit_struct = context.inherited_style
+                                                            .get_${prop.style_struct.name_lower}();
+                                inherit_struct.clone_${prop.ident}()
+                            },
+                        };
+                        Some(AnimationValue::${prop.camel_case}(computed))
+                    }
+                % endif
+            % endfor
+            _ => None // non animatable properties will get included because of shorthands. ignore.
         }
     }
 }

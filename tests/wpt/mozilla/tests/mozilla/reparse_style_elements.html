@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Style elements should be reparsed on change</title>
+<link rel="match" href="reparse_style_elements_ref.html">
+<body>
+    <style>
+        body {
+            background-color: red;
+        }
+    </style>
+
+    This text should be green and the background should not be red.
+
+    <script>
+        var s = document.querySelector('body > style');
+        s.textContent = 'body { color: green; }';
+    </script>
+</body>

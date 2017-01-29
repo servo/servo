@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/ServiceWorker/#client
 
-[Pref="dom.serviceworker.enabled", Exposed=(Window,Worker)]
+[Pref="dom.serviceworker.enabled", Exposed=ServiceWorker]
 interface Client {
   readonly attribute USVString url;
   readonly attribute FrameType frameType;

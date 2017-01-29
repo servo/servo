@@ -13,7 +13,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::globalscope::GlobalScope;
+use dom::window::Window;
 use servo_atoms::Atom;
 
 // https://html.spec.whatwg.org/multipage/#beforeunloadevent
@@ -31,17 +31,17 @@ impl BeforeUnloadEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalScope) -> Root<BeforeUnloadEvent> {
+    pub fn new_uninitialized(window: &Window) -> Root<BeforeUnloadEvent> {
         reflect_dom_object(box BeforeUnloadEvent::new_inherited(),
-                           global,
+                           window,
                            BeforeUnloadEventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(window: &Window,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Root<BeforeUnloadEvent> {
-        let ev = BeforeUnloadEvent::new_uninitialized(global);
+        let ev = BeforeUnloadEvent::new_uninitialized(window);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles),

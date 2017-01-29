@@ -10,7 +10,6 @@ extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 extern crate num_traits;
 extern crate rustc_serialize;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 
