@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // http://dev.w3.org/csswg/cssom-view/#the-screen-interface
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface Screen {
   //readonly attribute double availWidth;
   //readonly attribute double availHeight;
