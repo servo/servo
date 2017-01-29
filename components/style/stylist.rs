@@ -1147,39 +1147,6 @@ impl ApplicableDeclarationBlock {
     }
 }
 
-/// An iterator over the declarations that a given block represent, which is
-/// effectively a filter by importance.
-pub struct ApplicableDeclarationBlockIter<'a> {
-    iter: slice::Iter<'a, (PropertyDeclaration, Importance)>,
-    importance: Importance,
-}
-
-impl<'a> Iterator for ApplicableDeclarationBlockIter<'a> {
-    type Item = &'a PropertyDeclaration;
-
-    #[inline]
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(&(ref declaration, importance)) = self.iter.next() {
-            if importance == self.importance {
-                return Some(declaration)
-            }
-        }
-        None
-    }
-}
-
-impl<'a> DoubleEndedIterator for ApplicableDeclarationBlockIter<'a> {
-    #[inline]
-    fn next_back(&mut self) -> Option<Self::Item> {
-        while let Some(&(ref declaration, importance)) = self.iter.next_back() {
-            if importance == self.importance {
-                return Some(declaration)
-            }
-        }
-        None
-    }
-}
-
 #[inline]
 fn find_push<Str: Eq + Hash>(map: &mut FnvHashMap<Str, Vec<Rule>>, key: Str,
                              value: Rule) {
