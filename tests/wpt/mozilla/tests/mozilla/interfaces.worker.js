@@ -9,7 +9,6 @@ importScripts("interfaces.js");
 test_interfaces([
   "Blob",
   "CloseEvent",
-  "CSSStyleDeclaration",
   "DOMMatrix",
   "DOMMatrixReadOnly",
   "DOMPoint",
@@ -38,7 +37,6 @@ test_interfaces([
   "ProgressEvent",
   "Request",
   "Response",
-  "Screen",
   "Storage",
   "StorageEvent",
   "TextDecoder",
