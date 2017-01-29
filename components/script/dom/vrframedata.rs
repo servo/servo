@@ -39,7 +39,7 @@ impl VRFrameData {
                       0.0, 0.0, 0.0, 1.0f32];
         let pose = VRPose::new(&global, &Default::default());
 
-        let mut framedata = VRFrameData {
+        let framedata = VRFrameData {
             reflector_: Reflector::new(),
             left_proj: Heap::default(),
             left_view: Heap::default(),

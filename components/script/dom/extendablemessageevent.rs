@@ -17,7 +17,6 @@ use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use js::jsapi::{HandleValue, Heap, JSContext};
 use js::jsval::JSVal;
 use servo_atoms::Atom;
-use std::default::Default;
 
 #[dom_struct]
 pub struct ExtendableMessageEvent {
@@ -32,13 +31,12 @@ impl ExtendableMessageEvent {
                bubbles: bool, cancelable: bool,
                data: HandleValue, origin: DOMString, lastEventId: DOMString)
                -> Root<ExtendableMessageEvent> {
-        let mut ev = box ExtendableMessageEvent {
+        let ev = box ExtendableMessageEvent {
             event: ExtendableEvent::new_inherited(),
-            data: Heap::default(),
+            data: Heap::new(data.get()),
             origin: origin,
             lastEventId: lastEventId,
         };
-        ev.data.set(data.get());
         let ev = reflect_dom_object(ev, global, ExtendableMessageEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();

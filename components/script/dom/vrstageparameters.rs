@@ -28,7 +28,7 @@ impl VRStageParameters {
     #[allow(unsafe_code)]
     #[allow(unrooted_must_root)]
     fn new_inherited(parameters: WebVRStageParameters, global: &GlobalScope) -> VRStageParameters {
-        let mut stage = VRStageParameters {
+        let stage = VRStageParameters {
             reflector_: Reflector::new(),
             parameters: DOMRefCell::new(parameters),
             transform: Heap::default()

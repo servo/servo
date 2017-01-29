@@ -14,7 +14,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
-use dom::document::{Document, DocumentSource, IsHTMLDocument};
+use dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::htmlformelement::HTMLFormElement;
@@ -102,7 +102,7 @@ impl ServoParser {
         let loader = DocumentLoader::new_with_threads(context_document.loader().resource_threads().clone(),
                                                       Some(url.clone()));
         let document = Document::new(window,
-                                     None,
+                                     HasBrowsingContext::No,
                                      Some(url.clone()),
                                      context_document.origin().alias(),
                                      IsHTMLDocument::HTMLDocument,

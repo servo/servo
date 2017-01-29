@@ -184,13 +184,12 @@ impl PendingRestyle {
 pub struct Document {
     node: Node,
     window: JS<Window>,
-    /// https://html.spec.whatwg.org/multipage/#concept-document-bc
-    browsing_context: Option<JS<BrowsingContext>>,
     implementation: MutNullableJS<DOMImplementation>,
     location: MutNullableJS<Location>,
     content_type: DOMString,
     last_modified: Option<String>,
     encoding: Cell<EncodingRef>,
+    has_browsing_context: bool,
     is_html_document: bool,
     activity: Cell<DocumentActivity>,
     url: DOMRefCell<ServoUrl>,
@@ -369,8 +368,12 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#concept-document-bc
     #[inline]
-    pub fn browsing_context(&self) -> Option<&BrowsingContext> {
-        self.browsing_context.as_ref().map(|browsing_context| &**browsing_context)
+    pub fn browsing_context(&self) -> Option<Root<BrowsingContext>> {
+        if self.has_browsing_context {
+            Some(self.window.browsing_context())
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -398,7 +401,7 @@ impl Document {
 
     pub fn set_activity(&self, activity: DocumentActivity) {
         // This function should only be called on documents with a browsing context
-        assert!(self.browsing_context.is_some());
+        assert!(self.has_browsing_context);
         // Set the document's activity level, reflow if necessary, and suspend or resume timers.
         if activity != self.activity.get() {
             self.activity.set(activity);
@@ -1568,7 +1571,7 @@ impl Document {
                 self.process_deferred_scripts();
             },
             LoadType::PageSource(_) => {
-                if self.browsing_context.is_some() {
+                if self.has_browsing_context {
                     // Disarm the reflow timer and trigger the initial reflow.
                     self.reflow_timeout.set(None);
                     self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1830,7 +1833,7 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
     pub fn is_cookie_averse(&self) -> bool {
-        self.browsing_context.is_none() || !url_has_network_scheme(&self.url())
+        !self.has_browsing_context || !url_has_network_scheme(&self.url())
     }
 
     pub fn nodes_from_point(&self, client_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
@@ -1901,9 +1904,15 @@ fn url_has_network_scheme(url: &ServoUrl) -> bool {
     }
 }
 
+#[derive(Copy, Clone, HeapSizeOf, JSTraceable, PartialEq, Eq)]
+pub enum HasBrowsingContext {
+    No,
+    Yes,
+}
+
 impl Document {
     pub fn new_inherited(window: &Window,
-                         browsing_context: Option<&BrowsingContext>,
+                         has_browsing_context: HasBrowsingContext,
                          url: Option<ServoUrl>,
                          origin: Origin,
                          is_html_document: IsHTMLDocument,
@@ -1926,7 +1935,7 @@ impl Document {
         Document {
             node: Node::new_document_node(),
             window: JS::from_ref(window),
-            browsing_context: browsing_context.map(JS::from_ref),
+            has_browsing_context: has_browsing_context == HasBrowsingContext::Yes,
             implementation: Default::default(),
             location: Default::default(),
             content_type: match content_type {
@@ -1970,7 +1979,7 @@ impl Document {
             deferred_scripts: Default::default(),
             asap_in_order_scripts_list: Default::default(),
             asap_scripts_set: Default::default(),
-            scripting_enabled: browsing_context.is_some(),
+            scripting_enabled: has_browsing_context == HasBrowsingContext::Yes,
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DOMRefCell::new(vec![]),
             running_animation_callbacks: Cell::new(false),
@@ -2007,7 +2016,7 @@ impl Document {
         let doc = window.Document();
         let docloader = DocumentLoader::new(&*doc.loader());
         Ok(Document::new(window,
-                         None,
+                         HasBrowsingContext::No,
                          None,
                          doc.origin().alias(),
                          IsHTMLDocument::NonHTMLDocument,
@@ -2021,7 +2030,7 @@ impl Document {
     }
 
     pub fn new(window: &Window,
-               browsing_context: Option<&BrowsingContext>,
+               has_browsing_context: HasBrowsingContext,
                url: Option<ServoUrl>,
                origin: Origin,
                doctype: IsHTMLDocument,
@@ -2034,7 +2043,7 @@ impl Document {
                referrer_policy: Option<ReferrerPolicy>)
                -> Root<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window,
-                                                                      browsing_context,
+                                                                      has_browsing_context,
                                                                       url,
                                                                       origin,
                                                                       doctype,
@@ -2107,7 +2116,7 @@ impl Document {
                 IsHTMLDocument::NonHTMLDocument
             };
             let new_doc = Document::new(self.window(),
-                                        None,
+                                        HasBrowsingContext::No,
                                         None,
                                         // https://github.com/whatwg/html/issues/2109
                                         Origin::opaque_identifier(),
@@ -3011,10 +3020,10 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
     fn GetDefaultView(&self) -> Option<Root<Window>> {
-        if self.browsing_context.is_none() {
-            None
-        } else {
+        if self.has_browsing_context {
             Some(Root::from_ref(&*self.window))
+        } else {
+            None
         }
     }
 
