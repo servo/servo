@@ -151,11 +151,11 @@ impl RuleTree {
     /// Insert the given rules, that must be in proper order by specifity, and
     /// return the corresponding rule node representing the last inserted one.
     pub fn insert_ordered_rules<'a, I>(&self, iter: I) -> StrongRuleNode
-        where I: Iterator<Item=(StyleSource, Importance)>,
+        where I: Iterator<Item=(StyleSource, CascadeLevel)>,
     {
         let mut current = self.root.clone();
-        for (source, importance) in iter {
-            current = current.ensure_child(self.root.downgrade(), source, importance);
+        for (source, level) in iter {
+            current = current.ensure_child(self.root.downgrade(), source, level);
         }
         current
     }
@@ -176,6 +176,64 @@ impl RuleTree {
 /// where it likely did not result from a rigorous performance analysis.)
 const RULE_TREE_GC_INTERVAL: usize = 300;
 
+/// The cascade level these rules are relevant at.
+///
+/// The order of variants declared here is significant, and must be in
+/// _ascending_ order of precedence.
+#[repr(u8)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum CascadeLevel {
+    /// Normal User-Agent rules.
+    UANormal = 0,
+    /// Presentational hints.
+    PresHints,
+    /// User normal rules.
+    UserNormal,
+    /// Author normal rules.
+    AuthorNormal,
+    /// Style attribute normal rules.
+    StyleAttributeNormal,
+    /// CSS animations and script-generated animations.
+    Animations,
+    /// Author-supplied important rules.
+    AuthorImportant,
+    /// Style attribute important rules.
+    StyleAttributeImportant,
+    /// User important rules.
+    UserImportant,
+    /// User-agent important rules.
+    UAImportant,
+    /// Transitions
+    Transitions,
+}
+
+impl CascadeLevel {
+    /// Returns whether this cascade level represents important rules of some
+    /// sort.
+    #[inline]
+    pub fn is_important(&self) -> bool {
+        match *self {
+            CascadeLevel::AuthorImportant |
+            CascadeLevel::StyleAttributeImportant |
+            CascadeLevel::UserImportant |
+            CascadeLevel::UAImportant => true,
+            _ => false,
+        }
+    }
+
+    /// Returns the importance relevant for this rule. Pretty similar to
+    /// `is_important`.
+    #[inline]
+    pub fn importance(&self) -> Importance {
+        if self.is_important() {
+            Importance::Important
+        } else {
+            Importance::Normal
+        }
+    }
+}
+
 struct RuleNode {
     /// The root node. Only the root has no root pointer, for obvious reasons.
     root: Option<WeakRuleNode>,
@@ -187,9 +245,8 @@ struct RuleNode {
     /// or a raw property declaration block (like the style attribute).
     source: Option<StyleSource>,
 
-    /// The importance of the declarations relevant in the style rule,
-    /// meaningless in the root node.
-    importance: Importance,
+    /// The cascade level this rule is positioned at.
+    cascade_level: CascadeLevel,
 
     refcount: AtomicUsize,
     first_child: AtomicPtr<RuleNode>,
@@ -215,13 +272,13 @@ impl RuleNode {
     fn new(root: WeakRuleNode,
            parent: StrongRuleNode,
            source: StyleSource,
-           importance: Importance) -> Self {
+           cascade_level: CascadeLevel) -> Self {
         debug_assert!(root.upgrade().parent().is_none());
         RuleNode {
             root: Some(root),
             parent: Some(parent),
             source: Some(source),
-            importance: importance,
+            cascade_level: cascade_level,
             refcount: AtomicUsize::new(1),
             first_child: AtomicPtr::new(ptr::null_mut()),
             next_sibling: AtomicPtr::new(ptr::null_mut()),
@@ -236,7 +293,7 @@ impl RuleNode {
             root: None,
             parent: None,
             source: None,
-            importance: Importance::Normal,
+            cascade_level: CascadeLevel::UANormal,
             refcount: AtomicUsize::new(1),
             first_child: AtomicPtr::new(ptr::null_mut()),
             next_sibling: AtomicPtr::new(ptr::null_mut()),
@@ -385,10 +442,10 @@ impl StrongRuleNode {
     fn ensure_child(&self,
                     root: WeakRuleNode,
                     source: StyleSource,
-                    importance: Importance) -> StrongRuleNode {
+                    cascade_level: CascadeLevel) -> StrongRuleNode {
         let mut last = None;
         for child in self.get().iter_children() {
-            if child .get().importance == importance &&
+            if child .get().cascade_level == cascade_level &&
                 child.get().source.as_ref().unwrap().ptr_equals(&source) {
                 return child;
             }
@@ -398,7 +455,7 @@ impl StrongRuleNode {
         let mut node = Box::new(RuleNode::new(root,
                                              self.clone(),
                                              source.clone(),
-                                             importance));
+                                             cascade_level));
         let new_ptr: *mut RuleNode = &mut *node;
 
         loop {
@@ -462,7 +519,7 @@ impl StrongRuleNode {
 
     /// Get the importance that this rule node represents.
     pub fn importance(&self) -> Importance {
-        self.get().importance
+        self.get().cascade_level.importance()
     }
 
     /// Get an iterator for this rule node and its ancestors.
