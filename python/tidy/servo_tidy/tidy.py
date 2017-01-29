@@ -480,6 +480,9 @@ def check_rust(file_name, lines):
             line = re.sub(r'"(\\.|[^\\"])*?"', '""', line)
             line = re.sub(r"'(\\.|[^\\'])*?'", "''", line)
 
+        if re.search(r".*//[/!].*(TODO|NOTE|FIXME).*", line):
+            yield(idx + 1, "TODO, NOTE or FIXME in doc comment")
+            
         # get rid of comments
         line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '//', line)
 
