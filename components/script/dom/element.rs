@@ -109,7 +109,7 @@ use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, Sele
 use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
 use style::values::CSSFloat;
-use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
+use style::values::specified::{self, CSSColor, CSSRGBA};
 use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
