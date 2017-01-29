@@ -641,9 +641,7 @@ impl WindowMethods for Window {
         let origin = match &origin[..] {
             "*" => None,
             "/" => {
-                // TODO(#12715): Should be the origin of the incumbent settings
-                //               object, not self's.
-                Some(self.Document().origin().copy())
+                Some(Origin::new(&GlobalScope::incumbent().unwrap().get_url()))
             },
             url => match ServoUrl::parse(&url) {
                 Ok(url) => Some(Origin::new(&url)),
