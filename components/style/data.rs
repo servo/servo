@@ -203,7 +203,7 @@ impl From<RestyleHint> for StoredRestyleHint {
         use self::DescendantRestyleHint::*;
         debug_assert!(!hint.contains(RESTYLE_LATER_SIBLINGS), "Caller should apply sibling hints");
         StoredRestyleHint {
-            restyle_self: hint.contains(RESTYLE_SELF),
+            restyle_self: hint.contains(RESTYLE_SELF) || hint.contains(RESTYLE_STYLE_ATTRIBUTE),
             descendants: if hint.contains(RESTYLE_DESCENDANTS) { Descendants } else { Empty },
         }
     }
