@@ -474,6 +474,8 @@ def check_rust(file_name, lines):
 
                 if not whitespace:
                     import_block = False
+        if re.search(r".*///.*(TODO|NOTE|FIXME).*", line) or re.search(r".*//!.*(TODO|NOTE|FIXME).*", line):
+            yield(idx + 1, "TODO, NOTE or FIXME in doc comment")
 
         # get rid of strings and chars because cases like regex expression, keep attributes
         if not is_attribute:

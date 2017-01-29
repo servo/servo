@@ -22,6 +22,7 @@ extern crate style_traits;
 #[foo = "bar,baz"]
 impl test {
 
+    ///TODO something
     fn test_fun(y:f32)->f32{
         let x=5;
         x = x-1;
