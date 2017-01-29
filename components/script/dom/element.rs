@@ -105,6 +105,7 @@ use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
+use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
 use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
@@ -380,7 +381,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                     declarations: vec![(declaration, Importance::Normal)],
                     important_count: 0,
                 })),
-                Importance::Normal)
+                CascadeLevel::PresHints)
         }
 
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
