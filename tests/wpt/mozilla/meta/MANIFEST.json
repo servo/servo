@@ -1580,6 +1580,18 @@
             "url": "/_mozilla/css/flex_nochild.html"
           }
         ],
+        "css/flex_root_percent_size.html": [
+          {
+            "path": "css/flex_root_percent_size.html",
+            "references": [
+              [
+                "/_mozilla/css/flex_root_percent_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/flex_root_percent_size.html"
+          }
+        ],
         "css/flex_row_direction.html": [
           {
             "path": "css/flex_row_direction.html",
@@ -5302,6 +5314,18 @@
               ]
             ],
             "url": "/_mozilla/css/table_preferred_width_a.html"
+          }
+        ],
+        "css/table_root_percent_width.html": [
+          {
+            "path": "css/table_root_percent_width.html",
+            "references": [
+              [
+                "/_mozilla/css/table_root_percent_width_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/table_root_percent_width.html"
           }
         ],
         "css/table_row_direction_a.html": [
@@ -17024,6 +17048,18 @@
           "url": "/_mozilla/css/flex_nochild.html"
         }
       ],
+      "css/flex_root_percent_size.html": [
+        {
+          "path": "css/flex_root_percent_size.html",
+          "references": [
+            [
+              "/_mozilla/css/flex_root_percent_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/flex_root_percent_size.html"
+        }
+      ],
       "css/flex_row_direction.html": [
         {
           "path": "css/flex_row_direction.html",
@@ -20746,6 +20782,18 @@
             ]
           ],
           "url": "/_mozilla/css/table_preferred_width_a.html"
+        }
+      ],
+      "css/table_root_percent_width.html": [
+        {
+          "path": "css/table_root_percent_width.html",
+          "references": [
+            [
+              "/_mozilla/css/table_root_percent_width_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/table_root_percent_width.html"
         }
       ],
       "css/table_row_direction_a.html": [

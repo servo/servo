@@ -1701,6 +1701,19 @@ impl BlockFlow {
 
         self.base.floats = Floats::new(self.base.writing_mode);
 
+        self.initialize_container_size_for_root(shared_context);
+
+        // Our inline-size was set to the inline-size of the containing block by the flow's parent.
+        // Now compute the real value.
+        self.propagate_and_compute_used_inline_size(shared_context);
+
+        self.guess_inline_size_for_block_formatting_context_if_necessary()
+    }
+
+    /// If this is the root flow, initialize values that would normally be set by the parent.
+    ///
+    /// Should be called during `assign_inline_sizes` for flows that may be the root.
+    pub fn initialize_container_size_for_root(&mut self, shared_context: &SharedStyleContext) {
         if self.is_root() {
             debug!("Setting root position");
             self.base.position.start = LogicalPoint::zero(self.base.writing_mode);
@@ -1708,12 +1721,6 @@ impl BlockFlow {
                 self.base.writing_mode, shared_context.viewport_size).inline;
             self.base.block_container_writing_mode = self.base.writing_mode;
         }
-
-        // Our inline-size was set to the inline-size of the containing block by the flow's parent.
-        // Now compute the real value.
-        self.propagate_and_compute_used_inline_size(shared_context);
-
-        self.guess_inline_size_for_block_formatting_context_if_necessary()
     }
 
     fn guess_inline_size_for_block_formatting_context_if_necessary(&mut self) {
