@@ -830,7 +830,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                           animatable="False",
                           extra_prefixes="moz webkit"
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-timing-function",
-                          allowed_in_keyframe_block="False">
+                          allowed_in_keyframe_block="True">
     pub use properties::longhands::transition_timing_function::single_value::computed_value;
     pub use properties::longhands::transition_timing_function::single_value::get_initial_value;
     pub use properties::longhands::transition_timing_function::single_value::get_initial_specified_value;

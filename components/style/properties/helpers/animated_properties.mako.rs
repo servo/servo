@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+<%namespace name="helpers" file="/helpers.mako.rs" />
+
 use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA};
 use euclid::{Point2D, Size2D};
+#[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 use properties::{DeclaredValue, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::background_position_x::computed_value::T as BackgroundPositionX;
@@ -19,6 +22,7 @@ use properties::longhands::box_shadow::single_value::computed_value::T as BoxSha
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
+#[cfg(feature = "gecko")] use properties::{PropertyDeclarationId, LonghandId};
 use std::cmp;
 use std::fmt;
 use style_traits::ToCss;
@@ -97,6 +101,40 @@ impl ToCss for TransitionProperty {
                     TransitionProperty::${prop.camel_case} => dest.write_str("${prop.name}"),
                 % endif
             % endfor
+        }
+    }
+}
+
+/// Convert to nsCSSPropertyID.
+#[cfg(feature = "gecko")]
+#[allow(non_upper_case_globals)]
+impl From<TransitionProperty> for nsCSSPropertyID {
+    fn from(transition_property: TransitionProperty) -> nsCSSPropertyID {
+        match transition_property {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    TransitionProperty::${prop.camel_case}
+                        => ${helpers.to_nscsspropertyid(prop.ident)},
+                % endif
+            % endfor
+            TransitionProperty::All => nsCSSPropertyID::eCSSPropertyExtra_all_properties,
+        }
+    }
+}
+
+/// Convert to PropertyDeclarationId.
+#[cfg(feature = "gecko")]
+#[allow(non_upper_case_globals)]
+impl<'a> From<TransitionProperty> for PropertyDeclarationId<'a> {
+    fn from(transition_property: TransitionProperty) -> PropertyDeclarationId<'a> {
+        match transition_property {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    TransitionProperty::${prop.camel_case}
+                        => PropertyDeclarationId::Longhand(LonghandId::${prop.camel_case}),
+                % endif
+            % endfor
+            TransitionProperty::All => panic!(),
         }
     }
 }

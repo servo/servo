@@ -35,8 +35,10 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedV
 use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedValuesStrong};
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
+use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
 use style::gecko_bindings::bindings::RawGeckoAnimationValueListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
+use style::gecko_bindings::bindings::RawGeckoKeyframeListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
@@ -51,16 +53,18 @@ use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
 use style::gecko_bindings::structs::ServoStyleSheet;
+use style::gecko_bindings::structs::nsTimingFunction;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
+use style::keyframes::KeyframesStepValue;
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock, PropertyId};
 use style::properties::{apply_declarations, parse_one_declaration};
-use style::properties::animated_properties::{AnimationValue, Interpolate};
+use style::properties::animated_properties::{AnimationValue, Interpolate, TransitionProperty};
 use style::restyle_hints::RestyleHint;
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
@@ -1139,3 +1143,71 @@ pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
 
     assert_subtree_is_clean(root);
 }
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSetBorrowed,
+                                                      name: *const nsACString,
+                                                      timing_function: *const nsTimingFunction,
+                                                      style: ServoComputedValuesBorrowed,
+                                                      keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
+    let style_timing_function = unsafe { timing_function.as_ref().unwrap() };
+    let style = ComputedValues::as_arc(&style);
+
+    if let Some(ref animation) = data.stylist.animations().get(&name) {
+       for step in &animation.steps {
+          // Override timing_function if the keyframe has animation-timing-function.
+          let timing_function = if let Some(val) = step.get_animation_timing_function() {
+              val.into()
+          } else {
+              *style_timing_function
+          };
+
+          let keyframe = unsafe {
+                Gecko_AnimationAppendKeyframe(keyframes,
+                                              step.start_percentage.0 as f32,
+                                              &timing_function)
+          };
+
+          match step.value {
+              KeyframesStepValue::ComputedValues => {
+                  for (index, property) in animation.properties_changed.iter().enumerate() {
+                      let block = style.to_declaration_block(property.clone().into());
+                      unsafe {
+                          (*keyframe).mPropertyValues.set_len((index + 1) as u32);
+                          (*keyframe).mPropertyValues[index].mProperty = property.clone().into();
+                          (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
+                              Arc::new(RwLock::new(block)));
+                      }
+                  }
+              },
+              KeyframesStepValue::Declarations { ref block } => {
+                  let guard = block.read();
+                  // Filter out non-animatable properties.
+                  let animatable =
+                      guard.declarations
+                           .iter()
+                           .filter(|&&(ref declaration, _)| {
+                               declaration.is_animatable()
+                           });
+                  for (index, &(ref declaration, _)) in animatable.enumerate() {
+                      unsafe {
+                          (*keyframe).mPropertyValues.set_len((index + 1) as u32);
+                          (*keyframe).mPropertyValues[index].mProperty =
+                              TransitionProperty::from_declaration(declaration).unwrap().into();
+                          (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
+                              Arc::new(RwLock::new(
+                                  PropertyDeclarationBlock { declarations: vec![ (declaration.clone(),
+                                                                                  Importance::Normal) ],
+                                                             important_count: 0 })));
+                      }
+                  }
+              },
+          }
+       }
+       return true
+    }
+    false
+}
+

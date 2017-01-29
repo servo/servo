@@ -665,3 +665,20 @@
         }
     % endif
 </%def>
+
+<%def name="alias_to_nscsspropertyid(alias)">
+    <%
+        if alias == "word-wrap":
+            return "nsCSSPropertyID_eCSSPropertyAlias_WordWrap"
+        return "nsCSSPropertyID::eCSSPropertyAlias_%s" % to_camel_case(alias)
+    %>
+</%def>
+
+<%def name="to_nscsspropertyid(ident)">
+    <%
+        if ident == "float":
+            ident = "float_"
+        return "nsCSSPropertyID::eCSSProperty_%s" % ident
+    %>
+</%def>
+
