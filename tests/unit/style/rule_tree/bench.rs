@@ -11,7 +11,7 @@ use style::error_reporting::ParseErrorReporter;
 use style::media_queries::MediaList;
 use style::parser::ParserContextExtraData;
 use style::properties::{longhands, DeclaredValue, Importance, PropertyDeclaration, PropertyDeclarationBlock};
-use style::rule_tree::{RuleTree, StrongRuleNode, StyleSource};
+use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::stylesheets::{Origin, Stylesheet, CssRule};
 use test::{self, Bencher};
 
@@ -40,7 +40,7 @@ impl<'a> Drop for AutoGCRuleTree<'a> {
     }
 }
 
-fn parse_rules(css: &str) -> Vec<(StyleSource, Importance)> {
+fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
     let s = Stylesheet::from_str(css,
                                  ServoUrl::parse("http://localhost").unwrap(),
                                  Origin::Author,
@@ -57,15 +57,15 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, Importance)> {
             _ => None,
         }
     }).cloned().map(StyleSource::Style).map(|s| {
-        (s, Importance::Normal)
+        (s, CascadeLevel::UserNormal)
     }).collect()
 }
 
-fn test_insertion(rule_tree: &RuleTree, rules: Vec<(StyleSource, Importance)>) -> StrongRuleNode {
+fn test_insertion(rule_tree: &RuleTree, rules: Vec<(StyleSource, CascadeLevel)>) -> StrongRuleNode {
     rule_tree.insert_ordered_rules(rules.into_iter())
 }
 
-fn test_insertion_style_attribute(rule_tree: &RuleTree, rules: &[(StyleSource, Importance)]) -> StrongRuleNode {
+fn test_insertion_style_attribute(rule_tree: &RuleTree, rules: &[(StyleSource, CascadeLevel)]) -> StrongRuleNode {
     let mut rules = rules.to_vec();
     rules.push((StyleSource::Declarations(Arc::new(RwLock::new(PropertyDeclarationBlock {
         declarations: vec![
@@ -74,7 +74,7 @@ fn test_insertion_style_attribute(rule_tree: &RuleTree, rules: &[(StyleSource, I
             Importance::Normal),
         ],
         important_count: 0,
-    }))), Importance::Normal));
+    }))), CascadeLevel::UserNormal));
     test_insertion(rule_tree, rules)
 }
 

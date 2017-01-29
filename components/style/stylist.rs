@@ -14,10 +14,10 @@ use keyframes::KeyframesAnimation;
 use media_queries::Device;
 use parking_lot::RwLock;
 use pdqsort::sort_by;
-use properties::{self, CascadeFlags, ComputedValues, INHERIT_ALL, Importance};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{self, CascadeFlags, ComputedValues, INHERIT_ALL};
+use properties::PropertyDeclarationBlock;
 use restyle_hints::{RestyleHint, DependencySet};
-use rule_tree::{RuleTree, StrongRuleNode, StyleSource};
+use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use selector_parser::{ElementExt, SelectorImpl, PseudoElement, Snapshot};
 use selectors::Element;
 use selectors::bloom::BloomFilter;
@@ -31,7 +31,6 @@ use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::Hash;
-use std::slice;
 use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
 use stylesheets::{CssRule, Origin, StyleRule, Stylesheet, UserAgentStylesheets};
@@ -215,7 +214,9 @@ impl Stylist {
             // extra field, and avoid this precomputation entirely.
             if let Some(map) = self.pseudos_map.remove(&pseudo) {
                 let mut declarations = vec![];
-                map.user_agent.get_universal_rules(&mut declarations);
+                map.user_agent.get_universal_rules(&mut declarations,
+                                                   CascadeLevel::UserNormal,
+                                                   CascadeLevel::UserImportant);
                 self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
             }
         });
@@ -311,7 +312,7 @@ impl Stylist {
                 // FIXME(emilio): When we've taken rid of the cascade we can just
                 // use into_iter.
                 self.rule_tree.insert_ordered_rules(
-                    declarations.into_iter().map(|a| (a.source.clone(), a.importance)))
+                    declarations.into_iter().map(|a| (a.source.clone(), a.level)))
             }
             None => self.rule_tree.root(),
         };
@@ -394,7 +395,7 @@ impl Stylist {
 
         let rule_node =
             self.rule_tree.insert_ordered_rules(
-                declarations.into_iter().map(|a| (a.source, a.importance)));
+                declarations.into_iter().map(|a| (a.source, a.level)));
 
         let computed =
             properties::cascade(self.device.au_viewport_size(),
@@ -522,13 +523,19 @@ impl Stylist {
                                               applicable_declarations,
                                               &mut relations,
                                               reason,
-                                              Importance::Normal);
+                                              CascadeLevel::UANormal);
         debug!("UA normal: {:?}", relations);
 
         // Step 2: Presentational hints.
         let length = applicable_declarations.len();
         element.synthesize_presentational_hints_for_legacy_attributes(applicable_declarations);
         if applicable_declarations.len() != length {
+            if cfg!(debug_assertions) {
+                for i in length..applicable_declarations.len() {
+                    assert_eq!(applicable_declarations[i].level,
+                               CascadeLevel::PresHints);
+                }
+            }
             // Never share style for elements with preshints
             relations |= AFFECTED_BY_PRESENTATIONAL_HINTS;
         }
@@ -541,14 +548,14 @@ impl Stylist {
                                             applicable_declarations,
                                             &mut relations,
                                             reason,
-                                            Importance::Normal);
+                                            CascadeLevel::UserNormal);
             debug!("user normal: {:?}", relations);
             map.author.get_all_matching_rules(element,
                                               parent_bf,
                                               applicable_declarations,
                                               &mut relations,
                                               reason,
-                                              Importance::Normal);
+                                              CascadeLevel::AuthorNormal);
             debug!("author normal: {:?}", relations);
 
             // Step 4: Normal style attributes.
@@ -557,7 +564,8 @@ impl Stylist {
                     relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                     Push::push(
                         applicable_declarations,
-                        ApplicableDeclarationBlock::from_declarations(sa.clone(), Importance::Normal));
+                        ApplicableDeclarationBlock::from_declarations(sa.clone(),
+                                                                      CascadeLevel::StyleAttributeNormal));
                 }
             }
 
@@ -570,7 +578,8 @@ impl Stylist {
                 relations |= AFFECTED_BY_ANIMATIONS;
                 Push::push(
                     applicable_declarations,
-                    ApplicableDeclarationBlock::from_declarations(anim.clone(), Importance::Normal));
+                    ApplicableDeclarationBlock::from_declarations(anim.clone(),
+                                                                  CascadeLevel::Animations));
             }
             debug!("animation: {:?}", relations);
 
@@ -580,7 +589,7 @@ impl Stylist {
                                               applicable_declarations,
                                               &mut relations,
                                               reason,
-                                              Importance::Important);
+                                              CascadeLevel::AuthorImportant);
 
             debug!("author important: {:?}", relations);
 
@@ -590,7 +599,8 @@ impl Stylist {
                     relations |= AFFECTED_BY_STYLE_ATTRIBUTE;
                     Push::push(
                         applicable_declarations,
-                        ApplicableDeclarationBlock::from_declarations(sa.clone(), Importance::Important));
+                        ApplicableDeclarationBlock::from_declarations(sa.clone(),
+                                                                      CascadeLevel::StyleAttributeImportant));
                 }
             }
 
@@ -602,7 +612,7 @@ impl Stylist {
                                             applicable_declarations,
                                             &mut relations,
                                             reason,
-                                            Importance::Important);
+                                            CascadeLevel::UserImportant);
 
             debug!("user important: {:?}", relations);
         } else {
@@ -615,7 +625,7 @@ impl Stylist {
                                               applicable_declarations,
                                               &mut relations,
                                               reason,
-                                              Importance::Important);
+                                              CascadeLevel::UAImportant);
 
         debug!("UA important: {:?}", relations);
 
@@ -625,7 +635,7 @@ impl Stylist {
             relations |= AFFECTED_BY_TRANSITIONS;
             Push::push(
                 applicable_declarations,
-                ApplicableDeclarationBlock::from_declarations(anim.clone(), Importance::Normal));
+                ApplicableDeclarationBlock::from_declarations(anim.clone(), CascadeLevel::Transitions));
         }
         debug!("transition: {:?}", relations);
 
@@ -853,7 +863,7 @@ impl SelectorMap {
                                         matching_rules_list: &mut V,
                                         relations: &mut StyleRelations,
                                         reason: MatchingReason,
-                                        importance: Importance)
+                                        cascade_level: CascadeLevel)
         where E: Element<Impl=SelectorImpl>,
               V: VecLike<ApplicableDeclarationBlock>
     {
@@ -871,7 +881,7 @@ impl SelectorMap {
                                                       matching_rules_list,
                                                       relations,
                                                       reason,
-                                                      importance)
+                                                      cascade_level)
         }
 
         element.each_class(|class| {
@@ -882,7 +892,7 @@ impl SelectorMap {
                                                       matching_rules_list,
                                                       relations,
                                                       reason,
-                                                      importance);
+                                                      cascade_level);
         });
 
         let local_name_hash = if element.is_html_element_in_html_document() {
@@ -897,7 +907,7 @@ impl SelectorMap {
                                                   matching_rules_list,
                                                   relations,
                                                   reason,
-                                                  importance);
+                                                  cascade_level);
 
         SelectorMap::get_matching_rules(element,
                                         parent_bf,
@@ -905,7 +915,7 @@ impl SelectorMap {
                                         matching_rules_list,
                                         relations,
                                         reason,
-                                        importance);
+                                        cascade_level);
 
         // Sort only the rules we just added.
         sort_by_key(&mut matching_rules_list[init_len..],
@@ -913,11 +923,15 @@ impl SelectorMap {
     }
 
     /// Append to `rule_list` all universal Rules (rules with selector `*|*`) in
-    /// `self` sorted by specifity and source order.
+    /// `self` sorted by specificity and source order.
     pub fn get_universal_rules<V>(&self,
-                                  matching_rules_list: &mut V)
+                                  matching_rules_list: &mut V,
+                                  cascade_level: CascadeLevel,
+                                  important_cascade_level: CascadeLevel)
         where V: VecLike<ApplicableDeclarationBlock>
     {
+        debug_assert!(!cascade_level.is_important());
+        debug_assert!(important_cascade_level.is_important());
         if self.empty {
             return
         }
@@ -931,11 +945,11 @@ impl SelectorMap {
                 let block = guard.block.read();
                 if block.any_normal() {
                     matching_rules_list.push(
-                        rule.to_applicable_declaration_block(Importance::Normal));
+                        rule.to_applicable_declaration_block(cascade_level));
                 }
                 if block.any_important() {
                     matching_rules_list.push(
-                        rule.to_applicable_declaration_block(Importance::Important));
+                        rule.to_applicable_declaration_block(important_cascade_level));
                 }
             }
         }
@@ -952,7 +966,7 @@ impl SelectorMap {
         matching_rules: &mut Vector,
         relations: &mut StyleRelations,
         reason: MatchingReason,
-        importance: Importance)
+        cascade_level: CascadeLevel)
         where E: Element<Impl=SelectorImpl>,
               Str: Borrow<BorrowedStr> + Eq + Hash,
               BorrowedStr: Eq + Hash,
@@ -965,7 +979,7 @@ impl SelectorMap {
                                             matching_rules,
                                             relations,
                                             reason,
-                                            importance)
+                                            cascade_level)
         }
     }
 
@@ -976,14 +990,14 @@ impl SelectorMap {
                                 matching_rules: &mut V,
                                 relations: &mut StyleRelations,
                                 reason: MatchingReason,
-                                importance: Importance)
+                                cascade_level: CascadeLevel)
         where E: Element<Impl=SelectorImpl>,
               V: VecLike<ApplicableDeclarationBlock>
     {
         for rule in rules.iter() {
             let guard = rule.style_rule.read();
             let block = guard.block.read();
-            let any_declaration_for_importance = if importance.important() {
+            let any_declaration_for_importance = if cascade_level.is_important() {
                 block.any_important()
             } else {
                 block.any_normal()
@@ -992,7 +1006,7 @@ impl SelectorMap {
                matches_complex_selector(&*rule.selector, element, parent_bf,
                                         relations, reason) {
                 matching_rules.push(
-                    rule.to_applicable_declaration_block(importance));
+                    rule.to_applicable_declaration_block(cascade_level));
             }
         }
     }
@@ -1088,10 +1102,10 @@ pub struct Rule {
 }
 
 impl Rule {
-    fn to_applicable_declaration_block(&self, importance: Importance) -> ApplicableDeclarationBlock {
+    fn to_applicable_declaration_block(&self, level: CascadeLevel) -> ApplicableDeclarationBlock {
         ApplicableDeclarationBlock {
             source: StyleSource::Style(self.style_rule.clone()),
-            importance: importance,
+            level: level,
             source_order: self.source_order,
             specificity: self.specificity,
         }
@@ -1109,8 +1123,8 @@ pub struct ApplicableDeclarationBlock {
     /// The style source, either a style rule, or a property declaration block.
     #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub source: StyleSource,
-    /// The importance of this declaration block.
-    pub importance: Importance,
+    /// The cascade level this applicable declaration block is in.
+    pub level: CascadeLevel,
     /// The source order of this block.
     pub source_order: usize,
     /// The specificity of the selector this block is represented by.
@@ -1122,13 +1136,13 @@ impl ApplicableDeclarationBlock {
     /// declaration block and importance.
     #[inline]
     pub fn from_declarations(declarations: Arc<RwLock<PropertyDeclarationBlock>>,
-                             importance: Importance)
+                             level: CascadeLevel)
                              -> Self {
         ApplicableDeclarationBlock {
             source: StyleSource::Declarations(declarations),
+            level: level,
             source_order: 0,
             specificity: 0,
-            importance: importance,
         }
     }
 }
