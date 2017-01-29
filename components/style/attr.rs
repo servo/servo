@@ -11,9 +11,12 @@ use app_units::Au;
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
 use num_traits::ToPrimitive;
+use parking_lot::RwLock;
+use properties::PropertyDeclarationBlock;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::str::FromStr;
+use std::sync::Arc;
 use str::{HTML_SPACE_CHARACTERS, read_exponent, read_fraction};
 use str::{read_numbers, split_commas, split_html_space_chars};
 #[cfg(not(feature = "gecko"))] use str::str_join;
@@ -30,7 +33,7 @@ pub enum LengthOrPercentageOrAuto {
     Length(Au),
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum AttrValue {
     String(String),
@@ -43,6 +46,22 @@ pub enum AttrValue {
     Color(String, Option<RGBA>),
     Dimension(String, LengthOrPercentageOrAuto),
     Url(String, Option<ServoUrl>),
+
+    /// Note that this variant is only used transitively as a fast path to set
+    /// the property declaration block relevant to the style of an element when
+    /// set from the inline declaration of that element (that is,
+    /// `element.style`).
+    ///
+    /// This can, as of this writing, only correspond to the value of the
+    /// `style` element, and is set from its relevant CSSInlineStyleDeclaration,
+    /// and then converted to a string in Element::attribute_mutated.
+    ///
+    /// Note that we don't necessarily need to do that (we could just clone the
+    /// declaration block), but that avoids keeping a refcounted
+    /// declarationblock for longer than needed.
+    Declaration(String,
+                #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
+                Arc<RwLock<PropertyDeclarationBlock>>)
 }
 
 /// Shared implementation to parse an integer according to
@@ -330,6 +349,7 @@ impl ::std::ops::Deref for AttrValue {
                 AttrValue::Color(ref value, _) |
                 AttrValue::Int(ref value, _) |
                 AttrValue::Url(ref value, _) |
+                AttrValue::Declaration(ref value, _) |
                 AttrValue::Dimension(ref value, _) => &value,
             AttrValue::Atom(ref value) => &value,
         }
