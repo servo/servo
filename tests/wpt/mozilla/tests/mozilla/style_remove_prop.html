@@ -8,6 +8,6 @@
 test(function() {
   var div = document.querySelector('div');
   div.style.color = "";
-  assert_equals(div.getAttribute('style'), "");
+  assert_true(!div.hasAttribute('style') || div.getAttribute('style') === '');
 }, "Removing a property from the style object updates the attribute");
 </script>
