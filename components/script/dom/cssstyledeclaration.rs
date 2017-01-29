@@ -11,12 +11,13 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::cssrule::CSSRule;
 use dom::element::Element;
-use dom::node::{Node, NodeDamage, window_from_node};
+use dom::node::{Node, window_from_node};
 use dom::window::Window;
 use parking_lot::RwLock;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
+use style::attr::AttrValue;
 use style::parser::ParserContextExtraData;
 use style::properties::{Importance, PropertyDeclarationBlock, PropertyId, LonghandId, ShorthandId};
 use style::properties::{parse_one_declaration, parse_style_attribute};
@@ -53,16 +54,18 @@ impl CSSStyleOwner {
         let mut changed = true;
         match *self {
             CSSStyleOwner::Element(ref el) => {
-                let mut attr = el.style_attribute().borrow_mut();
-                let (result, needs_clear) = if attr.is_some() {
+                // Whether the attribute needs to be cleared.
+                //
+                // TODO(emilio): This is not clear (no pun intended) by the HTML
+                // spec, see: https://github.com/whatwg/html/issues/2306
+                let mut needs_clear = false;
+                let mut attr = el.style_attribute().borrow_mut().take();
+                let result = if attr.is_some() {
                     let lock = attr.as_ref().unwrap();
                     let mut pdb = lock.write();
                     let result = f(&mut pdb, &mut changed);
-                    if changed {
-                        el.set_style_attr(pdb.to_css_string());
-                        el.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
-                    }
-                    (result, pdb.declarations.is_empty())
+                    needs_clear = pdb.declarations.is_empty();
+                    result
                 } else {
                     let mut pdb = PropertyDeclarationBlock {
                         important_count: 0,
@@ -72,18 +75,32 @@ impl CSSStyleOwner {
 
                     // Here `changed` is somewhat silly, because we know the
                     // exact conditions under it changes.
-                    if !pdb.declarations.is_empty() {
-                        el.set_style_attr(pdb.to_css_string());
-                        el.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
-                        *attr = Some(Arc::new(RwLock::new(pdb)));
+                    changed = !pdb.declarations.is_empty();
+                    if changed {
+                        attr = Some(Arc::new(RwLock::new(pdb)));
                     }
 
-                    (result, false)
+                    result
                 };
 
                 if needs_clear {
-                    *attr = None;
+                    attr = None;
                 }
+
+                if changed {
+                    if let Some(pdb) = attr {
+                        let serialization = pdb.read().to_css_string();
+                        el.set_attribute(&local_name!("style"),
+                                         AttrValue::Declaration(serialization,
+                                                                pdb));
+                    } else {
+                        el.remove_attribute(&ns!(), &local_name!("style"));
+                    }
+                } else {
+                    // Remember to put it back.
+                    *el.style_attribute().borrow_mut() = attr;
+                }
+
                 result
             }
             CSSStyleOwner::CSSRule(ref rule, ref pdb) => {

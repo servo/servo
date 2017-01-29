@@ -166,7 +166,7 @@ impl VirtualMethods for HTMLLinkElement {
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
-        if !self.upcast::<Node>().is_in_doc() || mutation == AttributeMutation::Removed {
+        if !self.upcast::<Node>().is_in_doc() || mutation.is_removal() {
             return;
         }
 
