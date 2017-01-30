@@ -162,13 +162,21 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 webrender_traits::RendererKind::Native
             };
 
+            let recorder = if opts.webrender_record {
+                let record_path = PathBuf::from("wr-record.bin");
+                let recorder = Box::new(webrender::BinaryRecorder::new(&record_path));
+                Some(recorder as Box<webrender::ApiRecordingReceiver>)
+            } else {
+                None
+            };
+
             webrender::Renderer::new(webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
                 resource_override_path: Some(resource_path),
                 enable_aa: opts.enable_text_antialiasing,
                 enable_profiler: opts.webrender_stats,
                 debug: opts.webrender_debug,
-                enable_recording: opts.webrender_record,
+                recorder: recorder,
                 precache_shaders: opts.precache_shaders,
                 enable_scrollbars: opts.output_file.is_none(),
                 renderer_kind: renderer_kind,

@@ -246,7 +246,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       item.text_run.font_key,
                                       item.text_color,
                                       item.text_run.actual_pt_size,
-                                      item.blur_radius);
+                                      item.blur_radius,
+                                      None);
                 }
             }
             DisplayItem::Image(ref item) => {
