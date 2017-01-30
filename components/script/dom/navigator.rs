@@ -10,6 +10,7 @@ use dom::bindings::str::DOMString;
 use dom::bluetooth::Bluetooth;
 use dom::mimetypearray::MimeTypeArray;
 use dom::navigatorinfo;
+use dom::permissions::Permissions;
 use dom::pluginarray::PluginArray;
 use dom::serviceworkercontainer::ServiceWorkerContainer;
 use dom::vr::VR;
@@ -23,7 +24,8 @@ pub struct Navigator {
     plugins: MutNullableJS<PluginArray>,
     mime_types: MutNullableJS<MimeTypeArray>,
     service_worker: MutNullableJS<ServiceWorkerContainer>,
-    vr: MutNullableJS<VR>
+    vr: MutNullableJS<VR>,
+    permissions: MutNullableJS<Permissions>,
 }
 
 impl Navigator {
@@ -35,6 +37,7 @@ impl Navigator {
             mime_types: Default::default(),
             service_worker: Default::default(),
             vr: Default::default(),
+            permissions: Default::default(),
         }
     }
 
@@ -122,6 +125,11 @@ impl NavigatorMethods for Navigator {
     // https://w3c.github.io/webvr/#interface-navigator
     fn Vr(&self) -> Root<VR> {
         self.vr.or_init(|| VR::new(&self.global()))
+    }
+
+    // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
+    fn Permissions(&self) -> Root<Permissions> {
+        self.permissions.or_init(|| Permissions::new(&self.global()))
     }
 }
 

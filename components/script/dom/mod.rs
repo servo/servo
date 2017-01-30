@@ -384,6 +384,8 @@ pub mod nodelist;
 pub mod pagetransitionevent;
 pub mod performance;
 pub mod performancetiming;
+pub mod permissions;
+pub mod permissionstatus;
 pub mod plugin;
 pub mod pluginarray;
 pub mod popstateevent;
