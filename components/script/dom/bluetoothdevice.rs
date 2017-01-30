@@ -15,7 +15,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};
+use dom::bluetooth::{allowed_devices_contains_id, AsyncBluetoothListener, Bluetooth, response_async};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
@@ -72,6 +72,12 @@ impl BluetoothDevice {
                                                               context),
                            global,
                            BluetoothDeviceBinding::Wrap)
+    }
+
+    pub fn get_gatt(&self) -> Root<BluetoothRemoteGATTServer> {
+        self.gatt.or_init(|| {
+            BluetoothRemoteGATTServer::new(&self.global(), self)
+        })
     }
 
     fn get_context(&self) -> Root<Bluetooth> {
@@ -157,7 +163,7 @@ impl BluetoothDevice {
     #[allow(unrooted_must_root)]
     pub fn clean_up_disconnected_device(&self) {
         // Step 1.
-        self.Gatt().set_connected(false);
+        self.get_gatt().set_connected(false);
 
         // TODO: Step 2: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
 
@@ -193,7 +199,7 @@ impl BluetoothDevice {
         for (id, device) in context.get_device_map().borrow().iter() {
             // Step 2.1 - 2.2.
             if id == &self.Id().to_string() {
-                if device.Gatt().Connected() {
+                if device.get_gatt().Connected() {
                     return Ok(());
                 }
                 // TODO: Step 2.3: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
@@ -220,11 +226,13 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt
-    fn Gatt(&self) -> Root<BluetoothRemoteGATTServer> {
-        // TODO: Step 1 - 2: Implement the Permission API.
-        self.gatt.or_init(|| {
-            BluetoothRemoteGATTServer::new(&self.global(), self)
-        })
+    fn GetGatt(&self) -> Option<Root<BluetoothRemoteGATTServer>> {
+        // Step 1.
+        if allowed_devices_contains_id(self.id.clone()) && !self.is_represented_device_null() {
+            return Some(self.get_gatt())
+        }
+        // Step 2.
+        None
     }
 
     #[allow(unrooted_must_root)]

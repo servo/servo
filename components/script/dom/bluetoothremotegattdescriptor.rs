@@ -5,7 +5,6 @@
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
     BluetoothRemoteGATTCharacteristicMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding;
@@ -98,7 +97,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         }
 
         // Step 2.
-        if !self.Characteristic().Service().Device().Gatt().Connected() {
+        if !self.Characteristic().Service().Device().get_gatt().Connected() {
             p.reject_error(p_cx, Network);
             return p;
         }
@@ -131,7 +130,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         }
 
         // Step 4.
-        if !self.Characteristic().Service().Device().Gatt().Connected() {
+        if !self.Characteristic().Service().Device().get_gatt().Connected() {
             p.reject_error(p_cx, Network);
             return p;
         }
