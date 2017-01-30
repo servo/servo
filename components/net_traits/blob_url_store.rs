@@ -35,15 +35,14 @@ pub struct BlobBuf {
 
 /// Parse URL as Blob URL scheme's definition
 /// https://w3c.github.io/FileAPI/#DefinitionOfScheme
-pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin, Option<String>), ()> {
+pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, FileOrigin), ()> {
     let url_inner = try!(Url::parse(url.path()).map_err(|_| ()));
-    let fragment = url_inner.fragment().map(|s| s.to_string());
     let id = {
         let mut segs = try!(url_inner.path_segments().ok_or(()));
         let id = try!(segs.nth(0).ok_or(()));
         try!(Uuid::from_str(id).map_err(|_| ()))
     };
-    Ok((id, get_blob_origin(&ServoUrl::from_url(url_inner)), fragment))
+    Ok((id, get_blob_origin(&ServoUrl::from_url(url_inner))))
 }
 
 /// Given an URL, returning the Origin that a Blob created under this
