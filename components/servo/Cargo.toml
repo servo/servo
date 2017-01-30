@@ -21,7 +21,7 @@ clippy = ["plugins/clippy"]
 debugmozjs = ["script/debugmozjs"]
 
 [dependencies]
-backtrace = "0.2"
+backtrace = "0.3"
 bluetooth_traits = {path = "../bluetooth_traits"}
 bluetooth = {path = "../bluetooth"}
 canvas = {path = "../canvas"}
