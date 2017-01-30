@@ -7,14 +7,14 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutNullableJS, Root};
+use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
 use dom::node::{document_from_node, Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use html5ever_atoms::LocalName;
@@ -22,8 +22,7 @@ use style::attr::AttrValue;
 
 #[dom_struct]
 pub struct HTMLLabelElement {
-    htmlelement: HTMLElement,
-    form_owner: MutNullableJS<HTMLFormElement>,
+    htmlelement: HTMLElement
 }
 
 impl HTMLLabelElement {
@@ -33,7 +32,6 @@ impl HTMLLabelElement {
         HTMLLabelElement {
             htmlelement:
                 HTMLElement::new_inherited(local_name, prefix, document),
-                form_owner: Default::default(),
         }
     }
 
@@ -174,11 +172,18 @@ impl HTMLLabelElement {
 
 impl FormControl for HTMLLabelElement {
     fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
-        self.form_owner.get()
+        if let Some(e) = self.GetControl() {
+            let form_control = e.upcast::<Element>().as_maybe_form_control()
+                                .expect("Element must be a form control");
+            form_control.form_owner()
+        } else {
+            None
+        }
     }
 
-    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
-        self.form_owner.set(form);
+    fn set_form_owner(&self, _: Option<&HTMLFormElement>) {
+        // Label is a special case for form owner, it reflects its control's
+        // form owner. Therefore it doesn't hold form owner itself.
     }
 
     fn to_element<'a>(&'a self) -> &'a Element {
