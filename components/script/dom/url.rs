@@ -126,7 +126,7 @@ impl URL {
         let origin = get_blob_origin(&global.get_url());
 
         if let Ok(url) = ServoUrl::parse(&url) {
-             if let Ok((id, _, _)) = parse_blob_url(&url) {
+             if let Ok((id, _)) = parse_blob_url(&url) {
                 let resource_threads = global.resource_threads();
                 let (tx, rx) = ipc::channel().unwrap();
                 let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin, tx);

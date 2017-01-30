@@ -22,7 +22,7 @@ pub fn load_blob_sync
              filemanager: FileManager)
              -> Result<(Headers, Vec<u8>), NetworkError> {
     let (id, origin) = match parse_blob_url(&url) {
-        Ok((id, origin, _fragment)) => (id, origin),
+        Ok((id, origin)) => (id, origin),
         Err(()) => {
             let e = format!("Invalid blob URL format {:?}", url);
             return Err(NetworkError::Internal(e));
