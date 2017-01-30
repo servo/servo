@@ -357,12 +357,16 @@ class MachCommands(CommandBase):
     @CommandArgument('--release', '-r',
                      action='store_true',
                      help='Build in release mode')
+    @CommandArgument('--debug-mozjs',
+                     default=None,
+                     action='store_true',
+                     help='Enable debug assertions in mozjs')
     @CommandArgument('--with-debug-assertions',
                      default=None,
                      action='store_true',
                      help='Enable debug assertions in release')
     def build_cef(self, jobs=None, verbose=False, release=False,
-                  with_debug_assertions=False):
+                  debug_mozjs=False, with_debug_assertions=False):
         self.ensure_bootstrapped()
 
         ret = None
@@ -375,6 +379,10 @@ class MachCommands(CommandBase):
             opts += ["--release"]
 
         servo_features = self.servo_features()
+
+        if debug_mozjs:
+            servo_features += ["debugmozjs"]
+
         if servo_features:
             opts += ["--features", "%s" % ' '.join(servo_features)]
 
