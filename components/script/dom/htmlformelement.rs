@@ -32,6 +32,7 @@ use dom::htmlformcontrolscollection::HTMLFormControlsCollection;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllabelelement::HTMLLabelElement;
+use dom::htmllegendelement::HTMLLegendElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlselectelement::HTMLSelectElement;
@@ -652,7 +653,7 @@ impl HTMLFormElement {
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
                     // Unimplemented
-                    unimplemented!()
+                    {}
                 }
                 _ => {}
             }
@@ -1077,6 +1078,9 @@ impl FormControlElementHelpers for Element {
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)) => {
                 Some(self.downcast::<HTMLLabelElement>().unwrap() as &FormControl)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLegendElement)) => {
+                Some(self.downcast::<HTMLLegendElement>().unwrap() as &FormControl)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
                 Some(self.downcast::<HTMLObjectElement>().unwrap() as &FormControl)
