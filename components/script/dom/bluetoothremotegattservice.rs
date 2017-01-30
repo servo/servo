@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use bluetooth_traits::{BluetoothResponse, GATTType};
-use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
@@ -87,7 +86,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                          characteristic: BluetoothCharacteristicUUID)
                          -> Rc<Promise> {
         get_gatt_children(self, true, BluetoothUUID::characteristic, Some(characteristic), self.get_instance_id(),
-                          self.Device().Gatt().Connected(), GATTType::Characteristic)
+                          self.Device().get_gatt().Connected(), GATTType::Characteristic)
     }
 
     #[allow(unrooted_must_root)]
@@ -96,7 +95,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                           characteristic: Option<BluetoothCharacteristicUUID>)
                           -> Rc<Promise> {
         get_gatt_children(self, false, BluetoothUUID::characteristic, characteristic, self.get_instance_id(),
-                          self.Device().Gatt().Connected(), GATTType::Characteristic)
+                          self.Device().get_gatt().Connected(), GATTType::Characteristic)
     }
 
     #[allow(unrooted_must_root)]
@@ -105,7 +104,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                           service: BluetoothServiceUUID)
                           -> Rc<Promise> {
         get_gatt_children(self, false, BluetoothUUID::service, Some(service), self.get_instance_id(),
-                          self.Device().Gatt().Connected(), GATTType::IncludedService)
+                          self.Device().get_gatt().Connected(), GATTType::IncludedService)
     }
 
 
@@ -115,7 +114,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                           service: Option<BluetoothServiceUUID>)
                           -> Rc<Promise> {
         get_gatt_children(self, false, BluetoothUUID::service, service, self.get_instance_id(),
-                          self.Device().Gatt().Connected(), GATTType::IncludedService)
+                          self.Device().get_gatt().Connected(), GATTType::IncludedService)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-serviceeventhandlers-onserviceadded
@@ -151,12 +150,12 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTService {
             // Step 7.
             BluetoothResponse::GetIncludedServices(services_vec, single) => {
                 if single {
-                    promise.resolve_native(promise_cx, &device.get_or_create_service(&services_vec[0], &device.Gatt()));
-                    return;
+                    return promise.resolve_native(promise_cx,
+                                                  &device.get_or_create_service(&services_vec[0], &device.get_gatt()));
                 }
                 let mut services = vec!();
                 for service in services_vec {
-                    let bt_service = device.get_or_create_service(&service, &device.Gatt());
+                    let bt_service = device.get_or_create_service(&service, &device.get_gatt());
                     services.push(bt_service);
                 }
                 promise.resolve_native(promise_cx, &services);

@@ -253,6 +253,9 @@ impl BluetoothManager {
                 BluetoothRequest::IsRepresentedDeviceNull(id, sender) => {
                     let _ = sender.send(!self.device_is_cached(&id));
                 }
+                BluetoothRequest::MatchesFilter(id, filters, sender) => {
+                    let _ = sender.send(self.device_matches_filter(&id, &filters));
+                }
                 BluetoothRequest::Exit => {
                     break
                 },
@@ -422,6 +425,17 @@ impl BluetoothManager {
         self.cached_devices.contains_key(device_id) && self.address_to_id.values().any(|v| v == device_id)
     }
 
+    fn device_matches_filter(&mut self,
+                             device_id: &str,
+                             filters: &BluetoothScanfilterSequence)
+                             -> BluetoothResult<bool> {
+        let mut adapter = try!(self.get_adapter());
+        match self.get_device(&mut adapter, device_id) {
+            Some(ref device) => Ok(matches_filters(device, filters)),
+            None => Ok(false),
+        }
+    }
+
     // Service
 
     fn get_and_cache_gatt_services(&mut self,
@@ -558,6 +572,9 @@ impl BluetoothManager {
                       -> BluetoothResponseResult {
         // Step 6.
         let mut adapter = try!(self.get_adapter());
+
+        // Step 7.
+        // Note: There are no requiredServiceUUIDS, we scan for all devices.
         if let Ok(ref session) = adapter.create_discovery_session() {
             if session.start_discovery().is_ok() {
                 if !is_mock_adapter(&adapter) {
@@ -567,8 +584,6 @@ impl BluetoothManager {
             let _ = session.stop_discovery();
         }
 
-        // Step 7.
-        // Note: There are no requiredServiceUUIDS, we scan for all devices.
         let mut matched_devices = self.get_and_cache_devices(&mut adapter);
 
         // Step 8.
@@ -579,8 +594,6 @@ impl BluetoothManager {
         }
 
         // Step 9.
-        // TODO: After the permission API implementation
-        //       https://w3c.github.io/permissions/#prompt-the-user-to-choose
         if let Some(address) = self.select_device(matched_devices, &adapter) {
             let device_id = match self.address_to_id.get(&address) {
                 Some(id) => id.clone(),
@@ -599,7 +612,7 @@ impl BluetoothManager {
                 return Ok(BluetoothResponse::RequestDevice(message));
             }
         }
-        // TODO: Step 10 - 11: Implement the permission API.
+        // Step 10.
         return Err(BluetoothError::NotFound);
         // Step 12: Missing, because it is optional.
     }

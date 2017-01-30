@@ -65,3 +65,4 @@ characteristicvaluechanged
 fullscreenchange
 fullscreenerror
 gattserverdisconnected
+onchange

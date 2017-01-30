@@ -223,6 +223,7 @@ pub mod bluetooth;
 pub mod bluetoothadvertisingevent;
 pub mod bluetoothcharacteristicproperties;
 pub mod bluetoothdevice;
+pub mod bluetoothpermissionresult;
 pub mod bluetoothremotegattcharacteristic;
 pub mod bluetoothremotegattdescriptor;
 pub mod bluetoothremotegattserver;
