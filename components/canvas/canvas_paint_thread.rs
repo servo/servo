@@ -559,9 +559,13 @@ impl<'a> CanvasPaintThread<'a> {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
             let size = self.drawtarget.get_size();
             self.webrender_api.update_image(self.webrender_image_key,
-                                            size.width as u32,
-                                            size.height as u32,
-                                            webrender_traits::ImageFormat::RGBA8,
+                                            webrender_traits::ImageDescriptor {
+                                                width: size.width as u32,
+                                                height: size.height as u32,
+                                                stride: None,
+                                                format: webrender_traits::ImageFormat::RGBA8,
+                                                is_opaque: false,
+                                            },
                                             element.into());
 
             let data = CanvasImageData {
