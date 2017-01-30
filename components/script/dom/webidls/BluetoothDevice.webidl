@@ -8,7 +8,7 @@
 interface BluetoothDevice : EventTarget {
   readonly attribute DOMString id;
   readonly attribute DOMString? name;
-  readonly attribute BluetoothRemoteGATTServer gatt;
+  readonly attribute BluetoothRemoteGATTServer? gatt;
 
   Promise<void> watchAdvertisements();
   void unwatchAdvertisements();
