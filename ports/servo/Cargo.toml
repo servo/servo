@@ -36,7 +36,7 @@ clippy = ["libservo/clippy"]
 debugmozjs = ["libservo/debugmozjs"]
 
 [dependencies]
-backtrace = "0.2"
+backtrace = "0.3"
 browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "crate"}
 glutin_app = {path = "../../ports/glutin"}
 log = "0.3"
