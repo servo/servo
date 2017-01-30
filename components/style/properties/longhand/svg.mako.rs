@@ -105,57 +105,24 @@ ${helpers.single_keyword("mask-repeat",
 
 <%helpers:vector_longhand name="mask-position-x" products="gecko" animatable="True" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
-    use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
-    use properties::longhands::mask_position_x::computed_value::T as MaskPositionX;
     pub use properties::longhands::background_position_x::single_value::get_initial_value;
     pub use properties::longhands::background_position_x::single_value::get_initial_position_value;
     pub use properties::longhands::background_position_x::single_value::get_initial_specified_value;
     pub use properties::longhands::background_position_x::single_value::parse;
     pub use properties::longhands::background_position_x::single_value::SpecifiedValue;
 
-    pub mod computed_value {
-        use values::computed::position::HorizontalPosition;
-        use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
-        use properties::longhands::mask_position_x::computed_value::T as MaskPositionX;
-
-        pub type T = HorizontalPosition;
-
-        impl RepeatableListInterpolate for MaskPositionX {}
-
-        impl Interpolate for MaskPositionX {
-            fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-                Ok(MaskPositionX(try!(self.0.interpolate(&other.0, progress))))
-            }
-        }
-    }
+    pub use properties::longhands::background_position_x::single_value::computed_value;
 
 </%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="mask-position-y" products="gecko" animatable="True" extra_prefixes="webkit"
                           spec="https://drafts.fxtf.org/css-masking/#propdef-mask-position">
-    use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
-    use properties::longhands::mask_position_y::computed_value::T as MaskPositionY;
     pub use properties::longhands::background_position_y::single_value::get_initial_value;
     pub use properties::longhands::background_position_y::single_value::get_initial_position_value;
     pub use properties::longhands::background_position_y::single_value::get_initial_specified_value;
     pub use properties::longhands::background_position_y::single_value::parse;
     pub use properties::longhands::background_position_y::single_value::SpecifiedValue;
-
-    pub mod computed_value {
-        use values::computed::position::VerticalPosition;
-        use properties::animated_properties::{Interpolate, RepeatableListInterpolate};
-        use properties::longhands::mask_position_y::computed_value::T as MaskPositionY;
-
-        pub type T = VerticalPosition;
-
-        impl RepeatableListInterpolate for MaskPositionY {}
-
-        impl Interpolate for MaskPositionY {
-            fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-                Ok(MaskPositionY(try!(self.0.interpolate(&other.0, progress))))
-            }
-        }
-    }
+    pub use properties::longhands::background_position_y::single_value::computed_value;
 </%helpers:vector_longhand>
 
 ${helpers.single_keyword("mask-clip",
