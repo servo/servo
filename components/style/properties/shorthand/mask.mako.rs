@@ -49,10 +49,6 @@
                     if let Ok(value) = input.try(|input| mask_image::single_value
                                                                    ::parse(context, input)) {
                         image = Some(value);
-
-                        // Parse mask mode, if applicable.
-                        mode = input.try(|input| mask_mode::single_value::parse(context, input)).ok();
-
                         continue
                     }
                 }
@@ -70,7 +66,7 @@
                         continue
                     }
                 }
-                % for name in "repeat origin clip composite".split():
+                % for name in "repeat origin clip composite mode".split():
                     if ${name}.is_none() {
                         if let Ok(value) = input.try(|input| mask_${name}::single_value
                                                                                ::parse(context, input)) {

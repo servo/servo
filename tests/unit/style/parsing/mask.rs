@@ -107,12 +107,12 @@ fn mask_shorthand_should_parse_origin_and_clip_correctly() {
 }
 
 #[test]
-fn mask_shorthand_should_not_parse_when_mode_specified_but_image_not() {
+fn mask_shorthand_should_parse_mode_everywhere() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
-    let mut parser = Parser::new("luminance 7px 4px repeat-x padding");
-    assert!(mask::parse_value(&context, &mut parser).is_err());
+    let mut parser = Parser::new("luminance 7px 4px repeat-x padding-box");
+    assert!(mask::parse_value(&context, &mut parser).is_ok());
 
     let mut parser = Parser::new("alpha");
-    assert!(mask::parse_value(&context, &mut parser).is_err());
+    assert!(mask::parse_value(&context, &mut parser).is_ok());
 }
