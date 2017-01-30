@@ -9,6 +9,7 @@ use servo_atoms::Atom;
 use std::sync::Arc;
 use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, DeclaredValue};
 use style::properties::{longhands, Importance};
+use style::rule_tree::CascadeLevel;
 use style::selector_parser::SelectorParser;
 use style::stylesheets::StyleRule;
 use style::stylist::{Rule, SelectorMap};
@@ -113,7 +114,9 @@ fn test_get_universal_rules() {
     let map = get_mock_map(&["*|*", "#foo > *|*", ".klass", "#id"]);
     let mut decls = vec![];
 
-    map.get_universal_rules(&mut decls);
+    map.get_universal_rules(&mut decls,
+                            CascadeLevel::UserNormal,
+                            CascadeLevel::UserImportant);
 
     assert_eq!(decls.len(), 1);
 }

@@ -573,7 +573,7 @@ fn compute_rule_node<E: TElement>(context: &StyleContext<E>,
                                   applicable_declarations: &mut Vec<ApplicableDeclarationBlock>)
                                   -> StrongRuleNode
 {
-    let rules = applicable_declarations.drain(..).map(|d| (d.source, d.importance));
+    let rules = applicable_declarations.drain(..).map(|d| (d.source, d.level));
     let rule_node = context.shared.stylist.rule_tree.insert_ordered_rules(rules);
     rule_node
 }
@@ -583,10 +583,14 @@ impl<E: TElement> PrivateMatchMethods for E {}
 /// The public API that elements expose for selector matching.
 pub trait MatchMethods : TElement {
     /// Runs selector matching of this element, and returns the result.
-    fn match_element(&self, context: &StyleContext<Self>, parent_bf: Option<&BloomFilter>)
+    fn match_element(&self,
+                     context: &StyleContext<Self>,
+                     parent_bf: Option<&BloomFilter>)
                      -> MatchResults
     {
-        let mut applicable_declarations: Vec<ApplicableDeclarationBlock> = Vec::with_capacity(16);
+        let mut applicable_declarations =
+            Vec::<ApplicableDeclarationBlock>::with_capacity(16);
+
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
         let animation_rules = self.get_animation_rules(None);
@@ -609,7 +613,7 @@ pub trait MatchMethods : TElement {
             let pseudo_animation_rules = self.get_animation_rules(Some(&pseudo));
             stylist.push_applicable_declarations(self, parent_bf, None,
                                                  pseudo_animation_rules,
-                                                 Some(&pseudo.clone()),
+                                                 Some(&pseudo),
                                                  &mut applicable_declarations,
                                                  MatchingReason::ForStyling);
 

@@ -105,6 +105,7 @@ use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
+use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
 use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
@@ -380,7 +381,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                     declarations: vec![(declaration, Importance::Normal)],
                     important_count: 0,
                 })),
-                Importance::Normal)
+                CascadeLevel::PresHints)
         }
 
         let bgcolor = if let Some(this) = self.downcast::<HTMLBodyElement>() {
@@ -824,31 +825,6 @@ impl Element {
         }
     }
 
-    // this sync method is called upon modification of the style_attribute property,
-    // therefore, it should not trigger subsequent mutation events
-    pub fn set_style_attr(&self, new_value: String) {
-        let mut new_style = AttrValue::String(new_value);
-
-        if let Some(style_attr) = self.attrs.borrow().iter().find(|a| a.name() == &local_name!("style")) {
-            style_attr.swap_value(&mut new_style);
-            return;
-        }
-
-        // explicitly not calling the push_new_attribute convenience method
-        // in order to avoid triggering mutation events
-        let window = window_from_node(self);
-        let attr = Attr::new(&window,
-                             local_name!("style"),
-                             new_style,
-                             local_name!("style"),
-                             ns!(),
-                             None,
-                             Some(self));
-
-         assert!(attr.GetOwnerElement().r() == Some(self));
-         self.attrs.borrow_mut().push(JS::from_ref(&attr));
-    }
-
     pub fn serialize(&self, traversal_scope: TraversalScope) -> Fallible<DOMString> {
         let mut writer = vec![];
         match serialize(&mut writer,
@@ -962,7 +938,7 @@ impl Element {
 
     pub fn push_attribute(&self, attr: &Attr) {
         assert!(attr.GetOwnerElement().r() == Some(self));
-        self.will_mutate_attr();
+        self.will_mutate_attr(attr);
         self.attrs.borrow_mut().push(JS::from_ref(attr));
         if attr.namespace() == &ns!() {
             vtable_for(self.upcast()).attribute_mutated(attr, AttributeMutation::Set(None));
@@ -1088,8 +1064,8 @@ impl Element {
         let idx = self.attrs.borrow().iter().position(|attr| find(&attr));
 
         idx.map(|idx| {
-            self.will_mutate_attr();
             let attr = Root::from_ref(&*(*self.attrs.borrow())[idx]);
+            self.will_mutate_attr(&attr);
             self.attrs.borrow_mut().remove(idx);
             attr.set_owner(None);
             if attr.namespace() == &ns!() {
@@ -1227,9 +1203,9 @@ impl Element {
         self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
     }
 
-    pub fn will_mutate_attr(&self) {
+    pub fn will_mutate_attr(&self, attr: &Attr) {
         let node = self.upcast::<Node>();
-        node.owner_doc().element_attr_will_change(self);
+        node.owner_doc().element_attr_will_change(self, attr);
     }
 
     // https://dom.spec.whatwg.org/#insert-adjacent
@@ -1502,7 +1478,7 @@ impl ElementMethods for Element {
             }
 
             // Step 4.
-            self.will_mutate_attr();
+            self.will_mutate_attr(attr);
             attr.set_owner(Some(self));
             self.attrs.borrow_mut()[position] = JS::from_ref(attr);
             old_attr.set_owner(None);
@@ -2121,18 +2097,43 @@ impl VirtualMethods for Element {
         match attr.local_name() {
             &local_name!("style") => {
                 // Modifying the `style` attribute might change style.
-                *self.style_attribute.borrow_mut() =
-                    mutation.new_value(attr).map(|value| {
-                        let win = window_from_node(self);
-                        Arc::new(RwLock::new(parse_style_attribute(
-                            &value,
-                            &doc.base_url(),
-                            win.css_error_reporter(),
-                            ParserContextExtraData::default())))
-                    });
-                if node.is_in_doc() {
-                    node.dirty(NodeDamage::NodeStyleDamaged);
-                }
+                *self.style_attribute.borrow_mut() = match mutation {
+                    AttributeMutation::Set(..) => {
+                        // This is the fast path we use from
+                        // CSSStyleDeclaration.
+                        //
+                        // Juggle a bit to keep the borrow checker happy
+                        // while avoiding the extra clone.
+                        let is_declaration = match *attr.value() {
+                            AttrValue::Declaration(..) => true,
+                            _ => false,
+                        };
+
+                        let block = if is_declaration {
+                            let mut value = AttrValue::String(String::new());
+                            attr.swap_value(&mut value);
+                            let (serialization, block) = match value {
+                                AttrValue::Declaration(s, b) => (s, b),
+                                _ => unreachable!(),
+                            };
+                            let mut value = AttrValue::String(serialization);
+                            attr.swap_value(&mut value);
+                            block
+                        } else {
+                            let win = window_from_node(self);
+                            Arc::new(RwLock::new(parse_style_attribute(
+                                &attr.value(),
+                                &doc.base_url(),
+                                win.css_error_reporter(),
+                                ParserContextExtraData::default())))
+                        };
+
+                        Some(block)
+                    }
+                    AttributeMutation::Removed => {
+                        None
+                    }
+                };
             },
             &local_name!("id") => {
                 *self.id_attribute.borrow_mut() =
@@ -2716,7 +2717,7 @@ impl Element {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy)]
 pub enum AttributeMutation<'a> {
     /// The attribute is set, keep track of old value.
     /// https://dom.spec.whatwg.org/#attribute-is-set
@@ -2728,6 +2729,13 @@ pub enum AttributeMutation<'a> {
 }
 
 impl<'a> AttributeMutation<'a> {
+    pub fn is_removal(&self) -> bool {
+        match *self {
+            AttributeMutation::Removed => true,
+            AttributeMutation::Set(..) => false,
+        }
+    }
+
     pub fn new_value<'b>(&self, attr: &'b Attr) -> Option<Ref<'b, AttrValue>> {
         match *self {
             AttributeMutation::Set(_) => Some(attr.value()),
