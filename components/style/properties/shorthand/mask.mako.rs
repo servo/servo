@@ -142,6 +142,10 @@
             }
 
             for i in 0..len {
+                if i > 0 {
+                    try!(dest.write_str(", "));
+                }
+
                 % for name in "image mode position_x position_y size repeat origin clip composite".split():
                     let ${name} = if let DeclaredValue::Value(ref arr) = *self.mask_${name} {
                         arr.0.get(i % arr.0.len())
