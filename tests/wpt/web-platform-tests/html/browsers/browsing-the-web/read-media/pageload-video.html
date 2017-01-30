@@ -13,6 +13,7 @@
 
   function frameLoaded() {
     var testframe = document.getElementById('testframe');
+    assert_equals(testframe.contentDocument.contentType, "video/webm");
     var testframeChildren = testframe.contentDocument.body.childNodes;
     assert_equals(testframeChildren.length, 1, "Body of image document has 1 child");
     assert_equals(testframeChildren[0].nodeName, "VIDEO", "Only child of body must be an <video> element");
@@ -24,7 +25,6 @@
 </head>
 <body>
   <div id="log"></div>
-  <iframe id="testframe" onload="t.step(frameLoaded)"
-   src="data:video/webm,"></iframe>
+  <iframe id="testframe" onload="t.step(frameLoaded)" src="/media/white.webm"></iframe>
 </body>
 </html>

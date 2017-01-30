@@ -1710,15 +1710,9 @@ impl ScriptThread {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
 
-        let content_type = metadata.content_type.as_ref().and_then(|&Serde(ContentType(ref mimetype))| {
-            match *mimetype {
-                Mime(TopLevel::Application, SubLevel::Xml, _) |
-                Mime(TopLevel::Application, SubLevel::Ext(_), _) |
-                Mime(TopLevel::Text, SubLevel::Xml, _) |
-                Mime(TopLevel::Text, SubLevel::Plain, _) => Some(DOMString::from(mimetype.to_string())),
-                _ => None,
-            }
-        });
+        let content_type = metadata.content_type
+                                   .as_ref()
+                                   .map(|&Serde(ContentType(ref mimetype))| DOMString::from(mimetype.to_string()));
 
         let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
                                                       Some(final_url.clone()));
