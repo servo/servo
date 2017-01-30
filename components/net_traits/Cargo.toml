@@ -26,7 +26,6 @@ serde = "0.9"
 serde_derive = "0.9"
 servo_config = {path = "../config", features = ["servo"]}
 servo_url = {path = "../url", features = ["servo"]}
-servo-websocket = "0.18"
 url = {version = "1.2", features = ["heap_size"]}
 uuid = {version = "0.4", features = ["v4", "serde"]}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

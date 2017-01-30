@@ -80,7 +80,6 @@ servo_config = {path = "../config", features = ["servo"] }
 servo_geometry = {path = "../geometry" }
 servo_rand = {path = "../rand"}
 servo_url = {path = "../url", features = ["servo"] }
-servo-websocket = "0.18"
 smallvec = "0.1"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
@@ -91,3 +90,4 @@ xml5ever = {version = "0.4", features = ["unstable"]}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
+ws = {version = "0.6", features = ["permessage-deflate", "ssl"]}

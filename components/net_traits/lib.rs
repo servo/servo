@@ -31,12 +31,12 @@ extern crate servo_url;
 extern crate url;
 extern crate uuid;
 extern crate webrender_traits;
-extern crate websocket;
 
 use cookie_rs::Cookie;
 use filemanager_thread::FileManagerThreadMsg;
 use heapsize::HeapSizeOf;
-use hyper::header::{ContentType, Headers, ReferrerPolicy as ReferrerPolicyHeader};
+use hyper::header::{ContentType, Headers, Header, HeaderFormat, Host, ReferrerPolicy as ReferrerPolicyHeader};
+use hyper::header::parsing::{fmt_comma_delimited, from_comma_delimited};
 use hyper::http::RawStatus;
 use hyper::mime::{Attr, Mime};
 use hyper_serde::Serde;
@@ -45,9 +45,12 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_url::ServoUrl;
+use std::error::Error as StdError;
+use std::fmt;
 use storage_thread::StorageThreadMsg;
-use websocket::header;
+use url::{Url, Position};
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
@@ -346,12 +349,82 @@ pub enum WebSocketDomAction {
     Close(Option<u16>, Option<String>),
 }
 
+#[derive(Debug)]
+pub struct WebSocketHeaders(Vec<(String, Vec<u8>)>);
+
+impl WebSocketHeaders {
+    pub fn new(headers: Vec<(String, Vec<u8>)>) -> Self {
+        WebSocketHeaders(headers)
+    }
+
+    pub fn as_hyper_headers(&self) -> Headers {
+        let mut headers = Headers::new();
+        for &(ref name, ref value) in &self.0 {
+            headers.set_raw(name.clone(), vec![value.clone()]);
+        }
+        headers
+    }
+
+    pub fn from_hyper_headers(headers: &Headers) -> Self {
+        let headers = headers.iter().map(|header| {
+            (header.name().to_string(), header.value_string().as_bytes().to_vec())
+        }).collect();
+        WebSocketHeaders(headers)
+    }
+}
+
+impl Serialize for WebSocketHeaders {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+        let headers = self.as_hyper_headers();
+        hyper_serde::serialize(&headers, serializer)
+    }
+}
+
+impl Deserialize for WebSocketHeaders {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer {
+        let headers = try!(hyper_serde::deserialize::<Headers, _>(deserializer));
+        Ok(Self::from_hyper_headers(&headers))
+    }
+}
+
+impl std::ops::Deref for WebSocketHeaders {
+    type Target = Vec<(String, Vec<u8>)>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Represents a Sec-WebSocket-Protocol header
+#[derive(PartialEq, Clone, Debug)]
+pub struct WebSocketProtocol(pub Vec<String>);
+
+impl std::ops::Deref for WebSocketProtocol {
+    type Target = Vec<String>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Header for WebSocketProtocol {
+    fn header_name() -> &'static str {
+        "Sec-WebSocket-Protocol"
+    }
+
+    fn parse_header(raw: &[Vec<u8>]) -> hyper::Result<WebSocketProtocol> {
+        from_comma_delimited(raw).map(|vec| WebSocketProtocol(vec))
+    }
+}
+
+impl HeaderFormat for WebSocketProtocol {
+    fn fmt_header(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let WebSocketProtocol(ref value) = *self;
+        fmt_comma_delimited(fmt, &value[..])
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub enum WebSocketNetworkEvent {
-    ConnectionEstablished(#[serde(deserialize_with = "::hyper_serde::deserialize",
-                                  serialize_with = "::hyper_serde::serialize")]
-                          header::Headers,
-                          Vec<String>),
+    ConnectionEstablished(WebSocketHeaders, Vec<String>),
     MessageReceived(MessageData),
     Close(Option<u16>, String),
     Fail,
@@ -516,7 +589,7 @@ pub fn load_whole_resource(request: RequestInit,
 }
 
 /// Defensively unwraps the protocol string from the response object's protocol
-pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Option<&str> {
+pub fn unwrap_websocket_protocol(wsp: Option<&WebSocketProtocol>) -> Option<&str> {
     wsp.and_then(|protocol_list| protocol_list.get(0).map(|protocol| protocol.as_ref()))
 }
 
@@ -554,4 +627,57 @@ pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
     }
 
     slice
+}
+
+/// Represents a WebSocket URL error
+#[derive(Debug)]
+pub enum WSUrlErrorKind {
+    /// Fragments are not valid in a WebSocket URL
+    CannotSetFragment,
+    /// The scheme provided is invalid for a WebSocket
+    InvalidScheme,
+}
+
+impl fmt::Display for WSUrlErrorKind {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        try!(fmt.write_str("WebSocket Url Error: "));
+        try!(fmt.write_str(self.description()));
+        Ok(())
+    }
+}
+
+impl StdError for WSUrlErrorKind {
+    fn description(&self) -> &str {
+        match *self {
+            WSUrlErrorKind::CannotSetFragment => "WebSocket URL cannot set fragment",
+            WSUrlErrorKind::InvalidScheme => "WebSocket URL invalid scheme"
+        }
+    }
+}
+
+/// Gets the host, port, resource, and secure flag from a url
+pub fn parse_url(url: &Url) -> Result<(Host, String, bool), WSUrlErrorKind> {
+    // https://html.spec.whatwg.org/multipage/#parse-a-websocket-url's-components
+
+    // Step 4
+    if url.fragment().is_some() {
+        return Err(From::from(WSUrlErrorKind::CannotSetFragment));
+    }
+
+    let secure = match url.scheme() {
+        // step 5
+        "ws" => false,
+        "wss" => true,
+        // step 3
+        _ => return Err(From::from(WSUrlErrorKind::InvalidScheme)),
+    };
+
+    let host = url.host_str().unwrap().to_owned(); // Step 6
+    let port = url.port_or_known_default(); // Steps 7 and 8
+
+    // steps 9, 10, 11
+    let resource = url[Position::BeforePath..Position::AfterQuery].to_owned();
+
+    // Step 12
+    Ok((Host { hostname: host, port: port }, resource, secure))
 }
