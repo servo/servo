@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::eventtarget::EventTarget;
@@ -18,8 +18,8 @@ use dom::globalscope::GlobalScope;
 use dom::popstateevent::PopStateEvent;
 use dom::window::Window;
 use ipc_channel::ipc;
-use js::jsapi::{HandleValue, JSContext, Heap};
-use js::jsval::{JSVal, NullValue};
+use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, Heap};
+use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{StateId, TraversalDirection};
 use script_traits::{PushOrReplaceState, ScriptMsg as ConstellationMsg};
 use servo_url::ServoUrl;
@@ -57,7 +57,6 @@ impl History {
     fn update_state(&self,
                  cx: *mut JSContext,
                  data: HandleValue,
-                 title: DOMString,
                  url: Option<USVString>,
                  replace: PushOrReplaceState) -> ErrorResult {
         // Step 1.
@@ -72,8 +71,6 @@ impl History {
 
         // Step 4-5.
         let cloned_data = try!(StructuredCloneData::write(cx, data));
-        rooted!(in(cx) let mut state = NullValue());
-        cloned_data.read(self.window.upcast::<GlobalScope>(), state.handle_mut());
 
         let global_scope = self.window.upcast::<GlobalScope>();
 
@@ -109,7 +106,7 @@ impl History {
         };
 
         // Step 8.
-        let new_entry = HistoryEntry::new(state.get(), title);
+        let new_entry = HistoryEntry::new(cloned_data);
         let mut history_entries = self.history_entries.borrow_mut();
         let state_id = match replace {
             PushOrReplaceState::Push => {
@@ -146,14 +143,7 @@ impl History {
         }
 
         self.active_state.set(state_id);
-        let handle = match state_id {
-            Some(state_id) => {
-                let history_entries = self.history_entries.borrow();
-                let state = history_entries.get(&state_id).expect("Activated nonexistent history state.");
-                state.state.handle()
-            },
-            None => Heap::new(NullValue()).handle(),
-        };
+        let handle = self.get_state().unwrap_or(Heap::new(NullValue()).handle());
         self.window.Document().set_url(url);
         PopStateEvent::dispatch_jsval(self.window.upcast::<EventTarget>(), &*self.window, handle);
     }
@@ -162,6 +152,26 @@ impl History {
         let mut history_entries = self.history_entries.borrow_mut();
         for state_id in state_ids {
             history_entries.remove(&state_id);
+        }
+    }
+
+    fn get_state(&self) -> Option<HandleValue> {
+        let state_id = match self.active_state.get() {
+            Some(id) => id,
+            None => return None,
+        };
+        let global_scope = self.window.upcast::<GlobalScope>();
+        let mut history_entries = self.history_entries.borrow_mut();
+        let mut entry = history_entries.get_mut(&state_id).expect("Could not get active state.");
+        Some(entry.get_state(global_scope))
+    }
+
+    /// Take all of the history state entries and write cached entries back into StructuredCloneData
+    pub fn suspend(&self) {
+                let global_scope = self.window.upcast::<GlobalScope>();
+        let mut history_entries = self.history_entries.borrow_mut();
+        for (_, entry) in history_entries.iter_mut() {
+            entry.write_structured_clone(global_scope);
         }
     }
 }
@@ -189,13 +199,7 @@ impl HistoryMethods for History {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-history-state
     unsafe fn State(&self, _cx: *mut JSContext) -> JSVal {
-        let history_entries = self.history_entries.borrow();
-        match self.active_state.get().and_then(|state_id| history_entries.get(&state_id)) {
-            Some(entry) => {
-                entry.state.get()
-            },
-            None => NullValue(),
-        }
+        self.get_state().map(|handle| handle.get()).unwrap_or(NullValue())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-go
@@ -227,9 +231,9 @@ impl HistoryMethods for History {
     unsafe fn PushState(&self,
                         cx: *mut JSContext,
                         data: HandleValue,
-                        title: DOMString,
+                        _title: DOMString,
                         url: Option<USVString>) -> ErrorResult {
-        self.update_state(cx, data, title, url, PushOrReplaceState::Push)
+        self.update_state(cx, data, url, PushOrReplaceState::Push)
     }
 
     #[allow(unsafe_code)]
@@ -237,23 +241,68 @@ impl HistoryMethods for History {
     unsafe fn ReplaceState(&self,
                            cx: *mut JSContext,
                            data: HandleValue,
-                           title: DOMString,
+                           _title: DOMString,
                            url: Option<USVString>) -> ErrorResult {
-        self.update_state(cx, data, title, url, PushOrReplaceState::Replace)
+        self.update_state(cx, data, url, PushOrReplaceState::Replace)
     }
+}
+
+/// Stores the JS state value for a given history entry. Any time the History's window is suspended
+/// the cached data must be serialized into StructuredCloneData again.
+#[derive(HeapSizeOf, JSTraceable)]
+enum StateCache {
+    /// The state is a structured clone, next time it is accessed, it will be deserialized and
+    /// cached in the Cached variant. It is stored as an optional as reading the StructuredCloneData
+    /// requires taking ownership of it.
+    StructuredClone(Option<StructuredCloneData>),
+    /// The cached state after deserialization
+    Cached(Heap<JSVal>),
 }
 
 #[derive(HeapSizeOf, JSTraceable)]
 struct HistoryEntry {
-    title: DOMString,
-    state: Heap<JSVal>,
+    state: StateCache,
 }
 
 impl HistoryEntry {
-    fn new(state: JSVal, title: DOMString) -> HistoryEntry {
+    fn new(cloned_data: StructuredCloneData) -> HistoryEntry {
         HistoryEntry {
-            title: title,
-            state: Heap::new(state),
+            state: StateCache::StructuredClone(Some(cloned_data)),
+        }
+    }
+
+    fn get_state(&mut self, global_scope: &GlobalScope) -> HandleValue {
+        let state = match self.state {
+            StateCache::Cached(ref state) => return state.handle(),
+            StateCache::StructuredClone(ref mut cloned_data) => {
+                let cloned_data = cloned_data.take().expect("StructuredClone cannot be None");
+                let cx = global_scope.get_cx();
+                rooted!(in(cx) let mut state = UndefinedValue());
+                let globalhandle = global_scope.reflector().get_jsobject();
+                let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+                cloned_data.read(global_scope, state.handle_mut());
+                Heap::new(state.get())
+            }
+        };
+        self.state = StateCache::Cached(state);
+        if let StateCache::Cached(ref state) = self.state {
+            return state.handle();
+        }
+        unreachable!()
+    }
+
+    fn write_structured_clone(&mut self, global_scope: &GlobalScope) {
+        let clonded_data = match self.state {
+            StateCache::StructuredClone(..) => return,
+            StateCache::Cached(ref state) => {
+                StructuredCloneData::write(global_scope.get_cx(), state.handle())
+            }
+        };
+        match clonded_data {
+            Ok(clonded_data) => {
+                self.state = StateCache::StructuredClone(Some(clonded_data))
+            },
+            Err(e) => warn!("Failed to write structured clone {:?}", e),
         }
     }
 }

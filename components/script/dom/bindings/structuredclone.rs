@@ -15,9 +15,10 @@ use std::ptr;
 use std::slice;
 
 /// A buffer for a structured clone.
+#[derive(HeapSizeOf)]
 pub enum StructuredCloneData {
     /// A non-serializable (default) variant
-    Struct(*mut u64, size_t),
+    Struct(#[ignore_heap_size_of = "Not sure how to do this"]*mut u64, size_t),
     /// A variant that can be serialized
     Vector(Vec<u8>)
 }
@@ -80,7 +81,9 @@ impl StructuredCloneData {
                 let data = vec_msg.as_mut_ptr() as *mut u64;
                 StructuredCloneData::read_clone(global, data, nbytes, rval);
             }
-            StructuredCloneData::Struct(data, nbytes) => StructuredCloneData::read_clone(global, data, nbytes, rval)
+            StructuredCloneData::Struct(data, nbytes) => {
+                StructuredCloneData::read_clone(global, data, nbytes, rval)
+            }
         }
     }
 }

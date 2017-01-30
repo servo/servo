@@ -1495,6 +1495,9 @@ impl Window {
     }
 
     pub fn suspend(&self) {
+        // Tell History to write cached states back into StructuredCloneData
+        self.History().suspend();
+
         // Suspend timer events.
         self.upcast::<GlobalScope>().suspend();
 

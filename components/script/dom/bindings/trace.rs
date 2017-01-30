@@ -40,6 +40,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::document::PendingRestyle;
 use encoding::types::EncodingRef;
@@ -379,6 +380,7 @@ unsafe_no_jsmanaged_fields!(WebGLRenderbufferId);
 unsafe_no_jsmanaged_fields!(WebGLShaderId);
 unsafe_no_jsmanaged_fields!(WebGLTextureId);
 unsafe_no_jsmanaged_fields!(MediaList);
+unsafe_no_jsmanaged_fields!(StructuredCloneData);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]
