@@ -466,7 +466,11 @@ fn compute_style<E, D>(_traversal: &D,
 {
     context.thread_local.statistics.elements_styled += 1;
     let shared_context = context.shared;
+
     // Ensure the bloom filter is up to date.
+    //
+    // TODO(emilio): In theory we could avoid a bit of this work in the style
+    // attribute case.
     let dom_depth = context.thread_local.bloom_filter
                            .insert_parents_recovering(element, traversal_data.current_dom_depth);
 
@@ -493,8 +497,15 @@ fn compute_style<E, D>(_traversal: &D,
             let shareable_element = {
                 // Perform the CSS selector matching.
                 context.thread_local.statistics.elements_matched += 1;
-                let filter = context.thread_local.bloom_filter.filter();
-                match_results = element.match_element(context, Some(filter));
+
+                // TODO(emilio): Here we'll need to support animation-only hints
+                // and similar.
+                match_results = if data.needs_only_style_attribute_update() {
+                    element.update_style_attribute(context, data)
+                } else {
+                    let filter = context.thread_local.bloom_filter.filter();
+                    element.match_element(context, Some(filter))
+                };
                 if match_results.primary_is_shareable() {
                     Some(element)
                 } else {
