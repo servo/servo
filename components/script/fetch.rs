@@ -21,6 +21,7 @@ use js::jsapi::JSAutoCompartment;
 use net_traits::{FetchResponseListener, NetworkError};
 use net_traits::{FilteredMetadata, FetchMetadata, Metadata};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
+use net_traits::request::Origin as NetTraitsOrigin;
 use net_traits::request::Request as NetTraitsRequest;
 use net_traits::request::RequestInit as NetTraitsRequestInit;
 use network_listener::{NetworkListener, PreInvoke};
@@ -40,7 +41,14 @@ fn from_referrer_to_referrer_url(request: &NetTraitsRequest) -> Option<ServoUrl>
     referrer.to_url().map(|url| url.clone())
 }
 
-fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit {
+fn request_init_from_request(global: &GlobalScope, request: NetTraitsRequest) -> NetTraitsRequestInit {
+    // TODO: once we have sorted out serialization of origins, this should no longer be necessary.
+    let origin_url = match *request.origin.borrow() {
+        // TODO: this should really be the gobal's origin, not its URL.
+        NetTraitsOrigin::Client => global.get_url(),
+        // TODO: better handling of opaque origins.
+        NetTraitsOrigin::Origin(ref origin) => ServoUrl::parse(&*origin.ascii_serialization()).expect("URL parse."),
+    };
     NetTraitsRequestInit {
         method: request.method.borrow().clone(),
         url: request.url(),
@@ -57,7 +65,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
         // TODO: NetTraitsRequestInit and NetTraitsRequest have different "origin"
         // ... NetTraitsRequestInit.origin: Url
         // ... NetTraitsRequest.origin: RefCell<Origin>
-        origin: request.url(),
+        origin: origin_url,
         referrer_url: from_referrer_to_referrer_url(&request),
         referrer_policy: request.referrer_policy.get(),
         pipeline_id: request.pipeline_id.get(),
@@ -83,7 +91,7 @@ pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: &RequestInit) -> Rc
         },
         Ok(r) => r.get_request(),
     };
-    let request_init = request_init_from_request(request);
+    let request_init = request_init_from_request(global, request);
 
     // Step 3
     response.Headers().set_guard(Guard::Immutable);

@@ -34,7 +34,6 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
 use dom::eventtarget::EventTarget;
-use dom::globalscope::GlobalScope;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use dom::htmlcollection::HTMLCollection;
@@ -58,7 +57,7 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever_atoms::{Prefix, Namespace, QualName};
-use js::jsapi::{JSContext, JSObject, JSRuntime};
+use js::jsapi::{JSContext, JSObject, JSRuntime, HandleObject};
 use libc::{self, c_void, uintptr_t};
 use msg::constellation_msg::PipelineId;
 use ref_slice::ref_slice;
@@ -1347,7 +1346,7 @@ impl Node {
     pub fn reflect_node<N>(
             node: Box<N>,
             document: &Document,
-            wrap_fn: unsafe extern "Rust" fn(*mut JSContext, &GlobalScope, Box<N>) -> Root<N>)
+            wrap_fn: unsafe extern "Rust" fn(*mut JSContext, HandleObject, Box<N>) -> Root<N>)
             -> Root<N>
         where N: DerivedFrom<Node> + DomObject
     {

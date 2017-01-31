@@ -4,7 +4,7 @@ function get_host_info() {
   var HTTP_PORT2 = '{{ports[http][1]}}';
   var HTTPS_PORT = '{{ports[https][0]}}';
   var ORIGINAL_HOST = '{{host}}';
-  var REMOTE_HOST = (ORIGINAL_HOST === 'localhost') ? '127.0.0.1' : ('www1.' + ORIGINAL_HOST);
+  var REMOTE_HOST = (ORIGINAL_HOST === '127.0.0.1') ? '127.0.0.2' : '127.0.0.1';
 
   return {
     HTTP_PORT: HTTP_PORT,

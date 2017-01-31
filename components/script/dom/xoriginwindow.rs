@@ -1,0 +1,127 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use dom::bindings::codegen::Bindings::XOriginWindowBinding;
+use dom::bindings::codegen::Bindings::XOriginWindowBinding::XOriginWindowMethods;
+use dom::bindings::js::{JS, MutNullableJS, Root};
+use dom::bindings::reflector::DomObject;
+use dom::bindings::str::DOMString;
+use dom::browsingcontext::BrowsingContext;
+use dom::globalscope::GlobalScope;
+use dom::xoriginlocation::XOriginLocation;
+use ipc_channel::ipc;
+use js::jsapi::{JSContext, HandleValue};
+use js::jsval::{JSVal, UndefinedValue};
+use msg::constellation_msg::PipelineId;
+
+// TODO: documentation!
+#[dom_struct]
+pub struct XOriginWindow {
+    globalscope: GlobalScope,
+    browsing_context: JS<BrowsingContext>,
+    location: MutNullableJS<XOriginLocation>,
+}
+
+impl XOriginWindow {
+    #[allow(unsafe_code)]
+    pub fn new(browsing_context: &BrowsingContext) -> Root<XOriginWindow> {
+        let cx = browsing_context.reflector().get_cx();
+        let globalscope = browsing_context.global();
+        // Any timer events fired on this window are ignored.
+        let (timer_event_chan, _) = ipc::channel().unwrap();
+        let win = box XOriginWindow {
+            globalscope: GlobalScope::new_inherited(PipelineId::new(),
+                                                    globalscope.devtools_chan().cloned(),
+                                                    globalscope.mem_profiler_chan().clone(),
+                                                    globalscope.time_profiler_chan().clone(),
+                                                    globalscope.constellation_chan().clone(),
+                                                    globalscope.scheduler_chan().clone(),
+                                                    globalscope.resource_threads().clone(),
+                                                    timer_event_chan),
+            browsing_context: JS::from_ref(browsing_context),
+            location: MutNullableJS::new(None),
+        };
+        unsafe { XOriginWindowBinding::Wrap(cx, win) }
+    }
+}
+
+impl XOriginWindowMethods for XOriginWindow {
+    // https://html.spec.whatwg.org/multipage/#dom-window
+    fn Window(&self) -> Root<BrowsingContext> {
+        Root::from_ref(&*self.browsing_context)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-self
+    fn Self_(&self) -> Root<BrowsingContext> {
+        Root::from_ref(&*self.browsing_context)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-frames
+    fn Frames(&self) -> Root<BrowsingContext> {
+        Root::from_ref(&*self.browsing_context)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-parent
+    fn GetParent(&self) -> Option<Root<BrowsingContext>> {
+        // TODO: implement window.parent correctly for x-origin windows.
+        Some(Root::from_ref(&*self.browsing_context))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-top
+    fn GetTop(&self) -> Option<Root<BrowsingContext>> {
+        // TODO: implement window.top correctly for x-origin windows.
+        Some(Root::from_ref(&*self.browsing_context))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-length
+    fn Length(&self) -> u32 {
+        // TODO: Implement x-origin length
+        0
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-close
+    fn Close(&self) {
+        // TODO: Implement x-origin close
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-closed
+    fn Closed(&self) -> bool {
+        // TODO: Implement x-origin close
+        false
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
+    unsafe fn PostMessage(&self, _: *mut JSContext, _: HandleValue, _: DOMString) {
+        // TODO: Implement x-origin postMessage
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-opener
+    unsafe fn Opener(&self, _: *mut JSContext) -> JSVal {
+        // TODO: Implement x-origin opener
+        UndefinedValue()
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#dom-opener
+    unsafe fn SetOpener(&self, _: *mut JSContext, _: HandleValue) {
+        // TODO: Implement x-origin opener
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-blur
+    fn Blur(&self) {
+        // TODO: Implement x-origin blur
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-focus
+    fn Focus(&self) {
+        // TODO: Implement x-origin focus
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-location
+    fn Location(&self) -> Root<XOriginLocation> {
+        self.location.or_init(|| XOriginLocation::new(self))
+    }
+}
