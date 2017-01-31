@@ -975,7 +975,15 @@ pub trait FormControl: DomObject {
             elem.is_in_same_home_subtree(&*form)
         });
 
-        self.form_attribute_mutated(AttributeMutation::Removed);
+        // FIXME: We should call `form_attribute_mutated` method here,
+        // but also we don't want to call reset_form_owner() method in
+        // `form_attribute_mutated`. We should fix this.
+        // self.form_attribute_mutated(AttributeMutation::Removed);
+        let form_id = elem.get_string_attribute(&local_name!("form"));
+        if self.is_reassociatable() && !form_id.is_empty() {
+            let doc = document_from_node(elem.upcast::<Node>());
+            doc.unregister_form_id_listener(form_id, self);
+        }
 
         // Since this control has been unregistered from the id->listener map
         // in the previous step, reset_form_owner will not be invoked on it
