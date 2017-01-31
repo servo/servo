@@ -28,7 +28,7 @@ enum PermissionName {
   "persistent-storage",
 };
 
-[Exposed=(Window,Worker)]
+[Pref="dom.permissions.enabled", Exposed=(Window,Worker)]
 interface PermissionStatus : EventTarget {
   readonly attribute PermissionState state;
   attribute EventHandler onchange;
