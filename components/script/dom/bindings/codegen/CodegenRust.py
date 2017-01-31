@@ -5894,14 +5894,16 @@ class CGDictionary(CGThing):
     def impl(self):
         d = self.dictionary
         if d.parent:
-            initParent = ("parent: match try!(%s::%s::new(cx, val)) {\n"
-                          "            ConversionResult::Success(v) => v,\n"
-                          "            ConversionResult::Failure(error) => {\n"
-                          "                throw_type_error(cx, &error);\n"
-                          "                return Err(());\n"
-                          "            }\n"
-                          "        },\n" % (self.makeModuleName(d.parent),
-                                            self.makeClassName(d.parent)))
+            initParent = ("parent: {\n"
+                          "    match try!(%s::%s::new(cx, val)) {\n"
+                          "        ConversionResult::Success(v) => v,\n"
+                          "        ConversionResult::Failure(error) => {\n"
+                          "            throw_type_error(cx, &error);\n"
+                          "            return Err(());\n"
+                          "        }\n"
+                          "    }\n"
+                          "},\n" % (self.makeModuleName(d.parent),
+                                    self.makeClassName(d.parent)))
         else:
             initParent = ""
 
@@ -5999,7 +6001,7 @@ class CGDictionary(CGThing):
 
     def getMemberConversion(self, memberInfo, memberType):
         def indent(s):
-            return CGIndenter(CGGeneric(s), 8).define()
+            return CGIndenter(CGGeneric(s), 12).define()
 
         member, info = memberInfo
         templateBody = info.template
@@ -6020,15 +6022,16 @@ class CGDictionary(CGThing):
 
         conversion = (
             "{\n"
-            "rooted!(in(cx) let mut rval = UndefinedValue());\n"
-            "match try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
-            "    true => {\n"
+            "    rooted!(in(cx) let mut rval = UndefinedValue());\n"
+            "    match try!(get_dictionary_property(cx, object.handle(), \"%s\", rval.handle_mut())) {\n"
+            "        true => {\n"
             "%s\n"
-            "    },\n"
-            "    false => {\n"
+            "        },\n"
+            "        false => {\n"
             "%s\n"
-            "    },\n"
-            "}\n}") % (member.identifier.name, indent(conversion), indent(default))
+            "        },\n"
+            "    }\n"
+            "}") % (member.identifier.name, indent(conversion), indent(default))
 
         return CGGeneric(conversion)
 
