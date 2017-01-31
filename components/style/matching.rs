@@ -13,19 +13,18 @@ use atomic_refcell::AtomicRefMut;
 use cache::LRUCache;
 use cascade_info::CascadeInfo;
 use context::{SharedStyleContext, StyleContext};
-use data::{ComputedStyle, ElementData, ElementStyles, PseudoStyles};
+use data::{ComputedStyle, ElementData, ElementStyles, PseudoRuleNodes, PseudoStyles};
 use dom::{SendElement, TElement, TNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
-use rule_tree::StrongRuleNode;
+use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
-use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, MatchingReason, StyleRelations};
+use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, AFFECTED_BY_STYLE_ATTRIBUTE, MatchingReason, StyleRelations};
 use servo_config::opts;
 use sink::ForgetfulSink;
 use std::collections::HashMap;
-use std::hash::BuildHasherDefault;
 use std::slice::IterMut;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
@@ -59,13 +58,6 @@ fn create_common_style_affecting_attributes_from_element<E: TElement>(element: &
     }
     flags
 }
-
-/// The rule nodes for each of the pseudo-elements of an element.
-///
-/// TODO(emilio): Probably shouldn't be a `HashMap` by default, but a smaller
-/// array.
-type PseudoRuleNodes = HashMap<PseudoElement, StrongRuleNode,
-                               BuildHasherDefault<::fnv::FnvHasher>>;
 
 /// The results of selector matching on an element.
 pub struct MatchResults {
@@ -632,6 +624,40 @@ pub trait MatchMethods : TElement {
             primary: primary_rule_node,
             relations: primary_relations,
             per_pseudo: per_pseudo,
+        }
+    }
+
+    /// Updates the style attribute rule nodes without re-running selector
+    /// matching, using just the rule tree.
+    fn update_style_attribute(&self,
+                              context: &StyleContext<Self>,
+                              data: &mut AtomicRefMut<ElementData>)
+                              -> MatchResults {
+        let style_attribute = self.style_attribute();
+
+        let mut new_rule_node = data.styles().primary.rules.clone();
+
+        new_rule_node = context.shared.stylist.rule_tree
+            .replace_rule_at_level_if_applicable(CascadeLevel::StyleAttributeNormal,
+                                                 style_attribute,
+                                                 new_rule_node);
+
+        new_rule_node = context.shared.stylist.rule_tree
+            .replace_rule_at_level_if_applicable(CascadeLevel::StyleAttributeImportant,
+                                                 style_attribute,
+                                                 new_rule_node);
+
+        MatchResults {
+            primary: new_rule_node,
+            // FIXME(emilio): This is ok, for now at least, because it disables
+            // style sharing. That being said, it's not ideal, probably should
+            // be optional?
+            relations: AFFECTED_BY_STYLE_ATTRIBUTE,
+            // The per-pseudo rule-nodes haven't changed, but still need to be
+            // recomputed.
+            //
+            // TODO(emilio): We could probably optimize this quite a bit.
+            per_pseudo: data.styles().pseudos.get_rules(),
         }
     }
 
