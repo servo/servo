@@ -19,7 +19,7 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::blob::Blob;
 use dom::document::Document;
-use dom::element::Element;
+use dom::element::{AttributeMutation, Element};
 use dom::eventtarget::EventTarget;
 use dom::file::File;
 use dom::globalscope::GlobalScope;
@@ -875,7 +875,7 @@ pub trait FormControl: DomObject {
     }
 
     // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
-    // Part of step 4.
+    // Part of step 12.
     // '..suppress the running of the reset the form owner algorithm
     // when the parser subsequently attempts to insert the element..'
     fn set_form_owner_from_parser(&self, form: &HTMLFormElement) {
@@ -926,28 +926,26 @@ pub trait FormControl: DomObject {
     }
 
     // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
-    fn form_attribute_set(&self) {
-        let elem = self.to_element();
-        let form_id = elem.get_string_attribute(&local_name!("form"));
-        let node = elem.upcast::<Node>();
-
-        if self.is_reassociatable() && !form_id.is_empty() && node.is_in_doc() {
-            let doc = document_from_node(node);
-            doc.register_form_id_listener(form_id, self);
-        }
-
-        self.reset_form_owner();
-    }
-
-    // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
-    fn form_attribute_removed(&self) {
+    fn form_attribute_mutated(&self, mutation: AttributeMutation) {
         let elem = self.to_element();
         let form_id = elem.get_string_attribute(&local_name!("form"));
 
-        if self.is_reassociatable() && !form_id.is_empty() {
-            let doc = document_from_node(elem.upcast::<Node>());
-            doc.unregister_form_id_listener(form_id, self);
+        match mutation {
+            AttributeMutation::Set(_) => {
+                let node = elem.upcast::<Node>();
+                if self.is_reassociatable() && !form_id.is_empty() && node.is_in_doc() {
+                    let doc = document_from_node(node);
+                    doc.register_form_id_listener(form_id, self);
+                }
+            },
+            AttributeMutation::Removed => {
+                if self.is_reassociatable() && !form_id.is_empty() {
+                    let doc = document_from_node(elem.upcast::<Node>());
+                    doc.unregister_form_id_listener(form_id, self);
+                }
+            },
         }
+
         self.reset_form_owner();
     }
 
@@ -957,14 +955,14 @@ pub trait FormControl: DomObject {
         let node = elem.upcast::<Node>();
 
         // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
-        // Part of step 4.
+        // Part of step 12.
         // '..suppress the running of the reset the form owner algorithm
         // when the parser subsequently attempts to insert the element..'
         let must_skip_reset = node.get_flag(PARSER_ASSOCIATED_FORM_OWNER);
         node.set_flag(PARSER_ASSOCIATED_FORM_OWNER, false);
 
         if !must_skip_reset {
-            self.form_attribute_set();
+            self.form_attribute_mutated(AttributeMutation::Set(None));
         }
     }
 
@@ -976,7 +974,7 @@ pub trait FormControl: DomObject {
             elem.is_in_same_home_subtree(&*form)
         });
 
-        self.form_attribute_removed();
+        self.form_attribute_mutated(AttributeMutation::Removed);
 
         // Since this control has been unregistered from the id->listener map
         // in the previous step, reset_form_owner will not be invoked on it
