@@ -49,7 +49,7 @@ features = ["serde_derive", "ipc"]
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "0.5"
 core-foundation = "0.2"
-core-graphics = "0.4"
+core-graphics = "0.5"
 core-text = "2.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]

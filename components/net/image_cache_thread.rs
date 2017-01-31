@@ -33,6 +33,26 @@ use webrender_traits;
 /// MAYBE(Yoric):
 ///     * For faster lookups, it might be useful to store the LoadKey in the DOM once we have performed a first load.
 
+// TODO(gw): This is a port of the old is_image_opaque code from WR.
+//           Consider using SIMD to speed this up if it shows in profiles.
+fn is_image_opaque(format: webrender_traits::ImageFormat, bytes: &[u8]) -> bool {
+    match format {
+        webrender_traits::ImageFormat::RGBA8 => {
+            let mut is_opaque = true;
+            for i in 0..(bytes.len() / 4) {
+                if bytes[i * 4 + 3] != 255 {
+                    is_opaque = false;
+                    break;
+                }
+            }
+            is_opaque
+        }
+        webrender_traits::ImageFormat::RGB8 => true,
+        webrender_traits::ImageFormat::A8 => false,
+        webrender_traits::ImageFormat::Invalid | webrender_traits::ImageFormat::RGBAF32 => unreachable!(),
+    }
+}
+
 /// Represents an image that is either being loaded
 /// by the resource thread, or decoded by a worker thread.
 struct PendingLoad {
@@ -314,12 +334,15 @@ fn get_placeholder_image(webrender_api: &webrender_traits::RenderApi) -> io::Res
     let format = convert_format(image.format);
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&*image.bytes);
+    let descriptor = webrender_traits::ImageDescriptor {
+        width: image.width,
+        height: image.height,
+        stride: None,
+        format: format,
+        is_opaque: is_image_opaque(format, &bytes),
+    };
     let data = webrender_traits::ImageData::new(bytes);
-    image.id = Some(webrender_api.add_image(image.width,
-                                            image.height,
-                                            None,
-                                            format,
-                                            data));
+    image.id = Some(webrender_api.add_image(descriptor, data));
     Ok(Arc::new(image))
 }
 
@@ -476,12 +499,15 @@ impl ImageCache {
                 let format = convert_format(image.format);
                 let mut bytes = Vec::new();
                 bytes.extend_from_slice(&*image.bytes);
+                let descriptor = webrender_traits::ImageDescriptor {
+                    width: image.width,
+                    height: image.height,
+                    stride: None,
+                    format: format,
+                    is_opaque: is_image_opaque(format, &bytes),
+                };
                 let data = webrender_traits::ImageData::new(bytes);
-                image.id = Some(self.webrender_api.add_image(image.width,
-                                                             image.height,
-                                                             None,
-                                                             format,
-                                                             data));
+                image.id = Some(self.webrender_api.add_image(descriptor, data));
             }
             LoadResult::PlaceholderLoaded(..) | LoadResult::None => {}
         }
