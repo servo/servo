@@ -535,7 +535,9 @@ fn compute_style<E, D>(_traversal: &D,
     }
 
     // FIXME(bholley): Compute this accurately from the call to CalcStyleDifference.
-    let inherited_styles_changed = true;
+    let inherited_styles_changed = data.get_restyle_mut().map_or(true, |r| {
+        !r.damage.is_empty()
+    });
 
     inherited_styles_changed
 }
