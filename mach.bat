@@ -2,7 +2,7 @@
 
 SET VS_VCVARS=%VS140COMNTOOLS%..\..\VC\vcvarsall.bat
 IF EXIST "%VS_VCVARS%" (
-  IF NOT DEFINED VisualStudioVersion (
+  IF NOT DEFINED Platform (
     IF EXIST "%ProgramFiles(x86)%" (
       call "%VS_VCVARS%" x64
     ) ELSE (
