@@ -1048,14 +1048,7 @@ impl VirtualMethods for HTMLInputElement {
                 }
             },
             &local_name!("form") => {
-                match mutation {
-                    AttributeMutation::Set(_) => {
-                        self.form_attribute_set();
-                    },
-                    AttributeMutation::Removed => {
-                        self.form_attribute_removed();
-                    }
-                }
+                self.form_attribute_mutated(mutation);
             },
             _ => {},
         }

@@ -134,14 +134,7 @@ impl VirtualMethods for HTMLLabelElement {
         self.super_type().unwrap().attribute_mutated(attr, mutation);
         match attr.local_name() {
             &local_name!("form") => {
-                match mutation {
-                    AttributeMutation::Set(_) => {
-                        self.form_attribute_set();
-                    },
-                    AttributeMutation::Removed => {
-                         self.form_attribute_removed();
-                    },
-                }
+                self.form_attribute_mutated(mutation);
             },
             _ => {},
         }
