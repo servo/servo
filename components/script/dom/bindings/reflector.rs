@@ -4,10 +4,10 @@
 
 //! The `Reflector` struct.
 
-use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::js::Root;
 use dom::globalscope::GlobalScope;
-use js::jsapi::{HandleObject, JSContext, JSObject, Heap};
+use js::jsapi::{HandleObject, Heap, JSContext, JSObject, JSRuntime};
+use js::jsapi::{JS_GetObjectRuntime, JS_GetContext};
 use std::default::Default;
 
 /// Create the reflector for a new DOM object and yield ownership to the
@@ -15,13 +15,14 @@ use std::default::Default;
 pub fn reflect_dom_object<T, U>(
         obj: Box<T>,
         global: &U,
-        wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> Root<T>)
+        wrap_fn: unsafe fn(*mut JSContext, HandleObject, Box<T>) -> Root<T>)
         -> Root<T>
-    where T: DomObject, U: DerivedFrom<GlobalScope>
+    where T: DomObject, U: DomObject
 {
-    let global_scope = global.upcast();
+    let cx = global.reflector().get_cx();
+    let jsobject = global.reflector().get_jsobject();
     unsafe {
-        wrap_fn(global_scope.get_cx(), global_scope, obj)
+        wrap_fn(cx, jsobject, obj)
     }
 }
 
@@ -48,6 +49,18 @@ impl Reflector {
     #[inline]
     pub fn get_jsobject(&self) -> HandleObject {
         self.object.handle()
+    }
+
+    /// Get the JS runtime.
+    #[inline]
+    pub fn get_runtime(&self) -> *mut JSRuntime {
+        unsafe { JS_GetObjectRuntime(self.object.get()) }
+    }
+
+    /// Get the JS context.
+    #[inline]
+    pub fn get_cx(&self) -> *mut JSContext {
+        unsafe { JS_GetContext(self.get_runtime()) }
     }
 
     /// Initialize the reflector. (May be called only once.)

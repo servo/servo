@@ -13,9 +13,8 @@ use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, DomObject, MutDomObject, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
-use dom::globalscope::GlobalScope;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{JSContext, JSObject, MutableHandleValue, MutableHandleObject, HandleValue};
+use js::jsapi::{JSContext, JSObject, MutableHandleValue, MutableHandleObject, HandleObject, HandleValue};
 use js::jsval::UndefinedValue;
 use std::cell::Cell;
 use std::ptr;
@@ -85,7 +84,7 @@ impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {
     /// Create a new iterator instance for the provided iterable DOM interface.
     pub fn new(iterable: &T,
                type_: IteratorType,
-               wrap: unsafe fn(*mut JSContext, &GlobalScope, Box<IterableIterator<T>>)
+               wrap: unsafe fn(*mut JSContext, HandleObject, Box<IterableIterator<T>>)
                      -> Root<Self>) -> Root<Self> {
         let iterator = box IterableIterator {
             reflector: Reflector::new(),
