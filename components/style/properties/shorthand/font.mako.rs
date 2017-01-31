@@ -5,7 +5,12 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="font" sub_properties="font-style font-variant font-weight font-stretch
-                                                font-size line-height font-family"
+                                                font-size line-height font-family
+                                                ${'font-size-adjust' if product == 'gecko' else ''}
+                                                ${'font-kerning' if product == 'gecko' else ''}
+                                                ${'font-variant-caps' if product == 'gecko' else ''}
+                                                ${'font-variant-position' if product == 'gecko' else ''}
+                                                ${'font-language-override' if product == 'none' else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
     use properties::longhands::{font_style, font_variant, font_weight, font_stretch};
     use properties::longhands::{font_size, line_height, font_family};
@@ -72,7 +77,16 @@
             font_stretch: stretch,
             font_size: size,
             line_height: line_height,
-            font_family: Some(font_family::SpecifiedValue(family))
+            font_family: Some(font_family::SpecifiedValue(family)),
+    % if product == "gecko":
+            font_size_adjust: None,
+            font_kerning: None,
+            font_variant_caps: None,
+            font_variant_position: None,
+    % endif
+    % if product == "none":
+            font_language_override: None,
+    % endif
         })
     }
 
