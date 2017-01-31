@@ -37,7 +37,12 @@ fn main() {
         // for reasons that I don't understand.  If we just give
         // link.exe, it tries to use script-*/out/link.exe, which of
         // course does not exist.
-        build.define("CMAKE_LINKER", "C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\bin\\amd64\\link.exe");
+        let platform = env::var("PLATFORM").expect("Environment variable 'PLATFORM' is not defined");
+        let link_dir = PathBuf::from(env::var("VCINSTALLDIR").unwrap())
+                               .join("bin")
+                               .join(if platform.to_uppercase() == "X64" { "amd64" } else { "" })
+                               .join("link.exe");
+        build.define("CMAKE_LINKER", link_dir);
     }
 
     build.build();
