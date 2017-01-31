@@ -23,7 +23,7 @@ dictionary BluetoothPermissionData {
   required sequence<AllowedBluetoothDevice> allowedDevices/* = []*/;
 };
 
-// [Pref="dom.bluetooth.enabled"]
+[Pref="dom.bluetooth.enabled"]
 interface BluetoothPermissionResult : PermissionStatus {
   // attribute FrozenArray<BluetoothDevice> devices;
   // Workaround until FrozenArray get implemented.

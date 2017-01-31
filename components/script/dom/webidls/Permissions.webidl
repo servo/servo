@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/permissions/#permissions-interface
 
-[Exposed=(Window,Worker)]
+[Pref="dom.permissions.enabled", Exposed=(Window,Worker)]
 interface Permissions {
   Promise<PermissionStatus> query(object permissionDesc);
 

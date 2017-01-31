@@ -66,5 +66,5 @@ partial interface Navigator {
 // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
 [Exposed=(Window)]
 partial interface Navigator {
-  readonly attribute Permissions permissions;
+  [Pref="dom.permissions.enabled"] readonly attribute Permissions permissions;
 };
