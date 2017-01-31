@@ -37,7 +37,9 @@ fn main() {
         // for reasons that I don't understand.  If we just give
         // link.exe, it tries to use script-*/out/link.exe, which of
         // course does not exist.
-        build.define("CMAKE_LINKER", "C:\\Program Files (x86)\\Microsoft Visual Studio 14.0\\VC\\bin\\amd64\\link.exe");
+        let link = std::process::Command::new("where").arg("link.exe").output().unwrap();
+        let link_path: Vec<&str> = std::str::from_utf8(&link.stdout).unwrap().split("\r\n").collect();
+        build.define("CMAKE_LINKER", link_path[0]);
     }
 
     build.build();
