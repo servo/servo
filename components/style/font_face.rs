@@ -13,7 +13,7 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error, Parse};
 use std::fmt;
 use std::iter;
-use style_traits::ToCss;
+use style_traits::{ToCss, CommaSeparated};
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -44,6 +44,8 @@ impl ToCss for Source {
     }
 }
 
+impl CommaSeparated for Source {}
+
 /// A `UrlSource` represents a font-face source that has been specified with a
 /// `url()` function.
 ///
@@ -65,52 +67,12 @@ impl ToCss for UrlSource {
     }
 }
 
-/// A `@font-face` rule.
-///
-/// https://drafts.csswg.org/css-fonts/#font-face-rule
-#[derive(Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-pub struct FontFaceRule {
-    /// The font family specified with the `font-family` property declaration.
-    pub family: FontFamily,
-    /// The list of sources specified with the different `src` property
-    /// declarations.
-    pub sources: Vec<Source>,
-}
-
-impl ToCss for FontFaceRule {
-    // Serialization of FontFaceRule is not specced.
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
-        try!(dest.write_str("@font-face { font-family: "));
-        try!(self.family.to_css(dest));
-        try!(dest.write_str(";"));
-
-        if self.sources.len() > 0 {
-            try!(dest.write_str(" src: "));
-            let mut iter = self.sources.iter();
-            try!(iter.next().unwrap().to_css(dest));
-            for source in iter {
-                try!(dest.write_str(", "));
-                try!(source.to_css(dest));
-            }
-            try!(dest.write_str(";"));
-        }
-
-        dest.write_str(" }")
-    }
-}
-
 /// Parse the block inside a `@font-face` rule.
 ///
 /// Note that the prelude parsing code lives in the `stylesheets` module.
 pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
                              -> Result<FontFaceRule, ()> {
-    let mut rule = FontFaceRule {
-        family: FontFamily::Generic(atom!("")),
-        sources: Vec::new(),
-    };
+    let mut rule = FontFaceRule::initial();
     {
         let parser = FontFaceRuleParser { context: context, rule: &mut rule };
         let mut iter = DeclarationListParser::new(input, parser);
@@ -174,20 +136,6 @@ impl<'a, 'b> AtRuleParser for FontFaceRuleParser<'a, 'b> {
     type AtRule = ();
 }
 
-
-impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
-    type Declaration = ();
-
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
-        match_ignore_ascii_case! { name,
-            "font-family" => self.rule.family = Parse::parse(self.context, input)?,
-            "src" => self.rule.sources = Parse::parse(self.context, input)?,
-            _ => return Err(())
-        }
-        Ok(())
-    }
-}
-
 impl Parse for Vec<Source> {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         input.parse_comma_separated(|input| Source::parse(context, input))
@@ -220,4 +168,73 @@ impl Parse for Source {
             format_hints: format_hints,
         }))
     }
+}
+
+macro_rules! font_face_descriptors {
+    ( $( #[$doc: meta] $name: tt $ident: ident : $ty: ty = $initial: expr, )+ ) => {
+        /// A `@font-face` rule.
+        ///
+        /// https://drafts.csswg.org/css-fonts/#font-face-rule
+        #[derive(Debug, PartialEq, Eq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct FontFaceRule {
+            $(
+                #[$doc]
+                pub $ident: $ty,
+            )+
+        }
+
+        impl FontFaceRule {
+            fn initial() -> Self {
+                FontFaceRule {
+                    $(
+                        $ident: $initial,
+                    )+
+                }
+            }
+        }
+
+        impl ToCss for FontFaceRule {
+            // Serialization of FontFaceRule is not specced.
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+                where W: fmt::Write,
+            {
+                dest.write_str("@font-face {\n")?;
+                $(
+                    // Because of parse_font_face_block,
+                    // this condition is always true for "src" and "font-family".
+                    // But it can be false for other descriptors.
+                    if self.$ident != $initial {
+                        dest.write_str(concat!("  ", $name, ": "))?;
+                        self.$ident.to_css(dest)?;
+                        dest.write_str(";\n")?;
+                    }
+                )+
+                dest.write_str("}")
+            }
+        }
+
+       impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
+            type Declaration = ();
+
+            fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
+                match_ignore_ascii_case! { name,
+                    $(
+                        $name => self.rule.$ident = Parse::parse(self.context, input)?,
+                    )+
+                    _ => return Err(())
+                }
+                Ok(())
+            }
+        }
+    }
+}
+
+/// css-name rust_identifier: Type = initial_value,
+font_face_descriptors! {
+    /// The specified url.
+    "font-family" family: FontFamily = FontFamily::Generic(atom!("")),
+
+    /// The format hints specified with the `format()` function.
+    "src" sources: Vec<Source> = Vec::new(),
 }
