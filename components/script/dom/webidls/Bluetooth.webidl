@@ -5,9 +5,9 @@
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 
 dictionary BluetoothDataFilterInit {
-//  BufferSource dataPrefix;
- sequence<octet> dataPrefix;
-//  BufferSource mask;
+  // BufferSource dataPrefix;
+  sequence<octet> dataPrefix;
+  // BufferSource mask;
   sequence<octet> mask;
 };
 
@@ -15,9 +15,9 @@ dictionary BluetoothLEScanFilterInit {
   sequence<BluetoothServiceUUID> services;
   DOMString name;
   DOMString namePrefix;
-//  Maps unsigned shorts to BluetoothDataFilters.
+  // Maps unsigned shorts to BluetoothDataFilters.
   MozMap<BluetoothDataFilterInit> manufacturerData;
-//  Maps BluetoothServiceUUIDs to BluetoothDataFilters.
+  // Maps BluetoothServiceUUIDs to BluetoothDataFilters.
   MozMap<BluetoothDataFilterInit> serviceData;
 };
 
@@ -29,20 +29,16 @@ dictionary RequestDeviceOptions {
 
 [Pref="dom.bluetooth.enabled"]
 interface Bluetooth : EventTarget {
-//  [SecureContext]
-//  readonly attribute BluetoothDevice? referringDevice;
+  // [SecureContext]
+  // Promise<boolean> getAvailability();
+  [SecureContext]
   attribute EventHandler onavailabilitychanged;
-//  [SecureContext]
-//  Promise<boolean> getAvailability();
-//  [SecureContext]
-//  attribute EventHandler onavailabilitychanged;
-//  [SecureContext]
-//  readonly attribute BluetoothDevice? referringDevice;
+  // [SecureContext, SameObject]
+  // readonly attribute BluetoothDevice? referringDevice;
   [SecureContext]
   Promise<BluetoothDevice> requestDevice(optional RequestDeviceOptions options);
 };
 
-// Bluetooth implements EventTarget;
 // Bluetooth implements BluetoothDeviceEventHandlers;
 // Bluetooth implements CharacteristicEventHandlers;
 // Bluetooth implements ServiceEventHandlers;

@@ -12,13 +12,16 @@ interface BluetoothServiceDataMap {
 };*/
 [Pref="dom.bluetooth.enabled", Constructor(DOMString type, BluetoothAdvertisingEventInit init)]
 interface BluetoothAdvertisingEvent : Event {
+  [SameObject]
   readonly attribute BluetoothDevice device;
   // readonly attribute FrozenArray<UUID> uuids;
   readonly attribute DOMString? name;
   readonly attribute unsigned short? appearance;
   readonly attribute byte? txPower;
   readonly attribute byte? rssi;
+  // [SameObject]
   // readonly attribute BluetoothManufacturerDataMap manufacturerData;
+  // [SameObject]
   // readonly attribute BluetoothServiceDataMap serviceData;
 };
 dictionary BluetoothAdvertisingEventInit : EventInit {

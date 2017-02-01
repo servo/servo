@@ -6,6 +6,7 @@
 
 [Pref="dom.bluetooth.enabled"]
 interface BluetoothRemoteGATTDescriptor {
+  [SameObject]
   readonly attribute BluetoothRemoteGATTCharacteristic characteristic;
   readonly attribute DOMString uuid;
   readonly attribute ByteString? value;

@@ -6,6 +6,7 @@
 
 [Pref="dom.bluetooth.enabled"]
 interface BluetoothRemoteGATTServer {
+  [SameObject]
   readonly attribute BluetoothDevice device;
   readonly attribute boolean connected;
   Promise<BluetoothRemoteGATTServer> connect();
