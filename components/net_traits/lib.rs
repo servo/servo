@@ -41,8 +41,8 @@ use hyper_serde::Serde;
 use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use request::{Request, RequestInit};
-use response::{HttpsState, Response};
+use request::{Referrer, Request, RequestInit};
+use response::{HttpsState, Response, ResponseInit};
 use servo_url::ServoUrl;
 use std::error::Error;
 use storage_thread::StorageThreadMsg;
@@ -159,6 +159,7 @@ pub enum FetchResponseMsg {
     // todo: should have fields for transmitted/total bytes
     ProcessRequestBody,
     ProcessRequestEOF,
+    ProcessRequestReferrer(Referrer, Option<ReferrerPolicy>),
     // todo: send more info about the response (or perhaps the entire Response)
     ProcessResponse(Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(Vec<u8>),
@@ -175,6 +176,8 @@ pub trait FetchTaskTarget {
     ///
     /// Fired when the entire request finishes being transmitted
     fn process_request_eof(&mut self, request: &Request);
+
+    fn process_request_referrer(&mut self, request: &Request);
 
     /// https://fetch.spec.whatwg.org/#process-response
     ///
@@ -224,6 +227,11 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
         let _ = self.send(FetchResponseMsg::ProcessRequestEOF);
     }
 
+    fn process_request_referrer(&mut self, request: &Request) {
+        let _ = self.send(FetchResponseMsg::ProcessRequestReferrer(request.clone().referrer,
+                                                                   request.clone().referrer_policy));
+    }
+
     fn process_response(&mut self, response: &Response) {
         let _ = self.send(FetchResponseMsg::ProcessResponse(response.metadata()));
     }
@@ -254,6 +262,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
         match self {
             FetchResponseMsg::ProcessRequestBody => listener.process_request_body(),
             FetchResponseMsg::ProcessRequestEOF => listener.process_request_eof(),
+            FetchResponseMsg::ProcessRequestReferrer(_, _) => {},
             FetchResponseMsg::ProcessResponse(meta) => listener.process_response(meta),
             FetchResponseMsg::ProcessResponseChunk(data) => listener.process_response_chunk(data),
             FetchResponseMsg::ProcessResponseEOF(data) => listener.process_response_eof(data),
@@ -369,6 +378,8 @@ pub struct WebSocketConnectData {
 #[derive(Deserialize, Serialize)]
 pub enum CoreResourceMsg {
     Fetch(RequestInit, IpcSender<FetchResponseMsg>),
+    /// Initiate a fetch in response to processing a redirection
+    FetchRedirect(RequestInit, ResponseInit, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a cookie for a given originating URL
@@ -492,7 +503,8 @@ pub fn load_whole_resource(request: RequestInit,
     loop {
         match action_receiver.recv().unwrap() {
             FetchResponseMsg::ProcessRequestBody |
-            FetchResponseMsg::ProcessRequestEOF => (),
+            FetchResponseMsg::ProcessRequestEOF |
+            FetchResponseMsg::ProcessRequestReferrer(_, _) => (),
             FetchResponseMsg::ProcessResponse(Ok(m)) => {
                 metadata = Some(match m {
                     FetchMetadata::Unfiltered(m) => m,

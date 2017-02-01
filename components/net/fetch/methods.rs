@@ -333,6 +333,8 @@ pub fn main_fetch(request: &mut Request,
         target.process_request_eof(&request);
     }
 
+    target.process_request_referrer(&request);
+
     // Step 22.
     target.process_response(&response);
 

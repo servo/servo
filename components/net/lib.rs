@@ -52,7 +52,7 @@ mod data_loader;
 pub mod filemanager_thread;
 mod hosts;
 pub mod hsts;
-mod http_loader;
+pub mod http_loader;
 pub mod image_cache;
 pub mod mime_classifier;
 pub mod resource_thread;

@@ -495,7 +495,8 @@ impl ImageCache for ImageCacheImpl {
     fn notify_pending_response(&self, id: PendingImageId, action: FetchResponseMsg) {
         match (action, id) {
             (FetchResponseMsg::ProcessRequestBody, _) |
-            (FetchResponseMsg::ProcessRequestEOF, _) => return,
+            (FetchResponseMsg::ProcessRequestEOF, _) |
+            (FetchResponseMsg::ProcessRequestReferrer(_, _), _) => return,
             (FetchResponseMsg::ProcessResponse(_response), _) => {}
             (FetchResponseMsg::ProcessResponseChunk(data), _) => {
                 debug!("Got some data for {:?}", id);

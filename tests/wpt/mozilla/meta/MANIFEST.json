@@ -13303,6 +13303,12 @@
      {}
     ]
    ],
+   "mozilla/multiple_redirects.html": [
+    [
+     "/_mozilla/mozilla/multiple_redirects.html",
+     {}
+    ]
+   ],
    "mozilla/navigator.html": [
     [
      "/_mozilla/mozilla/navigator.html",
@@ -25942,6 +25948,10 @@
   ],
   "mozilla/mql_borrow.html": [
    "f8f9adebe09f9473a52e5ec4f075540b10b32d7e",
+   "testharness"
+  ],
+  "mozilla/multiple_redirects.html": [
+   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
    "testharness"
   ],
   "mozilla/navigator.html": [
