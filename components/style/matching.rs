@@ -17,6 +17,7 @@ use data::{ComputedStyle, ElementData, ElementStyles, PseudoRuleNodes, PseudoSty
 use dom::{SendElement, TElement, TNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
+use restyle_hints::{RESTYLE_STYLE_ATTRIBUTE, RestyleHint};
 use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::MatchAttr;
@@ -627,31 +628,50 @@ pub trait MatchMethods : TElement {
         }
     }
 
-    /// Updates the style attribute rule nodes without re-running selector
-    /// matching, using just the rule tree.
-    fn update_style_attribute(&self,
-                              context: &StyleContext<Self>,
-                              data: &mut AtomicRefMut<ElementData>)
-                              -> MatchResults {
-        let style_attribute = self.style_attribute();
+    /// Get the appropriate MatchResults from the current styles, to perform a
+    /// recascade.
+    ///
+    /// TODO(emilio): Stop using `MachResults`, use an enum, or something.
+    fn match_results_from_current_style(&self, data: &ElementData) -> MatchResults {
+        let rule_node = data.styles().primary.rules.clone();
+        MatchResults {
+            primary: rule_node,
+            // FIXME(emilio): Same concern as below.
+            relations: StyleRelations::empty(),
+            // The per-pseudo rule-nodes haven't changed, but still need to be
+            // recascaded.
+            per_pseudo: data.styles().pseudos.get_rules(),
+        }
 
-        let mut new_rule_node = data.styles().primary.rules.clone();
+    }
 
-        new_rule_node = context.shared.stylist.rule_tree
-            .replace_rule_at_level_if_applicable(CascadeLevel::StyleAttributeNormal,
-                                                 style_attribute,
-                                                 new_rule_node);
+    /// Updates the rule nodes without re-running selector matching, using just
+    /// the rule tree.
+    fn cascade_with_replacements(&self,
+                                 hint: RestyleHint,
+                                 context: &StyleContext<Self>,
+                                 data: &mut AtomicRefMut<ElementData>)
+                                 -> MatchResults {
+        let mut rule_node = data.styles().primary.rules.clone();
 
-        new_rule_node = context.shared.stylist.rule_tree
-            .replace_rule_at_level_if_applicable(CascadeLevel::StyleAttributeImportant,
-                                                 style_attribute,
-                                                 new_rule_node);
+        if hint.contains(RESTYLE_STYLE_ATTRIBUTE) {
+            let style_attribute = self.style_attribute();
+
+            rule_node = context.shared.stylist.rule_tree
+                .update_rule_at_level(CascadeLevel::StyleAttributeNormal,
+                                      style_attribute,
+                                      rule_node);
+
+            rule_node = context.shared.stylist.rule_tree
+                .update_rule_at_level(CascadeLevel::StyleAttributeImportant,
+                                      style_attribute,
+                                      rule_node);
+        }
 
         MatchResults {
-            primary: new_rule_node,
-            // FIXME(emilio): This is ok, for now at least, because it disables
-            // style sharing. That being said, it's not ideal, probably should
-            // be optional?
+            primary: rule_node,
+            // FIXME(emilio): This is ok, for now, we shouldn't need to fake
+            // this.
             relations: AFFECTED_BY_STYLE_ATTRIBUTE,
             // The per-pseudo rule-nodes haven't changed, but still need to be
             // recomputed.
@@ -672,6 +692,10 @@ pub trait MatchMethods : TElement {
                                       data: &mut AtomicRefMut<ElementData>)
                                       -> StyleSharingResult {
         if opts::get().disable_share_style_cache {
+            return StyleSharingResult::CannotShare
+        }
+
+        if self.parent_element().is_none() {
             return StyleSharingResult::CannotShare
         }
 
