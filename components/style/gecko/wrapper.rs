@@ -83,6 +83,10 @@ impl<'ln> GeckoNode<'ln> {
         GeckoNode(&content._base)
     }
 
+    fn flags(&self) -> u32 {
+        (self.0)._base._base_1.mFlags
+    }
+
     fn node_info(&self) -> &structs::NodeInfo {
         debug_assert!(!self.0.mNodeInfo.mRawPtr.is_null());
         unsafe { &*self.0.mNodeInfo.mRawPtr }
@@ -108,6 +112,32 @@ impl<'ln> GeckoNode<'ln> {
     fn next_sibling(&self) -> Option<GeckoNode<'ln>> {
         unsafe { self.0.mNextSibling.as_ref().map(GeckoNode::from_content) }
     }
+
+    /// WARNING: This logic is duplicated in Gecko's FlattenedTreeParentIsParent.
+    /// Make sure to mirror any modifications in both places.
+    fn flattened_tree_parent_is_parent(&self) -> bool {
+        use ::gecko_bindings::structs::*;
+        let flags = self.flags();
+        if flags & (NODE_MAY_BE_IN_BINDING_MNGR as u32 |
+                    NODE_IS_IN_SHADOW_TREE as u32) != 0 {
+            return false;
+        }
+
+        let parent = unsafe { self.0.mParent.as_ref() }.map(GeckoNode);
+        let parent_el = parent.and_then(|p| p.as_element());
+        if flags & (NODE_IS_NATIVE_ANONYMOUS_ROOT as u32) != 0 &&
+           parent_el.map_or(false, |el| el.is_root())
+        {
+            return false;
+        }
+
+        if parent_el.map_or(false, |el| el.has_shadow_root()) {
+            return false;
+        }
+
+        true
+    }
+
 }
 
 impl<'ln> NodeInfo for GeckoNode<'ln> {
@@ -173,7 +203,13 @@ impl<'ln> TNode for GeckoNode<'ln> {
     }
 
     fn parent_node(&self) -> Option<Self> {
-        unsafe { bindings::Gecko_GetParentNode(self.0).map(GeckoNode) }
+        let fast_path = self.flattened_tree_parent_is_parent();
+        debug_assert!(fast_path == unsafe { bindings::Gecko_FlattenedTreeParentIsParent(self.0) });
+        if fast_path {
+            unsafe { self.0.mParent.as_ref().map(GeckoNode) }
+        } else {
+            unsafe { bindings::Gecko_GetParentNode(self.0).map(GeckoNode) }
+        }
     }
 
     fn is_in_doc(&self) -> bool {
@@ -281,6 +317,17 @@ impl<'le> GeckoElement<'le> {
 
     fn unset_flags(&self, flags: u32) {
         unsafe { Gecko_UnsetNodeFlags(self.as_node().0, flags) }
+    }
+
+    /// Returns true if this element has a shadow root.
+    fn has_shadow_root(&self) -> bool {
+        self.get_dom_slots().map_or(false, |slots| !slots.mShadowRoot.mRawPtr.is_null())
+    }
+
+    /// Returns a reference to the DOM slots for this Element, if they exist.
+    fn get_dom_slots(&self) -> Option<&structs::FragmentOrElement_nsDOMSlots> {
+        let slots = self.as_node().0.mSlots as *const structs::FragmentOrElement_nsDOMSlots;
+        unsafe { slots.as_ref() }
     }
 
     /// Clear the element data for a given element.
@@ -445,7 +492,8 @@ impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
 
 impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn parent_element(&self) -> Option<Self> {
-        unsafe { bindings::Gecko_GetParentElement(self.0).map(GeckoElement) }
+        let parent_node = self.as_node().parent_node();
+        parent_node.and_then(|n| n.as_element())
     }
 
     fn first_child_element(&self) -> Option<Self> {
