@@ -184,13 +184,11 @@ impl RuleTree {
     /// Replaces a rule in a given level (if present) for another rule.
     ///
     /// Returns the resulting node that represents the new path.
-    ///
-    /// TODO(emilio): Maybe this should be in `StrongRuleNode`?
-    pub fn replace_rule_at_level_if_applicable(&self,
-                                               level: CascadeLevel,
-                                               pdb: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
-                                               path: StrongRuleNode)
-                                               -> StrongRuleNode {
+    pub fn update_rule_at_level(&self,
+                                level: CascadeLevel,
+                                pdb: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
+                                path: StrongRuleNode)
+                                -> StrongRuleNode {
         debug_assert!(level.is_unique_per_element());
         // TODO(emilio): Being smarter with lifetimes we could avoid a bit of
         // the refcount churn.

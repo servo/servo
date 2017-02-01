@@ -8,7 +8,7 @@
 
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
-use data::{ElementData, ElementStyles, StoredRestyleHint};
+use data::{ElementData, ElementStyles, RestyleKind, StoredRestyleHint};
 use dom::{NodeInfo, TElement, TNode};
 use matching::{MatchMethods, StyleSharingResult};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
@@ -453,9 +453,6 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
 // Computes style, returning true if the inherited styles changed for this
 // element.
-//
-// FIXME(bholley): This should differentiate between matching and cascading,
-// since we have separate bits for each now.
 fn compute_style<E, D>(_traversal: &D,
                        traversal_data: &mut PerLevelTraversalData,
                        context: &mut StyleContext<E>,
@@ -467,73 +464,74 @@ fn compute_style<E, D>(_traversal: &D,
     context.thread_local.statistics.elements_styled += 1;
     let shared_context = context.shared;
 
-    // Ensure the bloom filter is up to date.
-    //
-    // TODO(emilio): In theory we could avoid a bit of this work in the style
-    // attribute case.
-    let dom_depth = context.thread_local.bloom_filter
-                           .insert_parents_recovering(element, traversal_data.current_dom_depth);
+    // TODO(emilio): Make cascade_input less expensive to compute in the cases
+    // we don't need to run selector matching.
+    let cascade_input = match data.restyle_kind() {
+        RestyleKind::MatchAndCascade => {
+            // Check to see whether we can share a style with someone.
+            let sharing_result = unsafe {
+                element.share_style_if_possible(&mut context.thread_local.style_sharing_candidate_cache,
+                                                shared_context,
+                                                &mut data)
+            };
 
-    // Update the dom depth with the up-to-date dom depth.
-    //
-    // Note that this is always the same than the pre-existing depth, but it can
-    // change from unknown to known at this step.
-    traversal_data.current_dom_depth = Some(dom_depth);
-
-    context.thread_local.bloom_filter.assert_complete(element);
-
-    // Check to see whether we can share a style with someone.
-    let sharing_result = if element.parent_element().is_none() {
-        StyleSharingResult::CannotShare
-    } else {
-        unsafe { element.share_style_if_possible(&mut context.thread_local.style_sharing_candidate_cache,
-                                                 shared_context, &mut data) }
-    };
-
-    // Otherwise, match and cascade selectors.
-    match sharing_result {
-        StyleSharingResult::CannotShare => {
-            let match_results;
-            let shareable_element = {
-                // Perform the CSS selector matching.
-                context.thread_local.statistics.elements_matched += 1;
-
-                // TODO(emilio): Here we'll need to support animation-only hints
-                // and similar.
-                match_results = if data.needs_only_style_attribute_update() {
-                    element.update_style_attribute(context, data)
-                } else {
-                    let filter = context.thread_local.bloom_filter.filter();
-                    element.match_element(context, Some(filter))
-                };
-                if match_results.primary_is_shareable() {
-                    Some(element)
-                } else {
+            match sharing_result {
+                StyleSharingResult::StyleWasShared(index) => {
+                    context.thread_local.statistics.styles_shared += 1;
+                    context.thread_local.style_sharing_candidate_cache.touch(index);
                     None
                 }
-            };
-            let relations = match_results.relations;
+                StyleSharingResult::CannotShare => {
+                    // Ensure the bloom filter is up to date.
+                    let dom_depth =
+                        context.thread_local.bloom_filter
+                               .insert_parents_recovering(element,
+                                                          traversal_data.current_dom_depth);
 
-            // Perform the CSS cascade.
-            unsafe {
-                let shareable = match_results.primary_is_shareable();
-                element.cascade_node(context, &mut data,
-                                     element.parent_element(),
-                                     match_results.primary,
-                                     match_results.per_pseudo,
-                                     shareable);
-            }
+                    // Update the dom depth with the up-to-date dom depth.
+                    //
+                    // Note that this is always the same than the pre-existing depth,
+                    // but it can change from unknown to known at this step.
+                    traversal_data.current_dom_depth = Some(dom_depth);
 
-            // Add ourselves to the LRU cache.
-            if let Some(element) = shareable_element {
-                context.thread_local
-                       .style_sharing_candidate_cache
-                       .insert_if_possible(&element, &data.styles().primary.values, relations);
+                    context.thread_local.bloom_filter.assert_complete(element);
+
+                    // Perform the CSS selector matching.
+                    context.thread_local.statistics.elements_matched += 1;
+
+                    let filter = context.thread_local.bloom_filter.filter();
+                    Some(element.match_element(context, Some(filter)))
+                }
             }
         }
-        StyleSharingResult::StyleWasShared(index) => {
-            context.thread_local.statistics.styles_shared += 1;
-            context.thread_local.style_sharing_candidate_cache.touch(index);
+        RestyleKind::CascadeWithReplacements(hint) => {
+            Some(element.cascade_with_replacements(hint, context, &mut data))
+        }
+        RestyleKind::CascadeOnly => {
+            // TODO(emilio): Stop doing this work, and teach cascade_node about
+            // the current style instead.
+            Some(element.match_results_from_current_style(&*data))
+        }
+    };
+
+    if let Some(match_results) = cascade_input {
+        // Perform the CSS cascade.
+        let shareable = match_results.primary_is_shareable();
+        unsafe {
+            element.cascade_node(context, &mut data,
+                                 element.parent_element(),
+                                 match_results.primary,
+                                 match_results.per_pseudo,
+                                 shareable);
+        }
+
+        if shareable {
+            // Add ourselves to the LRU cache.
+            context.thread_local
+                   .style_sharing_candidate_cache
+                   .insert_if_possible(&element,
+                                       &data.styles().primary.values,
+                                       match_results.relations);
         }
     }
 
@@ -545,7 +543,8 @@ fn compute_style<E, D>(_traversal: &D,
         clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
     }
 
-    // FIXME(bholley): Compute this accurately from the call to CalcStyleDifference.
+    // FIXME(bholley): Compute this accurately from the call to
+    // CalcStyleDifference. Right now this is overly conservative.
     let inherited_styles_changed = data.get_restyle_mut().map_or(true, |r| {
         !r.damage.is_empty()
     });

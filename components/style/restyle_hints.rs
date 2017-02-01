@@ -53,7 +53,7 @@ bitflags! {
 impl RestyleHint {
     /// The subset hints that affect the styling of a single element during the
     /// traversal.
-    pub fn for_single_element() -> Self {
+    pub fn for_self() -> Self {
         RESTYLE_SELF | RESTYLE_STYLE_ATTRIBUTE
     }
 }
