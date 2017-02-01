@@ -227,7 +227,8 @@ impl FontCache {
                 fetch_async(request, &self.core_resource_thread, move |response| {
                     match response {
                         FetchResponseMsg::ProcessRequestBody |
-                        FetchResponseMsg::ProcessRequestEOF => (),
+                        FetchResponseMsg::ProcessRequestEOF |
+                        FetchResponseMsg::ProcessRequestReferrer(_, _) => (),
                         FetchResponseMsg::ProcessResponse(meta_result) => {
                             trace!("@font-face {} metadata ok={:?}", family_name, meta_result.is_ok());
                             *response_valid.lock().unwrap() = meta_result.is_ok();
