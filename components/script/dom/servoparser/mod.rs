@@ -527,6 +527,7 @@ impl Tokenizer {
 
 /// The context required for asynchronously fetching a document
 /// and parsing it progressively.
+#[derive(JSTraceable)]
 pub struct ParserContext {
     /// The parser that initiated the request.
     parser: Option<Trusted<ServoParser>>,

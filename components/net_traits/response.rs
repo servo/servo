@@ -4,7 +4,7 @@
 
 //! The [Response](https://fetch.spec.whatwg.org/#responses) object
 //! resulting from a [fetch operation](https://fetch.spec.whatwg.org/#concept-fetch)
-use {FetchMetadata, FilteredMetadata, Metadata, NetworkError};
+use {FetchMetadata, FilteredMetadata, Metadata, NetworkError, ReferrerPolicy};
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::status::StatusCode;
 use hyper_serde::Serde;
@@ -74,6 +74,16 @@ pub enum ResponseMsg {
     Errored,
 }
 
+#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+pub struct ResponseInit {
+    pub url: ServoUrl,
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
+    #[ignore_heap_size_of = "Defined in hyper"]
+    pub headers: Headers,
+    pub referrer: Option<ServoUrl>,
+}
+
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
 #[derive(Debug, Clone, HeapSizeOf)]
 pub struct Response {
@@ -97,6 +107,7 @@ pub struct Response {
     pub internal_response: Option<Box<Response>>,
     /// whether or not to try to return the internal_response when asked for actual_response
     pub return_internal: bool,
+    pub referrer_policy: Option<ReferrerPolicy>,
 }
 
 impl Response {
@@ -113,9 +124,17 @@ impl Response {
             cache_state: CacheState::None,
             https_state: HttpsState::None,
             referrer: None,
+            referrer_policy: None,
             internal_response: None,
             return_internal: true,
         }
+    }
+
+    pub fn from_init(init: ResponseInit) -> Response {
+        let mut res = Response::new(init.url);
+        res.headers = init.headers;
+        res.referrer = init.referrer;
+        res
     }
 
     pub fn network_error(e: NetworkError) -> Response {
@@ -131,6 +150,7 @@ impl Response {
             cache_state: CacheState::None,
             https_state: HttpsState::None,
             referrer: None,
+            referrer_policy: None,
             internal_response: None,
             return_internal: true,
         }
@@ -263,6 +283,7 @@ impl Response {
             metadata.status = response.raw_status.clone();
             metadata.https_state = response.https_state;
             metadata.referrer = response.referrer.clone();
+            metadata.referrer_policy = response.referrer_policy.clone();
             metadata
         };
 
