@@ -159,6 +159,8 @@ pub struct RequestInit {
     pub pipeline_id: Option<PipelineId>,
     pub redirect_mode: RedirectMode,
     pub integrity_metadata: String,
+    // to keep track of redirects
+    pub url_list: Vec<String>,
 }
 
 impl Default for RequestInit {
@@ -183,6 +185,7 @@ impl Default for RequestInit {
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
+            url_list: vec![],
         }
     }
 }
@@ -293,6 +296,7 @@ impl Request {
         req.referrer_policy.set(init.referrer_policy);
         req.pipeline_id.set(init.pipeline_id);
         req.redirect_mode.set(init.redirect_mode);
+        req.redirect_count.set(init.url_list.len() as u32);
         *req.integrity_metadata.borrow_mut() = init.integrity_metadata;
         req
     }

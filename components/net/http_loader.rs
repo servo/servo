@@ -638,7 +638,7 @@ pub fn http_fetch(request: Rc<Request>,
                     // set back to default
                     response.return_internal.set(true);
                     http_redirect_fetch(request, cache, response,
-                                        cors_flag, target, done_chan, context)
+                                        cors_flag, target, done_chan, context, true)
                 }
             }
         },
@@ -705,14 +705,15 @@ pub fn http_fetch(request: Rc<Request>,
 }
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
-fn http_redirect_fetch(request: Rc<Request>,
-                       cache: &mut CorsCache,
-                       response: Response,
-                       cors_flag: bool,
-                       target: Target,
-                       done_chan: &mut DoneChannel,
-                       context: &FetchContext)
-                       -> Response {
+pub fn http_redirect_fetch(request: Rc<Request>,
+                           cache: &mut CorsCache,
+                           response: Response,
+                           cors_flag: bool,
+                           target: Target,
+                           done_chan: &mut DoneChannel,
+                           context: &FetchContext,
+                           recursive_flag: bool)
+                           -> Response {
     // Step 1
     assert_eq!(response.return_internal.get(), true);
 
@@ -785,7 +786,7 @@ fn http_redirect_fetch(request: Rc<Request>,
     // TODO implement referrer policy
 
     // Step 13
-    main_fetch(request, cache, cors_flag, true, target, done_chan, context)
+    main_fetch(request, cache, cors_flag, recursive_flag, target, done_chan, context)
 }
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)

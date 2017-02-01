@@ -19,6 +19,7 @@ extern crate euclid;
 extern crate gaol;
 extern crate gfx;
 extern crate gfx_traits;
+extern crate hyper;
 extern crate ipc_channel;
 extern crate layout_traits;
 #[macro_use]
@@ -42,6 +43,7 @@ extern crate webvr_traits;
 mod constellation;
 mod event_loop;
 mod frame;
+mod network_listener;
 mod pipeline;
 #[cfg(not(target_os = "windows"))]
 mod sandboxing;

@@ -55,7 +55,7 @@ use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection};
-use net_traits::{ReferrerPolicy, ResourceThreads};
+use net_traits::{FetchMetadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
@@ -211,6 +211,11 @@ pub enum DocumentActivity {
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
+    /// Sends the final request to script thread for fetching after all redirections
+    /// have been resolved
+    NavigationResponse(PipelineId, (Result<FetchMetadata, NetworkError>,
+                                    Vec<Vec<u8>>,
+                                    Option<Result<(), NetworkError>>)),
     /// Gives a channel and ID to a layout thread, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
@@ -284,6 +289,7 @@ impl fmt::Debug for ConstellationControlMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ConstellationControlMsg::*;
         let variant = match *self {
+            NavigationResponse(..) => "NavigationResponse",
             AttachLayout(..) => "AttachLayout",
             Resize(..) => "Resize",
             ResizeInactive(..) => "ResizeInactive",

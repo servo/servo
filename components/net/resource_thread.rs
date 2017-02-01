@@ -9,10 +9,11 @@ use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
 use devtools_traits::DevtoolsControlMsg;
+use fetch::cors_cache::CorsCache;
 use fetch::methods::{FetchContext, fetch};
 use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
-use http_loader::HttpState;
+use http_loader::{HttpState, http_redirect_fetch};
 use hyper::client::pool::Pool;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
@@ -21,6 +22,7 @@ use net_traits::{CoreResourceMsg, FetchResponseMsg};
 use net_traits::{CustomResponseMediator, ResourceId};
 use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::request::{Request, RequestInit};
+use net_traits::response::{Response, ResponseInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::time::ProfilerChan;
 use serde::{Deserialize, Serialize};
@@ -154,8 +156,10 @@ impl ResourceChannelManager {
                    msg: CoreResourceMsg,
                    group: &ResourceGroup) -> bool {
         match msg {
-            CoreResourceMsg::Fetch(init, sender) =>
-                self.resource_manager.fetch(init, sender, group),
+            CoreResourceMsg::Fetch(req_init, sender) =>
+                self.resource_manager.fetch(req_init, None, sender, group),
+            CoreResourceMsg::FetchRedirect(req_init, res_init, sender) =>
+                self.resource_manager.fetch(req_init, Some(res_init), sender, group),
             CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                 self.resource_manager.websocket_connect(connect, connect_data, group),
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) =>
@@ -317,7 +321,8 @@ impl CoreResourceManager {
     }
 
     fn fetch(&self,
-             init: RequestInit,
+             req_init: RequestInit,
+             res_init_: Option<ResponseInit>,
              mut sender: IpcSender<FetchResponseMsg>,
              group: &ResourceGroup) {
         let http_state = HttpState {
@@ -332,8 +337,8 @@ impl CoreResourceManager {
         let dc = self.devtools_chan.clone();
         let filemanager = self.filemanager.clone();
 
-        thread::Builder::new().name(format!("fetch thread for {}", init.url)).spawn(move || {
-            let request = Request::from_init(init);
+        thread::Builder::new().name(format!("fetch thread for {}", req_init.url)).spawn(move || {
+            let request = Rc::new(Request::from_init(req_init));
             // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?
@@ -344,7 +349,21 @@ impl CoreResourceManager {
                 devtools_chan: dc,
                 filemanager: filemanager,
             };
-            fetch(Rc::new(request), &mut sender, &context);
+
+            match res_init_ {
+                Some(res_init) => {
+                    let response = Response::from_init(res_init);
+                    http_redirect_fetch(request,
+                                        &mut CorsCache::new(),
+                                        response,
+                                        true,
+                                        &mut sender,
+                                        &mut None,
+                                        &context,
+                                        false);
+                },
+                None => fetch(request, &mut sender, &context),
+            };
         }).expect("Thread spawning failed");
     }
 
