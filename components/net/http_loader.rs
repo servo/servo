@@ -644,14 +644,14 @@ pub fn http_fetch(request: &mut Request,
 }
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
-fn http_redirect_fetch(request: &mut Request,
-                       cache: &mut CorsCache,
-                       response: Response,
-                       cors_flag: bool,
-                       target: Target,
-                       done_chan: &mut DoneChannel,
-                       context: &FetchContext)
-                       -> Response {
+pub fn http_redirect_fetch(request: &mut Request,
+                           cache: &mut CorsCache,
+                           response: Response,
+                           cors_flag: bool,
+                           target: Target,
+                           done_chan: &mut DoneChannel,
+                           context: &FetchContext)
+                           -> Response {
     // Step 1
     assert!(response.return_internal);
 
@@ -719,8 +719,13 @@ fn http_redirect_fetch(request: &mut Request,
     // Step 12
     // TODO implement referrer policy
 
+    let recursive_flag = match request.redirect_mode {
+        RedirectMode::Manual => false,
+        _ => true,
+    };
+
     // Step 13
-    main_fetch(request, cache, cors_flag, true, target, done_chan, context)
+    main_fetch(request, cache, cors_flag, recursive_flag, target, done_chan, context)
 }
 
 fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<HyperOrigin> {

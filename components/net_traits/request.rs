@@ -158,6 +158,8 @@ pub struct RequestInit {
     pub pipeline_id: Option<PipelineId>,
     pub redirect_mode: RedirectMode,
     pub integrity_metadata: String,
+    // to keep track of redirects
+    pub url_list: Vec<ServoUrl>,
 }
 
 impl Default for RequestInit {
@@ -182,6 +184,7 @@ impl Default for RequestInit {
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
             integrity_metadata: "".to_owned(),
+            url_list: vec![ServoUrl::parse("about:blank").unwrap()],
         }
     }
 }
@@ -292,6 +295,8 @@ impl Request {
         req.referrer_policy = init.referrer_policy;
         req.pipeline_id = init.pipeline_id;
         req.redirect_mode = init.redirect_mode;
+        req.url_list = init.url_list.clone();
+        req.redirect_count = init.url_list.len() as u32;
         req.integrity_metadata = init.integrity_metadata;
         req
     }

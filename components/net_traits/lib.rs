@@ -44,7 +44,7 @@ use ipc_channel::Error as IpcError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use request::{Request, RequestInit};
-use response::{HttpsState, Response};
+use response::{HttpsState, Response, ResponseInit};
 use servo_url::ServoUrl;
 use std::error::Error;
 use storage_thread::StorageThreadMsg;
@@ -372,6 +372,8 @@ pub struct WebSocketConnectData {
 #[derive(Deserialize, Serialize)]
 pub enum CoreResourceMsg {
     Fetch(RequestInit, IpcSender<FetchResponseMsg>),
+    /// Redirect fetches
+    FetchRedirect(RequestInit, ResponseInit, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a cookie for a given originating URL
