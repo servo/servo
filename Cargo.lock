@@ -112,7 +112,7 @@ dependencies = [
  "serde_derive 0.8.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-skia 0.20130412.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-skia 0.20130412.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1080,7 +1080,7 @@ dependencies = [
  "osmesa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_traits 0.0.1",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-glutin 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-glutin 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
  "servo_geometry 0.0.1",
  "servo_url 0.0.1",
@@ -2529,7 +2529,7 @@ dependencies = [
 
 [[package]]
 name = "servo-glutin"
-version = "0.6.6"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "android_glue 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2558,7 +2558,7 @@ dependencies = [
 
 [[package]]
 name = "servo-skia"
-version = "0.20130412.24"
+version = "0.20130412.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cgl 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2572,7 +2572,7 @@ dependencies = [
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig-sys 4.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-glutin 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-glutin 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -3605,8 +3605,8 @@ dependencies = [
 "checksum servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "93f799b649b4a2bf362398910eca35240704c7e765e780349b2bb1070d892262"
 "checksum servo-fontconfig-sys 4.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a0af4a4d7746467921486e5c5420f815cc016a6bf5574210d8e9c00f4afae224"
 "checksum servo-freetype-sys 4.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "9232032c2e85118c0282c6562c84cab12316e655491ba0a5d1905b2320060d1b"
-"checksum servo-glutin 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)" = "f065633fa298a2cb3b2ba0c6ac94646a0ad219b838ffbdf78452861ec100c67f"
-"checksum servo-skia 0.20130412.24 (registry+https://github.com/rust-lang/crates.io-index)" = "bb975cdf292243956e6b6acfac336ac8be0aa567e32bb89901be161e4003d0b3"
+"checksum servo-glutin 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0d40f80ae976cae0f90eab80688904020ce88cf67a44a80762150c5fc22f54e6"
+"checksum servo-skia 0.20130412.25 (registry+https://github.com/rust-lang/crates.io-index)" = "9f931e476961c0b45d91165e729fe0aa657b807efe6206eb80ccba066829342a"
 "checksum sha1 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "cc30b1e1e8c40c121ca33b86c23308a090d19974ef001b4bf6e61fd1a0fb095c"
 "checksum shared_library 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "fb04126b6fcfd2710fb5b6d18f4207b6c535f2850a7e1a43bcd526d44f30a79a"
 "checksum shell32-sys 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "72f20b8f3c060374edb8046591ba28f62448c369ccbdc7b02075103fb3a9e38d"
