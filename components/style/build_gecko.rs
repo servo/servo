@@ -235,6 +235,7 @@ mod bindings {
             .include(add_include("mozilla/Keyframe.h"))
             .include(add_include("mozilla/ServoElementSnapshot.h"))
             .include(add_include("mozilla/dom/Element.h"))
+            .include(add_include("mozilla/dom/NameSpaceConstants.h"))
             .include(add_include("mozilla/ServoBindings.h"))
             .include(add_include("nsMediaFeatures.h"))
             .include(add_include("nsMediaList.h"))
@@ -258,6 +259,7 @@ mod bindings {
             "BORDER_COLOR_.*",
             "BORDER_STYLE_.*",
             "mozilla::SERVO_PREF_.*",
+            "kNameSpaceID_.*",
         ];
         let whitelist = [
             "RawGecko.*",

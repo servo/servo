@@ -25,12 +25,12 @@ use gecko::snapshot_helpers;
 use gecko_bindings::bindings;
 use gecko_bindings::bindings::{Gecko_DropStyleChildrenIterator, Gecko_MaybeCreateStyleChildrenIterator};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetLastChild, Gecko_GetNextStyleChild};
-use gecko_bindings::bindings::{Gecko_GetServoDeclarationBlock, Gecko_IsHTMLElementInHTMLDocument};
 use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_MatchesElement};
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko_Namespace};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
+use gecko_bindings::bindings::Gecko_GetServoDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
@@ -86,6 +86,11 @@ impl<'ln> GeckoNode<'ln> {
     fn node_info(&self) -> &structs::NodeInfo {
         debug_assert!(!self.0.mNodeInfo.mRawPtr.is_null());
         unsafe { &*self.0.mNodeInfo.mRawPtr }
+    }
+
+    fn owner_doc(&self) -> &structs::nsIDocument {
+        debug_assert!(!self.node_info().mDocument.is_null());
+        unsafe { &*self.node_info().mDocument }
     }
 
     fn first_child(&self) -> Option<GeckoNode<'ln>> {
@@ -565,9 +570,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
-        unsafe {
-            Gecko_IsHTMLElementInHTMLDocument(self.0)
-        }
+        let node = self.as_node();
+        let node_info = node.node_info();
+        node_info.mInner.mNamespaceID == (structs::root::kNameSpaceID_XHTML as i32) &&
+        node.owner_doc().mType == structs::root::nsIDocument_Type::eHTML
     }
 }
 
