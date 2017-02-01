@@ -5439,6 +5439,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::HandleObject',
         'js::jsapi::HandleValue',
         'js::jsapi::HandleValueArray',
+        'js::jsapi::Heap',
         'js::jsapi::INTERNED_STRING_TO_JSID',
         'js::jsapi::IsCallable',
         'js::jsapi::JSAutoCompartment',
@@ -6457,7 +6458,8 @@ class CallbackMember(CGNativeMember):
         if self.argCount > 0:
             replacements["argCount"] = self.argCountStr
             replacements["argvDecl"] = string.Template(
-                "let mut argv = vec![UndefinedValue(); ${argCount}];\n"
+                "rooted_vec!(let mut argv);\n"
+                "argv.extend((0..${argCount}).map(|_| Heap::new(UndefinedValue())));\n"
             ).substitute(replacements)
         else:
             # Avoid weird 0-sized arrays
@@ -6532,7 +6534,7 @@ class CallbackMember(CGNativeMember):
 
         conversion = wrapForType(
             "argv_root.handle_mut()", result=argval,
-            successCode="argv[%s] = argv_root.get();" % jsvalIndex,
+            successCode="argv[%s] = Heap::new(argv_root.get());" % jsvalIndex,
             pre="rooted!(in(cx) let mut argv_root = UndefinedValue());")
         if arg.variadic:
             conversion = string.Template(
@@ -6548,7 +6550,7 @@ class CallbackMember(CGNativeMember):
                 "    // This is our current trailing argument; reduce argc\n"
                 "    argc -= 1;\n"
                 "} else {\n"
-                "    argv[%d] = UndefinedValue();\n"
+                "    argv[%d] = Heap::new(UndefinedValue());\n"
                 "}" % (i + 1, i))
         return conversion
 
@@ -6612,7 +6614,7 @@ class CallbackMethod(CallbackMember):
             "callGuard": self.getCallGuard(),
         }
         if self.argCount > 0:
-            replacements["argv"] = "argv.as_ptr()"
+            replacements["argv"] = "argv.as_ptr() as *const JSVal"
             replacements["argc"] = "argc"
         else:
             replacements["argv"] = "ptr::null_mut()"
