@@ -35,7 +35,6 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableJS, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::num::Finite;
-use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
@@ -93,7 +92,7 @@ use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent,
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::WebVREventMsg;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
-use serviceworkerjob::{Job, JobQueue, AsyncJobHandler, FinishJobHandler, InvokeType, SettleType};
+use serviceworkerjob::{Job, JobQueue, AsyncJobHandler};
 use servo_config::opts;
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -110,7 +109,6 @@ use std::thread;
 use style::context::ReflowGoal;
 use style::dom::{TNode, UnsafeNode};
 use style::thread_state;
-use task_source::TaskSource;
 use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSource};
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -1499,49 +1497,11 @@ impl ScriptThread {
     }
 
     pub fn dispatch_job_queue(&self, job_handler: Box<AsyncJobHandler>) {
-        let scope_url = job_handler.scope_url.clone();
-        let queue_ref = self.job_queue_map.0.borrow();
-        let front_job = {
-            let job_vec = queue_ref.get(&scope_url);
-            job_vec.unwrap().first().unwrap()
-        };
-        match job_handler.invoke_type {
-            InvokeType::Run => (&*self.job_queue_map).run_job(job_handler, self),
-            InvokeType::Register => self.job_queue_map.run_register(front_job, job_handler, self),
-            InvokeType::Update => self.job_queue_map.update(front_job, &*front_job.client.global(), self),
-            InvokeType::Settle(settle_type) => {
-                let promise = &front_job.promise;
-                let global = &*front_job.client.global();
-                let trusted_global = Trusted::new(global);
-                let _ac = JSAutoCompartment::new(global.get_cx(), promise.reflector().get_jsobject().get());
-                match settle_type {
-                    SettleType::Resolve(reg) => promise.resolve_native(global.get_cx(), &*reg.root()),
-                    SettleType::Reject(err) => promise.reject_error(global.get_cx(), err)
-                }
-                let finish_job_handler = box FinishJobHandler::new(scope_url, trusted_global);
-                self.queue_finish_job(finish_job_handler, global);
-            }
-        }
+        self.job_queue_map.run_job(job_handler, self);
     }
 
-    pub fn queue_serviceworker_job(&self, async_job_handler: Box<AsyncJobHandler>, global: &GlobalScope) {
-        let _ = self.dom_manipulation_task_source.queue(async_job_handler, &*global);
-    }
-
-    pub fn queue_finish_job(&self, finish_job_handler: Box<FinishJobHandler>, global: &GlobalScope) {
-        let _ = self.dom_manipulation_task_source.queue(finish_job_handler, global);
-    }
-
-    pub fn invoke_finish_job(&self, finish_job_handler: Box<FinishJobHandler>) {
-        let job_queue = &*self.job_queue_map;
-        let global = &*finish_job_handler.global.root();
-        let scope_url = (*finish_job_handler).scope_url;
-        job_queue.finish_job(scope_url, global, self);
-    }
-
-    pub fn invoke_job_update(&self, job: &Job, global: &GlobalScope) {
-        let job_queue = &*self.job_queue_map;
-        job_queue.update(job, global, self);
+    pub fn dom_manipulation_task_source(&self) -> &DOMManipulationTaskSource {
+        &self.dom_manipulation_task_source
     }
 
     /// Handles a request for the window title.
