@@ -78,6 +78,7 @@ use event_loop::EventLoop;
 use frame::{Frame, FrameChange, FrameState, FrameTreeIterator, FullFrameTreeIterator};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
+use hyper::header::Location;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
@@ -85,9 +86,12 @@ use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
-use net_traits::{self, IpcSend, ResourceThreads};
+use net_traits::{self, CoreResourceMsg, FetchMetadata, FetchResponseMsg};
+use net_traits::{FilteredMetadata, IpcSend, ResourceThreads};
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::pub_domains::reg_host;
+use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
+use net_traits::response::ResponseInit;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{InitialPipelineState, Pipeline};
@@ -896,6 +900,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::PipelineExited(pipeline_id) => {
                 self.handle_pipeline_exited(pipeline_id);
             }
+            FromScriptMsg::ManualRedirect(pipeline_id, load_data) => {
+                debug!("constellation got manual redirect message");
+                self.handle_manual_redirect(pipeline_id, load_data);
+            }
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        load_info.info.parent_pipeline_id,
@@ -1373,6 +1381,94 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
         if let Err(e) = result {
             self.handle_send_error(parent_id, e);
+        }
+    }
+
+    fn handle_manual_redirect(&mut self, id: PipelineId, load_data: LoadData) {
+        let mut req_init = RequestInit {
+            url: load_data.url.clone(),
+            method: load_data.method,
+            destination: Destination::Document,
+            credentials_mode: CredentialsMode::Include,
+            use_url_credentials: true,
+            origin: load_data.url.clone(),
+            pipeline_id: Some(id),
+            referrer_url: load_data.referrer_url,
+            referrer_policy: load_data.referrer_policy,
+            headers: load_data.headers,
+            body: load_data.data,
+            redirect_mode: RedirectMode::Manual,
+            .. RequestInit::default()
+        };
+
+        let res_init = ResponseInit {
+            url: load_data.url.clone(),
+            .. ResponseInit::default()
+        };
+
+        // keep looping until we get a response that doesn't redirect
+        loop {
+            let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+            if let Err(e) = self.public_resource_threads.send(
+                                CoreResourceMsg::FetchRedirect(req_init.clone(),
+                                res_init.clone(),
+                                sender)) {
+                warn!("Exit resource thread failed ({})", e);
+            }
+            match receiver.recv() {
+                Ok(recvd) => {
+                    let data = match recvd {
+                        FetchResponseMsg::ProcessResponse(res_metadata) => {
+                            match res_metadata {
+                                Ok(metadata) => {
+                                    match metadata {
+                                        FetchMetadata::Filtered {
+                                            filtered,
+                                            unsafe_: unsafe_metadata
+                                        } => Some((filtered, unsafe_metadata)),
+                                        _ => None
+                                    }
+                                },
+                                Err(_) => None,
+                            }
+                        },
+                        _ => break
+                    };
+                    match data {
+                        Some((FilteredMetadata::OpaqueRedirect, _)) => {
+                            if let Some((_, unsafe_metadata)) = data {
+                                match unsafe_metadata.headers {
+                                    Some(headers) => match headers.get::<Location>() {
+                                        Some(url) => {
+                                            match ServoUrl::parse(url) {
+                                                Ok(parsed_url) => req_init.url = parsed_url,
+                                                Err(e) => {
+                                                    warn!("Parsing URL {} failed ({}).", url, e);
+                                                    break
+                                                },
+                                            };
+                                        },
+                                        None => break,
+                                    },
+                                    None => break
+                                };
+                            };
+                        },
+                        _ => break
+                    };
+                },
+                Err(_) => break,
+            };
+        }
+
+        let msg = ConstellationControlMsg::FinalRequest(id, req_init);
+
+        let result = match self.pipelines.get(&id) {
+            Some(pipeline) => pipeline.event_loop.send(msg),
+            None => return warn!("Pipeline {} got manual redirect message after closure.", id),
+        };
+        if let Err(e) = result {
+            self.handle_send_error(id, e);
         }
     }
 

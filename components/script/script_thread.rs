@@ -74,7 +74,7 @@ use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
-use net_traits::request::{CredentialsMode, Destination, RequestInit};
+use net_traits::request::RequestInit;
 use net_traits::storage_thread::StorageType;
 use network_listener::NetworkListener;
 use origin::Origin;
@@ -547,7 +547,7 @@ impl ScriptThreadFactory for ScriptThread {
             let origin = Origin::new(&load_data.url);
             let new_load = InProgressLoad::new(id, frame_id, parent_info, layout_chan, window_size,
                                                load_data.url.clone(), origin);
-            script_thread.start_page_load(new_load, load_data);
+            script_thread.pre_page_load(new_load, load_data);
 
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
@@ -957,6 +957,8 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
+            ConstellationControlMsg::FinalRequest(id, req_init) =>
+                self.start_page_load(id, req_init),
             ConstellationControlMsg::Navigate(parent_pipeline_id, frame_id, load_data, replace) =>
                 self.handle_navigate(parent_pipeline_id, Some(frame_id), load_data, replace),
             ConstellationControlMsg::SendEvent(id, event) =>
@@ -1240,7 +1242,7 @@ impl ScriptThread {
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load);
         } else {
-            self.start_page_load(new_load, load_data);
+            self.pre_page_load(new_load, load_data);
         }
     }
 
@@ -2073,12 +2075,17 @@ impl ScriptThread {
         window.evaluate_media_queries_and_report_changes();
     }
 
-    /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad
+    /// Sends a message to constellation to check for cross-origin redirects. Stores the InProgressLoad
     /// argument until a notification is received that the fetch is complete.
-    fn start_page_load(&self, incomplete: InProgressLoad, mut load_data: LoadData) {
+    fn pre_page_load(&self, incomplete: InProgressLoad, load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
+        self.constellation_chan.send(ConstellationMsg::ManualRedirect(id, load_data)).unwrap();
+        self.incomplete_loads.borrow_mut().push(incomplete);
+    }
 
-        let context = Arc::new(Mutex::new(ParserContext::new(id, load_data.url.clone())));
+    /// Initiate a non-blocking fetch for a specified resource.
+    fn start_page_load(&self, id: PipelineId, mut req_init: RequestInit) {
+        let context = Arc::new(Mutex::new(ParserContext::new(id, req_init.url.clone())));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
             context: context,
@@ -2089,27 +2096,11 @@ impl ScriptThread {
             listener.notify_fetch(message.to().unwrap());
         });
 
-        if load_data.url.scheme() == "javascript" {
-            load_data.url = ServoUrl::parse("about:blank").unwrap();
+        if req_init.url.scheme() == "javascript" {
+            req_init.url = ServoUrl::parse("about:blank").unwrap();
         }
 
-        let request = RequestInit {
-            url: load_data.url.clone(),
-            method: load_data.method,
-            destination: Destination::Document,
-            credentials_mode: CredentialsMode::Include,
-            use_url_credentials: true,
-            origin: load_data.url,
-            pipeline_id: Some(id),
-            referrer_url: load_data.referrer_url,
-            referrer_policy: load_data.referrer_policy,
-            headers: load_data.headers,
-            body: load_data.data,
-            .. RequestInit::default()
-        };
-
-        self.resource_threads.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
-        self.incomplete_loads.borrow_mut().push(incomplete);
+        self.resource_threads.send(CoreResourceMsg::Fetch(req_init, action_sender)).unwrap();
     }
 
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`

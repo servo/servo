@@ -60,6 +60,7 @@ use msg::constellation_msg::{PipelineId, PipelineNamespaceId, TraversalDirection
 use net_traits::{ReferrerPolicy, ResourceThreads};
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::ImageCacheThread;
+use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
 use profile_traits::mem;
@@ -197,6 +198,9 @@ pub enum DiscardBrowsingContext {
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
+    /// Sends the final request to script thread for fetching after all redirections
+    /// have been resolved
+    FinalRequest(PipelineId, RequestInit),
     /// Gives a channel and ID to a layout thread, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
@@ -272,6 +276,7 @@ impl fmt::Debug for ConstellationControlMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::ConstellationControlMsg::*;
         let variant = match *self {
+            FinalRequest(..) => "FinalRequest",
             AttachLayout(..) => "AttachLayout",
             Resize(..) => "Resize",
             ResizeInactive(..) => "ResizeInactive",

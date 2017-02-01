@@ -75,6 +75,19 @@ pub enum ResponseMsg {
     Errored,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ResponseInit {
+    pub url: ServoUrl,
+}
+
+impl Default for ResponseInit {
+    fn default() -> ResponseInit {
+        ResponseInit {
+            url: ServoUrl::parse("about:blank").unwrap(),
+        }
+    }
+}
+
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
 #[derive(Debug, Clone, HeapSizeOf)]
 pub struct Response {
@@ -117,6 +130,10 @@ impl Response {
             internal_response: None,
             return_internal: Cell::new(true),
         }
+    }
+
+    pub fn from_init(init: ResponseInit) -> Response {
+        Response::new(init.url)
     }
 
     pub fn network_error(e: NetworkError) -> Response {

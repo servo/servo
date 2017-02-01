@@ -706,7 +706,7 @@ pub fn http_fetch(request: Rc<Request>,
 }
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
-fn http_redirect_fetch(request: Rc<Request>,
+pub fn http_redirect_fetch(request: Rc<Request>,
                        cache: &mut CorsCache,
                        response: Response,
                        cors_flag: bool,

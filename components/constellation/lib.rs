@@ -22,6 +22,7 @@ extern crate euclid;
 extern crate gaol;
 extern crate gfx;
 extern crate gfx_traits;
+extern crate hyper;
 extern crate ipc_channel;
 extern crate layout_traits;
 #[macro_use]
