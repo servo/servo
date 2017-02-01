@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilt
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
-use dom::bindings::error::Error::{self, Network, NotFound, Security, Type};
+use dom::bindings::error::Error::{self, Network, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -40,11 +40,6 @@ const MANUFACTURER_DATA_ERROR: &'static str = "'manufacturerData', if present, m
 const MASK_LENGTH_ERROR: &'static str = "`mask`, if present, must have the same length as `dataPrefix`.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
 const MAX_DEVICE_NAME_LENGTH: usize = 248;
-// A device name can never be longer than 29 bytes.
-// An advertising packet is at most 31 bytes long.
-// The length and identifier of the length field take 2 bytes.
-// That leaves 29 bytes for the name.
-const MAX_FILTER_NAME_LENGTH: usize = 29;
 const NAME_PREFIX_ERROR: &'static str = "'namePrefix', if present, must be nonempty.";
 const NAME_TOO_LONG_ERROR: &'static str = "A device name can't be longer than 248 bytes.";
 const SERVICE_DATA_ERROR: &'static str = "'serviceData', if present, must be non-empty to filter devices.";
@@ -311,9 +306,6 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
             if name.len() > MAX_DEVICE_NAME_LENGTH {
                 return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
             }
-            if name.len() > MAX_FILTER_NAME_LENGTH {
-                return Err(NotFound);
-            }
 
             // Step 4.2.
             Some(name.to_string())
@@ -330,9 +322,6 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
             }
             if name_prefix.len() > MAX_DEVICE_NAME_LENGTH {
                 return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
-            }
-            if name_prefix.len() > MAX_FILTER_NAME_LENGTH {
-                return Err(NotFound);
             }
 
             // Step 5.2.

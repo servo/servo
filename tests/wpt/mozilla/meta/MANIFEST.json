@@ -7766,18 +7766,6 @@
             "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-device-name-namePrefix.html"
           }
         ],
-        "mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-name-in-adv-name.html": [
-          {
-            "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-name-in-adv-name.html",
-            "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-name-in-adv-name.html"
-          }
-        ],
-        "mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-name-in-adv-namePrefix.html": [
-          {
-            "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-name-in-adv-namePrefix.html",
-            "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/max-length-for-name-in-adv-namePrefix.html"
-          }
-        ],
         "mozilla/bluetooth/requestDevice/canonicalizeFilter/no-arguments.html": [
           {
             "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/no-arguments.html",
@@ -7800,18 +7788,6 @@
           {
             "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-namePrefix.html",
             "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-device-name-namePrefix.html"
-          }
-        ],
-        "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-name-in-adv-name.html": [
-          {
-            "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-name-in-adv-name.html",
-            "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-name-in-adv-name.html"
-          }
-        ],
-        "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-name-in-adv-namePrefix.html": [
-          {
-            "path": "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-name-in-adv-namePrefix.html",
-            "url": "/_mozilla/mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-max-length-for-name-in-adv-namePrefix.html"
           }
         ],
         "mozilla/bluetooth/requestDevice/canonicalizeFilter/unicode-valid-length-name-name.html": [
