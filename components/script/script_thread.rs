@@ -58,7 +58,7 @@ use dom::window::{ReflowReason, Window};
 use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
-use hyper::header::{ContentType, HttpDate, LastModified, Headers};
+use hyper::header::{ContentType, HttpDate, Headers, LastModified};
 use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper_serde::Serde;
@@ -73,12 +73,11 @@ use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
-use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
-use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
+use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
+use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache::{ImageCache, PendingImageResponse};
-use net_traits::request::{CredentialsMode, Destination, RequestInit};
+use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
 use net_traits::storage_thread::StorageType;
-use network_listener::NetworkListener;
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_layout_interface::message::{self, NewLayoutThreadInfo, ReflowQueryType};
@@ -104,7 +103,7 @@ use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
@@ -405,6 +404,8 @@ pub struct ScriptThread {
     browsing_contexts: DOMRefCell<HashMap<FrameId, JS<BrowsingContext>>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
+    /// A vector containing parser contexts which have not yet been fully processed
+    incomplete_parser_contexts: DOMRefCell<Vec<(PipelineId, ParserContext)>>,
     /// A map to store service worker registrations for a given origin
     registration_map: DOMRefCell<HashMap<ServoUrl, JS<ServiceWorkerRegistration>>>,
     /// A job queue for Service Workers keyed by their scope url
@@ -557,7 +558,7 @@ impl ScriptThreadFactory for ScriptThread {
             let origin = MutableOrigin::new(load_data.url.origin());
             let new_load = InProgressLoad::new(id, frame_id, parent_info, layout_chan, window_size,
                                                load_data.url.clone(), origin);
-            script_thread.start_page_load(new_load, load_data);
+            script_thread.pre_page_load(new_load, load_data);
 
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
@@ -694,6 +695,7 @@ impl ScriptThread {
             documents: DOMRefCell::new(Documents::new()),
             browsing_contexts: DOMRefCell::new(HashMap::new()),
             incomplete_loads: DOMRefCell::new(vec!()),
+            incomplete_parser_contexts: DOMRefCell::new(vec!()),
             registration_map: DOMRefCell::new(HashMap::new()),
             job_queue_map: Rc::new(JobQueue::new()),
 
@@ -1019,6 +1021,14 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
+            ConstellationControlMsg::NavigationResponse(id, fetch_data) => {
+                match fetch_data {
+                    FetchResponseMsg::ProcessResponse(metadata) => self.handle_fetch_metadata(id, metadata),
+                    FetchResponseMsg::ProcessResponseChunk(chunk) => self.handle_fetch_chunk(id, chunk),
+                    FetchResponseMsg::ProcessResponseEOF(eof) => self.handle_fetch_eof(id, eof),
+                    _ => unreachable!(),
+                };
+            },
             ConstellationControlMsg::Navigate(parent_pipeline_id, frame_id, load_data, replace) =>
                 self.handle_navigate(parent_pipeline_id, Some(frame_id), load_data, replace),
             ConstellationControlMsg::SendEvent(id, event) =>
@@ -1304,7 +1314,7 @@ impl ScriptThread {
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load);
         } else {
-            self.start_page_load(new_load, load_data);
+            self.pre_page_load(new_load, load_data);
         }
     }
 
@@ -2102,27 +2112,11 @@ impl ScriptThread {
         window.evaluate_media_queries_and_report_changes();
     }
 
-    /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad
+    /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
     /// argument until a notification is received that the fetch is complete.
-    fn start_page_load(&self, incomplete: InProgressLoad, mut load_data: LoadData) {
+    fn pre_page_load(&self, incomplete: InProgressLoad, load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
-
-        let context = Arc::new(Mutex::new(ParserContext::new(id, load_data.url.clone())));
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let listener = NetworkListener {
-            context: context,
-            task_source: self.networking_task_source.clone(),
-            wrapper: None,
-        };
-        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        });
-
-        if load_data.url.scheme() == "javascript" {
-            load_data.url = ServoUrl::parse("about:blank").unwrap();
-        }
-
-        let request = RequestInit {
+        let mut req_init = RequestInit {
             url: load_data.url.clone(),
             method: load_data.method,
             destination: Destination::Document,
@@ -2134,11 +2128,49 @@ impl ScriptThread {
             referrer_policy: load_data.referrer_policy,
             headers: load_data.headers,
             body: load_data.data,
+            redirect_mode: RedirectMode::Manual,
             .. RequestInit::default()
         };
 
-        self.resource_threads.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
+        if req_init.url.scheme() == "javascript" {
+            req_init.url = ServoUrl::parse("about:blank").unwrap();
+        }
+
+        self.constellation_chan.send(ConstellationMsg::InitiateNavigateRequest(req_init, id)).unwrap();
         self.incomplete_loads.borrow_mut().push(incomplete);
+    }
+
+    fn handle_fetch_metadata(&self, id: PipelineId, fetch_metadata: Result<FetchMetadata, NetworkError>) {
+        match fetch_metadata {
+            Ok(ref metadata_) => {
+                let metadata = match *metadata_ {
+                    FetchMetadata::Filtered { ref unsafe_, .. } => unsafe_,
+                    FetchMetadata::Unfiltered(ref m) => m,
+                };
+                let mut context = ParserContext::new(id, metadata.final_url.clone());
+                context.process_response(fetch_metadata.clone());
+                self.incomplete_parser_contexts.borrow_mut().push((id, context));
+            },
+            Err(e) => warn!("Network error: {:?}", e),
+        };
+    }
+
+    fn handle_fetch_chunk(&self, id: PipelineId, chunk: Vec<u8>) {
+        let mut parser_contexts = self.incomplete_parser_contexts.borrow_mut();
+        let parser = parser_contexts.iter_mut().find(|&&mut (pipeline_id, _)| pipeline_id == id);
+        if let Some(&mut (_, ref mut ctxt)) = parser {
+            ctxt.process_response_chunk(chunk);
+        }
+    }
+
+    fn handle_fetch_eof(&self, id: PipelineId, eof: Result<(), NetworkError>) {
+        let idx = self.incomplete_parser_contexts.borrow().iter().position(|&(pipeline_id, _)| {
+            pipeline_id == id
+        });
+        if let Some(idx) = idx {
+            let (_, mut ctxt) = self.incomplete_parser_contexts.borrow_mut().remove(idx);
+            ctxt.process_response_eof(eof);
+        }
     }
 
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`
