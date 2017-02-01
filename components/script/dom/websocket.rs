@@ -23,7 +23,6 @@ use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
 use hyper;
-use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
@@ -497,10 +496,13 @@ impl Runnable for ConnectionEstablishedTask {
         };
 
         // Step 5: Cookies.
-        if let Some(cookies) = self.headers.get::<hyper::header::SetCookie>() {
-            let cookies = cookies.iter().map(|c| Serde(c.clone())).collect();
+        if let Some(cookies) =  self.headers.get::<hyper::header::SetCookie>() {
+            let mut v = String::new();
+            for cookie in cookies.iter() {
+                v.push_str(&cookie.to_string());
+            }
             let _ = ws.global().core_resource_thread().send(
-                SetCookiesForUrl(ws.url.clone(), cookies, HTTP));
+                SetCookiesForUrl(ws.url.clone(), v, HTTP));
         }
 
         // Step 6.

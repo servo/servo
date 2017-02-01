@@ -6,6 +6,7 @@
 //! http://tools.ietf.org/html/rfc6265
 
 use cookie_rs;
+use hyper;
 use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
 use servo_url::ServoUrl;
@@ -87,6 +88,22 @@ impl Cookie {
             last_access: now(),
             expiry_time: expiry_time,
         })
+    }
+
+    pub fn new_wrapped_hyper(cookie: hyper::header::CookiePair, request: &ServoUrl,
+                             source: CookieSource) -> Option<Cookie> {
+        let cookie = cookie_rs::Cookie {
+            name: cookie.name,
+            value: cookie.value,
+            expires: cookie.expires,
+            max_age: cookie.max_age,
+            domain: cookie.domain,
+            path: cookie.path,
+            secure: cookie.secure,
+            httponly: cookie.httponly,
+            custom: cookie.custom,
+        };
+        Cookie::new_wrapped(cookie, request, source)
     }
 
     pub fn touch(&mut self) {
