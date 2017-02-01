@@ -36,8 +36,6 @@ caseless = "0.1.0"
 cookie = "0.6"
 cssparser = "0.12"
 deny_public_fields = {path = "../deny_public_fields"}
-cookie = "0.4"
-cssparser = "0.12"
 devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}

@@ -13,20 +13,9 @@ path = "lib.rs"
 bitflags = "0.7"
 heapsize = "0.3.0"
 heapsize_derive = "0.1"
-<<<<<<< f990b0c400de335c6244eb57eae17b3f3ee65967
 hyper = "0.10"
 hyper_serde = "0.6"
-=======
-<<<<<<< 0dbee36915abd926e61ca8571e11abf1f97ec830
-hyper = "0.9.9"
-hyper_serde = "0.5"
->>>>>>> updated files for openssl bump
 ipc-channel = "0.7"
-=======
-hyper = {version = "0.9.9", default-features = false}
-hyper_serde = "0.2"
-ipc-channel = "0.5"
->>>>>>> updated files for openssl bump
 msg = {path = "../msg"}
 serde = "0.9"
 serde_derive = "0.9"

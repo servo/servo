@@ -29,9 +29,8 @@ use rustls::internal::pemfile;
 use rustls::RootCertStore;
 use std::io::{BufReader};
 use std::fs::File;
-use time;
-use openssl::hash::MessageDigest;
-use rustls;
+use std::io::BufReader;
+use std::sync::Arc;
 
 pub type Connector = hyper::net::HttpsConnector<hyper_openssl::OpensslClient>;
 
@@ -101,10 +100,9 @@ impl SslClient for ServoSslClient {
     type Stream = hyper_openssl::SslStream<HttpStream>;
 
     fn wrap_client(&self, stream: HttpStream, host: &str) -> Result<Self::Stream> {
-        debug!("wrapping client");
-        match self.connector.connect(host, stream){
+        match self.connector.connect(host, stream) {
             Ok(stream) => Ok(hyper_openssl::SslStream(Arc::new(Mutex::new(stream)))),
-            Err(err) => Err(err)
+            Err(err) => Err(err),
         }
     }
 }
@@ -123,7 +121,6 @@ impl ServoSslConnector {
         let roots = self.roots.clone();
 
         ssl.set_verify_callback(SSL_VERIFY_PEER, move |p, x| {
-            //::openssl_verify::verify_callback(&host, p, x)
             rustls_verify(&domain, &roots, p, x)
         });
 
@@ -137,20 +134,11 @@ fn rustls_verify (domain: &str,
                 roots: &RootCertStore,
                 preverify_ok: bool,
                 x509_ctx: &X509StoreContextRef) -> bool {
+    if !preverify_ok || x509_ctx.error_depth() != 0 {
+        return preverify_ok;
+    }
 
-    // step 1: create presented certs
-    // certs.0 must be end entity cert
-    // presented certs is a vec<asn1cert>
-    let mut presented_certs = vec!();
-    match x509_ctx.current_cert() {
-        Some(x509) => {
-            let der = x509.to_der().unwrap();
-            let cert = rustls::Certificate(der);
-            presented_certs.push(cert);
-        },
-        None => (return false),
-    };
-
+    // create presented certs
     match x509_ctx.chain() {
         Some(mut chain) => {
             for cert in chain {
@@ -160,25 +148,17 @@ fn rustls_verify (domain: &str,
         None => (),
     };
 
-    debug!("length of presented certs: {}", presented_certs.len());
-
     //step 3: verify certificate
-    // not totally sure how to get the roots from the connector now. having a lifetime issue with the closure. figure that out later
-    match rustls::verify_server_cert(&roots, &presented_certs, &domain) {
+    match rustls::parallel_verify_server_cert(&roots, &presented_certs, &domain) {
         Ok(_) => true,
         Err(error) => {debug!("Verification error: {:?}", error);
                       false },
     }
 
-}
-
-
-fn get_inter_vec(x509_ctx: &X509StoreContextRef) -> Vec<&X509Ref> {
-    let mut inter_vec = vec!();
-    match x509_ctx.chain() {
-        //Some(chain) => vec!(),//.extend(chain),
-        Some(chain) => inter_vec.extend(chain),
-        None => (),
-    };
-    inter_vec
+    //TODO figure out when/if to use serial?
+    /*match rustls::verify_server_cert(&roots, &presented_certs, &domain) {
+        Ok(_) => true,
+        Err(error) => { error!("Verification error: {:?}", error);
+                      false },
+    }*/
 }
