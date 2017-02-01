@@ -47,7 +47,7 @@ default-features = false
 features = ["serde_derive", "ipc"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
-byteorder = "0.5"
+byteorder = "1.0"
 core-foundation = "0.2"
 core-graphics = "0.5"
 core-text = "2.0"
