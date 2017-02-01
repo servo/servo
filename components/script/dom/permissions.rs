@@ -256,17 +256,7 @@ pub fn get_descriptor_permission_state(permission_name: PermissionName ,
     // if the feature is not allowed in non-secure contexcts,
     // and let the user decide to grant the permission or not.
     if !allowed_in_nonsecure_contexts(&permission_name) {
-        if cfg!(target_os = "linux") {
-            match tinyfiledialogs::message_box_yes_no(DIALOG_TITLE,
-                                                      &format!("{} {:?} ?", QUERY_DIALOG_MESSAGE, permission_name),
-                                                      MessageBoxIcon::Question,
-                                                      YesNo::No) {
-                YesNo::Yes => return PermissionState::Granted,
-                YesNo::No => return PermissionState::Denied,
-            };
-        } else {
-            return PermissionState::Denied;
-        }
+        return prompt_user(permission_name);
     }
 
     // TODO: Step 3: Store the invocation results
@@ -274,6 +264,23 @@ pub fn get_descriptor_permission_state(permission_name: PermissionName ,
 
     // Step 4.
     PermissionState::Granted
+}
+
+#[cfg(target_os = "linux")]
+fn prompt_user(permission_name: PermissionName) -> PermissionState {
+    match tinyfiledialogs::message_box_yes_no(DIALOG_TITLE,
+                                              &format!("{} {:?} ?", QUERY_DIALOG_MESSAGE, permission_name),
+                                              MessageBoxIcon::Question,
+                                              YesNo::No) {
+        YesNo::Yes => return PermissionState::Granted,
+        YesNo::No => return PermissionState::Denied,
+    };
+}
+
+#[cfg(not(target_os = "linux"))]
+fn prompt_user(_permission_name: PermissionName) -> PermissionState {
+    // TODO popup only supported on linux
+    PermissionState::Denied;
 }
 
 // https://w3c.github.io/permissions/#allowed-in-non-secure-contexts
