@@ -329,7 +329,7 @@ mod property_bit_field {
 ///
 /// The input and output are in source order
 fn deduplicate_property_declarations(block: &mut PropertyDeclarationBlock) {
-    let mut deduplicated = Vec::new();
+    let mut deduplicated = Vec::with_capacity(block.declarations.len());
     let mut seen_normal = PropertyBitField::new();
     let mut seen_important = PropertyBitField::new();
     let mut seen_custom_normal = Vec::new();
