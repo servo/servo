@@ -10,20 +10,23 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::error::Error;
 use dom::bindings::js::JS;
-use dom::bindings::refcounted::Trusted;
+use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
 use dom::client::Client;
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::urlhelper::UrlHelper;
+use js::jsapi::JSAutoCompartment;
 use script_thread::{ScriptThread, Runnable};
 use servo_url::ServoUrl;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
 use std::rc::Rc;
+use task_source::TaskSource;
+use task_source::dom_manipulation::DOMManipulationTaskSource;
 
-#[derive(PartialEq, Clone, Debug, JSTraceable)]
+#[derive(PartialEq, Copy, Clone, Debug, JSTraceable)]
 pub enum JobType {
     Register,
     Unregister,
@@ -34,14 +37,6 @@ pub enum JobType {
 pub enum SettleType {
     Resolve(Trusted<ServiceWorkerRegistration>),
     Reject(Error)
-}
-
-// This encapsulates what operation to invoke of JobQueue from script thread
-pub enum InvokeType {
-    Settle(SettleType),
-    Run,
-    Register,
-    Update
 }
 
 #[must_root]
@@ -98,36 +93,14 @@ impl PartialEq for Job {
     }
 }
 
-pub struct FinishJobHandler {
-    pub scope_url: ServoUrl,
-    pub global: Trusted<GlobalScope>,
-}
-
-impl FinishJobHandler {
-    pub fn new(scope_url: ServoUrl, global: Trusted<GlobalScope>) -> FinishJobHandler {
-        FinishJobHandler {
-            scope_url: scope_url,
-            global: global
-        }
-    }
-}
-
-impl Runnable for FinishJobHandler {
-    fn main_thread_handler(self: Box<FinishJobHandler>, script_thread: &ScriptThread) {
-        script_thread.invoke_finish_job(self);
-    }
-}
-
 pub struct AsyncJobHandler {
     pub scope_url: ServoUrl,
-    pub invoke_type: InvokeType
 }
 
 impl AsyncJobHandler {
-    fn new(scope_url: ServoUrl, invoke_type: InvokeType) -> AsyncJobHandler {
+    fn new(scope_url: ServoUrl) -> AsyncJobHandler {
         AsyncJobHandler {
             scope_url: scope_url,
-            invoke_type: invoke_type
         }
     }
 }
@@ -153,25 +126,29 @@ impl JobQueue {
                         job: Job,
                         global: &GlobalScope,
                         script_thread: &ScriptThread) {
+        debug!("scheduling {:?} job", job.job_type);
         let mut queue_ref = self.0.borrow_mut();
         let job_queue = queue_ref.entry(job.scope_url.clone()).or_insert(vec![]);
         // Step 1
         if job_queue.is_empty() {
             let scope_url = job.scope_url.clone();
             job_queue.push(job);
-            let run_job_handler = AsyncJobHandler::new(scope_url, InvokeType::Run);
-            script_thread.queue_serviceworker_job(box run_job_handler, global);
+            let run_job_handler = box AsyncJobHandler::new(scope_url);
+            let _ = script_thread.dom_manipulation_task_source().queue(run_job_handler, global);
+            debug!("queued task to run newly-queued job");
         } else {
             // Step 2
             let mut last_job = job_queue.pop().unwrap();
             if job == last_job && !last_job.promise.is_settled() {
                 last_job.append_equivalent_job(job);
                 job_queue.push(last_job);
+                debug!("appended equivalent job");
             } else {
                 // restore the popped last_job
                 job_queue.push(last_job);
                 // and push this new job to job queue
                 job_queue.push(job);
+                debug!("pushed onto job queue job");
             }
         }
     }
@@ -179,41 +156,46 @@ impl JobQueue {
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#run-job-algorithm
     pub fn run_job(&self, run_job_handler: Box<AsyncJobHandler>, script_thread: &ScriptThread) {
-        let queue_ref = &*self.0.borrow();
-        let front_job =  {
-            let job_vec = queue_ref.get(&run_job_handler.scope_url);
-            job_vec.unwrap().first().unwrap()
+        debug!("running a job");
+        let url = {
+            let queue_ref = self.0.borrow();
+            let front_job = {
+                let job_vec = queue_ref.get(&run_job_handler.scope_url);
+                job_vec.unwrap().first().unwrap()
+            };
+            let scope_url = front_job.scope_url.clone();
+            match front_job.job_type {
+                JobType::Register => self.run_register(front_job, run_job_handler, script_thread),
+                JobType::Update => self.update(front_job, script_thread),
+                JobType::Unregister => unreachable!(),
+            };
+            scope_url
         };
-        let global = &*front_job.client.global();
-        let handler = *run_job_handler;
-        match front_job.job_type {
-            JobType::Register => {
-                let register_job_handler = AsyncJobHandler::new(handler.scope_url, InvokeType::Register);
-                script_thread.queue_serviceworker_job(box register_job_handler, global);
-            },
-            JobType::Update => {
-                let update_job_handler = AsyncJobHandler::new(handler.scope_url, InvokeType::Update);
-                script_thread.queue_serviceworker_job(box update_job_handler, global);
-            }
-            _ => { /* TODO implement Unregister */ }
-        }
+        self.finish_job(url, script_thread);
     }
 
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#register-algorithm
-    pub fn run_register(&self, job: &Job, register_job_handler: Box<AsyncJobHandler>, script_thread: &ScriptThread) {
-        let global = &*job.client.global();
+    fn run_register(&self, job: &Job, register_job_handler: Box<AsyncJobHandler>, script_thread: &ScriptThread) {
+        debug!("running register job");
         let AsyncJobHandler { scope_url, .. } = *register_job_handler;
         // Step 1-3
         if !UrlHelper::is_origin_trustworthy(&job.script_url) {
-            let settle_type = SettleType::Reject(Error::Type("Invalid script ServoURL".to_owned()));
-            let async_job_handler = AsyncJobHandler::new(scope_url, InvokeType::Settle(settle_type));
-            return script_thread.queue_serviceworker_job(box async_job_handler, global);
+            // Step 1.1
+            reject_job_promise(job,
+                               Error::Type("Invalid script ServoURL".to_owned()),
+                               script_thread.dom_manipulation_task_source());
+            // Step 1.2 (see run_job)
+            return;
         } else if job.script_url.origin() != job.referrer.origin() || job.scope_url.origin() != job.referrer.origin() {
-            let settle_type = SettleType::Reject(Error::Security);
-            let async_job_handler = AsyncJobHandler::new(scope_url, InvokeType::Settle(settle_type));
-            return script_thread.queue_serviceworker_job(box async_job_handler, global);
+            // Step 2.1/3.1
+            reject_job_promise(job,
+                               Error::Security,
+                               script_thread.dom_manipulation_task_source());
+            // Step 2.2/3.2 (see run_job)
+            return;
         }
+
         // Step 4-5
         if let Some(reg) = script_thread.handle_get_registration(&job.scope_url) {
             // Step 5.1
@@ -223,70 +205,144 @@ impl JobQueue {
             // Step 5.3
             if let Some(ref newest_worker) = reg.get_newest_worker() {
                 if (&*newest_worker).get_script_url() == job.script_url {
-                    let settle_type = SettleType::Resolve(Trusted::new(&*reg));
-                    let async_job_handler = AsyncJobHandler::new(scope_url, InvokeType::Settle(settle_type));
-                    script_thread.queue_serviceworker_job(box async_job_handler, global);
-                    let finish_job_handler = box FinishJobHandler::new(job.scope_url.clone(), Trusted::new(&*global));
-                    script_thread.queue_finish_job(finish_job_handler, &*global);
+                    // Step 5.3.1
+                    resolve_job_promise(job, &*reg, script_thread.dom_manipulation_task_source());
+                    // Step 5.3.2 (see run_job)
+                    return;
                 }
             }
         } else {
             // Step 6.1
+            let global = &*job.client.global();
             let pipeline = global.pipeline_id();
             let new_reg = ServiceWorkerRegistration::new(&*global, &job.script_url, scope_url);
             script_thread.handle_serviceworker_registration(&job.scope_url, &*new_reg, pipeline);
         }
         // Step 7
-        script_thread.invoke_job_update(job, &*global);
+        self.update(job, script_thread)
     }
 
     #[allow(unrooted_must_root)]
     // https://w3c.github.io/ServiceWorker/#finish-job-algorithm
-    pub fn finish_job(&self, scope_url: ServoUrl, global: &GlobalScope, script_thread: &ScriptThread) {
-        if let Some(job_vec) = (*self.0.borrow_mut()).get_mut(&scope_url) {
-            if job_vec.first().map_or(false, |job| job.scope_url == scope_url) {
-                let _  = job_vec.remove(0);
-            }
-            if !job_vec.is_empty() {
-                let run_job_handler = AsyncJobHandler::new(scope_url, InvokeType::Run);
-                script_thread.queue_serviceworker_job(box run_job_handler, global);
-            }
+    pub fn finish_job(&self, scope_url: ServoUrl, script_thread: &ScriptThread) {
+        debug!("finishing previous job");
+        let run_job = if let Some(job_vec) = (*self.0.borrow_mut()).get_mut(&scope_url) {
+            assert_eq!(job_vec.first().as_ref().unwrap().scope_url, scope_url);
+            let _  = job_vec.remove(0);
+            !job_vec.is_empty()
         } else {
             warn!("non-existent job vector for Servourl: {:?}", scope_url);
+            false
+        };
+
+        if run_job {
+            debug!("further jobs in queue after finishing");
+            let handler = box AsyncJobHandler::new(scope_url);
+            self.run_job(handler, script_thread);
         }
     }
 
     // https://w3c.github.io/ServiceWorker/#update-algorithm
-    pub fn update(&self, job: &Job, global: &GlobalScope, script_thread: &ScriptThread) {
+    fn update(&self, job: &Job, script_thread: &ScriptThread) {
+        debug!("running update job");
+        // Step 1
         let reg = match script_thread.handle_get_registration(&job.scope_url) {
             Some(reg) => reg,
-            None => return
-        };
-        // Step 1
-        if reg.get_uninstalling() {
-            let err_type = Error::Type("Update called on an uninstalling registration".to_owned());
-            let settle_type = SettleType::Reject(err_type);
-            let async_job_handler = AsyncJobHandler::new(job.scope_url.clone(), InvokeType::Settle(settle_type));
-            return script_thread.queue_serviceworker_job(box async_job_handler, global);
-        }
-        let newest_worker = match reg.get_newest_worker() {
-            Some(worker) => worker,
-            None => return
+            None => {
+                let err_type = Error::Type("No registration to update".to_owned());
+                // Step 2.1
+                reject_job_promise(job, err_type, script_thread.dom_manipulation_task_source());
+                // Step 2.2 (see run_job)
+                return;
+            }
         };
         // Step 2
-        if (&*newest_worker).get_script_url() == job.script_url  && job.job_type == JobType::Update {
-            // Step 4
-            let err_type = Error::Type("Invalid script ServoURL".to_owned());
-            let settle_type = SettleType::Reject(err_type);
-            let async_job_handler = AsyncJobHandler::new(job.scope_url.clone(), InvokeType::Settle(settle_type));
-            script_thread.queue_serviceworker_job(box async_job_handler, global);
-        } else {
-            job.client.set_controller(&*newest_worker);
-            let settle_type = SettleType::Resolve(Trusted::new(&*reg));
-            let async_job_handler = AsyncJobHandler::new(job.scope_url.clone(), InvokeType::Settle(settle_type));
-            script_thread.queue_serviceworker_job(box async_job_handler, global);
+        if reg.get_uninstalling() {
+            let err_type = Error::Type("Update called on an uninstalling registration".to_owned());
+            // Step 2.1
+            reject_job_promise(job, err_type, script_thread.dom_manipulation_task_source());
+            // Step 2.2 (see run_job)
+            return;
         }
-        let finish_job_handler = box FinishJobHandler::new(job.scope_url.clone(), Trusted::new(global));
-        script_thread.queue_finish_job(finish_job_handler, global);
+        // Step 3
+        let newest_worker = reg.get_newest_worker();
+        let newest_worker_url = newest_worker.as_ref().map(|w| w.get_script_url());
+        // Step 4
+        if newest_worker_url.as_ref() == Some(&job.script_url)  && job.job_type == JobType::Update {
+            let err_type = Error::Type("Invalid script ServoURL".to_owned());
+            // Step 4.1
+            reject_job_promise(job, err_type, script_thread.dom_manipulation_task_source());
+            // Step 4.2 (see run_job)
+            return;
+        }
+        // Step 8
+        if let Some(newest_worker) = newest_worker {
+            job.client.set_controller(&*newest_worker);
+            // Step 8.1
+            resolve_job_promise(job, &*reg, script_thread.dom_manipulation_task_source());
+            // Step 8.2 present in run_job
+        }
+        // TODO Step 9 (create new service worker)
     }
+}
+
+struct AsyncPromiseSettle {
+    global: Trusted<GlobalScope>,
+    promise: TrustedPromise,
+    settle_type: SettleType,
+}
+
+impl Runnable for AsyncPromiseSettle {
+    #[allow(unrooted_must_root)]
+    fn handler(self: Box<AsyncPromiseSettle>) {
+        let global = self.global.root();
+        let settle_type = self.settle_type.clone();
+        let promise = self.promise.root();
+        settle_job_promise(&*global, &*promise, settle_type)
+    }
+}
+
+impl AsyncPromiseSettle {
+    #[allow(unrooted_must_root)]
+    fn new(promise: Rc<Promise>, settle_type: SettleType) -> AsyncPromiseSettle {
+        AsyncPromiseSettle {
+            global: Trusted::new(&*promise.global()),
+            promise: TrustedPromise::new(promise),
+            settle_type: settle_type,
+        }
+    }
+}
+
+fn settle_job_promise(global: &GlobalScope, promise: &Promise, settle: SettleType) {
+    let _ac = JSAutoCompartment::new(global.get_cx(), promise.reflector().get_jsobject().get());
+    match settle {
+        SettleType::Resolve(reg) => promise.resolve_native(global.get_cx(), &*reg.root()),
+        SettleType::Reject(err) => promise.reject_error(global.get_cx(), err),
+    };
+}
+
+fn queue_settle_promise_for_job(job: &Job, settle: SettleType, task_source: &DOMManipulationTaskSource) {
+    let task = box AsyncPromiseSettle::new(job.promise.clone(), settle);
+    let global = job.client.global();
+    let _ = task_source.queue(task, &*global);
+
+}
+
+// https://w3c.github.io/ServiceWorker/#reject-job-promise-algorithm
+// https://w3c.github.io/ServiceWorker/#resolve-job-promise-algorithm
+fn queue_settle_promise(job: &Job, settle: SettleType, task_source: &DOMManipulationTaskSource) {
+    // Step 1
+    queue_settle_promise_for_job(job, settle.clone(), task_source);
+    // Step 2
+    for job in &job.equivalent_jobs {
+        queue_settle_promise_for_job(job, settle.clone(), task_source);
+    }
+}
+
+fn reject_job_promise(job: &Job, err: Error, task_source: &DOMManipulationTaskSource) {
+    queue_settle_promise(job, SettleType::Reject(err), task_source)
+}
+
+fn resolve_job_promise(job: &Job, reg: &ServiceWorkerRegistration, task_source: &DOMManipulationTaskSource) {
+    queue_settle_promise(job, SettleType::Resolve(Trusted::new(reg)), task_source)
 }
