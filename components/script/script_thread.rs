@@ -71,12 +71,12 @@ use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
-use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
-use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
+use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg};
+use net_traits::{Metadata, ReferrerPolicy, ResourceThreads};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
-use net_traits::request::{CredentialsMode, Destination, RequestInit};
+use net_traits::request::{CredentialsMode, Destination, RedirectMode, RequestInit};
+use net_traits::response::ResponseInit;
 use net_traits::storage_thread::StorageType;
-use network_listener::NetworkListener;
 use origin::Origin;
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
@@ -101,7 +101,7 @@ use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Select, Sender, channel};
 use std::thread;
@@ -547,7 +547,7 @@ impl ScriptThreadFactory for ScriptThread {
             let origin = Origin::new(&load_data.url);
             let new_load = InProgressLoad::new(id, frame_id, parent_info, layout_chan, window_size,
                                                load_data.url.clone(), origin);
-            script_thread.start_page_load(new_load, load_data);
+            script_thread.pre_page_load(new_load, load_data);
 
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
@@ -957,6 +957,8 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
+            ConstellationControlMsg::NavigationResponse(id, metadata) =>
+                self.start_page_load(id, metadata),
             ConstellationControlMsg::Navigate(parent_pipeline_id, frame_id, load_data, replace) =>
                 self.handle_navigate(parent_pipeline_id, Some(frame_id), load_data, replace),
             ConstellationControlMsg::SendEvent(id, event) =>
@@ -1240,7 +1242,7 @@ impl ScriptThread {
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load);
         } else {
-            self.start_page_load(new_load, load_data);
+            self.pre_page_load(new_load, load_data);
         }
     }
 
@@ -2073,43 +2075,52 @@ impl ScriptThread {
         window.evaluate_media_queries_and_report_changes();
     }
 
-    /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad
+    /// Instructs the constellation to fetch the document that will be loaded. Stores the InProgressLoad
     /// argument until a notification is received that the fetch is complete.
-    fn start_page_load(&self, incomplete: InProgressLoad, mut load_data: LoadData) {
+    fn pre_page_load(&self, incomplete: InProgressLoad, load_data: LoadData) {
         let id = incomplete.pipeline_id.clone();
-
-        let context = Arc::new(Mutex::new(ParserContext::new(id, load_data.url.clone())));
-        let (action_sender, action_receiver) = ipc::channel().unwrap();
-        let listener = NetworkListener {
-            context: context,
-            task_source: self.networking_task_source.clone(),
-            wrapper: None,
-        };
-        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-            listener.notify_fetch(message.to().unwrap());
-        });
-
-        if load_data.url.scheme() == "javascript" {
-            load_data.url = ServoUrl::parse("about:blank").unwrap();
-        }
-
-        let request = RequestInit {
+        let mut req_init = RequestInit {
             url: load_data.url.clone(),
             method: load_data.method,
             destination: Destination::Document,
             credentials_mode: CredentialsMode::Include,
             use_url_credentials: true,
-            origin: load_data.url,
+            origin: load_data.url.clone(),
             pipeline_id: Some(id),
-            referrer_url: load_data.referrer_url,
+            referrer_url: load_data.referrer_url.clone(),
             referrer_policy: load_data.referrer_policy,
-            headers: load_data.headers,
+            headers: load_data.headers.clone(),
             body: load_data.data,
+            redirect_mode: RedirectMode::Manual,
             .. RequestInit::default()
         };
 
-        self.resource_threads.send(CoreResourceMsg::Fetch(request, action_sender)).unwrap();
+        if req_init.url.scheme() == "javascript" {
+            req_init.url = ServoUrl::parse("about:blank").unwrap();
+        }
+
+        let res_init = ResponseInit {
+            url: load_data.url,
+            headers: load_data.headers,
+            referrer: load_data.referrer_url,
+        };
+        self.constellation_chan.send(ConstellationMsg::InitiateNavigateRequest(req_init, res_init, id)).unwrap();
         self.incomplete_loads.borrow_mut().push(incomplete);
+    }
+
+    /// Begin parsing.
+    fn start_page_load(&self, id: PipelineId, response_msg: FetchResponseMsg) {
+        match response_msg {
+            FetchResponseMsg::ProcessResponse(Ok(FetchMetadata::Filtered { filtered, unsafe_ })) => {
+                let mut context = ParserContext::new(id, unsafe_.final_url.clone());
+                context.process_response(Ok(FetchMetadata::Filtered {
+                                            filtered,
+                                            unsafe_
+                                        }));
+            },
+            FetchResponseMsg::ProcessResponse(Err(e)) => warn!("Network error: {:?}", e),
+            _ => unreachable!(),
+        };
     }
 
     /// Synchronously fetch `about:blank`. Stores the `InProgressLoad`

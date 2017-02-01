@@ -85,10 +85,13 @@ use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, TraversalDirection};
-use net_traits::{self, IpcSend, ResourceThreads};
+use net_traits::{self, CoreResourceMsg, IpcSend, ResourceThreads};
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::pub_domains::reg_host;
+use net_traits::request::RequestInit;
+use net_traits::response::ResponseInit;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
+use network_listener::NetworkListener;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{InitialPipelineState, Pipeline};
 use profile_traits::mem;
@@ -896,6 +899,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::PipelineExited(pipeline_id) => {
                 self.handle_pipeline_exited(pipeline_id);
             }
+            FromScriptMsg::InitiateNavigateRequest(req_init, res_init, pipeline_id) => {
+                debug!("constellation got manual redirect message");
+                self.handle_manual_redirect(req_init, res_init, pipeline_id);
+            }
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        load_info.info.parent_pipeline_id,
@@ -1373,6 +1380,30 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
         if let Err(e) = result {
             self.handle_send_error(parent_id, e);
+        }
+    }
+
+    fn handle_manual_redirect(&mut self, req_init: RequestInit, res_init: ResponseInit, id: PipelineId) {
+        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let listener = NetworkListener {
+            res_init: res_init.clone(),
+            req_init: req_init.clone(),
+            pipeline_id: id
+        };
+        ROUTER.add_route(receiver.to_opaque(), box move |message| {
+            let msg_ = message.to();
+            match msg_ {
+                Ok(msg) => listener.notify(msg),
+                Err(e) => warn!("Error while receiving message: {:?}", e)
+            };
+        });
+
+        if let Err(e) = self.public_resource_threads.send(
+                            CoreResourceMsg::FetchRedirect(
+                                req_init,
+                                res_init,
+                                sender)) {
+            warn!("Exit resource thread failed ({})", e);
         }
     }
 

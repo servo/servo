@@ -75,6 +75,16 @@ pub enum ResponseMsg {
     Errored,
 }
 
+#[derive(Serialize, Deserialize, Clone, HeapSizeOf)]
+pub struct ResponseInit {
+    pub url: ServoUrl,
+    #[serde(deserialize_with = "::hyper_serde::deserialize",
+            serialize_with = "::hyper_serde::serialize")]
+    #[ignore_heap_size_of = "Defined in hyper"]
+    pub headers: Headers,
+    pub referrer: Option<ServoUrl>,
+}
+
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
 #[derive(Debug, Clone, HeapSizeOf)]
 pub struct Response {
@@ -117,6 +127,13 @@ impl Response {
             internal_response: None,
             return_internal: Cell::new(true),
         }
+    }
+
+    pub fn from_init(init: ResponseInit) -> Response {
+        let mut res = Response::new(init.url);
+        res.headers = init.headers;
+        res.referrer = init.referrer;
+        res
     }
 
     pub fn network_error(e: NetworkError) -> Response {
