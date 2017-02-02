@@ -9,7 +9,7 @@
 use dom::TElement;
 use properties::ComputedValues;
 use properties::longhands::display::computed_value as display;
-use restyle_hints::{RESTYLE_LATER_SIBLINGS, RestyleHint};
+use restyle_hints::{RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use rule_tree::StrongRuleNode;
 use selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use std::collections::HashMap;
@@ -44,8 +44,8 @@ impl ComputedStyle {
     }
 }
 
-// We manually implement Debug for ComputedStyle so tht we can avoid the verbose
-// stringification of ComputedValues for normal logging.
+// We manually implement Debug for ComputedStyle so that we can avoid the
+// verbose stringification of ComputedValues for normal logging.
 impl fmt::Debug for ComputedStyle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ComputedStyle {{ rules: {:?}, values: {{..}} }}", self.rules)
@@ -54,6 +54,13 @@ impl fmt::Debug for ComputedStyle {
 
 type PseudoStylesInner = HashMap<PseudoElement, ComputedStyle,
                                  BuildHasherDefault<::fnv::FnvHasher>>;
+
+/// The rule nodes for each of the pseudo-elements of an element.
+///
+/// TODO(emilio): Probably shouldn't be a `HashMap` by default, but a smaller
+/// array.
+pub type PseudoRuleNodes = HashMap<PseudoElement, StrongRuleNode,
+                                   BuildHasherDefault<::fnv::FnvHasher>>;
 
 /// A set of styles for a given element's pseudo-elements.
 ///
@@ -68,6 +75,19 @@ impl PseudoStyles {
     /// Construct an empty set of `PseudoStyles`.
     pub fn empty() -> Self {
         PseudoStyles(HashMap::with_hasher(Default::default()))
+    }
+
+    /// Gets the rules that the different pseudo-elements matched.
+    ///
+    /// FIXME(emilio): We could in theory avoid creating these when we have
+    /// support for just re-cascading an element. Then the input to
+    /// `cascade_node` could be `MatchResults` or just `UseExistingStyle`.
+    pub fn get_rules(&self) -> PseudoRuleNodes {
+        let mut rules = HashMap::with_hasher(Default::default());
+        for (pseudo, style) in &self.0 {
+            rules.insert(pseudo.clone(), style.rules.clone());
+        }
+        rules
     }
 }
 
@@ -144,8 +164,11 @@ impl DescendantRestyleHint {
 /// to provide more type safety while propagating restyle hints down the tree.
 #[derive(Clone, Debug)]
 pub struct StoredRestyleHint {
-    /// Whether this element should be restyled during the traversal.
-    pub restyle_self: bool,
+    /// Whether this element should be restyled during the traversal, and how.
+    ///
+    /// This hint is stripped down, and only contains hints that are a subset of
+    /// RestyleHint::for_single_element().
+    pub self_: RestyleHint,
     /// Whether the descendants of this element need to be restyled.
     pub descendants: DescendantRestyleHint,
 }
@@ -154,7 +177,11 @@ impl StoredRestyleHint {
     /// Propagates this restyle hint to a child element.
     pub fn propagate(&self) -> Self {
         StoredRestyleHint {
-            restyle_self: self.descendants != DescendantRestyleHint::Empty,
+            self_: if self.descendants == DescendantRestyleHint::Empty {
+                RestyleHint::empty()
+            } else {
+                RESTYLE_SELF
+            },
             descendants: self.descendants.propagate(),
         }
     }
@@ -162,7 +189,7 @@ impl StoredRestyleHint {
     /// Creates an empty `StoredRestyleHint`.
     pub fn empty() -> Self {
         StoredRestyleHint {
-            restyle_self: false,
+            self_: RestyleHint::empty(),
             descendants: DescendantRestyleHint::Empty,
         }
     }
@@ -171,29 +198,32 @@ impl StoredRestyleHint {
     /// including the element.
     pub fn subtree() -> Self {
         StoredRestyleHint {
-            restyle_self: true,
+            self_: RESTYLE_SELF,
             descendants: DescendantRestyleHint::Descendants,
         }
     }
 
+    /// Returns true if the hint indicates that our style may be invalidated.
+    pub fn has_self_invalidations(&self) -> bool {
+        !self.self_.is_empty()
+    }
+
     /// Whether the restyle hint is empty (nothing requires to be restyled).
     pub fn is_empty(&self) -> bool {
-        !self.restyle_self && self.descendants == DescendantRestyleHint::Empty
+        !self.has_self_invalidations() &&
+            self.descendants == DescendantRestyleHint::Empty
     }
 
     /// Insert another restyle hint, effectively resulting in the union of both.
     pub fn insert(&mut self, other: &Self) {
-        self.restyle_self = self.restyle_self || other.restyle_self;
+        self.self_ |= other.self_;
         self.descendants = self.descendants.union(other.descendants);
     }
 }
 
 impl Default for StoredRestyleHint {
     fn default() -> Self {
-        StoredRestyleHint {
-            restyle_self: false,
-            descendants: DescendantRestyleHint::Empty,
-        }
+        StoredRestyleHint::empty()
     }
 }
 
@@ -203,7 +233,7 @@ impl From<RestyleHint> for StoredRestyleHint {
         use self::DescendantRestyleHint::*;
         debug_assert!(!hint.contains(RESTYLE_LATER_SIBLINGS), "Caller should apply sibling hints");
         StoredRestyleHint {
-            restyle_self: hint.contains(RESTYLE_SELF) || hint.contains(RESTYLE_STYLE_ATTRIBUTE),
+            self_: hint & RestyleHint::for_self(),
             descendants: if hint.contains(RESTYLE_DESCENDANTS) { Descendants } else { Empty },
         }
     }
@@ -319,7 +349,9 @@ impl RestyleData {
 
     /// Returns true if this RestyleData might invalidate the current style.
     pub fn has_invalidations(&self) -> bool {
-        self.hint.restyle_self || self.recascade || self.snapshot.is_some()
+        self.hint.has_self_invalidations() ||
+            self.recascade ||
+            self.snapshot.is_some()
     }
 }
 
@@ -336,6 +368,19 @@ pub struct ElementData {
     /// Restyle tracking. We separate this into a separate allocation so that
     /// we can drop it when no restyles are pending on the elemnt.
     restyle: Option<Box<RestyleData>>,
+}
+
+/// The kind of restyle that a single element should do.
+pub enum RestyleKind {
+    /// We need to run selector matching plus re-cascade, that is, a full
+    /// restyle.
+    MatchAndCascade,
+    /// We need to recascade with some replacement rule, such as the style
+    /// attribute, or animation rules.
+    CascadeWithReplacements(RestyleHint),
+    /// We only need to recascade, for example, because only inherited
+    /// properties in the parent changed.
+    CascadeOnly,
 }
 
 impl ElementData {
@@ -356,7 +401,31 @@ impl ElementData {
     /// invalidation.
     pub fn has_current_styles(&self) -> bool {
         self.has_styles() &&
-        self.restyle.as_ref().map_or(true, |r| !r.has_invalidations())
+            self.restyle.as_ref().map_or(true, |r| !r.has_invalidations())
+    }
+
+    /// Returns the kind of restyling that we're going to need to do on this
+    /// element, based of the stored restyle hint.
+    pub fn restyle_kind(&self) -> RestyleKind {
+        debug_assert!(!self.has_current_styles(), "Should've stopped earlier");
+        if !self.has_styles() {
+            return RestyleKind::MatchAndCascade;
+        }
+
+        debug_assert!(self.restyle.is_some());
+        let restyle_data = self.restyle.as_ref().unwrap();
+        let hint = restyle_data.hint.self_;
+        if hint.contains(RESTYLE_SELF) {
+            return RestyleKind::MatchAndCascade;
+        }
+
+        if !hint.is_empty() {
+            return RestyleKind::CascadeWithReplacements(hint);
+        }
+
+        debug_assert!(restyle_data.recascade,
+                      "We definitely need to do something!");
+        return RestyleKind::CascadeOnly;
     }
 
     /// Gets the element styles, if any.

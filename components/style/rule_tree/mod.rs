@@ -153,9 +153,20 @@ impl RuleTree {
     pub fn insert_ordered_rules<'a, I>(&self, iter: I) -> StrongRuleNode
         where I: Iterator<Item=(StyleSource, CascadeLevel)>,
     {
-        let mut current = self.root.clone();
+        self.insert_ordered_rules_from(self.root.clone(), iter)
+    }
+
+    fn insert_ordered_rules_from<'a, I>(&self,
+                                        from: StrongRuleNode,
+                                        iter: I) -> StrongRuleNode
+        where I: Iterator<Item=(StyleSource, CascadeLevel)>,
+    {
+        let mut current = from;
+        let mut last_level = current.get().level;
         for (source, level) in iter {
+            debug_assert!(last_level <= level, "Not really ordered");
             current = current.ensure_child(self.root.downgrade(), source, level);
+            last_level = level;
         }
         current
     }
@@ -168,6 +179,90 @@ impl RuleTree {
     /// This can only be called when no other threads is accessing this tree.
     pub unsafe fn maybe_gc(&self) {
         self.root.maybe_gc();
+    }
+
+    /// Replaces a rule in a given level (if present) for another rule.
+    ///
+    /// Returns the resulting node that represents the new path.
+    pub fn update_rule_at_level(&self,
+                                level: CascadeLevel,
+                                pdb: Option<&Arc<RwLock<PropertyDeclarationBlock>>>,
+                                path: StrongRuleNode)
+                                -> StrongRuleNode {
+        debug_assert!(level.is_unique_per_element());
+        // TODO(emilio): Being smarter with lifetimes we could avoid a bit of
+        // the refcount churn.
+        let mut current = path.clone();
+
+        // First walk up until the first less-or-equally specific rule.
+        let mut children = vec![];
+        while current.get().level > level {
+            children.push((current.get().source.clone().unwrap(), current.get().level));
+            current = current.parent().unwrap().clone();
+        }
+
+        // Then remove the one at the level we want to replace, if any.
+        //
+        // NOTE: Here we assume that only one rule can be at the level we're
+        // replacing.
+        //
+        // This is certainly true for HTML style attribute rules, animations and
+        // transitions, but could not be so for SMIL animations, which we'd need
+        // to special-case (isn't hard, it's just about removing the `if` and
+        // special cases, and replacing them for a `while` loop, avoiding the
+        // optimizations).
+        if current.get().level == level {
+            if let Some(pdb) = pdb {
+                // If the only rule at the level we're replacing is exactly the
+                // same as `pdb`, we're done, and `path` is still valid.
+                //
+                // TODO(emilio): Another potential optimization is the one where
+                // we can just replace the rule at that level for `pdb`, and
+                // then we don't need to re-create the children, and `path` is
+                // also equally valid. This is less likely, and would require an
+                // in-place mutation of the source, which is, at best, fiddly,
+                // so let's skip it for now.
+                let is_here_already = match current.get().source.as_ref() {
+                    Some(&StyleSource::Declarations(ref already_here)) => {
+                        arc_ptr_eq(pdb, already_here)
+                    },
+                    _ => unreachable!("Replacing non-declarations style?"),
+                };
+
+                if is_here_already {
+                    debug!("Picking the fast path in rule replacement");
+                    return path;
+                }
+            }
+            current = current.parent().unwrap().clone();
+        }
+        debug_assert!(current.get().level != level,
+                      "Multiple rules should've been replaced?");
+
+        // Insert the rule if it's relevant at this level in the cascade.
+        //
+        // These optimizations are likely to be important, because the levels
+        // where replacements apply (style and animations) tend to trigger
+        // pretty bad styling cases already.
+        if let Some(pdb) = pdb {
+            if level.is_important() {
+                if pdb.read().any_important() {
+                    current = current.ensure_child(self.root.downgrade(),
+                                                   StyleSource::Declarations(pdb.clone()),
+                                                   level);
+                }
+            } else {
+                if pdb.read().any_normal() {
+                    current = current.ensure_child(self.root.downgrade(),
+                                                   StyleSource::Declarations(pdb.clone()),
+                                                   level);
+                }
+            }
+        }
+
+        // Now the rule is in the relevant place, push the children as
+        // necessary.
+        self.insert_ordered_rules_from(current, children.into_iter().rev())
     }
 }
 
@@ -183,7 +278,7 @@ const RULE_TREE_GC_INTERVAL: usize = 300;
 ///
 /// [1]: https://drafts.csswg.org/css-cascade/#cascade-origin
 #[repr(u8)]
-#[derive(Eq, PartialEq, Copy, Clone, Debug)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, PartialOrd)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum CascadeLevel {
     /// Normal User-Agent rules.
@@ -211,6 +306,18 @@ pub enum CascadeLevel {
 }
 
 impl CascadeLevel {
+    /// Returns whether this cascade level is unique per element, in which case
+    /// we can replace the path in the cascade without fear.
+    pub fn is_unique_per_element(&self) -> bool {
+        match *self {
+            CascadeLevel::Transitions |
+            CascadeLevel::Animations |
+            CascadeLevel::StyleAttributeNormal |
+            CascadeLevel::StyleAttributeImportant => true,
+            _ => false,
+        }
+    }
+
     /// Returns whether this cascade level represents important rules of some
     /// sort.
     #[inline]
@@ -248,7 +355,7 @@ struct RuleNode {
     source: Option<StyleSource>,
 
     /// The cascade level this rule is positioned at.
-    cascade_level: CascadeLevel,
+    level: CascadeLevel,
 
     refcount: AtomicUsize,
     first_child: AtomicPtr<RuleNode>,
@@ -274,13 +381,13 @@ impl RuleNode {
     fn new(root: WeakRuleNode,
            parent: StrongRuleNode,
            source: StyleSource,
-           cascade_level: CascadeLevel) -> Self {
+           level: CascadeLevel) -> Self {
         debug_assert!(root.upgrade().parent().is_none());
         RuleNode {
             root: Some(root),
             parent: Some(parent),
             source: Some(source),
-            cascade_level: cascade_level,
+            level: level,
             refcount: AtomicUsize::new(1),
             first_child: AtomicPtr::new(ptr::null_mut()),
             next_sibling: AtomicPtr::new(ptr::null_mut()),
@@ -295,7 +402,7 @@ impl RuleNode {
             root: None,
             parent: None,
             source: None,
-            cascade_level: CascadeLevel::UANormal,
+            level: CascadeLevel::UANormal,
             refcount: AtomicUsize::new(1),
             first_child: AtomicPtr::new(ptr::null_mut()),
             next_sibling: AtomicPtr::new(ptr::null_mut()),
@@ -444,10 +551,10 @@ impl StrongRuleNode {
     fn ensure_child(&self,
                     root: WeakRuleNode,
                     source: StyleSource,
-                    cascade_level: CascadeLevel) -> StrongRuleNode {
+                    level: CascadeLevel) -> StrongRuleNode {
         let mut last = None;
         for child in self.get().iter_children() {
-            if child .get().cascade_level == cascade_level &&
+            if child .get().level == level &&
                 child.get().source.as_ref().unwrap().ptr_equals(&source) {
                 return child;
             }
@@ -455,9 +562,9 @@ impl StrongRuleNode {
         }
 
         let mut node = Box::new(RuleNode::new(root,
-                                             self.clone(),
-                                             source.clone(),
-                                             cascade_level));
+                                              self.clone(),
+                                              source.clone(),
+                                              level));
         let new_ptr: *mut RuleNode = &mut *node;
 
         loop {
@@ -521,7 +628,7 @@ impl StrongRuleNode {
 
     /// Get the importance that this rule node represents.
     pub fn importance(&self) -> Importance {
-        self.get().cascade_level.importance()
+        self.get().level.importance()
     }
 
     /// Get an iterator for this rule node and its ancestors.
