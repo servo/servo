@@ -521,12 +521,12 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 
     impl Parse for SingleSpecifiedValue {
-        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
                 return Ok(SingleSpecifiedValue::Auto);
             }
 
-            if let Ok(len) = input.try(|input| LengthOrPercentage::parse(context, input)) {
+            if let Ok(len) = input.try(|input| LengthOrPercentage::parse_non_negative(input)) {
                 return Ok(SingleSpecifiedValue::LengthOrPercentage(len));
             }
 
