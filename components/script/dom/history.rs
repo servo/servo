@@ -184,14 +184,10 @@ impl History {
     pub fn clear_active_state(&self) {
         self.active_state.set(None);
     }
-}
 
-impl History {
-    fn traverse_history(&self, direction: TraversalDirection) {
-        let global_scope = self.window.upcast::<GlobalScope>();
-        let pipeline = global_scope.pipeline_id();
-        let msg = ConstellationMsg::TraverseHistory(Some(pipeline), direction);
-        let _ = global_scope.constellation_chan().send(msg);
+    pub fn traverse_history(&self, direction: TraversalDirection) {
+        let history_traversal_task_source = self.window.history_traversal_task_source();
+        history_traversal_task_source.queue_history_traversal(&*self.window, direction);
     }
 }
 

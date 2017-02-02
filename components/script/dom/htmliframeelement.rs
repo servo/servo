@@ -481,8 +481,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> Er
     if iframe.Mozbrowser() {
         if iframe.upcast::<Node>().is_in_doc_with_browsing_context() {
             let window = window_from_node(iframe);
-            let msg = ConstellationMsg::TraverseHistory(iframe.pipeline_id(), direction);
-            window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
+            window.History().traverse_history(direction);
         }
 
         Ok(())

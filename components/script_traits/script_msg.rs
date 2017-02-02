@@ -97,8 +97,8 @@ pub enum ScriptMsg {
     /// Dispatch a mozbrowser event to the parent of this pipeline.
     /// The first PipelineId is for the parent, the second is for the originating pipeline.
     MozBrowserEvent(PipelineId, PipelineId, MozBrowserEvent),
-    /// HTMLIFrameElement Forward or Back traversal.
-    TraverseHistory(Option<PipelineId>, TraversalDirection),
+    /// Traverses the joint session history. This is a synchronous message.
+    TraverseHistory(Option<PipelineId>, TraversalDirection, IpcSender<()>),
     /// Gets the length of the joint session history from the constellation.
     JointSessionHistoryLength(PipelineId, IpcSender<u32>),
     /// Favicon detected

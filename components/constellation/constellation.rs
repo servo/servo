@@ -860,7 +860,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // Handle a forward or back request
             FromCompositorMsg::TraverseHistory(pipeline_id, direction) => {
                 debug!("constellation got traverse history message from compositor");
-                self.handle_traverse_history_msg(pipeline_id, direction);
+                self.handle_traverse_history_msg(pipeline_id, direction, None);
             }
             FromCompositorMsg::WindowSize(new_size, size_type) => {
                 debug!("constellation got window resize message");
@@ -925,9 +925,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_load_complete_msg(pipeline_id)
             }
             // Handle a forward or back request
-            FromScriptMsg::TraverseHistory(pipeline_id, direction) => {
+            FromScriptMsg::TraverseHistory(pipeline_id, direction, sender) => {
                 debug!("constellation got traverse history message from script");
-                self.handle_traverse_history_msg(pipeline_id, direction);
+                self.handle_traverse_history_msg(pipeline_id, direction, Some(sender));
             }
             // Handle a joint session history length request.
             FromScriptMsg::JointSessionHistoryLength(pipeline_id, sender) => {
@@ -1665,7 +1665,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_traverse_history_msg(&mut self,
                                    pipeline_id: Option<PipelineId>,
-                                   direction: TraversalDirection) {
+                                   direction: TraversalDirection,
+                                   sender: Option<IpcSender<()>>) {
         let top_level_frame_id = pipeline_id
             .map(|pipeline_id| self.get_top_level_frame_for_pipeline(pipeline_id))
             .unwrap_or(self.root_frame_id);
@@ -1696,6 +1697,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         for (_, entry) in table {
             self.traverse_to_entry(entry);
+        }
+        // If the traversal was triggered from script, it must be treated synchronously.
+        if let Some(sender) = sender {
+            let _ = sender.send(());
         }
     }
 

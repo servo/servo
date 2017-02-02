@@ -113,7 +113,7 @@ use style::dom::{TNode, UnsafeNode};
 use style::thread_state;
 use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSource};
 use task_source::file_reading::FileReadingTaskSource;
-use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::history_traversal::{HistoryTraversalTask, HistoryTraversalTaskSource};
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::{UserInteractionTask, UserInteractionTaskSource};
 use time::Tm;
@@ -249,6 +249,8 @@ pub enum MainThreadScriptMsg {
     DOMManipulation(DOMManipulationTask),
     /// Tasks that originate from the user interaction task source
     UserInteraction(UserInteractionTask),
+    /// Tasks that originate from the history traversal task source
+    HistoryTraversal(HistoryTraversalTask),
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -1056,6 +1058,8 @@ impl ScriptThread {
             MainThreadScriptMsg::DOMManipulation(task) =>
                 task.handle_task(self),
             MainThreadScriptMsg::UserInteraction(task) =>
+                task.handle_task(self),
+            MainThreadScriptMsg::HistoryTraversal(task) =>
                 task.handle_task(self),
         }
     }

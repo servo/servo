@@ -276,7 +276,7 @@ impl Window {
         self.networking_task_source.clone()
     }
 
-    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn history_traversal_task_source(&self) -> HistoryTraversalTaskSource {
         self.history_traversal_task_source.clone()
     }
 
