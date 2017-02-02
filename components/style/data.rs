@@ -366,7 +366,7 @@ pub struct ElementData {
     styles: Option<ElementStyles>,
 
     /// Restyle tracking. We separate this into a separate allocation so that
-    /// we can drop it when no restyles are pending on the elemnt.
+    /// we can drop it when no restyles are pending on the element.
     restyle: Option<Box<RestyleData>>,
 }
 

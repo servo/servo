@@ -135,9 +135,11 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
 
     let mut per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
 
-    let token = RecalcStyleOnly::pre_traverse(element, &per_doc_data.stylist, unstyled_children_only);
+    let token = RecalcStyleOnly::pre_traverse(element,
+                                              &per_doc_data.stylist,
+                                              unstyled_children_only);
     if !token.should_traverse() {
-        error!("Unnecessary call to traverse_subtree");
+        error!("Unnecessary call to traverse_subtree: {:?}", element);
         return;
     }
 
@@ -318,19 +320,7 @@ pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) -> (
 #[no_mangle]
 pub extern "C" fn Servo_Element_ShouldTraverse(element: RawGeckoElementBorrowed) -> bool {
     let element = GeckoElement(element);
-    debug_assert!(!element.has_dirty_descendants(),
-                  "only call Servo_Element_ShouldTraverse if you know the element \
-                   does not have dirty descendants");
-    let result = match element.borrow_data() {
-        // Note that we check for has_restyle here rather than has_current_styles,
-        // because we also want the traversal code to trigger if there's restyle
-        // damage. We really only need the Gecko post-traversal in that case, so
-        // the servo traversal will be a no-op, but it's cheap enough that we
-        // don't bother distinguishing the two cases.
-        Some(d) => !d.has_styles() || d.has_restyle(),
-        None => true,
-    };
-    result
+    RecalcStyleOnly::element_without_dirty_descendants_needs_traversal(element)
 }
 
 #[no_mangle]
