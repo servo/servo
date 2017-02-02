@@ -74,7 +74,11 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
                              -> Result<FontFaceRule, ()> {
     let mut rule = FontFaceRule::initial();
     {
-        let parser = FontFaceRuleParser { context: context, rule: &mut rule };
+        let parser = FontFaceRuleParser {
+            context: context,
+            rule: &mut rule,
+            missing: MissingDescriptors::new(),
+        };
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
             if let Err(range) = declaration {
@@ -84,12 +88,11 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
                 log_css_error(iter.input, pos, &*message, context);
             }
         }
+        if iter.parser.missing.any() {
+            return Err(())
+        }
     }
-    if rule.family != FontFamily::Generic(atom!("")) && !rule.sources.is_empty() {
-        Ok(rule)
-    } else {
-        Err(())
-    }
+    Ok(rule)
 }
 
 /// A list of effective sources that we send over through IPC to the font cache.
@@ -128,6 +131,7 @@ impl iter::Iterator for EffectiveSources {
 struct FontFaceRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
     rule: &'a mut FontFaceRule,
+    missing: MissingDescriptors,
 }
 
 /// Default methods reject all at rules.
@@ -171,7 +175,14 @@ impl Parse for Source {
 }
 
 macro_rules! font_face_descriptors {
-    ( $( #[$doc: meta] $name: tt $ident: ident : $ty: ty = $initial: expr, )+ ) => {
+    (
+        mandatory descriptors = [
+            $( #[$m_doc: meta] $m_name: tt $m_ident: ident : $m_ty: ty = $m_initial: expr, )*
+        ]
+        optional descriptors = [
+            $( #[$o_doc: meta] $o_name: tt $o_ident: ident : $o_ty: ty = $o_initial: expr, )*
+        ]
+    ) => {
         /// A `@font-face` rule.
         ///
         /// https://drafts.csswg.org/css-fonts/#font-face-rule
@@ -179,17 +190,46 @@ macro_rules! font_face_descriptors {
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct FontFaceRule {
             $(
-                #[$doc]
-                pub $ident: $ty,
-            )+
+                #[$m_doc]
+                pub $m_ident: $m_ty,
+            )*
+            $(
+                #[$o_doc]
+                pub $o_ident: $o_ty,
+            )*
+        }
+
+        struct MissingDescriptors {
+            $(
+                $m_ident: bool,
+            )*
+        }
+
+        impl MissingDescriptors {
+            fn new() -> Self {
+                MissingDescriptors {
+                    $(
+                        $m_ident: true,
+                    )*
+                }
+            }
+
+            fn any(&self) -> bool {
+                $(
+                    self.$m_ident
+                )||*
+            }
         }
 
         impl FontFaceRule {
             fn initial() -> Self {
                 FontFaceRule {
                     $(
-                        $ident: $initial,
-                    )+
+                        $m_ident: $m_initial,
+                    )*
+                    $(
+                        $o_ident: $o_initial,
+                    )*
                 }
             }
         }
@@ -201,15 +241,20 @@ macro_rules! font_face_descriptors {
             {
                 dest.write_str("@font-face {\n")?;
                 $(
+                    dest.write_str(concat!("  ", $m_name, ": "))?;
+                    self.$m_ident.to_css(dest)?;
+                    dest.write_str(";\n")?;
+                )*
+                $(
                     // Because of parse_font_face_block,
                     // this condition is always true for "src" and "font-family".
                     // But it can be false for other descriptors.
-                    if self.$ident != $initial {
-                        dest.write_str(concat!("  ", $name, ": "))?;
-                        self.$ident.to_css(dest)?;
+                    if self.$o_ident != $o_initial {
+                        dest.write_str(concat!("  ", $o_name, ": "))?;
+                        self.$o_ident.to_css(dest)?;
                         dest.write_str(";\n")?;
                     }
-                )+
+                )*
                 dest.write_str("}")
             }
         }
@@ -220,8 +265,14 @@ macro_rules! font_face_descriptors {
             fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
                 match_ignore_ascii_case! { name,
                     $(
-                        $name => self.rule.$ident = Parse::parse(self.context, input)?,
-                    )+
+                        $m_name => {
+                            self.rule.$m_ident = Parse::parse(self.context, input)?;
+                            self.missing.$m_ident = false
+                        },
+                    )*
+                    $(
+                        $o_name => self.rule.$o_ident = Parse::parse(self.context, input)?,
+                    )*
                     _ => return Err(())
                 }
                 Ok(())
@@ -232,9 +283,13 @@ macro_rules! font_face_descriptors {
 
 /// css-name rust_identifier: Type = initial_value,
 font_face_descriptors! {
-    /// The specified url.
-    "font-family" family: FontFamily = FontFamily::Generic(atom!("")),
+    mandatory descriptors = [
+        /// The specified url.
+        "font-family" family: FontFamily = FontFamily::Generic(atom!("")),
 
-    /// The format hints specified with the `format()` function.
-    "src" sources: Vec<Source> = Vec::new(),
+        /// The format hints specified with the `format()` function.
+        "src" sources: Vec<Source> = Vec::new(),
+    ]
+    optional descriptors = [
+    ]
 }
