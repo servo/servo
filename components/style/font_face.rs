@@ -9,6 +9,7 @@
 #![deny(missing_docs)]
 
 use computed_values::font_family::FamilyName;
+#[cfg(feature = "gecko")] use computed_values::font_style;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error, Parse};
 use std::fmt;
@@ -282,6 +283,22 @@ macro_rules! font_face_descriptors {
 }
 
 /// css-name rust_identifier: Type = initial_value,
+#[cfg(feature = "gecko")]
+font_face_descriptors! {
+    mandatory descriptors = [
+        /// The specified url.
+        "font-family" family: FamilyName = FamilyName(atom!("")),
+
+        /// The format hints specified with the `format()` function.
+        "src" sources: Vec<Source> = Vec::new(),
+    ]
+    optional descriptors = [
+        /// The style of this font face
+        "font-style" style: font_style::T = font_style::T::normal,
+    ]
+}
+
+#[cfg(feature = "servo")]
 font_face_descriptors! {
     mandatory descriptors = [
         /// The specified url.
