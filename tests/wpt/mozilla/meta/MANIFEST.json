@@ -13321,6 +13321,12 @@
      {}
     ]
    ],
+   "mozilla/non-invertible-transform.html": [
+    [
+     "/_mozilla/mozilla/non-invertible-transform.html",
+     {}
+    ]
+   ],
    "mozilla/out-of-order-stylesheet-loads-and-imports.html": [
     [
      "/_mozilla/mozilla/out-of-order-stylesheet-loads-and-imports.html",
@@ -25884,6 +25890,10 @@
   ],
   "mozilla/node_replaceChild.html": [
    "fe965e58fdcb78d08384a9fde74c982e34768745",
+   "testharness"
+  ],
+  "mozilla/non-invertible-transform.html": [
+   "c574749b1314922612fbd4ba46e1ef10a2c54074",
    "testharness"
   ],
   "mozilla/out-of-order-stylesheet-loads-and-imports.html": [
