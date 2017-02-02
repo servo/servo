@@ -10,7 +10,7 @@
                          additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
 <%helpers:longhand name="font-family" animatable="False" need_index="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
-    use self::computed_value::FontFamily;
+    use self::computed_value::{FontFamily, FamilyName};
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
@@ -28,15 +28,19 @@
         #[derive(Debug, PartialEq, Eq, Clone, Hash)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum FontFamily {
-            FamilyName(Atom),
+            FamilyName(FamilyName),
             Generic(Atom),
         }
+
+        #[derive(Debug, PartialEq, Eq, Clone, Hash)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+        pub struct FamilyName(pub Atom);
 
         impl FontFamily {
             #[inline]
             pub fn atom(&self) -> &Atom {
                 match *self {
-                    FontFamily::FamilyName(ref name) => name,
+                    FontFamily::FamilyName(ref name) => &name.0,
                     FontFamily::Generic(ref name) => name,
                 }
             }
@@ -67,18 +71,22 @@
                     "monospace" => return FontFamily::Generic(atom!("monospace")),
                     _ => {}
                 }
-                FontFamily::FamilyName(input)
+                FontFamily::FamilyName(FamilyName(input))
+            }
+        }
+
+        impl ToCss for FamilyName {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                dest.write_char('"')?;
+                write!(CssStringWriter::new(dest), "{}", self.0)?;
+                dest.write_char('"')
             }
         }
 
         impl ToCss for FontFamily {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
-                    FontFamily::FamilyName(ref name) => {
-                        dest.write_char('"')?;
-                        write!(CssStringWriter::new(dest), "{}", name)?;
-                        dest.write_char('"')
-                    }
+                    FontFamily::FamilyName(ref name) => name.to_css(dest),
 
                     // All generic values accepted by the parser are known to not require escaping.
                     FontFamily::Generic(ref name) => write!(dest, "{}", name),
@@ -121,10 +129,22 @@
         }
     }
 
+    /// `FamilyName::parse` is based on `FontFamily::parse` and not the other way around
+    /// because we want the former to exclude generic family keywords.
+    impl Parse for FamilyName {
+        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            match FontFamily::parse(context, input) {
+                Ok(FontFamily::FamilyName(name)) => Ok(name),
+                Ok(FontFamily::Generic(_)) |
+                Err(()) => Err(())
+            }
+        }
+    }
+
     impl Parse for FontFamily {
         fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
             if let Ok(value) = input.try(|input| input.expect_string()) {
-                return Ok(FontFamily::FamilyName(Atom::from(&*value)))
+                return Ok(FontFamily::FamilyName(FamilyName(Atom::from(&*value))))
             }
             let first_ident = try!(input.expect_ident());
 
@@ -165,7 +185,7 @@
                 value.push_str(" ");
                 value.push_str(&ident);
             }
-            Ok(FontFamily::FamilyName(Atom::from(value)))
+            Ok(FontFamily::FamilyName(FamilyName(Atom::from(value))))
         }
     }
 </%helpers:longhand>
