@@ -28,7 +28,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for PrivatizePass {
                         _n: ast::Name,
                         _gen: &hir::Generics,
                         id: ast::NodeId) {
-        if cx.tcx.has_attr(cx.tcx.map.local_def_id(id), "privatize") {
+        if cx.tcx.has_attr(cx.tcx.hir.local_def_id(id), "privatize") {
             for field in def.fields() {
                 if field.vis == hir::Public {
                     cx.span_lint(PRIVATIZE, field.span,
