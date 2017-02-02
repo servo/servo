@@ -8,7 +8,8 @@
 
 #![deny(missing_docs)]
 
-#[cfg(feature = "gecko")] use computed_values::{font_style,  font_weight, font_stretch};
+#[cfg(feature = "gecko")]
+use computed_values::{font_style, font_weight, font_stretch};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error, Parse};
@@ -139,12 +140,6 @@ struct FontFaceRuleParser<'a, 'b: 'a> {
 impl<'a, 'b> AtRuleParser for FontFaceRuleParser<'a, 'b> {
     type Prelude = ();
     type AtRule = ();
-}
-
-impl Parse for Vec<Source> {
-    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        input.parse_comma_separated(|input| Source::parse(context, input))
-    }
 }
 
 impl Parse for Source {
@@ -301,6 +296,11 @@ font_face_descriptors! {
 
         /// The stretch of this font face
         "font-stretch" stretch: font_stretch::T = font_stretch::T::normal,
+
+        /// The ranges of code points outside of which this font face should not be used.
+        "unicode-range" unicode_range: Vec<unicode_range::Range> = vec![
+            unicode_range::Range { start: 0, end: unicode_range::MAX }
+        ],
     ]
 }
 
@@ -315,4 +315,52 @@ font_face_descriptors! {
     ]
     optional descriptors = [
     ]
+}
+
+/// https://drafts.csswg.org/css-fonts/#unicode-range-desc
+#[cfg(feature = "gecko")]
+pub mod unicode_range {
+    use cssparser::{Parser, Token};
+    use parser::{ParserContext, Parse};
+    use std::fmt;
+    use style_traits::{ToCss, CommaSeparated};
+
+    /// Maximum value of the end of a range
+    pub const MAX: u32 = ::std::char::MAX as u32;
+
+    /// A single range: https://drafts.csswg.org/css-fonts/#urange-value
+    #[derive(Debug, PartialEq, Eq)]
+    pub struct Range {
+        /// Start of the range, inclusive
+        pub start: u32,
+
+        /// End of the range, inclusive
+        pub end: u32,
+    }
+
+    impl CommaSeparated for Range {}
+
+    impl Parse for Range {
+        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            // FIXME: The unicode-range token has been removed from the CSS Syntax spec,
+            // cssparser should be updated accordingly
+            // and implement https://drafts.csswg.org/css-syntax/#urange instead
+            match input.next() {
+                Ok(Token::UnicodeRange(start, end)) => {
+                    if end <= MAX && start <= end {
+                        Ok(Range { start: start, end: end })
+                    } else {
+                        Err(())
+                    }
+                }
+                _ => Err(())
+            }
+        }
+    }
+
+    impl ToCss for Range {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            Token::UnicodeRange(self.start, self.end).to_css(dest)
+        }
+    }
 }
