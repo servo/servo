@@ -8,7 +8,7 @@
 
 #![deny(missing_docs)]
 
-#[cfg(feature = "gecko")] use computed_values::{font_style,  font_weight};
+#[cfg(feature = "gecko")] use computed_values::{font_style,  font_weight, font_stretch};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error, Parse};
@@ -298,6 +298,9 @@ font_face_descriptors! {
 
         /// The weight of this font face
         "font-weight" weight: font_weight::T = font_weight::T::Weight400 /* normal */,
+
+        /// The stretch of this font face
+        "font-stretch" stretch: font_stretch::T = font_stretch::T::normal,
     ]
 }
 
