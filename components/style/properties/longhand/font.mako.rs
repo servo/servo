@@ -273,6 +273,20 @@ ${helpers.single_keyword("font-variant-caps",
             }
         })
     }
+
+    /// Used in @font-face, where relative keywords are not allowed.
+    impl Parse for computed_value::T {
+        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            match parse(context, input)? {
+                % for weight in range(100, 901, 100):
+                    SpecifiedValue::Weight${weight} => Ok(computed_value::T::Weight${weight}),
+                % endfor
+                SpecifiedValue::Bolder |
+                SpecifiedValue::Lighter => Err(())
+            }
+        }
+    }
+
     pub mod computed_value {
         use std::fmt;
         #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]
