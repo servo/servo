@@ -286,10 +286,10 @@ macro_rules! font_face_descriptors {
 #[cfg(feature = "gecko")]
 font_face_descriptors! {
     mandatory descriptors = [
-        /// The specified url.
+        /// The name of this font face
         "font-family" family: FamilyName = FamilyName(atom!("")),
 
-        /// The format hints specified with the `format()` function.
+        /// The alternative sources for this font face.
         "src" sources: Vec<Source> = Vec::new(),
     ]
     optional descriptors = [
@@ -307,10 +307,10 @@ font_face_descriptors! {
 #[cfg(feature = "servo")]
 font_face_descriptors! {
     mandatory descriptors = [
-        /// The specified url.
+        /// The name of this font face
         "font-family" family: FamilyName = FamilyName(atom!("")),
 
-        /// The format hints specified with the `format()` function.
+        /// The alternative sources for this font face.
         "src" sources: Vec<Source> = Vec::new(),
     ]
     optional descriptors = [
