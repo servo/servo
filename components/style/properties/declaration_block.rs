@@ -520,11 +520,13 @@ pub fn parse_one_declaration(id: PropertyId,
                              extra_data: ParserContextExtraData)
                              -> Result<Vec<(PropertyDeclaration, Importance)>, ()> {
     let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
-    let mut results = vec![];
-    match PropertyDeclaration::parse(id, &context, &mut Parser::new(input), &mut results, false) {
-        PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
-        _ => Err(())
-    }
+    Parser::new(input).parse_entirely(|parser| {
+        let mut results = vec![];
+        match PropertyDeclaration::parse(id, &context, parser, &mut results, false) {
+            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
+            _ => Err(())
+        }
+    })
 }
 
 /// A struct to parse property declarations.
