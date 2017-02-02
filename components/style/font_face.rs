@@ -8,7 +8,7 @@
 
 #![deny(missing_docs)]
 
-use computed_values::font_family::FontFamily;
+use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error, Parse};
 use std::fmt;
@@ -23,7 +23,7 @@ pub enum Source {
     /// A `url()` source.
     Url(UrlSource),
     /// A `local()` source.
-    Local(FontFamily),
+    Local(FamilyName),
 }
 
 impl ToCss for Source {
@@ -150,7 +150,7 @@ impl Parse for Source {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Source, ()> {
         if input.try(|input| input.expect_function_matching("local")).is_ok() {
             return input.parse_nested_block(|input| {
-                FontFamily::parse(context, input)
+                FamilyName::parse(context, input)
             }).map(Source::Local)
         }
 
@@ -177,10 +177,10 @@ impl Parse for Source {
 macro_rules! font_face_descriptors {
     (
         mandatory descriptors = [
-            $( #[$m_doc: meta] $m_name: tt $m_ident: ident : $m_ty: ty = $m_initial: expr, )*
+            $( #[$m_doc: meta] $m_name: tt $m_ident: ident: $m_ty: ty = $m_initial: expr, )*
         ]
         optional descriptors = [
-            $( #[$o_doc: meta] $o_name: tt $o_ident: ident : $o_ty: ty = $o_initial: expr, )*
+            $( #[$o_doc: meta] $o_name: tt $o_ident: ident: $o_ty: ty = $o_initial: expr, )*
         ]
     ) => {
         /// A `@font-face` rule.
@@ -285,7 +285,7 @@ macro_rules! font_face_descriptors {
 font_face_descriptors! {
     mandatory descriptors = [
         /// The specified url.
-        "font-family" family: FontFamily = FontFamily::Generic(atom!("")),
+        "font-family" family: FamilyName = FamilyName(atom!("")),
 
         /// The format hints specified with the `format()` function.
         "src" sources: Vec<Source> = Vec::new(),

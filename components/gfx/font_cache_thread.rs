@@ -25,7 +25,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::u32;
 use style::font_face::{EffectiveSources, Source};
-use style::properties::longhands::font_family::computed_value::FontFamily;
+use style::properties::longhands::font_family::computed_value::{FontFamily, FamilyName};
 use webrender_traits;
 
 /// A list of font templates that make up a given font family.
@@ -269,7 +269,7 @@ impl FontCache {
                 });
             }
             Source::Local(ref font) => {
-                let font_face_name = LowercaseString::new(font.name());
+                let font_face_name = LowercaseString::new(&font.0);
                 let templates = &mut self.web_families.get_mut(&family_name).unwrap();
                 let mut found = false;
                 for_each_variation(&font_face_name, |path| {
@@ -461,8 +461,8 @@ impl FontCacheThread {
         }
     }
 
-    pub fn add_web_font(&self, family: FontFamily, sources: EffectiveSources, sender: IpcSender<()>) {
-        self.chan.send(Command::AddWebFont(LowercaseString::new(family.name()), sources, sender)).unwrap();
+    pub fn add_web_font(&self, family: FamilyName, sources: EffectiveSources, sender: IpcSender<()>) {
+        self.chan.send(Command::AddWebFont(LowercaseString::new(&family.0), sources, sender)).unwrap();
     }
 
     pub fn exit(&self) {
