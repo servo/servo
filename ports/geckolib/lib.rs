@@ -4,7 +4,6 @@
 
 #![deny(warnings)]
 
-#[macro_use]extern crate style;
 extern crate app_units;
 extern crate atomic_refcell;
 extern crate cssparser;
@@ -15,6 +14,7 @@ extern crate libc;
 extern crate parking_lot;
 extern crate selectors;
 extern crate servo_url;
+extern crate style;
 extern crate style_traits;
 
 #[allow(non_snake_case)]
