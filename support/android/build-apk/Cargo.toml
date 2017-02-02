@@ -13,4 +13,4 @@ doc = false
 bench = false
 
 [dependencies]
-walkdir = "0.1.5"
+walkdir = "1.0"

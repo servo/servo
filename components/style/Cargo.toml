@@ -55,7 +55,7 @@ smallvec = "0.1"
 style_traits = {path = "../style_traits"}
 servo_url = {path = "../url"}
 time = "0.1"
-unicode-segmentation = "0.1.2"
+unicode-segmentation = "1.0"
 
 [dependencies.num_cpus]
 optional = true
@@ -69,4 +69,4 @@ lazy_static = "0.2"
 bindgen = { version = "0.20.1", optional = true }
 phf_codegen = "0.7.20"
 regex = {version = "0.2", optional = true}
-walkdir = "0.1"
+walkdir = "1.0"
