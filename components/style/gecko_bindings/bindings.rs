@@ -312,6 +312,10 @@ extern "C" {
     pub fn Gecko_IsInDocument(node: RawGeckoNodeBorrowed) -> bool;
 }
 extern "C" {
+    pub fn Gecko_FlattenedTreeParentIsParent(node: RawGeckoNodeBorrowed)
+     -> bool;
+}
+extern "C" {
     pub fn Gecko_GetParentNode(node: RawGeckoNodeBorrowed)
      -> RawGeckoNodeBorrowedOrNull;
 }
@@ -330,10 +334,6 @@ extern "C" {
 extern "C" {
     pub fn Gecko_GetNextSibling(node: RawGeckoNodeBorrowed)
      -> RawGeckoNodeBorrowedOrNull;
-}
-extern "C" {
-    pub fn Gecko_GetParentElement(element: RawGeckoElementBorrowed)
-     -> RawGeckoElementBorrowedOrNull;
 }
 extern "C" {
     pub fn Gecko_GetFirstChildElement(element: RawGeckoElementBorrowed)
@@ -375,10 +375,6 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_ElementState(element: RawGeckoElementBorrowed) -> u16;
-}
-extern "C" {
-    pub fn Gecko_IsHTMLElementInHTMLDocument(element: RawGeckoElementBorrowed)
-     -> bool;
 }
 extern "C" {
     pub fn Gecko_IsLink(element: RawGeckoElementBorrowed) -> bool;
