@@ -16,15 +16,67 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
 
 <%helpers:longhand name="outline-style" need_clone="True" animatable="False"
                    spec="https://drafts.csswg.org/css-ui/#propdef-outline-style">
-    pub use values::specified::BorderStyle as SpecifiedValue;
-    pub fn get_initial_value() -> SpecifiedValue { SpecifiedValue::none }
+
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::specified::BorderStyle;
+    use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    #[derive(PartialEq, Eq, Clone, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Auto,
+        BorderStyle(BorderStyle)
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Auto => dest.write_str("auto"),
+                SpecifiedValue::BorderStyle(ref border_style) => border_style.to_css(dest),
+            }
+        }
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+            match *self {
+                SpecifiedValue::Auto => BorderStyle::none,
+                SpecifiedValue::BorderStyle(ref border_style) => border_style.clone(),
+            }
+        }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            SpecifiedValue::BorderStyle(computed.clone())
+        }
+    }
+
+    impl NoViewportPercentage for SpecifiedValue {}
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        BorderStyle::none
+    }
+
     pub mod computed_value {
         pub use values::specified::BorderStyle as T;
     }
+
     pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        match SpecifiedValue::parse(input) {
-            Ok(SpecifiedValue::hidden) => Err(()),
-            result => result
+        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+            Ok(SpecifiedValue::Auto)
+        } else {
+            match BorderStyle::parse(input) {
+                // The outline-style property accepts the same values as border-style,
+                // except that 'hidden' is not a legal outline style.
+                Ok(BorderStyle::hidden) => Err(()),
+                result => Ok(SpecifiedValue::BorderStyle(try!(result)))
+            }
         }
     }
 </%helpers:longhand>
