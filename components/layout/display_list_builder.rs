@@ -1072,15 +1072,18 @@ impl FragmentDisplayListBuilding for Fragment {
                                                     style: &ServoComputedValues,
                                                     bounds: &Rect<Au>,
                                                     clip: &ClippingRegion) {
+        use style::values::Either;
+
         let width = style.get_outline().outline_width;
         if width == Au(0) {
             return
         }
 
-        let outline_style = style.get_outline().outline_style;
-        if outline_style == border_style::T::none {
-            return
-        }
+        let outline_style = match style.get_outline().outline_style {
+            Either::First(_auto) => border_style::T::solid,
+            Either::Second(border_style::T::none) => return,
+            Either::Second(border_style) => border_style
+        };
 
         // Outlines are not accounted for in the dimensions of the border box, so adjust the
         // absolute bounds.

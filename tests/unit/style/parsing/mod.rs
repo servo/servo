@@ -75,6 +75,7 @@ mod image;
 mod inherited_box;
 mod inherited_text;
 mod mask;
+mod outline;
 mod position;
 mod selectors;
 mod supports;

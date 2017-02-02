@@ -25,9 +25,9 @@ macro_rules! define_numbered_css_keyword_enum {
             $( $variant = $value ),+
         }
 
-        impl $name {
+        impl Parse for $name {
             #[allow(missing_docs)]
-            pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
+            fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<$name, ()> {
                 match_ignore_ascii_case! { try!(input.expect_ident()),
                     $( $css => Ok($name::$variant), )+
                     _ => Err(())
