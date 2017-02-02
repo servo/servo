@@ -53,12 +53,13 @@ If you've already partially compiled servo but forgot to do this step, run `./ma
 #### On Debian-based Linuxes
 
 ``` sh
-sudo apt-get install git curl freeglut3-dev autoconf \
+sudo apt install git curl freeglut3-dev autoconf \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     gperf g++ build-essential cmake virtualenv python-pip \
-    libssl-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev \
+    libssl1.0-dev libbz2-dev libosmesa6-dev libxmu6 libxmu-dev \
     libglu1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev
 ```
+
 If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround.
 
 If `virtualenv` does not exist, try `python-virtualenv`.
