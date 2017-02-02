@@ -60,13 +60,17 @@
             };
 
             if let DeclaredValue::Value(ref style) = *self.text_decoration_style {
-                try!(write!(dest, " "));
-                try!(style.to_css(dest));
+                if *style != text_decoration_style::computed_value::T::solid {
+                    try!(write!(dest, " "));
+                    try!(style.to_css(dest));
+                }
             }
 
             if let DeclaredValue::Value(ref color) = *self.text_decoration_color {
-                try!(write!(dest, " "));
-                try!(color.to_css(dest));
+                if color.parsed != CSSParserColor::CurrentColor {
+                    try!(write!(dest, " "));
+                    try!(color.to_css(dest));
+                }
             }
 
             Ok(())
