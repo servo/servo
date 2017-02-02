@@ -6,7 +6,7 @@
 
 <%helpers:shorthand name="outline" sub_properties="outline-color outline-style outline-width"
                     spec="https://drafts.csswg.org/css-ui/#propdef-outline">
-    use properties::longhands::outline_width;
+    use properties::longhands::{outline_width, outline_style};
     use values::specified;
     use parser::Parse;
 
@@ -25,7 +25,7 @@
                 }
             }
             if style.is_none() {
-                if let Ok(value) = input.try(specified::BorderStyle::parse) {
+                if let Ok(value) = input.try(|input| outline_style::parse(context, input)) {
                     style = Some(value);
                     any = true;
                     continue

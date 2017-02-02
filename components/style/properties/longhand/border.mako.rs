@@ -26,7 +26,7 @@
 % for side in ALL_SIDES:
     ${helpers.predefined_type("border-%s-style" % side[0], "BorderStyle",
                               "specified::BorderStyle::none",
-                              needs_context=False, need_clone=True,
+                              need_clone=True,
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-style"),
                               spec=maybe_logical_spec(side, "style"),
                               animatable=False, logical = side[1])}
