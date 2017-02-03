@@ -26,8 +26,8 @@ pub struct XOriginWindow {
 impl XOriginWindow {
     #[allow(unsafe_code)]
     pub fn new(browsing_context: &BrowsingContext) -> Root<XOriginWindow> {
-        let cx = browsing_context.reflector().get_cx();
         let globalscope = browsing_context.global();
+        let cx = globalscope.get_cx();
         // Any timer events fired on this window are ignored.
         let (timer_event_chan, _) = ipc::channel().unwrap();
         let win = box XOriginWindow {

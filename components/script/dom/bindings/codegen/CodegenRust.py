@@ -2543,7 +2543,7 @@ class CGWrapMethod(CGAbstractMethod):
         assert not descriptor.interface.isCallback()
         assert not descriptor.isGlobal()
         args = [Argument('*mut JSContext', 'cx'),
-                Argument('HandleObject', 'scope'),
+                Argument('&GlobalScope', 'scope'),
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'Root<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
@@ -2553,6 +2553,7 @@ class CGWrapMethod(CGAbstractMethod):
         unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
         create = CreateBindingJSObject(self.descriptor, "scope")
         return CGGeneric("""\
+let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
 assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
 
@@ -3187,9 +3188,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = "global.upcast::<GlobalScope>()"
             else:
-                # Throw the exception using the current global
-                # https://github.com/servo/servo/issues/15328
-                glob = "&*GlobalScope::from_context(cx)"
+                glob = "&this.global()"
 
             self.cgRoot.append(CGGeneric(
                 "let result = match result {\n"

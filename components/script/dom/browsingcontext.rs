@@ -70,7 +70,7 @@ impl BrowsingContext {
             let WindowProxyHandler(handler) = window.windowproxy_handler();
             assert!(!handler.is_null());
 
-            let cx = window.reflector().get_cx();
+            let cx = window.get_cx();
             let window_jsobject = window.reflector().get_jsobject();
             assert!(!window_jsobject.get().is_null());
             assert!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL) != 0);
@@ -114,13 +114,13 @@ impl BrowsingContext {
     /// Change the Window that this browsing context's WindowProxy resolves to.
     // TODO: support setting the window proxy to a dummy value,
     // to handle the case when the active document is in another script thread.
-    fn set_window_proxy<W: DomObject>(&self, window: &W, traps: &ProxyTraps) {
+    fn set_window_proxy(&self, window: &GlobalScope, traps: &ProxyTraps) {
         unsafe {
             debug!("Setting window proxy of {:p}.", self);
             let handler = CreateWrapperProxyHandler(traps);
             assert!(!handler.is_null());
 
-            let cx = window.reflector().get_cx();
+            let cx = window.get_cx();
             let window_jsobject = window.reflector().get_jsobject();
             let old_window_proxy = self.reflector.get_jsobject();
             assert!(!window_jsobject.get().is_null());
@@ -155,13 +155,15 @@ impl BrowsingContext {
     }
 
     pub fn set_currently_active(&self, window: &Window) {
-        self.set_window_proxy(window, &PROXY_HANDLER);
-        self.currently_active.set(Some(window.global().pipeline_id()));
+        let globalscope = window.global();
+        self.set_window_proxy(&*globalscope, &PROXY_HANDLER);
+        self.currently_active.set(Some(globalscope.pipeline_id()));
     }
 
     pub fn unset_currently_active(&self) {
-        let win = XOriginWindow::new(self);
-        self.set_window_proxy(&*win, &XORIGIN_PROXY_HANDLER);
+        let window = XOriginWindow::new(self);
+        let globalscope = window.global();
+        self.set_window_proxy(&*globalscope, &XORIGIN_PROXY_HANDLER);
         self.currently_active.set(None);
     }
 

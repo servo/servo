@@ -21,14 +21,14 @@ pub struct XOriginLocation {
 impl XOriginLocation {
     #[allow(unsafe_code)]
     pub fn new(window: &XOriginWindow) -> Root<XOriginLocation> {
-        let cx = window.reflector().get_cx();
-        let scope = window.reflector().get_jsobject();
+        let globalscope = window.global();
+        let cx = globalscope.get_cx();
         let loc = box XOriginLocation {
             reflector: Reflector::new(),
             window: JS::from_ref(window),
         };
         unsafe {
-            XOriginLocationBinding::Wrap(cx, scope, loc)
+            XOriginLocationBinding::Wrap(cx, &globalscope, loc)
         }
     }
 }
