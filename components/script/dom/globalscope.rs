@@ -29,10 +29,11 @@ use js::jsapi::{JS_GetObjectRuntime, MutableHandleValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::{CompileOptionsWrapper, Runtime, get_object_class};
 use libc;
+use microtask::Microtask;
 use msg::constellation_msg::PipelineId;
 use net_traits::{CoreResourceThread, ResourceThreads, IpcSend};
 use profile_traits::{mem, time};
-use script_runtime::{CommonScriptMsg, EnqueuedPromiseCallback, ScriptChan, ScriptPort};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, RunnableWrapper, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEvent};
 use script_traits::{TimerEventId, TimerEventRequest, TimerSource};
@@ -448,25 +449,24 @@ impl GlobalScope {
         unreachable!();
     }
 
-    /// Start the process of executing the pending promise callbacks. They will be invoked
-    /// in FIFO order, synchronously, at some point in the future.
-    pub fn flush_promise_jobs(&self) {
+    /// Perform a microtask checkpoint.
+    pub fn perform_a_microtask_checkpoint(&self) {
         if self.is::<Window>() {
-            return ScriptThread::flush_promise_jobs(self);
+            return ScriptThread::invoke_perform_a_microtask_checkpoint();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.flush_promise_jobs();
+            return worker.perform_a_microtask_checkpoint();
         }
         unreachable!();
     }
 
-    /// Enqueue a promise callback for subsequent execution.
-    pub fn enqueue_promise_job(&self, job: EnqueuedPromiseCallback) {
+    /// Enqueue a microtask for subsequent execution.
+    pub fn enqueue_microtask(&self, job: Microtask) {
         if self.is::<Window>() {
-            return ScriptThread::enqueue_promise_job(job, self);
+            return ScriptThread::enqueue_microtask(job);
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.enqueue_promise_job(job);
+            return worker.enqueue_microtask(job);
         }
         unreachable!();
     }

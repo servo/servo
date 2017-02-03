@@ -11,7 +11,6 @@ use dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
-use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::settings_stack::AutoEntryScript;
 use dom::bindings::str::DOMString;
@@ -29,11 +28,11 @@ use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};
 use js::jsval::UndefinedValue;
 use js::panic::maybe_resume_unwind;
 use js::rust::Runtime;
+use microtask::{MicrotaskQueue, Microtask};
 use net_traits::{IpcSend, load_whole_resource};
 use net_traits::request::{CredentialsMode, Destination, RequestInit as NetRequestInit, Type as RequestType};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
-use script_runtime::{ScriptThreadEventCategory, PromiseJobQueue, EnqueuedPromiseCallback};
-use script_thread::{Runnable, RunnableWrapper};
+use script_thread::RunnableWrapper;
 use script_traits::{TimerEvent, TimerEventId};
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::ServoUrl;
@@ -87,7 +86,7 @@ pub struct WorkerGlobalScope {
     /// `IpcSender` doesn't exist
     from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
 
-    promise_job_queue: PromiseJobQueue,
+    microtask_queue: MicrotaskQueue,
 }
 
 impl WorkerGlobalScope {
@@ -117,7 +116,7 @@ impl WorkerGlobalScope {
             navigator: Default::default(),
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
-            promise_job_queue: PromiseJobQueue::new(),
+            microtask_queue: MicrotaskQueue::default(),
         }
     }
 
@@ -159,20 +158,12 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn enqueue_promise_job(&self, job: EnqueuedPromiseCallback) {
-        self.promise_job_queue.enqueue(job, self.upcast());
+    pub fn enqueue_microtask(&self, job: Microtask) {
+        self.microtask_queue.enqueue(job);
     }
 
-    pub fn flush_promise_jobs(&self) {
-        self.script_chan().send(CommonScriptMsg::RunnableMsg(
-            ScriptThreadEventCategory::WorkerEvent,
-            box FlushPromiseJobs {
-                global: Trusted::new(self),
-            })).unwrap();
-    }
-
-    fn do_flush_promise_jobs(&self) {
-        self.promise_job_queue.flush_promise_jobs(|id| {
+    pub fn perform_a_microtask_checkpoint(&self) {
+        self.microtask_queue.checkpoint(|id| {
             let global = self.upcast::<GlobalScope>();
             assert_eq!(global.pipeline_id(), id);
             Some(Root::from_ref(global))
@@ -393,6 +384,8 @@ impl WorkerGlobalScope {
         } else {
             panic!("need to implement a sender for SharedWorker")
         }
+
+        //XXXjdm should we do a microtask checkpoint here?
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
@@ -403,16 +396,5 @@ impl WorkerGlobalScope {
         if let Some(ref closing) = self.closing {
             closing.store(true, Ordering::SeqCst);
         }
-    }
-}
-
-struct FlushPromiseJobs {
-    global: Trusted<WorkerGlobalScope>,
-}
-
-impl Runnable for FlushPromiseJobs {
-    fn handler(self: Box<FlushPromiseJobs>) {
-        let global = self.global.root();
-        global.do_flush_promise_jobs();
     }
 }

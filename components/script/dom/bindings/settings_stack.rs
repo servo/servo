@@ -11,6 +11,7 @@ use js::jsapi::JSTracer;
 use js::jsapi::UnhideScriptedCaller;
 use js::rust::Runtime;
 use std::cell::RefCell;
+use std::thread;
 
 thread_local!(static STACK: RefCell<Vec<StackEntry>> = RefCell::new(Vec::new()));
 
@@ -36,7 +37,7 @@ pub unsafe fn trace(tracer: *mut JSTracer) {
 
 /// RAII struct that pushes and pops entries from the script settings stack.
 pub struct AutoEntryScript {
-    global: usize,
+    global: Root<GlobalScope>,
 }
 
 impl AutoEntryScript {
@@ -50,7 +51,7 @@ impl AutoEntryScript {
                 kind: StackEntryKind::Entry,
             });
             AutoEntryScript {
-                global: global as *const _ as usize,
+                global: Root::from_ref(global),
             }
         })
     }
@@ -62,12 +63,17 @@ impl Drop for AutoEntryScript {
         STACK.with(|stack| {
             let mut stack = stack.borrow_mut();
             let entry = stack.pop().unwrap();
-            assert_eq!(&*entry.global as *const GlobalScope as usize,
-                       self.global,
+            assert_eq!(&*entry.global as *const GlobalScope,
+                       &*self.global as *const GlobalScope,
                        "Dropped AutoEntryScript out of order.");
             assert_eq!(entry.kind, StackEntryKind::Entry);
             trace!("Clean up after running script with {:p}", &*entry.global);
-        })
+        });
+
+        // Step 5
+        if !thread::panicking() && incumbent_global().is_none() {
+            self.global.perform_a_microtask_checkpoint();
+        }
     }
 }
 
