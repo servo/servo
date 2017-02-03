@@ -15,7 +15,7 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error, Parse};
 use std::fmt;
 use std::iter;
-use style_traits::{ToCss, CommaSeparated};
+use style_traits::{ToCss, OneOrMoreCommaSeparated};
 use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
@@ -46,7 +46,7 @@ impl ToCss for Source {
     }
 }
 
-impl CommaSeparated for Source {}
+impl OneOrMoreCommaSeparated for Source {}
 
 /// A `UrlSource` represents a font-face source that has been specified with a
 /// `url()` function.
@@ -323,7 +323,7 @@ pub mod unicode_range {
     use cssparser::{Parser, Token};
     use parser::{ParserContext, Parse};
     use std::fmt;
-    use style_traits::{ToCss, CommaSeparated};
+    use style_traits::{ToCss, OneOrMoreCommaSeparated};
 
     /// Maximum value of the end of a range
     pub const MAX: u32 = ::std::char::MAX as u32;
@@ -338,7 +338,7 @@ pub mod unicode_range {
         pub end: u32,
     }
 
-    impl CommaSeparated for Range {}
+    impl OneOrMoreCommaSeparated for Range {}
 
     impl Parse for Range {
         fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {

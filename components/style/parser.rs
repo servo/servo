@@ -11,7 +11,7 @@ use error_reporting::ParseErrorReporter;
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use servo_url::ServoUrl;
-use style_traits::CommaSeparated;
+use style_traits::OneOrMoreCommaSeparated;
 use stylesheets::{MemoryHoleReporter, Origin};
 
 /// Extra data that the style backend may need to parse stylesheets.
@@ -104,7 +104,7 @@ pub trait Parse : Sized {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()>;
 }
 
-impl<T> Parse for Vec<T> where T: Parse + CommaSeparated {
+impl<T> Parse for Vec<T> where T: Parse + OneOrMoreCommaSeparated {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         input.parse_comma_separated(|input| T::parse(context, input))
     }

@@ -25,9 +25,9 @@ pub trait ToCss {
 }
 
 /// Marker trait to automatically implement ToCss for Vec<T>.
-pub trait CommaSeparated {}
+pub trait OneOrMoreCommaSeparated {}
 
-impl<T> ToCss for Vec<T> where T: ToCss + CommaSeparated {
+impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreCommaSeparated {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         let mut iter = self.iter();
         iter.next().unwrap().to_css(dest)?;
