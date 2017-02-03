@@ -151,8 +151,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn GetOnload(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            if document_from_node(self).has_browsing_context() {
-                window_from_node(self).GetOnload()
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().GetOnload()
             } else {
                 None
             }
@@ -164,8 +165,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onload
     fn SetOnload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            if document_from_node(self).has_browsing_context() {
-                window_from_node(self).SetOnload(listener)
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().SetOnload(listener)
             }
         } else {
             self.upcast::<EventTarget>().set_event_handler_common("load", listener)
@@ -175,8 +177,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onresize
     fn GetOnresize(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            if document_from_node(self).has_browsing_context() {
-                window_from_node(self).GetOnload()
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().GetOnload()
             } else {
                 None
             }
@@ -188,8 +191,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onresize
     fn SetOnresize(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            if document_from_node(self).has_browsing_context() {
-                window_from_node(self).SetOnresize(listener);
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().SetOnresize(listener);
             }
         } else {
             self.upcast::<EventTarget>().set_event_handler_common("resize", listener)
@@ -199,8 +203,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onblur
     fn GetOnblur(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            if document_from_node(self).has_browsing_context() {
-                window_from_node(self).GetOnblur()
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().GetOnblur()
             } else {
                 None
             }
@@ -212,8 +217,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onblur
     fn SetOnblur(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            if document_from_node(self).has_browsing_context() {
-                window_from_node(self).SetOnblur(listener)
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().SetOnblur(listener)
             }
         } else {
             self.upcast::<EventTarget>().set_event_handler_common("blur", listener)
@@ -223,8 +229,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onfocus
     fn GetOnfocus(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            if document_from_node(self).has_browsing_context() {
-                window_from_node(self).GetOnfocus()
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().GetOnfocus()
             } else {
                 None
             }
@@ -236,8 +243,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onfocus
     fn SetOnfocus(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            if document_from_node(self).has_browsing_context() {
-                window_from_node(self).SetOnfocus(listener)
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().SetOnfocus(listener)
             }
         } else {
             self.upcast::<EventTarget>().set_event_handler_common("focus", listener)
@@ -247,8 +255,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onscroll
     fn GetOnscroll(&self) -> Option<Rc<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
-            if document_from_node(self).has_browsing_context() {
-                window_from_node(self).GetOnscroll()
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().GetOnscroll()
             } else {
                 None
             }
@@ -260,8 +269,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#handler-onscroll
     fn SetOnscroll(&self, listener: Option<Rc<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
-            if document_from_node(self).has_browsing_context() {
-                window_from_node(self).SetOnscroll(listener)
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().SetOnscroll(listener)
             }
         } else {
             self.upcast::<EventTarget>().set_event_handler_common("scroll", listener)
