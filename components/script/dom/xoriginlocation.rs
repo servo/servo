@@ -63,7 +63,7 @@ impl XOriginLocationMethods for XOriginLocation {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from("<XOriginWindow>")
+    fn Stringifier(&self) -> Fallible<DOMString> {
+        Err(Error::Security)
     }
 }

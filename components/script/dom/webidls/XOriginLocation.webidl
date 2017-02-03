@@ -19,7 +19,7 @@
   [Throws] void assign(USVString url);
   [Throws] void replace(USVString url);
   [Throws] void reload();
-  stringifier;
+  [Throws] stringifier;
 
   // TODO: finish this interface
 };
