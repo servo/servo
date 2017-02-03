@@ -16,7 +16,7 @@ use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode};
 use style::computed_values::filter::{self, Filter};
 use style::values::computed::BorderStyle;
-use webrender_traits::{self, DisplayListBuilder, LayoutTransform};
+use webrender_traits::{self, DisplayListBuilder, ExtendMode, LayoutTransform};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -309,7 +309,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       clip,
                                       start_point,
                                       end_point,
-                                      item.stops.clone());
+                                      item.stops.clone(),
+                                      ExtendMode::Clamp);
             }
             DisplayItem::Line(..) => {
                 println!("TODO DisplayItem::Line");
