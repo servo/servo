@@ -12,8 +12,6 @@ use properties::{DeclaredValue, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::background_position_x::computed_value::T as BackgroundPositionX;
 use properties::longhands::background_position_y::computed_value::T as BackgroundPositionY;
-#[cfg(feature= "gecko")] use properties::longhands::mask_position_x::computed_value::T as MaskPositionX;
-#[cfg(feature= "gecko")] use properties::longhands::mask_position_y::computed_value::T as MaskPositionY;
 use properties::longhands::background_size::computed_value::T as BackgroundSize;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::line_height::computed_value::T as LineHeight;
@@ -730,27 +728,6 @@ impl Interpolate for BackgroundPositionY {
         Ok(BackgroundPositionY(try!(self.0.interpolate(&other.0, progress))))
     }
 }
-#[cfg(feature = "gecko")]
-impl Interpolate for MaskPositionX {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        Ok(MaskPositionX(try!(self.0.interpolate(&other.0, progress))))
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl Interpolate for MaskPositionY {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        Ok(MaskPositionY(try!(self.0.interpolate(&other.0, progress))))
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl RepeatableListInterpolate for MaskPositionX {}
-
-#[cfg(feature = "gecko")]
-impl RepeatableListInterpolate for MaskPositionY {}
 
 /// https://drafts.csswg.org/css-transitions/#animtype-shadow-list
 impl Interpolate for TextShadow {
