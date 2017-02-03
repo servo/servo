@@ -111,9 +111,11 @@ partial /*sealed*/ interface Document {
   readonly attribute HTMLScriptElement? currentScript;
 
   // dynamic markup insertion
-  // Document open(optional DOMString type = "text/html", optional DOMString replace = "");
+  [Throws]
+  Document open(optional DOMString type = "text/html", optional DOMString replace = "");
   // WindowProxy open(DOMString url, DOMString name, DOMString features, optional boolean replace = false);
-  // void close();
+  [Throws]
+  void close();
   [Throws]
   void write(DOMString... text);
   [Throws]

@@ -60,8 +60,8 @@ use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
 use open;
 use origin::Origin;
-use profile_traits::mem;
-use profile_traits::time::ProfilerChan;
+use profile_traits::mem::ProfilerChan as MemProfilerChan;
+use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_layout_interface::TrustedNodeAddress;
 use script_layout_interface::message::{Msg, Reflow, ReflowQueryType, ScriptReflow};
@@ -87,6 +87,7 @@ use std::cell::Cell;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::io::{Write, stderr, stdout};
+use std::mem;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -231,7 +232,7 @@ pub struct Window {
 
     /// A flag to prevent async events from attempting to interact with this window.
     #[ignore_heap_size_of = "defined in std"]
-    ignore_further_async_events: Arc<AtomicBool>,
+    ignore_further_async_events: DOMRefCell<Arc<AtomicBool>>,
 
     error_reporter: CSSErrorReporter,
 
@@ -255,7 +256,7 @@ impl Window {
             *self.js_runtime.borrow_for_script_deallocation() = None;
             self.browsing_context.set(None);
             self.current_state.set(WindowState::Zombie);
-            self.ignore_further_async_events.store(true, Ordering::Relaxed);
+            self.ignore_further_async_events.borrow().store(true, Ordering::Relaxed);
         }
     }
 
@@ -917,8 +918,17 @@ impl WindowMethods for Window {
 impl Window {
     pub fn get_runnable_wrapper(&self) -> RunnableWrapper {
         RunnableWrapper {
-            cancelled: Some(self.ignore_further_async_events.clone()),
+            cancelled: Some(self.ignore_further_async_events.borrow().clone()),
         }
+    }
+
+    /// Cancels all the tasks associated with that window.
+    ///
+    /// This sets the current `ignore_further_async_events` sentinel value to
+    /// `true` and replaces it with a brand new one for future tasks.
+    pub fn cancel_all_tasks(&self) {
+        let cancelled = mem::replace(&mut *self.ignore_further_async_events.borrow_mut(), Default::default());
+        cancelled.store(true, Ordering::Relaxed);
     }
 
     pub fn clear_js_runtime(&self) {
@@ -944,7 +954,7 @@ impl Window {
         self.current_state.set(WindowState::Zombie);
         *self.js_runtime.borrow_mut() = None;
         self.browsing_context.set(None);
-        self.ignore_further_async_events.store(true, Ordering::SeqCst);
+        self.ignore_further_async_events.borrow().store(true, Ordering::SeqCst);
     }
 
     /// https://drafts.csswg.org/cssom-view/#dom-window-scroll
@@ -1611,8 +1621,8 @@ impl Window {
                image_cache_thread: ImageCacheThread,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothRequest>,
-               mem_profiler_chan: mem::ProfilerChan,
-               time_profiler_chan: ProfilerChan,
+               mem_profiler_chan: MemProfilerChan,
+               time_profiler_chan: TimeProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: IpcSender<ConstellationMsg>,
                control_chan: IpcSender<ConstellationControlMsg>,
@@ -1681,7 +1691,7 @@ impl Window {
             devtools_marker_sender: DOMRefCell::new(None),
             devtools_markers: DOMRefCell::new(HashSet::new()),
             webdriver_script_chan: DOMRefCell::new(None),
-            ignore_further_async_events: Arc::new(AtomicBool::new(false)),
+            ignore_further_async_events: Default::default(),
             error_reporter: error_reporter,
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             media_query_lists: WeakMediaQueryListVec::new(),

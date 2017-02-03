@@ -38,6 +38,7 @@ use script_thread::ScriptThread;
 use script_traits::DocumentActivity;
 use servo_config::resource_files::read_resource_file;
 use servo_url::ServoUrl;
+use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::mem;
 
@@ -75,6 +76,10 @@ pub struct ServoParser {
     suspended: Cell<bool>,
     /// https://html.spec.whatwg.org/multipage/#script-nesting-level
     script_nesting_level: Cell<usize>,
+    /// https://html.spec.whatwg.org/multipage/#abort-a-parser
+    aborted: Cell<bool>,
+    /// https://html.spec.whatwg.org/multipage/#script-created-parser
+    script_created_parser: bool,
 }
 
 #[derive(PartialEq)]
@@ -87,7 +92,8 @@ impl ServoParser {
     pub fn parse_html_document(document: &Document, input: DOMString, url: ServoUrl) {
         let parser = ServoParser::new(document,
                                       Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
-                                      LastChunkState::NotReceived);
+                                      LastChunkState::NotReceived,
+                                      ParserKind::Normal);
         parser.parse_chunk(String::from(input));
     }
 
@@ -129,7 +135,8 @@ impl ServoParser {
                                       Tokenizer::Html(self::html::Tokenizer::new(&document,
                                                                                  url.clone(),
                                                                                  Some(fragment_context))),
-                                      LastChunkState::Received);
+                                      LastChunkState::Received,
+                                      ParserKind::Normal);
         parser.parse_chunk(String::from(input));
 
         // Step 14.
@@ -139,15 +146,32 @@ impl ServoParser {
         }
     }
 
+    pub fn parse_html_script_input(document: &Document, url: ServoUrl, type_: &str) {
+        let parser = ServoParser::new(document,
+                                      Tokenizer::Html(self::html::Tokenizer::new(document, url, None)),
+                                      LastChunkState::NotReceived,
+                                      ParserKind::ScriptCreated);
+        document.set_current_parser(Some(&parser));
+        if !type_.eq_ignore_ascii_case("text/html") {
+            parser.parse_chunk("<pre>\n".to_owned());
+            parser.tokenizer.borrow_mut().set_plaintext_state();
+        }
+    }
+
     pub fn parse_xml_document(document: &Document, input: DOMString, url: ServoUrl) {
         let parser = ServoParser::new(document,
                                       Tokenizer::Xml(self::xml::Tokenizer::new(document, url)),
-                                      LastChunkState::NotReceived);
+                                      LastChunkState::NotReceived,
+                                      ParserKind::Normal);
         parser.parse_chunk(String::from(input));
     }
 
     pub fn script_nesting_level(&self) -> usize {
         self.script_nesting_level.get()
+    }
+
+    pub fn is_script_created(&self) -> bool {
+        self.script_created_parser
     }
 
     /// Corresponds to the latter part of the "Otherwise" branch of the 'An end
@@ -186,9 +210,13 @@ impl ServoParser {
         }
     }
 
+    pub fn can_write(&self) -> bool {
+        self.script_created_parser || self.script_nesting_level.get() > 0
+    }
+
     /// Steps 6-8 of https://html.spec.whatwg.org/multipage/#document.write()
     pub fn write(&self, text: Vec<DOMString>) {
-        assert!(self.script_nesting_level.get() > 0);
+        assert!(self.can_write());
 
         if self.document.has_pending_parsing_blocking_script() {
             // There is already a pending parsing blocking script so the
@@ -225,10 +253,47 @@ impl ServoParser {
         assert!(input.is_empty());
     }
 
+    // Steps 4-6 of https://html.spec.whatwg.org/multipage/#dom-document-close
+    pub fn close(&self) {
+        assert!(self.script_created_parser);
+
+        // Step 4.
+        self.last_chunk_received.set(true);
+
+        if self.suspended.get() {
+            // Step 5.
+            return;
+        }
+
+        // Step 6.
+        self.parse_sync();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#abort-a-parser
+    pub fn abort(&self) {
+        assert!(!self.aborted.get());
+        self.aborted.set(true);
+
+        // Step 1.
+        *self.script_input.borrow_mut() = BufferQueue::new();
+        *self.network_input.borrow_mut() = BufferQueue::new();
+
+        // Step 2.
+        self.document.set_ready_state(DocumentReadyState::Interactive);
+
+        // Step 3.
+        self.tokenizer.borrow_mut().end();
+        self.document.set_current_parser(None);
+
+        // Step 4.
+        self.document.set_ready_state(DocumentReadyState::Interactive);
+    }
+
     #[allow(unrooted_must_root)]
     fn new_inherited(document: &Document,
                      tokenizer: Tokenizer,
-                     last_chunk_state: LastChunkState)
+                     last_chunk_state: LastChunkState,
+                     kind: ParserKind)
                      -> Self {
         ServoParser {
             reflector: Reflector::new(),
@@ -239,15 +304,18 @@ impl ServoParser {
             last_chunk_received: Cell::new(last_chunk_state == LastChunkState::Received),
             suspended: Default::default(),
             script_nesting_level: Default::default(),
+            aborted: Default::default(),
+            script_created_parser: kind == ParserKind::ScriptCreated,
         }
     }
 
     #[allow(unrooted_must_root)]
     fn new(document: &Document,
            tokenizer: Tokenizer,
-           last_chunk_state: LastChunkState)
+           last_chunk_state: LastChunkState,
+           kind: ParserKind)
            -> Root<Self> {
-        reflect_dom_object(box ServoParser::new_inherited(document, tokenizer, last_chunk_state),
+        reflect_dom_object(box ServoParser::new_inherited(document, tokenizer, last_chunk_state, kind),
                            document.window(),
                            ServoParserBinding::Wrap)
     }
@@ -301,6 +369,7 @@ impl ServoParser {
     {
         loop {
             assert!(!self.suspended.get());
+            assert!(!self.aborted.get());
 
             self.document.reflow_if_reflow_timer_expired();
             let script = match feed(&mut *self.tokenizer.borrow_mut()) {
@@ -356,6 +425,12 @@ impl Iterator for FragmentParsingResult {
         next.remove_self();
         Some(next)
     }
+}
+
+#[derive(HeapSizeOf, JSTraceable, PartialEq)]
+enum ParserKind {
+    Normal,
+    ScriptCreated,
 }
 
 #[derive(HeapSizeOf, JSTraceable)]
@@ -462,6 +537,9 @@ impl FetchResponseListener for ParserContext {
             Some(parser) => parser,
             None => return,
         };
+        if parser.aborted.get() {
+            return;
+        }
 
         self.parser = Some(Trusted::new(&*parser));
 
@@ -528,15 +606,19 @@ impl FetchResponseListener for ParserContext {
     }
 
     fn process_response_chunk(&mut self, payload: Vec<u8>) {
-        if !self.is_synthesized_document {
-            // FIXME: use Vec<u8> (html5ever #34)
-            let data = UTF_8.decode(&payload, DecoderTrap::Replace).unwrap();
-            let parser = match self.parser.as_ref() {
-                Some(parser) => parser.root(),
-                None => return,
-            };
-            parser.parse_chunk(data);
+        if self.is_synthesized_document {
+            return;
         }
+        // FIXME: use Vec<u8> (html5ever #34)
+        let data = UTF_8.decode(&payload, DecoderTrap::Replace).unwrap();
+        let parser = match self.parser.as_ref() {
+            Some(parser) => parser.root(),
+            None => return,
+        };
+        if parser.aborted.get() {
+            return;
+        }
+        parser.parse_chunk(data);
     }
 
     fn process_response_eof(&mut self, status: Result<(), NetworkError>) {
@@ -544,6 +626,9 @@ impl FetchResponseListener for ParserContext {
             Some(parser) => parser.root(),
             None => return,
         };
+        if parser.aborted.get() {
+            return;
+        }
 
         if let Err(err) = status {
             // TODO(Savago): we should send a notification to callers #5463.
