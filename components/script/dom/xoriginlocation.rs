@@ -12,9 +12,19 @@ use dom::bindings::str::DOMString;
 use dom::bindings::str::USVString;
 use dom::xoriginwindow::XOriginWindow;
 
+/// Represents a dissimilar-origin `Location` that exists in another script thread.
+///
+/// Since the `Location` is in a different script thread, we cannot access it
+/// directly, but some of its accessors (for example setting `location.href`)
+/// still need to function.
+
 #[dom_struct]
 pub struct XOriginLocation {
+    /// The reflector. Once we have XOWs, this will have a cross-origin
+    /// wrapper placed around it.
     reflector: Reflector,
+
+    /// The window associated with this location.
     window: JS<XOriginWindow>,
 }
 

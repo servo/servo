@@ -15,11 +15,25 @@ use js::jsapi::{JSContext, HandleValue};
 use js::jsval::{JSVal, UndefinedValue};
 use msg::constellation_msg::PipelineId;
 
-// TODO: documentation!
+/// Represents a dissimilar-origin `Window` that exists in another script thread.
+///
+/// Since the `Window` is in a different script thread, we cannot access it
+/// directly, but some of its accessors (for example `window.parent`)
+/// still need to function.
+///
+/// In `browsingcontext.rs`, we create a custom window proxy for these windows,
+/// that throws security exceptions for most accessors. This is not a replacement
+/// for XOWs, but provides belt-and-braces security.
+
 #[dom_struct]
 pub struct XOriginWindow {
+    /// The global for this window.
     globalscope: GlobalScope,
+
+    /// The browsing context this window is part of.
     browsing_context: JS<BrowsingContext>,
+
+    /// The location of this window, initialized lazily.
     location: MutNullableJS<XOriginLocation>,
 }
 
