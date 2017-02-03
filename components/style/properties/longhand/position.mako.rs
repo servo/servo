@@ -220,3 +220,87 @@ ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
                               spec="https://drafts.csswg.org/css-grid/#propdef-%s" % longhand,
                               products="gecko")}
 % endfor
+
+<%helpers:longhand name="grid-auto-flow"
+        spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow"
+        products="none"
+        animatable="False">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    pub type SpecifiedValue = computed_value::T;
+
+    pub mod computed_value {
+        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum RowOrColumn {
+            Row,
+            Column,
+        }
+
+        #[derive(PartialEq, Clone, Eq, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T {
+            pub row_or_column: Option<RowOrColumn>,
+            pub dense: bool,
+        }
+    }
+
+    impl NoViewportPercentage for SpecifiedValue {}
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            dest.write_str(match self.row_or_column {
+                Some(computed_value::RowOrColumn::Column) => "column",
+                _ => "row"
+            })?;
+
+            if self.dense { dest.write_str(" dense")?; }
+            Ok(())
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T {
+            row_or_column: Some(computed_value::RowOrColumn::Row),
+            dense: false
+        }
+    }
+
+    /// [ row | column ] || dense
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let mut row_or_column = false;
+        let mut dense = false;
+        let mut value = SpecifiedValue { row_or_column: None, dense: false };
+        while input.try(|input| {
+            if let Ok(ident) = input.expect_ident() {
+                match_ignore_ascii_case! { ident,
+                    "row" => if row_or_column { return Err(()) }
+                             else {
+                                 row_or_column = true;
+                                 value.row_or_column = Some(computed_value::RowOrColumn::Row);
+                                 Ok(())
+                             },
+                    "column" => if row_or_column { return Err(()) }
+                                else {
+                                    row_or_column = true;
+                                    value.row_or_column =
+                                        Some(computed_value::RowOrColumn::Column);
+                                    Ok(())
+                                },
+                    "dense" => if dense { return Err(()) }
+                               else { dense = true; value.dense = true; Ok(()) },
+                    _ => return Err(())
+                }
+            } else {
+                return Err(())
+            }
+        }).is_ok() {}
+
+        if row_or_column | dense { Ok(value) } else { Err(()) }
+    }
+</%helpers:longhand>
