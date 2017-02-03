@@ -246,13 +246,16 @@ impl BluetoothManager {
                 },
                 BluetoothRequest::Test(data_set_name, sender) => {
                     let _ = sender.send(self.test(data_set_name));
-                }
+                },
                 BluetoothRequest::SetRepresentedToNull(service_ids, characteristic_ids, descriptor_ids) => {
                     self.remove_ids_from_caches(service_ids, characteristic_ids, descriptor_ids)
-                }
+                },
                 BluetoothRequest::IsRepresentedDeviceNull(id, sender) => {
                     let _ = sender.send(!self.device_is_cached(&id));
-                }
+                },
+                BluetoothRequest::GetAvailability(sender) => {
+                    let _ = sender.send(self.get_availability());
+                },
                 BluetoothRequest::Exit => {
                     break
                 },
@@ -923,5 +926,13 @@ impl BluetoothManager {
         // Step 2.
         // TODO: Implement this when supported in lower level
         return Err(BluetoothError::NotSupported);
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
+    fn get_availability(&mut self) -> BluetoothResponseResult {
+        match self.get_adapter() {
+            Ok(_) => Ok(BluetoothResponse::GetAvailability(true)),
+            Err(_) => Ok(BluetoothResponse::GetAvailability(false)),
+        }
     }
 }
