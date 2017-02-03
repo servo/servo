@@ -6974,6 +6974,24 @@
             "url": "/_mozilla/mozilla/bluetooth/disconnect/event-is-fired.html"
           }
         ],
+        "mozilla/bluetooth/getAvailability/adapter-not-present.html": [
+          {
+            "path": "mozilla/bluetooth/getAvailability/adapter-not-present.html",
+            "url": "/_mozilla/mozilla/bluetooth/getAvailability/adapter-not-present.html"
+          }
+        ],
+        "mozilla/bluetooth/getAvailability/adapter-off.html": [
+          {
+            "path": "mozilla/bluetooth/getAvailability/adapter-off.html",
+            "url": "/_mozilla/mozilla/bluetooth/getAvailability/adapter-off.html"
+          }
+        ],
+        "mozilla/bluetooth/getAvailability/adapter-on.html": [
+          {
+            "path": "mozilla/bluetooth/getAvailability/adapter-on.html",
+            "url": "/_mozilla/mozilla/bluetooth/getAvailability/adapter-on.html"
+          }
+        ],
         "mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html": [
           {
             "path": "mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html",
