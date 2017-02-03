@@ -15,6 +15,7 @@ use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom::hashchangeevent::HashChangeEvent;
 use dom::popstateevent::PopStateEvent;
 use dom::window::Window;
 use ipc_channel::ipc;
@@ -138,13 +139,17 @@ impl History {
     }
 
     pub fn set_active_state(&self, state_id: Option<StateId>, url: ServoUrl) {
-        if state_id == self.active_state.get() {
-            return;
+        let doc_url = self.window.Document().url();
+
+        if doc_url.fragment() != url.fragment() {
+            let old_url = doc_url.into_string();
+            let new_url = url.clone().into_string();
+            self.window.Document().set_url(url);
+            HashChangeEvent::dispatch(self.window.upcast::<EventTarget>(), &*self.window, old_url, new_url);
         }
 
         self.active_state.set(state_id);
         let handle = self.get_state().unwrap_or(Heap::new(NullValue()).handle());
-        self.window.Document().set_url(url);
         PopStateEvent::dispatch_jsval(self.window.upcast::<EventTarget>(), &*self.window, handle);
     }
 
@@ -173,6 +178,11 @@ impl History {
         for (_, entry) in history_entries.iter_mut() {
             entry.write_structured_clone(global_scope);
         }
+    }
+
+    /// Set the active state to `null`
+    pub fn clear_active_state(&self) {
+        self.active_state.set(None);
     }
 }
 

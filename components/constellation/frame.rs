@@ -89,6 +89,14 @@ impl Frame {
         self.instant = Instant::now();
     }
 
+    pub fn change_url(&mut self, url: ServoUrl) {
+        let current = self.current();
+        self.prev.push(current);
+        self.state_id = None;
+        self.url = url;
+        self.instant = Instant::now();
+    }
+
     /// Replace the state id and url of the current entry.
     pub fn replace_state(&mut self, state_id: StateId, url: ServoUrl) {
         self.state_id = Some(state_id);

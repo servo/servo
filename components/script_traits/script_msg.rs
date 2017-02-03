@@ -154,6 +154,8 @@ pub enum ScriptMsg {
     SetFullscreenState(bool),
     /// Notifies the constellation that a new history state has been pushed or replaced.
     HistoryStateChanged(PipelineId, StateId, ServoUrl, PushOrReplaceState),
+    /// Notifies the constellation that url's hash has changed.
+    UrlHashChanged(PipelineId, ServoUrl),
     /// Requests that the compositor shut down.
     Exit,
 }

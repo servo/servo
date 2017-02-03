@@ -11,6 +11,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::{DOMString, USVString};
 use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use servo_atoms::Atom;
 
@@ -64,6 +65,14 @@ impl HashChangeEvent {
                                 init.parent.cancelable,
                                 init.oldURL.0.clone(),
                                 init.newURL.0.clone()))
+    }
+
+    pub fn dispatch(target: &EventTarget,
+                    window: &Window,
+                    old_url: String,
+                    new_url: String) {
+        let event = HashChangeEvent::new(window, Atom::from("hashchange"), true, false, old_url, new_url);
+        event.upcast::<Event>().fire(target);
     }
 }
 

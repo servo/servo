@@ -1023,6 +1023,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got HistoryStateChanged message");
                 self.handle_history_state_changed(pipeline_id, state_id, url, replace);
             }
+            FromScriptMsg::UrlHashChanged(pipeline_id, url) => {
+                debug!("constellation got UrlHashChanged message");
+                self.handle_url_hash_changed(pipeline_id, url);
+            }
             FromScriptMsg::ScrollFragmentPoint(pipeline_id, scroll_root_id, point, smooth) => {
                 self.compositor_proxy.send(ToCompositorMsg::ScrollFragmentPoint(pipeline_id,
                                                                                 scroll_root_id,
@@ -1990,6 +1994,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if replace == PushOrReplaceState::Push {
             let top_level_frame_id = self.get_top_level_frame_for_pipeline(pipeline_id);
             self.clear_joint_session_future(top_level_frame_id)
+        }
+    }
+
+    fn handle_url_hash_changed(&mut self, pipeline_id: PipelineId, url: ServoUrl) {
+        let frame_id = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.frame_id,
+            None => return warn!("History state changed after pipeline {} closed.", pipeline_id),
+        };
+        match self.frames.get_mut(&frame_id) {
+            Some(frame) => frame.change_url(url),
+            None => return warn!("History state changed after frame {} closed.", frame_id),
         }
     }
 
