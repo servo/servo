@@ -103,13 +103,12 @@ list of installed components. It is not on by default.
 Install Python for Windows (https://www.python.org/downloads/release/python-2711/). The windows x86-64 MSI installer is fine.
 You should change the installation to install the "Add python.exe to Path" feature.
 
-Install virtualenv.
-
-In a normal Windows Shell (cmd.exe or "Command Prompt" from the start menu), do:
+Install virtualenv by first installing pip by downloading https//bootstrap.pypa.io/get-pip.py. Then, in a normal Windows Shell (cmd.exe or "Command Prompt" from the start menu), do:
 ```
+python get-pip.py
 pip install virtualenv
 ```
-If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
+If the command `python` cannot be found, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
 
 #### On Windows mingw
 
