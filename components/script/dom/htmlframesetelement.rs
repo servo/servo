@@ -10,7 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, window_from_node};
+use dom::node::{Node, document_from_node};
 use html5ever_atoms::LocalName;
 
 #[dom_struct]

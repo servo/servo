@@ -45890,6 +45890,12 @@
             "path": "html/semantics/embedded-content/the-img-element/not-rendered-dimension-getter.html",
             "url": "/html/semantics/embedded-content/the-img-element/not-rendered-dimension-getter.html"
           }
+        ],
+        "html/webappapis/scripting/events/body-exposed-window-event-handlers.html": [
+          {
+            "path": "html/webappapis/scripting/events/body-exposed-window-event-handlers.html",
+            "url": "/html/webappapis/scripting/events/body-exposed-window-event-handlers.html"
+          }
         ]
       }
     },

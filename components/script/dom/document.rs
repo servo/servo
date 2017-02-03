@@ -367,6 +367,9 @@ impl Document {
         self.loader.borrow_mut()
     }
 
+    #[inline]
+    pub fn has_browsing_context(&self) -> bool { self.has_browsing_context }
+
     /// https://html.spec.whatwg.org/multipage/#concept-document-bc
     #[inline]
     pub fn browsing_context(&self) -> Option<Root<BrowsingContext>> {

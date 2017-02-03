@@ -354,11 +354,19 @@ macro_rules! define_event_handler(
 macro_rules! define_window_owned_event_handler(
     ($handler: ident, $event_type: ident, $getter: ident, $setter: ident) => (
         fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
-            window_from_node(self).$getter()
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().$getter()
+            } else {
+                None
+            }
         }
 
         fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
-            window_from_node(self).$setter(listener)
+            let document = document_from_node(self);
+            if document.has_browsing_context() {
+                document.window().$setter(listener)
+            }
         }
     )
 );
