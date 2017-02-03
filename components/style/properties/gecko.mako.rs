@@ -1317,7 +1317,7 @@ fn static_assert() {
             css_value_setters = {
                 "length" : "bindings::Gecko_CSSValue_SetAbsoluteLength(%s, %s.0)",
                 "percentage" : "bindings::Gecko_CSSValue_SetPercentage(%s, %s)",
-                "lop" : "set_lop(%s, %s)",
+                "lop" : "%s.set_lop(%s)",
                 "angle" : "bindings::Gecko_CSSValue_SetAngle(%s, %s.0)",
                 "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
             }
@@ -1341,21 +1341,6 @@ fn static_assert() {
         use gecko_bindings::sugar::refptr::RefPtr;
         use properties::longhands::transform::computed_value::ComputedMatrix;
         use properties::longhands::transform::computed_value::ComputedOperation;
-        use values::computed::LengthOrPercentage;
-
-        unsafe fn set_lop(value: &mut structs::nsCSSValue, lop: LengthOrPercentage) {
-            match lop {
-                LengthOrPercentage::Length(au) => {
-                    bindings::Gecko_CSSValue_SetAbsoluteLength(value, au.0)
-                }
-                LengthOrPercentage::Percentage(pc) => {
-                    bindings::Gecko_CSSValue_SetPercentage(value, pc)
-                }
-                LengthOrPercentage::Calc(calc) => {
-                    bindings::Gecko_CSSValue_SetCalc(value, calc.into())
-                }
-            }
-        }
 
         let vec = if let Some(v) = other.0 {
             v
@@ -1394,6 +1379,71 @@ fn static_assert() {
 
     pub fn copy_transform_from(&mut self, other: &Self) {
         unsafe { self.gecko.mSpecifiedTransform.set(&other.gecko.mSpecifiedTransform); }
+    }
+
+    <%def name="computed_operation_arm(name, keyword, items)">
+        <%
+            # %s is substituted with the call to GetArrayItem.
+            css_value_getters = {
+                "length" : "Au(bindings::Gecko_CSSValue_GetAbsoluteLength(%s))",
+                "lop" : "%s.get_lop()",
+                "angle" : "Angle(bindings::Gecko_CSSValue_GetAngle(%s))",
+                "number" : "bindings::Gecko_CSSValue_GetNumber(%s)",
+            }
+        %>
+        eCSSKeyword_${keyword} => {
+            ComputedOperation::${name.title()}(
+            % if name == "matrix":
+                ComputedMatrix {
+            % endif
+            % for index, item in enumerate(items):
+                % if name == "matrix":
+                    m${index / 4 + 1}${index % 4 + 1}:
+                % endif
+                ${css_value_getters[item] % (
+                    "bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, %d)" % (index + 1)
+                )},
+            % endfor
+            % if name == "matrix":
+                }
+            % endif
+            )
+        },
+    </%def>
+    pub fn clone_transform(&self) -> longhands::transform::computed_value::T {
+        use app_units::Au;
+        use gecko_bindings::structs::nsCSSKeyword::*;
+        use properties::longhands::transform::computed_value;
+        use properties::longhands::transform::computed_value::ComputedMatrix;
+        use properties::longhands::transform::computed_value::ComputedOperation;
+        use values::computed::Angle;
+
+        if self.gecko.mSpecifiedTransform.mRawPtr.is_null() {
+            return computed_value::T(None);
+        }
+
+        let mut result = vec![];
+        let mut cur = unsafe { (*self.gecko.mSpecifiedTransform.to_safe().get()).mHead };
+        while !cur.is_null() {
+            let gecko_value = unsafe { &(*cur).mValue };
+            let transform_function = unsafe {
+                bindings::Gecko_CSSValue_GetKeyword(bindings::Gecko_CSSValue_GetArrayItemConst(gecko_value, 0))
+            };
+            let servo = unsafe {
+                match transform_function {
+                    ${computed_operation_arm("matrix", "matrix3d", ["number"] * 16)}
+                    ${computed_operation_arm("skew", "skew", ["angle"] * 2)}
+                    ${computed_operation_arm("translate", "translate3d", ["lop", "lop", "length"])}
+                    ${computed_operation_arm("scale", "scale3d", ["number"] * 3)}
+                    ${computed_operation_arm("rotate", "rotate3d", ["number"] * 3 + ["angle"])}
+                    ${computed_operation_arm("perspective", "perspective", ["length"])}
+                    _ => panic!("We shouldn't set any other transform function types"),
+                }
+            };
+            result.push(servo);
+            unsafe { cur = (&*cur).mNext };
+        }
+        computed_value::T(Some(result))
     }
 
     pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
