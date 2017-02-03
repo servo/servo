@@ -6,14 +6,15 @@
 
 [Pref="dom.bluetooth.enabled"]
 interface BluetoothRemoteGATTService : EventTarget {
-    readonly attribute BluetoothDevice device;
-    readonly attribute DOMString uuid;
-    readonly attribute boolean isPrimary;
-    Promise<BluetoothRemoteGATTCharacteristic> getCharacteristic(BluetoothCharacteristicUUID characteristic);
-    Promise<sequence<BluetoothRemoteGATTCharacteristic>>
-    getCharacteristics(optional BluetoothCharacteristicUUID characteristic);
-    Promise<BluetoothRemoteGATTService> getIncludedService(BluetoothServiceUUID service);
-    Promise<sequence<BluetoothRemoteGATTService>> getIncludedServices(optional BluetoothServiceUUID service);
+  [SameObject]
+  readonly attribute BluetoothDevice device;
+  readonly attribute DOMString uuid;
+  readonly attribute boolean isPrimary;
+  Promise<BluetoothRemoteGATTCharacteristic> getCharacteristic(BluetoothCharacteristicUUID characteristic);
+  Promise<sequence<BluetoothRemoteGATTCharacteristic>>
+  getCharacteristics(optional BluetoothCharacteristicUUID characteristic);
+  Promise<BluetoothRemoteGATTService> getIncludedService(BluetoothServiceUUID service);
+  Promise<sequence<BluetoothRemoteGATTService>> getIncludedServices(optional BluetoothServiceUUID service);
 };
 
 [NoInterfaceObject]

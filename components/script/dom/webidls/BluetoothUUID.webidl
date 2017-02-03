@@ -6,13 +6,13 @@
 
 [Pref="dom.bluetooth.enabled"]
 interface BluetoothUUID {
-    [Throws]
-    static UUID getService(BluetoothServiceUUID name);
-    [Throws]
-    static UUID getCharacteristic(BluetoothCharacteristicUUID name);
-    [Throws]
-    static UUID getDescriptor(BluetoothDescriptorUUID name);
-    static UUID canonicalUUID([EnforceRange] unsigned long alias);
+  [Throws]
+  static UUID getService(BluetoothServiceUUID name);
+  [Throws]
+  static UUID getCharacteristic(BluetoothCharacteristicUUID name);
+  [Throws]
+  static UUID getDescriptor(BluetoothDescriptorUUID name);
+  static UUID canonicalUUID([EnforceRange] unsigned long alias);
 };
 
 typedef DOMString UUID;

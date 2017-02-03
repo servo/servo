@@ -6,13 +6,13 @@
 
 [Pref="dom.bluetooth.enabled"]
 interface BluetoothCharacteristicProperties {
-    readonly attribute boolean broadcast;
-    readonly attribute boolean read;
-    readonly attribute boolean writeWithoutResponse;
-    readonly attribute boolean write;
-    readonly attribute boolean notify;
-    readonly attribute boolean indicate;
-    readonly attribute boolean authenticatedSignedWrites;
-    readonly attribute boolean reliableWrite;
-    readonly attribute boolean writableAuxiliaries;
+  readonly attribute boolean broadcast;
+  readonly attribute boolean read;
+  readonly attribute boolean writeWithoutResponse;
+  readonly attribute boolean write;
+  readonly attribute boolean notify;
+  readonly attribute boolean indicate;
+  readonly attribute boolean authenticatedSignedWrites;
+  readonly attribute boolean reliableWrite;
+  readonly attribute boolean writableAuxiliaries;
 };
