@@ -73,7 +73,7 @@ function reportload() {
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test3' );
         }, 'hash should change when replaceState is called with a URL');
         history.go(-1);
-        setTimeout(tests3,50); //.go is queued to end of thread
+        setTimeout(tests3,100); //.go is queued to end of thread
     }
     function tests3() {
         test(function () {
