@@ -122,6 +122,14 @@ window and update the core libraries and install new packages. The extra step at
 downgrade GCC to 5.4, as the GCC6 versions in mingw currently fail to compile some of our
 dependencies. We are upgrading to a gcc-free build on Windows as soon as possible:
 
+**IMPORTANT**
+If your python is installed in other dir than `C:\Python27` you need to create a symbolic link otherwise mozjs will fail to build.
+To do it, open Command Prompt as admin and run this:
+```bat
+mkdir C:\Python27
+mklink /D C:\Python27 YOUR_PYTHON_PATH
+```
+
 ```sh
 pacman -Su
 pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype \
