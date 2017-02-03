@@ -6,7 +6,7 @@ use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use servo_url::ServoUrl;
 use style::parser::ParserContext;
-use style::properties::longhands::font_feature_settings;
+use style::properties::longhands::{font_feature_settings, font_weight};
 use style::properties::longhands::font_feature_settings::computed_value;
 use style::properties::longhands::font_feature_settings::computed_value::FeatureTagValue;
 use style::stylesheets::Origin;
@@ -96,6 +96,21 @@ fn font_language_override_should_parse_properly() {
 
     let danish = parse_longhand!(font_language_override, "\"DAN\"");
     assert_eq!(danish, SpecifiedValue::Override("DAN".to_string()));
+}
+
+#[test]
+fn font_weight_keyword_should_preserve_keyword() {
+    use style::properties::longhands::font_weight::SpecifiedValue;
+
+    let url = ServoUrl::parse("http://localhost").unwrap();
+    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let mut parser = Parser::new("normal");
+    let result = font_weight::parse(&context, &mut parser);
+    assert_eq!(result.unwrap(), SpecifiedValue::Normal);
+
+    let mut parser = Parser::new("bold");
+    let result = font_weight::parse(&context, &mut parser);
+    assert_eq!(result.unwrap(), SpecifiedValue::Bold);
 }
 
 #[test]
