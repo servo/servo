@@ -23,4 +23,15 @@ fn test_outline_style() {
     assert_roundtrip_with_context!(outline_style::parse, r#"inset"#);
     assert_roundtrip_with_context!(outline_style::parse, r#"outset"#);
 
+    {
+        // The outline-style property accepts the same values as border-style,
+        // except that 'hidden' is not a legal outline style.
+
+        let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
+        let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+        let mut parser = Parser::new(r#"hidden"#);
+        let parsed = outline_style::parse(&context, &mut parser);
+        assert!(parsed.is_err());
+    };
+
 }
