@@ -460,6 +460,7 @@ mod shorthand_serialization {
 
     mod outline {
         use style::properties::longhands::outline_width::SpecifiedValue as WidthContainer;
+        use style::values::Either;
         use super::*;
 
         #[test]
@@ -467,7 +468,7 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let width = DeclaredValue::Value(WidthContainer(Length::from_px(4f32)));
-            let style = DeclaredValue::Value(OutlineStyle::BorderStyle(BorderStyle::solid));
+            let style = DeclaredValue::Value(Either::Second(BorderStyle::solid));
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA { red: 1f32, green: 0f32, blue: 0f32, alpha: 1f32 }),
                 authored: None
@@ -486,7 +487,7 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let width = DeclaredValue::Value(WidthContainer(Length::from_px(4f32)));
-            let style = DeclaredValue::Value(OutlineStyle::BorderStyle(BorderStyle::solid));
+            let style = DeclaredValue::Value(Either::Second(BorderStyle::solid));
             let color = DeclaredValue::Initial;
 
             properties.push(PropertyDeclaration::OutlineWidth(width));

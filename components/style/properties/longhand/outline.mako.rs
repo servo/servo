@@ -23,59 +23,38 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
-    #[derive(PartialEq, Eq, Clone, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub enum SpecifiedValue {
-        Auto,
-        BorderStyle(BorderStyle)
-    }
+    pub type SpecifiedValue = Either<Auto, BorderStyle>;
 
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl SpecifiedValue {
+        #[inline]
+        pub fn none_or_hidden(&self) -> bool {
             match *self {
-                SpecifiedValue::Auto => dest.write_str("auto"),
-                SpecifiedValue::BorderStyle(ref border_style) => border_style.to_css(dest),
+                Either::First(ref _auto) => false,
+                Either::Second(ref border_style) => border_style.none_or_hidden()
             }
         }
     }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
-            match *self {
-                SpecifiedValue::Auto => BorderStyle::none,
-                SpecifiedValue::BorderStyle(ref border_style) => border_style.clone(),
-            }
-        }
-
-        #[inline]
-        fn from_computed_value(computed: &computed_value::T) -> Self {
-            SpecifiedValue::BorderStyle(computed.clone())
-        }
-    }
-
-    impl NoViewportPercentage for SpecifiedValue {}
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        BorderStyle::none
+        Either::Second(BorderStyle::none)
     }
 
     pub mod computed_value {
-        pub use values::specified::BorderStyle as T;
+        pub type T = super::SpecifiedValue;
     }
 
-    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-            Ok(SpecifiedValue::Auto)
-        } else {
-            match BorderStyle::parse(input) {
-                // The outline-style property accepts the same values as border-style,
-                // except that 'hidden' is not a legal outline style.
-                Ok(BorderStyle::hidden) => Err(()),
-                result => Ok(SpecifiedValue::BorderStyle(try!(result)))
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        match SpecifiedValue::parse(context, input) {
+            Err(err) => Err(err),
+            Ok(result) => {
+                if let Either::Second(BorderStyle::hidden) = result {
+                    // The outline-style property accepts the same values as border-style,
+                    // except that 'hidden' is not a legal outline style.
+                    Err(())
+                } else {
+                    Ok(result)
+                }
             }
         }
     }
