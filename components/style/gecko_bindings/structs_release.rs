@@ -1009,6 +1009,7 @@ pub mod root {
     pub const NS_STYLE_DISPLAY_MODE_BROWSER: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_DISPLAY_MODE_MINIMAL_UI: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_DISPLAY_MODE_STANDALONE: ::std::os::raw::c_uint = 2;
+    pub const NS_STYLE_DISPLAY_MODE_FULLSCREEN: ::std::os::raw::c_uint = 3;
     pub const NS_STYLE_INHERIT_MASK: ::std::os::raw::c_uint = 16777215;
     pub const NS_STYLE_HAS_TEXT_DECORATION_LINES: ::std::os::raw::c_uint =
         16777216;
@@ -3426,7 +3427,7 @@ pub mod root {
             #[link_name =
                   "_ZN7mozilla20BlockingResourceBase17kResourceTypeNameE"]
             pub static mut BlockingResourceBase_kResourceTypeName:
-                       *const *const ::std::os::raw::c_char;
+                       [*const ::std::os::raw::c_char; 0usize];
         }
         #[test]
         fn bindgen_test_layout_BlockingResourceBase() {
@@ -6378,10 +6379,10 @@ pub mod root {
         }
         #[test]
         fn __bindgen_test_layout_template_22() {
-            assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<*mut ::std::os::raw::c_char,
+            assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<[::std::os::raw::c_char; 0usize],
                                                root::JS::FreePolicy>>()
                        , 8usize);
-            assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<*mut ::std::os::raw::c_char,
+            assert_eq!(::std::mem::align_of::<root::mozilla::UniquePtr<[::std::os::raw::c_char; 0usize],
                                                 root::JS::FreePolicy>>()
                        , 8usize);
         }
@@ -6949,8 +6950,8 @@ pub mod root {
     #[derive(Debug)]
     pub struct nsTSubstringSplitter_CharT {
         pub mStr: *const root::nsAString_internal,
-        pub mArray: root::mozilla::UniquePtr<*mut root::nsAString_internal,
-                                             root::mozilla::DefaultDelete<*mut root::nsAString_internal>>,
+        pub mArray: root::mozilla::UniquePtr<[root::nsAString_internal; 0usize],
+                                             root::mozilla::DefaultDelete<[root::nsAString_internal; 0usize]>>,
         pub mArraySize: root::nsAString_internal_size_type,
         pub mDelim: root::nsAString_internal_char_type,
     }
@@ -6981,8 +6982,8 @@ pub mod root {
     #[derive(Debug)]
     pub struct nsCSubstringSplitter {
         pub mStr: *const root::nsACString_internal,
-        pub mArray: root::mozilla::UniquePtr<*mut root::nsACString_internal,
-                                             root::mozilla::DefaultDelete<*mut root::nsACString_internal>>,
+        pub mArray: root::mozilla::UniquePtr<[root::nsACString_internal; 0usize],
+                                             root::mozilla::DefaultDelete<[root::nsACString_internal; 0usize]>>,
         pub mArraySize: root::nsACString_internal_size_type,
         pub mDelim: root::nsACString_internal_char_type,
     }
@@ -11834,63 +11835,63 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct nsDOMMutationObserver([u8; 0]);
-    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_HAS_LISTENERMANAGER;
-    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_HAS_PROPERTIES;
-    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_IS_ANONYMOUS_ROOT;
-    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
-    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_IS_NATIVE_ANONYMOUS_ROOT;
-    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_FORCE_XBL_BINDINGS;
-    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_MAY_BE_IN_BINDING_MNGR;
-    pub const NODE_IS_EDITABLE: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_IS_EDITABLE;
-    pub const NODE_MAY_HAVE_CLASS: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_MAY_HAVE_CLASS;
-    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_IS_IN_SHADOW_TREE;
-    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_HAS_EMPTY_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_HAS_SLOW_SELECTOR;
-    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_HAS_EDGE_CHILD_SELECTOR;
-    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
-    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_ALL_SELECTOR_FLAGS;
-    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_NEEDS_FRAME;
-    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_DESCENDANTS_NEED_FRAMES;
-    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_HAS_ACCESSKEY;
-    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_HAS_DIRECTION_RTL;
-    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_HAS_DIRECTION_LTR;
-    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_ALL_DIRECTION_FLAGS;
-    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_CHROME_ONLY_ACCESS;
-    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
-    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_SHARED_RESTYLE_BIT_2;
-    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_SHARED_RESTYLE_BIT_1;
-    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_119 =
-        _bindgen_ty_119::NODE_TYPE_SPECIFIC_BITS_OFFSET;
+    pub const NODE_HAS_LISTENERMANAGER: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_LISTENERMANAGER;
+    pub const NODE_HAS_PROPERTIES: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_PROPERTIES;
+    pub const NODE_IS_ANONYMOUS_ROOT: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_ANONYMOUS_ROOT;
+    pub const NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+    pub const NODE_IS_NATIVE_ANONYMOUS_ROOT: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_NATIVE_ANONYMOUS_ROOT;
+    pub const NODE_FORCE_XBL_BINDINGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_FORCE_XBL_BINDINGS;
+    pub const NODE_MAY_BE_IN_BINDING_MNGR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_MAY_BE_IN_BINDING_MNGR;
+    pub const NODE_IS_EDITABLE: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_EDITABLE;
+    pub const NODE_MAY_HAVE_CLASS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_MAY_HAVE_CLASS;
+    pub const NODE_IS_IN_SHADOW_TREE: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_IN_SHADOW_TREE;
+    pub const NODE_HAS_EMPTY_SELECTOR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_EMPTY_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_SLOW_SELECTOR;
+    pub const NODE_HAS_EDGE_CHILD_SELECTOR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_EDGE_CHILD_SELECTOR;
+    pub const NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS;
+    pub const NODE_ALL_SELECTOR_FLAGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_ALL_SELECTOR_FLAGS;
+    pub const NODE_NEEDS_FRAME: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_NEEDS_FRAME;
+    pub const NODE_DESCENDANTS_NEED_FRAMES: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_DESCENDANTS_NEED_FRAMES;
+    pub const NODE_HAS_ACCESSKEY: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_ACCESSKEY;
+    pub const NODE_HAS_DIRECTION_RTL: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_DIRECTION_RTL;
+    pub const NODE_HAS_DIRECTION_LTR: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_HAS_DIRECTION_LTR;
+    pub const NODE_ALL_DIRECTION_FLAGS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_ALL_DIRECTION_FLAGS;
+    pub const NODE_CHROME_ONLY_ACCESS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_CHROME_ONLY_ACCESS;
+    pub const NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_IS_ROOT_OF_CHROME_ONLY_ACCESS;
+    pub const NODE_SHARED_RESTYLE_BIT_1: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_SHARED_RESTYLE_BIT_2: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_2;
+    pub const NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_SHARED_RESTYLE_BIT_1;
+    pub const NODE_TYPE_SPECIFIC_BITS_OFFSET: root::_bindgen_ty_118 =
+        _bindgen_ty_118::NODE_TYPE_SPECIFIC_BITS_OFFSET;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-    pub enum _bindgen_ty_119 {
+    pub enum _bindgen_ty_118 {
         NODE_HAS_LISTENERMANAGER = 4,
         NODE_HAS_PROPERTIES = 8,
         NODE_IS_ANONYMOUS_ROOT = 16,
@@ -13775,867 +13776,867 @@ pub mod root {
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kAnimationDirectionKTableE"]
         pub static mut nsCSSProps_kAnimationDirectionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps24kAnimationFillModeKTableE"]
         pub static mut nsCSSProps_kAnimationFillModeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps30kAnimationIterationCountKTableE"]
         pub static mut nsCSSProps_kAnimationIterationCountKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kAnimationPlayStateKTableE"]
         pub static mut nsCSSProps_kAnimationPlayStateKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps30kAnimationTimingFunctionKTableE"]
         pub static mut nsCSSProps_kAnimationTimingFunctionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kAppearanceKTableE"]
         pub static mut nsCSSProps_kAppearanceKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps14kAzimuthKTableE"]
         pub static mut nsCSSProps_kAzimuthKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kBackfaceVisibilityKTableE"]
         pub static mut nsCSSProps_kBackfaceVisibilityKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kTransformStyleKTableE"]
         pub static mut nsCSSProps_kTransformStyleKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps27kImageLayerAttachmentKTableE"]
         pub static mut nsCSSProps_kImageLayerAttachmentKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps23kBackgroundOriginKTableE"]
         pub static mut nsCSSProps_kBackgroundOriginKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kMaskOriginKTableE"]
         pub static mut nsCSSProps_kMaskOriginKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kImageLayerPositionKTableE"]
         pub static mut nsCSSProps_kImageLayerPositionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps23kImageLayerRepeatKTableE"]
         pub static mut nsCSSProps_kImageLayerRepeatKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps27kImageLayerRepeatPartKTableE"]
         pub static mut nsCSSProps_kImageLayerRepeatPartKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kImageLayerSizeKTableE"]
         pub static mut nsCSSProps_kImageLayerSizeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps26kImageLayerCompositeKTableE"]
         pub static mut nsCSSProps_kImageLayerCompositeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kImageLayerModeKTableE"]
         pub static mut nsCSSProps_kImageLayerModeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kBackgroundClipKTableE"]
         pub static mut nsCSSProps_kBackgroundClipKTable:
-                   *mut root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps15kMaskClipKTableE"]
         pub static mut nsCSSProps_kMaskClipKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kBlendModeKTableE"]
         pub static mut nsCSSProps_kBlendModeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kBorderCollapseKTableE"]
         pub static mut nsCSSProps_kBorderCollapseKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps24kBorderImageRepeatKTableE"]
         pub static mut nsCSSProps_kBorderImageRepeatKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps23kBorderImageSliceKTableE"]
         pub static mut nsCSSProps_kBorderImageSliceKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kBorderStyleKTableE"]
         pub static mut nsCSSProps_kBorderStyleKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kBorderWidthKTableE"]
         pub static mut nsCSSProps_kBorderWidthKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps15kBoxAlignKTableE"]
         pub static mut nsCSSProps_kBoxAlignKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kBoxDecorationBreakKTableE"]
         pub static mut nsCSSProps_kBoxDecorationBreakKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kBoxDirectionKTableE"]
         pub static mut nsCSSProps_kBoxDirectionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kBoxOrientKTableE"]
         pub static mut nsCSSProps_kBoxOrientKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps14kBoxPackKTableE"]
         pub static mut nsCSSProps_kBoxPackKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps26kClipPathGeometryBoxKTableE"]
         pub static mut nsCSSProps_kClipPathGeometryBoxKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kCounterRangeKTableE"]
         pub static mut nsCSSProps_kCounterRangeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kCounterSpeakAsKTableE"]
         pub static mut nsCSSProps_kCounterSpeakAsKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps27kCounterSymbolsSystemKTableE"]
         pub static mut nsCSSProps_kCounterSymbolsSystemKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kCounterSystemKTableE"]
         pub static mut nsCSSProps_kCounterSystemKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps23kDominantBaselineKTableE"]
         pub static mut nsCSSProps_kDominantBaselineKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kShapeRadiusKTableE"]
         pub static mut nsCSSProps_kShapeRadiusKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps15kFillRuleKTableE"]
         pub static mut nsCSSProps_kFillRuleKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kFilterFunctionKTableE"]
         pub static mut nsCSSProps_kFilterFunctionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kImageRenderingKTableE"]
         pub static mut nsCSSProps_kImageRenderingKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps27kShapeOutsideShapeBoxKTableE"]
         pub static mut nsCSSProps_kShapeOutsideShapeBoxKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kShapeRenderingKTableE"]
         pub static mut nsCSSProps_kShapeRenderingKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kStrokeLinecapKTableE"]
         pub static mut nsCSSProps_kStrokeLinecapKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kStrokeLinejoinKTableE"]
         pub static mut nsCSSProps_kStrokeLinejoinKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kStrokeContextValueKTableE"]
         pub static mut nsCSSProps_kStrokeContextValueKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kVectorEffectKTableE"]
         pub static mut nsCSSProps_kVectorEffectKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kTextAnchorKTableE"]
         pub static mut nsCSSProps_kTextAnchorKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kTextRenderingKTableE"]
         pub static mut nsCSSProps_kTextRenderingKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kColorAdjustKTableE"]
         pub static mut nsCSSProps_kColorAdjustKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kColorInterpolationKTableE"]
         pub static mut nsCSSProps_kColorInterpolationKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kColumnFillKTableE"]
         pub static mut nsCSSProps_kColumnFillKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kBoxPropSourceKTableE"]
         pub static mut nsCSSProps_kBoxPropSourceKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kBoxShadowTypeKTableE"]
         pub static mut nsCSSProps_kBoxShadowTypeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kBoxSizingKTableE"]
         pub static mut nsCSSProps_kBoxSizingKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kCaptionSideKTableE"]
         pub static mut nsCSSProps_kCaptionSideKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps12kClearKTableE"]
         pub static mut nsCSSProps_kClearKTable:
-                   *mut root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps12kColorKTableE"]
         pub static mut nsCSSProps_kColorKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps14kContentKTableE"]
         pub static mut nsCSSProps_kContentKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps33kControlCharacterVisibilityKTableE"]
         pub static mut nsCSSProps_kControlCharacterVisibilityKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps13kCursorKTableE"]
         pub static mut nsCSSProps_kCursorKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kDirectionKTableE"]
         pub static mut nsCSSProps_kDirectionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps14kDisplayKTableE"]
         pub static mut nsCSSProps_kDisplayKTable:
-                   *mut root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kElevationKTableE"]
         pub static mut nsCSSProps_kElevationKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kEmptyCellsKTableE"]
         pub static mut nsCSSProps_kEmptyCellsKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kAlignAllKeywordsE"]
         pub static mut nsCSSProps_kAlignAllKeywords:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps22kAlignOverflowPositionE"]
         pub static mut nsCSSProps_kAlignOverflowPosition:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kAlignSelfPositionE"]
         pub static mut nsCSSProps_kAlignSelfPosition:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps12kAlignLegacyE"]
         pub static mut nsCSSProps_kAlignLegacy:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kAlignLegacyPositionE"]
         pub static mut nsCSSProps_kAlignLegacyPosition:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps31kAlignAutoNormalStretchBaselineE"]
         pub static mut nsCSSProps_kAlignAutoNormalStretchBaseline:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps27kAlignNormalStretchBaselineE"]
         pub static mut nsCSSProps_kAlignNormalStretchBaseline:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kAlignNormalBaselineE"]
         pub static mut nsCSSProps_kAlignNormalBaseline:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kAlignContentDistributionE"]
         pub static mut nsCSSProps_kAlignContentDistribution:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kAlignContentPositionE"]
         pub static mut nsCSSProps_kAlignContentPosition:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps31kAutoCompletionAlignJustifySelfE"]
         pub static mut nsCSSProps_kAutoCompletionAlignJustifySelf:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kAutoCompletionAlignItemsE"]
         pub static mut nsCSSProps_kAutoCompletionAlignItems:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps34kAutoCompletionAlignJustifyContentE"]
         pub static mut nsCSSProps_kAutoCompletionAlignJustifyContent:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kFlexDirectionKTableE"]
         pub static mut nsCSSProps_kFlexDirectionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps15kFlexWrapKTableE"]
         pub static mut nsCSSProps_kFlexWrapKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps12kFloatKTableE"]
         pub static mut nsCSSProps_kFloatKTable:
-                   *mut root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kFloatEdgeKTableE"]
         pub static mut nsCSSProps_kFloatEdgeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kFontDisplayKTableE"]
         pub static mut nsCSSProps_kFontDisplayKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps11kFontKTableE"]
         pub static mut nsCSSProps_kFontKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kFontKerningKTableE"]
         pub static mut nsCSSProps_kFontKerningKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps15kFontSizeKTableE"]
         pub static mut nsCSSProps_kFontSizeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kFontSmoothingKTableE"]
         pub static mut nsCSSProps_kFontSmoothingKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kFontStretchKTableE"]
         pub static mut nsCSSProps_kFontStretchKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kFontStyleKTableE"]
         pub static mut nsCSSProps_kFontStyleKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kFontSynthesisKTableE"]
         pub static mut nsCSSProps_kFontSynthesisKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kFontVariantKTableE"]
         pub static mut nsCSSProps_kFontVariantKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps28kFontVariantAlternatesKTableE"]
         pub static mut nsCSSProps_kFontVariantAlternatesKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps33kFontVariantAlternatesFuncsKTableE"]
         pub static mut nsCSSProps_kFontVariantAlternatesFuncsKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps22kFontVariantCapsKTableE"]
         pub static mut nsCSSProps_kFontVariantCapsKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps27kFontVariantEastAsianKTableE"]
         pub static mut nsCSSProps_kFontVariantEastAsianKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps27kFontVariantLigaturesKTableE"]
         pub static mut nsCSSProps_kFontVariantLigaturesKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kFontVariantNumericKTableE"]
         pub static mut nsCSSProps_kFontVariantNumericKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps26kFontVariantPositionKTableE"]
         pub static mut nsCSSProps_kFontVariantPositionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kFontWeightKTableE"]
         pub static mut nsCSSProps_kFontWeightKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kGridAutoFlowKTableE"]
         pub static mut nsCSSProps_kGridAutoFlowKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps23kGridTrackBreadthKTableE"]
         pub static mut nsCSSProps_kGridTrackBreadthKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps14kHyphensKTableE"]
         pub static mut nsCSSProps_kHyphensKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps23kImageOrientationKTableE"]
         pub static mut nsCSSProps_kImageOrientationKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps27kImageOrientationFlipKTableE"]
         pub static mut nsCSSProps_kImageOrientationFlipKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kIsolationKTableE"]
         pub static mut nsCSSProps_kIsolationKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps14kIMEModeKTableE"]
         pub static mut nsCSSProps_kIMEModeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kLineHeightKTableE"]
         pub static mut nsCSSProps_kLineHeightKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps24kListStylePositionKTableE"]
         pub static mut nsCSSProps_kListStylePositionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kListStyleKTableE"]
         pub static mut nsCSSProps_kListStyleKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps15kMaskTypeKTableE"]
         pub static mut nsCSSProps_kMaskTypeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kMathVariantKTableE"]
         pub static mut nsCSSProps_kMathVariantKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kMathDisplayKTableE"]
         pub static mut nsCSSProps_kMathDisplayKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps14kContainKTableE"]
         pub static mut nsCSSProps_kContainKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kContextOpacityKTableE"]
         pub static mut nsCSSProps_kContextOpacityKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kContextPatternKTableE"]
         pub static mut nsCSSProps_kContextPatternKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kObjectFitKTableE"]
         pub static mut nsCSSProps_kObjectFitKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps13kOrientKTableE"]
         pub static mut nsCSSProps_kOrientKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kOutlineStyleKTableE"]
         pub static mut nsCSSProps_kOutlineStyleKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps15kOverflowKTableE"]
         pub static mut nsCSSProps_kOverflowKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kOverflowSubKTableE"]
         pub static mut nsCSSProps_kOverflowSubKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps22kOverflowClipBoxKTableE"]
         pub static mut nsCSSProps_kOverflowClipBoxKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kOverflowWrapKTableE"]
         pub static mut nsCSSProps_kOverflowWrapKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kPageBreakKTableE"]
         pub static mut nsCSSProps_kPageBreakKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps22kPageBreakInsideKTableE"]
         pub static mut nsCSSProps_kPageBreakInsideKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kPageMarksKTableE"]
         pub static mut nsCSSProps_kPageMarksKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps15kPageSizeKTableE"]
         pub static mut nsCSSProps_kPageSizeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps12kPitchKTableE"]
         pub static mut nsCSSProps_kPitchKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kPointerEventsKTableE"]
         pub static mut nsCSSProps_kPointerEventsKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps15kPositionKTableE"]
         pub static mut nsCSSProps_kPositionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps26kRadialGradientShapeKTableE"]
         pub static mut nsCSSProps_kRadialGradientShapeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kRadialGradientSizeKTableE"]
         pub static mut nsCSSProps_kRadialGradientSizeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps31kRadialGradientLegacySizeKTableE"]
         pub static mut nsCSSProps_kRadialGradientLegacySizeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps13kResizeKTableE"]
         pub static mut nsCSSProps_kResizeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kRubyAlignKTableE"]
         pub static mut nsCSSProps_kRubyAlignKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kRubyPositionKTableE"]
         pub static mut nsCSSProps_kRubyPositionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kScrollBehaviorKTableE"]
         pub static mut nsCSSProps_kScrollBehaviorKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kScrollSnapTypeKTableE"]
         pub static mut nsCSSProps_kScrollSnapTypeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps12kSpeakKTableE"]
         pub static mut nsCSSProps_kSpeakKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kSpeakHeaderKTableE"]
         pub static mut nsCSSProps_kSpeakHeaderKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kSpeakNumeralKTableE"]
         pub static mut nsCSSProps_kSpeakNumeralKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps23kSpeakPunctuationKTableE"]
         pub static mut nsCSSProps_kSpeakPunctuationKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kSpeechRateKTableE"]
         pub static mut nsCSSProps_kSpeechRateKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kStackSizingKTableE"]
         pub static mut nsCSSProps_kStackSizingKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kTableLayoutKTableE"]
         pub static mut nsCSSProps_kTableLayoutKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kTextAlignKTableE"]
         pub static mut nsCSSProps_kTextAlignKTable:
-                   *mut root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kTextAlignLastKTableE"]
         pub static mut nsCSSProps_kTextAlignLastKTable:
-                   *mut root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kTextCombineUprightKTableE"]
         pub static mut nsCSSProps_kTextCombineUprightKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kTextDecorationLineKTableE"]
         pub static mut nsCSSProps_kTextDecorationLineKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps26kTextDecorationStyleKTableE"]
         pub static mut nsCSSProps_kTextDecorationStyleKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps27kTextEmphasisPositionKTableE"]
         pub static mut nsCSSProps_kTextEmphasisPositionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps28kTextEmphasisStyleFillKTableE"]
         pub static mut nsCSSProps_kTextEmphasisStyleFillKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps29kTextEmphasisStyleShapeKTableE"]
         pub static mut nsCSSProps_kTextEmphasisStyleShapeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps22kTextOrientationKTableE"]
         pub static mut nsCSSProps_kTextOrientationKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kTextOverflowKTableE"]
         pub static mut nsCSSProps_kTextOverflowKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kTextTransformKTableE"]
         pub static mut nsCSSProps_kTextTransformKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kTouchActionKTableE"]
         pub static mut nsCSSProps_kTouchActionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps15kTopLayerKTableE"]
         pub static mut nsCSSProps_kTopLayerKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kTransformBoxKTableE"]
         pub static mut nsCSSProps_kTransformBoxKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps31kTransitionTimingFunctionKTableE"]
         pub static mut nsCSSProps_kTransitionTimingFunctionKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kUnicodeBidiKTableE"]
         pub static mut nsCSSProps_kUnicodeBidiKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kUserFocusKTableE"]
         pub static mut nsCSSProps_kUserFocusKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kUserInputKTableE"]
         pub static mut nsCSSProps_kUserInputKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kUserModifyKTableE"]
         pub static mut nsCSSProps_kUserModifyKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kUserSelectKTableE"]
         pub static mut nsCSSProps_kUserSelectKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps20kVerticalAlignKTableE"]
         pub static mut nsCSSProps_kVerticalAlignKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kVisibilityKTableE"]
         pub static mut nsCSSProps_kVisibilityKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps13kVolumeKTableE"]
         pub static mut nsCSSProps_kVolumeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kWhitespaceKTableE"]
         pub static mut nsCSSProps_kWhitespaceKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps12kWidthKTableE"]
         pub static mut nsCSSProps_kWidthKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps21kWindowDraggingKTableE"]
         pub static mut nsCSSProps_kWindowDraggingKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kWindowShadowKTableE"]
         pub static mut nsCSSProps_kWindowShadowKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16kWordBreakKTableE"]
         pub static mut nsCSSProps_kWordBreakKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kWritingModeKTableE"]
         pub static mut nsCSSProps_kWritingModeKTable:
-                   *const root::nsCSSProps_KTableEntry;
+                   [root::nsCSSProps_KTableEntry; 0usize];
     }
     #[test]
     fn bindgen_test_layout_nsCSSProps() {
@@ -17467,12 +17468,12 @@ pub mod root {
     extern "C" {
         #[link_name = "_ZN18nsStyleImageLayers21kBackgroundLayerTableE"]
         pub static mut nsStyleImageLayers_kBackgroundLayerTable:
-                   *const root::nsCSSPropertyID;
+                   [root::nsCSSPropertyID; 0usize];
     }
     extern "C" {
         #[link_name = "_ZN18nsStyleImageLayers15kMaskLayerTableE"]
         pub static mut nsStyleImageLayers_kMaskLayerTable:
-                   *const root::nsCSSPropertyID;
+                   [root::nsCSSPropertyID; 0usize];
     }
     #[test]
     fn bindgen_test_layout_nsStyleImageLayers() {
@@ -18711,7 +18712,8 @@ pub mod root {
     }
     extern "C" {
         #[link_name = "_ZN15nsMediaFeatures8featuresE"]
-        pub static mut nsMediaFeatures_features: *const root::nsMediaFeature;
+        pub static mut nsMediaFeatures_features:
+                   [root::nsMediaFeature; 0usize];
     }
     #[test]
     fn bindgen_test_layout_nsMediaFeatures() {
@@ -18844,16 +18846,16 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_30() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<*mut root::nsAString_internal>>()
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<[root::nsAString_internal; 0usize]>>()
                    , 1usize);
-        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<*mut root::nsAString_internal>>()
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<[root::nsAString_internal; 0usize]>>()
                    , 1usize);
     }
     #[test]
     fn __bindgen_test_layout_template_31() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<*mut root::nsACString_internal>>()
+        assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<[root::nsACString_internal; 0usize]>>()
                    , 1usize);
-        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<*mut root::nsACString_internal>>()
+        assert_eq!(::std::mem::align_of::<root::mozilla::DefaultDelete<[root::nsACString_internal; 0usize]>>()
                    , 1usize);
     }
     #[test]
