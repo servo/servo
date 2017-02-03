@@ -380,6 +380,13 @@
                      -> Result<SpecifiedValue, ()> {
             SpecifiedValue::parse(input)
         }
+        impl Parse for SpecifiedValue {
+            #[inline]
+            fn parse(_context: &ParserContext, input: &mut Parser)
+                         -> Result<SpecifiedValue, ()> {
+                SpecifiedValue::parse(input)
+            }
+        }
     </%def>
     % if vector:
         <%call expr="vector_longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">

@@ -10,7 +10,7 @@
                          additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
 <%helpers:longhand name="font-family" animatable="False" need_index="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
-    use self::computed_value::FontFamily;
+    use self::computed_value::{FontFamily, FamilyName};
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
@@ -28,15 +28,19 @@
         #[derive(Debug, PartialEq, Eq, Clone, Hash)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum FontFamily {
-            FamilyName(Atom),
+            FamilyName(FamilyName),
             Generic(Atom),
         }
+
+        #[derive(Debug, PartialEq, Eq, Clone, Hash)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+        pub struct FamilyName(pub Atom);
 
         impl FontFamily {
             #[inline]
             pub fn atom(&self) -> &Atom {
                 match *self {
-                    FontFamily::FamilyName(ref name) => name,
+                    FontFamily::FamilyName(ref name) => &name.0,
                     FontFamily::Generic(ref name) => name,
                 }
             }
@@ -67,18 +71,22 @@
                     "monospace" => return FontFamily::Generic(atom!("monospace")),
                     _ => {}
                 }
-                FontFamily::FamilyName(input)
+                FontFamily::FamilyName(FamilyName(input))
+            }
+        }
+
+        impl ToCss for FamilyName {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                dest.write_char('"')?;
+                write!(CssStringWriter::new(dest), "{}", self.0)?;
+                dest.write_char('"')
             }
         }
 
         impl ToCss for FontFamily {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 match *self {
-                    FontFamily::FamilyName(ref name) => {
-                        dest.write_char('"')?;
-                        write!(CssStringWriter::new(dest), "{}", name)?;
-                        dest.write_char('"')
-                    }
+                    FontFamily::FamilyName(ref name) => name.to_css(dest),
 
                     // All generic values accepted by the parser are known to not require escaping.
                     FontFamily::Generic(ref name) => write!(dest, "{}", name),
@@ -107,56 +115,78 @@
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T(vec![FontFamily::Generic(atom!("serif"))])
     }
+
     /// <family-name>#
     /// <family-name> = <string> | [ <ident>+ ]
     /// TODO: <generic-family>
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        input.parse_comma_separated(parse_one_family).map(SpecifiedValue)
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        Vec::<FontFamily>::parse(context, input).map(SpecifiedValue)
     }
-    pub fn parse_one_family(input: &mut Parser) -> Result<FontFamily, ()> {
-        if let Ok(value) = input.try(|input| input.expect_string()) {
-            return Ok(FontFamily::FamilyName(Atom::from(&*value)))
-        }
-        let first_ident = try!(input.expect_ident());
 
-        // FIXME(bholley): The fast thing to do here would be to look up the
-        // string (as lowercase) in the static atoms table. We don't have an
-        // API to do that yet though, so we do the simple thing for now.
-        let mut css_wide_keyword = false;
-        match_ignore_ascii_case! { first_ident,
-            "serif" => return Ok(FontFamily::Generic(atom!("serif"))),
-            "sans-serif" => return Ok(FontFamily::Generic(atom!("sans-serif"))),
-            "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
-            "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
-            "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
+    impl Parse for Vec<FontFamily> {
+        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            input.parse_comma_separated(|input| FontFamily::parse(context, input))
+        }
+    }
 
-            // https://drafts.csswg.org/css-fonts/#propdef-font-family
-            // "Font family names that happen to be the same as a keyword value
-            //  (‘inherit’, ‘serif’, ‘sans-serif’, ‘monospace’, ‘fantasy’, and ‘cursive’)
-            //  must be quoted to prevent confusion with the keywords with the same names.
-            //  The keywords ‘initial’ and ‘default’ are reserved for future use
-            //  and must also be quoted when used as font names.
-            //  UAs must not consider these keywords as matching the <family-name> type."
-            "inherit" => css_wide_keyword = true,
-            "initial" => css_wide_keyword = true,
-            "unset" => css_wide_keyword = true,
-            "default" => css_wide_keyword = true,
-            _ => {}
+    /// `FamilyName::parse` is based on `FontFamily::parse` and not the other way around
+    /// because we want the former to exclude generic family keywords.
+    impl Parse for FamilyName {
+        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            match FontFamily::parse(context, input) {
+                Ok(FontFamily::FamilyName(name)) => Ok(name),
+                Ok(FontFamily::Generic(_)) |
+                Err(()) => Err(())
+            }
         }
+    }
 
-        let mut value = first_ident.into_owned();
-        // These keywords are not allowed by themselves.
-        // The only way this value can be valid with with another keyword.
-        if css_wide_keyword {
-            let ident = input.expect_ident()?;
-            value.push_str(" ");
-            value.push_str(&ident);
+    impl Parse for FontFamily {
+        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            if let Ok(value) = input.try(|input| input.expect_string()) {
+                return Ok(FontFamily::FamilyName(FamilyName(Atom::from(&*value))))
+            }
+            let first_ident = try!(input.expect_ident());
+
+            // FIXME(bholley): The fast thing to do here would be to look up the
+            // string (as lowercase) in the static atoms table. We don't have an
+            // API to do that yet though, so we do the simple thing for now.
+            let mut css_wide_keyword = false;
+            match_ignore_ascii_case! { first_ident,
+                "serif" => return Ok(FontFamily::Generic(atom!("serif"))),
+                "sans-serif" => return Ok(FontFamily::Generic(atom!("sans-serif"))),
+                "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
+                "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
+                "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
+
+                // https://drafts.csswg.org/css-fonts/#propdef-font-family
+                // "Font family names that happen to be the same as a keyword value
+                //  (‘inherit’, ‘serif’, ‘sans-serif’, ‘monospace’, ‘fantasy’, and ‘cursive’)
+                //  must be quoted to prevent confusion with the keywords with the same names.
+                //  The keywords ‘initial’ and ‘default’ are reserved for future use
+                //  and must also be quoted when used as font names.
+                //  UAs must not consider these keywords as matching the <family-name> type."
+                "inherit" => css_wide_keyword = true,
+                "initial" => css_wide_keyword = true,
+                "unset" => css_wide_keyword = true,
+                "default" => css_wide_keyword = true,
+                _ => {}
+            }
+
+            let mut value = first_ident.into_owned();
+            // These keywords are not allowed by themselves.
+            // The only way this value can be valid with with another keyword.
+            if css_wide_keyword {
+                let ident = input.expect_ident()?;
+                value.push_str(" ");
+                value.push_str(&ident);
+            }
+            while let Ok(ident) = input.try(|input| input.expect_ident()) {
+                value.push_str(" ");
+                value.push_str(&ident);
+            }
+            Ok(FontFamily::FamilyName(FamilyName(Atom::from(value))))
         }
-        while let Ok(ident) = input.try(|input| input.expect_ident()) {
-            value.push_str(" ");
-            value.push_str(&ident);
-        }
-        Ok(FontFamily::FamilyName(Atom::from(value)))
     }
 </%helpers:longhand>
 
@@ -243,6 +273,20 @@ ${helpers.single_keyword("font-variant-caps",
             }
         })
     }
+
+    /// Used in @font-face, where relative keywords are not allowed.
+    impl Parse for computed_value::T {
+        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            match parse(context, input)? {
+                % for weight in range(100, 901, 100):
+                    SpecifiedValue::Weight${weight} => Ok(computed_value::T::Weight${weight}),
+                % endfor
+                SpecifiedValue::Bolder |
+                SpecifiedValue::Lighter => Err(())
+            }
+        }
+    }
+
     pub mod computed_value {
         use std::fmt;
         #[derive(PartialEq, Eq, Copy, Clone, Hash, Debug)]

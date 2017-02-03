@@ -944,7 +944,7 @@ fn static_assert() {
         for family in &v.0 {
             match *family {
                 FontFamily::FamilyName(ref name) => {
-                    unsafe { Gecko_FontFamilyList_AppendNamed(list, name.as_ptr()); }
+                    unsafe { Gecko_FontFamilyList_AppendNamed(list, name.0.as_ptr()); }
                 }
                 FontFamily::Generic(ref name) => {
                     let family_type =
