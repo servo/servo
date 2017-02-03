@@ -1051,7 +1051,7 @@ ${helpers.single_keyword("animation-fill-mode",
 
 
 <%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
-                   animatable="${product == 'servo'}"
+                   animatable="True"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use app_units::Au;
     use style_traits::ToCss;
