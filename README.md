@@ -21,8 +21,7 @@ Please select your operating system:
 * [Arch Linux](#on-arch-linux)
 * [openSUSE](#on-opensuse-linux)
 * [Gentoo Linux](#on-gentoo-linux)
-* [Microsoft Windows (MSVC)](#on-windows-msvc)
-* [Microsoft Windows (mingw)](#on-windows-mingw)
+* [Microsoft Windows](#on-windows-msvc--mingw)
 * [Android](#cross-compilation-for-android)
 
 #### OS X
@@ -93,13 +92,7 @@ sudo emerge net-misc/curl media-libs/freeglut \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
     x11-libs/libXmu media-libs/glu x11-base/xorg-server
 ```
-#### On Windows MSVC
-
-Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
-settings for the installer are fine).
-
-Install Visual Studio 2015 Community Edition (https://www.visualstudio.com/). You MUST add "Visual C++" to the
-list of installed components. It is not on by default.
+#### On Windows (MSVC & MinGW)
 
 Install Python for Windows (https://www.python.org/downloads/release/python-2711/). The windows x86-64 MSI installer is fine.
 You should change the installation to install the "Add python.exe to Path" feature.
@@ -112,12 +105,17 @@ pip install virtualenv
 ```
 If this does not work, you may need to reboot for the changed PATH settings (by the python installer) to take effect.
 
-#### On Windows mingw
+#### Additional for Windows MSVC
 
-Download Python for Windows [here](https://www.python.org/downloads/release/python-2711/). This is
-required for the SpiderMonkey build on Windows.
+Install Git for Windows (https://git-scm.com/download/win). DO allow it to add git.exe to the PATH (default
+settings for the installer are fine).
 
-Install MSYS2 from [here](https://msys2.github.io/). After you have done so, open an MSYS shell
+Install Visual Studio 2015 Community Edition (https://www.visualstudio.com/). You MUST add "Visual C++" to the
+list of installed components. It is not on by default.
+
+#### Additional for Windows MinGW
+
+Install MSYS2 (https://msys2.github.io/). After you have done so, open an MSYS shell
 window and update the core libraries and install new packages. The extra step at the end is to
 downgrade GCC to 5.4, as the GCC6 versions in mingw currently fail to compile some of our
 dependencies. We are upgrading to a gcc-free build on Windows as soon as possible:
@@ -133,13 +131,12 @@ export GCC_EXT=5.4.0-1-any.pkg.tar.xz
 pacman -U --noconfirm $GCC_URL-$GCC_EXT $GCC_URL-ada-$GCC_EXT \
     $GCC_URL-fortran-$GCC_EXT $GCC_URL-libgfortran-$GCC_EXT $GCC_URL-libs-$GCC_EXT \
     $GCC_URL-objc-$GCC_EXT
-easy_install-2.7 pip virtualenv
 ```
 
 Add the following line to the end of `.profile` in your home directory:
 
 ```
-export PATH=/c/Python27:$PATH
+export PATH=/c/Python27:/c/Python27/Scripts:$PATH
 ```
 
 Now, open a MINGW64 (not MSYS!) shell window, and you should be able to build
