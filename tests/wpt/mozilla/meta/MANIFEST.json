@@ -11443,6 +11443,24 @@
      {}
     ]
    ],
+   "mozilla/bluetooth/getAvailability/adapter-not-present.html": [
+    [
+     "/_mozilla/mozilla/bluetooth/getAvailability/adapter-not-present.html",
+     {}
+    ]
+   ],
+   "mozilla/bluetooth/getAvailability/adapter-off.html": [
+    [
+     "/_mozilla/mozilla/bluetooth/getAvailability/adapter-off.html",
+     {}
+    ]
+   ],
+   "mozilla/bluetooth/getAvailability/adapter-on.html": [
+    [
+     "/_mozilla/mozilla/bluetooth/getAvailability/adapter-on.html",
+     {}
+    ]
+   ],
    "mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html": [
     [
      "/_mozilla/mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html",
@@ -24370,6 +24388,18 @@
   ],
   "mozilla/bluetooth/disconnect/event-is-fired.html": [
    "6bba458074ce7d8067b6420d4326cbb133e35304",
+   "testharness"
+  ],
+  "mozilla/bluetooth/getAvailability/adapter-not-present.html": [
+   "e4d5e516bee397ecefee1ef679f48f11b5dabe78",
+   "testharness"
+  ],
+  "mozilla/bluetooth/getAvailability/adapter-off.html": [
+   "0e3d7824d57ba676ae52c775fa21d8e6ec6d7073",
+   "testharness"
+  ],
+  "mozilla/bluetooth/getAvailability/adapter-on.html": [
+   "7e37c1b939712f5920b607e27a82f34573ca40fd",
    "testharness"
   ],
   "mozilla/bluetooth/getCharacteristic/blocklisted-characteristic.html": [
