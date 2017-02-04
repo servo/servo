@@ -1683,72 +1683,56 @@ fn static_assert() {
         }
     </%self:simple_image_array_property>
 
-    % if shorthand != "background":
-    pub fn copy_${shorthand}_position_from(&mut self, other: &Self) {
+    % for orientation in [("x", "Horizontal"), ("y", "Vertical")]:
+    pub fn copy_${shorthand}_position_${orientation[0]}_from(&mut self, other: &Self) {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
 
-        self.gecko.${image_layers_field}.mPositionXCount
-                = cmp::min(1, other.gecko.${image_layers_field}.mPositionXCount);
-        self.gecko.${image_layers_field}.mPositionYCount
-                = cmp::min(1, other.gecko.${image_layers_field}.mPositionYCount);
+        self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count
+            = cmp::min(1, other.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count);
         self.gecko.${image_layers_field}.mLayers.mFirstElement.mPosition =
             other.gecko.${image_layers_field}.mLayers.mFirstElement.mPosition;
         unsafe {
             Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field},
                                           other.gecko.${image_layers_field}.mLayers.len(),
-                                          LayerType::${shorthand.title()});
+                                          LayerType::${shorthand.capitalize()});
         }
+
         for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
-                                  .zip(other.gecko.${image_layers_field}.mLayers.iter())
-                                  .take(other.gecko.${image_layers_field}.mPositionXCount as usize) {
-            layer.mPosition.mXPosition
-                = other.mPosition.mXPosition;
+                                  .zip(other.gecko.${image_layers_field}.mLayers.iter()) {
+            layer.mPosition.m${orientation[0].upper()}Position
+                = other.mPosition.m${orientation[0].upper()}Position;
         }
-        for (layer, other) in self.gecko.${image_layers_field}.mLayers.iter_mut()
-                                  .zip(other.gecko.${image_layers_field}.mLayers.iter())
-                                  .take(other.gecko.${image_layers_field}.mPositionYCount as usize) {
-            layer.mPosition.mYPosition
-                = other.mPosition.mYPosition;
-        }
-        self.gecko.${image_layers_field}.mPositionXCount
-                = other.gecko.${image_layers_field}.mPositionXCount;
-        self.gecko.${image_layers_field}.mPositionYCount
-                = other.gecko.${image_layers_field}.mPositionYCount;
+        self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count
+               = other.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count;
     }
 
-    pub fn clone_${shorthand}_position(&self)
-        -> longhands::${shorthand}_position::computed_value::T {
-        use values::computed::position::Position;
-        longhands::${shorthand}_position::computed_value::T(
+    pub fn clone_${shorthand}_position_${orientation[0]}(&self)
+        -> longhands::${shorthand}_position_${orientation[0]}::computed_value::T {
+        use values::computed::position::${orientation[1]}Position;
+        longhands::${shorthand}_position_${orientation[0]}::computed_value::T(
             self.gecko.${image_layers_field}.mLayers.iter()
-                .take(self.gecko.${image_layers_field}.mPositionXCount as usize)
-                .take(self.gecko.${image_layers_field}.mPositionYCount as usize)
-                .map(|position| Position {
-                    horizontal: position.mPosition.mXPosition.into(),
-                    vertical: position.mPosition.mYPosition.into(),
-                })
+                .take(self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count as usize)
+                .map(|position| ${orientation[1]}Position(position.mPosition.m${orientation[0].upper()}Position.into()))
                 .collect()
         )
     }
 
-    pub fn set_${shorthand}_position(&mut self,
-                                     v: longhands::${shorthand}_position::computed_value::T) {
+    pub fn set_${shorthand}_position_${orientation[0]}(&mut self,
+                                     v: longhands::${shorthand}_position_${orientation[0]}::computed_value::T) {
         use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
 
         unsafe {
-          Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len(),
-                                        LayerType::${shorthand.title()});
+            Gecko_EnsureImageLayersLength(&mut self.gecko.${image_layers_field}, v.0.len(),
+                                        LayerType::${shorthand.capitalize()});
         }
 
-        self.gecko.${image_layers_field}.mPositionXCount = v.0.len() as u32;
-        self.gecko.${image_layers_field}.mPositionYCount = v.0.len() as u32;
+        self.gecko.${image_layers_field}.mPosition${orientation[0].upper()}Count = v.0.len() as u32;
         for (servo, geckolayer) in v.0.into_iter().zip(self.gecko.${image_layers_field}
                                                            .mLayers.iter_mut()) {
-            geckolayer.mPosition.mXPosition = servo.horizontal.into();
-            geckolayer.mPosition.mYPosition = servo.vertical.into();
+            geckolayer.mPosition.m${orientation[0].upper()}Position = servo.0.into();
         }
     }
-    % endif
+    % endfor
 
     <%self:simple_image_array_property name="size" shorthand="${shorthand}" field_name="mSize">
         use gecko_bindings::structs::nsStyleImageLayers_Size_Dimension;
@@ -1938,56 +1922,6 @@ fn static_assert() {
             T::luminosity => structs::NS_STYLE_BLEND_LUMINOSITY as u8,
         }
     </%self:simple_image_array_property>
-
-    % for orientation in [("x", "Horizontal"), ("y", "Vertical")]:
-    pub fn copy_background_position_${orientation[0]}_from(&mut self, other: &Self) {
-        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
-
-        self.gecko.mImage.mPosition${orientation[0].upper()}Count
-                = cmp::min(1, other.gecko.mImage.mPosition${orientation[0].upper()}Count);
-        self.gecko.mImage.mLayers.mFirstElement.mPosition =
-            other.gecko.mImage.mLayers.mFirstElement.mPosition;
-        unsafe {
-            Gecko_EnsureImageLayersLength(&mut self.gecko.mImage,
-                                          other.gecko.mImage.mLayers.len(),
-                                          LayerType::Background);
-        }
-        for (layer, other) in self.gecko.mImage.mLayers.iter_mut()
-                                  .zip(other.gecko.mImage.mLayers.iter()) {
-            layer.mPosition.m${orientation[0].upper()}Position
-                = other.mPosition.m${orientation[0].upper()}Position;
-        }
-        self.gecko.mImage.mPosition${orientation[0].upper()}Count
-                = other.gecko.mImage.mPosition${orientation[0].upper()}Count;
-    }
-
-    pub fn clone_background_position_${orientation[0]}(&self)
-        -> longhands::background_position_${orientation[0]}::computed_value::T {
-        use values::computed::position::${orientation[1]}Position;
-        longhands::background_position_${orientation[0]}::computed_value::T(
-            self.gecko.mImage.mLayers.iter()
-                .take(self.gecko.mImage.mPosition${orientation[0].upper()}Count as usize)
-                .map(|position| ${orientation[1]}Position(position.mPosition.m${orientation[0].upper()}Position.into()))
-                .collect()
-        )
-    }
-
-    pub fn set_background_position_${orientation[0]}(&mut self,
-                                     v: longhands::background_position_${orientation[0]}::computed_value::T) {
-        use gecko_bindings::structs::nsStyleImageLayers_LayerType as LayerType;
-
-        unsafe {
-          Gecko_EnsureImageLayersLength(&mut self.gecko.mImage, v.0.len(),
-                                        LayerType::Background);
-        }
-
-        self.gecko.mImage.mPosition${orientation[0].upper()}Count = v.0.len() as u32;
-        for (servo, geckolayer) in v.0.into_iter().zip(self.gecko.mImage
-                                                           .mLayers.iter_mut()) {
-            geckolayer.mPosition.m${orientation[0].upper()}Position = servo.0.into();
-        }
-    }
-    % endfor
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="List"
@@ -2471,7 +2405,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <% skip_svg_longhands = """
-mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position mask-size mask-image
+mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-position-y mask-size mask-image
 clip-path
 """
 %>
@@ -2633,7 +2567,6 @@ clip-path
             }
         }
     }
-
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Color"
