@@ -123,7 +123,7 @@ impl HTMLFontElementLayoutHelpers for LayoutJS<HTMLFontElement> {
 }
 
 /// https://html.spec.whatwg.org/multipage/#rules-for-parsing-a-legacy-font-size
-pub fn parse_legacy_font_size(mut input: &str) -> Option<&'static str> {
+fn parse_length(mut input: &str) -> Option<specified::Length> {
     // Steps 1 & 2 are not relevant
 
     // Step 3
@@ -153,8 +153,8 @@ pub fn parse_legacy_font_size(mut input: &str) -> Option<&'static str> {
 
     // Steps 6, 7, 8
     let mut value = match read_numbers(input_chars) {
-        (Some(v), _) => v,
-        (None, _) => return None,
+        (Some(v), _) if v >= 0 => v,
+        _ => return None,
     };
 
     // Step 9
@@ -165,18 +165,5 @@ pub fn parse_legacy_font_size(mut input: &str) -> Option<&'static str> {
     }
 
     // Steps 10, 11, 12
-    Some(match value {
-        n if n >= 7 => "xxx-large",
-        6 => "xx-large",
-        5 => "x-large",
-        4 => "large",
-        3 => "medium",
-        2 => "small",
-        n if n <= 1 => "x-small",
-        _ => unreachable!(),
-    })
-}
-
-fn parse_length(value: &str) -> Option<specified::Length> {
-    parse_legacy_font_size(&value).and_then(|parsed| specified::Length::from_str(&parsed))
+    Some(specified::Length::from_font_size_int(value as u8))
 }
