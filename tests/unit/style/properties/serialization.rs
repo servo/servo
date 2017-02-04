@@ -879,7 +879,8 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_image as image;
         use style::properties::longhands::mask_mode as mode;
         use style::properties::longhands::mask_origin as origin;
-        use style::properties::longhands::mask_position as position;
+        use style::properties::longhands::mask_position_x as position_x;
+        use style::properties::longhands::mask_position_y as position_y;
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
         use style::values::specified::Image;
@@ -918,16 +919,16 @@ mod shorthand_serialization {
 
             let mode = single_vec_keyword_value!(mode, luminance);
 
-            let position = single_vec_value_typedef!(position,
-                Position {
-                    horizontal: HorizontalPosition {
-                        keyword: None,
-                        position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
-                    },
-                    vertical: VerticalPosition {
-                        keyword: None,
-                        position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
-                    },
+            let position_x = single_vec_value_typedef!(position_x,
+                HorizontalPosition {
+                    keyword: None,
+                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
+                }
+            );
+            let position_y = single_vec_value_typedef!(position_y,
+                VerticalPosition {
+                    keyword: None,
+                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
                 }
             );
 
@@ -947,7 +948,8 @@ mod shorthand_serialization {
 
             properties.push(PropertyDeclaration::MaskImage(image));
             properties.push(PropertyDeclaration::MaskMode(mode));
-            properties.push(PropertyDeclaration::MaskPosition(position));
+            properties.push(PropertyDeclaration::MaskPositionX(position_x));
+            properties.push(PropertyDeclaration::MaskPositionY(position_y));
             properties.push(PropertyDeclaration::MaskSize(size));
             properties.push(PropertyDeclaration::MaskRepeat(repeat));
             properties.push(PropertyDeclaration::MaskOrigin(origin));
@@ -972,16 +974,17 @@ mod shorthand_serialization {
 
             let mode = single_vec_keyword_value!(mode, luminance);
 
-            let position = single_vec_value_typedef!(position,
-                Position {
-                    horizontal: HorizontalPosition {
-                        keyword: None,
-                        position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
-                    },
-                    vertical: VerticalPosition {
-                        keyword: None,
-                        position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
-                    },
+            let position_x = single_vec_value_typedef!(position_x,
+                HorizontalPosition {
+                    keyword: None,
+                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
+                }
+            );
+
+            let position_y = single_vec_value_typedef!(position_y,
+                VerticalPosition {
+                    keyword: None,
+                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
                 }
             );
 
@@ -1001,7 +1004,8 @@ mod shorthand_serialization {
 
             properties.push(PropertyDeclaration::MaskImage(image));
             properties.push(PropertyDeclaration::MaskMode(mode));
-            properties.push(PropertyDeclaration::MaskPosition(position));
+            properties.push(PropertyDeclaration::MaskPositionX(position_x));
+            properties.push(PropertyDeclaration::MaskPositionY(position_y));
             properties.push(PropertyDeclaration::MaskSize(size));
             properties.push(PropertyDeclaration::MaskRepeat(repeat));
             properties.push(PropertyDeclaration::MaskOrigin(origin));
