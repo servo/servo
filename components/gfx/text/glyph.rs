@@ -5,7 +5,7 @@
 use app_units::Au;
 use euclid::point::Point2D;
 use range::{self, EachIndex, Range, RangeIndex};
-#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+#[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 use simd::u32x4;
 use std::{fmt, mem, u16};
 use std::cmp::{Ordering, PartialOrd};
@@ -74,7 +74,7 @@ pub type GlyphId = u32;
 // TODO: make this more type-safe.
 
 const FLAG_CHAR_IS_SPACE: u32       = 0x40000000;
-#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+#[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 const FLAG_CHAR_IS_SPACE_SHIFT: u32 = 30;
 const FLAG_IS_SIMPLE_GLYPH: u32     = 0x80000000;
 
@@ -591,7 +591,7 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
-    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
     fn advance_for_byte_range_simple_glyphs(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         let advance_mask = u32x4::splat(GLYPH_ADVANCE_MASK);
         let space_flag_mask = u32x4::splat(FLAG_CHAR_IS_SPACE);
@@ -632,16 +632,16 @@ impl<'a> GlyphStore {
         Au(advance) + leftover_advance + extra_word_spacing * (spaces + leftover_spaces)
     }
 
-    /// When SIMD isn't available (non-x86_x64/aarch64), fallback to the slow path.
+    /// When SIMD isn't available, fallback to the slow path.
     #[inline]
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    #[cfg(not(any(target_feature = "sse2", target_feature = "neon")))]
     fn advance_for_byte_range_simple_glyphs(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         self.advance_for_byte_range_slow_path(range, extra_word_spacing)
     }
 
     /// Used for SIMD.
     #[inline]
-    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
     #[allow(unsafe_code)]
     fn transmute_entry_buffer_to_u32_buffer(&self) -> &[u32] {
         unsafe { mem::transmute(self.entry_buffer.as_slice()) }
