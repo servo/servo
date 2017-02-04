@@ -19,6 +19,9 @@ use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::text_shadow::computed_value::TextShadow;
 use properties::longhands::box_shadow::computed_value::T as BoxShadowList;
 use properties::longhands::box_shadow::single_value::computed_value::T as BoxShadow;
+use properties::longhands::transform::computed_value::ComputedMatrix;
+use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
+use properties::longhands::transform::computed_value::T as TransformList;
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
@@ -27,12 +30,14 @@ use std::cmp;
 use std::fmt;
 use style_traits::ToCss;
 use super::ComputedValues;
+use values::CSSFloat;
 use values::Either;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use values::computed::{BorderRadiusSize, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::position::{HorizontalPosition, Position, VerticalPosition};
 use values::computed::ToComputedValue;
+use values::specified::Angle as SpecifiedAngle;
 
 
 
@@ -852,931 +857,922 @@ impl Interpolate for LengthOrNone {
     }
 }
 
-% if product == "servo":
-    use properties::longhands::transform::computed_value::ComputedMatrix;
-    use properties::longhands::transform::computed_value::ComputedOperation as TransformOperation;
-    use properties::longhands::transform::computed_value::T as TransformList;
-    use values::CSSFloat;
-    use values::specified::Angle as SpecifiedAngle;
+/// Check if it's possible to do a direct numerical interpolation
+/// between these two transform lists.
+/// http://dev.w3.org/csswg/css-transforms/#transform-transform-animation
+fn can_interpolate_list(from_list: &[TransformOperation],
+                        to_list: &[TransformOperation]) -> bool {
+    // Lists must be equal length
+    if from_list.len() != to_list.len() {
+        return false;
+    }
 
-    /// Check if it's possible to do a direct numerical interpolation
-    /// between these two transform lists.
-    /// http://dev.w3.org/csswg/css-transforms/#transform-transform-animation
-    fn can_interpolate_list(from_list: &[TransformOperation],
-                            to_list: &[TransformOperation]) -> bool {
-        // Lists must be equal length
-        if from_list.len() != to_list.len() {
-            return false;
+    // Each transform operation must match primitive type in other list
+    for (from, to) in from_list.iter().zip(to_list) {
+        match (from, to) {
+            (&TransformOperation::Matrix(..), &TransformOperation::Matrix(..)) |
+            (&TransformOperation::Skew(..), &TransformOperation::Skew(..)) |
+            (&TransformOperation::Translate(..), &TransformOperation::Translate(..)) |
+            (&TransformOperation::Scale(..), &TransformOperation::Scale(..)) |
+            (&TransformOperation::Rotate(..), &TransformOperation::Rotate(..)) |
+            (&TransformOperation::Perspective(..), &TransformOperation::Perspective(..)) => {}
+            _ => {
+                return false;
+            }
         }
+    }
 
-        // Each transform operation must match primitive type in other list
+    true
+}
+
+/// Build an equivalent 'identity transform function list' based
+/// on an existing transform list.
+/// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOperation> {
+    let mut result = vec!();
+
+    for operation in list {
+        match *operation {
+            TransformOperation::Matrix(..) => {
+                let identity = ComputedMatrix::identity();
+                result.push(TransformOperation::Matrix(identity));
+            }
+            TransformOperation::Skew(..) => {
+                result.push(TransformOperation::Skew(Angle(0.0), Angle(0.0)));
+            }
+            TransformOperation::Translate(..) => {
+                result.push(TransformOperation::Translate(LengthOrPercentage::zero(),
+                                                          LengthOrPercentage::zero(),
+                                                          Au(0)));
+            }
+            TransformOperation::Scale(..) => {
+                result.push(TransformOperation::Scale(1.0, 1.0, 1.0));
+            }
+            TransformOperation::Rotate(..) => {
+                result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle(0.0)));
+            }
+            TransformOperation::Perspective(..) => {
+                // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
+                let identity = ComputedMatrix::identity();
+                result.push(TransformOperation::Matrix(identity));
+            }
+        }
+    }
+
+    result
+}
+
+/// Interpolate two transform lists.
+/// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
+fn interpolate_transform_list(from_list: &[TransformOperation],
+                              to_list: &[TransformOperation],
+                              progress: f64) -> TransformList {
+    let mut result = vec![];
+
+    if can_interpolate_list(from_list, to_list) {
         for (from, to) in from_list.iter().zip(to_list) {
             match (from, to) {
-                (&TransformOperation::Matrix(..), &TransformOperation::Matrix(..)) |
-                (&TransformOperation::Skew(..), &TransformOperation::Skew(..)) |
-                (&TransformOperation::Translate(..), &TransformOperation::Translate(..)) |
-                (&TransformOperation::Scale(..), &TransformOperation::Scale(..)) |
-                (&TransformOperation::Rotate(..), &TransformOperation::Rotate(..)) |
-                (&TransformOperation::Perspective(..), &TransformOperation::Perspective(..)) => {}
+                (&TransformOperation::Matrix(from),
+                 &TransformOperation::Matrix(_to)) => {
+                    let interpolated = from.interpolate(&_to, progress).unwrap();
+                    result.push(TransformOperation::Matrix(interpolated));
+                }
+                (&TransformOperation::Skew(fx, fy),
+                 &TransformOperation::Skew(tx, ty)) => {
+                    let ix = fx.interpolate(&tx, progress).unwrap();
+                    let iy = fy.interpolate(&ty, progress).unwrap();
+                    result.push(TransformOperation::Skew(ix, iy));
+                }
+                (&TransformOperation::Translate(fx, fy, fz),
+                 &TransformOperation::Translate(tx, ty, tz)) => {
+                    let ix = fx.interpolate(&tx, progress).unwrap();
+                    let iy = fy.interpolate(&ty, progress).unwrap();
+                    let iz = fz.interpolate(&tz, progress).unwrap();
+                    result.push(TransformOperation::Translate(ix, iy, iz));
+                }
+                (&TransformOperation::Scale(fx, fy, fz),
+                 &TransformOperation::Scale(tx, ty, tz)) => {
+                    let ix = fx.interpolate(&tx, progress).unwrap();
+                    let iy = fy.interpolate(&ty, progress).unwrap();
+                    let iz = fz.interpolate(&tz, progress).unwrap();
+                    result.push(TransformOperation::Scale(ix, iy, iz));
+                }
+                (&TransformOperation::Rotate(fx, fy, fz, fa),
+                 &TransformOperation::Rotate(tx, ty, tz, ta)) => {
+                    let norm_f = ((fx * fx) + (fy * fy) + (fz * fz)).sqrt();
+                    let norm_t = ((tx * tx) + (ty * ty) + (tz * tz)).sqrt();
+                    let (fx, fy, fz) = (fx / norm_f, fy / norm_f, fz / norm_f);
+                    let (tx, ty, tz) = (tx / norm_t, ty / norm_t, tz / norm_t);
+                    if fx == tx && fy == ty && fz == tz {
+                        let ia = fa.interpolate(&ta, progress).unwrap();
+                        result.push(TransformOperation::Rotate(fx, fy, fz, ia));
+                    } else {
+                        let matrix_f = rotate_to_matrix(fx, fy, fz, fa);
+                        let matrix_t = rotate_to_matrix(tx, ty, tz, ta);
+                        let interpolated = matrix_f.interpolate(&matrix_t, progress).unwrap();
+
+                        result.push(TransformOperation::Matrix(interpolated));
+                    }
+                }
+                (&TransformOperation::Perspective(fd),
+                 &TransformOperation::Perspective(_td)) => {
+                    let mut fd_matrix = ComputedMatrix::identity();
+                    let mut td_matrix = ComputedMatrix::identity();
+                    fd_matrix.m43 = -1. / fd.to_f32_px();
+                    td_matrix.m43 = -1. / _td.to_f32_px();
+                    let interpolated = fd_matrix.interpolate(&td_matrix, progress).unwrap();
+                    result.push(TransformOperation::Matrix(interpolated));
+                }
                 _ => {
-                    return false;
+                    // This should be unreachable due to the can_interpolate_list() call.
+                    unreachable!();
                 }
             }
         }
-
-        true
+    } else {
+        // TODO(gw): Implement matrix decomposition and interpolation
+        result.extend_from_slice(from_list);
     }
 
-    /// Build an equivalent 'identity transform function list' based
-    /// on an existing transform list.
-    /// http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-    fn build_identity_transform_list(list: &[TransformOperation]) -> Vec<TransformOperation> {
-        let mut result = vec!();
+    TransformList(Some(result))
+}
 
-        for operation in list {
-            match *operation {
-                TransformOperation::Matrix(..) => {
-                    let identity = ComputedMatrix::identity();
-                    result.push(TransformOperation::Matrix(identity));
-                }
-                TransformOperation::Skew(..) => {
-                    result.push(TransformOperation::Skew(Angle(0.0), Angle(0.0)));
-                }
-                TransformOperation::Translate(..) => {
-                    result.push(TransformOperation::Translate(LengthOrPercentage::zero(),
-                                                              LengthOrPercentage::zero(),
-                                                              Au(0)));
-                }
-                TransformOperation::Scale(..) => {
-                    result.push(TransformOperation::Scale(1.0, 1.0, 1.0));
-                }
-                TransformOperation::Rotate(..) => {
-                    result.push(TransformOperation::Rotate(0.0, 0.0, 1.0, Angle(0.0)));
-                }
-                TransformOperation::Perspective(..) => {
-                    // http://dev.w3.org/csswg/css-transforms/#identity-transform-function
-                    let identity = ComputedMatrix::identity();
-                    result.push(TransformOperation::Matrix(identity));
-                }
-            }
-        }
+/// https://drafts.csswg.org/css-transforms/#Rotate3dDefined
+fn rotate_to_matrix(x: f32, y: f32, z: f32, a: SpecifiedAngle) -> ComputedMatrix {
+    let half_rad = a.radians() / 2.0;
+    let sc = (half_rad).sin() * (half_rad).cos();
+    let sq = (half_rad).sin().powi(2);
 
-        result
+    ComputedMatrix {
+        m11: 1.0 - 2.0 * (y * y + z * z) * sq,
+        m12: 2.0 * (x * y * sq - z * sc),
+        m13: 2.0 * (x * z * sq + y * sc),
+        m14: 0.0,
+
+        m21: 2.0 * (x * y * sq + z * sc),
+        m22: 1.0 - 2.0 * (x * x + z * z) * sq,
+        m23: 2.0 * (y * z * sq - x * sc),
+        m24: 0.0,
+
+        m31: 2.0 * (x * z * sq - y * sc),
+        m32: 2.0 * (y * z * sq + x * sc),
+        m33: 1.0 - 2.0 * (x * x + y * y) * sq,
+        m34: 0.0,
+
+        m41: 0.0,
+        m42: 0.0,
+        m43: 0.0,
+        m44: 1.0
     }
+}
 
-    /// Interpolate two transform lists.
-    /// http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
-    fn interpolate_transform_list(from_list: &[TransformOperation],
-                                  to_list: &[TransformOperation],
-                                  progress: f64) -> TransformList {
-        let mut result = vec![];
+/// A 2d matrix for interpolation.
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub struct InnerMatrix2D {
+    pub m11: CSSFloat, pub m12: CSSFloat,
+    pub m21: CSSFloat, pub m22: CSSFloat,
+}
 
-        if can_interpolate_list(from_list, to_list) {
-            for (from, to) in from_list.iter().zip(to_list) {
-                match (from, to) {
-                    (&TransformOperation::Matrix(from),
-                     &TransformOperation::Matrix(_to)) => {
-                        let interpolated = from.interpolate(&_to, progress).unwrap();
-                        result.push(TransformOperation::Matrix(interpolated));
-                    }
-                    (&TransformOperation::Skew(fx, fy),
-                     &TransformOperation::Skew(tx, ty)) => {
-                        let ix = fx.interpolate(&tx, progress).unwrap();
-                        let iy = fy.interpolate(&ty, progress).unwrap();
-                        result.push(TransformOperation::Skew(ix, iy));
-                    }
-                    (&TransformOperation::Translate(fx, fy, fz),
-                     &TransformOperation::Translate(tx, ty, tz)) => {
-                        let ix = fx.interpolate(&tx, progress).unwrap();
-                        let iy = fy.interpolate(&ty, progress).unwrap();
-                        let iz = fz.interpolate(&tz, progress).unwrap();
-                        result.push(TransformOperation::Translate(ix, iy, iz));
-                    }
-                    (&TransformOperation::Scale(fx, fy, fz),
-                     &TransformOperation::Scale(tx, ty, tz)) => {
-                        let ix = fx.interpolate(&tx, progress).unwrap();
-                        let iy = fy.interpolate(&ty, progress).unwrap();
-                        let iz = fz.interpolate(&tz, progress).unwrap();
-                        result.push(TransformOperation::Scale(ix, iy, iz));
-                    }
-                    (&TransformOperation::Rotate(fx, fy, fz, fa),
-                     &TransformOperation::Rotate(tx, ty, tz, ta)) => {
-                        let norm_f = ((fx * fx) + (fy * fy) + (fz * fz)).sqrt();
-                        let norm_t = ((tx * tx) + (ty * ty) + (tz * tz)).sqrt();
-                        let (fx, fy, fz) = (fx / norm_f, fy / norm_f, fz / norm_f);
-                        let (tx, ty, tz) = (tx / norm_t, ty / norm_t, tz / norm_t);
-                        if fx == tx && fy == ty && fz == tz {
-                            let ia = fa.interpolate(&ta, progress).unwrap();
-                            result.push(TransformOperation::Rotate(fx, fy, fz, ia));
-                        } else {
-                            let matrix_f = rotate_to_matrix(fx, fy, fz, fa);
-                            let matrix_t = rotate_to_matrix(tx, ty, tz, ta);
-                            let interpolated = matrix_f.interpolate(&matrix_t, progress).unwrap();
+/// A 2d translation function.
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Translate2D(f32, f32);
 
-                            result.push(TransformOperation::Matrix(interpolated));
-                        }
-                    }
-                    (&TransformOperation::Perspective(fd),
-                     &TransformOperation::Perspective(_td)) => {
-                        let mut fd_matrix = ComputedMatrix::identity();
-                        let mut td_matrix = ComputedMatrix::identity();
-                        fd_matrix.m43 = -1. / fd.to_f32_px();
-                        td_matrix.m43 = -1. / _td.to_f32_px();
-                        let interpolated = fd_matrix.interpolate(&td_matrix, progress).unwrap();
-                        result.push(TransformOperation::Matrix(interpolated));
-                    }
-                    _ => {
-                        // This should be unreachable due to the can_interpolate_list() call.
-                        unreachable!();
-                    }
-                }
-            }
-        } else {
-            // TODO(gw): Implement matrix decomposition and interpolation
-            result.extend_from_slice(from_list);
-        }
+/// A 2d scale function.
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Scale2D(f32, f32);
 
-        TransformList(Some(result))
-    }
+/// A decomposed 2d matrix.
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct MatrixDecomposed2D {
+    /// The translation function.
+    pub translate: Translate2D,
+    /// The scale function.
+    pub scale: Scale2D,
+    /// The rotation angle.
+    pub angle: f32,
+    /// The inner matrix.
+    pub matrix: InnerMatrix2D,
+}
 
-    /// https://drafts.csswg.org/css-transforms/#Rotate3dDefined
-    fn rotate_to_matrix(x: f32, y: f32, z: f32, a: SpecifiedAngle) -> ComputedMatrix {
-        let half_rad = a.radians() / 2.0;
-        let sc = (half_rad).sin() * (half_rad).cos();
-        let sq = (half_rad).sin().powi(2);
-
-        ComputedMatrix {
-            m11: 1.0 - 2.0 * (y * y + z * z) * sq,
-            m12: 2.0 * (x * y * sq - z * sc),
-            m13: 2.0 * (x * z * sq + y * sc),
-            m14: 0.0,
-
-            m21: 2.0 * (x * y * sq + z * sc),
-            m22: 1.0 - 2.0 * (x * x + z * z) * sq,
-            m23: 2.0 * (y * z * sq - x * sc),
-            m24: 0.0,
-
-            m31: 2.0 * (x * z * sq - y * sc),
-            m32: 2.0 * (y * z * sq + x * sc),
-            m33: 1.0 - 2.0 * (x * x + y * y) * sq,
-            m34: 0.0,
-
-            m41: 0.0,
-            m42: 0.0,
-            m43: 0.0,
-            m44: 1.0
-        }
-    }
-
-    /// A 2d matrix for interpolation.
-    #[derive(Clone, Copy, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    #[allow(missing_docs)]
-    pub struct InnerMatrix2D {
-        pub m11: CSSFloat, pub m12: CSSFloat,
-        pub m21: CSSFloat, pub m22: CSSFloat,
-    }
-
-    /// A 2d translation function.
-    #[derive(Clone, Copy, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct Translate2D(f32, f32);
-
-    /// A 2d scale function.
-    #[derive(Clone, Copy, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct Scale2D(f32, f32);
-
-    /// A decomposed 2d matrix.
-    #[derive(Clone, Copy, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct MatrixDecomposed2D {
-        /// The translation function.
-        pub translate: Translate2D,
-        /// The scale function.
-        pub scale: Scale2D,
-        /// The rotation angle.
-        pub angle: f32,
-        /// The inner matrix.
-        pub matrix: InnerMatrix2D,
-    }
-
-    impl Interpolate for InnerMatrix2D {
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(InnerMatrix2D {
-                m11: try!(self.m11.interpolate(&other.m11, progress)),
-                m12: try!(self.m12.interpolate(&other.m12, progress)),
-                m21: try!(self.m21.interpolate(&other.m21, progress)),
-                m22: try!(self.m22.interpolate(&other.m22, progress)),
-            })
-        }
-    }
-
-    impl Interpolate for Translate2D {
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(Translate2D(
-                try!(self.0.interpolate(&other.0, progress)),
-                try!(self.1.interpolate(&other.1, progress))
-            ))
-        }
-    }
-
-    impl Interpolate for Scale2D {
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(Scale2D(
-                try!(self.0.interpolate(&other.0, progress)),
-                try!(self.1.interpolate(&other.1, progress))
-            ))
-        }
-    }
-
-    impl Interpolate for MatrixDecomposed2D {
-        /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-2d-matrix-values
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            // If x-axis of one is flipped, and y-axis of the other,
-            // convert to an unflipped rotation.
-            let mut scale = self.scale;
-            let mut angle = self.angle;
-            let mut other_angle = other.angle;
-            if (scale.0 < 0.0 && other.scale.1 < 0.0) || (scale.1 < 0.0 && other.scale.0 < 0.0) {
-                scale.0 = -scale.0;
-                scale.1 = -scale.1;
-                angle += if angle < 0.0 {180.} else {-180.};
-            }
-
-            // Don't rotate the long way around.
-            if angle == 0.0 {
-                angle = 360.
-            }
-            if other_angle == 0.0 {
-                other_angle = 360.
-            }
-
-            if (angle - other_angle).abs() > 180. {
-                if angle > other_angle {
-                    angle -= 360.
-                }
-                else{
-                    other_angle -= 360.
-                }
-            }
-
-            // Interpolate all values.
-            let translate = try!(self.translate.interpolate(&other.translate, progress));
-            let scale = try!(scale.interpolate(&other.scale, progress));
-            let angle = try!(angle.interpolate(&other_angle, progress));
-            let matrix = try!(self.matrix.interpolate(&other.matrix, progress));
-
-            Ok(MatrixDecomposed2D {
-                translate: translate,
-                scale: scale,
-                angle: angle,
-                matrix: matrix,
-            })
-        }
-    }
-
-    impl Interpolate for ComputedMatrix {
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            if self.is_3d() || other.is_3d() {
-                let decomposed_from = decompose_3d_matrix(*self);
-                let decomposed_to = decompose_3d_matrix(*other);
-                match (decomposed_from, decomposed_to) {
-                    (Ok(from), Ok(to)) => {
-                        let interpolated = try!(from.interpolate(&to, progress));
-                        Ok(ComputedMatrix::from(interpolated))
-                    },
-                    _ => {
-                        let interpolated = if progress < 0.5 {*self} else {*other};
-                        Ok(interpolated)
-                    }
-                }
-            } else {
-                let decomposed_from = MatrixDecomposed2D::from(*self);
-                let decomposed_to = MatrixDecomposed2D::from(*other);
-                let interpolated = try!(decomposed_from.interpolate(&decomposed_to, progress));
-                Ok(ComputedMatrix::from(interpolated))
-            }
-        }
-    }
-
-    impl From<ComputedMatrix> for MatrixDecomposed2D {
-        /// Decompose a 2D matrix.
-        /// https://drafts.csswg.org/css-transforms/#decomposing-a-2d-matrix
-        fn from(matrix: ComputedMatrix) -> MatrixDecomposed2D {
-            let mut row0x = matrix.m11;
-            let mut row0y = matrix.m12;
-            let mut row1x = matrix.m21;
-            let mut row1y = matrix.m22;
-
-            let translate = Translate2D(matrix.m41, matrix.m42);
-            let mut scale = Scale2D((row0x * row0x + row0y * row0y).sqrt(),
-                                    (row1x * row1x + row1y * row1y).sqrt());
-
-            // If determinant is negative, one axis was flipped.
-            let determinant = row0x * row1y - row0y * row1x;
-            if determinant < 0. {
-                if row0x < row1y {
-                    scale.0 = -scale.0;
-                } else {
-                    scale.1 = -scale.1;
-                }
-            }
-
-            // Renormalize matrix to remove scale.
-            if scale.0 != 0.0 {
-                row0x *= 1. / scale.0;
-                row0y *= 1. / scale.0;
-            }
-            if scale.1 != 0.0 {
-                row1x *= 1. / scale.1;
-                row1y *= 1. / scale.1;
-            }
-
-            // Compute rotation and renormalize matrix.
-            let mut angle = row0y.atan2(row0x);
-            if angle != 0.0 {
-                let sn = -row0y;
-                let cs = row0x;
-                let m11 = row0x;
-                let m12 = row0y;
-                let m21 = row1x;
-                let m22 = row1y;
-                row0x = cs * m11 + sn * m21;
-                row0y = cs * m12 + sn * m22;
-                row1x = -sn * m11 + cs * m21;
-                row1y = -sn * m12 + cs * m22;
-            }
-
-            let m = InnerMatrix2D {
-                m11: row0x, m12: row0y,
-                m21: row1x, m22: row1y,
-            };
-
-            // Convert into degrees because our rotation functions expect it.
-            angle = angle.to_degrees();
-            MatrixDecomposed2D {
-                translate: translate,
-                scale: scale,
-                angle: angle,
-                matrix: m,
-            }
-        }
-    }
-
-    impl From<MatrixDecomposed2D> for ComputedMatrix {
-        /// Recompose a 2D matrix.
-        /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-2d-matrix
-        fn from(decomposed: MatrixDecomposed2D) -> ComputedMatrix {
-            let mut computed_matrix = ComputedMatrix::identity();
-            computed_matrix.m11 = decomposed.matrix.m11;
-            computed_matrix.m12 = decomposed.matrix.m12;
-            computed_matrix.m21 = decomposed.matrix.m21;
-            computed_matrix.m22 = decomposed.matrix.m22;
-
-            // Translate matrix.
-            computed_matrix.m41 = decomposed.translate.0;
-            computed_matrix.m42 = decomposed.translate.1;
-
-            // Rotate matrix.
-            let angle = decomposed.angle.to_radians();
-            let cos_angle = angle.cos();
-            let sin_angle = angle.sin();
-
-            let mut rotate_matrix = ComputedMatrix::identity();
-            rotate_matrix.m11 = cos_angle;
-            rotate_matrix.m12 = sin_angle;
-            rotate_matrix.m21 = -sin_angle;
-            rotate_matrix.m22 = cos_angle;
-
-            // Multiplication of computed_matrix and rotate_matrix
-            computed_matrix = multiply(rotate_matrix, computed_matrix);
-
-            // Scale matrix.
-            computed_matrix.m11 *= decomposed.scale.0;
-            computed_matrix.m12 *= decomposed.scale.0;
-            computed_matrix.m21 *= decomposed.scale.1;
-            computed_matrix.m22 *= decomposed.scale.1;
-            computed_matrix
-        }
-    }
-
-    /// A 3d translation.
-    #[derive(Clone, Copy, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct Translate3D(f32, f32, f32);
-
-    /// A 3d scale function.
-    #[derive(Clone, Copy, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct Scale3D(f32, f32, f32);
-
-    /// A 3d skew function.
-    #[derive(Clone, Copy, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct Skew(f32, f32, f32);
-
-    /// A 3d perspective transformation.
-    #[derive(Clone, Copy, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct Perspective(f32, f32, f32, f32);
-
-    /// A quaternion used to represent a rotation.
-    #[derive(Clone, Copy, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct Quaternion(f32, f32, f32, f32);
-
-    /// A decomposed 3d matrix.
-    #[derive(Clone, Copy, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct MatrixDecomposed3D {
-        /// A translation function.
-        pub translate: Translate3D,
-        /// A scale function.
-        pub scale: Scale3D,
-        /// The skew component of the transformation.
-        pub skew: Skew,
-        /// The perspective component of the transformation.
-        pub perspective: Perspective,
-        /// The quaternion used to represent the rotation.
-        pub quaternion: Quaternion,
-    }
-
-    /// Decompose a 3D matrix.
-    /// https://drafts.csswg.org/css-transforms/#decomposing-a-3d-matrix
-    fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D, ()> {
-        // Normalize the matrix.
-        if matrix.m44 == 0.0 {
-            return Err(());
-        }
-
-        let scaling_factor = matrix.m44;
-        % for i in range(1, 5):
-            % for j in range(1, 5):
-                matrix.m${i}${j} /= scaling_factor;
-            % endfor
-        % endfor
-
-        // perspective_matrix is used to solve for perspective, but it also provides
-        // an easy way to test for singularity of the upper 3x3 component.
-        let mut perspective_matrix = matrix;
-
-        % for i in range(1, 4):
-            perspective_matrix.m${i}4 = 0.0;
-        % endfor
-        perspective_matrix.m44 = 1.0;
-
-        if perspective_matrix.determinant() == 0.0 {
-            return Err(());
-        }
-
-        // First, isolate perspective.
-        let perspective = if matrix.m14 != 0.0 || matrix.m24 != 0.0 || matrix.m34 != 0.0 {
-            let right_hand_side: [f32; 4] = [
-                matrix.m14,
-                matrix.m24,
-                matrix.m34,
-                matrix.m44
-            ];
-
-            perspective_matrix = perspective_matrix.inverse().unwrap();
-
-            // Transpose perspective_matrix
-            perspective_matrix = ComputedMatrix {
-                % for i in range(1, 5):
-                    % for j in range(1, 5):
-                        m${i}${j}: perspective_matrix.m${j}${i},
-                    % endfor
-                % endfor
-            };
-
-            // Multiply right_hand_side with perspective_matrix
-            let mut tmp: [f32; 4] = [0.0; 4];
-            % for i in range(1, 5):
-                tmp[${i - 1}] = (right_hand_side[0] * perspective_matrix.m1${i}) +
-                                (right_hand_side[1] * perspective_matrix.m2${i}) +
-                                (right_hand_side[2] * perspective_matrix.m3${i}) +
-                                (right_hand_side[3] * perspective_matrix.m4${i});
-            % endfor
-
-            Perspective(tmp[0], tmp[1], tmp[2], tmp[3])
-        } else {
-            Perspective(0.0, 0.0, 0.0, 1.0)
-        };
-
-        // Next take care of translation
-        let translate = Translate3D (
-            matrix.m41,
-            matrix.m42,
-            matrix.m43
-        );
-
-        // Now get scale and shear. 'row' is a 3 element array of 3 component vectors
-        let mut row: [[f32; 3]; 3] = [[0.0; 3]; 3];
-        % for i in range(1, 4):
-            row[${i - 1}][0] = matrix.m${i}1;
-            row[${i - 1}][1] = matrix.m${i}2;
-            row[${i - 1}][2] = matrix.m${i}3;
-        % endfor
-
-        // Compute X scale factor and normalize first row.
-        let row0len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
-        let mut scale = Scale3D(row0len, 0.0, 0.0);
-        row[0] = [row[0][0] / row0len, row[0][1] / row0len, row[0][2] / row0len];
-
-        // Compute XY shear factor and make 2nd row orthogonal to 1st.
-        let mut skew = Skew(dot(row[0], row[1]), 0.0, 0.0);
-        row[1] = combine(row[1], row[0], 1.0, -skew.0);
-
-        // Now, compute Y scale and normalize 2nd row.
-        let row1len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
-        scale.1 = row1len;
-        row[1] = [row[1][0] / row1len, row[1][1] / row1len, row[1][2] / row1len];
-        skew.0 /= scale.1;
-
-        // Compute XZ and YZ shears, orthogonalize 3rd row
-        skew.1 = dot(row[0], row[2]);
-        row[2] = combine(row[2], row[0], 1.0, -skew.1);
-        skew.2 = dot(row[1], row[2]);
-        row[2] = combine(row[2], row[1], 1.0, -skew.2);
-
-        // Next, get Z scale and normalize 3rd row.
-        let row2len = (row[2][0] * row[2][0] + row[2][1] * row[2][1] + row[2][2] * row[2][2]).sqrt();
-        scale.2 = row2len;
-        row[2] = [row[2][0] / row2len, row[2][1] / row2len, row[2][2] / row2len];
-        skew.1 /= scale.2;
-        skew.2 /= scale.2;
-
-        // At this point, the matrix (in rows) is orthonormal.
-        // Check for a coordinate system flip.  If the determinant
-        // is -1, then negate the matrix and the scaling factors.
-        let pdum3 = cross(row[1], row[2]);
-        if dot(row[0], pdum3) < 0.0 {
-            % for i in range(3):
-                scale.${i} *= -1.0;
-                row[${i}][0] *= -1.0;
-                row[${i}][1] *= -1.0;
-                row[${i}][2] *= -1.0;
-            % endfor
-        }
-
-        // Now, get the rotations out
-        let mut quaternion = Quaternion (
-            0.5 * ((1.0 + row[0][0] - row[1][1] - row[2][2]).max(0.0)).sqrt(),
-            0.5 * ((1.0 - row[0][0] + row[1][1] - row[2][2]).max(0.0)).sqrt(),
-            0.5 * ((1.0 - row[0][0] - row[1][1] + row[2][2]).max(0.0)).sqrt(),
-            0.5 * ((1.0 + row[0][0] + row[1][1] + row[2][2]).max(0.0)).sqrt()
-        );
-
-        if row[2][1] > row[1][2] {
-            quaternion.0 = -quaternion.0
-        }
-        if row[0][2] > row[2][0] {
-            quaternion.1 = -quaternion.1
-        }
-        if row[1][0] > row[0][1] {
-            quaternion.2 = -quaternion.2
-        }
-
-        Ok(MatrixDecomposed3D {
-            translate: translate,
-            scale: scale,
-            skew: skew,
-            perspective: perspective,
-            quaternion: quaternion
+impl Interpolate for InnerMatrix2D {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(InnerMatrix2D {
+            m11: try!(self.m11.interpolate(&other.m11, progress)),
+            m12: try!(self.m12.interpolate(&other.m12, progress)),
+            m21: try!(self.m21.interpolate(&other.m21, progress)),
+            m22: try!(self.m22.interpolate(&other.m22, progress)),
         })
     }
+}
 
-    // Combine 2 point.
-    fn combine(a: [f32; 3], b: [f32; 3], ascl: f32, bscl: f32) -> [f32; 3] {
-        [
-            (ascl * a[0]) + (bscl * b[0]),
-            (ascl * a[1]) + (bscl * b[1]),
-            (ascl * a[2]) + (bscl * b[2])
-        ]
+impl Interpolate for Translate2D {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(Translate2D(
+            try!(self.0.interpolate(&other.0, progress)),
+            try!(self.1.interpolate(&other.1, progress))
+        ))
     }
+}
 
-    // Dot product.
-    fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
-        a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+impl Interpolate for Scale2D {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(Scale2D(
+            try!(self.0.interpolate(&other.0, progress)),
+            try!(self.1.interpolate(&other.1, progress))
+        ))
     }
+}
 
-    // Cross product.
-    fn cross(row1: [f32; 3], row2: [f32; 3]) -> [f32; 3] {
-        [
-            row1[1] * row2[2] - row1[2] * row2[1],
-            row1[2] * row2[0] - row1[0] * row2[2],
-            row1[0] * row2[1] - row1[1] * row2[0]
-        ]
-    }
-
-    impl Interpolate for Translate3D {
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(Translate3D(
-                try!(self.0.interpolate(&other.0, progress)),
-                try!(self.1.interpolate(&other.1, progress)),
-                try!(self.2.interpolate(&other.2, progress))
-            ))
+impl Interpolate for MatrixDecomposed2D {
+    /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-2d-matrix-values
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        // If x-axis of one is flipped, and y-axis of the other,
+        // convert to an unflipped rotation.
+        let mut scale = self.scale;
+        let mut angle = self.angle;
+        let mut other_angle = other.angle;
+        if (scale.0 < 0.0 && other.scale.1 < 0.0) || (scale.1 < 0.0 && other.scale.0 < 0.0) {
+            scale.0 = -scale.0;
+            scale.1 = -scale.1;
+            angle += if angle < 0.0 {180.} else {-180.};
         }
-    }
 
-    impl Interpolate for Scale3D {
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(Scale3D(
-                try!(self.0.interpolate(&other.0, progress)),
-                try!(self.1.interpolate(&other.1, progress)),
-                try!(self.2.interpolate(&other.2, progress))
-            ))
+        // Don't rotate the long way around.
+        if angle == 0.0 {
+            angle = 360.
         }
-    }
-
-    impl Interpolate for Skew {
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(Skew(
-                try!(self.0.interpolate(&other.0, progress)),
-                try!(self.1.interpolate(&other.1, progress)),
-                try!(self.2.interpolate(&other.2, progress))
-            ))
+        if other_angle == 0.0 {
+            other_angle = 360.
         }
-    }
 
-    impl Interpolate for Perspective {
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            Ok(Perspective(
-                try!(self.0.interpolate(&other.0, progress)),
-                try!(self.1.interpolate(&other.1, progress)),
-                try!(self.2.interpolate(&other.2, progress)),
-                try!(self.3.interpolate(&other.3, progress))
-            ))
-        }
-    }
-
-    impl Interpolate for MatrixDecomposed3D {
-        /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values
-        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-            let mut interpolated = *self;
-
-            // Interpolate translate, scale, skew and perspective components.
-            interpolated.translate = try!(self.translate.interpolate(&other.translate, progress));
-            interpolated.scale = try!(self.scale.interpolate(&other.scale, progress));
-            interpolated.skew = try!(self.skew.interpolate(&other.skew, progress));
-            interpolated.perspective = try!(self.perspective.interpolate(&other.perspective, progress));
-
-            // Interpolate quaternions using spherical linear interpolation (Slerp).
-            let mut product = self.quaternion.0 * other.quaternion.0 +
-                              self.quaternion.1 * other.quaternion.1 +
-                              self.quaternion.2 * other.quaternion.2 +
-                              self.quaternion.3 * other.quaternion.3;
-
-            // Clamp product to -1.0 <= product <= 1.0
-            product = product.min(1.0);
-            product = product.max(-1.0);
-
-            if product == 1.0 {
-                return Ok(interpolated);
+        if (angle - other_angle).abs() > 180. {
+            if angle > other_angle {
+                angle -= 360.
             }
+            else{
+                other_angle -= 360.
+            }
+        }
 
-            let theta = product.acos();
-            let w = (progress as f32 * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
+        // Interpolate all values.
+        let translate = try!(self.translate.interpolate(&other.translate, progress));
+        let scale = try!(scale.interpolate(&other.scale, progress));
+        let angle = try!(angle.interpolate(&other_angle, progress));
+        let matrix = try!(self.matrix.interpolate(&other.matrix, progress));
 
-            let mut a = *self;
-            let mut b = *other;
-            % for i in range(4):
-                a.quaternion.${i} *= (progress as f32 * theta).cos() - product * w;
-                b.quaternion.${i} *= w;
-                interpolated.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
-            % endfor
+        Ok(MatrixDecomposed2D {
+            translate: translate,
+            scale: scale,
+            angle: angle,
+            matrix: matrix,
+        })
+    }
+}
 
-            Ok(interpolated)
+impl Interpolate for ComputedMatrix {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        if self.is_3d() || other.is_3d() {
+            let decomposed_from = decompose_3d_matrix(*self);
+            let decomposed_to = decompose_3d_matrix(*other);
+            match (decomposed_from, decomposed_to) {
+                (Ok(from), Ok(to)) => {
+                    let interpolated = try!(from.interpolate(&to, progress));
+                    Ok(ComputedMatrix::from(interpolated))
+                },
+                _ => {
+                    let interpolated = if progress < 0.5 {*self} else {*other};
+                    Ok(interpolated)
+                }
+            }
+        } else {
+            let decomposed_from = MatrixDecomposed2D::from(*self);
+            let decomposed_to = MatrixDecomposed2D::from(*other);
+            let interpolated = try!(decomposed_from.interpolate(&decomposed_to, progress));
+            Ok(ComputedMatrix::from(interpolated))
         }
     }
+}
 
-    impl From<MatrixDecomposed3D> for ComputedMatrix {
-        /// Recompose a 3D matrix.
-        /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-3d-matrix
-        fn from(decomposed: MatrixDecomposed3D) -> ComputedMatrix {
-            let mut matrix = ComputedMatrix::identity();
+impl From<ComputedMatrix> for MatrixDecomposed2D {
+    /// Decompose a 2D matrix.
+    /// https://drafts.csswg.org/css-transforms/#decomposing-a-2d-matrix
+    fn from(matrix: ComputedMatrix) -> MatrixDecomposed2D {
+        let mut row0x = matrix.m11;
+        let mut row0y = matrix.m12;
+        let mut row1x = matrix.m21;
+        let mut row1y = matrix.m22;
 
-            // Apply perspective
+        let translate = Translate2D(matrix.m41, matrix.m42);
+        let mut scale = Scale2D((row0x * row0x + row0y * row0y).sqrt(),
+                                (row1x * row1x + row1y * row1y).sqrt());
+
+        // If determinant is negative, one axis was flipped.
+        let determinant = row0x * row1y - row0y * row1x;
+        if determinant < 0. {
+            if row0x < row1y {
+                scale.0 = -scale.0;
+            } else {
+                scale.1 = -scale.1;
+            }
+        }
+
+        // Renormalize matrix to remove scale.
+        if scale.0 != 0.0 {
+            row0x *= 1. / scale.0;
+            row0y *= 1. / scale.0;
+        }
+        if scale.1 != 0.0 {
+            row1x *= 1. / scale.1;
+            row1y *= 1. / scale.1;
+        }
+
+        // Compute rotation and renormalize matrix.
+        let mut angle = row0y.atan2(row0x);
+        if angle != 0.0 {
+            let sn = -row0y;
+            let cs = row0x;
+            let m11 = row0x;
+            let m12 = row0y;
+            let m21 = row1x;
+            let m22 = row1y;
+            row0x = cs * m11 + sn * m21;
+            row0y = cs * m12 + sn * m22;
+            row1x = -sn * m11 + cs * m21;
+            row1y = -sn * m12 + cs * m22;
+        }
+
+        let m = InnerMatrix2D {
+            m11: row0x, m12: row0y,
+            m21: row1x, m22: row1y,
+        };
+
+        // Convert into degrees because our rotation functions expect it.
+        angle = angle.to_degrees();
+        MatrixDecomposed2D {
+            translate: translate,
+            scale: scale,
+            angle: angle,
+            matrix: m,
+        }
+    }
+}
+
+impl From<MatrixDecomposed2D> for ComputedMatrix {
+    /// Recompose a 2D matrix.
+    /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-2d-matrix
+    fn from(decomposed: MatrixDecomposed2D) -> ComputedMatrix {
+        let mut computed_matrix = ComputedMatrix::identity();
+        computed_matrix.m11 = decomposed.matrix.m11;
+        computed_matrix.m12 = decomposed.matrix.m12;
+        computed_matrix.m21 = decomposed.matrix.m21;
+        computed_matrix.m22 = decomposed.matrix.m22;
+
+        // Translate matrix.
+        computed_matrix.m41 = decomposed.translate.0;
+        computed_matrix.m42 = decomposed.translate.1;
+
+        // Rotate matrix.
+        let angle = decomposed.angle.to_radians();
+        let cos_angle = angle.cos();
+        let sin_angle = angle.sin();
+
+        let mut rotate_matrix = ComputedMatrix::identity();
+        rotate_matrix.m11 = cos_angle;
+        rotate_matrix.m12 = sin_angle;
+        rotate_matrix.m21 = -sin_angle;
+        rotate_matrix.m22 = cos_angle;
+
+        // Multiplication of computed_matrix and rotate_matrix
+        computed_matrix = multiply(rotate_matrix, computed_matrix);
+
+        // Scale matrix.
+        computed_matrix.m11 *= decomposed.scale.0;
+        computed_matrix.m12 *= decomposed.scale.0;
+        computed_matrix.m21 *= decomposed.scale.1;
+        computed_matrix.m22 *= decomposed.scale.1;
+        computed_matrix
+    }
+}
+
+/// A 3d translation.
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Translate3D(f32, f32, f32);
+
+/// A 3d scale function.
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Scale3D(f32, f32, f32);
+
+/// A 3d skew function.
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Skew(f32, f32, f32);
+
+/// A 3d perspective transformation.
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Perspective(f32, f32, f32, f32);
+
+/// A quaternion used to represent a rotation.
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct Quaternion(f32, f32, f32, f32);
+
+/// A decomposed 3d matrix.
+#[derive(Clone, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct MatrixDecomposed3D {
+    /// A translation function.
+    pub translate: Translate3D,
+    /// A scale function.
+    pub scale: Scale3D,
+    /// The skew component of the transformation.
+    pub skew: Skew,
+    /// The perspective component of the transformation.
+    pub perspective: Perspective,
+    /// The quaternion used to represent the rotation.
+    pub quaternion: Quaternion,
+}
+
+/// Decompose a 3D matrix.
+/// https://drafts.csswg.org/css-transforms/#decomposing-a-3d-matrix
+fn decompose_3d_matrix(mut matrix: ComputedMatrix) -> Result<MatrixDecomposed3D, ()> {
+    // Normalize the matrix.
+    if matrix.m44 == 0.0 {
+        return Err(());
+    }
+
+    let scaling_factor = matrix.m44;
+    % for i in range(1, 5):
+        % for j in range(1, 5):
+            matrix.m${i}${j} /= scaling_factor;
+        % endfor
+    % endfor
+
+    // perspective_matrix is used to solve for perspective, but it also provides
+    // an easy way to test for singularity of the upper 3x3 component.
+    let mut perspective_matrix = matrix;
+
+    % for i in range(1, 4):
+        perspective_matrix.m${i}4 = 0.0;
+    % endfor
+    perspective_matrix.m44 = 1.0;
+
+    if perspective_matrix.determinant() == 0.0 {
+        return Err(());
+    }
+
+    // First, isolate perspective.
+    let perspective = if matrix.m14 != 0.0 || matrix.m24 != 0.0 || matrix.m34 != 0.0 {
+        let right_hand_side: [f32; 4] = [
+            matrix.m14,
+            matrix.m24,
+            matrix.m34,
+            matrix.m44
+        ];
+
+        perspective_matrix = perspective_matrix.inverse().unwrap();
+
+        // Transpose perspective_matrix
+        perspective_matrix = ComputedMatrix {
             % for i in range(1, 5):
-                matrix.m${i}4 = decomposed.perspective.${i - 1};
-            % endfor
-
-            // Apply translation
-            % for i in range(1, 4):
-                % for j in range(1, 4):
-                    matrix.m4${i} += decomposed.translate.${j - 1} * matrix.m${j}${i};
+                % for j in range(1, 5):
+                    m${i}${j}: perspective_matrix.m${j}${i},
                 % endfor
             % endfor
+        };
 
-            // Apply rotation
-            let x = decomposed.quaternion.0;
-            let y = decomposed.quaternion.1;
-            let z = decomposed.quaternion.2;
-            let w = decomposed.quaternion.3;
+        // Multiply right_hand_side with perspective_matrix
+        let mut tmp: [f32; 4] = [0.0; 4];
+        % for i in range(1, 5):
+            tmp[${i - 1}] = (right_hand_side[0] * perspective_matrix.m1${i}) +
+                            (right_hand_side[1] * perspective_matrix.m2${i}) +
+                            (right_hand_side[2] * perspective_matrix.m3${i}) +
+                            (right_hand_side[3] * perspective_matrix.m4${i});
+        % endfor
 
-            // Construct a composite rotation matrix from the quaternion values
-            // rotationMatrix is a identity 4x4 matrix initially
-            let mut rotation_matrix = ComputedMatrix::identity();
-            rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z);
-            rotation_matrix.m12 = 2.0 * (x * y + z * w);
-            rotation_matrix.m13 = 2.0 * (x * z - y * w);
-            rotation_matrix.m21 = 2.0 * (x * y - z * w);
-            rotation_matrix.m22 = 1.0 - 2.0 * (x * x + z * z);
-            rotation_matrix.m23 = 2.0 * (y * z + x * w);
-            rotation_matrix.m31 = 2.0 * (x * z + y * w);
-            rotation_matrix.m32 = 2.0 * (y * z - x * w);
-            rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y);
+        Perspective(tmp[0], tmp[1], tmp[2], tmp[3])
+    } else {
+        Perspective(0.0, 0.0, 0.0, 1.0)
+    };
 
-            matrix = multiply(rotation_matrix, matrix);
+    // Next take care of translation
+    let translate = Translate3D (
+        matrix.m41,
+        matrix.m42,
+        matrix.m43
+    );
 
-            // Apply skew
-            let mut temp = ComputedMatrix::identity();
-            if decomposed.skew.2 != 0.0 {
-                temp.m32 = decomposed.skew.2;
-                matrix = multiply(matrix, temp);
-            }
+    // Now get scale and shear. 'row' is a 3 element array of 3 component vectors
+    let mut row: [[f32; 3]; 3] = [[0.0; 3]; 3];
+    % for i in range(1, 4):
+        row[${i - 1}][0] = matrix.m${i}1;
+        row[${i - 1}][1] = matrix.m${i}2;
+        row[${i - 1}][2] = matrix.m${i}3;
+    % endfor
 
-            if decomposed.skew.1 != 0.0 {
-                temp.m32 = 0.0;
-                temp.m31 = decomposed.skew.1;
-                matrix = multiply(matrix, temp);
-            }
+    // Compute X scale factor and normalize first row.
+    let row0len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
+    let mut scale = Scale3D(row0len, 0.0, 0.0);
+    row[0] = [row[0][0] / row0len, row[0][1] / row0len, row[0][2] / row0len];
 
-            if decomposed.skew.0 != 0.0 {
-                temp.m31 = 0.0;
-                temp.m21 = decomposed.skew.0;
-                matrix = multiply(matrix, temp);
-            }
+    // Compute XY shear factor and make 2nd row orthogonal to 1st.
+    let mut skew = Skew(dot(row[0], row[1]), 0.0, 0.0);
+    row[1] = combine(row[1], row[0], 1.0, -skew.0);
 
-            // Apply scale
-            % for i in range(1, 4):
-                % for j in range(1, 4):
-                    matrix.m${i}${j} *= decomposed.scale.${i - 1};
-                % endfor
-            % endfor
+    // Now, compute Y scale and normalize 2nd row.
+    let row1len = (row[0][0] * row[0][0] + row[0][1] * row[0][1] + row[0][2] * row[0][2]).sqrt();
+    scale.1 = row1len;
+    row[1] = [row[1][0] / row1len, row[1][1] / row1len, row[1][2] / row1len];
+    skew.0 /= scale.1;
 
-            matrix
-        }
+    // Compute XZ and YZ shears, orthogonalize 3rd row
+    skew.1 = dot(row[0], row[2]);
+    row[2] = combine(row[2], row[0], 1.0, -skew.1);
+    skew.2 = dot(row[1], row[2]);
+    row[2] = combine(row[2], row[1], 1.0, -skew.2);
+
+    // Next, get Z scale and normalize 3rd row.
+    let row2len = (row[2][0] * row[2][0] + row[2][1] * row[2][1] + row[2][2] * row[2][2]).sqrt();
+    scale.2 = row2len;
+    row[2] = [row[2][0] / row2len, row[2][1] / row2len, row[2][2] / row2len];
+    skew.1 /= scale.2;
+    skew.2 /= scale.2;
+
+    // At this point, the matrix (in rows) is orthonormal.
+    // Check for a coordinate system flip.  If the determinant
+    // is -1, then negate the matrix and the scaling factors.
+    let pdum3 = cross(row[1], row[2]);
+    if dot(row[0], pdum3) < 0.0 {
+        % for i in range(3):
+            scale.${i} *= -1.0;
+            row[${i}][0] *= -1.0;
+            row[${i}][1] *= -1.0;
+            row[${i}][2] *= -1.0;
+        % endfor
     }
 
-    // Multiplication of two 4x4 matrices.
-    fn multiply(a: ComputedMatrix, b: ComputedMatrix) -> ComputedMatrix {
-        let mut a_clone = a;
+    // Now, get the rotations out
+    let mut quaternion = Quaternion (
+        0.5 * ((1.0 + row[0][0] - row[1][1] - row[2][2]).max(0.0)).sqrt(),
+        0.5 * ((1.0 - row[0][0] + row[1][1] - row[2][2]).max(0.0)).sqrt(),
+        0.5 * ((1.0 - row[0][0] - row[1][1] + row[2][2]).max(0.0)).sqrt(),
+        0.5 * ((1.0 + row[0][0] + row[1][1] + row[2][2]).max(0.0)).sqrt()
+    );
+
+    if row[2][1] > row[1][2] {
+        quaternion.0 = -quaternion.0
+    }
+    if row[0][2] > row[2][0] {
+        quaternion.1 = -quaternion.1
+    }
+    if row[1][0] > row[0][1] {
+        quaternion.2 = -quaternion.2
+    }
+
+    Ok(MatrixDecomposed3D {
+        translate: translate,
+        scale: scale,
+        skew: skew,
+        perspective: perspective,
+        quaternion: quaternion
+    })
+}
+
+// Combine 2 point.
+fn combine(a: [f32; 3], b: [f32; 3], ascl: f32, bscl: f32) -> [f32; 3] {
+    [
+        (ascl * a[0]) + (bscl * b[0]),
+        (ascl * a[1]) + (bscl * b[1]),
+        (ascl * a[2]) + (bscl * b[2])
+    ]
+}
+
+// Dot product.
+fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+// Cross product.
+fn cross(row1: [f32; 3], row2: [f32; 3]) -> [f32; 3] {
+    [
+        row1[1] * row2[2] - row1[2] * row2[1],
+        row1[2] * row2[0] - row1[0] * row2[2],
+        row1[0] * row2[1] - row1[1] * row2[0]
+    ]
+}
+
+impl Interpolate for Translate3D {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(Translate3D(
+            try!(self.0.interpolate(&other.0, progress)),
+            try!(self.1.interpolate(&other.1, progress)),
+            try!(self.2.interpolate(&other.2, progress))
+        ))
+    }
+}
+
+impl Interpolate for Scale3D {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(Scale3D(
+            try!(self.0.interpolate(&other.0, progress)),
+            try!(self.1.interpolate(&other.1, progress)),
+            try!(self.2.interpolate(&other.2, progress))
+        ))
+    }
+}
+
+impl Interpolate for Skew {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(Skew(
+            try!(self.0.interpolate(&other.0, progress)),
+            try!(self.1.interpolate(&other.1, progress)),
+            try!(self.2.interpolate(&other.2, progress))
+        ))
+    }
+}
+
+impl Interpolate for Perspective {
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        Ok(Perspective(
+            try!(self.0.interpolate(&other.0, progress)),
+            try!(self.1.interpolate(&other.1, progress)),
+            try!(self.2.interpolate(&other.2, progress)),
+            try!(self.3.interpolate(&other.3, progress))
+        ))
+    }
+}
+
+impl Interpolate for MatrixDecomposed3D {
+    /// https://drafts.csswg.org/css-transforms/#interpolation-of-decomposed-3d-matrix-values
+    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+        let mut interpolated = *self;
+
+        // Interpolate translate, scale, skew and perspective components.
+        interpolated.translate = try!(self.translate.interpolate(&other.translate, progress));
+        interpolated.scale = try!(self.scale.interpolate(&other.scale, progress));
+        interpolated.skew = try!(self.skew.interpolate(&other.skew, progress));
+        interpolated.perspective = try!(self.perspective.interpolate(&other.perspective, progress));
+
+        // Interpolate quaternions using spherical linear interpolation (Slerp).
+        let mut product = self.quaternion.0 * other.quaternion.0 +
+                          self.quaternion.1 * other.quaternion.1 +
+                          self.quaternion.2 * other.quaternion.2 +
+                          self.quaternion.3 * other.quaternion.3;
+
+        // Clamp product to -1.0 <= product <= 1.0
+        product = product.min(1.0);
+        product = product.max(-1.0);
+
+        if product == 1.0 {
+            return Ok(interpolated);
+        }
+
+        let theta = product.acos();
+        let w = (progress as f32 * theta).sin() * 1.0 / (1.0 - product * product).sqrt();
+
+        let mut a = *self;
+        let mut b = *other;
+        % for i in range(4):
+            a.quaternion.${i} *= (progress as f32 * theta).cos() - product * w;
+            b.quaternion.${i} *= w;
+            interpolated.quaternion.${i} = a.quaternion.${i} + b.quaternion.${i};
+        % endfor
+
+        Ok(interpolated)
+    }
+}
+
+impl From<MatrixDecomposed3D> for ComputedMatrix {
+    /// Recompose a 3D matrix.
+    /// https://drafts.csswg.org/css-transforms/#recomposing-to-a-3d-matrix
+    fn from(decomposed: MatrixDecomposed3D) -> ComputedMatrix {
+        let mut matrix = ComputedMatrix::identity();
+
+        // Apply perspective
         % for i in range(1, 5):
-            % for j in range(1, 5):
-                a_clone.m${i}${j} = (a.m${i}1 * b.m1${j}) +
-                                   (a.m${i}2 * b.m2${j}) +
-                                   (a.m${i}3 * b.m3${j}) +
-                                   (a.m${i}4 * b.m4${j});
+            matrix.m${i}4 = decomposed.perspective.${i - 1};
+        % endfor
+
+        // Apply translation
+        % for i in range(1, 4):
+            % for j in range(1, 4):
+                matrix.m4${i} += decomposed.translate.${j - 1} * matrix.m${j}${i};
             % endfor
         % endfor
-        a_clone
+
+        // Apply rotation
+        let x = decomposed.quaternion.0;
+        let y = decomposed.quaternion.1;
+        let z = decomposed.quaternion.2;
+        let w = decomposed.quaternion.3;
+
+        // Construct a composite rotation matrix from the quaternion values
+        // rotationMatrix is a identity 4x4 matrix initially
+        let mut rotation_matrix = ComputedMatrix::identity();
+        rotation_matrix.m11 = 1.0 - 2.0 * (y * y + z * z);
+        rotation_matrix.m12 = 2.0 * (x * y + z * w);
+        rotation_matrix.m13 = 2.0 * (x * z - y * w);
+        rotation_matrix.m21 = 2.0 * (x * y - z * w);
+        rotation_matrix.m22 = 1.0 - 2.0 * (x * x + z * z);
+        rotation_matrix.m23 = 2.0 * (y * z + x * w);
+        rotation_matrix.m31 = 2.0 * (x * z + y * w);
+        rotation_matrix.m32 = 2.0 * (y * z - x * w);
+        rotation_matrix.m33 = 1.0 - 2.0 * (x * x + y * y);
+
+        matrix = multiply(rotation_matrix, matrix);
+
+        // Apply skew
+        let mut temp = ComputedMatrix::identity();
+        if decomposed.skew.2 != 0.0 {
+            temp.m32 = decomposed.skew.2;
+            matrix = multiply(matrix, temp);
+        }
+
+        if decomposed.skew.1 != 0.0 {
+            temp.m32 = 0.0;
+            temp.m31 = decomposed.skew.1;
+            matrix = multiply(matrix, temp);
+        }
+
+        if decomposed.skew.0 != 0.0 {
+            temp.m31 = 0.0;
+            temp.m21 = decomposed.skew.0;
+            matrix = multiply(matrix, temp);
+        }
+
+        // Apply scale
+        % for i in range(1, 4):
+            % for j in range(1, 4):
+                matrix.m${i}${j} *= decomposed.scale.${i - 1};
+            % endfor
+        % endfor
+
+        matrix
+    }
+}
+
+// Multiplication of two 4x4 matrices.
+fn multiply(a: ComputedMatrix, b: ComputedMatrix) -> ComputedMatrix {
+    let mut a_clone = a;
+    % for i in range(1, 5):
+        % for j in range(1, 5):
+            a_clone.m${i}${j} = (a.m${i}1 * b.m1${j}) +
+                               (a.m${i}2 * b.m2${j}) +
+                               (a.m${i}3 * b.m3${j}) +
+                               (a.m${i}4 * b.m4${j});
+        % endfor
+    % endfor
+    a_clone
+}
+
+impl ComputedMatrix {
+    fn is_3d(&self) -> bool {
+        self.m13 != 0.0 || self.m14 != 0.0 ||
+        self.m23 != 0.0 || self.m24 != 0.0 ||
+        self.m31 != 0.0 || self.m32 != 0.0 || self.m33 != 1.0 || self.m34 != 0.0 ||
+        self.m43 != 0.0 || self.m44 != 1.0
     }
 
-    impl ComputedMatrix {
-        fn is_3d(&self) -> bool {
-            self.m13 != 0.0 || self.m14 != 0.0 ||
-            self.m23 != 0.0 || self.m24 != 0.0 ||
-            self.m31 != 0.0 || self.m32 != 0.0 || self.m33 != 1.0 || self.m34 != 0.0 ||
-            self.m43 != 0.0 || self.m44 != 1.0
+    fn determinant(&self) -> CSSFloat {
+        self.m14 * self.m23 * self.m32 * self.m41 -
+        self.m13 * self.m24 * self.m32 * self.m41 -
+        self.m14 * self.m22 * self.m33 * self.m41 +
+        self.m12 * self.m24 * self.m33 * self.m41 +
+        self.m13 * self.m22 * self.m34 * self.m41 -
+        self.m12 * self.m23 * self.m34 * self.m41 -
+        self.m14 * self.m23 * self.m31 * self.m42 +
+        self.m13 * self.m24 * self.m31 * self.m42 +
+        self.m14 * self.m21 * self.m33 * self.m42 -
+        self.m11 * self.m24 * self.m33 * self.m42 -
+        self.m13 * self.m21 * self.m34 * self.m42 +
+        self.m11 * self.m23 * self.m34 * self.m42 +
+        self.m14 * self.m22 * self.m31 * self.m43 -
+        self.m12 * self.m24 * self.m31 * self.m43 -
+        self.m14 * self.m21 * self.m32 * self.m43 +
+        self.m11 * self.m24 * self.m32 * self.m43 +
+        self.m12 * self.m21 * self.m34 * self.m43 -
+        self.m11 * self.m22 * self.m34 * self.m43 -
+        self.m13 * self.m22 * self.m31 * self.m44 +
+        self.m12 * self.m23 * self.m31 * self.m44 +
+        self.m13 * self.m21 * self.m32 * self.m44 -
+        self.m11 * self.m23 * self.m32 * self.m44 -
+        self.m12 * self.m21 * self.m33 * self.m44 +
+        self.m11 * self.m22 * self.m33 * self.m44
+    }
+
+    fn inverse(&self) -> Option<ComputedMatrix> {
+        let mut det = self.determinant();
+
+        if det == 0.0 {
+            return None;
         }
 
-        fn determinant(&self) -> CSSFloat {
-            self.m14 * self.m23 * self.m32 * self.m41 -
-            self.m13 * self.m24 * self.m32 * self.m41 -
-            self.m14 * self.m22 * self.m33 * self.m41 +
-            self.m12 * self.m24 * self.m33 * self.m41 +
-            self.m13 * self.m22 * self.m34 * self.m41 -
-            self.m12 * self.m23 * self.m34 * self.m41 -
-            self.m14 * self.m23 * self.m31 * self.m42 +
-            self.m13 * self.m24 * self.m31 * self.m42 +
-            self.m14 * self.m21 * self.m33 * self.m42 -
-            self.m11 * self.m24 * self.m33 * self.m42 -
-            self.m13 * self.m21 * self.m34 * self.m42 +
-            self.m11 * self.m23 * self.m34 * self.m42 +
-            self.m14 * self.m22 * self.m31 * self.m43 -
-            self.m12 * self.m24 * self.m31 * self.m43 -
-            self.m14 * self.m21 * self.m32 * self.m43 +
-            self.m11 * self.m24 * self.m32 * self.m43 +
-            self.m12 * self.m21 * self.m34 * self.m43 -
-            self.m11 * self.m22 * self.m34 * self.m43 -
-            self.m13 * self.m22 * self.m31 * self.m44 +
-            self.m12 * self.m23 * self.m31 * self.m44 +
-            self.m13 * self.m21 * self.m32 * self.m44 -
-            self.m11 * self.m23 * self.m32 * self.m44 -
-            self.m12 * self.m21 * self.m33 * self.m44 +
-            self.m11 * self.m22 * self.m33 * self.m44
-        }
+        det = 1.0 / det;
+        let x = ComputedMatrix {
+            m11: det *
+            (self.m23*self.m34*self.m42 - self.m24*self.m33*self.m42 +
+             self.m24*self.m32*self.m43 - self.m22*self.m34*self.m43 -
+             self.m23*self.m32*self.m44 + self.m22*self.m33*self.m44),
+            m12: det *
+            (self.m14*self.m33*self.m42 - self.m13*self.m34*self.m42 -
+             self.m14*self.m32*self.m43 + self.m12*self.m34*self.m43 +
+             self.m13*self.m32*self.m44 - self.m12*self.m33*self.m44),
+            m13: det *
+            (self.m13*self.m24*self.m42 - self.m14*self.m23*self.m42 +
+             self.m14*self.m22*self.m43 - self.m12*self.m24*self.m43 -
+             self.m13*self.m22*self.m44 + self.m12*self.m23*self.m44),
+            m14: det *
+            (self.m14*self.m23*self.m32 - self.m13*self.m24*self.m32 -
+             self.m14*self.m22*self.m33 + self.m12*self.m24*self.m33 +
+             self.m13*self.m22*self.m34 - self.m12*self.m23*self.m34),
+            m21: det *
+            (self.m24*self.m33*self.m41 - self.m23*self.m34*self.m41 -
+             self.m24*self.m31*self.m43 + self.m21*self.m34*self.m43 +
+             self.m23*self.m31*self.m44 - self.m21*self.m33*self.m44),
+            m22: det *
+            (self.m13*self.m34*self.m41 - self.m14*self.m33*self.m41 +
+             self.m14*self.m31*self.m43 - self.m11*self.m34*self.m43 -
+             self.m13*self.m31*self.m44 + self.m11*self.m33*self.m44),
+            m23: det *
+            (self.m14*self.m23*self.m41 - self.m13*self.m24*self.m41 -
+             self.m14*self.m21*self.m43 + self.m11*self.m24*self.m43 +
+             self.m13*self.m21*self.m44 - self.m11*self.m23*self.m44),
+            m24: det *
+            (self.m13*self.m24*self.m31 - self.m14*self.m23*self.m31 +
+             self.m14*self.m21*self.m33 - self.m11*self.m24*self.m33 -
+             self.m13*self.m21*self.m34 + self.m11*self.m23*self.m34),
+            m31: det *
+            (self.m22*self.m34*self.m41 - self.m24*self.m32*self.m41 +
+             self.m24*self.m31*self.m42 - self.m21*self.m34*self.m42 -
+             self.m22*self.m31*self.m44 + self.m21*self.m32*self.m44),
+            m32: det *
+            (self.m14*self.m32*self.m41 - self.m12*self.m34*self.m41 -
+             self.m14*self.m31*self.m42 + self.m11*self.m34*self.m42 +
+             self.m12*self.m31*self.m44 - self.m11*self.m32*self.m44),
+            m33: det *
+            (self.m12*self.m24*self.m41 - self.m14*self.m22*self.m41 +
+             self.m14*self.m21*self.m42 - self.m11*self.m24*self.m42 -
+             self.m12*self.m21*self.m44 + self.m11*self.m22*self.m44),
+            m34: det *
+            (self.m14*self.m22*self.m31 - self.m12*self.m24*self.m31 -
+             self.m14*self.m21*self.m32 + self.m11*self.m24*self.m32 +
+             self.m12*self.m21*self.m34 - self.m11*self.m22*self.m34),
+            m41: det *
+            (self.m23*self.m32*self.m41 - self.m22*self.m33*self.m41 -
+             self.m23*self.m31*self.m42 + self.m21*self.m33*self.m42 +
+             self.m22*self.m31*self.m43 - self.m21*self.m32*self.m43),
+            m42: det *
+            (self.m12*self.m33*self.m41 - self.m13*self.m32*self.m41 +
+             self.m13*self.m31*self.m42 - self.m11*self.m33*self.m42 -
+             self.m12*self.m31*self.m43 + self.m11*self.m32*self.m43),
+            m43: det *
+            (self.m13*self.m22*self.m41 - self.m12*self.m23*self.m41 -
+             self.m13*self.m21*self.m42 + self.m11*self.m23*self.m42 +
+             self.m12*self.m21*self.m43 - self.m11*self.m22*self.m43),
+            m44: det *
+            (self.m12*self.m23*self.m31 - self.m13*self.m22*self.m31 +
+             self.m13*self.m21*self.m32 - self.m11*self.m23*self.m32 -
+             self.m12*self.m21*self.m33 + self.m11*self.m22*self.m33),
+        };
 
-        fn inverse(&self) -> Option<ComputedMatrix> {
-            let mut det = self.determinant();
+        Some(x)
+    }
+}
 
-            if det == 0.0 {
-                return None;
+/// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
+impl Interpolate for TransformList {
+    #[inline]
+    fn interpolate(&self, other: &TransformList, progress: f64) -> Result<Self, ()> {
+        // http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
+        let result = match (&self.0, &other.0) {
+            (&Some(ref from_list), &Some(ref to_list)) => {
+                // Two lists of transforms
+                interpolate_transform_list(from_list, &to_list, progress)
             }
+            (&Some(ref from_list), &None) => {
+                // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+                let to_list = build_identity_transform_list(from_list);
+                interpolate_transform_list(from_list, &to_list, progress)
+            }
+            (&None, &Some(ref to_list)) => {
+                // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
+                let from_list = build_identity_transform_list(to_list);
+                interpolate_transform_list(&from_list, to_list, progress)
+            }
+            _ => {
+                // http://dev.w3.org/csswg/css-transforms/#none-none-animation
+                TransformList(None)
+            }
+        };
 
-            det = 1.0 / det;
-            let x = ComputedMatrix {
-                m11: det *
-                (self.m23*self.m34*self.m42 - self.m24*self.m33*self.m42 +
-                 self.m24*self.m32*self.m43 - self.m22*self.m34*self.m43 -
-                 self.m23*self.m32*self.m44 + self.m22*self.m33*self.m44),
-                m12: det *
-                (self.m14*self.m33*self.m42 - self.m13*self.m34*self.m42 -
-                 self.m14*self.m32*self.m43 + self.m12*self.m34*self.m43 +
-                 self.m13*self.m32*self.m44 - self.m12*self.m33*self.m44),
-                m13: det *
-                (self.m13*self.m24*self.m42 - self.m14*self.m23*self.m42 +
-                 self.m14*self.m22*self.m43 - self.m12*self.m24*self.m43 -
-                 self.m13*self.m22*self.m44 + self.m12*self.m23*self.m44),
-                m14: det *
-                (self.m14*self.m23*self.m32 - self.m13*self.m24*self.m32 -
-                 self.m14*self.m22*self.m33 + self.m12*self.m24*self.m33 +
-                 self.m13*self.m22*self.m34 - self.m12*self.m23*self.m34),
-                m21: det *
-                (self.m24*self.m33*self.m41 - self.m23*self.m34*self.m41 -
-                 self.m24*self.m31*self.m43 + self.m21*self.m34*self.m43 +
-                 self.m23*self.m31*self.m44 - self.m21*self.m33*self.m44),
-                m22: det *
-                (self.m13*self.m34*self.m41 - self.m14*self.m33*self.m41 +
-                 self.m14*self.m31*self.m43 - self.m11*self.m34*self.m43 -
-                 self.m13*self.m31*self.m44 + self.m11*self.m33*self.m44),
-                m23: det *
-                (self.m14*self.m23*self.m41 - self.m13*self.m24*self.m41 -
-                 self.m14*self.m21*self.m43 + self.m11*self.m24*self.m43 +
-                 self.m13*self.m21*self.m44 - self.m11*self.m23*self.m44),
-                m24: det *
-                (self.m13*self.m24*self.m31 - self.m14*self.m23*self.m31 +
-                 self.m14*self.m21*self.m33 - self.m11*self.m24*self.m33 -
-                 self.m13*self.m21*self.m34 + self.m11*self.m23*self.m34),
-                m31: det *
-                (self.m22*self.m34*self.m41 - self.m24*self.m32*self.m41 +
-                 self.m24*self.m31*self.m42 - self.m21*self.m34*self.m42 -
-                 self.m22*self.m31*self.m44 + self.m21*self.m32*self.m44),
-                m32: det *
-                (self.m14*self.m32*self.m41 - self.m12*self.m34*self.m41 -
-                 self.m14*self.m31*self.m42 + self.m11*self.m34*self.m42 +
-                 self.m12*self.m31*self.m44 - self.m11*self.m32*self.m44),
-                m33: det *
-                (self.m12*self.m24*self.m41 - self.m14*self.m22*self.m41 +
-                 self.m14*self.m21*self.m42 - self.m11*self.m24*self.m42 -
-                 self.m12*self.m21*self.m44 + self.m11*self.m22*self.m44),
-                m34: det *
-                (self.m14*self.m22*self.m31 - self.m12*self.m24*self.m31 -
-                 self.m14*self.m21*self.m32 + self.m11*self.m24*self.m32 +
-                 self.m12*self.m21*self.m34 - self.m11*self.m22*self.m34),
-                m41: det *
-                (self.m23*self.m32*self.m41 - self.m22*self.m33*self.m41 -
-                 self.m23*self.m31*self.m42 + self.m21*self.m33*self.m42 +
-                 self.m22*self.m31*self.m43 - self.m21*self.m32*self.m43),
-                m42: det *
-                (self.m12*self.m33*self.m41 - self.m13*self.m32*self.m41 +
-                 self.m13*self.m31*self.m42 - self.m11*self.m33*self.m42 -
-                 self.m12*self.m31*self.m43 + self.m11*self.m32*self.m43),
-                m43: det *
-                (self.m13*self.m22*self.m41 - self.m12*self.m23*self.m41 -
-                 self.m13*self.m21*self.m42 + self.m11*self.m23*self.m42 +
-                 self.m12*self.m21*self.m43 - self.m11*self.m22*self.m43),
-                m44: det *
-                (self.m12*self.m23*self.m31 - self.m13*self.m22*self.m31 +
-                 self.m13*self.m21*self.m32 - self.m11*self.m23*self.m32 -
-                 self.m12*self.m21*self.m33 + self.m11*self.m22*self.m33),
-            };
-
-            Some(x)
-        }
+        Ok(result)
     }
-
-    /// https://drafts.csswg.org/css-transforms/#interpolation-of-transforms
-    impl Interpolate for TransformList {
-        #[inline]
-        fn interpolate(&self, other: &TransformList, progress: f64) -> Result<Self, ()> {
-            // http://dev.w3.org/csswg/css-transforms/#interpolation-of-transforms
-            let result = match (&self.0, &other.0) {
-                (&Some(ref from_list), &Some(ref to_list)) => {
-                    // Two lists of transforms
-                    interpolate_transform_list(from_list, &to_list, progress)
-                }
-                (&Some(ref from_list), &None) => {
-                    // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-                    let to_list = build_identity_transform_list(from_list);
-                    interpolate_transform_list(from_list, &to_list, progress)
-                }
-                (&None, &Some(ref to_list)) => {
-                    // http://dev.w3.org/csswg/css-transforms/#none-transform-animation
-                    let from_list = build_identity_transform_list(to_list);
-                    interpolate_transform_list(&from_list, to_list, progress)
-                }
-                _ => {
-                    // http://dev.w3.org/csswg/css-transforms/#none-none-animation
-                    TransformList(None)
-                }
-            };
-
-            Ok(result)
-        }
-    }
-% endif
-
+}
 

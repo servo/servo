@@ -739,6 +739,35 @@ extern "C" {
     pub fn Gecko_NewCSSValueSharedList(len: u32) -> *mut nsCSSValueSharedList;
 }
 extern "C" {
+    pub fn Gecko_CSSValue_GetArrayItem(css_value: nsCSSValueBorrowedMut,
+                                       index: i32) -> nsCSSValueBorrowedMut;
+}
+extern "C" {
+    pub fn Gecko_CSSValue_GetArrayItemConst(css_value: nsCSSValueBorrowed,
+                                            index: i32) -> nsCSSValueBorrowed;
+}
+extern "C" {
+    pub fn Gecko_CSSValue_GetAbsoluteLength(css_value: nsCSSValueBorrowed)
+     -> nscoord;
+}
+extern "C" {
+    pub fn Gecko_CSSValue_GetAngle(css_value: nsCSSValueBorrowed) -> f32;
+}
+extern "C" {
+    pub fn Gecko_CSSValue_GetKeyword(aCSSValue: nsCSSValueBorrowed)
+     -> nsCSSKeyword;
+}
+extern "C" {
+    pub fn Gecko_CSSValue_GetNumber(css_value: nsCSSValueBorrowed) -> f32;
+}
+extern "C" {
+    pub fn Gecko_CSSValue_GetPercentage(css_value: nsCSSValueBorrowed) -> f32;
+}
+extern "C" {
+    pub fn Gecko_CSSValue_GetCalc(aCSSValue: nsCSSValueBorrowed)
+     -> nsStyleCoord_CalcValue;
+}
+extern "C" {
     pub fn Gecko_CSSValue_SetAbsoluteLength(css_value: nsCSSValueBorrowedMut,
                                             len: nscoord);
 }
@@ -765,10 +794,6 @@ extern "C" {
 extern "C" {
     pub fn Gecko_CSSValue_SetFunction(css_value: nsCSSValueBorrowedMut,
                                       len: i32);
-}
-extern "C" {
-    pub fn Gecko_CSSValue_GetArrayItem(css_value: nsCSSValueBorrowedMut,
-                                       index: i32) -> nsCSSValueBorrowedMut;
 }
 extern "C" {
     pub fn Gecko_CSSValue_Drop(css_value: nsCSSValueBorrowedMut);
