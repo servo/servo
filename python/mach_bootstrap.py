@@ -12,8 +12,11 @@ from subprocess import PIPE, Popen
 
 SEARCH_PATHS = [
     os.path.join("python", "tidy"),
-    os.path.join("tests", "wpt"),
-    os.path.join("tests", "wpt", "harness"),
+]
+
+WPT_SEARCH_PATHS = [
+    ".",
+    "harness",
 ]
 
 # Individual files providing mach commands.
@@ -103,7 +106,16 @@ def _get_virtualenv_script_dir():
     return "bin"
 
 
-def _activate_virtualenv(topdir):
+def wpt_path(topdir, paths, is_firefox):
+    if is_firefox:
+        rel = os.path.join("..", "testing", "web-platform")
+    else:
+        rel = os.path.join("tests", "wpt")
+
+    return os.path.join(topdir, rel, *paths)
+
+
+def _activate_virtualenv(topdir, is_firefox):
     virtualenv_path = os.path.join(topdir, "python", "_virtualenv")
     check_exec_path = lambda path: path.startswith(virtualenv_path)
     python = _get_exec_path(PYTHON_NAMES)   # If there was no python, mach wouldn't have run at all!
@@ -145,9 +157,9 @@ def _activate_virtualenv(topdir):
     # and it will check for conflicts.
     requirements_paths = [
         os.path.join("python", "requirements.txt"),
-        os.path.join("tests", "wpt", "harness", "requirements.txt"),
-        os.path.join("tests", "wpt", "harness", "requirements_firefox.txt"),
-        os.path.join("tests", "wpt", "harness", "requirements_servo.txt"),
+        wpt_path(topdir, ("harness", "requirements.txt"), is_firefox),
+        wpt_path(topdir, ("harness", "requirements_firefox.txt"), is_firefox),
+        wpt_path(topdir, ("harness", "requirements_servo.txt"), is_firefox),
     ]
 
     if need_pip_upgrade:
@@ -239,7 +251,12 @@ def bootstrap(topdir):
         print('You are running Python', platform.python_version())
         sys.exit(1)
 
-    _activate_virtualenv(topdir)
+    # See if we're inside a Firefox checkout.
+    parentdir = os.path.normpath(os.path.join(topdir, '..'))
+    is_firefox = os.path.isfile(os.path.join(parentdir,
+                                             'build/mach_bootstrap.py'))
+
+    _activate_virtualenv(topdir, is_firefox)
 
     def populate_context(context, key=None):
         if key is None:
@@ -249,6 +266,8 @@ def bootstrap(topdir):
         raise AttributeError(key)
 
     sys.path[0:0] = [os.path.join(topdir, path) for path in SEARCH_PATHS]
+    sys.path[0:0] = [wpt_path(topdir, (path,), is_firefox)
+                     for path in WPT_SEARCH_PATHS]
     import mach.main
     mach = mach.main.Mach(os.getcwd())
     mach.populate_context_handler = populate_context
