@@ -313,6 +313,15 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
     /// Returns `None` if this is a pseudo-element; otherwise, returns `Some`.
     fn type_id(&self) -> Option<LayoutNodeType>;
 
+    /// Returns access to the underlying TElement. This is breaks the abstraction
+    /// barrier of ThreadSafeLayout wrapper layer, and can lead to races if not used
+    /// carefully.
+    ///
+    /// We need this so that the functions defined on this trait can call
+    /// lazily_compute_pseudo_element_style, which operates on TElement.
+    unsafe fn unsafe_get(self) ->
+        <<Self::ConcreteThreadSafeLayoutNode as ThreadSafeLayoutNode>::ConcreteNode as TNode>::ConcreteElement;
+
     #[inline]
     fn get_attr(&self, namespace: &Namespace, name: &LocalName) -> Option<&str>;
 
@@ -413,7 +422,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                             let new_style =
                                 context.stylist
                                        .lazily_compute_pseudo_element_style(
-                                           self,
+                                           unsafe { &self.unsafe_get() },
                                            &style_pseudo,
                                            &data.styles().primary.values,
                                            &context.default_computed_values);

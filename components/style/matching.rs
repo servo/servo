@@ -12,7 +12,7 @@ use animation::{self, Animation, PropertyAnimation};
 use atomic_refcell::AtomicRefMut;
 use cache::LRUCache;
 use cascade_info::CascadeInfo;
-use context::{SharedStyleContext, StyleContext};
+use context::{SequentialTask, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, PseudoRuleNodes, PseudoStyles};
 use dom::{SendElement, TElement, TNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
@@ -22,7 +22,8 @@ use rule_tree::{CascadeLevel, StrongRuleNode};
 use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
-use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, AFFECTED_BY_STYLE_ATTRIBUTE, MatchingReason, StyleRelations};
+use selectors::matching::{AFFECTED_BY_PSEUDO_ELEMENTS, AFFECTED_BY_STYLE_ATTRIBUTE};
+use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use servo_config::opts;
 use sink::ForgetfulSink;
 use std::collections::HashMap;
@@ -586,6 +587,7 @@ pub trait MatchMethods : TElement {
         let stylist = &context.shared.stylist;
         let style_attribute = self.style_attribute();
         let animation_rules = self.get_animation_rules(None);
+        let mut flags = ElementSelectorFlags::empty();
 
         // Compute the primary rule node.
         let mut primary_relations =
@@ -595,7 +597,7 @@ pub trait MatchMethods : TElement {
                                                  animation_rules,
                                                  None,
                                                  &mut applicable_declarations,
-                                                 MatchingReason::ForStyling);
+                                                 &mut flags);
         let primary_rule_node = compute_rule_node(context, &mut applicable_declarations);
 
         // Compute the pseudo rule nodes.
@@ -608,7 +610,7 @@ pub trait MatchMethods : TElement {
                                                  None, pseudo_animation_rules,
                                                  Some(&pseudo),
                                                  &mut applicable_declarations,
-                                                 MatchingReason::ForStyling);
+                                                 &mut flags);
 
             if !applicable_declarations.is_empty() {
                 let rule_node = compute_rule_node(context, &mut applicable_declarations);
@@ -619,6 +621,22 @@ pub trait MatchMethods : TElement {
         // If we have any pseudo elements, indicate so in the primary StyleRelations.
         if !per_pseudo.is_empty() {
             primary_relations |= AFFECTED_BY_PSEUDO_ELEMENTS;
+        }
+
+        // Apply the selector flags.
+        let self_flags = flags.for_self();
+        if !self_flags.is_empty() {
+            unsafe { self.set_selector_flags(self_flags); }
+        }
+        let parent_flags = flags.for_parent();
+        if !parent_flags.is_empty() {
+            if let Some(p) = self.parent_element() {
+                // Avoid the overhead of the SequentialTask if the flags are already set.
+                if !p.has_selector_flags(parent_flags) {
+                    let task = SequentialTask::set_selector_flags(p, parent_flags);
+                    context.thread_local.tasks.push(task);
+                }
+            }
         }
 
         MatchResults {
