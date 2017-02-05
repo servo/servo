@@ -1080,8 +1080,10 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         let outline_style = match style.get_outline().outline_style {
-            Either::First(_auto) => border_style::T::none,
-            Either::Second(border_style) => border_style,
+            // FIXME: handle case when "outline-style: auto". For now, assume
+            //        auto is akin to border_style::T::none.
+            Either::First(_) | Either::Second(border_style::T::none) => return,
+            Either::Second(border_style) => border_style
         };
 
         // Outlines are not accounted for in the dimensions of the border box, so adjust the

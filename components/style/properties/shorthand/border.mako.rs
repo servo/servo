@@ -10,7 +10,6 @@ ${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CS
 
 ${helpers.four_sides_shorthand("border-style", "border-%s-style",
                                "specified::BorderStyle::parse",
-                               needs_context=True,
                                spec="https://drafts.csswg.org/css-backgrounds/#border-style")}
 
 <%helpers:shorthand name="border-width" sub_properties="${

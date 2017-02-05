@@ -45,9 +45,8 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        match SpecifiedValue::parse(context, input) {
-            Err(err) => Err(err),
-            Ok(result) => {
+        SpecifiedValue::parse(context, input)
+            .and_then(|result| {
                 if let Either::Second(BorderStyle::hidden) = result {
                     // The outline-style property accepts the same values as border-style,
                     // except that 'hidden' is not a legal outline style.
@@ -55,8 +54,7 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
                 } else {
                     Ok(result)
                 }
-            }
-        }
+            })
     }
 </%helpers:longhand>
 
