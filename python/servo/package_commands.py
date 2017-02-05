@@ -117,19 +117,15 @@ def copy_windows_dependencies(binary_path, destination):
             "libgcc_s_seh-1.dll",
             "libexpat-1.dll",
             "zlib1.dll",
-            "libpng16-16.dll",
             "libiconv-2.dll",
-            "libglib-2.0-0.dll",
-            "libgraphite2.dll",
-            "libfreetype-6.dll",
-            "libfontconfig-1.dll",
             "libintl-8.dll",
-            "libpcre-1.dll",
             "libeay32.dll",
             "ssleay32.dll",
-            "libharfbuzz-0.dll",
         ]
-        [shutil.copy(path.join("C:\\msys64\\mingw64\\bin", d), path.join(destination, d)) for d in deps]
+        for d in deps:
+            dep_path = path.join("C:\\msys64\\mingw64\\bin", d)
+            if path.exists(dep_path):
+                shutil.copy(dep_path, path.join(destination, d))
 
 
 def change_prefs(resources_path, platform):

@@ -122,8 +122,8 @@ dependencies. We are upgrading to a gcc-free build on Windows as soon as possibl
 
 ```sh
 pacman -Su
-pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype \
-    mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
+pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-icu \
+    mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
     mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch \
     patchutils make python2-setuptools
 export GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
