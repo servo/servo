@@ -59,6 +59,8 @@ use std::ptr;
 use std::sync::Arc;
 use std::cmp;
 use values::computed::ToComputedValue;
+use values::{Either, Auto};
+use computed_values::border_style;
 
 pub mod style_structs {
     % for style_struct in data.style_structs:
@@ -233,29 +235,51 @@ def set_gecko_property(ffi_name, expr):
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
-<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8')">
+<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8', resolver=None)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        % if ident != 'outline_style':
         use properties::longhands::${ident}::computed_value::T as Keyword;
+        % endif
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
+                % if resolver is not None:
+                ${resolver(to_rust_ident(value))} =>
+                    structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast(cast_type)},
+                % else:
                 Keyword::${to_rust_ident(value)} =>
                     structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast(cast_type)},
+                % endif
+
+                % if ident == 'outline_style':
+                    % if to_rust_ident(value) == 'none':
+
+                Either::First(Auto) =>
+                    structs::${keyword.gecko_constant('solid')} ${keyword.maybe_cast(cast_type)},
+
+                    % endif
+                % endif
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}
     }
 </%def>
 
-<%def name="impl_keyword_clone(ident, gecko_ffi_name, keyword)">
+<%def name="impl_keyword_clone(ident, gecko_ffi_name, keyword, resolver=None)">
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        % if ident != 'outline_style':
         use properties::longhands::${ident}::computed_value::T as Keyword;
+        % endif
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         match ${get_gecko_property(gecko_ffi_name)} ${keyword.maybe_cast("u32")} {
             % for value in keyword.values_for('gecko'):
+            % if resolver is not None:
+            structs::${keyword.gecko_constant(value)} => ${resolver(to_rust_ident(value))},
+            % else:
             structs::${keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
+            % endif
             % endfor
             % if keyword.gecko_inexhaustive:
             x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
@@ -302,11 +326,11 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone, **kwargs)">
-<%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword, **kwargs)"></%call>
+<%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone, resolver=None, **kwargs)">
+<%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword, resolver=resolver, **kwargs)"></%call>
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
 %if need_clone:
-<%call expr="impl_keyword_clone(ident, gecko_ffi_name, keyword)"></%call>
+<%call expr="impl_keyword_clone(ident, gecko_ffi_name, keyword, resolver)"></%call>
 % endif
 </%def>
 
@@ -913,7 +937,17 @@ fn static_assert() {
                   skip_longhands="${skip_outline_longhands}"
                   skip_additionals="*">
 
-    <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
+    <%def name="outline_style_resolver(value)">
+
+    % if value == 'none':
+        Either::Second(border_style::T::${value})
+    % else:
+        Either::Second(border_style::T::${value})
+    % endif
+    </%def>
+
+    <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword,
+                    need_clone=True, resolver=outline_style_resolver) %>
 
     <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=True,
                       round_to_pixels=True) %>
@@ -2821,4 +2855,3 @@ pub unsafe extern "C" fn Servo_GetStyleVariables(_cv: ServoComputedValuesBorrowe
                                                  -> *const nsStyleVariables {
     &*EMPTY_VARIABLES_STRUCT
 }
-
