@@ -6,7 +6,6 @@ WINDOWS_GNU = set([
     "diffutils",
     "make",
     "mingw-w64-x86_64-toolchain",
-    "mingw-w64-x86_64-freetype",
     "mingw-w64-x86_64-icu",
     "mingw-w64-x86_64-nspr",
     "mingw-w64-x86_64-ca-certificates",

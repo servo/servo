@@ -49,7 +49,7 @@ install:
   - if %BUILD_ENV%==gnu  set MSYS=winsymlinks=lnk
   - if %BUILD_ENV%==gnu  bash -lc "echo $MSYSTEM; pacman --needed --noconfirm -Sy pacman-mirrors"
   - if %BUILD_ENV%==gnu  bash -lc "pacman --noconfirm -Sy"
-  - if %BUILD_ENV%==gnu  bash -lc "pacman -Sy --needed --noconfirm mingw-w64-x86_64-ccache mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools"
+  - if %BUILD_ENV%==gnu  bash -lc "pacman -Sy --needed --noconfirm mingw-w64-x86_64-ccache mingw-w64-x86_64-toolchain mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools"
   # Downgrade msys2 build GCC to 5.4.0-1 - https://github.com/servo/servo/issues/12512
   - if %BUILD_ENV%==gnu  set GCC_URL=http://repo.msys2.org/mingw/x86_64/mingw-w64-x86_64-gcc
   - if %BUILD_ENV%==gnu  set GCC_EXT=5.4.0-1-any.pkg.tar.xz
