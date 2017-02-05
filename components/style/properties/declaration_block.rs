@@ -481,16 +481,14 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
 
     // for normal parsed values, add a space between key: and value
     match &appendable_value {
-        &AppendableValue::Css(_) => {
-            try!(write!(dest, " "))
-        },
         &AppendableValue::Declaration(decl) => {
-            if !decl.value_is_unparsed() {
-                // for normal parsed values, add a space between key: and value
-                try!(write!(dest, " "));
-            }
-         },
-         &AppendableValue::DeclarationsForShorthand(..) => try!(write!(dest, " "))
+           if !decl.value_is_unparsed() {
+               // for normal parsed values, add a space between key: and value
+               try!(write!(dest, " "));
+           }
+        },
+        &AppendableValue::DeclarationsForShorthand(..) => try!(write!(dest, " ")),
+        &AppendableValue::Css(..) => {},
     }
 
     try!(append_declaration_value(dest, appendable_value, importance, false));
