@@ -4,7 +4,7 @@
 
 // For SIMD
 #![feature(cfg_target_feature)]
-#![cfg_attr(any(target_os = "linux", target_os = "android", target_os = "windows"), feature(heap_api))]
+#![cfg_attr(any(target_os = "linux", target_os = "android"), feature(heap_api))]
 
 #![feature(alloc)]
 #![feature(box_syntax)]
