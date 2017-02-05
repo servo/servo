@@ -38,14 +38,21 @@ rustc-with-gold = true
 # or Set "mode = release" or use `mach build --release` for optimized build.
 # Defaults to prompting before building
 #mode = "dev"
+
 # Set "android = true" or use `mach build --android` to build the Android app.
 android = false
+
 # Set "debug-mozjs" or use `mach build --debug-mozjs` to build a debug spidermonkey.
 debug-mozjs = false
+
 # Set to the path to your ccache binary to enable caching of compiler outputs
 #ccache = "/usr/local/bin/ccache"
+
 # Any optional flags that will be added to $RUSTFLAGS
 #rustflags = ""
+
+# Enable rustc’s incremental compilation
+#incremental = false
 
 # Android information
 [android]

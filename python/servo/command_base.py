@@ -270,6 +270,7 @@ class CommandBase(object):
         self.config["build"].setdefault("debug-mozjs", False)
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
+        self.config["build"].setdefault("incremental", False)
 
         self.config.setdefault("android", {})
         self.config["android"].setdefault("sdk", "")
@@ -427,6 +428,8 @@ class CommandBase(object):
             env["PATH"] = "%s%s%s" % (os.pathsep.join(extra_path), os.pathsep, env["PATH"])
 
         env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
+        if self.config["build"]["incremental"]:
+            env["CARGO_INCREMENTAL"] = "1"
 
         if extra_lib:
             if sys.platform == "darwin":
