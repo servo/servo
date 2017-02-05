@@ -28,6 +28,7 @@ use servo_config::opts::{self, Opts};
 use servo_config::prefs::{PREFS, Pref};
 use servo_url::ServoUrl;
 use std::collections::HashMap;
+#[cfg(not(windows))]
 use std::env;
 use std::ffi::OsStr;
 use std::io::Error as IOError;
