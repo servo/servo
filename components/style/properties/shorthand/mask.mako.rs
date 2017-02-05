@@ -49,10 +49,6 @@
                     if let Ok(value) = input.try(|input| mask_image::single_value
                                                                    ::parse(context, input)) {
                         image = Some(value);
-
-                        // Parse mask mode, if applicable.
-                        mode = input.try(|input| mask_mode::single_value::parse(context, input)).ok();
-
                         continue
                     }
                 }
@@ -70,7 +66,7 @@
                         continue
                     }
                 }
-                % for name in "repeat origin clip composite".split():
+                % for name in "repeat origin clip composite mode".split():
                     if ${name}.is_none() {
                         if let Ok(value) = input.try(|input| mask_${name}::single_value
                                                                                ::parse(context, input)) {
@@ -146,6 +142,10 @@
             }
 
             for i in 0..len {
+                if i > 0 {
+                    try!(dest.write_str(", "));
+                }
+
                 % for name in "image mode position_x position_y size repeat origin clip composite".split():
                     let ${name} = if let DeclaredValue::Value(ref arr) = *self.mask_${name} {
                         arr.0.get(i % arr.0.len())
