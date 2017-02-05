@@ -45867,6 +45867,12 @@
             "url": "/cssom/overflow-serialization.html"
           }
         ],
+        "cssom/serialize-variable-reference.html": [
+          {
+            "path": "cssom/serialize-variable-reference.html",
+            "url": "/cssom/serialize-variable-reference.html"
+          }
+        ],
         "cssom/stylesheet-same-origin.sub.html": [
           {
             "path": "cssom/stylesheet-same-origin.sub.html",
