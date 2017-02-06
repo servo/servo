@@ -577,8 +577,7 @@ impl<E: TElement> PrivateMatchMethods for E {}
 pub trait MatchMethods : TElement {
     /// Runs selector matching of this element, and returns the result.
     fn match_element(&self,
-                     context: &StyleContext<Self>,
-                     parent_bf: Option<&BloomFilter>)
+                     context: &mut StyleContext<Self>)
                      -> MatchResults
     {
         let mut applicable_declarations =
@@ -591,7 +590,7 @@ pub trait MatchMethods : TElement {
         // Compute the primary rule node.
         let mut primary_relations =
             stylist.push_applicable_declarations(self,
-                                                 parent_bf,
+                                                 Some(context.thread_local.bloom_filter.filter()),
                                                  style_attribute,
                                                  animation_rules,
                                                  None,
@@ -604,8 +603,9 @@ pub trait MatchMethods : TElement {
         SelectorImpl::each_eagerly_cascaded_pseudo_element(|pseudo| {
             debug_assert!(applicable_declarations.is_empty());
             let pseudo_animation_rules = self.get_animation_rules(Some(&pseudo));
-            stylist.push_applicable_declarations(self, parent_bf, None,
-                                                 pseudo_animation_rules,
+            stylist.push_applicable_declarations(self,
+                                                 Some(context.thread_local.bloom_filter.filter()),
+                                                 None, pseudo_animation_rules,
                                                  Some(&pseudo),
                                                  &mut applicable_declarations,
                                                  MatchingReason::ForStyling);
