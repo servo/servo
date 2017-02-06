@@ -60,6 +60,35 @@ impl CascadeInfo {
         }
     }
 
+    /// Called when a boxed property is cascaded.
+    /// This should be same as `on_cascade_property`.
+    /// FIXME(canaltinova): Find a better method to handle boxed properties.
+    ///
+    /// NOTE: We can add a vast amount of information here.
+    #[inline]
+    pub fn on_cascade_boxed_property<T>(&mut self,
+                                        _property_declaration: &PropertyDeclaration,
+                                        value: &DeclaredValue<Box<T>>)
+        where T: HasViewportPercentage,
+    {
+        // TODO: we can be smarter and keep a property bitfield to keep track of
+        // the last applying rule.
+        let has_viewport_percentage = match *value {
+            DeclaredValue::Value(ref v) => (*v).has_viewport_percentage(),
+            DeclaredValue::WithVariables { .. } => {
+                panic!("DeclaredValue::has_viewport_percentage without \
+                        resolving variables!")
+            },
+            DeclaredValue::Initial |
+            DeclaredValue::Inherit |
+            DeclaredValue::Unset => false,
+        };
+
+        if has_viewport_percentage {
+            self.saw_viewport_units = true;
+        }
+    }
+
     #[cfg(debug_assertions)]
     fn mark_as_finished_if_appropriate(&mut self) {
         self.finished = true;

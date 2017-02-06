@@ -9,8 +9,13 @@
         ${caller.body()}
         % if not data.longhands_by_name[name].derived_from:
             pub fn parse_specified(context: &ParserContext, input: &mut Parser)
-                               -> Result<DeclaredValue<SpecifiedValue>, ()> {
-                parse(context, input).map(DeclaredValue::Value)
+                % if data.longhands_by_name[name].boxed:
+                                   -> Result<DeclaredValue<Box<SpecifiedValue>>, ()> {
+                    parse(context, input).map(|result| DeclaredValue::Value(Box::new(result)))
+                % else:
+                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
+                    parse(context, input).map(DeclaredValue::Value)
+                % endif
             }
         % endif
     </%call>
@@ -239,13 +244,22 @@
                         declared_value, &custom_props,
                     |value| {
                         if let Some(ref mut cascade_info) = *cascade_info {
-                            cascade_info.on_cascade_property(&declaration,
-                                                             &value);
+                            % if property.boxed:
+                                cascade_info.on_cascade_boxed_property(&declaration,
+                                                                       &value);
+                            % else:
+                                cascade_info.on_cascade_property(&declaration,
+                                                                 &value);
+                            % endif
                         }
                         <% maybe_wm = ", wm" if property.logical else "" %>
                         match *value {
                             DeclaredValue::Value(ref specified_value) => {
-                                let computed = specified_value.to_computed_value(context);
+                                % if property.boxed:
+                                    let computed = (*specified_value).to_computed_value(context);
+                                % else:
+                                    let computed = specified_value.to_computed_value(context);
+                                % endif
                                 % if property.has_uncacheable_values:
                                 context.mutate_style().mutate_${data.current_style_struct.name_lower}()
                                                       .set_${property.ident}(computed, cacheable ${maybe_wm});
@@ -298,7 +312,11 @@
         }
         % if not property.derived_from:
             pub fn parse_declared(context: &ParserContext, input: &mut Parser)
-                               -> Result<DeclaredValue<SpecifiedValue>, ()> {
+                               % if property.boxed:
+                                   -> Result<DeclaredValue<Box<SpecifiedValue>>, ()> {
+                               % else:
+                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
+                               % endif
                 match input.try(|i| CSSWideKeyword::parse(context, i)) {
                     Ok(CSSWideKeyword::InheritKeyword) => Ok(DeclaredValue::Inherit),
                     Ok(CSSWideKeyword::InitialKeyword) => Ok(DeclaredValue::Initial),
@@ -429,7 +447,13 @@
         /// correspond to a shorthand.
         pub struct LonghandsToSerialize<'a> {
             % for sub_property in shorthand.sub_properties:
-                pub ${sub_property.ident}: &'a DeclaredValue<longhands::${sub_property.ident}::SpecifiedValue>,
+                % if sub_property.boxed:
+                    pub ${sub_property.ident}:
+                        &'a DeclaredValue<Box<longhands::${sub_property.ident}::SpecifiedValue>>,
+                % else:
+                    pub ${sub_property.ident}:
+                        &'a DeclaredValue<longhands::${sub_property.ident}::SpecifiedValue>,
+                % endif
             % endfor
         }
 
@@ -529,7 +553,11 @@
                 % for sub_property in shorthand.sub_properties:
                     declarations.push((PropertyDeclaration::${sub_property.camel_case}(
                         match value.${sub_property.ident} {
-                            Some(value) => DeclaredValue::Value(value),
+                            % if sub_property.boxed:
+                                Some(value) => DeclaredValue::Value(Box::new(value)),
+                            % else:
+                                Some(value) => DeclaredValue::Value(value),
+                            % endif
                             None => DeclaredValue::Initial,
                         }
                     ), Importance::Normal));

@@ -244,7 +244,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
 
 </%helpers:longhand>
 
-<%helpers:longhand name="vertical-align" animatable="True"
+<%helpers:longhand name="vertical-align" animatable="True" boxed="True"
                    spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align">
     use std::fmt;
     use style_traits::ToCss;
@@ -945,7 +945,7 @@ ${helpers.single_keyword("animation-fill-mode",
     pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
 </%helpers:vector_longhand>
 
-<%helpers:longhand products="gecko" name="scroll-snap-points-y" animatable="False"
+<%helpers:longhand products="gecko" name="scroll-snap-points-y" animatable="False" boxed="True"
                    spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)">
     use std::fmt;
     use style_traits::ToCss;
@@ -1040,7 +1040,7 @@ ${helpers.single_keyword("animation-fill-mode",
     }
 </%helpers:longhand>
 
-<%helpers:longhand products="gecko" name="scroll-snap-points-x" animatable="False"
+<%helpers:longhand products="gecko" name="scroll-snap-points-x" animatable="False" boxed="True"
                    spec="Nonstandard (https://www.w3.org/TR/2015/WD-css-snappoints-1-20150326/#scroll-snap-points)">
     pub use super::scroll_snap_points_y::SpecifiedValue;
     pub use super::scroll_snap_points_y::computed_value;
@@ -1648,7 +1648,7 @@ ${helpers.predefined_type("perspective",
                           animatable=True)}
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="perspective-origin" animatable="False" extra_prefixes="moz webkit"
+<%helpers:longhand name="perspective-origin" animatable="False" extra_prefixes="moz webkit" boxed="True"
                    spec="https://drafts.csswg.org/css-transforms/#perspective-origin-property">
     use std::fmt;
     use style_traits::ToCss;
@@ -1755,7 +1755,7 @@ ${helpers.single_keyword("transform-style",
                          extra_prefixes="moz webkit",
                          animatable=False)}
 
-<%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit"
+<%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit" boxed="True"
                    spec="https://drafts.csswg.org/css-transforms/#transform-origin-property">
     use app_units::Au;
     use std::fmt;
@@ -1896,7 +1896,8 @@ ${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
                           animatable="False",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)",
-                          disable_when_testing="True")}
+                          disable_when_testing="True",
+                          boxed=True)}
 
 ${helpers.single_keyword("-moz-orient",
                           "inline block horizontal vertical",

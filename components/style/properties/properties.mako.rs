@@ -246,11 +246,19 @@ mod property_bit_field {
         /// the resulting declared value.
         #[allow(non_snake_case)]
         fn substitute_variables_${property.ident}<F>(
-            value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
+            % if property.boxed:
+                value: &DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>,
+            % else:
+                value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
+            % endif
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
             f: F,
             error_reporter: &mut StdBox<ParseErrorReporter + Send>)
-            where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+            % if property.boxed:
+                where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
+            % else:
+                where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+            % endif
         {
             if let DeclaredValue::WithVariables {
                 ref css, first_token_type, ref base_url, from_shorthand
@@ -283,7 +291,11 @@ mod property_bit_field {
                 f: F,
                 error_reporter: &mut StdBox<ParseErrorReporter + Send>,
                 extra_data: ParserContextExtraData)
-                where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+                % if property.boxed:
+                    where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
+                % else:
+                    where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+                % endif
         {
             f(&
                 ::custom_properties::substitute(css, first_token_type, custom_properties)
@@ -305,7 +317,11 @@ mod property_bit_field {
                                     Some(ShorthandId::${shorthand.camel_case}) => {
                                         shorthands::${shorthand.ident}::parse_value(&context, input)
                                         .map(|result| match result.${property.ident} {
-                                            Some(value) => DeclaredValue::Value(value),
+                                            % if property.boxed:
+                                                Some(value) => DeclaredValue::Value(Box::new(value)),
+                                            % else:
+                                                Some(value) => DeclaredValue::Value(value),
+                                            % endif
                                             None => DeclaredValue::Initial,
                                         })
                                     }
@@ -619,16 +635,7 @@ pub enum DeclaredValue<T> {
 
 impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
     fn has_viewport_percentage(&self) -> bool {
-        match *self {
-            DeclaredValue::Value(ref v) => v.has_viewport_percentage(),
-            DeclaredValue::WithVariables { .. } => {
-                panic!("DeclaredValue::has_viewport_percentage without \
-                        resolving variables!")
-            },
-            DeclaredValue::Initial |
-            DeclaredValue::Inherit |
-            DeclaredValue::Unset => false,
-        }
+        ${declare_has_viewport_percentage_inner("*self", False)}
     }
 }
 
@@ -826,7 +833,11 @@ impl PropertyId {
 pub enum PropertyDeclaration {
     % for property in data.longhands:
         /// ${property.name}
-        ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
+        % if property.boxed:
+            ${property.camel_case}(DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>),
+        % else:
+            ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
+        % endif
     % endfor
     /// A custom property declaration, with the property name and the declared
     /// value.
@@ -838,7 +849,11 @@ impl HasViewportPercentage for PropertyDeclaration {
         match *self {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(ref val) => {
-                    val.has_viewport_percentage()
+                    % if property.boxed:
+                        ${declare_has_viewport_percentage_inner("*val", True)}
+                    % else:
+                        val.has_viewport_percentage()
+                    %endif
                 },
             % endfor
             PropertyDeclaration::Custom(_, ref val) => {
@@ -2300,3 +2315,21 @@ macro_rules! longhand_properties_idents {
         }
     }
 }
+
+// If you update this, please also update the `CascadeInfo::on_cascade_boxed_property`.
+<%def name="declare_has_viewport_percentage_inner(variable, boxed)">
+    match ${variable} {
+        % if boxed:
+            DeclaredValue::Value(ref v) => (*v).has_viewport_percentage(),
+        % else:
+            DeclaredValue::Value(ref v) => v.has_viewport_percentage(),
+        % endif
+        DeclaredValue::WithVariables { .. } => {
+            panic!("DeclaredValue::has_viewport_percentage without \
+                    resolving variables!")
+        },
+        DeclaredValue::Initial |
+        DeclaredValue::Inherit |
+        DeclaredValue::Unset => false,
+    }
+</%def>

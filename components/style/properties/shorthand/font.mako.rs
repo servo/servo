@@ -117,7 +117,7 @@
 
             try!(self.font_size.to_css(dest));
             if let DeclaredValue::Value(ref height) = *self.line_height {
-                match *height {
+                match **height {
                     line_height::SpecifiedValue::Normal => {},
                     _ => {
                         try!(write!(dest, "/"));

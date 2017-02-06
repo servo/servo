@@ -6,7 +6,7 @@
 
 <% data.new_style_struct("InheritedText", inherited=True, gecko_name="Text") %>
 
-<%helpers:longhand name="line-height" animatable="True"
+<%helpers:longhand name="line-height" animatable="True" boxed="True"
                    spec="https://drafts.csswg.org/css2/visudet.html#propdef-line-height">
     use std::fmt;
     use style_traits::ToCss;
@@ -344,7 +344,7 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="word-spacing" animatable="False"
+<%helpers:longhand name="word-spacing" animatable="False" boxed="True"
                    spec="https://drafts.csswg.org/css-text/#propdef-word-spacing">
     use std::fmt;
     use style_traits::ToCss;
@@ -1027,6 +1027,7 @@ ${helpers.predefined_type("text-emphasis-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
                           products="gecko",animatable=True,
                           complex_color=True, need_clone=True,
+                          boxed=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
 
 // CSS Compatibility
@@ -1035,14 +1036,14 @@ ${helpers.predefined_type(
     "-webkit-text-fill-color", "CSSColor",
     "CSSParserColor::CurrentColor",
     products="gecko", animatable=True,
-    complex_color=True, need_clone=True,
+    complex_color=True, need_clone=True, boxed=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
 
 ${helpers.predefined_type(
     "-webkit-text-stroke-color", "CSSColor",
     "CSSParserColor::CurrentColor",
     products="gecko", animatable=True,
-    complex_color=True, need_clone=True,
+    complex_color=True, need_clone=True, boxed=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
 <%helpers:longhand products="gecko" name="-webkit-text-stroke-width" animatable="False"

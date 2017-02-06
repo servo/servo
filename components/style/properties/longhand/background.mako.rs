@@ -9,7 +9,7 @@
 ${helpers.predefined_type("background-color", "CSSColor",
     "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
-    animatable=True, complex_color=True)}
+    animatable=True, complex_color=True, boxed=True)}
 
 <%helpers:vector_longhand name="background-image" animatable="False"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-image"
