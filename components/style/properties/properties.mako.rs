@@ -246,11 +246,19 @@ mod property_bit_field {
         /// the resulting declared value.
         #[allow(non_snake_case)]
         fn substitute_variables_${property.ident}<F>(
-            value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
+            % if property.boxed:
+                value: &DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>,
+            % else:
+                value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
+            % endif
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
             f: F,
             error_reporter: &mut StdBox<ParseErrorReporter + Send>)
-            where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+            % if property.boxed:
+                where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
+            % else:
+                where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+            % endif
         {
             if let DeclaredValue::WithVariables {
                 ref css, first_token_type, ref base_url, from_shorthand
@@ -283,7 +291,11 @@ mod property_bit_field {
                 f: F,
                 error_reporter: &mut StdBox<ParseErrorReporter + Send>,
                 extra_data: ParserContextExtraData)
-                where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+                % if property.boxed:
+                    where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
+                % else:
+                    where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+                % endif
         {
             f(&
                 ::custom_properties::substitute(css, first_token_type, custom_properties)
@@ -305,7 +317,11 @@ mod property_bit_field {
                                     Some(ShorthandId::${shorthand.camel_case}) => {
                                         shorthands::${shorthand.ident}::parse_value(&context, input)
                                         .map(|result| match result.${property.ident} {
-                                            Some(value) => DeclaredValue::Value(value),
+                                            % if property.boxed:
+                                                Some(value) => DeclaredValue::Value(Box::new(value)),
+                                            % else:
+                                                Some(value) => DeclaredValue::Value(value),
+                                            % endif
                                             None => DeclaredValue::Initial,
                                         })
                                     }
@@ -826,7 +842,11 @@ impl PropertyId {
 pub enum PropertyDeclaration {
     % for property in data.longhands:
         /// ${property.name}
-        ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
+        % if property.boxed:
+            ${property.camel_case}(DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>),
+        % else:
+            ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
+        % endif
     % endfor
     /// A custom property declaration, with the property name and the declared
     /// value.
@@ -2299,4 +2319,18 @@ macro_rules! longhand_properties_idents {
             % endfor
         }
     }
+}
+
+/// Retuns all longhands SpecifiedValue sizes. This is used in unit tests.
+pub fn specified_value_sizes() -> Vec<(&'static str, usize, bool)> {
+    use std::mem::size_of;
+    let mut sizes = vec![];
+
+    % for property in data.longhands:
+        sizes.push(("${property.name}",
+                    size_of::<longhands::${property.ident}::SpecifiedValue>(),
+                    ${"true" if property.boxed else "false"}));
+    % endfor
+
+    sizes
 }

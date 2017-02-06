@@ -77,7 +77,7 @@ ${helpers.predefined_type("opacity",
 </%helpers:vector_longhand>
 
 // FIXME: This prop should be animatable
-<%helpers:longhand name="clip" products="servo" animatable="False"
+<%helpers:longhand name="clip" products="servo" animatable="False" boxed="True"
                    spec="https://drafts.fxtf.org/css-masking/#clip-property">
     use std::fmt;
     use style_traits::ToCss;

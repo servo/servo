@@ -19,7 +19,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
                          animatable=False,
                          spec="https://drafts.csswg.org/css-tables/#propdef-caption-side")}
 
-<%helpers:longhand name="border-spacing" animatable="False"
+<%helpers:longhand name="border-spacing" animatable="False" boxed="True"
                    spec="https://drafts.csswg.org/css-tables/#propdef-border-spacing">
     use app_units::Au;
     use std::fmt;
