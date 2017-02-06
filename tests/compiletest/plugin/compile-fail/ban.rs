@@ -11,8 +11,10 @@ use js::jsval::JSVal;
 use std::cell::Cell;
 
 struct Foo {
-    bar: Cell<JSVal>
-    //~^ ERROR Banned type Cell<JSVal> detected. Use MutJS<JSVal> instead,
+    bar: MutJS<JSVal>
+    //~^ ERROR Banned type MutJS<JSVal> detected. Use Heap<JSVal> instead,
+
+
 }
 
 fn main() {}
