@@ -76,6 +76,7 @@ self.addEventListener('fetch', function(event) {
       } else {
         event.respondWith(new Response('NO_ACCEPT'));
       }
+      return;
     }
     event.respondWith(new Promise(function(resolve, reject) {
         var request = event.request;

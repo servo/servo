@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+  <meta charset="utf-8">
   <title>Creating and deleting captions</title>
   <link rel="author" title="Erika Navara" href="mailto:edoyle@microsoft.com">
   <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-table-element" />
@@ -38,6 +39,22 @@
   </table>
   <table id="table5" style="display:none">
   </table>
+  <table id="table6" style="display:none">
+    <caption id="caption6">caption 6</caption>
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+  </table>
+  <table id="table7" style="display:none">
+    <caption id="caption7">caption 7</caption>
+    <tbody id="tbody7">
+    <tr>
+      <td>cell</td>
+      <td>cell</td>
+    </tr>
+    </tbody>
+  </table>
   <script>
     test(function () {
       var table0 = document.getElementById('table0');
@@ -48,34 +65,40 @@
       assert_not_equals(testCaption, table0FirstNode);
       assert_equals(testCaption, table0.firstChild);
     }, "createCaption method creates new caption if existing caption is not in html namespace")
+
     test(function () {
       var table1 = document.getElementById('table1');
       var testCaption = table1.createCaption();
       var table1FirstCaption = table1.caption;
       assert_equals(testCaption, table1FirstCaption);
     }, "createCaption method returns the first caption element child of the table")
+
     test(function () {
       var table2 = document.getElementById('table2');
       var test2Caption = table2.createCaption();
       var table2FirstNode = table2.firstChild;
-      assert_true(test2Caption instanceof  HTMLTableCaptionElement);
+      assert_true(test2Caption instanceof HTMLTableCaptionElement);
       assert_equals(table2FirstNode, test2Caption);
     }, "createCaption method creates a new caption and inserts it as the first node of the table element")
+
     test(function () {
       var table = document.createElement('table');
       assert_equals(table.createCaption(), table.createCaption());
     }, "createCaption will not create new caption if one exists")
+
     test(function () {
       var table = document.createElementNS("http://www.w3.org/1999/xhtml", "foo:table")
       var caption = table.createCaption();
       assert_equals(caption.prefix, null);
     }, "createCaption will not copy table's prefix")
+
     test(function () {
       var table3 = document.getElementById('table3');
       assert_equals(table3.caption.textContent, "caption 3");
       table3.deleteCaption();
       assert_equals(table3.caption, null);
     }, "deleteCaption method removes the first caption element child of the table element")
+
     test(function () {
       var table4 = document.getElementById('table4');
       var caption = document.createElementNS("foo", "caption");
@@ -83,6 +106,7 @@
       table4.deleteCaption();
       assert_equals(caption.parentNode, table4);
     }, "deleteCaption method not remove caption that is not in html namespace")
+
     test(function() {
       var table5 = document.getElementById('table5');
       var caption = document.createElement('caption');
@@ -95,6 +119,45 @@
 
       assert_not_equals(table5.caption, caption);
     }, "Setting caption rethrows exception");
+
+    test(function() {
+      var table6 = document.getElementById("table6");
+      var caption = document.getElementById("caption6");
+      assert_equals(table6.caption, caption);
+
+      var newCaption = document.createElement("caption");
+      table6.caption = newCaption;
+      assert_equals(newCaption.parentNode, table6);
+      assert_equals(table6.firstChild, newCaption);
+      assert_equals(table6.caption, newCaption);
+    }, "Assigning a caption to table.caption")
+
+    test(function() {
+      var table7 = document.getElementById("table7");
+      var caption = document.getElementById("caption7");
+      assert_equals(table7.caption, caption);
+
+      table7.caption = null;
+      assert_equals(caption.parentNode, null);
+      assert_equals(table7.firstElementChild, document.getElementById("tbody7"));
+      assert_equals(table7.caption, null);
+    }, "Assigning null to table.caption")
+
+    test(function() {
+      var table8 = document.createElement("table");
+      var caption = document.createElement("captİon");
+      assert_throws(new TypeError(), function() {
+        table8.caption = caption;
+      });
+    }, "Assigning a non-caption to table.caption")
+
+    test(function() {
+      var table9 = document.createElement("table");
+      var caption = document.createElementNS("http://www.example.com", "caption");
+      assert_throws(new TypeError(), function() {
+        table9.caption = caption;
+      });
+    }, "Assigning a foreign caption to table.caption")
   </script>
 </body>
 </html>

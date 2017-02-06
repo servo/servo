@@ -80,21 +80,19 @@ function handleUsedCheck(event) {
         'bodyUsed: ' + lastResponseForUsedCheck.bodyUsed));
   }
 }
-
 function handleFragmentCheck(event) {
   var body;
   if (event.request.url.indexOf('#') === -1) {
     body = 'Fragment Not Found';
   } else {
-    body = 'Fragment Found';
+    body = 'Fragment Found :' +
+           event.request.url.substring(event.request.url.indexOf('#'));
   }
   event.respondWith(new Response(body));
 }
-
 function handleCache(event) {
   event.respondWith(new Response(event.request.cache));
 }
-
 function handleEventSource(event) {
   if (event.request.mode === 'navigate') {
     return;

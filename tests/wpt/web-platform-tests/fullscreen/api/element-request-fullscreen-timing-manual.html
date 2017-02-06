@@ -6,7 +6,7 @@
 <div id="log"></div>
 <script>
 async_test(t => {
-  trusted_request(document.querySelector('div'));
+  trusted_request(t, document.querySelector('div'));
 
   // If fullscreenchange is an animation frame event, then animation frame
   // callbacks should be run after it is fired, before the timer callback.

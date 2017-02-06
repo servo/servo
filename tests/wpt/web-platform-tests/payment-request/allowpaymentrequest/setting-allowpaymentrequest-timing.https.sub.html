@@ -1,0 +1,31 @@
+<!doctype html>
+<title>PaymentRequest setting allowpaymentrequest after document creation, before response</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="log"></div>
+<script>
+// Set allowpaymentrequest attribute in a timeout after <iframe> has been inserted to the document.
+// The iframe's response is delayed so it happens after the attribute is set.
+
+async_test((t) => {
+  const iframe = document.createElement('iframe');
+  // no allowpaymentrequest attribute
+
+  const path = location.pathname.substring(0, location.pathname.lastIndexOf('/') + 1);
+  iframe.src = "https://{{domains[www1]}}:{{ports[https][0]}}" + path + "echo-PaymentRequest.html?pipe=trickle(d3)";
+  iframe.onload = t.step_func(() => {
+    iframe.contentWindow.postMessage('What is the result of new PaymentRequest(...)?', '*');
+  });
+
+  window.onmessage = t.step_func_done((e) => {
+    assert_equals(e.data.message, 'Exception');
+    assert_array_equals(e.data.details, [true /* ex instanceof DOMException*/, 18 /* ex.code */, 'SecurityError' /* ex.name */]);
+  });
+
+  document.body.appendChild(iframe);
+
+  setTimeout(() => {
+    iframe.allowPaymentRequest = true;
+  }, 10);
+});
+</script>

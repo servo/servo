@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Pointer Event: touch-action test for two-finger interaction</title>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+    <link rel="author" title="Google" href="http://www.google.com "/>
+    <link rel="help" href="https://compat.spec.whatwg.org/#touch-action" />
+    <meta name="assert" content="Tests that a two-finger pan gesture is cancelled in 'touch-action: pan-x pan-y' but is allowed in 'touch-action: pinch-zoom'"/>
+    <link rel="stylesheet" type="text/css" href="../pointerevent_styles.css">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script type="text/javascript" src="../pointerevent_support.js"></script>
+    <script type="text/javascript">
+      var event_log = [];
+      var active_pointers = 0;
+
+      function resetTestState() {
+        event_log = [];
+        active_pointers = 0;
+      }
+
+      function run() {
+        var test_pointer_events = [
+          setup_pointerevent_test("two-finger pan on 'touch-action: pan-x pan-y'", ["touch"]),
+          setup_pointerevent_test("two-finger pan on 'touch-action: pinch-zoom'", ["touch"])
+        ];
+        var expected_events = [
+          "pointerdown@black, pointerdown@black, pointerup@black, pointerup@black",
+          "pointerdown@grey, pointerdown@grey, pointercancel@grey, pointercancel@grey"
+        ];
+        var current_test_index = 0;
+
+        on_event(document.getElementById("done"), "click", function() {
+          test_pointer_events[current_test_index].step(function () {
+            assert_equals(active_pointers, 0);
+            assert_equals(event_log.join(", "), expected_events[current_test_index]);
+          });
+          event_log = [];
+
+          test_pointer_events[current_test_index++].done();
+        });
+
+        var targets = [document.getElementById("black"), document.getElementById("grey")];
+
+        ["pointerdown", "pointerup", "pointercancel"].forEach(function(eventName) {
+          targets.forEach(function(target){
+            on_event(target, eventName, function (event) {
+              event_log.push(event.type + "@" + event.target.id);
+
+              if (event.type == "pointerdown") {
+                active_pointers++;
+
+              } else {
+                active_pointers--;
+              }
+            });
+          });
+        });
+      }
+    </script>
+    <style>
+      .box {
+        width: 250px;
+        height: 150px;
+        float: left;
+        margin: 10px;
+      }
+
+      #black {
+        touch-action: pan-x pan-y;
+        background-color: black;
+      }
+
+      #grey {
+        touch-action: pinch-zoom;
+        background-color: grey;
+      }
+
+      #done {
+        float: left;
+        padding: 20px;
+      }
+    </style>
+  </head>
+  <body onload="run()">
+    <h1>Pointer Event: touch-action test for two-finger interaction</h1>
+    <h2 id="pointerTypeDescription"></h2>
+    <h4>
+      Tests that a two-finger pan gesture is cancelled in 'touch-action: pan-x pan-y' but is allowed in 'touch-action: pinch-zoom'
+    </h4>
+    <ol>
+      <li>Touch on Black with two fingers and drag both fingers down at same speed.</li>
+      <li>Tap on Done.</li>
+      <li>Touch on Grey with two fingers and drag both fingers down at same speed.</li>
+      <li>Tap on Done.</li>
+    </ol>
+    <div class="box" id="black"></div>
+    <input type="button" id="done" value="Done" />
+    <div class="box" id="grey"></div>
+    <div id="log"></div>
+  </body>
+</html>

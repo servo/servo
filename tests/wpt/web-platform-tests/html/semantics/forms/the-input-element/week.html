@@ -19,9 +19,9 @@
     {value: "-W52", expected: "", testname: "Invalid value: yearless week"},
     {value: "W52", expected: "", testname: "Invalid value: yearless week and no '-' (U+002D)"},
     {value: "2014-W03", attributes: { min: "2014-W02" }, expected: "2014-W03", testname: "Value >= min attribute"},
-    {value: "2014-W01", attributes: { min: "2014-W02" }, expected: "2014-W02", testname: "Value < min attribute"},
+    {value: "2014-W01", attributes: { min: "2014-W02" }, expected: "2014-W01", testname: "Value < min attribute"},
     {value: "2014-W10", attributes: { max: "2014-W11" }, expected: "2014-W10", testname: "Value <= max attribute"},
-    {value: "2014-W12", attributes: { max: "2014-W11" }, expected: "2014-W11", testname: "Value > max attribute"}
+    {value: "2014-W12", attributes: { max: "2014-W11" }, expected: "2014-W12", testname: "Value > max attribute"}
   ];
   for (var i = 0; i < weeks.length; i++) {
     var w = weeks[i];

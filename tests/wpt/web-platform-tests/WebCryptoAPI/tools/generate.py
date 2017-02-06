@@ -48,7 +48,7 @@ run_test([%s]);
 </script>
 """
 
-successes_worker = """// <meta> timeout=long
+successes_worker = """// META: timeout=long
 importScripts("/resources/testharness.js");
 importScripts("../util/helpers.js");
 importScripts("successes.js");
@@ -56,7 +56,7 @@ importScripts("successes.js");
 run_test([%s]);
 done();"""
 
-failures_worker = """// <meta> timeout=long
+failures_worker = """// META: timeout=long
 importScripts("/resources/testharness.js");
 importScripts("../util/helpers.js");
 importScripts("failures.js");

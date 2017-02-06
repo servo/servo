@@ -1,20 +1,115 @@
-var result = 'FAIL: did not throw.';
+// controlled by 'init'/'done' messages.
+var resolveLockPromise;
+var port;
 
 self.addEventListener('message', function(event) {
-    event.data.port.postMessage(result);
+    var waitPromise;
+    var resolveTestPromise;
+
+    switch (event.data.step) {
+      case 'init':
+        event.waitUntil(new Promise((res) => { resolveLockPromise = res; }));
+        port = event.data.port;
+        break;
+      case 'done':
+        resolveLockPromise();
+        break;
+      case 'no-current-extension-different-task':
+        async_task_waituntil(event).then(reportResultExpecting('InvalidStateError'));
+        break;
+      case 'no-current-extension-different-microtask':
+        async_microtask_waituntil(event).then(reportResultExpecting('InvalidStateError'));
+        break;
+      case 'current-extension-different-task':
+        event.waitUntil(new Promise((res) => { resolveTestPromise = res; }));
+        async_task_waituntil(event).then(reportResultExpecting('OK')).then(resolveTestPromise);
+        break;
+      case 'current-extension-expired-same-microtask-turn':
+        waitPromise = Promise.resolve();
+        event.waitUntil(waitPromise);
+        waitPromise.then(() => { return sync_waituntil(event); })
+          .then(reportResultExpecting('OK'))
+        break;
+      case 'current-extension-expired-same-microtask-turn-extra':
+        // The promise handler queues a new microtask *after* the check for new
+        // extensions was performed.
+        waitPromise = Promise.resolve();
+        event.waitUntil(waitPromise);
+        waitPromise.then(() => { return async_microtask_waituntil(event); })
+          .then(reportResultExpecting('InvalidStateError'))
+        break;
+      case 'current-extension-expired-different-task':
+        event.waitUntil(Promise.resolve());
+        async_task_waituntil(event).then(reportResultExpecting('InvalidStateError'));
+        break;
+      case 'script-extendable-event':
+        new_event_waituntil().then(reportResultExpecting('InvalidStateError'));
+        break;
+    }
+    event.source.postMessage('ACK');
   });
 
-self.addEventListener('install', function(event) {
-    self.installEvent = event;
+self.addEventListener('fetch', function(event) {
+    var resolveFetch;
+    let response = new Promise((res) => { resolveFetch = res; });
+    event.respondWith(response);
+    async_task_waituntil(event)
+      .then(reportResultExpecting('OK'))
+      .then(() => { resolveFetch(new Response('OK')); });
   });
 
-self.addEventListener('activate', function(event) {
+function reportResultExpecting(expectedResult) {
+  return function (result) {
+    port.postMessage({result : result, expected: expectedResult});
+    return result;
+  };
+}
+
+function sync_waituntil(event) {
+  return new Promise((res, rej) => {
     try {
-      self.installEvent.waitUntil(new Promise(function(){}));
+        event.waitUntil(Promise.resolve());
+        res('OK');
+      } catch (error) {
+        res(error.name);
+      }
+  });
+}
+
+function new_event_waituntil() {
+  return new Promise((res, rej) => {
+    try {
+      let e = new ExtendableEvent('foo');
+      e.waitUntil(new Promise(() => {}));
+      res('OK');
     } catch (error) {
-      if (error.name == 'InvalidStateError')
-        result = 'PASS';
-      else
-        result = 'FAIL: unexpected exception: ' + error;
+      res(error.name);
     }
   });
+}
+
+function async_microtask_waituntil(event) {
+  return new Promise((res, rej) => {
+    Promise.resolve().then(() => {
+      try {
+        event.waitUntil(Promise.resolve());
+        res('OK');
+      } catch (error) {
+        res(error.name);
+      }
+    });
+  });
+}
+
+function async_task_waituntil(event) {
+  return new Promise((res, rej) => {
+    setTimeout(() => {
+      try {
+        event.waitUntil(Promise.resolve());
+        res('OK');
+      } catch (error) {
+        res(error.name);
+      }
+    }, 0);
+  });
+}

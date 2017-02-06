@@ -28,6 +28,7 @@ function error_test(tagName, src) {
       assert_true(e.error instanceof MediaError);
       assert_equals(e.error.code, 4);
       assert_equals(e.error.code, e.error.MEDIA_ERR_SRC_NOT_SUPPORTED);
+      assert_equals(typeof e.error.message, 'string', 'error.message type');
       t.done();
     });
   }, tagName + '.error after setting src to the empty string');

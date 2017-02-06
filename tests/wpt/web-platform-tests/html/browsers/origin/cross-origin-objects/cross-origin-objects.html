@@ -70,16 +70,25 @@ addTest(function() {
  * Also tests for [[GetOwnProperty]] and [[HasOwnProperty]] behavior.
  */
 
-var whitelistedWindowProps = ['location', 'postMessage', 'window', 'frames', 'self', 'top', 'parent',
-                              'opener', 'closed', 'close', 'blur', 'focus', 'length'];
+var whitelistedWindowIndices = ['0', '1'];
+var whitelistedWindowPropNames = ['location', 'postMessage', 'window', 'frames', 'self', 'top', 'parent',
+                                  'opener', 'closed', 'close', 'blur', 'focus', 'length'];
+whitelistedWindowPropNames = whitelistedWindowPropNames.concat(whitelistedWindowIndices);
+whitelistedWindowPropNames.sort();
+var whitelistedLocationPropNames = ['href', 'replace'];
+whitelistedLocationPropNames.sort();
+var whitelistedSymbols = [Symbol.toStringTag, Symbol.hasInstance,
+                          Symbol.isConcatSpreadable];
+var whitelistedWindowProps = whitelistedWindowPropNames.concat(whitelistedSymbols);
+
 addTest(function() {
   for (var prop in window) {
     if (whitelistedWindowProps.indexOf(prop) != -1) {
       C[prop]; // Shouldn't throw.
       Object.getOwnPropertyDescriptor(C, prop); // Shouldn't throw.
-      assert_true(Object.prototype.hasOwnProperty.call(C, prop), "hasOwnProperty for " + prop);
+      assert_true(Object.prototype.hasOwnProperty.call(C, prop), "hasOwnProperty for " + String(prop));
     } else {
-      assert_throws(null, function() { C[prop]; }, "Should throw when accessing " + prop + " on Window");
+      assert_throws(null, function() { C[prop]; }, "Should throw when accessing " + String(prop) + " on Window");
       assert_throws(null, function() { Object.getOwnPropertyDescriptor(C, prop); },
                     "Should throw when accessing property descriptor for " + prop + " on Window");
       assert_throws(null, function() { Object.prototype.hasOwnProperty.call(C, prop); },
@@ -169,9 +178,18 @@ addTest(function() {
 }, "[[GetOwnProperty]] - Properties on cross-origin objects should be reported |own|");
 
 function checkPropertyDescriptor(desc, propName, expectWritable) {
+  var isSymbol = (typeof(propName) == "symbol");
+  propName = String(propName);
   assert_true(isObject(desc), "property descriptor for " + propName + " should exist");
   assert_equals(desc.enumerable, false, "property descriptor for " + propName + " should be non-enumerable");
   assert_equals(desc.configurable, true, "property descriptor for " + propName + " should be configurable");
+  if (isSymbol) {
+    assert_true("value" in desc,
+                "property descriptor for " + propName + " should be a value descriptor");
+    assert_equals(desc.value, undefined,
+                  "symbol-named cross-origin visible prop " + propName +
+                  " should come back as undefined");
+  }
   if ('value' in desc)
     assert_equals(desc.writable, expectWritable, "property descriptor for " + propName + " should have writable: " + expectWritable);
   else
@@ -187,6 +205,10 @@ addTest(function() {
   checkPropertyDescriptor(Object.getOwnPropertyDescriptor(C.location, 'replace'), 'replace', false);
   checkPropertyDescriptor(Object.getOwnPropertyDescriptor(C.location, 'href'), 'href', true);
   assert_equals(typeof Object.getOwnPropertyDescriptor(C.location, 'href').get, 'undefined', "Cross-origin location should have no href getter");
+  whitelistedSymbols.forEach(function(prop) {
+    var desc = Object.getOwnPropertyDescriptor(C.location, prop);
+    checkPropertyDescriptor(desc, prop, false);
+  });
 }, "[[GetOwnProperty]] - Property descriptors for cross-origin properties should be set up correctly");
 
 /*
@@ -243,11 +265,42 @@ addTest(function() {
  */
 
 addTest(function() {
-  assert_array_equals(whitelistedWindowProps.sort(), Object.getOwnPropertyNames(C).sort(),
+  assert_array_equals(Object.getOwnPropertyNames(C).sort(),
+                      whitelistedWindowPropNames,
                       "Object.getOwnPropertyNames() gives the right answer for cross-origin Window");
-  assert_array_equals(Object.getOwnPropertyNames(C.location).sort(), ['href', 'replace'],
+  assert_array_equals(Object.getOwnPropertyNames(C.location).sort(),
+                      whitelistedLocationPropNames,
                       "Object.getOwnPropertyNames() gives the right answer for cross-origin Location");
 }, "[[OwnPropertyKeys]] should return all properties from cross-origin objects");
+
+addTest(function() {
+  assert_array_equals(Object.getOwnPropertySymbols(C), whitelistedSymbols,
+    "Object.getOwnPropertySymbols() should return the three symbol-named properties that are exposed on a cross-origin Window");
+  assert_array_equals(Object.getOwnPropertySymbols(C.location),
+                      whitelistedSymbols,
+    "Object.getOwnPropertySymbols() should return the three symbol-named properties that are exposed on a cross-origin Location");
+}, "[[OwnPropertyKeys]] should return the right symbol-named properties for cross-origin objects");
+
+addTest(function() {
+  var allWindowProps = Reflect.ownKeys(C);
+  indexedWindowProps = allWindowProps.slice(0, whitelistedWindowIndices.length);
+  stringWindowProps = allWindowProps.slice(0, -1 * whitelistedSymbols.length);
+  symbolWindowProps = allWindowProps.slice(-1 * whitelistedSymbols.length);
+  assert_array_equals(indexedWindowProps, whitelistedWindowIndices,
+                      "Reflect.ownKeys should start with the indices exposed on the cross-origin window.");
+  assert_array_equals(stringWindowProps.sort(), whitelistedWindowPropNames,
+                      "Reflect.ownKeys should continue with the cross-origin window properties for a cross-origin Window.");
+  assert_array_equals(symbolWindowProps, whitelistedSymbols,
+                      "Reflect.ownKeys should end with the cross-origin symbols for a cross-origin Window.");
+
+  var allLocationProps = Reflect.ownKeys(C.location);
+  stringLocationProps = allLocationProps.slice(0, -1 * whitelistedSymbols.length);
+  symbolLocationProps = allLocationProps.slice(-1 * whitelistedSymbols.length);
+  assert_array_equals(stringLocationProps.sort(), whitelistedLocationPropNames,
+                      "Reflect.ownKeys should start with the cross-origin window properties for a cross-origin Location.")
+  assert_array_equals(symbolLocationProps, whitelistedSymbols,
+                      "Reflect.ownKeys should end with the cross-origin symbols for a cross-origin Location.")
+}, "[[OwnPropertyKeys]] should place the symbols after the property names after the subframe indices");
 
 addTest(function() {
   assert_true(B.eval('parent.C') === C, "A and B observe the same identity for C's Window");
@@ -311,6 +364,11 @@ addTest(function() {
   checkFunction(set_href_A, Function.prototype);
   checkFunction(set_href_B, B.Function.prototype);
 }, "Same-origin observers get different accessors for cross-origin Location");
+
+addTest(function() {
+  assert_equals({}.toString.call(C), "[object Object]");
+  assert_equals({}.toString.call(C.location), "[object Object]");
+}, "{}.toString.call() does the right thing on cross-origin objects");
 
 // We do a fresh load of the subframes for each test to minimize side-effects.
 // It would be nice to reload ourselves as well, but we can't do that without

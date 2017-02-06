@@ -137,6 +137,9 @@ TRAILING WHITESPACE:webgl/tools/*.patch
 PRINT STATEMENT:check_stability.py
 W3C-TEST.ORG:check_stability.py
 
+# Travis
+W3C-TEST.ORG:.travis.yml
+
 # Git submodules are not currently scanned
 *:tools/*
 *:resources/*

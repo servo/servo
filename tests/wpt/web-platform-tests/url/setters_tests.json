@@ -27,7 +27,7 @@
             "href": "a://example.net",
             "new_value": "",
             "expected": {
-                "href": "a://example.net/",
+                "href": "a://example.net",
                 "protocol": "a:"
             }
         },
@@ -35,7 +35,7 @@
             "href": "a://example.net",
             "new_value": "b",
             "expected": {
-                "href": "b://example.net/",
+                "href": "b://example.net",
                 "protocol": "b:"
             }
         },
@@ -44,7 +44,7 @@
             "href": "a://example.net",
             "new_value": "B",
             "expected": {
-                "href": "b://example.net/",
+                "href": "b://example.net",
                 "protocol": "b:"
             }
         },
@@ -53,7 +53,7 @@
             "href": "a://example.net",
             "new_value": "é",
             "expected": {
-                "href": "a://example.net/",
+                "href": "a://example.net",
                 "protocol": "a:"
             }
         },
@@ -62,7 +62,7 @@
             "href": "a://example.net",
             "new_value": "0b",
             "expected": {
-                "href": "a://example.net/",
+                "href": "a://example.net",
                 "protocol": "a:"
             }
         },
@@ -71,7 +71,7 @@
             "href": "a://example.net",
             "new_value": "+b",
             "expected": {
-                "href": "a://example.net/",
+                "href": "a://example.net",
                 "protocol": "a:"
             }
         },
@@ -79,7 +79,7 @@
             "href": "a://example.net",
             "new_value": "bC0+-.",
             "expected": {
-                "href": "bc0+-.://example.net/",
+                "href": "bc0+-.://example.net",
                 "protocol": "bc0+-.:"
             }
         },
@@ -88,7 +88,7 @@
             "href": "a://example.net",
             "new_value": "b,c",
             "expected": {
-                "href": "a://example.net/",
+                "href": "a://example.net",
                 "protocol": "a:"
             }
         },
@@ -97,17 +97,33 @@
             "href": "a://example.net",
             "new_value": "bé",
             "expected": {
-                "href": "a://example.net/",
+                "href": "a://example.net",
                 "protocol": "a:"
             }
         },
         {
-            "comment": "Can’t switch from special scheme to non-special. Note: this may change, see https://github.com/whatwg/url/issues/104",
+            "comment": "Can’t switch from special scheme to non-special",
             "href": "http://example.net",
             "new_value": "b",
             "expected": {
                 "href": "http://example.net/",
                 "protocol": "http:"
+            }
+        },
+        {
+            "href": "https://example.net",
+            "new_value": "s",
+            "expected": {
+                "href": "https://example.net/",
+                "protocol": "https:"
+            }
+        },
+        {
+            "href": "ftp://example.net",
+            "new_value": "test",
+            "expected": {
+                "href": "ftp://example.net/",
+                "protocol": "ftp:"
             }
         },
         {
@@ -120,12 +136,36 @@
             }
         },
         {
-            "comment": "Can’t switch from non-special scheme to special. Note: this may change, see https://github.com/whatwg/url/issues/104",
+            "comment": "Can’t switch from non-special scheme to special",
             "href": "ssh://me@example.net",
             "new_value": "http",
             "expected": {
-                "href": "ssh://me@example.net/",
+                "href": "ssh://me@example.net",
                 "protocol": "ssh:"
+            }
+        },
+        {
+            "href": "ssh://me@example.net",
+            "new_value": "gopher",
+            "expected": {
+                "href": "ssh://me@example.net",
+                "protocol": "ssh:"
+            }
+        },
+        {
+            "href": "ssh://me@example.net",
+            "new_value": "file",
+            "expected": {
+                "href": "ssh://me@example.net",
+                "protocol": "ssh:"
+            }
+        },
+        {
+            "href": "nonsense:///test",
+            "new_value": "https",
+            "expected": {
+                "href": "nonsense:///test",
+                "protocol": "nonsense:"
             }
         },
         {
@@ -306,6 +346,88 @@
         }
     ],
     "host": [
+        {
+            "comment": "Non-special scheme",
+            "href": "sc://x/",
+            "new_value": "\u0000",
+            "expected": {
+                "href": "sc://x/",
+                "host": "x",
+                "hostname": "x"
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "\u0009",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "\u000A",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "\u000D",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": " ",
+            "expected": {
+                "href": "sc://x/",
+                "host": "x",
+                "hostname": "x"
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "#",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "/",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "?",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "@",
+            "expected": {
+                "href": "sc://x/",
+                "host": "x",
+                "hostname": "x"
+            }
+        },
         {
             "comment": "Cannot-be-a-base means no host",
             "href": "mailto:me@example.net",
@@ -527,7 +649,7 @@
             }
         },
         {
-            "comment": "\\ is not a delimiter for non-special schemes, and it’s invalid in a domain",
+            "comment": "\\ is not a delimiter for non-special schemes, but still forbidden in hosts",
             "href": "view-source+http://example.net/path",
             "new_value": "example.com\\stuff",
             "expected": {
@@ -591,9 +713,137 @@
                 "hostname": "example.com",
                 "port": ""
             }
+        },
+        {
+            "comment": "Broken IPv6",
+            "href": "http://example.net/",
+            "new_value": "[google.com]",
+            "expected": {
+                "href": "http://example.net/",
+                "host": "example.net",
+                "hostname": "example.net"
+            }
+        },
+        {
+            "href": "http://example.net/",
+            "new_value": "[::1.2.3.4x]",
+            "expected": {
+                "href": "http://example.net/",
+                "host": "example.net",
+                "hostname": "example.net"
+            }
+        },
+        {
+            "href": "http://example.net/",
+            "new_value": "[::1.2.3.]",
+            "expected": {
+                "href": "http://example.net/",
+                "host": "example.net",
+                "hostname": "example.net"
+            }
+        },
+        {
+            "href": "http://example.net/",
+            "new_value": "[::1.2.]",
+            "expected": {
+                "href": "http://example.net/",
+                "host": "example.net",
+                "hostname": "example.net"
+            }
+        },
+        {
+            "href": "http://example.net/",
+            "new_value": "[::1.]",
+            "expected": {
+                "href": "http://example.net/",
+                "host": "example.net",
+                "hostname": "example.net"
+            }
         }
     ],
     "hostname": [
+        {
+            "comment": "Non-special scheme",
+            "href": "sc://x/",
+            "new_value": "\u0000",
+            "expected": {
+                "href": "sc://x/",
+                "host": "x",
+                "hostname": "x"
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "\u0009",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "\u000A",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "\u000D",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": " ",
+            "expected": {
+                "href": "sc://x/",
+                "host": "x",
+                "hostname": "x"
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "#",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "/",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "?",
+            "expected": {
+                "href": "sc:///",
+                "host": "",
+                "hostname": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "@",
+            "expected": {
+                "href": "sc://x/",
+                "host": "x",
+                "hostname": "x"
+            }
+        },
         {
             "comment": "Cannot-be-a-base means no host",
             "href": "mailto:me@example.net",
@@ -738,7 +988,7 @@
             }
         },
         {
-            "comment": "\\ is not a delimiter for non-special schemes, and it’s invalid in a domain",
+            "comment": "\\ is not a delimiter for non-special schemes, but still forbidden in hosts",
             "href": "view-source+http://example.net/path",
             "new_value": "example.com\\stuff",
             "expected": {
@@ -746,6 +996,52 @@
                 "host": "example.net",
                 "hostname": "example.net",
                 "port": ""
+            }
+        },
+        {
+            "comment": "Broken IPv6",
+            "href": "http://example.net/",
+            "new_value": "[google.com]",
+            "expected": {
+                "href": "http://example.net/",
+                "host": "example.net",
+                "hostname": "example.net"
+            }
+        },
+        {
+            "href": "http://example.net/",
+            "new_value": "[::1.2.3.4x]",
+            "expected": {
+                "href": "http://example.net/",
+                "host": "example.net",
+                "hostname": "example.net"
+            }
+        },
+        {
+            "href": "http://example.net/",
+            "new_value": "[::1.2.3.]",
+            "expected": {
+                "href": "http://example.net/",
+                "host": "example.net",
+                "hostname": "example.net"
+            }
+        },
+        {
+            "href": "http://example.net/",
+            "new_value": "[::1.2.]",
+            "expected": {
+                "href": "http://example.net/",
+                "host": "example.net",
+                "hostname": "example.net"
+            }
+        },
+        {
+            "href": "http://example.net/",
+            "new_value": "[::1.]",
+            "expected": {
+                "href": "http://example.net/",
+                "host": "example.net",
+                "hostname": "example.net"
             }
         }
     ],
@@ -952,8 +1248,8 @@
             "href": "view-source+http://example.net/home?lang=fr#nav",
             "new_value": "\\a\\%2E\\b\\%2e.\\c",
             "expected": {
-                "href": "view-source+http://example.net/\\a\\.\\b\\..\\c?lang=fr#nav",
-                "pathname": "/\\a\\.\\b\\..\\c"
+                "href": "view-source+http://example.net/\\a\\%2E\\b\\%2e.\\c?lang=fr#nav",
+                "pathname": "/\\a\\%2E\\b\\%2e.\\c"
             }
         },
         {
@@ -966,12 +1262,12 @@
             }
         },
         {
-            "comment": "Bytes already percent-encoded are left as-is, except %2E.",
+            "comment": "Bytes already percent-encoded are left as-is, including %2E outside dotted segments.",
             "href": "http://example.net",
             "new_value": "%2e%2E%c3%89té",
             "expected": {
-                "href": "http://example.net/..%c3%89t%C3%A9",
-                "pathname": "/..%c3%89t%C3%A9"
+                "href": "http://example.net/%2e%2E%c3%89t%C3%A9",
+                "pathname": "/%2e%2E%c3%89t%C3%A9"
             }
         },
         {
@@ -981,6 +1277,33 @@
             "expected": {
                 "href": "http://example.net/%3F",
                 "pathname": "/%3F"
+            }
+        },
+        {
+            "comment": "# needs to be encoded",
+            "href": "http://example.net",
+            "new_value": "#",
+            "expected": {
+                "href": "http://example.net/%23",
+                "pathname": "/%23"
+            }
+        },
+        {
+            "comment": "? needs to be encoded, non-special scheme",
+            "href": "sc://example.net",
+            "new_value": "?",
+            "expected": {
+                "href": "sc://example.net/%3F",
+                "pathname": "/%3F"
+            }
+        },
+        {
+            "comment": "# needs to be encoded, non-special scheme",
+            "href": "sc://example.net",
+            "new_value": "#",
+            "expected": {
+                "href": "sc://example.net/%23",
+                "pathname": "/%23"
             }
         }
     ],

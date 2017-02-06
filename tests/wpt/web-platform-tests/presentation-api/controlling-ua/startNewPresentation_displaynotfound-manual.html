@@ -10,9 +10,12 @@
 <p>Before starting this test, confirm that there is no available presentation display on your local network.</p>
 <p>Click the button below to start the manual test. If prompted to select a device, please dismiss the dialog box. The test passes if a "PASS" result appears.
 </p>
-<button id="presentBtn" onclick="startPresentation()">Start Presentation Test</button>
+<button id="presentBtn">Start Presentation Test</button>
 
 <script>
+    // disable the timeout function for the tests
+    setup({explicit_timeout: true});
+
     // ----------
     // DOM Object
     // ----------
@@ -21,11 +24,19 @@
     // -------------------------------------------
     // Start New Presentation Test (error) - begin
     // -------------------------------------------
-    var startPresentation = function () {
+    presentBtn.onclick = function () {
         presentBtn.disabled = true;
         promise_test(function (t) {
             var request = new PresentationRequest(presentationUrls);
-            return promise_rejects(t, 'NotFoundError', request.start());
+
+            // terminate the presentation connection when the presentation is started by accident
+            var connection;
+            t.add_cleanup(function() {
+                if(connection)
+                    connection.terminate();
+            });
+
+            return promise_rejects(t, 'NotFoundError', request.start().then(function(c) { connection = c; }));
         });
     };
     // -----------------------------------------

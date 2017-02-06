@@ -11,16 +11,16 @@
 async_test(function(t)
 {
     var first = document.getElementById("first");
-    trusted_request(first);
+    trusted_request(t, first);
     document.onfullscreenchange = t.step_func(function()
     {
         assert_equals(document.fullscreenElement, first);
         var last = document.getElementById("last");
-        trusted_request(last);
+        trusted_request(t, last);
         document.onfullscreenchange = t.step_func(function()
         {
             assert_equals(document.fullscreenElement, last);
-            trusted_request(first, last);
+            trusted_request(t, first, last);
             document.onfullscreenerror = t.step_func_done();
         });
     });

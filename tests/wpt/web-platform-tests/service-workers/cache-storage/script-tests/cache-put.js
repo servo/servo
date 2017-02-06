@@ -103,6 +103,19 @@ cache_test(function(cache) {
   }, 'Cache.put with an empty response body');
 
 cache_test(function(cache) {
+    var request = new Request(test_url);
+    var response = new Response('', {
+        status: 206,
+        headers: [['Content-Type', 'text/plain']]
+      });
+
+    return assert_promise_rejects(
+      cache.put(request, response),
+      new TypeError(),
+      'Cache.put should reject 206 Responses with a TypeError.');
+  }, 'Cache.put with 206 response');
+
+cache_test(function(cache) {
     var test_url = new URL('../resources/fetch-status.py?status=500', location.href).href;
     var request = new Request(test_url);
     var response;
@@ -289,5 +302,23 @@ cache_test(function(cache, test) {
       'Cache.put should reject Responses with an embedded VARY:* with a ' +
       'TypeError.');
   }, 'Cache.put with an embedded VARY:* Response');
+
+cache_test(function(cache) {
+    var url = 'foo.html';
+    var redirectURL = 'http://example.com/foo-bar.html';
+    var redirectResponse = Response.redirect(redirectURL);
+    assert_equals(redirectResponse.headers.get('Location'), redirectURL,
+                  'Response.redirect() should set Location header.');
+    return cache.put(url, redirectResponse.clone())
+      .then(function() {
+          return cache.match(url);
+        })
+      .then(function(response) {
+          assert_response_equals(response, redirectResponse,
+                                 'Redirect response is reproduced by the Cache API');
+          assert_equals(response.headers.get('Location'), redirectURL,
+                        'Location header is preserved by Cache API.');
+        });
+  }, 'Cache.put should store Response.redirect() correctly');
 
 done();

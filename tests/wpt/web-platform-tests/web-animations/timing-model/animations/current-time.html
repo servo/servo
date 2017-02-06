@@ -45,7 +45,7 @@ test(function(t) {
 }, 'The current time is unresolved when the start time is unresolved ' +
    '(and no hold time is set)');
 
-promise_test(function(t) {
+test(function(t) {
   var animation =
     new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
                   document.timeline);

@@ -4,33 +4,32 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/encodings.js"></script>
 <script>
-var tests = [];
-setup(function() {
-  var whitespace = [' ', '\t', '\n', '\f', '\r'];
-  encodings_table.forEach(function(section) {
-    section.encodings.filter(function(encoding) {
-      return encoding.name !== 'replacement';
-    }).forEach(function(encoding) {
-      var name = encoding.name;
-      encoding.labels.forEach(function(label) {
-        tests.push([label, encoding.name]);
+var whitespace = [' ', '\t', '\n', '\f', '\r'];
+encodings_table.forEach(function(section) {
+  section.encodings.filter(function(encoding) {
+    return encoding.name !== 'replacement';
+  }).forEach(function(encoding) {
+    encoding.labels.forEach(function(label) {
+      test(function(t) {
+        assert_equals(
+          new TextDecoder(label).encoding, encoding.name,
+          'label for encoding should match');
+        assert_equals(
+          new TextDecoder(label.toUpperCase()).encoding, encoding.name,
+          'label matching should be case-insensitive');
         whitespace.forEach(function(ws) {
-          tests.push([ws + label, encoding.name]);
-          tests.push([label + ws, encoding.name]);
-          tests.push([ws + label + ws, encoding.name]);
+          assert_equals(
+            new TextDecoder(ws + label).encoding, encoding.name,
+            'label for encoding with leading whitespace should match');
+          assert_equals(
+            new TextDecoder(label + ws).encoding, encoding.name,
+            'label for encoding with trailing whitespace should match');
+          assert_equals(
+            new TextDecoder(ws + label + ws).encoding, encoding.name,
+            'label for encoding with surrounding whitespace should match');
         });
-      });
+      }, label + ' => ' + encoding.name);
     });
   });
-});
-
-tests.forEach(function(t) {
-  var input = t[0], output = t[1];
-  test(function() {
-    assert_equals(new TextDecoder(input).encoding, output,
-                  'label for encoding should match');
-    assert_equals(new TextDecoder(input.toUpperCase()).encoding, output,
-                  'label matching should be case-insensitive');
-  }, format_value(input) + " => " + format_value(output));
 });
 </script>

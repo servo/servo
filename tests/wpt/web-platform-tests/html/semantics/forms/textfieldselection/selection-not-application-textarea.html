@@ -9,12 +9,21 @@
 <script>
   test(function() {
     var el = document.createElement("textarea");
-    assert_equals(el.selectionStart, 0);
-    assert_equals(el.selectionEnd, 0);
+    assert_equals(el.selectionStart, 0, "initial selectionStart");
+    assert_equals(el.selectionEnd, 0, "initial selectionEnd");
+    assert_equals(el.selectionDirection, "none", "initial selectionDirection");
+
     el.selectionStart = 1;
     el.selectionEnd = 1;
     el.selectionDirection = "forward";
+    assert_equals(el.selectionStart, 1, "updated selectionStart");
+    assert_equals(el.selectionEnd, 1, "updated selectionEnd");
+    assert_equals(el.selectionDirection, "forward", "updated selectionDirection");
+
     el.setRangeText("foobar");
     el.setSelectionRange(0, 1);
+    assert_equals(el.selectionStart, 0, "final selectionStart");
+    assert_equals(el.selectionEnd, 1, "final selectionEnd");
+    assert_equals(el.selectionDirection, "forward", "final selectionDirection");
   }, "text field selection for the input textarea");
 </script>

@@ -2,14 +2,14 @@
 
 // Bluetooth UUID constants:
 // Services:
-var blacklist_test_service_uuid = "611c954a-263b-4f4a-aab6-01ddb953f985";
+var blocklist_test_service_uuid = "611c954a-263b-4f4a-aab6-01ddb953f985";
 var request_disconnection_service_uuid = "01d7d889-7451-419f-aeb8-d65e7b9277af";
 // Characteristics:
-var blacklist_exclude_reads_characteristic_uuid = "bad1c9a2-9a5b-4015-8b60-1579bbbf2135";
+var blocklist_exclude_reads_characteristic_uuid = "bad1c9a2-9a5b-4015-8b60-1579bbbf2135";
 var request_disconnection_characteristic_uuid = "01d7d88a-7451-419f-aeb8-d65e7b9277af";
 // Descriptors:
-var blacklist_exclude_reads_descriptor_uuid = "aaaaaaaa-aaaa-1181-0510-810819516110";
-var blacklist_descriptor_uuid = "07711111-6104-0970-7011-1107105110aaa";
+var blocklist_exclude_reads_descriptor_uuid = "aaaaaaaa-aaaa-1181-0510-810819516110";
+var blocklist_descriptor_uuid = "07711111-6104-0970-7011-1107105110aaa";
 var characteristic_user_description_uuid = "00002901-0000-1000-8000-00805f9b34fb";
 
 // Bluetooth Adapter types:
@@ -23,7 +23,7 @@ var adapter_type = {
     no_name_heart_rate: 'NoNameHeartRateAdapter',
     glucose_heart_rate: 'GlucoseHeartRateAdapter',
     unicode_device: 'UnicodeDeviceAdapter',
-    blacklist: 'BlacklistTestAdapter',
+    blocklist: 'BlocklistTestAdapter',
     missing_characteristic_heart_rate: 'MissingCharacteristicHeartRateAdapter',
     missing_service_heart_rate: 'MissingServiceHeartRateAdapter',
     missing_descriptor_heart_rate: 'MissingDescriptorHeartRateAdapter'

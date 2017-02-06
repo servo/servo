@@ -22,53 +22,56 @@
   }
 
   function getNextEvent(arr) {
-    var eventStr = arr.shift();
+    var event = { str: arr.shift() };
 
     // we can only handle strings, numbers (readystates) and undefined
-    if (eventStr === undefined) {
+    if (event.str === undefined) {
       return event;
     }
-    if (typeof eventStr !== "string") {
-      if (Number.isInteger(eventStr)) {
-        eventStr = "readystatechange(" + eventStr + ")";
+
+    if (typeof event.str !== "string") {
+      if (Number.isInteger(event.str)) {
+        event.state = event.str;
+        event.str = "readystatechange(" + event.str + ")";
       } else {
-        throw "Test error: unexpected event type " + eventStr;
+        throw "Test error: unexpected event type " + event.str;
       }
     }
 
     // parse out the general type, loaded and total values
-    var type = eventStr.type = eventStr.split("(")[0].split(".").pop();
-    eventStr.mayFollowOptionalProgressEvents = type == "progress" ||
-      type == "load" || type == "abort" || type == "error";
-    var loadedAndTotal = eventStr.match(/\((\d)+,(\d)+/);
+    var type = event.type = event.str.split("(")[0].split(".").pop();
+    var loadedAndTotal = event.str.match(/.*\((\d+),(\d+),(true|false)\)/);
     if (loadedAndTotal) {
-      eventStr.loaded = parseInt(loadedAndTotal[0]);
-      eventStr.total = parseInt(loadedAndTotal[1]);
+      event.loaded = parseInt(loadedAndTotal[1]);
+      event.total = parseInt(loadedAndTotal[2]);
+      event.lengthComputable = loadedAndTotal[3] == "true";
     }
 
-    return eventStr;
+    return event;
   }
 
   global.assert_xhr_event_order_matches = function(expected) {
     var recorded = recorded_xhr_events;
     var lastRecordedLoaded = -1;
-
     while(expected.length && recorded.length) {
       var currentExpected = getNextEvent(expected),
           currentRecorded = getNextEvent(recorded);
 
-      // skip to the last progress event if we've hit one
-      while (recorded.length && currentRecorded.type == "progress") {
-        assert_greater(currentRecorded.loaded, lastRecordedLoaded,
-                       "progress event 'loaded' values must only increase");
+      // skip to the last progress event if we've hit one (note the next
+      // event after a progress event should be a LOADING readystatechange,
+      // if there are multiple progress events in a row).
+      while (recorded.length && currentRecorded.type == "progress" &&
+             parseInt(recorded) === 3) {
+        assert_greater_than(currentRecorded.loaded, lastRecordedLoaded,
+                            "progress event 'loaded' values must only increase");
         lastRecordedLoaded = currentRecorded.loaded;
-        currentRecorded = getNextEvent(recorded);
       }
-      if (currentRecorded.type == "loadstart") {
+      if (currentRecorded.type == "loadend") {
+        recordedProgressCount = 0;
         lastRecordedLoaded = -1;
       }
 
-      assert_equals(currentRecorded, currentExpected);
+      assert_equals(currentRecorded.str, currentExpected.str);
     }
     if (recorded.length) {
       throw "\nUnexpected extra events: " + recorded.join(", ");

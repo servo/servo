@@ -10,12 +10,17 @@ var miscElements = {
   script: {
     src: "url",
     type: "string",
+    noModule: "boolean",
     charset: "string",
     // TODO: async attribute (complicated).
     defer: "boolean",
     crossOrigin: {type: "enum", keywords: ["anonymous", "use-credentials"], nonCanon:{"": "anonymous"}, isNullable: true, defaultVal: null, invalidVal: "anonymous"},
     nonce: "string",
     integrity: "string",
+
+    // Obsolete
+    event: "string",
+    htmlFor: {type: "string", domAttrName: "for"},
   },
   noscript: {},
 

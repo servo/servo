@@ -18,11 +18,22 @@
 interface Event {
 };
 
+interface EventHandler {
+};
+
 dictionary EventInit {
+};
+
+interface Window {
 };
 </pre>
 
 <pre id='idl'>
+partial interface Window {
+    attribute EventHandler ondeviceorientation;
+    attribute EventHandler ondevicemotion;
+};
+
 [Constructor(DOMString type, optional DeviceOrientationEventInit eventInitDict)]
 interface DeviceOrientationEvent : Event {
   readonly attribute double? alpha;
@@ -32,20 +43,20 @@ interface DeviceOrientationEvent : Event {
 };
 
 dictionary DeviceOrientationEventInit : EventInit {
-  double? alpha;
-  double? beta;
-  double? gamma;
-  boolean absolute;
+      double? alpha = null;
+      double? beta = null;
+      double? gamma = null;
+      boolean absolute = false;
 };
 
-[Callback, NoInterfaceObject]
+[NoInterfaceObject]
 interface DeviceAcceleration {
   readonly attribute double? x;
   readonly attribute double? y;
   readonly attribute double? z;
 };
 
-[Callback, NoInterfaceObject]
+[NoInterfaceObject]
 interface DeviceRotationRate {
   readonly attribute double? alpha;
   readonly attribute double? beta;
@@ -60,11 +71,23 @@ interface DeviceMotionEvent : Event {
   readonly attribute double? interval;
 };
 
+dictionary DeviceAccelerationInit {
+  double? x = null;
+  double? y = null;
+  double? z = null;
+};
+
+dictionary DeviceRotationRateInit {
+  double? alpha = null;
+  double? beta  = null;
+  double? gamma = null;
+};
+
 dictionary DeviceMotionEventInit : EventInit {
   DeviceAcceleration? acceleration;
   DeviceAcceleration? accelerationIncludingGravity;
   DeviceRotationRate? rotationRate;
-  double? interval;
+  double? interval = null;
 };
 </pre>
 

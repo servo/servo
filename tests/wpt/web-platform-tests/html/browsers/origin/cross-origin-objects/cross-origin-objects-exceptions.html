@@ -71,8 +71,12 @@ addTest(function() {
  * Also tests for [[GetOwnProperty]] and [[HasOwnProperty]] behavior.
  */
 
+var whitelistedWindowIndices = ['0', '1'];
 var whitelistedWindowProps = ['location', 'postMessage', 'window', 'frames', 'self', 'top', 'parent',
                               'opener', 'closed', 'close', 'blur', 'focus', 'length'];
+whitelistedWindowProps = whitelistedWindowProps.concat(whitelistedWindowIndices);
+whitelistedWindowProps.sort();
+
 addTest(function() {
   for (var prop in window) {
     if (whitelistedWindowProps.indexOf(prop) != -1) {
@@ -244,7 +248,7 @@ addTest(function() {
  */
 
 addTest(function() {
-  assert_array_equals(whitelistedWindowProps.sort(), Object.getOwnPropertyNames(C).sort(),
+  assert_array_equals(Object.getOwnPropertyNames(C).sort(), whitelistedWindowProps.sort(),
                       "Object.getOwnPropertyNames() gives the right answer for cross-origin Window");
   assert_array_equals(Object.getOwnPropertyNames(C.location).sort(), ['href', 'replace'],
                       "Object.getOwnPropertyNames() gives the right answer for cross-origin Location");

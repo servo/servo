@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>performance.now() time origin</title>
+<meta name="author" title="JosephPecoraro" href="mailto:joepeck@webkit.org">
+<meta name="assert" content="Time origin in Worker should be Worker's moment of creation.">
+<link rel="help" href="https://w3c.github.io/hr-time/#time-origin-1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+  this.step_timeout(function() {
+    var workerScript = 'postMessage({now: performance.now()})';
+    var blob = new Blob([workerScript]);
+    var worker = new Worker(URL.createObjectURL(blob));
+    var windowWorkerCreationTime = performance.now();
+    worker.addEventListener("message", t.step_func_done(function(event) {
+      var workerNow = event.data.now;
+
+      // We waited 1s to spawn the worker. So verify the worker timestamp is at least less then 0.5 seconds.
+      assert_less_than(workerNow, 500, "worker performance.now() must be very close to its creation time");
+
+      // We waited 1s to spawn the worker. Window's now is ~1000, Worker's now will be much lower.
+      assert_greater_than(windowWorkerCreationTime - workerNow, 500, "window's time origin must be before worker's time origin");
+    }));
+  }, 1000);
+}, 'Worker time origin is approximately its creation time');
+</script>
+</head>
+<body>
+<h1>Description</h1>
+<p>This test validates that a Worker's time origin is its moment of creation and differs from its spawner's.</p>
+<div id="log"></div>
+</body>
+</html>

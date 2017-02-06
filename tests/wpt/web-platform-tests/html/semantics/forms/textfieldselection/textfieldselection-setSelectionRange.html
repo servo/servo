@@ -41,7 +41,7 @@ test(function() {
     input.setSelectionRange(input.value.length+1,1)
     assert_equals(input.selectionStart, 1, "If end is less than or equal to start then the start of the selection and the end of the selection must both be placed immediately before the character with offset end");
     assert_equals(input.selectionEnd, 1, "element.selectionEnd should be 1");
-  },'input setSelectionRange(input.value.length+1,input.value.length+1)');
+  },'input setSelectionRange(input.value.length+1,1)');
 
   test(function() {
     input.setSelectionRange(2,2)

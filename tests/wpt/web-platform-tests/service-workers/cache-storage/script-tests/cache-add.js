@@ -84,12 +84,33 @@ cache_test(function(cache) {
   }, 'Cache.add with request with null body (not consumed)');
 
 cache_test(function(cache, test) {
+    return assert_promise_rejects(
+      test,
+      new TypeError(),
+      cache.add('../resources/fetch-status.py?status=206'),
+      'Cache.add should reject on partial response');
+  }, 'Cache.add with 206 response');
+
+cache_test(function(cache, test) {
+    var urls = ['../resources/fetch-status.py?status=206',
+                '../resources/fetch-status.py?status=200'];
+    var requests = urls.map(function(url) {
+        return new Request(url);
+      });
+    return promise_rejects(
+      new TypeError(),
+      cache.addAll(requests),
+      'Cache.addAll should reject with TypeError if any request fails');
+  }, 'Cache.addAll with 206 response');
+
+cache_test(function(cache, test) {
     return promise_rejects(
       test,
       new TypeError(),
       cache.add('this-does-not-exist-please-dont-create-it'),
       'Cache.add should reject if response is !ok');
   }, 'Cache.add with request that results in a status of 404');
+
 
 cache_test(function(cache, test) {
     return promise_rejects(

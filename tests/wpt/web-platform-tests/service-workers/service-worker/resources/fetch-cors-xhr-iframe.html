@@ -66,8 +66,8 @@ window.addEventListener('message', function(evt) {
       [remote_url + '?reject', false, FAIL],
       [remote_url + '?reject', true, FAIL],
       // Event handler exception tests
-      [url + '?throw', false, FAIL],
-      [url + '?throw', true, FAIL],
+      [url + '?throw', false, SUCCESS],
+      [url + '?throw', true, SUCCESS],
       [remote_url + '?throw', false, FAIL],
       [remote_url + '?throw', true, FAIL],
       // Reject(resolve-null) tests

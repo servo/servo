@@ -33,9 +33,12 @@
     // 'default request' Test - BEGIN
     // ------------------------------
     async_test(function(t) {
-        // clean up the instruction notice when the test ends
+        // clean up the presentation and the instruction notice when the test ends
+        var connection;
         t.add_cleanup(function() {
             notice.parentNode.removeChild(notice);
+            if(connection)
+                connection.terminate();
         });
         // set an event handler to make the test fail when the button is clicked
         button.onclick = t.step_func_done(function() {
@@ -45,7 +48,7 @@
         var request = new PresentationRequest(presentationUrls);
         navigator.presentation.defaultRequest = request;
         request.onconnectionavailable = t.step_func_done(function (evt) {
-            var connection = evt.connection;
+            connection = evt.connection;
             // check the presentation connection and its attributes
             assert_equals(connection.state, 'connecting', 'The initial state of the presentation connection is "connecting".');
             assert_true(!!connection.id, 'The connection ID is set.');

@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test SetValueCurve with start time in the past</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+function do_test(t, context) {
+  var source = context.createConstantSource();
+  source.start();
+
+  var test = context.createGain();
+  test.gain.setValueCurveAtTime(new Float32Array([1.0, 0.1]), 0.0, 1.0);
+
+  var reference = context.createGain();
+  reference.gain.setValueCurveAtTime(new Float32Array([1.0, 0.1]), 0.5*context.currentTime, 1.0);
+
+  source.connect(test);
+  source.connect(reference);
+
+  var merger = context.createChannelMerger();
+  test.connect(merger, 0, 0);
+  reference.connect(merger, 0, 1);
+
+  var processor = context.createScriptProcessor(0, 2, 0);
+  merger.connect(processor);
+  processor.onaudioprocess =
+    t.step_func_done((e) => {
+      source.stop();
+      processor.onaudioprocess = null;
+
+      var testValue = e.inputBuffer.getChannelData(0)[0];
+      var referenceValue = e.inputBuffer.getChannelData(1)[0];
+
+      assert_equals(testValue, referenceValue,
+                        "value matches expected");
+    });
+}
+
+async_test(function(t) {
+  var context = new AudioContext;
+  (function waitForTimeAdvance() {
+    if (context.currentTime == 0) {
+      t.step_timeout(waitForTimeAdvance, 0);
+    } else {
+      do_test(t, context);
+    }
+  })();
+});
+</script>

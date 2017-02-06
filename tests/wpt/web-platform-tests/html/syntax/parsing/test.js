@@ -1,5 +1,6 @@
 var namespaces = {
   "html":"http://www.w3.org/1999/xhtml",
+  "math":"http://www.w3.org/1998/Math/MathML",
   "mathml":"http://www.w3.org/1998/Math/MathML",
   "svg":"http://www.w3.org/2000/svg",
   "xlink":"http://www.w3.org/1999/xlink",
@@ -94,6 +95,18 @@ function test_serializer(element) {
             lines.push(format("|%s%s=\"%s\"", indent_spaces, attr[0], attr[1]));
           }
         );
+        if ("HTMLTemplateElement" in window &&
+            Object.prototype.toString.call(element) === "[object HTMLTemplateElement]") {
+          indent += 2;
+          indent_spaces = (new Array(indent)).join(" ");
+          lines.push(format("|%scontent", indent_spaces));
+          indent += 2;
+          Array.prototype.forEach.call(element.content.childNodes,
+                                       function(node) {
+                                         serialize_element(node, indent);
+                                       });
+          indent -= 4;
+        }
         break;
     }
     indent += 2;

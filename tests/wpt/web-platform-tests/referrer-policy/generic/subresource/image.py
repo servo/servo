@@ -1,4 +1,4 @@
-import os, sys, array, json, math, cStringIO
+import os, sys, array, json, math, StringIO
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import subresource
 
@@ -82,7 +82,7 @@ def encode_string_as_bmp_image(string_data):
     img.putdata(color_data)
 
     # Flush image to string.
-    f = cStringIO.StringIO()
+    f = StringIO.StringIO()
     img.save(f, "BMP")
     f.seek(0)
 

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>exception test of performance.mark and performance.measure</title>
+    <meta rel="help" href="http://www.w3.org/TR/user-timing/#extensions-performance-interface"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/webperftestharness.js"></script>
+  </head>
+  <body>
+    <script>
+    setup({explicit_done: true});
+    test_namespace();
+
+    test(function() {
+      for (var i in timingAttributes) {
+        assert_throws("SyntaxError", function() { window.performance.mark(timingAttributes[i]); });
+        assert_throws("SyntaxError", function() { window.performance.measure(timingAttributes[i]); });
+      }
+    }, "performance.mark and performance.measure should throw if used with timing attribute values");
+
+    fetch_tests_from_worker(new Worker("test_user_timing_mark_and_measure_exception_when_invoke_with_timing_attributes.js"));
+
+    done();
+
+    </script>
+    <h1>Description</h1>
+    <p>This test validates exception scenarios of invoking mark() and measure() with timing attributes as value.</p>
+    <div id="log"></div>
+  </body>
+</html>

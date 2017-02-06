@@ -9,11 +9,11 @@ cache:
 matrix:
   include:
   - python: 2.7
-    env: TOXENV=py27
+    env: TOXENV=py27 HYPOTHESIS_PROFILE=ci
   - python: 3.5
-    env: TOXENV=py35
+    env: TOXENV=py35 HYPOTHESIS_PROFILE=ci
   - python: pypy
-    env: TOXENV=pypy
+    env: TOXENV=pypy HYPOTHESIS_PROFILE=ci_pypy
 
 # An ugly hack needed to make py.test believe our top level can be
 # imported (on Travis CI, we end up in a wpt-tools directory, and of

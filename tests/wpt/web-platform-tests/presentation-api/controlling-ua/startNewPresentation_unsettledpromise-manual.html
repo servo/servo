@@ -8,24 +8,34 @@
 <script src="common.js"></script>
 
 <p>Click the button below to start the manual test. If prompted to select a device, please dismiss the dialog box. The test passes if a "PASS" result appears.</p>
-<button id="presentBtn" onclick="startPresentation()">Start Presentation Test</button>
+<button id="presentBtn">Start Presentation Test</button>
 
 <script>
+    // disable the timeout function for the tests
+    setup({explicit_timeout: true});
+
     // ----------
     // DOM Object
     // ----------
     var presentBtn = document.getElementById("presentBtn");
 
+    // -----------------------------------------------
+    // Terminate a presentation if started by accident
+    // -----------------------------------------------
+    function terminate(connection) {
+        connection.terminate();
+    }
+
     // -------------------------------------------
     // Start New Presentation Test (error) - begin
     // -------------------------------------------
-    var startPresentation = function () {
+    presentBtn.onclick = function () {
         presentBtn.disabled = true;
         promise_test(function (t) {
             var request1 = new PresentationRequest(presentationUrls),
                 request2 = new PresentationRequest(presentationUrls);
-            request1.start().catch(function(){});
-            return promise_rejects(t, 'OperationError', request2.start());
+            request1.start().then(terminate, function(){});
+            return promise_rejects(t, 'OperationError', request2.start().then(terminate));
         });
     };
     // -----------------------------------------

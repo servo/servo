@@ -15,6 +15,11 @@ var simple_tests = [
     input: "<textarea name=foo>bar</textarea>",
     output: "foo=bar"
   },
+  {
+    name: "nokeygen.simple",
+    input: "<input name=foo value=barb><keygen>",
+    output: "foo=barb"
+  }
 ];
 simple_tests.forEach(function(test_obj) {
   test_obj.test = async_test(test_obj.name);

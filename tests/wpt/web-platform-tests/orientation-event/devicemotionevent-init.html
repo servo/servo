@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DeviceMotionEvent attributes must be initialized properly</title>
+    <meta charset='utf-8'>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <p>DeviceOrientationEvent attributes must be initialized properly.</p>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var evt = new DeviceMotionEvent("foo");
+        assert_equals(evt.type, "foo", "type is set to \"foo\"");
+        assert_equals(evt.acceleration, null,
+          "acceleration must be initialized to null");
+        assert_equals(evt.accelerationIncludingGravity, null,
+          "accelerationIncludingGravity must be initialized to null");
+        assert_equals(evt.rotationRate, null,
+          "rotationRate must be initialized to null");
+        assert_equals(evt.interval, 0, "interval must be initialized to 0");
+      }, "User created event is initialized properly with default values");
+
+      test(function() {
+        var evt = new DeviceMotionEvent("foo", {
+          acceleration: { x: 56, y: -56, z: 64 },
+          accelerationIncludingGravity: { x: 56, y: -56, z: 64 },
+          rotationRate: { alpha: 56, beta: -56, gamma: 64 },
+          interval: 3
+        });
+        assert_equals(evt.type, "foo", "type is set to \"foo\"");
+        assert_equals(typeof evt.acceleration, "object", "acceleration is an object");
+        assert_equals(evt.acceleration.x, 56, "acceleration.x is set to 56");
+        assert_equals(evt.acceleration.y, -56, "acceleration.y is set to -56");
+        assert_equals(evt.acceleration.z, 64, "acceleration.z is set to 64");
+        assert_equals(typeof evt.accelerationIncludingGravity, "object", "accelerationIncludingGravity is an object");
+        assert_equals(evt.accelerationIncludingGravity.x, 56, "accelerationIncludingGravity.x is set to 56");
+        assert_equals(evt.accelerationIncludingGravity.y, -56, "accelerationIncludingGravity.y is set to -56");
+        assert_equals(evt.accelerationIncludingGravity.z, 64, "accelerationIncludingGravity.z is set to 64");
+        assert_equals(typeof evt.rotationRate, "object", "rotationRate is an object");
+        assert_equals(evt.rotationRate.alpha, 56, "rotationRate.alpha is set to 56");
+        assert_equals(evt.rotationRate.beta, -56, "rotationRate.beta is set to -56");
+        assert_equals(evt.rotationRate.gamma, 64, "rotationRate.gamma is set to 64");
+        assert_equals(evt.interval, 3, "interval is set to 3");
+      }, "User created event is initialized properly using dictionary");
+    </script>
+  </body>
+</html>

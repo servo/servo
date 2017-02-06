@@ -19,9 +19,9 @@ async_test(t => {
     assert_equals(iframeDoc.fullscreenElement, null);
   });
 
-  trusted_click(t.step_func(() => {
+  trusted_click(t, () => {
     target.requestFullscreen();
     iframeDoc.body.appendChild(target);
-  }), document.body);
+  }, document.body);
 });
 </script>

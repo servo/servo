@@ -26,8 +26,8 @@
                 client = new ifr.contentWindow.XMLHttpRequest();
                 count++;
                 // Important to do a normal navigation, not a reload.
-                win.location.href = "resources/init.htm";
-              }, 100);
+                win.location.href = "resources/init.htm?avoid-replace";
+              }, 0);
             }
             doc.body.appendChild(ifr);
           } else if(1 == count) {

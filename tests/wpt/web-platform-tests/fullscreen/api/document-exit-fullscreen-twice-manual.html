@@ -27,6 +27,6 @@ async_test(t => {
   });
   document.onfullscreenerror = t.unreached_func("fullscreenerror event");
 
-  trusted_request(div);
+  trusted_request(t, div);
 });
 </script>

@@ -1,4 +1,6 @@
 environment:
+  global:
+    HYPOTHESIS_PROFILE: ci
   matrix:
     - PYTHON: 'C:\\Python27'
     - PYTHON: 'C:\\Python35'
@@ -8,12 +10,17 @@ environment:
 # import a name including a hyphen in Python, so it ignores the fact
 # we have a __init__.py at the top level).
 clone_folder: 'C:\projects\wpttools'
-      
+
+init:
+  - 'git config --global core.autocrlf true'
+
 install:
+  - 'rm .git\index'
+  - 'git reset --hard'
   - 'SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%'
   - 'git submodule update --init --recursive'
   - 'python.exe -m pip install tox codecov'
-  
+
 build: off
 
 test_script:

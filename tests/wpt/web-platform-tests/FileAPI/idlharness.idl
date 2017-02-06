@@ -89,6 +89,5 @@ interface FileReaderSync {
 [Exposed=(Window,DedicatedWorker,SharedWorker)]
 partial interface URL {
   static DOMString createObjectURL(Blob blob);
-  static DOMString createFor(Blob blob);
   static void revokeObjectURL(DOMString url);
 };

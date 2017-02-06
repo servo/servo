@@ -12,22 +12,18 @@
     <p>Rotate the device frame around its x axis to run the test.</p>
     <div id="log"></div>
     <script>
-      var beta = 180;
+      var t1 = async_test("Beta is in [-180, 180)");
       var run = false;
       window.addEventListener("deviceorientation", function(e) {
-        if (!run) {
+        if (!run && e.beta !== null) {
           run = true;
-          beta = e.beta;
+          t1.step(function() {
+            assert_greater_than_equal(e.beta, -180);
+            assert_less_than(e.beta, 180);
+          });
+          t1.done();
         }
       }, false);
-
-      test(function() {
-        assert_true(beta > -180 && beta < 180);
-      }, "Beta is between -180 and 180");
-
-      test(function() {
-        assert_false(beta > -2 && beta < 2);
-      }, "Beta is not around zero (between -2 and 2)");
     </script>
   </body>
 </html>

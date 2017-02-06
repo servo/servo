@@ -15,7 +15,7 @@
 <div id="log"></div>
 
 <pre id='untested_idl' style='display:none'>
-
+[PrimaryGlobal]
 interface Window {
 };
 
@@ -23,6 +23,9 @@ interface Window {
 interface WorkerGlobalScope {
 };
 
+[Exposed=(Window,Worker)]
+interface EventTarget {
+};
 </pre>
 
 <pre id='idl'>

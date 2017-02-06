@@ -9,7 +9,7 @@
     <script src="../support/logTest.sub.js?logs=[]"></script>
     <script src="../support/alertAssert.sub.js?alerts=[]"></script>
     <!-- enforcing policy:
-style-src 'self' nonce-noncynonce' 'nonce-noncy+/=nonce'; script-src 'self' 'unsafe-inline'; connect-src 'self';
+style-src 'self' nonce-noncynonce' 'nonce-noncy+/nonce='; script-src 'self' 'unsafe-inline'; connect-src 'self';
 -->
     <script></script>
     <style nonce="noncynonce">
@@ -48,7 +48,7 @@ style-src 'self' nonce-noncynonce' 'nonce-noncy+/=nonce'; script-src 'self' 'uns
     </script>
     <p>Style correctly whitelisted via a 'nonce-*' expression in 'style-src' should be applied to the page.</p>
     <div id="log"></div>
-    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=style-src%20&apos;nonce-noncynonce&apos;%20&apos;nonce-noncy+/=nonce&apos;"></script>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=style-src%20&apos;nonce-noncynonce&apos;%20&apos;nonce-noncy+/nonce=&apos;"></script>
 </body>
 
 </html>

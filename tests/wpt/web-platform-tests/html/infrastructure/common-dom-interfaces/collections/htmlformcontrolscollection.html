@@ -7,8 +7,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
 <form id="f1">
-  <input type="radio" id="r1">
-  <keygen id="kg" name="key"></keygen>
+  <input type="radio" id="r1" name="ra">
+  <keygen id="kg" name="key"></keygen> <!-- we test that it does *not* appear in form.elements -->
 </form>
 <form id="f2">
   <table>
@@ -39,7 +39,7 @@ setup(function () {
 
 //length
 test(function () {
-  assert_equals(coll1.length, 2, "The length attribute is incorrect.");
+  assert_equals(coll1.length, 1, "The length attribute is incorrect.");
   assert_equals(coll2.length, 4, "The length attribute is incorrect.");
 }, "The length attribute must return the number of elements in the form");
 
@@ -83,9 +83,14 @@ test(function () {
 }, "The namedItem(name) must return null if there is no matched element");
 
 test(function () {
-  assert_equals(coll1.namedItem("kg"), document.getElementById("kg"), "Controls can be named by 'id' attribute.");
-  assert_equals(coll1.namedItem("key"), document.getElementById("kg"), "Controls can be named by 'name' attribute.");
+  assert_equals(coll1.namedItem("r1"), document.getElementById("r1"), "Controls can be named by 'id' attribute.");
+  assert_equals(coll1.namedItem("ra"), document.getElementById("r1"), "Controls can be named by 'name' attribute.");
 }, "Controls can be indexed by id or name attribute");
+
+test(function () {
+  assert_equals(coll1.namedItem("kg"), null, "Keygen does not show up when queried by id.");
+  assert_equals(coll1.namedItem("key"), null, "Keygen does not show up when queried by name.");
+}, "Keygen controls do not show up at all");
 
 test(function () {
   assert_equals(coll2.namedItem("btn").length, 2, "The length attribute should be 2.");
@@ -93,7 +98,7 @@ test(function () {
 
 //various controls in fieldset and form
 var containers = ["form", "fieldset"],
-    controls = ["button", "fieldset", "input", "keygen", "object", "output", "select", "textarea"];
+    controls = ["button", "fieldset", "input", "object", "output", "select", "textarea"];
 for (var m = 0; m < containers.length; m++) {
   test(function () {
     var container = document.createElement(containers[m]);

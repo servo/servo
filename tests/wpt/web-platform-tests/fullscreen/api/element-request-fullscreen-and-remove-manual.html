@@ -14,9 +14,9 @@ async_test(t => {
     assert_equals(document.fullscreenElement, null);
   });
 
-  trusted_click(t.step_func(() => {
+  trusted_click(t, () => {
     target.requestFullscreen();
     target.remove();
-  }), document.body);
+  }, document.body);
 });
 </script>

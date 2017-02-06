@@ -5,7 +5,7 @@
 <meta name="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
 <meta name="author" title="Aleksei Yu. Semenov" href="mailto:a.semenov@unipro.ru">
 <meta name="assert" content="Template element can be a descendant of the body element">
-<link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#template-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-template-element">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src='/html/resources/common.js'></script>
@@ -93,7 +93,7 @@ parameters = [['Template element as an indirect descendant of the BODY element. 
 generate_tests(templateIsAnIndirectChild, parameters,
         'Template element as an indirect descendant of the HEAD, BODY and FRAMESET elements');
 
-parameters = [['Template element as a descendant of the FRAMESET element. ' +
+parameters = [['Template element as an indirect descendant of the FRAMESET element. ' +
                'Template element is created by innerHTML',
                frameset],
                ];

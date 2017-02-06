@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+<!doctype html>
+<meta charset="utf8">
+<meta name="timeout" content="long">
 <title>IndexedDB: index renaming support</title>
 <link rel="help"
       href="https://w3c.github.io/IndexedDB/#dom-idbindex-name">
@@ -7,6 +9,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="support-promises.js"></script>
 <script>
+'use strict';
 
 promise_test(testCase => {
     let authorIndex = null, authorIndex2 = null;

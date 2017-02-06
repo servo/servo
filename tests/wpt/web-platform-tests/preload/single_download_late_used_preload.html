@@ -1,19 +1,20 @@
 <!DOCTYPE html>
+<title>Ensure preloaded resources are not downloaded again when used</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<link rel=preload href="resources/square.png?pipe=trickle(d1)" as=image>
 <script>
-    var t = async_test('Makes sure that preloaded resources are not downloaded again when used');
+    var link = document.getElementsByTagName("link")[0]
+    assert_equals(link.as, "image");
+    link.addEventListener("load", () => {
+        assert_equals(performance.getEntriesByType("resource").length, 3)
+        var img = document.createElement("img");
+        img.src = "resources/square.png?pipe=trickle(d1)";
+        img.onload = () => {
+            assert_equals(performance.getEntriesByType("resource").length, 3);
+            done();
+        };
+        document.body.appendChild(img);
+    });
 </script>
-<div id=result></div>
-<link rel=preload href="resources/square.png" as=image>
-<script>
-    window.addEventListener("load", t.step_func(function() {
-        t.step_timeout(function() {
-            document.getElementById("result").innerHTML = "<image src='resources/square.png'>";
-            t.step_timeout(function() {
-                assert_equals(performance.getEntriesByType("resource").length, 3);
-                t.done();
-            }, 1000);
-        }, 1000);
-    }));
-</script>
+<body>

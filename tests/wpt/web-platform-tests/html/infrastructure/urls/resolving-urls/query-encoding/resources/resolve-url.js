@@ -14,7 +14,7 @@ onload = function() {
     'utf-16be':'%C3%A5',
     'utf-16le':'%C3%A5',
     'windows-1252':'%E5',
-    'windows-1251':'%3F'
+    'windows-1251':'&%23229;'
   };
   var expected_current = expected_obj[encoding];
   var expected_utf8 = expected_obj['utf-8'];
@@ -48,7 +48,7 @@ onload = function() {
 
   // background attribute, check with getComputedStyle
   function test_background(tag) {
-    var spec_url = 'https://html.spec.whatwg.org/multipage/multipage/rendering.html';
+    var spec_url = 'https://html.spec.whatwg.org/multipage/rendering.html';
     spec_url += tag == 'body' ? '#the-page' : '#tables';
     test(function() {
       var elm = document.createElement(tag);
@@ -81,7 +81,7 @@ onload = function() {
       var got = elm[idlAttr];
       assert_true(got.indexOf(expected_current) > -1, msg(expected_current, got));
     }, 'Getting <'+tag+'>.'+idlAttr + (multiple ? ' (multiple URLs)' : ''),
-    {help:'https://html.spec.whatwg.org/multipage/multipage/common-dom-interfaces.html#reflecting-content-attributes-in-idl-attributes'});
+    {help:'https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes'});
   }
 
   ('iframe src, a href, base href, link href, img src, embed src, object data, track src, video src, audio src, input src, form action, ' +
@@ -120,7 +120,7 @@ onload = function() {
       elm.click();
       // check that navigation succeeded by ...??? XXX
     }, 'follow hyperlink <'+tag+' href>',
-    {help:'https://html.spec.whatwg.org/multipage/multipage/links.html#following-hyperlinks'});
+    {help:'https://html.spec.whatwg.org/multipage/#following-hyperlinks'});
   }
 
   'a, area, link'.split(', ').forEach(function(str) {
@@ -143,7 +143,7 @@ onload = function() {
       // check that the right URL was requested for the ping
       poll_for_stash(this, uuid, expected_current);
     }, 'hyperlink auditing <'+tag+' ping>',
-    {help:'https://html.spec.whatwg.org/multipage/multipage/links.html#hyperlink-auditing'});
+    {help:'https://html.spec.whatwg.org/multipage/#hyperlink-auditing'});
   }
 
   'a, area'.split(', ').forEach(function(str) {
@@ -169,7 +169,7 @@ onload = function() {
       assert_equals(got, expected_current);
     });
   }, 'meta refresh',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/semantics.html#attr-meta-http-equiv-refresh'});
+  {help:'https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-refresh'});
 
   // loading html (or actually svg to support <embed>)
   function test_load_nested_browsing_context(tag, attr, spec_url) {
@@ -191,10 +191,10 @@ onload = function() {
   }
 
   spec_url_load_nested_browsing_context = {
-    frame:'https://html.spec.whatwg.org/multipage/multipage/obsolete.html#process-the-frame-attributes',
-    iframe:'https://html.spec.whatwg.org/multipage/multipage/the-iframe-element.html#process-the-iframe-attributes',
-    object:'https://html.spec.whatwg.org/multipage/multipage/the-iframe-element.html#the-object-element',
-    embed:'https://html.spec.whatwg.org/multipage/multipage/the-iframe-element.html#the-embed-element-setup-steps'
+    frame:'https://html.spec.whatwg.org/multipage/#process-the-frame-attributes',
+    iframe:'https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes',
+    object:'https://html.spec.whatwg.org/multipage/#the-object-element',
+    embed:'https://html.spec.whatwg.org/multipage/#the-embed-element-setup-steps'
   };
 
   'frame src, iframe src, object data, embed src'.split(', ').forEach(function(str) {
@@ -217,8 +217,8 @@ onload = function() {
       assert_equals(elm.sheet.cssRules[0].style.content, '"'+expected_current+'"', 'sheet.cssRules[0].style.content');
     });
   }, 'loading css <link>',
-  {help:['https://html.spec.whatwg.org/multipage/multipage/semantics.html#the-link-element',
-         'https://html.spec.whatwg.org/multipage/multipage/semantics.html#styling']});
+  {help:['https://html.spec.whatwg.org/multipage/#the-link-element',
+         'https://html.spec.whatwg.org/multipage/#styling']});
 
   // loading js
   async_test(function() {
@@ -229,7 +229,7 @@ onload = function() {
       assert_equals(window.test_load_js_got, expected_current);
     });
   }, 'loading js <script>',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/scripting-1.html#prepare-a-script'});
+  {help:'https://html.spec.whatwg.org/multipage/#prepare-a-script'});
 
   // loading image
   function test_load_image(tag, attr, spec_url) {
@@ -279,11 +279,11 @@ onload = function() {
   })();
 
   var spec_url_load_image = {
-    img:'https://html.spec.whatwg.org/multipage/multipage/embedded-content-1.html#update-the-image-data',
-    embed:'https://html.spec.whatwg.org/multipage/multipage/the-iframe-element.html#the-embed-element-setup-steps',
-    object:'https://html.spec.whatwg.org/multipage/multipage/the-iframe-element.html#the-object-element',
-    input:'https://html.spec.whatwg.org/multipage/multipage/states-of-the-type-attribute.html#image-button-state-(type=image)',
-    video:'https://html.spec.whatwg.org/multipage/multipage/the-video-element.html#poster-frame'
+    img:'https://html.spec.whatwg.org/multipage/#update-the-image-data',
+    embed:'https://html.spec.whatwg.org/multipage/#the-embed-element-setup-steps',
+    object:'https://html.spec.whatwg.org/multipage/#the-object-element',
+    input:'https://html.spec.whatwg.org/multipage/#image-button-state-(type=image)',
+    video:'https://html.spec.whatwg.org/multipage/#poster-frame'
   };
 
   'img src, embed src, object data, input src, video poster'.split(', ').forEach(function(str) {
@@ -327,7 +327,7 @@ onload = function() {
         assert_equals(got, query_to_video_duration[expected_current], msg(expected_current, video_duration_to_query[got]));
       });
     }, 'loading video <'+tag+'>' + (use_source_element ? '<source>' : ''),
-    {help:'https://html.spec.whatwg.org/multipage/multipage/the-video-element.html#concept-media-load-algorithm'});
+    {help:'https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm'});
   }
 
   var query_to_video_duration = {
@@ -363,7 +363,7 @@ onload = function() {
       assert_equals(got, expected_current);
     });
   }, 'loading webvtt <track>',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/the-video-element.html#track-url'});
+  {help:'https://html.spec.whatwg.org/multipage/#track-url'});
 
   // XXX downloading seems hard to automate
   // <a href download>
@@ -405,7 +405,7 @@ onload = function() {
         assert_equals(got, expected_current);
       });
     }, 'submit form <'+tag+' '+attr+'>',
-    {help:'https://html.spec.whatwg.org/multipage/multipage/association-of-controls-and-forms.html#concept-form-submit'});
+    {help:'https://html.spec.whatwg.org/multipage/#concept-form-submit'});
   }
 
   'form action, input formaction, button formaction'.split(', ').forEach(function(str) {
@@ -431,9 +431,9 @@ onload = function() {
       assert_true(got_a_href.indexOf(expected_current) > -1, msg(expected_current, got_a_href), 'a.href');
     });
   }, '<base href>',
-  {help:['https://html.spec.whatwg.org/multipage/multipage/semantics.html#set-the-frozen-base-url',
+  {help:['https://html.spec.whatwg.org/multipage/#set-the-frozen-base-url',
   'https://dom.spec.whatwg.org/#dom-node-baseuri',
-  'https://html.spec.whatwg.org/multipage/multipage/text-level-semantics.html#the-a-element']});
+  'https://html.spec.whatwg.org/multipage/#the-a-element']});
 
   // XXX drag and drop (<a href> or <img src>) seems hard to automate
 
@@ -444,7 +444,7 @@ onload = function() {
       assert_equals(e.data, expected_current);
     });
   }, 'Worker constructor',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/workers.html#dom-worker'});
+  {help:'https://html.spec.whatwg.org/multipage/#dom-worker'});
 
   // SharedWorker()
   async_test(function() {
@@ -453,7 +453,7 @@ onload = function() {
       assert_equals(e.data, expected_current);
     });
   }, 'SharedWorker constructor',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/workers.html#dom-sharedworker'});
+  {help:'https://html.spec.whatwg.org/multipage/#dom-sharedworker'});
 
   // EventSource()
   async_test(function() {
@@ -465,7 +465,7 @@ onload = function() {
       assert_equals(e.data, expected_current);
     });
   }, 'EventSource constructor',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/comms.html#dom-eventsource'});
+  {help:'https://html.spec.whatwg.org/multipage/#dom-eventsource'});
 
   // EventSource#url
   test(function() {
@@ -474,7 +474,7 @@ onload = function() {
     var got = source.url;
     assert_true(source.url.indexOf(expected_current) > -1, msg(expected_current, got));
   }, 'EventSource#url',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/comms.html#dom-eventsource'});
+  {help:'https://html.spec.whatwg.org/multipage/#dom-eventsource'});
 
   // XMLDocument#load()
   async_test(function() {
@@ -484,7 +484,7 @@ onload = function() {
       assert_equals(doc.documentElement.textContent, expected_current);
     });
   }, 'XMLDocument#load()',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/dom.html#dom-xmldocument-load'});
+  {help:'https://html.spec.whatwg.org/multipage/#dom-xmldocument-load'});
 
   // window.open
   async_test(function() {
@@ -504,7 +504,7 @@ onload = function() {
       }
     });
   }, 'window.open()',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/browsers.html#dom-open'});
+  {help:'https://html.spec.whatwg.org/multipage/#dom-open'});
 
   // location
   function test_location(func, desc) {
@@ -523,7 +523,7 @@ onload = function() {
         }
       });
     }, desc,
-    {help:'https://html.spec.whatwg.org/multipage/multipage/history.html#the-location-interface'});
+    {help:'https://html.spec.whatwg.org/multipage/#the-location-interface'});
   }
   [[function(win, input) { win.location = input; }, "location [PutForwards]"],
    [function(win, input) { win.location.assign(input); }, "location.assign()"],
@@ -552,7 +552,7 @@ onload = function() {
       }
     });
   }, 'location.search',
-  {help:['https://html.spec.whatwg.org/multipage/multipage/history.html#the-location-interface',
+  {help:['https://html.spec.whatwg.org/multipage/#the-location-interface',
          'http://url.spec.whatwg.org/#dom-url-search']});
 
   // a.search, area.search
@@ -567,7 +567,7 @@ onload = function() {
       var got_search = elm.search;
       assert_true(got_search.indexOf(expected_current) > -1, 'getting .search '+msg(expected_current, got_search));
     }, '<'+tag+'>.search',
-    {help:['https://html.spec.whatwg.org/multipage/multipage/text-level-semantics.html#the-'+tag+'-element',
+    {help:['https://html.spec.whatwg.org/multipage/#the-'+tag+'-element',
            'http://url.spec.whatwg.org/#dom-url-search']});
   }
   'a, area'.split(', ').forEach(function(str) {
@@ -591,7 +591,7 @@ onload = function() {
         assert_equals(got.indexOf('/resources/resources/'), -1, 'url was resolved against the iframe\'s URL instead of the settings object\'s API base URL');
       });
     }, 'history.'+prop,
-    {help:'https://html.spec.whatwg.org/multipage/multipage/history.html#dom-history-'+prop.toLowerCase()});
+    {help:'https://html.spec.whatwg.org/multipage/#dom-history-'+prop.toLowerCase()});
   }
 
   'pushState, replaceState'.split(', ').forEach(function(str) {
@@ -681,8 +681,8 @@ onload = function() {
       assert_equals(e.data, expected_utf8);
     });
   }, 'importScripts() in a dedicated worker',
-  {help:['https://html.spec.whatwg.org/multipage/multipage/workers.html#set-up-a-worker-script-settings-object',
-         'https://html.spec.whatwg.org/multipage/multipage/workers.html#dom-workerglobalscope-importscripts']});
+  {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
+         'https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts']});
 
   async_test(function() {
     var worker = new Worker(input_url_worker_worker);
@@ -690,8 +690,8 @@ onload = function() {
       assert_equals(e.data, expected_utf8);
     });
   }, 'Worker() in a dedicated worker',
-  {help:['https://html.spec.whatwg.org/multipage/multipage/workers.html#set-up-a-worker-script-settings-object',
-         'https://html.spec.whatwg.org/multipage/multipage/workers.html#dom-worker']});
+  {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
+         'https://html.spec.whatwg.org/multipage/#dom-worker']});
 
   async_test(function() {
     var worker = new Worker(input_url_worker_sharedworker);
@@ -699,8 +699,8 @@ onload = function() {
       assert_equals(e.data, expected_utf8);
     });
   }, 'SharedWorker() in a dedicated worker',
-  {help:['https://html.spec.whatwg.org/multipage/multipage/workers.html#set-up-a-worker-script-settings-object',
-         'https://html.spec.whatwg.org/multipage/multipage/workers.html#dom-sharedworker']});
+  {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
+         'https://html.spec.whatwg.org/multipage/#dom-sharedworker']});
 
   async_test(function() {
     var worker = new SharedWorker(input_url_sharedworker_importScripts);
@@ -708,8 +708,8 @@ onload = function() {
       assert_equals(e.data, expected_utf8);
     });
   }, 'importScripts() in a shared worker',
-  {help:['https://html.spec.whatwg.org/multipage/multipage/workers.html#set-up-a-worker-script-settings-object',
-         'https://html.spec.whatwg.org/multipage/multipage/workers.html#dom-workerglobalscope-importscripts']});
+  {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
+         'https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts']});
 
   async_test(function() {
     var worker = new SharedWorker(input_url_sharedworker_worker);
@@ -717,8 +717,8 @@ onload = function() {
       assert_equals(e.data, expected_utf8);
     });
   }, 'Worker() in a shared worker',
-  {help:['https://html.spec.whatwg.org/multipage/multipage/workers.html#set-up-a-worker-script-settings-object',
-         'https://html.spec.whatwg.org/multipage/multipage/workers.html#dom-worker']});
+  {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
+         'https://html.spec.whatwg.org/multipage/#dom-worker']});
 
   async_test(function() {
     var worker = new SharedWorker(input_url_sharedworker_sharedworker);
@@ -726,8 +726,8 @@ onload = function() {
       assert_equals(e.data, expected_utf8);
     });
   }, 'SharedWorker() in a shared worker',
-  {help:['https://html.spec.whatwg.org/multipage/multipage/workers.html#set-up-a-worker-script-settings-object',
-         'https://html.spec.whatwg.org/multipage/multipage/workers.html#dom-sharedworker']});
+  {help:['https://html.spec.whatwg.org/multipage/#set-up-a-worker-script-settings-object',
+         'https://html.spec.whatwg.org/multipage/#dom-sharedworker']});
 
   // WebSocket()
   async_test(function(){
@@ -739,7 +739,7 @@ onload = function() {
       assert_equals(e.data, expected_utf8);
     });
   }, 'WebSocket constructor',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/network.html#parse-a-websocket-url\'s-components'});
+  {help:'https://html.spec.whatwg.org/multipage/#parse-a-websocket-url\'s-components'});
 
   // WebSocket#url
   test(function(){
@@ -748,7 +748,7 @@ onload = function() {
     var got = ws.url;
     assert_true(ws.url.indexOf(expected_utf8) > -1, msg(expected_utf8, got));
   }, 'WebSocket#url',
-  {help:'https://html.spec.whatwg.org/multipage/multipage/network.html#dom-websocket-url'});
+  {help:'https://html.spec.whatwg.org/multipage/#dom-websocket-url'});
 
   // Parsing cache manifest
   function test_cache_manifest(mode) {
@@ -762,7 +762,7 @@ onload = function() {
       });
       poll_for_stash(this, uuid, expected_utf8);
     }, 'Parsing cache manifest (' + mode + ')',
-    {help:'https://html.spec.whatwg.org/multipage/multipage/offline.html#parse-a-manifest'});
+    {help:'https://html.spec.whatwg.org/multipage/#parse-a-manifest'});
   }
 
   'CACHE, FALLBACK, NETWORK'.split(', ').forEach(function(str) {
