@@ -32,6 +32,9 @@ self.addEventListener('fetch', function(event) {
           return res;
         }));
       break;
+    case '?throw-exception':
+      throw('boom');
+      break;
     }
   });
 

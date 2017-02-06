@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>count-queuing-strategy-integration.js shared worker wrapper file</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+'use strict';
+fetch_tests_from_worker(new SharedWorker('count-queuing-strategy-integration.js'));
+</script>

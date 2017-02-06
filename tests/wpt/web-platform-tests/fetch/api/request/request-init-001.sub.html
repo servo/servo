@@ -16,12 +16,14 @@
       var referrers = {"givenValues" : ["/relative/ressource",
                                         "http://{{host}}:{{ports[http][0]}}/relative/ressource?query=true#fragment",
                                         "http://{{host}}:{{ports[http][0]}}/",
+                                        "http://test.url",
                                         "about:client",
                                         ""
                                        ],
                        "expectedValues" : ["http://{{host}}:{{ports[http][0]}}/relative/ressource",
                                            "http://{{host}}:{{ports[http][0]}}/relative/ressource?query=true#fragment",
                                            "http://{{host}}:{{ports[http][0]}}/",
+                                           "about:client",
                                            "about:client",
                                            ""
                                           ]
@@ -31,18 +33,24 @@
                                                 "no-referrer-when-downgrade",
                                                 "origin",
                                                 "origin-when-cross-origin",
-                                                "unsafe-url"
+                                                "unsafe-url",
+                                                "same-origin",
+                                                "strict-origin",
+                                                "strict-origin-when-cross-origin"
                                               ],
                               "expectedValues" : ["",
                                                   "no-referrer",
                                                   "no-referrer-when-downgrade",
                                                   "origin",
                                                   "origin-when-cross-origin",
-                                                  "unsafe-url"
+                                                  "unsafe-url",
+                                                  "same-origin",
+                                                  "strict-origin",
+                                                  "strict-origin-when-cross-origin"
                                                   ]
       };
-      var modes = {"givenValues" : ["same-origin", "no-cors", "cors"],
-                   "expectedValues" : ["same-origin", "no-cors", "cors"]
+      var modes = {"givenValues" : ["same-origin", "no-cors", "cors", "navigate"],
+                   "expectedValues" : ["same-origin", "no-cors", "cors", "same-origin"]
       };
       var credentials = {"givenValues" : ["omit", "same-origin", "include"],
                           "expectedValues" : ["omit", "same-origin", "include"]

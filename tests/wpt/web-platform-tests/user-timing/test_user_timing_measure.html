@@ -75,13 +75,7 @@
         function onload_test()
         {
             // test for existance of User Timing and Performance Timeline interface
-            if (window.performance.mark == undefined ||
-                window.performance.clearMarks == undefined ||
-                window.performance.measure == undefined ||
-                window.performance.clearMeasures == undefined ||
-                window.performance.getEntriesByName == undefined ||
-                window.performance.getEntriesByType == undefined ||
-                window.performance.getEntries == undefined)
+            if (!has_required_interfaces())
             {
                 test_true(false,
                           "The User Timing and Performance Timeline interfaces, which are required for this test, " +

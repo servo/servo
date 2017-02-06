@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Text Module Level 3 CR Test Suite</h1>
-  <h2>Transforming Text (74 tests)</h2>
+  <h2>Transforming Text (75 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -37,7 +37,29 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s2.1">+</a>
         <a href="https://www.w3.org/TR/css-text-3/#text-transform-property">2.1 Case Transforms: the &#8216;text-transform&#8217; property</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 2 tests -->
+      <tr id="full-width-002-2.1" class="asis should">
+        <td>
+            <a href="full-width-002.xht">full-width-002</a></td>
+        <td><a href="reference/full-width-002-notcu-notref.xht">&#x2260;</a> <a href="reference/full-width-002-horizontal-notref.xht">&#x2260;</a> </td>
+        <td><abbr class="asis" title="Can not be re-serialized">As-Is</abbr><abbr class="should" title="Behavior tested is recommended but not required">Recommend</abbr></td>
+        <td>CSS Writing Modes: 'text-combine-upright: all' applied on 2 full-width characters
+          <ul class="assert">
+            <li>When two or more full-width characters are combined, they are first converted to non-full-width characters.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="full-width-003-2.1" class="asis should">
+        <td>
+            <a href="full-width-003.xht">full-width-003</a></td>
+        <td><a href="reference/full-width-002-notcu-notref.xht">&#x2260;</a> <a href="reference/full-width-002-horizontal-notref.xht">&#x2260;</a> </td>
+        <td><abbr class="asis" title="Can not be re-serialized">As-Is</abbr><abbr class="should" title="Behavior tested is recommended but not required">Recommend</abbr></td>
+        <td>CSS Writing Modes: 'text-combine-upright: digits 2' applied on 2 full-width characters
+          <ul class="assert">
+            <li>When two or more full-width characters are combined, they are first converted to non-full-width characters.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s2.1.#capitalize">
       <!-- 0 tests -->
@@ -46,29 +68,7 @@
       <!-- 0 tests -->
     </tbody>
     <tbody id="s2.1.#full-width">
-      <!-- 2 tests -->
-      <tr id="full-width-002-2.1.#full-width" class="">
-        <td>
-            <a href="full-width-002.xht">full-width-002</a></td>
-        <td><a href="reference/full-width-ref.xht">=</a> <a href="reference/full-width-notcu-notref.xht">&#x2260;</a> <a href="reference/full-width-horizontal-notref.xht">&#x2260;</a> </td>
-        <td></td>
-        <td>CSS Writing Modes: text-combine-upright on full-width characters
-          <ul class="assert">
-            <li>When two or more full-width characters are combined, they are first converted to non-full-width characters.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="full-width-003-2.1.#full-width" class="">
-        <td>
-            <a href="full-width-003.xht">full-width-003</a></td>
-        <td><a href="reference/full-width-ref.xht">=</a> <a href="reference/full-width-notcu-notref.xht">&#x2260;</a> <a href="reference/full-width-horizontal-notref.xht">&#x2260;</a> </td>
-        <td></td>
-        <td>CSS Writing Modes: text-combine-upright on full-width characters
-          <ul class="assert">
-            <li>When two or more full-width characters are combined, they are first converted to non-full-width characters.</li>
-          </ul>
-        </td>
-      </tr>
+      <!-- 0 tests -->
     </tbody>
     <tbody id="s2.1.#lowercase">
       <!-- 0 tests -->
@@ -77,7 +77,7 @@
       <!-- 0 tests -->
     </tbody>
     <tbody id="s2.1.#text-transform">
-      <!-- 72 tests -->
+      <!-- 73 tests -->
       <tr id="text-transform-capitalize-001-2.1.#text-transform" class="primary">
         <td><strong>
             <a href="text-transform-capitalize-001.xht">text-transform-capitalize-001</a></strong></td>
@@ -257,7 +257,7 @@
       <tr id="text-transform-capitalize-031-2.1.#text-transform" class="primary">
         <td><strong>
             <a href="text-transform-capitalize-031.xht">text-transform-capitalize-031</a></strong></td>
-        <td><a href="reference/text-transform-tailoring-005-ref.xht">=</a> </td>
+        <td><a href="reference/text-transform-capitalize-031-ref.xht">=</a> </td>
         <td></td>
         <td>CSS3 Text, text transform: capitalize, initial punctuation
           <ul class="assert">
@@ -284,6 +284,17 @@
         <td>text-transform - fullwidth - basic cases
           <ul class="assert">
             <li>The UA should transform halfwidth character to fullwidth character when text-transform is set to fullwidth.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="text-transform-fullwidth-002-2.1.#text-transform" class="primary">
+        <td><strong>
+            <a href="text-transform-fullwidth-002.xht">text-transform-fullwidth-002</a></strong></td>
+        <td><a href="reference/text-transform-fullwidth-002-ref.xht">=</a> </td>
+        <td></td>
+        <td>text-transform: full-width (basic)
+          <ul class="assert">
+            <li>This test checks basic support of 'text-transform: full-width' in a vertical writing context. Since full-width Latin characters are typeset upright, then the characters of the text sample of this test should not be rotated toward the right but should be upright.</li>
           </ul>
         </td>
       </tr>
@@ -334,7 +345,7 @@
       <tr id="text-transform-tailoring-002a-2.1.#text-transform" class="primary">
         <td><strong>
             <a href="text-transform-tailoring-002a.xht">text-transform-tailoring-002a</a></strong></td>
-        <td><a href="reference/text-transform-tailoring-002-ref.xht">=</a> </td>
+        <td><a href="reference/text-transform-tailoring-002a-ref.xht">=</a> </td>
         <td></td>
         <td>CSS3 Text, text transform: uppercase, Greek dialytika
           <ul class="assert">

@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Values and Units Module Level 3 CR Test Suite</h1>
-  <h2>Distance Units: the <length> type (32 tests)</h2>
+  <h2>Distance Units: the <length> type (35 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -121,10 +121,49 @@
         </td>
       </tr>
     </tbody>
+    <tbody id="s5.#ref-for-absolute-length-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dimension-4">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-length-value-7">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-number-value-4">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-relative-length-1">
+      <!-- 0 tests -->
+    </tbody>
     <tbody id="s5.1">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1">+</a>
         <a href="https://www.w3.org/TR/css3-values/#relative-lengths">5.1 Relative lengths</a></th></tr>
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.#ref-for-ch-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.#ref-for-em-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.#ref-for-ex-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.#ref-for-rem-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.#ref-for-vh-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.#ref-for-vmax-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.#ref-for-vmin-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.#ref-for-vw-1">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s5.1.#relative-length">
@@ -134,7 +173,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1.1">+</a>
         <a href="https://www.w3.org/TR/css3-values/#font-relative-lengths">5.1.1 Font-relative lengths: the em, ex, ch, rem units</a></th></tr>
-      <!-- 1 tests -->
+      <!-- 4 tests -->
       <tr id="ch-unit-001-5.1.1" class="primary">
         <td><strong>
             <a href="ch-unit-001.xht">ch-unit-001</a></strong></td>
@@ -143,6 +182,39 @@
         <td>support for the ch unit
           <ul class="assert">
             <li>The ch unit is equal to the used advance measure of the 0 (ZERO, U+0030) glyph found in the font used to render it.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="ch-unit-002-5.1.1" class="primary">
+        <td><strong>
+            <a href="ch-unit-002.xht">ch-unit-002</a></strong></td>
+        <td><a href="reference/ch-unit-002-ref.xht">=</a> </td>
+        <td></td>
+        <td>the ch unit in vertical orientation
+          <ul class="assert">
+            <li>In vertical upright, the ch unit is equal to the used vertical advance measure of the 0 (ZERO, U+0030) glyph found in the font used to render it.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="ch-unit-003-5.1.1" class="primary">
+        <td><strong>
+            <a href="ch-unit-003.xht">ch-unit-003</a></strong></td>
+        <td><a href="reference/ch-unit-001-ref.xht">=</a> </td>
+        <td></td>
+        <td>support for the ch unit
+          <ul class="assert">
+            <li>In vertical mixed, The ch unit is equal to the used horizontal advance measure of the 0 (ZERO, U+0030) glyph found in the font used to render it.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="ch-unit-004-5.1.1" class="primary">
+        <td><strong>
+            <a href="ch-unit-004.xht">ch-unit-004</a></strong></td>
+        <td><a href="reference/ch-unit-001-ref.xht">=</a> </td>
+        <td></td>
+        <td>support for the ch unit
+          <ul class="assert">
+            <li>In vertical sideways, The ch unit is equal to the used horizontal advance measure of the 0 (ZERO, U+0030) glyph found in the font used to render it.</li>
           </ul>
         </td>
       </tr>
@@ -160,6 +232,36 @@
       <!-- 0 tests -->
     </tbody>
     <tbody id="s5.1.1.#font-relative-length">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.1.#length-advance-measure">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.1.#ref-for-ch-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.1.#ref-for-ch-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.1.#ref-for-em-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.1.#ref-for-ex-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.1.#ref-for-ex-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.1.#ref-for-length-advance-measure-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.1.#ref-for-rem-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.1.#ref-for-rem-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.1.#ref-for-rem-4">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s5.1.1.#rem">
@@ -427,10 +529,34 @@
     <tbody id="s5.1.2.#example-74b4de35">
       <!-- 0 tests -->
     </tbody>
+    <tbody id="s5.1.2.#ref-for-vh-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.2.#ref-for-vh-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.2.#ref-for-vh-4">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.2.#ref-for-vmax-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.2.#ref-for-vmin-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.2.#ref-for-vw-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.2.#ref-for-vw-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.2.#ref-for-vw-4">
+      <!-- 0 tests -->
+    </tbody>
     <tbody id="s5.1.2.#vh">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.1.2.#viewport_percentage-lengths">
+    <tbody id="s5.1.2.#viewport-percentage-lengths">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s5.1.2.#vmax">
@@ -476,6 +602,66 @@
       <!-- 0 tests -->
     </tbody>
     <tbody id="s5.2.#q">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-canonical-unit-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-cm-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-cm-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-compatible-units-4">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-in-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-in-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-mm-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-mm-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-pc-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-pc-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-physical-units-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-pt-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-pt-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-px-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-px-4">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-px-5">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-px-6">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-q-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-q-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.2.#ref-for-reference-pixel-1">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s5.2.#reference-pixel">

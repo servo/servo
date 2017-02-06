@@ -13,7 +13,7 @@
  <body>
 
   <h1>Selectors Level 4 CR Test Suite</h1>
-  <h2>Linguistic Pseudo-classes (2 tests)</h2>
+  <h2>Linguistic Pseudo-classes (9 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -37,7 +37,84 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s10.1">+</a>
         <a href="https://www.w3.org/TR/selectors4/#the-dir-pseudo">10.1 The directionality pseudo-class :dir()</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 7 tests -->
+      <tr id="dir-style-01a-10.1" class="primary">
+        <td><strong>
+            <a href="dir-style-01a.htm">dir-style-01a</a></strong></td>
+        <td><a href="reference/dir-style-01-ref.htm">=</a> </td>
+        <td></td>
+        <td>:dir() selector
+          <ul class="assert">
+            <li>Test checks :dir() basic functions with valid and invalid values.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="dir-style-01b-10.1" class="primary">
+        <td><strong>
+            <a href="dir-style-01b.htm">dir-style-01b</a></strong></td>
+        <td><a href="reference/dir-style-01-ref.htm">=</a> </td>
+        <td></td>
+        <td>:dir() selector
+          <ul class="assert">
+            <li>Test checks :dir() basic functions after dynamic directionality change on elements.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="dir-style-02a-10.1" class="primary">
+        <td><strong>
+            <a href="dir-style-02a.htm">dir-style-02a</a></strong></td>
+        <td><a href="reference/dir-style-02-ref.htm">=</a> </td>
+        <td></td>
+        <td>:dir() selector
+          <ul class="assert">
+            <li>Test checks :dir() basic functions when default document directionality is rtl.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="dir-style-02b-10.1" class="primary">
+        <td><strong>
+            <a href="dir-style-02b.htm">dir-style-02b</a></strong></td>
+        <td><a href="reference/dir-style-02-ref.htm">=</a> </td>
+        <td></td>
+        <td>:dir() selector
+          <ul class="assert">
+            <li>Test checks :dir() basic functions when document directionality is dynamically changed from ltr to rtl.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="dir-style-03a-10.1" class="primary">
+        <td><strong>
+            <a href="dir-style-03a.htm">dir-style-03a</a></strong></td>
+        <td><a href="reference/dir-style-03-ref.htm">=</a> </td>
+        <td></td>
+        <td>:dir() selector
+          <ul class="assert">
+            <li>Test checks if :dir() can work with other selectors correctly.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="dir-style-03b-10.1" class="primary">
+        <td><strong>
+            <a href="dir-style-03b.htm">dir-style-03b</a></strong></td>
+        <td><a href="reference/dir-style-03-ref.htm">=</a> </td>
+        <td></td>
+        <td>:dir() selector
+          <ul class="assert">
+            <li>Test checks if :dir() can work with other selectors correctly after a dynamic directionality change on specified divs.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="dir-style-04-10.1" class="primary">
+        <td><strong>
+            <a href="dir-style-04.htm">dir-style-04</a></strong></td>
+        <td><a href="reference/dir-style-04-ref.htm">=</a> </td>
+        <td></td>
+        <td>:dir() selector
+          <ul class="assert">
+            <li>Test checks :dir() basic functions on runtime added elements.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s10.1.#dir-pseudo">
       <!-- 2 tests -->

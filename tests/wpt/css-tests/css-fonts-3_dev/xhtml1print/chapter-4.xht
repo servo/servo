@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Fonts Module Level 3 CR Test Suite</h1>
-  <h2>Font Resources (1 tests)</h2>
+  <h2>Font Resources (2 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -94,7 +94,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s4.5">+</a>
         <a href="https://www.w3.org/TR/css-fonts-3/#unicode-range-desc">4.5 Character range: the unicode-range descriptor</a></th></tr>
-      <!-- 1 tests -->
+      <!-- 2 tests -->
       <tr id="font-face-unicode-range-4.5" class="">
         <td>
             <a href="font-face-unicode-range.xht">font-face-unicode-range</a></td>
@@ -103,6 +103,17 @@
         <td>font-face unicode-range
           <ul class="assert">
             <li>Check if the font-face unicode-range value impacts the content style</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="font-face-unicode-range-2-4.5" class="">
+        <td>
+            <a href="font-face-unicode-range-2.xht">font-face-unicode-range-2</a></td>
+        <td></td>
+        <td></td>
+        <td>font-face unicode-range
+          <ul class="assert">
+            <li>Check that font-face unicode-range restrics use of glyphs outside that range</li>
           </ul>
         </td>
       </tr>

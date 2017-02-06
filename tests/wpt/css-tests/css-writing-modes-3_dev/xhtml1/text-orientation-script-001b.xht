@@ -1,8 +1,8 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
-<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#2/8, 2048 code points in U+0B36-1B50).</title>
+<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#2/9, 2048 code points in U+0B28-1B07).</title>
 <link href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" rel="help" />
-<meta content="Test orientation of characters where vo=R (#2/8, 2048 code points in U+0B36-1B50)" name="assert" />
+<meta content="Test orientation of characters where vo=R (#2/9, 2048 code points in U+0B28-1B07)" name="assert" />
 <meta content="dom font" name="flags" />
 <link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii" />
 <script src="/resources/testharness.js"></script>
@@ -40,7 +40,8 @@ summary {
 <div id="container">
 <div data-vo="R" class="test">
 <div data-block="Oriya">
-<div class="line">ଶଷସହଽଡ଼ଢ଼ୟୠୡ୦୧୨୩୪୫୬୭୮୯୰ୱ୲୳୴୵୶୷</div>
+<div class="line">ନପଫବଭମଯରଲଳଵଶଷସହଽଡ଼ଢ଼ୟୠୡ୦୧୨୩୪୫୬୭୮୯୰</div>
+<div class="line">ୱ୲୳୴୵୶୷</div>
 </div>
 <div data-block="Tamil">
 <div class="line">ஃஅஆஇஈஉஊஎஏஐஒஓஔகஙசஜஞடணதநனபமயரறலளழவ</div>
@@ -48,18 +49,18 @@ summary {
 </div>
 <div data-block="Telugu">
 <div class="line">అఆఇఈఉఊఋఌఎఏఐఒఓఔకఖగఘఙచఛజఝఞటఠడఢణతథద</div>
-<div class="line">ధనపఫబభమయరఱలళఴవశషసహఽౘౙౠౡ౦౧౨౩౪౫౬౭౮</div>
-<div class="line">౯౸౹౺౻౼౽౾౿</div>
+<div class="line">ధనపఫబభమయరఱలళఴవశషసహఽౘౙౚౠౡ౦౧౨౩౪౫౬౭</div>
+<div class="line">౮౯౸౹౺౻౼౽౾౿</div>
 </div>
 <div data-block="Kannada">
-<div class="line">ಅಆಇಈಉಊಋಌಎಏಐಒಓಔಕಖಗಘಙಚಛಜಝಞಟಠಡಢಣತಥದ</div>
-<div class="line">ಧನಪಫಬಭಮಯರಱಲಳವಶಷಸಹಽೞೠೡ೦೧೨೩೪೫೬೭೮೯ೱ</div>
-<div class="line">ೲ</div>
+<div class="line">ಀಅಆಇಈಉಊಋಌಎಏಐಒಓಔಕಖಗಘಙಚಛಜಝಞಟಠಡಢಣತಥ</div>
+<div class="line">ದಧನಪಫಬಭಮಯರಱಲಳವಶಷಸಹಽೞೠೡ೦೧೨೩೪೫೬೭೮೯</div>
+<div class="line">ೱೲ</div>
 </div>
 <div data-block="Malayalam">
 <div class="line">അആഇഈഉഊഋഌഎഏഐഒഓഔകഖഗഘങചഛജഝഞടഠഡഢണതഥദ</div>
-<div class="line">ധനഩപഫബഭമയരറലളഴവശഷസഹഺഽൎൠൡ൦൧൨൩൪൫൬൭</div>
-<div class="line">൮൯൰൱൲൳൴൵൹ൺൻർൽൾൿ</div>
+<div class="line">ധനഩപഫബഭമയരറലളഴവശഷസഹഺഽൎ൏ൔൕൖ൘൙൚൛൜൝</div>
+<div class="line">൞ൟൠൡ൦൧൨൩൪൫൬൭൮൯൰൱൲൳൴൵൶൷൸൹ൺൻർൽൾൿ</div>
 </div>
 <div data-block="Sinhala">
 <div class="line">අආඇඈඉඊඋඌඍඎඏඐඑඒඓඔඕඖකඛගඝඞඟචඡජඣඤඥඦට</div>
@@ -110,7 +111,7 @@ summary {
 <div data-block="Cherokee">
 <div class="line">ᎠᎡᎢᎣᎤᎥᎦᎧᎨᎩᎪᎫᎬᎭᎮᎯᎰᎱᎲᎳᎴᎵᎶᎷᎸᎹᎺᎻᎼᎽᎾᎿ</div>
 <div class="line">ᏀᏁᏂᏃᏄᏅᏆᏇᏈᏉᏊᏋᏌᏍᏎᏏᏐᏑᏒᏓᏔᏕᏖᏗᏘᏙᏚᏛᏜᏝᏞᏟ</div>
-<div class="line">ᏠᏡᏢᏣᏤᏥᏦᏧᏨᏩᏪᏫᏬᏭᏮᏯᏰᏱᏲᏳᏴ</div>
+<div class="line">ᏠᏡᏢᏣᏤᏥᏦᏧᏨᏩᏪᏫᏬᏭᏮᏯᏰᏱᏲᏳᏴᏵᏸᏹᏺᏻᏼᏽ</div>
 </div>
 <div data-block="Unified">
 <div class="line">᐀</div>
@@ -144,8 +145,8 @@ summary {
 <div class="line">᠀᠁᠂᠃᠄᠅᠆᠇᠈᠉᠊᠐᠑᠒᠓᠔᠕᠖᠗᠘᠙ᠠᠡᠢᠣᠤᠥᠦᠧᠨᠩᠪ</div>
 <div class="line">ᠫᠬᠭᠮᠯᠰᠱᠲᠳᠴᠵᠶᠷᠸᠹᠺᠻᠼᠽᠾᠿᡀᡁᡂᡃᡄᡅᡆᡇᡈᡉᡊ</div>
 <div class="line">ᡋᡌᡍᡎᡏᡐᡑᡒᡓᡔᡕᡖᡗᡘᡙᡚᡛᡜᡝᡞᡟᡠᡡᡢᡣᡤᡥᡦᡧᡨᡩᡪ</div>
-<div class="line">ᡫᡬᡭᡮᡯᡰᡱᡲᡳᡴᡵᡶᡷᢀᢁᢂᢃᢄᢅᢆᢇᢈᢉᢊᢋᢌᢍᢎᢏᢐᢑᢒ</div>
-<div class="line">ᢓᢔᢕᢖᢗᢘᢙᢚᢛᢜᢝᢞᢟᢠᢡᢢᢣᢤᢥᢦᢧᢨᢪ</div>
+<div class="line">ᡫᡬᡭᡮᡯᡰᡱᡲᡳᡴᡵᡶᡷᢀᢁᢂᢃᢄᢇᢈᢉᢊᢋᢌᢍᢎᢏᢐᢑᢒᢓᢔ</div>
+<div class="line">ᢕᢖᢗᢘᢙᢚᢛᢜᢝᢞᢟᢠᢡᢢᢣᢤᢥᢦᢧᢨᢪ</div>
 </div>
 <div data-block="Limbu">
 <div class="line">ᤀᤁᤂᤃᤄᤅᤆᤇᤈᤉᤊᤋᤌᤍᤎᤏᤐᤑᤒᤓᤔᤕᤖᤗᤘᤙᤚᤛᤜᤝᤞ᥀</div>
@@ -157,7 +158,8 @@ summary {
 </div>
 <div data-block="New">
 <div class="line">ᦀᦁᦂᦃᦄᦅᦆᦇᦈᦉᦊᦋᦌᦍᦎᦏᦐᦑᦒᦓᦔᦕᦖᦗᦘᦙᦚᦛᦜᦝᦞᦟ</div>
-<div class="line">ᦠᦡᦢᦣᦤᦥᦦᦧᦨᦩᦪᦫᧁᧂᧃᧄᧅᧆᧇ᧐᧑᧒᧓᧔᧕᧖᧗᧘᧙᧚᧞᧟</div>
+<div class="line">ᦠᦡᦢᦣᦤᦥᦦᦧᦨᦩᦪᦫᦰᦱᦲᦳᦴᦵᦶᦷᦸᦹᦺᦻᦼᦽᦾᦿᧀᧁᧂᧃ</div>
+<div class="line">ᧄᧅᧆᧇᧈᧉ᧐᧑᧒᧓᧔᧕᧖᧗᧘᧙᧚᧞᧟</div>
 </div>
 <div data-block="Khmer">
 <div class="line">᧠᧡᧢᧣᧤᧥᧦᧧᧨᧩᧪᧫᧬᧭᧮᧯᧰᧱᧲᧳᧴᧵᧶᧷᧸᧹᧺᧻᧼᧽᧾᧿</div>
@@ -171,8 +173,7 @@ summary {
 <div class="line">᪑᪒᪓᪔᪕᪖᪗᪘᪙᪠᪡᪢᪣᪤᪥᪦ᪧ᪨᪩᪪᪫᪬᪭</div>
 </div>
 <div data-block="Balinese">
-<div class="line">ᬅᬆᬇᬈᬉᬊᬋᬌᬍᬎᬏᬐᬑᬒᬓᬔᬕᬖᬗᬘᬙᬚᬛᬜᬝᬞᬟᬠᬡᬢᬣᬤ</div>
-<div class="line">ᬥᬦᬧᬨᬩᬪᬫᬬᬭᬮᬯᬰᬱᬲᬳᭅᭆᭇᭈᭉᭊᭋ᭐</div>
+<div class="line">ᬅᬆᬇ</div>
 </div>
 </div>
 </div>

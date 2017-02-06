@@ -66,30 +66,17 @@ async_test(function(t) {
   var div = createDiv(t);
   var anim = div.animate({ opacity: [ 0, 1 ] },
                          { duration: 100000, endDelay: 30000 });
-  var finishedTimelineTime;
-  anim.finished.then(function() {
-    finishedTimelineTime = anim.timeline.currentTime;
-  });
-
-  var receivedEvents = [];
-  anim.onfinish = function(event) {
-    receivedEvents.push(event);
-  }
-
   anim.ready.then(function() {
     anim.currentTime = 110000; // during endDelay
+    anim.onfinish = t.step_func(function(event) {
+      assert_unreached('onfinish event should not be fired during endDelay');
+    });
     return waitForAnimationFrames(2);
   }).then(t.step_func(function() {
-    assert_equals(receivedEvents.length, 0,
-      'onfinish event is should not be fired' +
-      'when currentTime is during endDelay');
+    anim.onfinish = t.step_func(function(event) {
+      t.done();
+    });
     anim.currentTime = 130000; // after endTime
-    return waitForAnimationFrames(2);
-  })).then(t.step_func_done(function() {
-    assert_equals(receivedEvents.length, 1, 'length of array should be one');
-    assert_equals(receivedEvents[0].timelineTime, finishedTimelineTime,
-      'receivedEvents[0].timelineTime should equal to the animation timeline '
-      + 'when finished promise is resolved');
   }));
 }, 'onfinish event is fired currentTime is after endTime');
 

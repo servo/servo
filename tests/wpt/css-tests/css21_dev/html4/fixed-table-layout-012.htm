@@ -3,13 +3,15 @@
     <head>
         <title>CSS Test: Fixed table layout - specified column width overrides first-cell specified width</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+        <link rel="reviewer" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/"> <!-- 2016-05-31 -->
         <link rel="help" href="http://www.w3.org/TR/CSS21/tables.html#fixed-table-layout">
         <meta name="flags" content="">
         <meta name="assert" content="A column element with specified width sets the width of the column, even if the first-row cell has a specified width.">
         <style type="text/css">
             table
             {
-                border-collapse: collapse;
+                border-collapse: separate;
+                border-spacing: 0px;
                 table-layout: fixed;
                 width: 200px;
             }
@@ -19,19 +21,20 @@
             }
             #cell
             {
-                background: black;
+                background: orange;
+                color: orange;
                 width: 175px;
             }
             #div1
             {
                 background: blue;
-                height: 1em;
+                height: 21px;
                 width: 50px;
             }
         </style>
     </head>
     <body>
-        <p>Test passes if the boxes below are the same width.</p>
+        <p>Test passes if the orange and blue stripes have the same width.</p>
         <table>
             <col id="col">
             <col>

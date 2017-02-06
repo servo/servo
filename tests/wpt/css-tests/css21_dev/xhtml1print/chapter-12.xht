@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS 2.1 Conformance Test Suite</h1>
-  <h2>Generated content, automatic numbering, and lists (640 tests)</h2>
+  <h2>Generated content, automatic numbering, and lists (641 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -9449,7 +9449,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s12.5.1">+</a>
         <a href="https://www.w3.org/TR/CSS21/generate.html#list-style">12.5.1 Lists: the 'list-style-type', 'list-style-image', 'list-style-position', and 'list-style' properties</a></th></tr>
-      <!-- 146 tests -->
+      <!-- 147 tests -->
       <tr id="bidi-list-001-12.5.1" class="">
         <td>
             <a href="bidi-list-001.xht">bidi-list-001</a></td>
@@ -10354,6 +10354,17 @@
         <td>Marker box position (outside principal box) - floated :before pseudo-element list-item ('list-style-position:outside')
           <ul class="assert">
             <li>When the :before element is set as a list-item, it establishes a principal box into which a marker box is placed (when 'list-style-position:inside). Since the :before pseudo element is floated left, The document tree content of the associated element must appear alongside (after) the :before pseudo element. Since the marker box of the :before pseudo element should be positioned at the same coordinate as the associated element's marker box, either bullet could appear in front of the other (since stacking levels of marker boxes aren't defined in CSS2.1, in this context).</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="list-style-position-018-12.5.1" class="">
+        <td>
+            <a href="list-style-position-018.xht">list-style-position-018</a></td>
+        <td><a href="reference/list-style-position-018-ref.xht">=</a> </td>
+        <td></td>
+        <td>'list-style-position: outside' - text-align
+          <ul class="assert">
+            <li>'text-align' should only format inline content of a list-item's principal block box when the list-item's 'list-style-position' is set to 'outside'.</li>
           </ul>
         </td>
       </tr>

@@ -1,11 +1,7 @@
-import os
 import unittest
-import urllib2
-import json
-import time
 
 import wptserve
-from base import TestUsingServer, doc_root
+from .base import TestUsingServer
 
 class TestInputFile(TestUsingServer):
     def test_seek(self):
@@ -31,10 +27,10 @@ class TestInputFile(TestUsingServer):
         route = ("POST", "/test/test_seek", handler)
         self.server.router.register(*route)
         resp = self.request(route[1], method="POST", body="12345ab\ncdef")
-        self.assertEquals(200, resp.getcode())
-        self.assertEquals(["ab", "7", "12345ab\n", "8", "cdef", "12",
-                           "12345ab\ncdef", "12345ab\n", "cdef"],
-                          resp.read().split(" "))
+        self.assertEqual(200, resp.getcode())
+        self.assertEqual(["ab", "7", "12345ab\n", "8", "cdef", "12",
+                          "12345ab\ncdef", "12345ab\n", "cdef"],
+                         resp.read().split(" "))
 
     def test_iter(self):
         @wptserve.handlers.handler
@@ -45,8 +41,8 @@ class TestInputFile(TestUsingServer):
         route = ("POST", "/test/test_iter", handler)
         self.server.router.register(*route)
         resp = self.request(route[1], method="POST", body="12345\nabcdef\r\nzyxwv")
-        self.assertEquals(200, resp.getcode())
-        self.assertEquals(["12345\n", "abcdef\r\n", "zyxwv"], resp.read().split(" "))
+        self.assertEqual(200, resp.getcode())
+        self.assertEqual(["12345\n", "abcdef\r\n", "zyxwv"], resp.read().split(" "))
 
 class TestRequest(TestUsingServer):
     def test_body(self):
@@ -58,7 +54,7 @@ class TestRequest(TestUsingServer):
         route = ("POST", "/test/test_body", handler)
         self.server.router.register(*route)
         resp = self.request(route[1], method="POST", body="12345ab\ncdef")
-        self.assertEquals("12345ab\ncdef", resp.read())
+        self.assertEqual("12345ab\ncdef", resp.read())
 
     def test_route_match(self):
         @wptserve.handlers.handler
@@ -68,7 +64,7 @@ class TestRequest(TestUsingServer):
         route = ("GET", "/test/{match}_*", handler)
         self.server.router.register(*route)
         resp = self.request("/test/some_route")
-        self.assertEquals("some route", resp.read())
+        self.assertEqual("some route", resp.read())
 
 class TestAuth(TestUsingServer):
     def test_auth(self):
@@ -79,8 +75,8 @@ class TestAuth(TestUsingServer):
         route = ("GET", "/test/test_auth", handler)
         self.server.router.register(*route)
         resp = self.request(route[1], auth=("test", "PASS"))
-        self.assertEquals(200, resp.getcode())
-        self.assertEquals(["test", "PASS"], resp.read().split(" "))
+        self.assertEqual(200, resp.getcode())
+        self.assertEqual(["test", "PASS"], resp.read().split(" "))
 
 if __name__ == '__main__':
     unittest.main()

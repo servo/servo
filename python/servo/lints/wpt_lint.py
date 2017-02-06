@@ -32,6 +32,6 @@ class Lint(LintRunner):
             site.addsitedir(wpt_working_dir)
             from tools.lint import lint
             file_dir = os.path.abspath(os.path.join(WPT_PATH, suite))
-            returncode = lint.lint(file_dir, files, output_json=False)
+            returncode = lint.lint(file_dir, files, output_json=False, css_mode=False)
             if returncode:
                 yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status %s" % returncode)

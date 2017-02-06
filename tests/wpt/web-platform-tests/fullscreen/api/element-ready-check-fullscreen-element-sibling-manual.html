@@ -14,10 +14,10 @@ async_test(function(t)
     document.onfullscreenchange = t.step_func(function()
     {
         assert_equals(document.fullscreenElement, a, "fullscreen element");
-        trusted_request(b, a);
+        trusted_request(t, b, a);
         document.onfullscreenchange = t.unreached_func("second fullscreenchange event");
         document.onfullscreenerror = t.step_func_done();
     });
-    trusted_request(a);
+    trusted_request(t, a);
 });
 </script>

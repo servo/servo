@@ -12,7 +12,7 @@ policies and contribution forms [3].
 // Helper Functions for NavigationTiming W3C tests
 //
 
-var performanceNamespace = window.performance;
+var performanceNamespace = self.performance;
 var timingAttributes = [
     'connectEnd',
     'connectStart',
@@ -37,6 +37,21 @@ var timingAttributes = [
 ];
 
 var namespace_check = false;
+
+function has_required_interfaces()
+{
+    if (window.performance.mark == undefined ||
+        window.performance.clearMarks == undefined ||
+        window.performance.measure == undefined ||
+        window.performance.clearMeasures == undefined ||
+        window.performance.getEntriesByName == undefined ||
+        window.performance.getEntriesByType == undefined ||
+        window.performance.getEntries == undefined) {
+        return false;
+    }
+
+    return true;
+}
 
 //
 // All test() functions in the WebPerf test suite should use wp_test() instead.

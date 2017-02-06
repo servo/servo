@@ -33,13 +33,13 @@ and ensures that an empty string sent by one is received by the second.
 
   // When the data channel is open, send an empty string message
   // followed by a message that contains the string "done".
-  var onSendChannelOpen = function (event) {
+  var onSendChannelOpen = test.step_func(function (event) {
     var msgEl = document.getElementById('msg');
     sendChannel.send('');
     msgEl.innerHTML += 'Sent: [empty string]<br>';
     sendChannel.send('done');
     msgEl.innerHTML += 'Sent: "done"<br>';
-  };
+  });
 
   // Check the messages received on the other side.
   // There should be an empty string message followed by a message that

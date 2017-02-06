@@ -1,0 +1,164 @@
+====================================================
+py.xml: simple pythonic xml/html file generation
+====================================================
+
+Motivation
+==========
+
+There are a plethora of frameworks and libraries to generate
+xml and html trees.  However, many of them are large, have a
+steep learning curve and are often hard to debug.  Not to
+speak of the fact that they are frameworks to begin with.
+
+.. _xist: http://www.livinglogic.de/Python/xist/index.html
+
+a pythonic object model , please
+================================
+
+The py lib offers a pythonic way to generate xml/html, based on
+ideas from xist_ which `uses python class objects`_ to build
+xml trees.  However, xist_'s implementation is somewhat heavy
+because it has additional goals like transformations and
+supporting many namespaces.  But its basic idea is very easy.
+
+.. _`uses python class objects`: http://www.livinglogic.de/Python/xist/Howto.html
+
+generating arbitrary xml structures
+-----------------------------------
+
+With ``py.xml.Namespace`` you have the basis
+to generate custom xml-fragments on the fly::
+
+    class ns(py.xml.Namespace):
+        "my custom xml namespace"
+    doc = ns.books(
+        ns.book(
+            ns.author("May Day"),
+            ns.title("python for java programmers"),),
+        ns.book(
+            ns.author("why"),
+            ns.title("Java for Python programmers"),),
+        publisher="N.N",
+        )
+    print doc.unicode(indent=2).encode('utf8')
+
+will give you this representation::
+
+    <books publisher="N.N">
+      <book>
+        <author>May Day</author>
+        <title>python for java programmers</title></book>
+      <book>
+        <author>why</author>
+        <title>Java for Python programmers</title></book></books>
+
+In a sentence: positional arguments are child-tags and
+keyword-arguments are attributes.
+
+On a side note, you'll see that the unicode-serializer
+supports a nice indentation style which keeps your generated
+html readable, basically through emulating python's white
+space significance by putting closing-tags rightmost and
+almost invisible at first glance :-)
+
+basic example for generating html
+---------------------------------
+
+Consider this example::
+
+    from py.xml import html  # html namespace
+
+    paras = "First Para", "Second para"
+
+    doc = html.html(
+       html.head(
+            html.meta(name="Content-Type", value="text/html; charset=latin1")),
+       html.body(
+            [html.p(p) for p in paras]))
+
+    print unicode(doc).encode('latin1')
+
+Again, tags are objects which contain tags and have attributes.
+More exactly, Tags inherit from the list type and thus can be
+manipulated as list objects.  They additionally support a default
+way to represent themselves as a serialized unicode object.
+
+If you happen to look at the py.xml implementation you'll
+note that the tag/namespace implementation consumes some 50 lines
+with another 50 lines for the unicode serialization code.
+
+CSS-styling your html Tags
+--------------------------
+
+One aspect where many of the huge python xml/html generation
+frameworks utterly fail is a clean and convenient integration
+of CSS styling.  Often, developers are left alone with keeping
+CSS style definitions in sync with some style files
+represented as strings (often in a separate .css file).  Not
+only is this hard to debug but the missing abstractions make
+it hard to modify the styling of your tags or to choose custom
+style representations (inline, html.head or external).  Add the
+Browers usual tolerance of messyness and errors in Style
+references and welcome to hell, known as the domain of
+developing web applications :-)
+
+By contrast, consider this CSS styling example::
+
+    class my(html):
+        "my initial custom style"
+        class body(html.body):
+            style = html.Style(font_size = "120%")
+
+        class h2(html.h2):
+            style = html.Style(background = "grey")
+
+        class p(html.p):
+            style = html.Style(font_weight="bold")
+
+    doc = my.html(
+        my.head(),
+        my.body(
+            my.h2("hello world"),
+            my.p("bold as bold can")
+        )
+    )
+
+    print doc.unicode(indent=2)
+
+This will give you a small'n mean self contained
+represenation by default::
+
+    <html>
+      <head/>
+      <body style="font-size: 120%">
+        <h2 style="background: grey">hello world</h2>
+        <p style="font-weight: bold">bold as bold can</p></body></html>
+
+Most importantly, note that the inline-styling is just an
+implementation detail of the unicode serialization code.
+You can easily modify the serialization to put your styling into the
+``html.head`` or in a separate file and autogenerate CSS-class
+names or ids.
+
+Hey, you could even write tests that you are using correct
+styles suitable for specific browser requirements.  Did i mention
+that the ability to easily write tests for your generated
+html and its serialization could help to develop _stable_ user
+interfaces?
+
+More to come ...
+----------------
+
+For now, i don't think we should strive to offer much more
+than the above.   However, it is probably not hard to offer
+*partial serialization* to allow generating maybe hundreds of
+complex html documents per second.   Basically we would allow
+putting callables both as Tag content and as values of
+attributes.  A slightly more advanced Serialization would then
+produce a list of unicode objects intermingled with callables.
+At HTTP-Request time the callables would get called to
+complete the probably request-specific serialization of
+your Tags.  Hum, it's probably harder to explain this than to
+actually code it :-)
+
+.. _`py.test`: test/index.html

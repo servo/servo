@@ -103,11 +103,12 @@ test(function() {
 }, "Check if the input element in radio state can access 'labels'");
 
 test(function() {
-  assert_equals(document.getElementById("lbl7").control.id, "testkeygen", "A keygen element should be labelable.");
-}, "Check if the keygen element is a labelable element");
+  assert_not_equals(document.getElementById("lbl7").control, document.getElementById("testkeygen"));
+  assert_equals(document.getElementById("lbl7").control, null, "A keygen element should not be labelable.");
+}, "Check if the keygen element is not a labelable element");
 
 test(function() {
-  testLabelsAttr("testkeygen", "lbl7");
+  assert_equals(document.getElementById("testkeygen").labels, undefined);
 }, "Check if the keygen element can access 'labels'");
 
 test(function() {

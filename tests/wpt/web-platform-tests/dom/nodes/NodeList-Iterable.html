@@ -8,6 +8,8 @@
     <p id="3"></p>
     <p id="4"></p>
     <p id="5"></p>
+
+    <div id="live"><b id="b1">1</b><b id="b2">2</b><b id="b3">3</b></div>
 <script>
     var paragraphs;
     setup(function() {
@@ -34,4 +36,26 @@
             assert_equals(node.getAttribute('id'), ids[idx++]);
         }
     }, 'NodeList is iterable via for-of loop.');
+
+    test(function() {
+        assert_array_equals(Object.keys(paragraphs), ['0', '1', '2', '3', '4']);
+    }, 'NodeList responds to Object.keys correctly');
+
+    test(function() {
+        var container = document.getElementById('live');
+        var nodeList = container.childNodes;
+
+        var ids = [];
+        for (var el of nodeList) {
+            ids.push(el.id);
+            assert_equals(el.localName, 'b');
+            if (ids.length < 3) {
+                var newEl = document.createElement('b');
+                newEl.id = 'after' + el.id;
+                container.appendChild(newEl);
+            }
+        }
+
+        assert_array_equals(ids, ['b1', 'b2', 'b3', 'afterb1', 'afterb2']);
+    }, 'live NodeLists are for-of iterable and update appropriately');
 </script>

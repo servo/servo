@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Pointer Events properties tests</title>
+        <meta name="viewport" content="width=device-width">
+        <link rel="stylesheet" type="text/css" href="../pointerevent_styles.css">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <!-- Additional helper script for common checks across event types -->
+        <script type="text/javascript" src="../pointerevent_support.js"></script>
+        <style>
+          #testContainer {
+            touch-action: none;
+            user-select: none;
+            position: relative;
+          }
+          #box1 {
+            top: 30px;
+            left: 50px;
+            background: black;
+          }
+          #box2 {
+            top: 70px;
+            left: 250px;
+            background: red;
+          }
+          #innerFrame {
+            top: 10px;
+            left: 100px;
+          }
+          #square2 {
+            visibility: block;
+          }
+        </style>
+        <script>
+            var expectedPointerId = NaN;
+            var startSummation = false;
+            var lastScreenX = 0;
+            var lastScreenY = 0;
+
+            function resetTestState() {
+                startSummation = false;
+                lastScreenX = 0;
+                lastScreenY = 0;
+            }
+
+            function run() {
+                var test_pointerEvent = setup_pointerevent_test("pointerevent attributes", ['mouse', 'touch']);
+
+                [document, document.getElementById('innerFrame').contentDocument].forEach(function(element) {
+                  on_event(element, 'pointermove', function (event) {
+                    if (startSummation) {
+                      test_pointerEvent.step(function() {
+                        assert_equals(event.movementX, event.screenX - lastScreenX, "movementX should be the delta between current event's and last event's screenX");
+                        assert_equals(event.movementY, event.screenY - lastScreenY, "movementY should be the delta between current event's and last event's screenY");
+                      });
+                      lastScreenX = event.screenX;
+                      lastScreenY = event.screenY;
+                    }
+                  });
+                });
+                on_event(document.querySelector('#box1'), 'pointerdown', function(event) {
+                  event.target.releasePointerCapture(event.pointerId);
+                  test_pointerEvent.step(function() {
+                      assert_equals(event.pointerType, expectedPointerType, "Use the instructed pointer type.");
+                  });
+                  startSummation = true;
+                  lastScreenX = event.screenX;
+                  lastScreenY = event.screenY;
+                });
+                on_event(document.querySelector('#box2'), 'pointerup', function(event) {
+                  startSummation = false;
+                  test_pointerEvent.done();
+                });
+            }
+        </script>
+    </head>
+    <body onload="run()">
+        <h1>Pointer Events movementX/Y attribute test</h1>
+        <h2 id="pointerTypeDescription"></h2>
+        <h4>
+            Test Description: This test checks the properties of pointer events that do not support hover.
+            <ol>
+                 <li>Press down on the black square.</li>
+                 <li>Move your pointer  slowly along a straight line to the red square.</li>
+                 <li>Release the pointer when you are over the red square.</li>
+            </ol>
+
+            Test passes if the proper behavior of the events is observed.
+        </h4>
+        <div id="testContainer">
+            <div id="box1" class="square"></div>
+            <div id="box2" class="square"></div>
+            <iframe id="innerFrame" src="resources/pointerevent_movementxy-iframe.html"></iframe>
+        </div>
+        <div class="spacer"></div>
+    </body>
+</html>
+

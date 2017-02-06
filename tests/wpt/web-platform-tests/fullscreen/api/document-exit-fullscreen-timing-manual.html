@@ -7,7 +7,7 @@
 <script>
 async_test(t => {
   const div = document.querySelector('div');
-  trusted_request(div);
+  trusted_request(t, div);
 
   document.onfullscreenchange = t.step_func(() => {
     // We are now in fullscreen. Exit again.

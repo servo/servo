@@ -16,11 +16,5 @@
     assert_equals(typeof testBlob, "string", "Blob URI is typeof string");
     assert_equals(testBlob.indexOf("blob"), 0, "Blob URI starts with 'blob'");
   }, "Check if the Blob URI starts with 'blob' using createObjectURL()");
-
-  test(function() {
-    var testBlob = window.URL.createFor(blob);
-    assert_equals(typeof testBlob, "string", "Blob URI is typeof string");
-    assert_equals(testBlob.indexOf("blob"), 0, "Blob URI starts with 'blob'");
-  }, "Check if the Blob URI starts with 'blob' using createFor()");
 </script>
 

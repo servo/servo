@@ -36,6 +36,10 @@
             assert_false(prefixes[i]+'BlobBuilder' in window, prefixes[i]+'BlobBuilder');
         }
     }, 'BlobBuilder should not be supported.');
+
+    test(function() {
+        assert_false('createFor' in URL);
+    }, 'createFor method should not be supported');
   </script>
  </body>
 </html>

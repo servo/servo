@@ -13,28 +13,28 @@
     <p>Rotate the device to run the test.</p>
     <div id="log"></div>
     <script>
-      var gamma, beta, alpha;
+      var t1 = async_test("Alpha, Beta and Gamma are null. absolute is false.");
       var run = false;
       window.addEventListener("deviceorientation", function(e) {
         if (!run) {
           run = true;
-          gamma = e.gamma; // Gamma : angle par rapport a x
-          beta  = e.beta;  // Beta : angle par rapport a y
-          alpha = e.alpha; // Alpha : orientation (N-S-E-O)
+          t1.step(function() {
+            assert_equals(e.alpha, null, "alpha is set to null");
+            assert_equals(e.beta, null, "beta is set to null");
+            assert_equals(e.gamma, null, "gamma is set to null");
+            assert_false(e.absolute, "absolute is set to false");
+          });
+          t1.done();
         }
       }, false);
 
       test(function() {
-        assert_equals(gamma, null);
-      }, "Check if gamma is set to null");
-
-      test(function() {
-        assert_equals(beta, null);
-      }, "Check if beta is set to null");
-
-      test(function() {
-        assert_equals(alpha, null);
-      }, "Check if alpha is set to null");
+        var evt = new DeviceOrientationEvent("foo");
+        assert_equals(evt.alpha, null, "alpha is set to null");
+        assert_equals(evt.beta, null, "beta is set to null");
+        assert_equals(evt.gamma, null, "gamma is set to null");
+        assert_false(evt.absolute, "absolute is set to false");
+      }, "User created event is initialized properly");
     </script>
   </body>
 </html>

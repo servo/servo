@@ -7,6 +7,7 @@
             {
                 "type": "field",
                 "name": "fillPattern",
+                "required": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
@@ -24,6 +25,7 @@
             {
                 "type": "field",
                 "name": "strokePattern",
+                "required": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
@@ -40,6 +42,7 @@
             {
                 "type": "field",
                 "name": "position",
+                "required": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,
@@ -62,6 +65,7 @@
             {
                 "type": "field",
                 "name": "hydrometry",
+                "required": false,
                 "idlType": {
                     "sequence": false,
                     "generic": null,

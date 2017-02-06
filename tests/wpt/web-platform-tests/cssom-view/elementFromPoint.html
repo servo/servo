@@ -52,6 +52,21 @@
   <area id="rectG" shape="rect" coords="0,0,90,100" href="#" alt="area 1"/>
   <area id="circleO" shape="circle" coords="120,60,30" href="#" alt="area 2"/>
   <area id="polyLE" shape="poly" coords="280,0,310,0,360,30,360,90,280,90" href="#" alt="area 3"/>
+  <!-- Test for fieldsets not doing weird things.  Use a 200x200 div to hold
+       all the bits for this test. Also, place it top/right, so it is not below
+       the bottom edge of the viewport. -->
+  <div style="position: absolute; width: 200px; height: 200px; right: 0; top: 0">
+    <div id="fieldset-div"
+         class="size" style="position: absolute; top: 0; left: 0">
+    </div>
+    <fieldset id="fieldset"
+              class="size"
+              style="position: absolute; top: 100px; left: 100px; border-radius: 100px">
+      <!-- Place the child span so the overflow area of the fieldset overlaps
+           the div -->
+      <span style="position: absolute; top: -100px; left: -100px; height: 1px; width: 1px"></span>
+    </fieldset>
+  </div>
   <script>
     setup({explicit_done:true});
     window.onload = function () {
@@ -168,6 +183,23 @@
                         image,
                         "Should have returned the image element");
       }, "Image Maps");
+
+      test(function(){
+          var fieldsetDiv = document.getElementById("fieldset-div");
+          var divRect = fieldsetDiv.getBoundingClientRect();
+          assert_equals(document.elementFromPoint(divRect.left + divRect.width/2,
+                                                  divRect.top + divRect.height/2),
+                        fieldsetDiv,
+                        "The fieldset should not cover up the div it doesn't even overlap");
+
+          var fieldset = document.getElementById("fieldset");
+          var rect = fieldset.getBoundingClientRect();
+          // A point 5px in from topleft will be outside the rounded border.
+          assert_not_equals(document.elementFromPoint(rect.left + 5,
+                                                      rect.top + 5),
+                            fieldset,
+                            "The fieldset should not be hit by hit-tests outside its rounded border");
+      }, "Fieldsets");
       done();
     }
  </script>

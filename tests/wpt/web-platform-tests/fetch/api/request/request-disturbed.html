@@ -16,8 +16,17 @@
       };
 
       var noBodyConsumed = new Request("");
-      noBodyConsumed.blob();
       var bodyConsumed = new Request("", initValuesDict);
+
+      test(() => {
+        assert_equals(noBodyConsumed.body, null, "body's default value is null");
+        assert_false(noBodyConsumed.bodyUsed , "bodyUsed is false when request is not disturbed");
+        assert_not_equals(bodyConsumed.body, null, "non-null body");
+        assert_true(bodyConsumed.body instanceof ReadableStream, "non-null body type");
+        assert_false(noBodyConsumed.bodyUsed, "bodyUsed is false when request is not disturbed");
+      }, "Request's body: initial state");
+
+      noBodyConsumed.blob();
       bodyConsumed.blob();
 
       test(function() {
@@ -39,12 +48,36 @@
         assert_throws(new TypeError(), function() { new Request(bodyConsumed); });
       }, "Check creating a new request from a disturbed request");
 
-      test(function() {
+      promise_test(function() {
         var bodyRequest = new Request("", initValuesDict);
+        const originalBody = bodyRequest.body;
         assert_false(bodyRequest.bodyUsed , "bodyUsed is false when request is not disturbed");
         var requestFromRequest = new Request(bodyRequest);
         assert_true(bodyRequest.bodyUsed , "bodyUsed is true when request is disturbed");
+        assert_equals(bodyRequest.body, originalBody, "body should not change");
+        assert_not_equals(originalBody, undefined, "body should not be undefined");
+        assert_not_equals(originalBody, null, "body should not be null");
+        assert_not_equals(requestFromRequest.body, originalBody, "new request's body is new");
+        return requestFromRequest.text(text => {
+          assert_equals(text, "Request's body");
+        });
       }, "Input request used for creating new request became disturbed");
+
+      promise_test(() => {
+        const bodyRequest = new Request("", initValuesDict);
+        const originalBody = bodyRequest.body;
+        assert_false(bodyRequest.bodyUsed , "bodyUsed is false when request is not disturbed");
+        const requestFromRequest = new Request(bodyRequest, { body : "init body" });
+        assert_true(bodyRequest.bodyUsed , "bodyUsed is true when request is disturbed");
+        assert_equals(bodyRequest.body, originalBody, "body should not change");
+        assert_not_equals(originalBody, undefined, "body should not be undefined");
+        assert_not_equals(originalBody, null, "body should not be null");
+        assert_not_equals(requestFromRequest.body, originalBody, "new request's body is new");
+
+        return requestFromRequest.text(text => {
+          assert_equals(text, "init body");
+        });
+      }, "Input request used for creating new request became disturbed even if body is not used");
 
       promise_test(function(test) {
         assert_true(bodyConsumed.bodyUsed , "bodyUsed is true when request is disturbed");

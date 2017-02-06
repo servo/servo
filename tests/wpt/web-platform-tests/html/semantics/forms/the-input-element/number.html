@@ -2,7 +2,7 @@
 <meta charset=utf-8>
 <title>Form input type=number</title>
 <link rel="author" title="Denis Ah-Kang" href="mailto:denis@w3.org">
-<link rel=help href="https://html.spec.whatwg.org/multipage/#password-state-(type=number)">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#number-state-(type=number)">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
@@ -29,14 +29,14 @@
     {value: "Infinity", expected: "", testname: " value = Infinity"},
     {value: "-Infinity", expected: "", testname: "value = -Infinity"},
     {value: "NaN", expected: "", testname: "value = NaN"},
-    {value: "9007199254740993", expected: "9007199254740992", testname: "value = 2^53+1"},
+    {value: "9007199254740993", expected: "9007199254740993", testname: "value = 2^53+1"},
     {value: "2e308", expected: "", testname: "value >= Number.MAX_VALUE"},
     {value: "1e", expected: "", testname: "value = 1e"},
-    {value: "+1", expected: "1", testname: "value = +1"},
+    {value: "+1", expected: "", testname: "value = +1"},
     {value: "+", expected: "", testname: "value = '+'"},
     {value: "-", expected: "", testname: "value = '-'"},
-    {value: " 1", expected: "1", testname: "value with a leading whitespace"},
-    {value: "1trailing junk", expected: "1", testname: "value = 1trailing junk"}
+    {value: " 1", expected: "", testname: "value with a leading whitespace"},
+    {value: "1trailing junk", expected: "", testname: "value = 1trailing junk"}
   ];
   for (var i = 0; i < numbers.length; i++) {
     var w = numbers[i];

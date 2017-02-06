@@ -16,15 +16,15 @@ async_test(t => {
     // doc's fullscreen element, terminate these subsubsteps."
     document.onfullscreenchange = t.unreached_func("fullscreenchange event");
 
-    trusted_click(t.step_func(() => {
+    trusted_click(t, () => {
       target.requestFullscreen();
 
       // Wait until after the next animation frame.
       requestAnimationFrame(t.step_func_done());
-    }), target);
+    }, target);
   });
   document.onfullscreenerror = t.unreached_func("fullscreenerror event");
 
-  trusted_request(target);
+  trusted_request(t, target);
 });
 </script>

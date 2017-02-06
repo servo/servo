@@ -1,0 +1,96 @@
+/* CSS for CSS Conformance Test Indices */
+/* Written by fantasai */
+
+/* Test Tables */
+
+  table {
+    border-collapse: collapse;
+  }
+
+  thead {
+    border-bottom: 0.2em solid;
+  }
+
+  tbody {
+    border: thin solid;
+    border-style: solid none;
+  }
+
+  tbody.ch {
+    border-top: 0.2em solid;
+  }
+  tbody.ch th {
+    font-weight: bold;
+  }
+
+  tbody th {
+    border-bottom: silver dotted thin;
+    background: #EEE;
+    color: black;
+    font-weight: normal;
+    font-style: italic;
+  }
+  tbody th :link {
+    color: gray;
+    background: transparent;
+  }
+  tbody th :visited {
+    color: #333;
+    background: transparent;
+  }
+
+  th, td {
+    padding: 0.2em;
+    text-align: left;
+    vertical-align: baseline;
+  }
+  
+  td {
+    font-size: 0.9em;
+  }
+
+  /* flags */
+  td abbr {
+    border: solid thin gray;
+    padding: 0 0.1em;
+    cursor: help;
+  }
+  td abbr:hover {
+    background: #ffa;
+    color: black;
+  }
+
+
+  tr:hover {
+    background: #F9F9F9;
+    color: navy;
+  }
+
+  th a,
+  td a {
+    text-decoration: none;
+  }
+  th a:hover,
+  td a:hover,
+  th a:focus,
+  td a:focus {
+    text-decoration: underline;
+  }
+
+  td a {
+    display: block;
+    padding-left: 2em;
+    text-indent: -1em;
+  }
+  .refs {
+    font-weight: bold;
+    font-size: larger;
+  }
+  .assert, .assert > li {
+    list-style-type: none;
+    font-style: italic;
+    color: gray;
+    margin: 0;
+    padding: 0;
+    text-indent: 0;
+  }

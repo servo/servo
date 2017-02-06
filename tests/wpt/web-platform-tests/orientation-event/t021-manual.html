@@ -12,7 +12,7 @@
     <p>Move the device to run the test.</p>
     <div id="log"></div>
     <script>
-      var t = async_test();
+      var t = async_test("devicemotion event exists");
       var run = false;
       window.addEventListener("devicemotion", function(e) {
         if (!run) {

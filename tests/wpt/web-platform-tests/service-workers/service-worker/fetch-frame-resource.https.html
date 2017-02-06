@@ -110,7 +110,8 @@ async_test(function(t) {
           frame.src =
             scope + '?mode=cors&url=' +
             encodeURIComponent(host_info['HTTPS_REMOTE_ORIGIN'] + path +
-                               '?ACAOrigin=' + host_info['HTTPS_ORIGIN']);
+                               '?ACAOrigin=' + host_info['HTTPS_ORIGIN'] +
+                               '&ACACredentials=true');
           document.body.appendChild(frame);
           return getLoadedFrameAsObject(frame);
         })
@@ -183,7 +184,8 @@ async_test(function(t) {
           var win = window.open(
             scope + '?mode=cors&url=' +
             encodeURIComponent(host_info['HTTPS_REMOTE_ORIGIN'] + path +
-                               '?ACAOrigin=' + host_info['HTTPS_ORIGIN']));
+                               '?ACAOrigin=' + host_info['HTTPS_ORIGIN'] +
+                               '&ACACredentials=true'));
           return getLoadedWindowAsObject(win);
         })
       .then(function(result) {

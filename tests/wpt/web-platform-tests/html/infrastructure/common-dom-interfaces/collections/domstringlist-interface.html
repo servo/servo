@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>DOMStringList IDL tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+
+<h1>DOMStringList IDL tests</h1>
+<div id=log></div>
+
+<script>
+"use strict";
+async_test(function(t) {
+  var request = new XMLHttpRequest();
+  request.open("GET", "domstringlist.idl");
+  request.send();
+  request.onload = t.step_func(function() {
+    var idlArray = new IdlArray();
+    var idls = request.responseText;
+
+    idlArray.add_idls(idls);
+
+    idlArray.add_objects({
+      DOMStringList: ['location.ancestorOrigins'],
+    });
+
+    idlArray.test();
+    t.done();
+  });
+});
+</script>

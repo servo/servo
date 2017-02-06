@@ -1,0 +1,208 @@
+.. role:: code(literal)
+.. role:: file(literal)
+
+.. XXX figure out how the code literals should be dealt with in sphinx. There is probably something builtin.
+
+========================================
+py.log documentation and musings
+========================================
+
+
+Foreword
+========
+
+This document is an attempt to briefly state the actual specification of the
+:code:`py.log` module.  It was written by Francois Pinard and also contains
+some ideas for enhancing the py.log facilities.
+
+NOTE that :code:`py.log` is subject to refactorings, it may change with
+the next release.
+
+This document is meant to trigger or facilitate discussions.  It shamelessly
+steals from the `Agile Testing`__ comments, and from other sources as well,
+without really trying to sort them out.
+
+__ http://agiletesting.blogspot.com/2005/06/keyword-based-logging-with-py-library.html
+
+
+Logging organisation
+====================
+
+The :code:`py.log` module aims a niche comparable to the one of the
+`logging module`__ found within the standard Python distributions, yet
+with much simpler paradigms for configuration and usage.
+
+__ http://www.python.org/doc/2.4.2/lib/module-logging.html
+
+Holger Krekel, the main :code:`py` library developer, introduced
+the idea of keyword-based logging and the idea of logging *producers* and
+*consumers*.  A log producer is an object used by the application code
+to send messages to various log consumers.  When you create a log
+producer, you define a set of keywords that are then used to both route
+the logging messages to consumers, and to prefix those messages.
+
+In fact, each log producer has a few keywords associated with it for
+identification purposes.  These keywords form a tuple of strings, and
+may be used to later retrieve a particular log producer.
+
+A log producer may (or may not) be associated with a log consumer, meant
+to handle log messages in particular ways.  The log consumers can be
+``STDOUT``, ``STDERR``, log files, syslog, the Windows Event Log, user
+defined functions, etc.  (Yet, logging to syslog or to the Windows Event
+Log is only future plans for now).  A log producer has never more than
+one consumer at a given time, but it is possible to dynamically switch
+a producer to use another consumer.  On the other hand, a single log
+consumer may be associated with many producers.
+
+Note that creating and associating a producer and a consumer is done
+automatically when not otherwise overriden, so using :code:`py` logging
+is quite comfortable even in the smallest programs.  More typically,
+the application programmer will likely design a hierarchy of producers,
+and will select keywords appropriately for marking the hierarchy tree.
+If a node of the hierarchical tree of producers has to be divided in
+sub-trees, all producers in the sub-trees share, as a common prefix, the
+keywords of the node being divided.  In other words, we go further down
+in the hierarchy of producers merely by adding keywords.
+
+Using the py.log library
+================================
+
+To use the :code:`py.log` library, the user must import it into a Python
+application, create at least one log producer and one log consumer, have
+producers and consumers associated, and finally call the log producers
+as needed, giving them log messages.
+
+Importing
+---------
+
+Once the :code:`py` library is installed on your system, a mere::
+
+  import py
+
+holds enough magic for lazily importing the various facilities of the
+:code:`py` library when they are first needed.  This is really how
+:code:`py.log` is made available to the application.  For example, after
+the above ``import py``, one may directly write ``py.log.Producer(...)``
+and everything should work fine, the user does not have to worry about
+specifically importing more modules.
+
+Creating a producer
+-------------------
+
+There are three ways for creating a log producer instance:
+
+  + As soon as ``py.log`` is first evaluated within an application
+    program, a default log producer is created, and made available under
+    the name ``py.log.default``.  The keyword ``default`` is associated
+    with that producer.
+
+  + The ``py.log.Producer()`` constructor may be explicitly called
+    for creating a new instance of a log producer.  That constructor
+    accepts, as an argument, the keywords that should be associated with
+    that producer.  Keywords may be given either as a tuple of keyword
+    strings, or as a single space-separated string of keywords.
+
+  + Whenever an attribute is *taken* out of a log producer instance,
+    for the first time that attribute is taken, a new log producer is
+    created.  The keywords associated with that new producer are those
+    of the initial producer instance, to which is appended the name of
+    the attribute being taken.
+
+The last point is especially useful, as it allows using log producers
+without further declarations, merely creating them *on-the-fly*.
+
+Creating a consumer
+-------------------
+
+There are many ways for creating or denoting a log consumer:
+
+  + A default consumer exists within the ``py.log`` facilities, which
+    has the effect of writing log messages on the Python standard output
+    stream.  That consumer is associated at the very top of the producer
+    hierarchy, and as such, is called whenever no other consumer is
+    found.
+
+  + The notation ``py.log.STDOUT`` accesses a log consumer which writes
+    log messages on the Python standard output stream.
+
+  + The notation ``py.log.STDERR`` accesses a log consumer which writes
+    log messages on the Python standard error stream.
+
+  + The ``py.log.File()`` constructor accepts, as argument, either a file
+    already opened in write mode or any similar file-like object, and
+    creates a log consumer able to write log messages onto that file.
+
+  + The ``py.log.Path()`` constructor accepts a file name for its first
+    argument, and creates a log consumer able to write log messages into
+    that file.  The constructor call accepts a few keyword parameters:
+
+      + ``append``, which is ``False`` by default, may be used for
+        opening the file in append mode instead of write mode.
+
+      + ``delayed_create``, which is ``False`` by default, maybe be used
+        for opening the file at the latest possible time.  Consequently,
+        the file will not be created if it did not exist, and no actual
+        log message gets written to it.
+
+      + ``buffering``, which is 1 by default, is used when opening the
+        file.  Buffering can be turned off by specifying a 0 value.  The
+        buffer size may also be selected through this argument.
+
+  + Any user defined function may be used for a log consumer.  Such a
+    function should accept a single argument, which is the message to
+    write, and do whatever is deemed appropriate by the programmer.
+    When the need arises, this may be an especially useful and flexible
+    feature.
+
+  + The special value ``None`` means no consumer at all.  This acts just
+    like if there was a consumer which would silently discard all log
+    messages sent to it.
+
+Associating producers and consumers
+-----------------------------------
+
+Each log producer may have at most one log consumer associated with
+it.  A log producer gets associated with a log consumer through a
+``py.log.setconsumer()`` call.  That function accepts two arguments,
+the first identifying a producer (a tuple of keyword strings or a single
+space-separated string of keywords), the second specifying the precise
+consumer to use for that producer.  Until this function is called for a
+producer, that producer does not have any explicit consumer associated
+with it.
+
+Now, the hierarchy of log producers establishes which consumer gets used
+whenever a producer has no explicit consumer.  When a log producer
+has no consumer explicitly associated with it, it dynamically and
+recursively inherits the consumer of its parent node, that is, that node
+being a bit closer to the root of the hierarchy.  In other words, the
+rightmost keywords of that producer are dropped until another producer
+is found which has an explicit consumer.  A nice side-effect is that,
+by explicitly associating a consumer with a producer, all consumer-less
+producers which appear under that producer, in the hierarchy tree,
+automatically *inherits* that consumer.
+
+Writing log messages
+--------------------
+
+All log producer instances are also functions, and this is by calling
+them that log messages are generated.  Each call to a producer object
+produces the text for one log entry, which in turn, is sent to the log
+consumer for that producer.
+
+The log entry displays, after a prefix identifying the log producer
+being used, all arguments given in the call, converted to strings and
+space-separated.  (This is meant by design to be fairly similar to what
+the ``print`` statement does in Python).  The prefix itself is made up
+of a colon-separated list of keywords associated with the producer, the
+whole being set within square brackets.
+
+Note that the consumer is responsible for adding the newline at the end
+of the log entry.  That final newline is not part of the text for the
+log entry.
+
+.. Other details
+.. -------------
+.. XXX: fill in details
+.. + Should speak about pickle-ability of :code:`py.log`.
+..
+.. + What is :code:`log.get` (in :file:`logger.py`)?

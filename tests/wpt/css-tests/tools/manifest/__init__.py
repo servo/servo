@@ -1,5 +1,4 @@
-import item
-import manifest
-import sourcefile
-import tree
-import update
+from . import item
+from . import manifest
+from . import sourcefile
+from . import update

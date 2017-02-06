@@ -56,6 +56,25 @@ cache_test(function(cache) {
   }, 'Cache.delete called with a Request object');
 
 cache_test(function(cache) {
+    var request = new Request(test_url);
+    var response = new_test_response();
+    return cache.put(request, response)
+      .then(function() {
+          return cache.delete(new Request(test_url, {method: 'HEAD'}));
+        })
+      .then(function(result) {
+          assert_false(result,
+                       'Cache.delete should not match a non-GET request ' +
+                       'unless ignoreMethod option is set.');
+          return cache.match(test_url);
+        })
+      .then(function(result) {
+          assert_response_equals(result, response,
+            'Cache.delete should leave non-matching response in the cache.');
+        });
+  }, 'Cache.delete called with a HEAD request');
+
+cache_test(function(cache) {
     return cache.delete(test_url)
       .then(function(result) {
           assert_false(result,

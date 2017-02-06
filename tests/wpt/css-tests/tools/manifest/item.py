@@ -1,15 +1,11 @@
 import os
-import urlparse
+from six.moves.urllib.parse import urljoin
 from abc import ABCMeta, abstractmethod, abstractproperty
-
-from utils import from_os_path, to_os_path
-
-item_types = ["testharness", "reftest", "manual", "stub", "wdspec"]
 
 
 def get_source_file(source_files, tests_root, manifest, path):
     def make_new():
-        from sourcefile import SourceFile
+        from .sourcefile import SourceFile
 
         return SourceFile(tests_root, path, manifest.url_base)
 
@@ -62,12 +58,17 @@ class ManifestItem(object):
     def __hash__(self):
         return hash(self.key() + self.meta_key())
 
+    def __repr__(self):
+        return "<%s.%s id=%s, path=%s>" % (self.__module__, self.__class__.__name__, self.id, self.path)
+
     def to_json(self):
-        return {"path": from_os_path(self.path)}
+        return [{}]
 
     @classmethod
-    def from_json(self, manifest, tests_root, obj, source_files=None):
-        raise NotImplementedError
+    def from_json(cls, manifest, tests_root, path, obj, source_files=None):
+        source_file = get_source_file(source_files, tests_root, manifest, path)
+        return cls(source_file,
+                   manifest=manifest)
 
 
 class URLManifestItem(ManifestItem):
@@ -82,19 +83,18 @@ class URLManifestItem(ManifestItem):
 
     @property
     def url(self):
-        return urlparse.urljoin(self.url_base, self._url)
+        return urljoin(self.url_base, self._url)
 
     def to_json(self):
-        rv = ManifestItem.to_json(self)
-        rv["url"] = self._url
+        rv = [self._url, {}]
         return rv
 
     @classmethod
-    def from_json(cls, manifest, tests_root, obj, source_files=None):
-        source_file = get_source_file(source_files, tests_root, manifest,
-                                      to_os_path(obj["path"]))
+    def from_json(cls, manifest, tests_root, path, obj, source_files=None):
+        source_file = get_source_file(source_files, tests_root, manifest, path)
+        url, extras = obj
         return cls(source_file,
-                   obj["url"],
+                   url,
                    url_base=manifest.url_base,
                    manifest=manifest)
 
@@ -112,81 +112,108 @@ class TestharnessTest(URLManifestItem):
     def to_json(self):
         rv = URLManifestItem.to_json(self)
         if self.timeout is not None:
-            rv["timeout"] = self.timeout
+            rv[-1]["timeout"] = self.timeout
         return rv
 
     @classmethod
-    def from_json(cls, manifest, tests_root, obj, source_files=None):
-        source_file = get_source_file(source_files, tests_root, manifest,
-                                      to_os_path(obj["path"]))
+    def from_json(cls, manifest, tests_root, path, obj, source_files=None):
+        source_file = get_source_file(source_files, tests_root, manifest, path)
+
+        url, extras = obj
         return cls(source_file,
-                   obj["url"],
+                   url,
                    url_base=manifest.url_base,
-                   timeout=obj.get("timeout"),
+                   timeout=extras.get("timeout"),
                    manifest=manifest)
 
 
-class RefTest(URLManifestItem):
-    item_type = "reftest"
+class RefTestNode(URLManifestItem):
+    item_type = "reftest_node"
 
     def __init__(self, source_file, url, references, url_base="/", timeout=None,
                  viewport_size=None, dpi=None, manifest=None):
         URLManifestItem.__init__(self, source_file, url, url_base=url_base, manifest=manifest)
         for _, ref_type in references:
             if ref_type not in ["==", "!="]:
-                raise ValueError, "Unrecognised ref_type %s" % ref_type
+                raise ValueError("Unrecognised ref_type %s" % ref_type)
         self.references = tuple(references)
         self.timeout = timeout
         self.viewport_size = viewport_size
         self.dpi = dpi
 
-    @property
-    def is_reference(self):
-        return self.source_file.name_is_reference
-
     def meta_key(self):
         return (self.timeout, self.viewport_size, self.dpi)
 
     def to_json(self):
-        rv = URLManifestItem.to_json(self)
-        rv["references"] = self.references
+        rv = [self.url, self.references, {}]
+        extras = rv[-1]
         if self.timeout is not None:
-            rv["timeout"] = self.timeout
+            extras["timeout"] = self.timeout
         if self.viewport_size is not None:
-            rv["viewport_size"] = self.viewport_size
+            extras["viewport_size"] = self.viewport_size
         if self.dpi is not None:
-            rv["dpi"] = self.dpi
+            extras["dpi"] = self.dpi
         return rv
 
     @classmethod
-    def from_json(cls, manifest, tests_root, obj, source_files=None):
-        source_file = get_source_file(source_files, tests_root, manifest,
-                                      to_os_path(obj["path"]))
+    def from_json(cls, manifest, tests_root, path, obj, source_files=None):
+        source_file = get_source_file(source_files, tests_root, manifest, path)
+        url, references, extras = obj
         return cls(source_file,
-                   obj["url"],
-                   obj["references"],
+                   url,
+                   references,
                    url_base=manifest.url_base,
-                   timeout=obj.get("timeout"),
-                   viewport_size=obj.get("viewport_size"),
-                   dpi=obj.get("dpi"),
+                   timeout=extras.get("timeout"),
+                   viewport_size=extras.get("viewport_size"),
+                   dpi=extras.get("dpi"),
                    manifest=manifest)
+
+    def to_RefTest(self):
+        if type(self) == RefTest:
+            return self
+        rv = RefTest.__new__(RefTest)
+        rv.__dict__.update(self.__dict__)
+        return rv
+
+    def to_RefTestNode(self):
+        if type(self) == RefTestNode:
+            return self
+        rv = RefTestNode.__new__(RefTestNode)
+        rv.__dict__.update(self.__dict__)
+        return rv
+
+
+class RefTest(RefTestNode):
+    item_type = "reftest"
 
 
 class ManualTest(URLManifestItem):
     item_type = "manual"
 
+
+class ConformanceCheckerTest(URLManifestItem):
+    item_type = "conformancechecker"
+
+
+class VisualTest(URLManifestItem):
+    item_type = "visual"
+
+
 class Stub(URLManifestItem):
     item_type = "stub"
 
-class WebdriverSpecTest(ManifestItem):
+
+class WebdriverSpecTest(URLManifestItem):
     item_type = "wdspec"
+
+    def __init__(self, source_file, url, url_base="/", timeout=None, manifest=None):
+        URLManifestItem.__init__(self, source_file, url, url_base=url_base, manifest=manifest)
+        self.timeout = timeout
+
+
+class SupportFile(ManifestItem):
+    item_type = "support"
 
     @property
     def id(self):
-        return self.path
-
-    @classmethod
-    def from_json(cls, manifest, tests_root, obj, source_files=None):
-        source_file = get_source_file(source_files, tests_root, manifest,
-                                      to_os_path(obj["path"]))
-        return cls(source_file, manifest=manifest)
+        return self.source_file.rel_path

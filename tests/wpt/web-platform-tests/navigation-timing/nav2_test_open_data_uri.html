@@ -5,11 +5,26 @@
         <title>Navigation Timing 2 WPT</title>
         <link rel="author" title="Google" href="http://www.google.com/" />
         <link rel="help" href="http://www.w3.org/TR/navigation-timing/#sec-navigation-timing-interface"/>
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
     </head>
     <body>
         <h1>Description</h1>
-        <p>This test validates there does not exist a navigation timing instance when opening a data uri. This data uri points to nav2_data_uri.html. This test passes when it displays so in the iframe below.</p>
+        <p>This test validates there does not exist a navigation timing instance when opening a data uri. This data uri is equivalent to nav2_data_uri.html.</p>
 
-        <iframe id="frameContext" src="data:text/html;base64,PCFET0NUWVBFIGh0bWw+CjxodG1sPgogICAgPGhlYWQ+CiAgICAgICAgPG1ldGEgY2hhcnNldD0idXRmLTgiPgogICAgICAgIDx0aXRsZT5PcmlnaW5hbCBmaWxlIGZvciBkYXRhOnVyaS4uLiB0byB0ZXN0IG9wZW5pbmcgYW4gZGF0YTp1cmkgcGF0aCB3aXRoaW4gYW4gaWZyYW1lLjwvdGl0bGU+CiAgICAgICAgPGxpbmsgcmVsPSJhdXRob3IiIHRpdGxlPSJHb29nbGUiIGhyZWY9Imh0dHA6Ly93d3cuZ29vZ2xlLmNvbS8iIC8+CiAgICAgICAgPGxpbmsgcmVsPSJoZWxwIiBocmVmPSJodHRwOi8vd3d3LnczLm9yZy9UUi9uYXZpZ2F0aW9uLXRpbWluZy0yLyNzZWMtUGVyZm9ybWFuY2VOYXZpZ2F0aW9uVGltaW5nIi8+CiAgICA8L2hlYWQ+CiAgICA8Ym9keT4KICAgICAgICA8aDE+RGVzY3JpcHRpb248L2gxPgogICAgICAgIDxwIGlkPSJwIj5UaGlzIHRlc3QgcGFzc2VkLjwvcD4KICAgICAgICA8c2NyaXB0PgogICAgICAgICAgICAgICAgdmFyIG9ic2VydmVyID0gbmV3IFBlcmZvcm1hbmNlT2JzZXJ2ZXIoCiAgICAgICAgICAgICAgICAgICAgZnVuY3Rpb24gKGVudHJ5TGlzdCkgewogICAgICAgICAgICAgICAgICAgICAgICBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicCIpLmlubmVySFRNTCA9ICJUaGlzIHRlc3QgZmFpbGVkIGNhdXNlIG5hdmlnYXRpb24gaW50YW5jZSBpcyBvYnNlcnZlZC4iOwogICAgICAgICAgICAgICAgICAgICAgICBvYnNlcnZlci5kaXNjb25uZWN0KCk7CiAgICAgICAgICAgICAgICAgICAgfSk7CiAgICAgICAgICAgICAgICBvYnNlcnZlci5vYnNlcnZlKHtlbnRyeVR5cGVzOiBbIm5hdmlnYXRpb24iXX0pOwogICAgICAgIDwvc2NyaXB0PgogICAgPC9ib2R5Pgo8L2h0bWw+Cg==" style="width: 250px; height: 250px;"></iframe>
+        <script>
+async_test(function(t) {
+    var gotEvent = false;
+    window.addEventListener("message", t.step_func(function() {
+        assert_unreached("A navigation timing instance existed");
+    }));
+    window.addEventListener("load", t.step_func(function() {
+        t.step_timeout(function() { t.done(); }, 2000);
+    }));
+}, "Navigation timing instance existence");
+        </script>
+
+        <iframe src="data:text/html;charset=utf-8,%3C%21DOCTYPE%20html%3E%0D%0A%3Ctitle%3Edata%20URL%20source%20for%20navigation-timing%2Fnav2_test_open_data_uri.html%3C%2Ftitle%3E%0D%0A%3C%21--%20NB%3A%20this%20file%20isn%27t%20actually%20used%20any%20where%21%20--%3E%0D%0A%3Clink%20rel%3D%22author%22%20title%3D%22Google%22%20href%3D%22http%3A%2F%2Fwww.google.com%2F%22%20%2F%3E%0D%0A%3Cscript%3E%0D%0Avar%20observer%20%3D%20new%20PerformanceObserver%28%0D%0A%20%20%20%20function%20%28entryList%29%20%7B%0D%0A%20%20%20%20%20%20%20%20parent.postMessage%28%22observed%22%2C%20%22%2A%22%29%3B%0D%0A%20%20%20%20%20%20%20%20observer.disconnect%28%29%3B%0D%0A%20%20%20%20%7D%29%3B%0D%0Aobserver.observe%28%7BentryTypes%3A%20%5B%22navigation%22%5D%7D%29%3B%0D%0A%3C%2Fscript%3E%0D%0A"></iframe>
+        <!-- NB: see nav2_data_uri.html for the source of that data URI -->
     </body>
 </html>

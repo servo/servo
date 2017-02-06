@@ -1,0 +1,11 @@
+<!doctype html>
+<title>PaymentRequest no attribute cross-origin browsing context containers</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+const expectSuccess = {'iframe': false, 'frame': false, 'object': false, 'embed': false};
+const setAllowPaymentRequest = false;
+const testCrossOrigin = true;
+</script>
+<script src=common.sub.js></script>

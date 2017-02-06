@@ -1,9 +1,14 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
     <title>CSS Test: Left float with radial gradient</title>
-    <link href="betravis@adobe.com" rel="author" title="Bear Travis" />
+    <link href="mailto:betravis@adobe.com" rel="author" title="Bear Travis" />
     <link href="http://www.w3.org/TR/css-shapes-1/#shapes-from-image" rel="help" />
     <link href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property" rel="help" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="../../supported-shapes/support/rounded-rectangle.js"></script>
+    <script src="../../supported-shapes/support/subpixel-utils.js"></script>
+    <script src="../../supported-shapes/support/test-utils.js"></script>
     <meta content="ahem dom" name="flags" />
     <meta content="This test verifies that shape-outside respects a
                                 simple radial gradient." name="assert" />
@@ -47,11 +52,6 @@
         x<br />
     </div>
     <div id="log"></div>
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
-    <script src="../../supported-shapes/support/rounded-rectangle.js"></script>
-    <script src="../../supported-shapes/support/subpixel-utils.js"></script>
-    <script src="../../supported-shapes/support/test-utils.js"></script>
     <script>
         verifyTextPoints({
                 roundedRect: {x: 0, y: 10, width: 100, height: 100, rx: 50, ry: 50},

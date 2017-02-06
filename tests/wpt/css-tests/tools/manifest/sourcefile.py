@@ -1,5 +1,8 @@
+import hashlib
+import re
 import os
-import urlparse
+from six import binary_type
+from six.moves.urllib.parse import urljoin
 from fnmatch import fnmatch
 try:
     from xml.etree import cElementTree as ElementTree
@@ -8,43 +11,83 @@ except ImportError:
 
 import html5lib
 
-import vcs
-from item import Stub, ManualTest, WebdriverSpecTest, RefTest, TestharnessTest
-from utils import rel_path_to_url, is_blacklisted, ContextManagerStringIO, cached_property
+from . import XMLParser
+from .item import Stub, ManualTest, WebdriverSpecTest, RefTestNode, RefTest, TestharnessTest, SupportFile, ConformanceCheckerTest, VisualTest
+from .utils import rel_path_to_url, ContextManagerBytesIO, cached_property
 
 wd_pattern = "*.py"
+meta_re = re.compile(b"//\s*META:\s*(\w*)=(.*)$")
+
+reference_file_re = re.compile(r'(^|[\-_])(not)?ref[0-9]*([\-_]|$)')
+
+def replace_end(s, old, new):
+    """
+    Given a string `s` that ends with `old`, replace that occurrence of `old`
+    with `new`.
+    """
+    assert s.endswith(old)
+    return s[:-len(old)] + new
+
+
+def read_script_metadata(f):
+    """
+    Yields any metadata (pairs of bytestrings) from the file-like object `f`,
+    as specified according to the `meta_re` regex.
+    """
+    for line in f:
+        assert isinstance(line, binary_type), line
+        m = meta_re.match(line)
+        if not m:
+            break
+
+        yield (m.groups()[0], m.groups()[1])
+
 
 class SourceFile(object):
     parsers = {"html":lambda x:html5lib.parse(x, treebuilder="etree"),
-               "xhtml":ElementTree.parse,
-               "svg":ElementTree.parse}
+               "xhtml":lambda x:ElementTree.parse(x, XMLParser.XMLParser()),
+               "svg":lambda x:ElementTree.parse(x, XMLParser.XMLParser())}
 
-    def __init__(self, tests_root, rel_path, url_base, use_committed=False):
+    root_dir_non_test = set(["common",
+                             "work-in-progress"])
+
+    dir_non_test = set(["resources",
+                        "support",
+                        "tools"])
+
+    dir_path_non_test = {("css21", "archive")}
+
+    def __init__(self, tests_root, rel_path, url_base, contents=None):
         """Object representing a file in a source tree.
 
         :param tests_root: Path to the root of the source tree
         :param rel_path: File path relative to tests_root
         :param url_base: Base URL used when converting file paths to urls
-        :param use_committed: Work with the last committed version of the file
-                              rather than the on-disk version.
+        :param contents: Byte array of the contents of the file or ``None``.
         """
 
         self.tests_root = tests_root
-        self.rel_path = rel_path
+        if os.name == "nt":
+            # do slash normalization on Windows
+            if isinstance(rel_path, binary_type):
+                self.rel_path = rel_path.replace(b"/", b"\\")
+            else:
+                self.rel_path = rel_path.replace(u"/", u"\\")
+        else:
+            self.rel_path = rel_path
         self.url_base = url_base
-        self.use_committed = use_committed
+        self.contents = contents
 
-        self.url = rel_path_to_url(rel_path, url_base)
-        self.path = os.path.join(tests_root, rel_path)
-
-        self.dir_path, self.filename = os.path.split(self.path)
+        self.dir_path, self.filename = os.path.split(self.rel_path)
         self.name, self.ext = os.path.splitext(self.filename)
 
         self.type_flag = None
         if "-" in self.name:
-            self.type_flag = self.name.rsplit("-", 1)[1]
+            self.type_flag = self.name.rsplit("-", 1)[1].split(".")[0]
 
         self.meta_flags = self.name.split(".")[1:]
+
+        self.items_cache = None
 
     def __getstate__(self):
         # Remove computed properties if we pickle this class
@@ -64,27 +107,76 @@ class SourceFile(object):
         :param prefix: The prefix to check"""
         return self.name.startswith(prefix)
 
-    def open(self):
-        """Return a File object opened for reading the file contents,
-        or the contents of the file when last committed, if
-        use_comitted is true."""
+    def is_dir(self):
+        """Return whether this file represents a directory."""
+        if self.contents is not None:
+            return False
 
-        if self.use_committed:
-            git = vcs.get_git_func(os.path.dirname(__file__))
-            blob = git("show", "HEAD:%s" % self.rel_path)
-            file_obj = ContextManagerStringIO(blob)
+        return os.path.isdir(self.rel_path)
+
+    def open(self):
+        """
+        Return either
+        * the contents specified in the constructor, if any;
+        * a File object opened for reading the file contents.
+        """
+
+        if self.contents is not None:
+            file_obj = ContextManagerBytesIO(self.contents)
         else:
-            file_obj = open(self.path)
+            file_obj = open(self.path, 'rb')
         return file_obj
+
+    @cached_property
+    def path(self):
+        return os.path.join(self.tests_root, self.rel_path)
+
+    @cached_property
+    def url(self):
+        return rel_path_to_url(self.rel_path, self.url_base)
+
+    @cached_property
+    def hash(self):
+        with self.open() as f:
+            return hashlib.sha1(f.read()).hexdigest()
+
+    def in_non_test_dir(self):
+        if self.dir_path == "":
+            return True
+
+        parts = self.dir_path.split(os.path.sep)
+
+        if parts[0] in self.root_dir_non_test:
+            return True
+        elif any(item in self.dir_non_test for item in parts):
+            return True
+        else:
+            for path in self.dir_path_non_test:
+                if parts[:len(path)] == list(path):
+                    return True
+        return False
+
+    def in_conformance_checker_dir(self):
+        return (self.dir_path == "conformance-checkers" or
+                self.dir_path.startswith("conformance-checkers" + os.path.sep))
 
     @property
     def name_is_non_test(self):
         """Check if the file name matches the conditions for the file to
         be a non-test file"""
-        return (os.path.isdir(self.rel_path) or
+        return (self.is_dir() or
                 self.name_prefix("MANIFEST") or
                 self.filename.startswith(".") or
-                is_blacklisted(self.url))
+                self.in_non_test_dir())
+
+    @property
+    def name_is_conformance(self):
+        return (self.in_conformance_checker_dir() and
+                self.type_flag in ("is-valid", "no-valid"))
+
+    @property
+    def name_is_conformance_support(self):
+        return self.in_conformance_checker_dir()
 
     @property
     def name_is_stub(self):
@@ -97,6 +189,18 @@ class SourceFile(object):
         """Check if the file name matches the conditions for the file to
         be a manual test file"""
         return self.type_flag == "manual"
+
+    @property
+    def name_is_visual(self):
+        """Check if the file name matches the conditions for the file to
+        be a visual test file"""
+        return self.type_flag == "visual"
+
+    @property
+    def name_is_multi_global(self):
+        """Check if the file name matches the conditions for the file to
+        be a multi-global js test file"""
+        return "any" in self.meta_flags and self.ext == ".js"
 
     @property
     def name_is_worker(self):
@@ -112,7 +216,7 @@ class SourceFile(object):
         # files.
         rel_dir_tree = self.rel_path.split(os.path.sep)
         return (rel_dir_tree[0] == "webdriver" and
-                len(rel_dir_tree) > 2 and
+                len(rel_dir_tree) > 1 and
                 self.filename != "__init__.py" and
                 fnmatch(self.filename, wd_pattern))
 
@@ -120,7 +224,7 @@ class SourceFile(object):
     def name_is_reference(self):
         """Check if the file name matches the conditions for the file to
         be a reference file (not a reftest)"""
-        return self.type_flag in ("ref", "notref")
+        return "/reference/" in self.url or "/reftest/" in self.url or bool(reference_file_re.search(self.name))
 
     @property
     def markup_type(self):
@@ -169,16 +273,30 @@ class SourceFile(object):
         return self.root.findall(".//{http://www.w3.org/1999/xhtml}meta[@name='timeout']")
 
     @cached_property
+    def script_metadata(self):
+        if not self.name_is_worker and not self.name_is_multi_global:
+            return None
+
+        with self.open() as f:
+            return list(read_script_metadata(f))
+
+    @cached_property
     def timeout(self):
         """The timeout of a test or reference file. "long" if the file has an extended timeout
         or None otherwise"""
-        if not self.root:
-            return
+        if self.script_metadata:
+            if any(m == (b"timeout", b"long") for m in self.script_metadata):
+                return "long"
+
+        if self.root is None:
+            return None
 
         if self.timeout_nodes:
             timeout_str = self.timeout_nodes[0].attrib.get("content", None)
             if timeout_str and timeout_str.lower() == "long":
-                return timeout_str
+                return "long"
+
+        return None
 
     @cached_property
     def viewport_nodes(self):
@@ -189,7 +307,7 @@ class SourceFile(object):
     @cached_property
     def viewport_size(self):
         """The viewport size of a test or reference file"""
-        if not self.root:
+        if self.root is None:
             return None
 
         if not self.viewport_nodes:
@@ -206,7 +324,7 @@ class SourceFile(object):
     @cached_property
     def dpi(self):
         """The device pixel ratio of a test or reference file"""
-        if not self.root:
+        if self.root is None:
             return None
 
         if not self.dpi_nodes:
@@ -224,7 +342,7 @@ class SourceFile(object):
     def content_is_testharness(self):
         """Boolean indicating whether the file content represents a
         testharness.js test"""
-        if not self.root:
+        if self.root is None:
             return None
         return bool(self.testharness_nodes)
 
@@ -252,7 +370,7 @@ class SourceFile(object):
     def reftest_nodes(self):
         """List of ElementTree Elements corresponding to nodes representing a
         to a reftest <link>"""
-        if not self.root:
+        if self.root is None:
             return []
 
         match_links = self.root.findall(".//{http://www.w3.org/1999/xhtml}link[@rel='match']")
@@ -267,7 +385,7 @@ class SourceFile(object):
         rel_map = {"match": "==", "mismatch": "!="}
         for item in self.reftest_nodes:
             if "href" in item.attrib:
-                ref_url = urlparse.urljoin(self.url, item.attrib["href"])
+                ref_url = urljoin(self.url, item.attrib["href"])
                 ref_type = rel_map[item.attrib["rel"]]
                 rv.append((ref_url, ref_type))
         return rv
@@ -278,38 +396,124 @@ class SourceFile(object):
         graph (i.e. if it contains any <link rel=[mis]match>"""
         return bool(self.references)
 
+    @cached_property
+    def css_flag_nodes(self):
+        """List of ElementTree Elements corresponding to nodes representing a
+        flag <meta>"""
+        if self.root is None:
+            return []
+        return self.root.findall(".//{http://www.w3.org/1999/xhtml}meta[@name='flags']")
+
+    @cached_property
+    def css_flags(self):
+        """Set of flags specified in the file"""
+        rv = set()
+        for item in self.css_flag_nodes:
+            if "content" in item.attrib:
+                for flag in item.attrib["content"].split():
+                    rv.add(flag)
+        return rv
+
+    @cached_property
+    def content_is_css_manual(self):
+        """Boolean indicating whether the file content represents a
+        CSS WG-style manual test"""
+        if self.root is None:
+            return None
+        # return True if the intersection between the two sets is non-empty
+        return bool(self.css_flags & {"animated", "font", "history", "interact", "paged", "speech", "userstyle"})
+
+    @cached_property
+    def spec_link_nodes(self):
+        """List of ElementTree Elements corresponding to nodes representing a
+        <link rel=help>, used to point to specs"""
+        if self.root is None:
+            return []
+        return self.root.findall(".//{http://www.w3.org/1999/xhtml}link[@rel='help']")
+
+    @cached_property
+    def spec_links(self):
+        """Set of spec links specified in the file"""
+        rv = set()
+        for item in self.spec_link_nodes:
+            if "href" in item.attrib:
+                rv.add(item.attrib["href"])
+        return rv
+
+    @cached_property
+    def content_is_css_visual(self):
+        """Boolean indicating whether the file content represents a
+        CSS WG-style manual test"""
+        if self.root is None:
+            return None
+        return bool(self.ext in {'.xht', '.html', '.xhtml', '.htm', '.xml', '.svg'} and
+                    self.spec_links)
+
+    @property
+    def type(self):
+        rv, _ = self.manifest_items()
+        return rv
+
     def manifest_items(self):
         """List of manifest items corresponding to the file. There is typically one
         per test, but in the case of reftests a node may have corresponding manifest
         items without being a test itself."""
 
+        if self.items_cache:
+            return self.items_cache
+
         if self.name_is_non_test:
-            rv = []
+            rv = "support", [SupportFile(self)]
 
         elif self.name_is_stub:
-            rv = [Stub(self, self.url)]
+            rv = Stub.item_type, [Stub(self, self.url)]
 
         elif self.name_is_manual:
-            rv = [ManualTest(self, self.url)]
+            rv = ManualTest.item_type, [ManualTest(self, self.url)]
+
+        elif self.name_is_conformance:
+            rv = ConformanceCheckerTest.item_type, [ConformanceCheckerTest(self, self.url)]
+
+        elif self.name_is_conformance_support:
+            rv = "support", [SupportFile(self)]
+
+        elif self.name_is_visual:
+            rv = VisualTest.item_type, [VisualTest(self, self.url)]
+
+        elif self.name_is_multi_global:
+            rv = TestharnessTest.item_type, [
+                TestharnessTest(self, replace_end(self.url, ".any.js", ".any.html"), timeout=self.timeout),
+                TestharnessTest(self, replace_end(self.url, ".any.js", ".any.worker.html"), timeout=self.timeout),
+            ]
 
         elif self.name_is_worker:
-            rv = [TestharnessTest(self, self.url[:-3])]
+            rv = (TestharnessTest.item_type,
+                  [TestharnessTest(self, replace_end(self.url, ".worker.js", ".worker.html"),
+                                   timeout=self.timeout)])
 
         elif self.name_is_webdriver:
-            rv = [WebdriverSpecTest(self)]
+            rv = WebdriverSpecTest.item_type, [WebdriverSpecTest(self, self.url)]
+
+        elif self.content_is_css_manual and not self.name_is_reference:
+            rv = ManualTest.item_type, [ManualTest(self, self.url)]
 
         elif self.content_is_testharness:
-            rv = []
+            rv = TestharnessTest.item_type, []
             for variant in self.test_variants:
                 url = self.url + variant
-                rv.append(TestharnessTest(self, url, timeout=self.timeout))
+                rv[1].append(TestharnessTest(self, url, timeout=self.timeout))
 
         elif self.content_is_ref_node:
-            rv = [RefTest(self, self.url, self.references, timeout=self.timeout,
-                          viewport_size=self.viewport_size, dpi=self.dpi)]
+            rv = (RefTestNode.item_type,
+                  [RefTestNode(self, self.url, self.references, timeout=self.timeout,
+                               viewport_size=self.viewport_size, dpi=self.dpi)])
+
+        elif self.content_is_css_visual and not self.name_is_reference:
+            rv = VisualTest.item_type, [VisualTest(self, self.url)]
 
         else:
-            # If nothing else it's a helper file, which we don't have a specific type for
-            rv = []
+            rv = "support", [SupportFile(self)]
+
+        self.items_cache = rv
 
         return rv

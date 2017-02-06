@@ -138,6 +138,8 @@ flexbox-align-self-baseline-horiz-002.htm == reference/flexbox-align-self-baseli
 flexbox-align-self-baseline-horiz-003.htm == reference/flexbox-align-self-baseline-horiz-003-ref.htm
 flexbox-align-self-baseline-horiz-004.htm == reference/flexbox-align-self-baseline-horiz-004-ref.htm
 flexbox-align-self-baseline-horiz-005.htm == reference/flexbox-align-self-baseline-horiz-005-ref.htm
+flexbox-align-self-baseline-horiz-006.htm == reference/flexbox-align-self-baseline-horiz-006-ref.htm
+flexbox-align-self-baseline-horiz-007.htm == reference/flexbox-align-self-baseline-horiz-007-ref.htm
 flexbox-align-self-horiz-001-block.htm == reference/flexbox-align-self-horiz-001-ref.htm
 flexbox-align-self-horiz-001-table.htm == reference/flexbox-align-self-horiz-001-ref.htm
 flexbox-align-self-horiz-002.htm == reference/flexbox-align-self-horiz-002-ref.htm
@@ -269,6 +271,9 @@ flexbox-paint-ordering-001.htm == reference/flexbox-paint-ordering-001-ref.htm
 flexbox-paint-ordering-002.htm == reference/flexbox-paint-ordering-002-ref.htm
 flexbox-root-node-001a.htm == reference/flexbox-root-node-001-ref.htm
 flexbox-root-node-001b.htm == reference/flexbox-root-node-001-ref.htm
+flexbox-single-line-clamp-1.htm == reference/flexbox-single-line-clamp-1-ref.htm
+flexbox-single-line-clamp-2.htm == reference/flexbox-single-line-clamp-2-ref.htm
+flexbox-single-line-clamp-3.htm == reference/flexbox-single-line-clamp-3-ref.htm
 flexbox-sizing-horiz-001.htm == reference/flexbox-sizing-horiz-001-ref.htm
 flexbox-sizing-horiz-002.htm == reference/flexbox-sizing-horiz-002-ref.htm
 flexbox-sizing-vert-001.htm == reference/flexbox-sizing-vert-001-ref.htm
@@ -514,10 +519,13 @@ justify-content-002.htm == reference/justify-content-001-ref.htm
 justify-content-003.htm == reference/justify-content-001-ref.htm
 justify-content-004.htm == reference/justify-content-001-ref.htm
 justify-content-005.htm == reference/justify-content-001-ref.htm
+layout-algorithm_algo-cross-line-001.htm == reference/layout-algorithm_algo-cross-line-001-ref.htm
+layout-algorithm_algo-cross-line-002.htm == reference/layout-algorithm_algo-cross-line-002-ref.htm
 multi-line-wrap-reverse-column-reverse.htm == reference/multi-line-wrap-reverse-column-reverse-ref.htm
 multi-line-wrap-reverse-row-reverse.htm == reference/multi-line-wrap-reverse-row-reverse-ref.htm
 multi-line-wrap-with-column-reverse.htm == reference/multi-line-wrap-with-column-reverse-ref.htm
 multi-line-wrap-with-row-reverse.htm == reference/multi-line-wrap-with-row-reverse-ref.htm
+negative-margins-001.htm == reference/negative-margins-001-ref.htm
 order-with-column-reverse.htm == reference/order-with-column-reverse-ref.htm
 order-with-row-reverse.htm == reference/order-with-row-reverse-ref.htm
 regions-flexbox-001.htm == reference/regions-flexbox-001-ref.htm

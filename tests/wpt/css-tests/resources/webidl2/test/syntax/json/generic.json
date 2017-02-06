@@ -45,6 +45,31 @@
                 "name": "bar",
                 "arguments": [],
                 "extAttrs": []
+            },
+            {
+                "type": "attribute",
+                "static": false,
+                "stringifier": false,
+                "inherit": false,
+                "readonly": true,
+                "idlType": {
+                    "sequence": false,
+                    "generic": "Promise",
+                    "nullable": false,
+                    "array": 1,
+                    "nullableArray": [false],
+                    "union": false,
+                    "idlType": {
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "array": false,
+                        "union": false,
+                        "idlType": "DOMString"
+                    }
+                },
+                "name": "baz",
+                "extAttrs": []
             }
         ],
         "inheritance": null,

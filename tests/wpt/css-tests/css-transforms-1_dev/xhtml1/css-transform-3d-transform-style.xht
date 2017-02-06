@@ -6,47 +6,39 @@
     <link href="http://www.w3.org/TR/css-transforms-1/#transform-style-property" rel="help" />
     <link href="http://www.w3.org/TR/css-transforms-1/#three-d-transform-functions" rel="help" />
     <link href="reference/css-transform-3d-transform-style-ref.xht" rel="match" />
-    <meta content="" name="flags" />
     <meta content="Test checks that rotate the nested div with transform-style preserve-3d, rotated parent div for -60 degree on Y-axis then and rotated child div for 120 degree, at this time the parent and child should have equal width, then child div could cover the red box." name="assert" />
     <style>
       div {
         position: absolute;
       }
       div.container {
-        background-color: gray;
-        height: 200px;
-        width: 200px;
-        left: 65px;
-        top: 45px;
+        height: 100px;
+        top: 60px;
+        width: 400px;
       }
       div.blue {
         background-color: blue;
-        height: 180px;
-        width: 180px;
-        left: 10px;
-        top: 10px;
+        height: 100px;
         transform: rotateY(-60deg);
         transform-style: preserve-3d;
+        width: 400px;
       }
       div.green {
         background-color: green;
-        left: 40px;
-        top: 0px;
-        height: 180px;
-        width: 180px;
+        height: 100px;
         transform: rotateY(120deg);
+        width: 400px;
       }
       div.red{
         background-color: red;
-        left: 140px;
-        top: 10px;
-        height: 180px;
-        width: 20px;
+        height: 100px;
+        left: 100px;
+        width: 200px;
       }
     </style>
   </head>
   <body>
-    <p>Test passes if there is a gray square with <b>one blue</b> and <b>one green</b> box <b>inside</b>, and no any red.</p>
+    <p>Test passes if there is a <b>green</b> square and a <b>blue</b> square, and no any <b>red</b>.</p>
     <div class="container">
       <div class="red"></div>
       <div class="blue">

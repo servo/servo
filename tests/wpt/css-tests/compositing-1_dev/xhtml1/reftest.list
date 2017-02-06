@@ -1,5 +1,6 @@
 
 background-blend-mode-gradient-image.xht == reference/background-blend-mode-gradient-image-ref.xht
+compositing_simple_div.xht == reference/compositing_simple_div-ref.xht
 mix-blend-mode-animation.xht == reference/mix-blend-mode-animation-ref.xht
 mix-blend-mode-blended-element-interposed.xht == reference/green-square.xht
 mix-blend-mode-blended-element-overflow-hidden-and-border-radius.xht == reference/mix-blend-mode-blended-element-overflow-hidden-and-border-radius-ref.xht

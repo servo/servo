@@ -7,29 +7,18 @@ import sys
 import manifest
 from . import vcs
 from .log import get_logger
-from .tree import GitTree, NoVCSTree
 
 here = os.path.dirname(__file__)
 
-def update(tests_root, url_base, manifest, ignore_local=False):
-    if vcs.is_git_repo(tests_root):
-        tests_tree = GitTree(tests_root, url_base)
-        remove_missing_local = False
-    else:
-        tests_tree = NoVCSTree(tests_root, url_base)
-        remove_missing_local = not ignore_local
 
-    if not ignore_local:
-        local_changes = tests_tree.local_changes()
-    else:
-        local_changes = None
+def update(tests_root, manifest, working_copy=False):
+    tree = None
+    if not working_copy:
+        tree = vcs.Git.for_path(tests_root, manifest.url_base)
+    if tree is None:
+        tree = vcs.FileSystem(tests_root, manifest.url_base)
 
-    manifest.update(tests_root,
-                    url_base,
-                    tests_tree.current_rev(),
-                    tests_tree.committed_changes(manifest.rev),
-                    local_changes,
-                    remove_missing_local=remove_missing_local)
+    return manifest.update(tree)
 
 
 def update_from_cli(**kwargs):
@@ -50,14 +39,13 @@ def update_from_cli(**kwargs):
             logger.info("Updating manifest")
 
     if m is None:
-        m = manifest.Manifest(None)
+        m = manifest.Manifest(kwargs["url_base"])
 
-
-    update(tests_root,
-           kwargs["url_base"],
-           m,
-           ignore_local=kwargs.get("ignore_local", False))
-    manifest.write(m, path)
+    changed = update(tests_root,
+                     m,
+                     working_copy=kwargs["work"])
+    if changed:
+        manifest.write(m, path)
 
 
 def abs_path(path):
@@ -74,8 +62,8 @@ def create_parser():
         "-r", "--rebuild", action="store_true", default=False,
         help="Force a full rebuild of the manifest.")
     parser.add_argument(
-        "--ignore-local", action="store_true", default=False,
-        help="Don't include uncommitted local changes in the manifest.")
+        "--work", action="store_true", default=False,
+        help="Build from the working tree rather than the latest commit")
     parser.add_argument(
         "--url-base", action="store", default="/",
         help="Base url to use as the mount point for tests in this manifest.")
@@ -91,6 +79,7 @@ def find_top_repo():
         path = os.path.abspath(os.path.join(path, os.pardir))
 
     return rv
+
 
 def main(default_tests_root=None):
     opts = create_parser().parse_args()
@@ -113,7 +102,3 @@ Run again with --test-root"""
         opts.path = os.path.join(opts.tests_root, "MANIFEST.json")
 
     update_from_cli(**vars(opts))
-
-
-if __name__ == "__main__":
-    main()

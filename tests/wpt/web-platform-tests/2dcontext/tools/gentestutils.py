@@ -45,7 +45,10 @@ import sys
 import xml.dom.minidom
 from xml.dom.minidom import Node
 
-import cairo
+try:
+    import cairocffi as cairo
+except ImportError:
+    import cairo
 
 try:
     import syck as yaml # compatible and lots faster

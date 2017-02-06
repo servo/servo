@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Masking Level 1 CR Test Suite</h1>
-  <h2>Positioned Masks (49 tests)</h2>
+  <h2>Positioned Masks (73 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -37,7 +37,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.1">+</a>
         <a href="https://www.w3.org/TR/css-masking-1/#the-mask-image">7.1 Mask Image Source: the mask-image property</a></th></tr>
-      <!-- 4 tests -->
+      <!-- 23 tests -->
       <tr id="mask-image-1a-7.1" class="primary">
         <td><strong>
             <a href="mask-image-1a.xht">mask-image-1a</a></strong></td>
@@ -71,6 +71,17 @@
           </ul>
         </td>
       </tr>
+      <tr id="mask-image-1d-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-1d.xht">mask-image-1d</a></strong></td>
+        <td><a href="reference/mask-image-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: mask layer image
+          <ul class="assert">
+            <li>Test checks whether treat unresolvable mask as no-mask for a SVG element embedded in HTML document.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="mask-image-2-7.1" class="primary">
         <td><strong>
             <a href="mask-image-2.xht">mask-image-2</a></strong></td>
@@ -79,6 +90,204 @@
         <td>CSS Masking: mask-image: mask layer image
           <ul class="assert">
             <li>Test checks whether gradient CSS image as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-3a-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-3a.xht">mask-image-3a</a></strong></td>
+        <td><a href="reference/mask-image-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: multiple SVG masks
+          <ul class="assert">
+            <li>Test checks whether SVG mask as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-3b-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-3b.xht">mask-image-3b</a></strong></td>
+        <td><a href="reference/mask-image-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: interleave SVG mask with image mask
+          <ul class="assert">
+            <li>Test checks whether SVG mask and image as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-3c-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-3c.xht">mask-image-3c</a></strong></td>
+        <td><a href="reference/mask-image-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: interleave SVG mask with image mask
+          <ul class="assert">
+            <li>Test checks whether SVG mask and image as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-3d-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-3d.xht">mask-image-3d</a></strong></td>
+        <td><a href="reference/mask-image-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: interleave SVG mask with image mask
+          <ul class="assert">
+            <li>Test checks whether SVG mask and image as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-3e-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-3e.xht">mask-image-3e</a></strong></td>
+        <td><a href="reference/mask-image-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: interleave SVG mask with image mask
+          <ul class="assert">
+            <li>Test checks whether SVG mask and image as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-3f-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-3f.xht">mask-image-3f</a></strong></td>
+        <td><a href="reference/mask-image-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: SVG masks apply on border area
+          <ul class="assert">
+            <li>Test checks whether SVG mask layer can be positioned on box-shadow area correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-3g-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-3g.xht">mask-image-3g</a></strong></td>
+        <td><a href="reference/mask-image-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: SVG masks apply on border area
+          <ul class="assert">
+            <li>Test checks whether apply transfrom to a SVG mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-3h-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-3h.xht">mask-image-3h</a></strong></td>
+        <td><a href="reference/mask-image-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: clip-path in SVG mask
+          <ul class="assert">
+            <li>Test checks whether clip-path in SVG mask works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-3i-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-3i.xht">mask-image-3i</a></strong></td>
+        <td><a href="reference/mask-image-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: interleave SVG mask with image mask
+          <ul class="assert">
+            <li>Test checks whether SVG mask and image as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-4a-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-4a.xht">mask-image-4a</a></strong></td>
+        <td><a href="blank.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: unresovlable mask url
+          <ul class="assert">
+            <li>Test checks non-existent url should be counted as an image layer of transparent black.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-4b-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-4b.xht">mask-image-4b</a></strong></td>
+        <td><a href="blank.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: unresovlable mask url
+          <ul class="assert">
+            <li>Test checks a mask reference to a none-mask SVG element should be counted as an image layer of transparent black.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-5-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-5.xht">mask-image-5</a></strong></td>
+        <td><a href="reference/mask-image-5-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: data url mask
+          <ul class="assert">
+            <li>Test checks handling data url mask correctly.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-6-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-6.xht">mask-image-6</a></strong></td>
+        <td><a href="reference/mask-image-6-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask on inline element
+          <ul class="assert">
+            <li>Test checks whether mask on inline elemnt works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-opacity-1a-7.1" class="primary">
+        <td><strong>
+            <a href="mask-opacity-1a.xht">mask-opacity-1a</a></strong></td>
+        <td><a href="reference/mask-opacity-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: mask with filter and opacity
+          <ul class="assert">
+            <li>Test checks whether apply opacity to masked element correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-opacity-1b-7.1" class="primary">
+        <td><strong>
+            <a href="mask-opacity-1b.xht">mask-opacity-1b</a></strong></td>
+        <td><a href="reference/mask-opacity-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: mask with opacity
+          <ul class="assert">
+            <li>Test checks whether apply opacity to masked element correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-opacity-1c-7.1" class="primary">
+        <td><strong>
+            <a href="mask-opacity-1c.xht">mask-opacity-1c</a></strong></td>
+        <td><a href="reference/mask-opacity-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: filter with opacity
+          <ul class="assert">
+            <li>Test checks whether apply opacity to masked element correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-opacity-1d-7.1" class="primary">
+        <td><strong>
+            <a href="mask-opacity-1d.xht">mask-opacity-1d</a></strong></td>
+        <td><a href="reference/mask-opacity-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: mask with opacity
+          <ul class="assert">
+            <li>Test checks whether apply opacity to masked element correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-opacity-1e-7.1" class="primary">
+        <td><strong>
+            <a href="mask-opacity-1e.xht">mask-opacity-1e</a></strong></td>
+        <td><a href="reference/mask-opacity-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: mask with opacity
+          <ul class="assert">
+            <li>Test checks whether apply opacity to masked element correctly or not.</li>
           </ul>
         </td>
       </tr>
@@ -105,7 +314,7 @@
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.2.#propdef-mask-mode">
-      <!-- 2 tests -->
+      <!-- 3 tests -->
       <tr id="mask-mode-a-7.2.#propdef-mask-mode" class="primary">
         <td><strong>
             <a href="mask-mode-a.xht">mask-mode-a</a></strong></td>
@@ -125,6 +334,17 @@
         <td>CSS Masking: mask-mode with raster image
           <ul class="assert">
             <li>Test checks that mask a PNG image referenced by mask-image is correct with different mask mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-mode-to-mask-type-7.2.#propdef-mask-mode" class="primary">
+        <td><strong>
+            <a href="mask-mode-to-mask-type.xht">mask-mode-to-mask-type</a></strong></td>
+        <td><a href="reference/mask-mode-to-mask-type-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-mode with vector image
+          <ul class="assert">
+            <li>Test checks the fallback logic between mask-mode and mask-type.</li>
           </ul>
         </td>
       </tr>
@@ -361,7 +581,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.5">+</a>
         <a href="https://www.w3.org/TR/css-masking-1/#the-mask-clip">7.5 Masking Area: the mask-clip property</a></th></tr>
-      <!-- 1 tests -->
+      <!-- 2 tests -->
       <tr id="mask-clip-1-7.5" class="">
         <td>
             <a href="mask-clip-1.xht">mask-clip-1</a></td>
@@ -369,7 +589,18 @@
         <td></td>
         <td>CSS Masking: mask-clip: clip mask image
           <ul class="assert">
-            <li>border-box, padding-box, and content-box values of mask-clip should clip to the appropriate boxes.</li>
+            <li>border-box, padding-box, content-box and no-clip values of mask-clip should clip to the appropriate boxes.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-clip-2-7.5" class="">
+        <td>
+            <a href="mask-clip-2.xht">mask-clip-2</a></td>
+        <td><a href="reference/mask-clip-2-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-clip: clip mask image
+          <ul class="assert">
+            <li>fill-box, stroke-box and view-box values of mask-clip should clip to the appropriate boxes.</li>
           </ul>
         </td>
       </tr>
@@ -408,7 +639,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.6">+</a>
         <a href="https://www.w3.org/TR/css-masking-1/#the-mask-origin">7.6 Positioning Area: the mask-origin property</a></th></tr>
-      <!-- 2 tests -->
+      <!-- 3 tests -->
       <tr id="mask-origin-1-7.6" class="primary">
         <td><strong>
             <a href="mask-origin-1.xht">mask-origin-1</a></strong></td>
@@ -428,6 +659,17 @@
         <td>CSS Masking: mask-origin: mask positioning area
           <ul class="assert">
             <li>Test checks whether setting mask origin to margin-box works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-origin-3-7.6" class="primary">
+        <td><strong>
+            <a href="mask-origin-3.xht">mask-origin-3</a></strong></td>
+        <td><a href="reference/mask-origin-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-origin: mask positioning area
+          <ul class="assert">
+            <li>Test checks whether setting mask position area works correctly or not.</li>
           </ul>
         </td>
       </tr>
@@ -670,7 +912,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.8">+</a>
         <a href="https://www.w3.org/TR/css-masking-1/#the-mask-composite">7.8 Compositing mask layers: the mask-composite property</a></th></tr>
-      <!-- 4 tests -->
+      <!-- 6 tests -->
       <tr id="mask-composite-1a-7.8" class="">
         <td>
             <a href="mask-composite-1a.xht">mask-composite-1a</a></td>
@@ -693,6 +935,17 @@
           </ul>
         </td>
       </tr>
+      <tr id="mask-composite-1c-7.8" class="">
+        <td>
+            <a href="mask-composite-1c.xht">mask-composite-1c</a></td>
+        <td><a href="reference/mask-composite-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-composite: compose svg mask
+          <ul class="assert">
+            <li>Test checks that vector-mask-image can be composed correctly by different mask-composite value.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="mask-composite-2a-7.8" class="">
         <td>
             <a href="mask-composite-2a.xht">mask-composite-2a</a></td>
@@ -712,6 +965,17 @@
         <td>CSS Masking: mask-composite: compose raster image
           <ul class="assert">
             <li>Test checks that raster-mask-image can be composed correctly by different mask-composite value.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-composite-2c-7.8" class="">
+        <td>
+            <a href="mask-composite-2c.xht">mask-composite-2c</a></td>
+        <td><a href="reference/mask-composite-2-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-composite: compose SVG mask
+          <ul class="assert">
+            <li>Test checks that svg-mask can be composed correctly by different mask-composite value.</li>
           </ul>
         </td>
       </tr>

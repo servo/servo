@@ -138,6 +138,8 @@ flexbox-align-self-baseline-horiz-002.xht == reference/flexbox-align-self-baseli
 flexbox-align-self-baseline-horiz-003.xht == reference/flexbox-align-self-baseline-horiz-003-ref.xht
 flexbox-align-self-baseline-horiz-004.xht == reference/flexbox-align-self-baseline-horiz-004-ref.xht
 flexbox-align-self-baseline-horiz-005.xht == reference/flexbox-align-self-baseline-horiz-005-ref.xht
+flexbox-align-self-baseline-horiz-006.xht == reference/flexbox-align-self-baseline-horiz-006-ref.xht
+flexbox-align-self-baseline-horiz-007.xht == reference/flexbox-align-self-baseline-horiz-007-ref.xht
 flexbox-align-self-horiz-001-block.xht == reference/flexbox-align-self-horiz-001-ref.xht
 flexbox-align-self-horiz-001-table.xht == reference/flexbox-align-self-horiz-001-ref.xht
 flexbox-align-self-horiz-002.xht == reference/flexbox-align-self-horiz-002-ref.xht
@@ -269,6 +271,9 @@ flexbox-paint-ordering-001.xht == reference/flexbox-paint-ordering-001-ref.xht
 flexbox-paint-ordering-002.xht == reference/flexbox-paint-ordering-002-ref.xht
 flexbox-root-node-001a.xht == reference/flexbox-root-node-001-ref.xht
 flexbox-root-node-001b.xht == reference/flexbox-root-node-001-ref.xht
+flexbox-single-line-clamp-1.xht == reference/flexbox-single-line-clamp-1-ref.xht
+flexbox-single-line-clamp-2.xht == reference/flexbox-single-line-clamp-2-ref.xht
+flexbox-single-line-clamp-3.xht == reference/flexbox-single-line-clamp-3-ref.xht
 flexbox-sizing-horiz-001.xht == reference/flexbox-sizing-horiz-001-ref.xht
 flexbox-sizing-horiz-002.xht == reference/flexbox-sizing-horiz-002-ref.xht
 flexbox-sizing-vert-001.xht == reference/flexbox-sizing-vert-001-ref.xht
@@ -514,10 +519,13 @@ justify-content-002.xht == reference/justify-content-001-ref.xht
 justify-content-003.xht == reference/justify-content-001-ref.xht
 justify-content-004.xht == reference/justify-content-001-ref.xht
 justify-content-005.xht == reference/justify-content-001-ref.xht
+layout-algorithm_algo-cross-line-001.xht == reference/layout-algorithm_algo-cross-line-001-ref.xht
+layout-algorithm_algo-cross-line-002.xht == reference/layout-algorithm_algo-cross-line-002-ref.xht
 multi-line-wrap-reverse-column-reverse.xht == reference/multi-line-wrap-reverse-column-reverse-ref.xht
 multi-line-wrap-reverse-row-reverse.xht == reference/multi-line-wrap-reverse-row-reverse-ref.xht
 multi-line-wrap-with-column-reverse.xht == reference/multi-line-wrap-with-column-reverse-ref.xht
 multi-line-wrap-with-row-reverse.xht == reference/multi-line-wrap-with-row-reverse-ref.xht
+negative-margins-001.xht == reference/negative-margins-001-ref.xht
 order-with-column-reverse.xht == reference/order-with-column-reverse-ref.xht
 order-with-row-reverse.xht == reference/order-with-row-reverse-ref.xht
 regions-flexbox-001.xht == reference/regions-flexbox-001-ref.xht

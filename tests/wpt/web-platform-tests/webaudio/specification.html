@@ -1240,7 +1240,11 @@ href="#OfflineAudioContext-section"><code>OfflineAudioContext</code></a>. </p>
 
 <div class="blockContent">
 <pre class="code"><code class="idl-code" id="offline-audio-completion-event-idl">
+dictionary OfflineAudioCompletionEventInit : EventInit {
+    required AudioBuffer renderedBuffer;
+};
 
+[Constructor(DOMString type, OfflineAudioCompletionEventInit eventInitDict)]
 interface <dfn id="dfn-OfflineAudioCompletionEvent">OfflineAudioCompletionEvent</dfn> : Event {
 
     readonly attribute AudioBuffer renderedBuffer;

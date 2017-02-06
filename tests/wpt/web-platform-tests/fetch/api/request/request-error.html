@@ -27,19 +27,9 @@
       },"Input URL has credentials");
 
       test(function() {
-        assert_throws(new TypeError() , function() { new Request("", {"mode" : "navigate"}); },
-          "Expect TypeError exception");
-      },"RequestInit's mode is navigate");
-
-      test(function() {
         assert_throws(new TypeError() , function() { new Request("", {"referrer" : "http://:not a valid URL"}); },
           "Expect TypeError exception");
       },"RequestInit's referrer is invalid");
-
-      test(function() {
-        assert_throws(new TypeError() , function() { new Request("", {"referrer" : "http://test.url"}); },
-          "Expect TypeError exception");
-      },"RequestInit's referrer has invalid origin")
 
       test(function() {
         assert_throws(new TypeError() , function() { new Request("", {"method" : "IN VALID"}); },

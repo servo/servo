@@ -389,7 +389,7 @@ policies and contribution forms [3].
         self.addEventListener("connect",
                 function(message_event) {
                     this_obj._add_message_port(message_event.source);
-                });
+                }, false);
     }
     SharedWorkerTestEnvironment.prototype = Object.create(WorkerTestEnvironment.prototype);
 
@@ -430,7 +430,7 @@ policies and contribution forms [3].
                             this_obj._add_message_port(event.source);
                         }
                     }
-                });
+                }, false);
 
         // The oninstall event is received after the service worker script and
         // all imported scripts have been fetched and executed. It's the
@@ -527,12 +527,14 @@ policies and contribution forms [3].
             tests.promise_tests = Promise.resolve();
         }
         tests.promise_tests = tests.promise_tests.then(function() {
+            var donePromise = new Promise(function(resolve) {
+                test.add_cleanup(resolve);
+            });
             var promise = test.step(func, test, test);
             test.step(function() {
                 assert_not_equals(promise, undefined);
             });
-            return Promise.resolve(promise)
-                .then(
+            Promise.resolve(promise).then(
                     function() {
                         test.done();
                     })
@@ -544,6 +546,7 @@ policies and contribution forms [3].
                         assert(false, "promise_test", null,
                                "Unhandled rejection with value: ${value}", {value:value});
                     }));
+            return donePromise;
         });
     }
 
@@ -586,7 +589,7 @@ policies and contribution forms [3].
         });
 
         for (var i = 0; i < eventTypes.length; i++) {
-            watchedNode.addEventListener(eventTypes[i], eventHandler);
+            watchedNode.addEventListener(eventTypes[i], eventHandler, false);
         }
 
         /**
@@ -611,7 +614,7 @@ policies and contribution forms [3].
 
         function stop_watching() {
             for (var i = 0; i < eventTypes.length; i++) {
-                watchedNode.removeEventListener(eventTypes[i], eventHandler);
+                watchedNode.removeEventListener(eventTypes[i], eventHandler, false);
             }
         };
 
@@ -2669,7 +2672,7 @@ policies and contribution forms [3].
 
     var tests = new Tests();
 
-    addEventListener("error", function(e) {
+    var error_handler = function(e) {
         if (tests.file_is_test) {
             var test = tests.tests[0];
             if (test.phase >= test.phases.HAS_RESULT) {
@@ -2684,7 +2687,10 @@ policies and contribution forms [3].
             tests.status.message = e.message;
             tests.status.stack = e.stack;
         }
-    });
+    };
+
+    addEventListener("error", error_handler, false);
+    addEventListener("unhandledrejection", function(e){ error_handler(e.reason); }, false);
 
     test_environment.on_tests_ready();
 

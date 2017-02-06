@@ -7,17 +7,17 @@
 <script>
   test(function() {
     var list = document.querySelector("span").classList;
-    assert_array_equals([...list], ["a", "a", "b"]);
+    assert_array_equals([...list], ["a", "b"]);
 
     var keys = list.keys();
     assert_false(keys instanceof Array);
     keys = [...keys];
-    assert_array_equals(keys, [0, 1, 2]);
+    assert_array_equals(keys, [0, 1]);
 
     var values = list.values();
     assert_false(values instanceof Array);
     values = [...values];
-    assert_array_equals(values, ["a", "a", "b"]);
+    assert_array_equals(values, ["a", "b"]);
 
     var entries = list.entries();
     assert_false(entries instanceof Array);

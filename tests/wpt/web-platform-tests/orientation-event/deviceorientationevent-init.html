@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DeviceOrientationEvent attributes must be initialized properly</title>
+    <meta charset='utf-8'>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <p>DeviceOrientationEvent attributes must be initialized properly.</p>
+    <div id="log"></div>
+    <script>
+      test(function() {
+        var evt = new DeviceOrientationEvent("foo");
+        assert_equals(evt.type, "foo", "type is set to \"foo\"");
+        assert_equals(evt.alpha, null, "alpha is set to null");
+        assert_equals(evt.beta, null, "beta is set to null");
+        assert_equals(evt.gamma, null, "gamma is set to null");
+        assert_false(evt.absolute, "absolute is set to false");
+      }, "User created event is initialized properly with default values");
+
+      test(function() {
+        var evt = new DeviceOrientationEvent("foo", {
+          alpha: 56,
+          beta: -56,
+          gamma: 64,
+          absolute: true
+        });
+        assert_equals(evt.type, "foo", "type is set to \"foo\"");
+        assert_equals(evt.alpha, 56, "alpha is set to 56");
+        assert_equals(evt.beta, -56, "beta is set to -56");
+        assert_equals(evt.gamma, 64, "gamma is set to 64");
+        assert_true(evt.absolute, "absolute is set to true");
+      }, "User created event is initialized properly using a dictionary");
+    </script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-from utils import HTTPException
+from .utils import HTTPException
 
 
 class RangeParser(object):

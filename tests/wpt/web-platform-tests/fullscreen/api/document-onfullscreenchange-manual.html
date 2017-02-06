@@ -10,6 +10,6 @@ async_test(function(t)
     var div = document.querySelector("div");
     assert_equals(document.onfullscreenchange, null, "initial onfullscreenchange");
     document.onfullscreenchange = t.step_func_done();
-    trusted_request(div);
+    trusted_request(t, div);
 });
 </script>

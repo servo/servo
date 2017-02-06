@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8">
-<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#5/8, 2048 code points in U+A885-10343).</title>
+<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#5/9, 2048 code points in U+A81E-101F7).</title>
 <link href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" rel="help">
-<meta content="Test orientation of characters where vo=R (#5/8, 2048 code points in U+A885-10343)" name="assert">
+<meta content="Test orientation of characters where vo=R (#5/9, 2048 code points in U+A81E-101F7)" name="assert">
 <meta content="dom font" name="flags">
 <link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii">
 <script src="/resources/testharness.js"></script>
@@ -39,12 +39,22 @@ summary {
 <div id="details"></div>
 <div id="container">
 <div data-vo="R" class="test">
+<div data-block="Syloti">
+<div class="line">ꠞꠟꠠꠡꠢ꠨꠩꠪꠫</div>
+</div>
+<div data-block="Common">
+<div class="line">꠰꠱꠲꠳꠴꠵꠶꠷꠸꠹</div>
+</div>
+<div data-block="Phags">
+<div class="line">ꡀꡁꡂꡃꡄꡅꡆꡇꡈꡉꡊꡋꡌꡍꡎꡏꡐꡑꡒꡓꡔꡕꡖꡗꡘꡙꡚꡛꡜꡝꡞꡟ</div>
+<div class="line">ꡠꡡꡢꡣꡤꡥꡦꡧꡨꡩꡪꡫꡬꡭꡮꡯꡰꡱꡲꡳ꡴꡵꡶꡷</div>
+</div>
 <div data-block="Saurashtra">
-<div class="line">ꢅꢆꢇꢈꢉꢊꢋꢌꢍꢎꢏꢐꢑꢒꢓꢔꢕꢖꢗꢘꢙꢚꢛꢜꢝꢞꢟꢠꢡꢢꢣꢤ</div>
-<div class="line">ꢥꢦꢧꢨꢩꢪꢫꢬꢭꢮꢯꢰꢱꢲꢳ꣎꣏꣐꣑꣒꣓꣔꣕꣖꣗꣘꣙</div>
+<div class="line">ꢂꢃꢄꢅꢆꢇꢈꢉꢊꢋꢌꢍꢎꢏꢐꢑꢒꢓꢔꢕꢖꢗꢘꢙꢚꢛꢜꢝꢞꢟꢠꢡ</div>
+<div class="line">ꢢꢣꢤꢥꢦꢧꢨꢩꢪꢫꢬꢭꢮꢯꢰꢱꢲꢳ꣎꣏꣐꣑꣒꣓꣔꣕꣖꣗꣘꣙</div>
 </div>
 <div data-block="Devanagari">
-<div class="line">ꣲꣳꣴꣵꣶꣷ꣸꣹꣺ꣻ</div>
+<div class="line">ꣲꣳꣴꣵꣶꣷ꣸꣹꣺ꣻ꣼ꣽ</div>
 </div>
 <div data-block="Kayah">
 <div class="line">꤀꤁꤂꤃꤄꤅꤆꤇꤈꤉ꤊꤋꤌꤍꤎꤏꤐꤑꤒꤓꤔꤕꤖꤗꤘꤙꤚꤛꤜꤝꤞꤟ</div>
@@ -81,7 +91,12 @@ summary {
 </div>
 <div data-block="Latin">
 <div class="line">ꬰꬱꬲꬳꬴꬵꬶꬷꬸꬹꬺꬻꬼꬽꬾꬿꭀꭁꭂꭃꭄꭅꭆꭇꭈꭉꭊꭋꭌꭍꭎꭏ</div>
-<div class="line">ꭐꭑꭒꭓꭔꭕꭖꭗꭘꭙꭚ꭛ꭜꭝꭞꭟꭤꭥ</div>
+<div class="line">ꭐꭑꭒꭓꭔꭕꭖꭗꭘꭙꭚ꭛ꭜꭝꭞꭟꭠꭡꭢꭣꭤꭥ</div>
+</div>
+<div data-block="Cherokee">
+<div class="line">ꭰꭱꭲꭳꭴꭵꭶꭷꭸꭹꭺꭻꭼꭽꭾꭿꮀꮁꮂꮃꮄꮅꮆꮇꮈꮉꮊꮋꮌꮍꮎꮏ</div>
+<div class="line">ꮐꮑꮒꮓꮔꮕꮖꮗꮘꮙꮚꮛꮜꮝꮞꮟꮠꮡꮢꮣꮤꮥꮦꮧꮨꮩꮪꮫꮬꮭꮮꮯ</div>
+<div class="line">ꮰꮱꮲꮳꮴꮵꮶꮷꮸꮹꮺꮻꮼꮽꮾꮿ</div>
 </div>
 <div data-block="Meetei">
 <div class="line">ꯀꯁꯂꯃꯄꯅꯆꯇꯈꯉꯊꯋꯌꯍꯎꯏꯐꯑꯒꯓꯔꯕꯖꯗꯘꯙꯚꯛꯜꯝꯞꯟ</div>
@@ -148,28 +163,11 @@ summary {
 <div data-block="Ancient">
 <div class="line">𐅀𐅁𐅂𐅃𐅄𐅅𐅆𐅇𐅈𐅉𐅊𐅋𐅌𐅍𐅎𐅏𐅐𐅑𐅒𐅓𐅔𐅕𐅖𐅗𐅘𐅙𐅚𐅛𐅜𐅝𐅞𐅟</div>
 <div class="line">𐅠𐅡𐅢𐅣𐅤𐅥𐅦𐅧𐅨𐅩𐅪𐅫𐅬𐅭𐅮𐅯𐅰𐅱𐅲𐅳𐅴𐅵𐅶𐅷𐅸𐅹𐅺𐅻𐅼𐅽𐅾𐅿</div>
-<div class="line">𐆀𐆁𐆂𐆃𐆄𐆅𐆆𐆇𐆈𐆉𐆊𐆋𐆌𐆐𐆑𐆒𐆓𐆔𐆕𐆖𐆗𐆘𐆙𐆚𐆛𐆠</div>
+<div class="line">𐆀𐆁𐆂𐆃𐆄𐆅𐆆𐆇𐆈𐆉𐆊𐆋𐆌𐆍𐆎𐆐𐆑𐆒𐆓𐆔𐆕𐆖𐆗𐆘𐆙𐆚𐆛𐆠</div>
 </div>
 <div data-block="Phaistos">
 <div class="line">𐇐𐇑𐇒𐇓𐇔𐇕𐇖𐇗𐇘𐇙𐇚𐇛𐇜𐇝𐇞𐇟𐇠𐇡𐇢𐇣𐇤𐇥𐇦𐇧𐇨𐇩𐇪𐇫𐇬𐇭𐇮𐇯</div>
-<div class="line">𐇰𐇱𐇲𐇳𐇴𐇵𐇶𐇷𐇸𐇹𐇺𐇻𐇼</div>
-</div>
-<div data-block="Lycian">
-<div class="line">𐊀𐊁𐊂𐊃𐊄𐊅𐊆𐊇𐊈𐊉𐊊𐊋𐊌𐊍𐊎𐊏𐊐𐊑𐊒𐊓𐊔𐊕𐊖𐊗𐊘𐊙𐊚𐊛𐊜</div>
-</div>
-<div data-block="Carian">
-<div class="line">𐊠𐊡𐊢𐊣𐊤𐊥𐊦𐊧𐊨𐊩𐊪𐊫𐊬𐊭𐊮𐊯𐊰𐊱𐊲𐊳𐊴𐊵𐊶𐊷𐊸𐊹𐊺𐊻𐊼𐊽𐊾𐊿</div>
-<div class="line">𐋀𐋁𐋂𐋃𐋄𐋅𐋆𐋇𐋈𐋉𐋊𐋋𐋌𐋍𐋎𐋏𐋐</div>
-</div>
-<div data-block="Coptic">
-<div class="line">𐋡𐋢𐋣𐋤𐋥𐋦𐋧𐋨𐋩𐋪𐋫𐋬𐋭𐋮𐋯𐋰𐋱𐋲𐋳𐋴𐋵𐋶𐋷𐋸𐋹𐋺𐋻</div>
-</div>
-<div data-block="Old">
-<div class="line">𐌀𐌁𐌂𐌃𐌄𐌅𐌆𐌇𐌈𐌉𐌊𐌋𐌌𐌍𐌎𐌏𐌐𐌑𐌒𐌓𐌔𐌕𐌖𐌗𐌘𐌙𐌚𐌛𐌜𐌝𐌞𐌟</div>
-<div class="line">𐌠𐌡𐌢𐌣</div>
-</div>
-<div data-block="Gothic">
-<div class="line">𐌰𐌱𐌲𐌳𐌴𐌵𐌶𐌷𐌸𐌹𐌺𐌻𐌼𐌽𐌾𐌿𐍀𐍁𐍂𐍃</div>
+<div class="line">𐇰𐇱𐇲𐇳𐇴𐇵𐇶𐇷</div>
 </div>
 </div>
 </div>

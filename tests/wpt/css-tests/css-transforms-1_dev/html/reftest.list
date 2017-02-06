@@ -2,6 +2,7 @@
 2d-rotate-001.htm == reference/2d-rotate-ref.htm != reference/2d-rotate-notref.htm
 animations-001.htm == reference/animations-001-ref.htm
 backface-visibility-hidden-001.htm == reference/backface-visibility-hidden-ref.htm
+background-attachment-fixed-inside-transform-1.htm == reference/background-attachment-fixed-inside-transform-1-ref.htm
 canvas3d-001.htm == reference/canvas3d-001-ref.htm
 canvas3d-002.htm == reference/canvas3d-002-ref.htm
 css-rotate-2d-3d-001.htm == reference/css-rotate-2d-3d-001-ref.htm
@@ -10,14 +11,14 @@ css-skew-001.htm == reference/css-skew-001-ref.htm
 css-skew-002.htm == reference/css-skew-002-ref.htm
 css-transform-3d-rotate3d-X-negative.htm == reference/css-transform-3d-rotateX-ref.htm
 css-transform-3d-rotate3d-X-positive.htm == reference/css-transform-3d-rotateX-ref.htm
-css-transform-3d-rotate3d-Y-negative.htm == reference/css-transform-3d-rotateY-ref.htm
-css-transform-3d-rotate3d-Y-positive.htm == reference/css-transform-3d-rotateY-ref.htm
+css-transform-3d-rotate3d-Y-negative.htm == reference/css-transform-3d-rotateX-ref.htm
+css-transform-3d-rotate3d-Y-positive.htm == reference/css-transform-3d-rotateX-ref.htm
 css-transform-3d-rotate3d-Z-negative.htm == reference/css-transform-3d-rotateZ-ref.htm
 css-transform-3d-rotate3d-Z-positive.htm == reference/css-transform-3d-rotateZ-ref.htm
 css-transform-3d-rotateX-negative.htm == reference/css-transform-3d-rotateX-ref.htm
 css-transform-3d-rotateX-positive.htm == reference/css-transform-3d-rotateX-ref.htm
-css-transform-3d-rotateY-negative.htm == reference/css-transform-3d-rotateY-ref.htm
-css-transform-3d-rotateY-positive.htm == reference/css-transform-3d-rotateY-ref.htm
+css-transform-3d-rotateY-negative.htm == reference/css-transform-3d-rotateX-ref.htm
+css-transform-3d-rotateY-positive.htm == reference/css-transform-3d-rotateX-ref.htm
 css-transform-3d-rotateZ-negative.htm == reference/css-transform-3d-rotateZ-ref.htm
 css-transform-3d-rotateZ-positive.htm == reference/css-transform-3d-rotateZ-ref.htm
 css-transform-3d-transform-style.htm == reference/css-transform-3d-transform-style-ref.htm
@@ -880,6 +881,7 @@ transform-origin-01.htm == reference/transform-origin-01-ref.htm
 transform-origin-010.htm == reference/transform-origin-007-ref.htm
 transform-origin-011.htm == reference/transform-origin-007-ref.htm
 transform-origin-012.htm == reference/transform-origin-007-ref.htm
+transform-origin-013.htm == reference/transform-origin-013-ref.htm
 transform-origin-name-001.htm == reference/transform-origin-name-ref-1.htm != reference/transform-origin-name-notref.htm
 transform-origin-name-002.htm == reference/transform-origin-name-ref-1.htm != reference/transform-origin-name-notref.htm
 transform-origin-name-003.htm == reference/transform-origin-name-ref-2.htm != reference/transform-origin-name-notref.htm

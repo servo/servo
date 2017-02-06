@@ -1,10 +1,7 @@
-import os
 import unittest
-import urllib2
-import json
 
 import wptserve
-from base import TestUsingServer, doc_root
+from .base import TestUsingServer
 
 class TestResponseSetCookie(TestUsingServer):
     def test_name_value(self):
@@ -17,7 +14,7 @@ class TestResponseSetCookie(TestUsingServer):
         self.server.router.register(*route)
         resp = self.request(route[1])
 
-        self.assertEquals(resp.info()["Set-Cookie"], "name=value; Path=/")
+        self.assertEqual(resp.info()["Set-Cookie"], "name=value; Path=/")
 
     def test_unset(self):
         @wptserve.handlers.handler
@@ -45,8 +42,8 @@ class TestResponseSetCookie(TestUsingServer):
         parts = dict(item.split("=") for
                      item in resp.info()["Set-Cookie"].split("; ") if item)
 
-        self.assertEquals(parts["name"], "")
-        self.assertEquals(parts["Path"], "/")
+        self.assertEqual(parts["name"], "")
+        self.assertEqual(parts["Path"], "/")
         #Should also check that expires is in the past
 
 class TestRequestCookies(TestUsingServer):
@@ -58,8 +55,7 @@ class TestRequestCookies(TestUsingServer):
         route = ("GET", "/test/set_cookie", handler)
         self.server.router.register(*route)
         resp = self.request(route[1], headers={"Cookie": "name=value"})
-
-        self.assertEquals(resp.read(), "value")
+        self.assertEqual(resp.read(), b"value")
 
 if __name__ == '__main__':
     unittest.main()

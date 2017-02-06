@@ -1,5 +1,8 @@
 <!doctype html>
 <title>ProgressEvent constructor</title>
+<link rel="help" href="https://www.w3.org/TR/progress-events/#interface-progressevent">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-event-constructor">
+<link rel="help" href="https://dom.spec.whatwg.org/#interface-event">
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <div id=log></div>
@@ -13,6 +16,7 @@ test(function() {
   assert_equals(ev.bubbles, false)
   assert_equals(ev.cancelable, false)
   assert_equals(ev.defaultPrevented, false)
+  assert_equals(ev.isTrusted, false)
   assert_true(ev.timeStamp > 0)
   assert_true("initEvent" in ev)
   assert_equals(ev.lengthComputable, false)

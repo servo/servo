@@ -25,4 +25,19 @@
     }
     window.requestIdleCallback(t.step_func(f));
   }, "requestIdleCallback callback should time out");
+
+  async_test(function (t) {
+    assert_false(document.hidden, "document.hidden must exist and be false to run this test properly");
+    function g(deadline) {
+      assert_false(deadline.didTimeout)
+      t.done();
+    }
+
+    function f(deadline) {
+      assert_false(deadline.didTimeout);
+      window.requestIdleCallback(t.step_func(g), {timeout:100000});
+    }
+    window.requestIdleCallback(t.step_func(f));
+  }, "requestIdleCallback callback should not time out");
+
 </script>

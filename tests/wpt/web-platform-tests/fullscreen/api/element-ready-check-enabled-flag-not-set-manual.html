@@ -14,6 +14,6 @@ async_test(function(t)
     iframe.contentDocument.onfullscreenchange = t.unreached_func("iframe fullscreenchange event");
     iframe.contentDocument.onfullscreenerror = t.step_func_done();
     assert_false(iframe.contentDocument.fullscreenEnabled, "fullscreen enabled flag");
-    trusted_request(iframe.contentDocument.body, document.body);
+    trusted_request(t, iframe.contentDocument.body, document.body);
 });
 </script>

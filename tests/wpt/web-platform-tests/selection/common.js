@@ -96,6 +96,14 @@ function setupRangeTests() {
     doctype = document.doctype;
     foreignDoctype = foreignDoc.doctype;
 
+    // Chromium project has a limitation of text file size, and it is applied to
+    // test result documents too.  Generating tests with testRanges or
+    // testPoints can exceed the limitation easily.  Some tests were split into
+    // multiple files such as addRange-NN.html.  If you add more ranges, points,
+    // or tests, a Chromium project member might split affected tests.
+    //
+    // In selection/, a rough estimation of the limit is 4,000 test() functions
+    // per a file.
     testRanges = [
         // Various ranges within the text node children of different
         // paragraphs.  All should be valid.

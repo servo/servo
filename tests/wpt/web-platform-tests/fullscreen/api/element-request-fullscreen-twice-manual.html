@@ -16,12 +16,12 @@ async_test(t => {
   });
   document.onfullscreenerror = t.unreached_func("fullscreenerror event");
 
-  trusted_click(t.step_func(() => {
+  trusted_click(t, () => {
     // Request fullscreen twice.
     div.requestFullscreen();
     assert_equals(document.fullscreenElement, null, "fullscreenElement after first requestFullscreen()");
     div.requestFullscreen();
     assert_equals(document.fullscreenElement, null, "fullscreenElement after second requestFullscreen()");
-  }), document.body);
+  }, document.body);
 });
 </script>

@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Text Module Level 3 CR Test Suite</h1>
-  <h2>Line Breaking and Word Boundaries (605 tests)</h2>
+  <h2>Line Breaking and Word Boundaries (619 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -6094,7 +6094,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1">+</a>
         <a href="https://www.w3.org/TR/css-text-3/#line-break-details">5.1 Line Breaking Details</a></th></tr>
-      <!-- 20 tests -->
+      <!-- 34 tests -->
       <tr id="css3-text-line-break-baspglwj-001-5.1" class="primary dom font script">
         <td><strong>
             <a href="css3-text-line-break-baspglwj-001.htm">css3-text-line-break-baspglwj-001</a></strong></td>
@@ -6312,6 +6312,160 @@
         <td>CSS3 Text, linebreaks: U+FEFF ZERO WIDTH NO-BREAK SPACE
           <ul class="assert">
             <li>[Exploratory] The browser will NOT break a line of text containing any Unicode character with the WJ Word Joiner property.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-001-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-001.htm">line-breaking-001</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking around Zero With Space
+          <ul class="assert">
+            <li>When &amp;#8216;white-space&amp;#8217; allows wrapping, line breaking behavior defined for the ZW line-breaking classes in [UAX14] must be honored.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-002-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-002.htm">line-breaking-002</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking sanity check
+          <ul class="assert">
+            <li>sanity check: an unstyled span should not affect line breaking</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-003-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-003.htm">line-breaking-003</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking sanity check 2
+          <ul class="assert">
+            <li>sanity check: an unstyled span should not affect line breaking</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-004-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-004.htm">line-breaking-004</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking sanity check 3
+          <ul class="assert">
+            <li>sanity check: an unstyled span should not affect line breaking</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-005-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-005.htm">line-breaking-005</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking sanity check 4
+          <ul class="assert">
+            <li>sanity check: an unstyled span should not affect line breaking</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-006-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-006.htm">line-breaking-006</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking sanity check 5
+          <ul class="assert">
+            <li>sanity check: an unstyled span should not affect line breaking</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-007-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-007.htm">line-breaking-007</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking sanity check 6
+          <ul class="assert">
+            <li>sanity check: an unstyled span should not affect line breaking</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-008-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-008.htm">line-breaking-008</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking sanity check 7
+          <ul class="assert">
+            <li>sanity check: an unstyled span should not affect line breaking</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-009-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-009.htm">line-breaking-009</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking at element boundary
+          <ul class="assert">
+            <li>For soft wrap opportunities defined by the boundary between two characters, the properties on nearest common ancestor of the two characters controls breaking.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-010-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-010.htm">line-breaking-010</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking at element boundary 2
+          <ul class="assert">
+            <li>For soft wrap opportunities defined by the boundary between two characters, the properties on nearest common ancestor of the two characters controls breaking.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-011-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-011.htm">line-breaking-011</a></strong></td>
+        <td><a href="reference/line-breaking-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking at element boundary 3
+          <ul class="assert">
+            <li>For soft wrap opportunities defined by the boundary between two characters, the properties on nearest common ancestor of the two characters controls breaking.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-ic-001-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-ic-001.htm">line-breaking-ic-001</a></strong></td>
+        <td><a href="reference/line-breaking-ic-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking at element boundary with ideographic caracters 1
+          <ul class="assert">
+            <li>For soft wrap opportunities defined by the boundary between two characters, the properties on nearest common ancestor of the two characters controls breaking.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-ic-002-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-ic-002.htm">line-breaking-ic-002</a></strong></td>
+        <td><a href="reference/line-breaking-ic-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking at element boundary with ideographic caracters 2
+          <ul class="assert">
+            <li>For soft wrap opportunities defined by the boundary between two characters, the properties on nearest common ancestor of the two characters controls breaking.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="line-breaking-ic-003-5.1" class="primary">
+        <td><strong>
+            <a href="line-breaking-ic-003.htm">line-breaking-ic-003</a></strong></td>
+        <td><a href="reference/line-breaking-ic-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text &amp;#8212; line breaking at element boundary with ideographic caracters 1
+          <ul class="assert">
+            <li>For soft wrap opportunities defined by the boundary between two characters, the properties on nearest common ancestor of the two characters controls breaking.</li>
           </ul>
         </td>
       </tr>

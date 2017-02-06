@@ -106,6 +106,7 @@ variable-reference-37.xht == reference/variable-reference-37-ref.xht
 variable-reference-38.xht == reference/variable-reference-38-ref.xht
 variable-reference-39.xht == support/color-green-ref.xht
 variable-reference-40.xht == reference/variable-reference-40-ref.xht
+variable-reference-without-whitespace.xht == reference/variable-reference-without-whitespace-ref.xht
 variable-supports-01.xht == support/color-green-ref.xht
 variable-supports-02.xht == support/color-green-ref.xht
 variable-supports-03.xht == support/color-green-ref.xht
@@ -173,3 +174,5 @@ variable-supports-64.xht == support/color-green-ref.xht
 variable-supports-65.xht == support/color-green-ref.xht
 variable-supports-66.xht == support/color-green-ref.xht
 variable-supports-67.xht == support/color-green-ref.xht
+vars-background-shorthand-001.xht == reference/vars-background-shorthand-001-ref.xht
+vars-font-shorthand-001.xht == reference/vars-font-shorthand-001-ref.xht

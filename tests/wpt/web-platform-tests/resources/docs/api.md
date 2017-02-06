@@ -118,13 +118,13 @@ The properties argument is identical to that for `test()`.
 
 In many cases it is convenient to run a step in response to an event or a
 callback. A convenient method of doing this is through the `step_func` method
-which returns a function that, when called runs a test step. For example
+which returns a function that, when called runs a test step. For example:
 
 ```js
 document.addEventListener("DOMContentLoaded", t.step_func(function() {
   assert_true(e.bubbles, "bubbles should be true");
   t.done();
-});
+}));
 ```
 
 As a further convenience, the `step_func` that calls `done()` can instead
@@ -133,7 +133,7 @@ use `step_func_done`, as follows:
 ```js
 document.addEventListener("DOMContentLoaded", t.step_func_done(function() {
   assert_true(e.bubbles, "bubbles should be true");
-});
+}));
 ```
 
 For asynchronous callbacks that should never execute, `unreached_func` can
@@ -216,11 +216,11 @@ Here's an example of how to use `EventWatcher`:
 var t = async_test("Event order on animation start");
 
 var animation = watchedNode.getAnimations()[0];
-var eventWatcher = new EventWatcher(watchedNode, ['animationstart',
-                                                  'animationiteration',
-                                                  'animationend']);
+var eventWatcher = new EventWatcher(t, watchedNode, ['animationstart',
+                                                     'animationiteration',
+                                                     'animationend']);
 
-eventWatcher.wait_for(t, 'animationstart').then(t.step_func(function() {
+eventWatcher.wait_for('animationstart').then(t.step_func(function() {
   assertExpectedStateAtStartOfAnimation();
   animation.currentTime = END_TIME; // skip to end
   // We expect two animationiteration events then an animationend event on
@@ -276,7 +276,7 @@ The test title for single page tests is always taken from `document.title`.
 
 Functions for making assertions start `assert_`. The full list of
 asserts avaliable is documented in the [asserts](#list-of-assertions) section
-below. The general signature is
+below. The general signature is:
 
 ```js
 assert_something(actual, expected, description)
@@ -286,7 +286,7 @@ although not all assertions precisely match this pattern e.g. `assert_true`
 only takes `actual` and `description` as arguments.
 
 The description parameter is used to present more useful error messages when
-a test fails
+a test fails.
 
 NOTE: All asserts must be located in a `test()` or a step of an
 `async_test()`, unless the test is a single page test. Asserts outside
@@ -300,7 +300,7 @@ In order to ensure that tests are independent, such state should be cleaned
 up once the test has a result. This can be achieved by adding cleanup
 callbacks to the test. Such callbacks are registered using the `add_cleanup`
 function on the test object. All registered callbacks will be run as soon as
-the test result is known. For example
+the test result is known. For example:
 
 ```js
   test(function() {
@@ -474,9 +474,9 @@ the following methods:
   `add_result_callback(callback)` - callback called with a test argument
 
   `add_completion_callback(callback)` - callback called with an array of tests
-                                        and an status object
+                                        and a status object
 
-tests have the following properties:
+Tests have the following properties:
 
   * `status` - A status code. This can be compared to the `PASS`, `FAIL`,
                `TIMEOUT` and `NOTRUN` properties on the test object
@@ -515,7 +515,7 @@ different origins can collect the results.
 This API follows similar conventions as those described above only slightly
 modified to accommodate message event API. Each message is sent by the harness
 is passed a single vanilla object, available as the `data` property of the event
-object. These objects are structures as follows:
+object. These objects are structured as follows:
 
  * start - `{ type: "start" }`
  * test\_state - `{ type: "test_state", test: Test }`

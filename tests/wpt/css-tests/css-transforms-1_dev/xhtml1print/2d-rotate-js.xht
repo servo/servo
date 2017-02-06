@@ -3,7 +3,9 @@
 		<title>JS test: Rotate via javascript must show the correct computed rotation</title>
 		<link href="http://mrkn.co/axegs" rel="author" title="Rick Hurst" />
 		<link href="http://www.w3.org/TR/css-transforms-1/#transform-property" rel="help" />
-		<meta content="css3, rotate, svg" name="flags" />
+		<script src="/resources/testharness.js"></script>
+		<script src="/resources/testharnessreport.js"></script>
+		<meta content="svg" name="flags" />
 		<meta content="Asserting that you can rotate an element with JS and it show up in CSS computed values not as a matrix but as the rotation" name="assert" />
 		<style>
 			#box{
@@ -19,27 +21,13 @@
 		<h1>Rotate via JS</h1>
         <div id="log"></div>
         <div id="box"></div>
-		<script src="/resources/testharness.js"></script>
-		<script src="/resources/testharnessreport.js"></script>
 		<script>
-			(function(){
-				var box = document.getElementById("box"),
-					assertion = "",
-					expectation = "rotate(30deg)",
-					should_string = "this should make a small green square rotated 30 degrees, and the browser should return the rotation as 30 degrees as the computed value NOT a matrix",
-					extra_properties = null,
-					computed_angle = 0,
-					a_1 = "";
-					a_2 = "",
-					my_value = "",
-					test_function = {};
-				box.style.Transform = "rotate(30deg)";
-				assertion = window.getComputedStyle(box).getPropertyValue("transform");
-				test_function = function(){
-					assert_equals(assertion, expectation);
-				}
-				test(test_function, should_string);
-			})();
+			test(function() {
+				var box = document.getElementById("box");
+				box.style.transform = "rotate(30deg)";
+				assert_equals(window.getComputedStyle(box).getPropertyValue("transform"),
+				              "rotate(30deg)");
+			});
 		</script>
     
 

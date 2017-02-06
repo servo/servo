@@ -5,10 +5,10 @@
 testname	revision	result	comment
 html/001.htm	387e60a50a3d993a46f121d3abb2b5aa60bbf623	?
 xhtml1/001.xht	387e60a50a3d993a46f121d3abb2b5aa60bbf623	?
-html/at-media-whitespace-optional-001.htm	4e2c5ec01563d357382aae5e723e1d952b8875c0	?
-xhtml1/at-media-whitespace-optional-001.xht	4e2c5ec01563d357382aae5e723e1d952b8875c0	?
-html/at-media-whitespace-optional-002.htm	50509a80453c49e7b9765b5cef6ec6b67436a7ff	?
-xhtml1/at-media-whitespace-optional-002.xht	50509a80453c49e7b9765b5cef6ec6b67436a7ff	?
+html/at-media-whitespace-optional-001.htm	43de476ab7894d6c78449a1faea07e8c38dc63ba	?
+xhtml1/at-media-whitespace-optional-001.xht	43de476ab7894d6c78449a1faea07e8c38dc63ba	?
+html/at-media-whitespace-optional-002.htm	c29819ec6fa4119fcc62df96e2839320fe4e7407	?
+xhtml1/at-media-whitespace-optional-002.xht	c29819ec6fa4119fcc62df96e2839320fe4e7407	?
 html/at-supports-001.htm	b461c0b2d7b695c3459e1ea678e6a9d1c54c93eb	?
 xhtml1/at-supports-001.xht	b461c0b2d7b695c3459e1ea678e6a9d1c54c93eb	?
 html/at-supports-002.htm	8b6e43dfcab26ac1be11fa6afa85be45dc04b5e9	?
@@ -175,5 +175,5 @@ html/css-supports-045.htm	e0dead62ae685a3010c1a7ffebbfffc334052262	?
 xhtml1/css-supports-045.xht	e0dead62ae685a3010c1a7ffebbfffc334052262	?
 html/css-supports-046.htm	ff878a784b9acb0dfa2117d954b7b7c0d3a01356	?
 xhtml1/css-supports-046.xht	ff878a784b9acb0dfa2117d954b7b7c0d3a01356	?
-html/test_group_insertrule.htm	192338c08ef0e9292719ace0c21997092a9e389e	?
-xhtml1/test_group_insertrule.xht	192338c08ef0e9292719ace0c21997092a9e389e	?
+html/test_group_insertrule.htm	1ae2a5f80101dcb332b63eb028a2d852e78536c0	?
+xhtml1/test_group_insertrule.xht	1ae2a5f80101dcb332b63eb028a2d852e78536c0	?

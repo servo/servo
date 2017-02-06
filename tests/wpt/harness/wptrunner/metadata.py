@@ -20,6 +20,7 @@ import wptmanifest
 import wpttest
 from vcs import git
 manifest = None  # Module that will be imported relative to test_root
+manifestitem = None
 
 logger = structuredlog.StructuredLogger("web-platform-tests")
 
@@ -66,8 +67,8 @@ def update_expected(test_paths, serve_root, log_file_names,
 
 
 def do_delayed_imports(serve_root):
-    global manifest
-    from manifest import manifest
+    global manifest, manifestitem
+    from manifest import manifest, item as manifestitem
 
 
 def files_in_repo(repo_root):
@@ -110,9 +111,7 @@ def unexpected_changes(manifests, change_data, files_changed):
     else:
         return []
 
-    rv = []
-
-    return [fn for fn, tests in root_manifest if fn in files_changed and change_data.get(fn) != "M"]
+    return [fn for _, fn, _ in root_manifest if fn in files_changed and change_data.get(fn) != "M"]
 
 # For each testrun
 # Load all files and scan for the suite_start entry
@@ -295,9 +294,13 @@ def create_test_tree(metadata_path, test_manifest, property_order=None,
                      boolean_properties=None):
     expected_map = {}
     id_test_map = {}
-    exclude_types = frozenset(["stub", "helper", "manual"])
-    include_types = set(manifest.item_types) - exclude_types
-    for test_path, tests in test_manifest.itertypes(*include_types):
+    exclude_types = frozenset(["stub", "helper", "manual", "support", "conformancechecker"])
+    all_types = [item.item_type for item in manifestitem.__dict__.itervalues()
+                 if type(item) == type and
+                 issubclass(item, manifestitem.ManifestItem) and
+                 item.item_type is not None]
+    include_types = set(all_types) - exclude_types
+    for _, test_path, tests in test_manifest.itertypes(*include_types):
         expected_data = load_expected(test_manifest, metadata_path, test_path, tests,
                                       property_order=property_order,
                                       boolean_properties=boolean_properties)

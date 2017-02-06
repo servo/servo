@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>KeyframeEffectReadOnly copy constructor tests</title>
+<link rel="help"
+href="https://w3c.github.io/web-animations/#dom-keyframeeffectreadonly-keyframeeffectreadonly-source">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(function(t) {
+  var effect = new KeyframeEffectReadOnly(createDiv(t), null);
+  var copiedEffect = new KeyframeEffectReadOnly(effect);
+  assert_equals(copiedEffect.target, effect.target, 'same target');
+}, 'Test copied keyframeEffectReadOnly has the same target');
+
+test(function(t) {
+  var effect =
+    new KeyframeEffectReadOnly(null,
+                               [ { marginLeft: '0px' },
+                                 { marginLeft: '-20px', easing: 'ease-in',
+                                   offset: 0.1 },
+                                 { marginLeft: '100px', easing: 'ease-out' },
+                                 { marginLeft: '50px' } ],
+                               { spacing: 'paced(margin-left)' });
+
+  var copiedEffect = new KeyframeEffectReadOnly(effect);
+  var KeyframesA = effect.getKeyframes();
+  var KeyframesB = copiedEffect.getKeyframes();
+  assert_equals(KeyframesA.length, KeyframesB.length, 'same keyframes length');
+
+  for (var i = 0; i < KeyframesA.length; ++i) {
+    assert_equals(KeyframesA[i].offset, KeyframesB[i].offset,
+                  'Keyframe ' + i + ' has the same offset');
+    assert_equals(KeyframesA[i].computedOffset, KeyframesB[i].computedOffset,
+                  'keyframe ' + i + ' has the same computedOffset');
+    assert_equals(KeyframesA[i].easing, KeyframesB[i].easing,
+                  'keyframe ' + i + ' has the same easing');
+    assert_equals(KeyframesA[i].composite, KeyframesB[i].composite,
+                  'keyframe ' + i + ' has the same composite');
+
+    assert_true(!!KeyframesA[i].marginLeft,
+                'original keyframe ' + i + ' has the valid property value');
+    assert_true(!!KeyframesB[i].marginLeft,
+                'new keyframe ' + i + ' has the valid property value');
+    assert_equals(KeyframesA[i].marginLeft, KeyframesB[i].marginLeft,
+                  'keyframe ' + i + ' has the same property value pair');
+  }
+}, 'Test copied keyframeEffectReadOnly has the same keyframes');
+
+test(function(t) {
+  var effect = new KeyframeEffectReadOnly(null, null,
+                                          { spacing: 'paced(margin-left)',
+                                            iterationComposite: 'accumulate' });
+
+  var copiedEffect = new KeyframeEffectReadOnly(effect);
+  assert_equals(copiedEffect.spacing, effect.spacing, 'same spacing');
+  assert_equals(copiedEffect.iterationComposite, effect.iterationComposite,
+                'same iterationCompositeOperation');
+  assert_equals(copiedEffect.composite, effect.composite,
+                'same compositeOperation');
+}, 'Test copied keyframeEffectReadOnly has the same keyframeEffectOptions');
+
+test(function(t) {
+  var effect = new KeyframeEffectReadOnly(null, null,
+                                          { duration: 100 * MS_PER_SEC,
+                                            delay: -1 * MS_PER_SEC,
+                                            endDelay: 2 * MS_PER_SEC,
+                                            fill: 'forwards',
+                                            iterationStart: 2,
+                                            iterations: 20,
+                                            easing: 'ease-out',
+                                            direction: 'alternate' } );
+
+  var copiedEffect = new KeyframeEffectReadOnly(effect);
+  var timingA = effect.timing;
+  var timingB = copiedEffect.timing;
+  assert_not_equals(timingA, timingB, 'different timing objects');
+  assert_equals(timingA.delay, timingB.delay, 'same delay');
+  assert_equals(timingA.endDelay, timingB.endDelay, 'same endDelay');
+  assert_equals(timingA.fill, timingB.fill, 'same fill');
+  assert_equals(timingA.iterationStart, timingB.iterationStart,
+                'same iterationStart');
+  assert_equals(timingA.iterations, timingB.iterations, 'same iterations');
+  assert_equals(timingA.duration, timingB.duration, 'same duration');
+  assert_equals(timingA.direction, timingB.direction, 'same direction');
+  assert_equals(timingA.easing, timingB.easing, 'same easing');
+}, 'Test copied keyframeEffectReadOnly has the same timing content');
+
+</script>
+</body>

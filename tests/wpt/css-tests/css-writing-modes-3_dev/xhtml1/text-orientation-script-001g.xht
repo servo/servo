@@ -1,8 +1,8 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
-<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#7/8, 2048 code points in U+1169E-1BC00).</title>
+<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#7/9, 2048 code points in U+11152-124FA).</title>
 <link href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" rel="help" />
-<meta content="Test orientation of characters where vo=R (#7/8, 2048 code points in U+1169E-1BC00)" name="assert" />
+<meta content="Test orientation of characters where vo=R (#7/9, 2048 code points in U+11152-124FA)" name="assert" />
 <meta content="dom font" name="flags" />
 <link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii" />
 <script src="/resources/testharness.js"></script>
@@ -39,8 +39,57 @@ summary {
 <div id="details"></div>
 <div id="container">
 <div data-vo="R" class="test">
+<div data-block="Mahajani">
+<div class="line">𑅒𑅓𑅔𑅕𑅖𑅗𑅘𑅙𑅚𑅛𑅜𑅝𑅞𑅟𑅠𑅡𑅢𑅣𑅤𑅥𑅦𑅧𑅨𑅩𑅪𑅫𑅬𑅭𑅮𑅯𑅰𑅱</div>
+<div class="line">𑅲𑅴𑅵𑅶</div>
+</div>
+<div data-block="Sharada">
+<div class="line">𑆃𑆄𑆅𑆆𑆇𑆈𑆉𑆊𑆋𑆌𑆍𑆎𑆏𑆐𑆑𑆒𑆓𑆔𑆕𑆖𑆗𑆘𑆙𑆚𑆛𑆜𑆝𑆞𑆟𑆠𑆡𑆢</div>
+<div class="line">𑆣𑆤𑆥𑆦𑆧𑆨𑆩𑆪𑆫𑆬𑆭𑆮𑆯𑆰𑆱𑆲𑇁𑇂𑇃𑇄𑇅𑇆𑇇𑇈𑇉𑇍𑇐𑇑𑇒𑇓𑇔𑇕</div>
+<div class="line">𑇖𑇗𑇘𑇙𑇚𑇛𑇜𑇝𑇞𑇟</div>
+</div>
+<div data-block="Sinhala">
+<div class="line">𑇡𑇢𑇣𑇤𑇥𑇦𑇧𑇨𑇩𑇪𑇫𑇬𑇭𑇮𑇯𑇰𑇱𑇲𑇳𑇴</div>
+</div>
+<div data-block="Khojki">
+<div class="line">𑈀𑈁𑈂𑈃𑈄𑈅𑈆𑈇𑈈𑈉𑈊𑈋𑈌𑈍𑈎𑈏𑈐𑈑𑈓𑈔𑈕𑈖𑈗𑈘𑈙𑈚𑈛𑈜𑈝𑈞𑈟𑈠</div>
+<div class="line">𑈡𑈢𑈣𑈤𑈥𑈦𑈧𑈨𑈩𑈪𑈫𑈸𑈹𑈺𑈻𑈼𑈽</div>
+</div>
+<div data-block="Multani">
+<div class="line">𑊀𑊁𑊂𑊃𑊄𑊅𑊆𑊈𑊊𑊋𑊌𑊍𑊏𑊐𑊑𑊒𑊓𑊔𑊕𑊖𑊗𑊘𑊙𑊚𑊛𑊜𑊝𑊟𑊠𑊡𑊢𑊣</div>
+<div class="line">𑊤𑊥𑊦𑊧𑊨𑊩</div>
+</div>
+<div data-block="Khudawadi">
+<div class="line">𑊰𑊱𑊲𑊳𑊴𑊵𑊶𑊷𑊸𑊹𑊺𑊻𑊼𑊽𑊾𑊿𑋀𑋁𑋂𑋃𑋄𑋅𑋆𑋇𑋈𑋉𑋊𑋋𑋌𑋍𑋎𑋏</div>
+<div class="line">𑋐𑋑𑋒𑋓𑋔𑋕𑋖𑋗𑋘𑋙𑋚𑋛𑋜𑋝𑋞𑋰𑋱𑋲𑋳𑋴𑋵𑋶𑋷𑋸𑋹</div>
+</div>
+<div data-block="Grantha">
+<div class="line">𑌅𑌆𑌇𑌈𑌉𑌊𑌋𑌌𑌏𑌐𑌓𑌔𑌕𑌖𑌗𑌘𑌙𑌚𑌛𑌜𑌝𑌞𑌟𑌠𑌡𑌢𑌣𑌤𑌥𑌦𑌧𑌨</div>
+<div class="line">𑌪𑌫𑌬𑌭𑌮𑌯𑌰𑌲𑌳𑌵𑌶𑌷𑌸𑌹𑌽𑍐𑍝𑍞𑍟𑍠𑍡</div>
+</div>
+<div data-block="Newa">
+<div class="line">𑐀𑐁𑐂𑐃𑐄𑐅𑐆𑐇𑐈𑐉𑐊𑐋𑐌𑐍𑐎𑐏𑐐𑐑𑐒𑐓𑐔𑐕𑐖𑐗𑐘𑐙𑐚𑐛𑐜𑐝𑐞𑐟</div>
+<div class="line">𑐠𑐡𑐢𑐣𑐤𑐥𑐦𑐧𑐨𑐩𑐪𑐫𑐬𑐭𑐮𑐯𑐰𑐱𑐲𑐳𑐴𑑇𑑈𑑉𑑊𑑋𑑌𑑍𑑎𑑏𑑐𑑑</div>
+<div class="line">𑑒𑑓𑑔𑑕𑑖𑑗𑑘𑑙𑑛𑑝</div>
+</div>
+<div data-block="Tirhuta">
+<div class="line">𑒀𑒁𑒂𑒃𑒄𑒅𑒆𑒇𑒈𑒉𑒊𑒋𑒌𑒍𑒎𑒏𑒐𑒑𑒒𑒓𑒔𑒕𑒖𑒗𑒘𑒙𑒚𑒛𑒜𑒝𑒞𑒟</div>
+<div class="line">𑒠𑒡𑒢𑒣𑒤𑒥𑒦𑒧𑒨𑒩𑒪𑒫𑒬𑒭𑒮𑒯𑓄𑓅𑓆𑓇𑓐𑓑𑓒𑓓𑓔𑓕𑓖𑓗𑓘𑓙</div>
+</div>
+<div data-block="Modi">
+<div class="line">𑘀𑘁𑘂𑘃𑘄𑘅𑘆𑘇𑘈𑘉𑘊𑘋𑘌𑘍𑘎𑘏𑘐𑘑𑘒𑘓𑘔𑘕𑘖𑘗𑘘𑘙𑘚𑘛𑘜𑘝𑘞𑘟</div>
+<div class="line">𑘠𑘡𑘢𑘣𑘤𑘥𑘦𑘧𑘨𑘩𑘪𑘫𑘬𑘭𑘮𑘯𑙁𑙂𑙃𑙄𑙐𑙑𑙒𑙓𑙔𑙕𑙖𑙗𑙘𑙙</div>
+</div>
+<div data-block="Mongolian">
+<div class="line">𑙠𑙡𑙢𑙣𑙤𑙥𑙦𑙧𑙨𑙩𑙪𑙫𑙬</div>
+</div>
 <div data-block="Takri">
-<div class="line">𑚞𑚟𑚠𑚡𑚢𑚣𑚤𑚥𑚦𑚧𑚨𑚩𑚪𑛀𑛁𑛂𑛃𑛄𑛅𑛆𑛇𑛈𑛉</div>
+<div class="line">𑚀𑚁𑚂𑚃𑚄𑚅𑚆𑚇𑚈𑚉𑚊𑚋𑚌𑚍𑚎𑚏𑚐𑚑𑚒𑚓𑚔𑚕𑚖𑚗𑚘𑚙𑚚𑚛𑚜𑚝𑚞𑚟</div>
+<div class="line">𑚠𑚡𑚢𑚣𑚤𑚥𑚦𑚧𑚨𑚩𑚪𑛀𑛁𑛂𑛃𑛄𑛅𑛆𑛇𑛈𑛉</div>
+</div>
+<div data-block="Ahom">
+<div class="line">𑜀𑜁𑜂𑜃𑜄𑜅𑜆𑜇𑜈𑜉𑜊𑜋𑜌𑜍𑜎𑜏𑜐𑜑𑜒𑜓𑜔𑜕𑜖𑜗𑜘𑜙𑜰𑜱𑜲𑜳𑜴𑜵</div>
+<div class="line">𑜶𑜷𑜸𑜹𑜺𑜻𑜼𑜽𑜾𑜿</div>
 </div>
 <div data-block="Warang">
 <div class="line">𑢠𑢡𑢢𑢣𑢤𑢥𑢦𑢧𑢨𑢩𑢪𑢫𑢬𑢭𑢮𑢯𑢰𑢱𑢲𑢳𑢴𑢵𑢶𑢷𑢸𑢹𑢺𑢻𑢼𑢽𑢾𑢿</div>
@@ -50,6 +99,14 @@ summary {
 <div data-block="Pau">
 <div class="line">𑫀𑫁𑫂𑫃𑫄𑫅𑫆𑫇𑫈𑫉𑫊𑫋𑫌𑫍𑫎𑫏𑫐𑫑𑫒𑫓𑫔𑫕𑫖𑫗𑫘𑫙𑫚𑫛𑫜𑫝𑫞𑫟</div>
 <div class="line">𑫠𑫡𑫢𑫣𑫤𑫥𑫦𑫧𑫨𑫩𑫪𑫫𑫬𑫭𑫮𑫯𑫰𑫱𑫲𑫳𑫴𑫵𑫶𑫷𑫸</div>
+</div>
+<div data-block="Bhaiksuki">
+<div class="line">𑰀𑰁𑰂𑰃𑰄𑰅𑰆𑰇𑰈𑰊𑰋𑰌𑰍𑰎𑰏𑰐𑰑𑰒𑰓𑰔𑰕𑰖𑰗𑰘𑰙𑰚𑰛𑰜𑰝𑰞𑰟𑰠</div>
+<div class="line">𑰡𑰢𑰣𑰤𑰥𑰦𑰧𑰨𑰩𑰪𑰫𑰬𑰭𑰮𑱀𑱁𑱂𑱃𑱄𑱅𑱐𑱑𑱒𑱓𑱔𑱕𑱖𑱗𑱘𑱙𑱚𑱛</div>
+<div class="line">𑱜𑱝𑱞𑱟𑱠𑱡𑱢𑱣𑱤𑱥𑱦𑱧𑱨𑱩𑱪𑱫𑱬</div>
+</div>
+<div data-block="Marchen">
+<div class="line">𑱰𑱱𑱲𑱳𑱴𑱵𑱶𑱷𑱸𑱹𑱺𑱻𑱼𑱽𑱾𑱿𑲀𑲁𑲂𑲃𑲄𑲅𑲆𑲇𑲈𑲉𑲊𑲋𑲌𑲍𑲎𑲏</div>
 </div>
 <div data-block="Cuneiform">
 <div class="line">𒀀𒀁𒀂𒀃𒀄𒀅𒀆𒀇𒀈𒀉𒀊𒀋𒀌𒀍𒀎𒀏𒀐𒀑𒀒𒀓𒀔𒀕𒀖𒀗𒀘𒀙𒀚𒀛𒀜𒀝𒀞𒀟</div>
@@ -80,52 +137,17 @@ summary {
 <div class="line">𒌠𒌡𒌢𒌣𒌤𒌥𒌦𒌧𒌨𒌩𒌪𒌫𒌬𒌭𒌮𒌯𒌰𒌱𒌲𒌳𒌴𒌵𒌶𒌷𒌸𒌹𒌺𒌻𒌼𒌽𒌾𒌿</div>
 <div class="line">𒍀𒍁𒍂𒍃𒍄𒍅𒍆𒍇𒍈𒍉𒍊𒍋𒍌𒍍𒍎𒍏𒍐𒍑𒍒𒍓𒍔𒍕𒍖𒍗𒍘𒍙𒍚𒍛𒍜𒍝𒍞𒍟</div>
 <div class="line">𒍠𒍡𒍢𒍣𒍤𒍥𒍦𒍧𒍨𒍩𒍪𒍫𒍬𒍭𒍮𒍯𒍰𒍱𒍲𒍳𒍴𒍵𒍶𒍷𒍸𒍹𒍺𒍻𒍼𒍽𒍾𒍿</div>
-<div class="line">𒎀𒎁𒎂𒎃𒎄𒎅𒎆𒎇𒎈𒎉𒎊𒎋𒎌𒎍𒎎𒎏𒎐𒎑𒎒𒎓𒎔𒎕𒎖𒎗𒎘𒐀𒐁𒐂𒐃𒐄𒐅𒐆</div>
-<div class="line">𒐇𒐈𒐉𒐊𒐋𒐌𒐍𒐎𒐏𒐐𒐑𒐒𒐓𒐔𒐕𒐖𒐗𒐘𒐙𒐚𒐛𒐜𒐝𒐞𒐟𒐠𒐡𒐢𒐣𒐤𒐥𒐦</div>
-<div class="line">𒐧𒐨𒐩𒐪𒐫𒐬𒐭𒐮𒐯𒐰𒐱𒐲𒐳𒐴𒐵𒐶𒐷𒐸𒐹𒐺𒐻𒐼𒐽𒐾𒐿𒑀𒑁𒑂𒑃𒑄𒑅𒑆</div>
-<div class="line">𒑇𒑈𒑉𒑊𒑋𒑌𒑍𒑎𒑏𒑐𒑑𒑒𒑓𒑔𒑕𒑖𒑗𒑘𒑙𒑚𒑛𒑜𒑝𒑞𒑟𒑠𒑡𒑢𒑣𒑤𒑥𒑦</div>
-<div class="line">𒑧𒑨𒑩𒑪𒑫𒑬𒑭𒑮𒑰𒑱𒑲𒑳𒑴</div>
+<div class="line">𒎀𒎁𒎂𒎃𒎄𒎅𒎆𒎇𒎈𒎉𒎊𒎋𒎌𒎍𒎎𒎏𒎐𒎑𒎒𒎓𒎔𒎕𒎖𒎗𒎘𒎙𒐀𒐁𒐂𒐃𒐄𒐅</div>
+<div class="line">𒐆𒐇𒐈𒐉𒐊𒐋𒐌𒐍𒐎𒐏𒐐𒐑𒐒𒐓𒐔𒐕𒐖𒐗𒐘𒐙𒐚𒐛𒐜𒐝𒐞𒐟𒐠𒐡𒐢𒐣𒐤𒐥</div>
+<div class="line">𒐦𒐧𒐨𒐩𒐪𒐫𒐬𒐭𒐮𒐯𒐰𒐱𒐲𒐳𒐴𒐵𒐶𒐷𒐸𒐹𒐺𒐻𒐼𒐽𒐾𒐿𒑀𒑁𒑂𒑃𒑄𒑅</div>
+<div class="line">𒑆𒑇𒑈𒑉𒑊𒑋𒑌𒑍𒑎𒑏𒑐𒑑𒑒𒑓𒑔𒑕𒑖𒑗𒑘𒑙𒑚𒑛𒑜𒑝𒑞𒑟𒑠𒑡𒑢𒑣𒑤𒑥</div>
+<div class="line">𒑦𒑧𒑨𒑩𒑪𒑫𒑬𒑭𒑮𒑰𒑱𒑲𒑳𒑴</div>
 </div>
-<div data-block="Bamum">
-<div class="line">𖠀𖠁𖠂𖠃𖠄𖠅𖠆𖠇𖠈𖠉𖠊𖠋𖠌𖠍𖠎𖠏𖠐𖠑𖠒𖠓𖠔𖠕𖠖𖠗𖠘𖠙𖠚𖠛𖠜𖠝𖠞𖠟</div>
-<div class="line">𖠠𖠡𖠢𖠣𖠤𖠥𖠦𖠧𖠨𖠩𖠪𖠫𖠬𖠭𖠮𖠯𖠰𖠱𖠲𖠳𖠴𖠵𖠶𖠷𖠸𖠹𖠺𖠻𖠼𖠽𖠾𖠿</div>
-<div class="line">𖡀𖡁𖡂𖡃𖡄𖡅𖡆𖡇𖡈𖡉𖡊𖡋𖡌𖡍𖡎𖡏𖡐𖡑𖡒𖡓𖡔𖡕𖡖𖡗𖡘𖡙𖡚𖡛𖡜𖡝𖡞𖡟</div>
-<div class="line">𖡠𖡡𖡢𖡣𖡤𖡥𖡦𖡧𖡨𖡩𖡪𖡫𖡬𖡭𖡮𖡯𖡰𖡱𖡲𖡳𖡴𖡵𖡶𖡷𖡸𖡹𖡺𖡻𖡼𖡽𖡾𖡿</div>
-<div class="line">𖢀𖢁𖢂𖢃𖢄𖢅𖢆𖢇𖢈𖢉𖢊𖢋𖢌𖢍𖢎𖢏𖢐𖢑𖢒𖢓𖢔𖢕𖢖𖢗𖢘𖢙𖢚𖢛𖢜𖢝𖢞𖢟</div>
-<div class="line">𖢠𖢡𖢢𖢣𖢤𖢥𖢦𖢧𖢨𖢩𖢪𖢫𖢬𖢭𖢮𖢯𖢰𖢱𖢲𖢳𖢴𖢵𖢶𖢷𖢸𖢹𖢺𖢻𖢼𖢽𖢾𖢿</div>
-<div class="line">𖣀𖣁𖣂𖣃𖣄𖣅𖣆𖣇𖣈𖣉𖣊𖣋𖣌𖣍𖣎𖣏𖣐𖣑𖣒𖣓𖣔𖣕𖣖𖣗𖣘𖣙𖣚𖣛𖣜𖣝𖣞𖣟</div>
-<div class="line">𖣠𖣡𖣢𖣣𖣤𖣥𖣦𖣧𖣨𖣩𖣪𖣫𖣬𖣭𖣮𖣯𖣰𖣱𖣲𖣳𖣴𖣵𖣶𖣷𖣸𖣹𖣺𖣻𖣼𖣽𖣾𖣿</div>
-<div class="line">𖤀𖤁𖤂𖤃𖤄𖤅𖤆𖤇𖤈𖤉𖤊𖤋𖤌𖤍𖤎𖤏𖤐𖤑𖤒𖤓𖤔𖤕𖤖𖤗𖤘𖤙𖤚𖤛𖤜𖤝𖤞𖤟</div>
-<div class="line">𖤠𖤡𖤢𖤣𖤤𖤥𖤦𖤧𖤨𖤩𖤪𖤫𖤬𖤭𖤮𖤯𖤰𖤱𖤲𖤳𖤴𖤵𖤶𖤷𖤸𖤹𖤺𖤻𖤼𖤽𖤾𖤿</div>
-<div class="line">𖥀𖥁𖥂𖥃𖥄𖥅𖥆𖥇𖥈𖥉𖥊𖥋𖥌𖥍𖥎𖥏𖥐𖥑𖥒𖥓𖥔𖥕𖥖𖥗𖥘𖥙𖥚𖥛𖥜𖥝𖥞𖥟</div>
-<div class="line">𖥠𖥡𖥢𖥣𖥤𖥥𖥦𖥧𖥨𖥩𖥪𖥫𖥬𖥭𖥮𖥯𖥰𖥱𖥲𖥳𖥴𖥵𖥶𖥷𖥸𖥹𖥺𖥻𖥼𖥽𖥾𖥿</div>
-<div class="line">𖦀𖦁𖦂𖦃𖦄𖦅𖦆𖦇𖦈𖦉𖦊𖦋𖦌𖦍𖦎𖦏𖦐𖦑𖦒𖦓𖦔𖦕𖦖𖦗𖦘𖦙𖦚𖦛𖦜𖦝𖦞𖦟</div>
-<div class="line">𖦠𖦡𖦢𖦣𖦤𖦥𖦦𖦧𖦨𖦩𖦪𖦫𖦬𖦭𖦮𖦯𖦰𖦱𖦲𖦳𖦴𖦵𖦶𖦷𖦸𖦹𖦺𖦻𖦼𖦽𖦾𖦿</div>
-<div class="line">𖧀𖧁𖧂𖧃𖧄𖧅𖧆𖧇𖧈𖧉𖧊𖧋𖧌𖧍𖧎𖧏𖧐𖧑𖧒𖧓𖧔𖧕𖧖𖧗𖧘𖧙𖧚𖧛𖧜𖧝𖧞𖧟</div>
-<div class="line">𖧠𖧡𖧢𖧣𖧤𖧥𖧦𖧧𖧨𖧩𖧪𖧫𖧬𖧭𖧮𖧯𖧰𖧱𖧲𖧳𖧴𖧵𖧶𖧷𖧸𖧹𖧺𖧻𖧼𖧽𖧾𖧿</div>
-<div class="line">𖨀𖨁𖨂𖨃𖨄𖨅𖨆𖨇𖨈𖨉𖨊𖨋𖨌𖨍𖨎𖨏𖨐𖨑𖨒𖨓𖨔𖨕𖨖𖨗𖨘𖨙𖨚𖨛𖨜𖨝𖨞𖨟</div>
-<div class="line">𖨠𖨡𖨢𖨣𖨤𖨥𖨦𖨧𖨨𖨩𖨪𖨫𖨬𖨭𖨮𖨯𖨰𖨱𖨲𖨳𖨴𖨵𖨶𖨷𖨸</div>
-</div>
-<div data-block="Mro">
-<div class="line">𖩀𖩁𖩂𖩃𖩄𖩅𖩆𖩇𖩈𖩉𖩊𖩋𖩌𖩍𖩎𖩏𖩐𖩑𖩒𖩓𖩔𖩕𖩖𖩗𖩘𖩙𖩚𖩛𖩜𖩝𖩞𖩠</div>
-<div class="line">𖩡𖩢𖩣𖩤𖩥𖩦𖩧𖩨𖩩𖩮𖩯</div>
-</div>
-<div data-block="Bassa">
-<div class="line">𖫐𖫑𖫒𖫓𖫔𖫕𖫖𖫗𖫘𖫙𖫚𖫛𖫜𖫝𖫞𖫟𖫠𖫡𖫢𖫣𖫤𖫥𖫦𖫧𖫨𖫩𖫪𖫫𖫬𖫭𖫵</div>
-</div>
-<div data-block="Pahawh">
-<div class="line">𖬀𖬁𖬂𖬃𖬄𖬅𖬆𖬇𖬈𖬉𖬊𖬋𖬌𖬍𖬎𖬏𖬐𖬑𖬒𖬓𖬔𖬕𖬖𖬗𖬘𖬙𖬚𖬛𖬜𖬝𖬞𖬟</div>
-<div class="line">𖬠𖬡𖬢𖬣𖬤𖬥𖬦𖬧𖬨𖬩𖬪𖬫𖬬𖬭𖬮𖬯𖬷𖬸𖬹𖬺𖬻𖬼𖬽𖬾𖬿𖭀𖭁𖭂𖭃𖭄𖭅𖭐</div>
-<div class="line">𖭑𖭒𖭓𖭔𖭕𖭖𖭗𖭘𖭙𖭛𖭜𖭝𖭞𖭟𖭠𖭡𖭣𖭤𖭥𖭦𖭧𖭨𖭩𖭪𖭫𖭬𖭭𖭮𖭯𖭰𖭱𖭲</div>
-<div class="line">𖭳𖭴𖭵𖭶𖭷𖭽𖭾𖭿𖮀𖮁𖮂𖮃𖮄𖮅𖮆𖮇𖮈𖮉𖮊𖮋𖮌𖮍𖮎𖮏</div>
-</div>
-<div data-block="Miao">
-<div class="line">𖼀𖼁𖼂𖼃𖼄𖼅𖼆𖼇𖼈𖼉𖼊𖼋𖼌𖼍𖼎𖼏𖼐𖼑𖼒𖼓𖼔𖼕𖼖𖼗𖼘𖼙𖼚𖼛𖼜𖼝𖼞𖼟</div>
-<div class="line">𖼠𖼡𖼢𖼣𖼤𖼥𖼦𖼧𖼨𖼩𖼪𖼫𖼬𖼭𖼮𖼯𖼰𖼱𖼲𖼳𖼴𖼵𖼶𖼷𖼸𖼹𖼺𖼻𖼼𖼽𖼾𖼿</div>
-<div class="line">𖽀𖽁𖽂𖽃𖽄𖽐𖾓𖾔𖾕𖾖𖾗𖾘𖾙𖾚𖾛𖾜𖾝𖾞𖾟</div>
-</div>
-<div data-block="Duployan">
-<div class="line">𛰀</div>
+<div data-block="Early">
+<div class="line">𒒀𒒁𒒂𒒃𒒄𒒅𒒆𒒇𒒈𒒉𒒊𒒋𒒌𒒍𒒎𒒏𒒐𒒑𒒒𒒓𒒔𒒕𒒖𒒗𒒘𒒙𒒚𒒛𒒜𒒝𒒞𒒟</div>
+<div class="line">𒒠𒒡𒒢𒒣𒒤𒒥𒒦𒒧𒒨𒒩𒒪𒒫𒒬𒒭𒒮𒒯𒒰𒒱𒒲𒒳𒒴𒒵𒒶𒒷𒒸𒒹𒒺𒒻𒒼𒒽𒒾𒒿</div>
+<div class="line">𒓀𒓁𒓂𒓃𒓄𒓅𒓆𒓇𒓈𒓉𒓊𒓋𒓌𒓍𒓎𒓏𒓐𒓑𒓒𒓓𒓔𒓕𒓖𒓗𒓘𒓙𒓚𒓛𒓜𒓝𒓞𒓟</div>
+<div class="line">𒓠𒓡𒓢𒓣𒓤𒓥𒓦𒓧𒓨𒓩𒓪𒓫𒓬𒓭𒓮𒓯𒓰𒓱𒓲𒓳𒓴𒓵𒓶𒓷𒓸𒓹𒓺</div>
 </div>
 </div>
 </div>

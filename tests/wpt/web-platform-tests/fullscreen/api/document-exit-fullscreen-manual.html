@@ -7,7 +7,7 @@
 <script>
 async_test(function(t)
 {
-    trusted_request(document.querySelector("div"));
+    trusted_request(t, document.querySelector("div"));
 
     document.addEventListener("fullscreenchange", t.step_func(function(event)
     {
