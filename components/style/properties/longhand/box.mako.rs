@@ -1755,7 +1755,7 @@ ${helpers.single_keyword("transform-style",
                          extra_prefixes="moz webkit",
                          animatable=False)}
 
-<%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit"
+<%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit" boxed="True"
                    spec="https://drafts.csswg.org/css-transforms/#transform-origin-property">
     use app_units::Au;
     use std::fmt;
@@ -1896,7 +1896,8 @@ ${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
                           animatable="False",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)",
-                          disable_when_testing="True")}
+                          disable_when_testing="True",
+                          boxed=True)}
 
 ${helpers.single_keyword("-moz-orient",
                           "inline block horizontal vertical",

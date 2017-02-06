@@ -278,7 +278,11 @@ impl AnimationValue {
                     AnimationValue::${prop.camel_case}(ref from) => {
                         PropertyDeclaration::${prop.camel_case}(
                             DeclaredValue::Value(
-                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
+                                % if prop.boxed:
+                                    Box::new(longhands::${prop.ident}::SpecifiedValue::from_computed_value(from))))
+                                % else:
+                                    longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
+                                % endif
                     }
                 % endif
             % endfor
