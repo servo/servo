@@ -244,13 +244,8 @@
                         declared_value, &custom_props,
                     |value| {
                         if let Some(ref mut cascade_info) = *cascade_info {
-                            % if property.boxed:
-                                cascade_info.on_cascade_boxed_property(&declaration,
-                                                                       &value);
-                            % else:
-                                cascade_info.on_cascade_property(&declaration,
-                                                                 &value);
-                            % endif
+                            cascade_info.on_cascade_property(&declaration,
+                                                             value);
                         }
                         <% maybe_wm = ", wm" if property.logical else "" %>
                         match *value {

@@ -8,6 +8,7 @@
 
 use dom::TNode;
 use properties::{DeclaredValue, PropertyDeclaration};
+use std::borrow::Borrow;
 use values::HasViewportPercentage;
 
 /// A structure to collect information about the cascade.
@@ -51,40 +52,11 @@ impl CascadeInfo {
     pub fn on_cascade_property<T>(&mut self,
                                   _property_declaration: &PropertyDeclaration,
                                   value: &DeclaredValue<T>)
-        where T: HasViewportPercentage,
+        where T: Borrow<U>, U: HasViewportPercentage,
     {
         // TODO: we can be smarter and keep a property bitfield to keep track of
         // the last applying rule.
         if value.has_viewport_percentage() {
-            self.saw_viewport_units = true;
-        }
-    }
-
-    /// Called when a boxed property is cascaded.
-    /// This should be same as `on_cascade_property`.
-    /// FIXME(canaltinova): Find a better method to handle boxed properties.
-    ///
-    /// NOTE: We can add a vast amount of information here.
-    #[inline]
-    pub fn on_cascade_boxed_property<T>(&mut self,
-                                        _property_declaration: &PropertyDeclaration,
-                                        value: &DeclaredValue<Box<T>>)
-        where T: HasViewportPercentage,
-    {
-        // TODO: we can be smarter and keep a property bitfield to keep track of
-        // the last applying rule.
-        let has_viewport_percentage = match *value {
-            DeclaredValue::Value(ref v) => (*v).has_viewport_percentage(),
-            DeclaredValue::WithVariables { .. } => {
-                panic!("DeclaredValue::has_viewport_percentage without \
-                        resolving variables!")
-            },
-            DeclaredValue::Initial |
-            DeclaredValue::Inherit |
-            DeclaredValue::Unset => false,
-        };
-
-        if has_viewport_percentage {
             self.saw_viewport_units = true;
         }
     }
