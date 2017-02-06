@@ -6,7 +6,8 @@
     <button type="button" onclick="onQueryButtonClick()">query</button>
     <pre id="log"></pre>
     <script>
-    window.testRunner.setBluetoothMockDataSet('HeartRateAdapter');
+    if (window.testRunner)
+        window.testRunner.setBluetoothMockDataSet('HeartRateAdapter');
 
     function onRequestButtonClick() {
         clear();
