@@ -26,7 +26,6 @@ use context::TraversalStatistics;
 use dom::{OpaqueNode, SendNode, TElement, TNode};
 use rayon;
 use scoped_tls::ScopedTLS;
-use servo_config::opts;
 use std::borrow::Borrow;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
@@ -75,7 +74,7 @@ pub fn traverse_dom<E, D>(traversal: &D,
     });
 
     // Dump statistics to stdout if requested.
-    if TraversalStatistics::should_dump() || opts::get().style_sharing_stats {
+    if TraversalStatistics::should_dump() {
         let slots = unsafe { tls.unsafe_get() };
         let aggregate = slots.iter().fold(TraversalStatistics::default(), |acc, t| {
             match *t.borrow() {
