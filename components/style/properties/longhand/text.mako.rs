@@ -12,7 +12,7 @@
                                              Method("has_overline", "bool"),
                                              Method("has_line_through", "bool")]) %>
 
-<%helpers:longhand name="text-overflow" animatable="False"
+<%helpers:longhand name="text-overflow" animatable="False" boxed="True"
                    spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow">
     use std::fmt;
     use style_traits::ToCss;
@@ -214,4 +214,5 @@ ${helpers.predefined_type(
     complex_color=True,
     products="gecko",
     animatable=True,
+    boxed=True,
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color")}

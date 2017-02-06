@@ -20,7 +20,7 @@
                               "::cssparser::Color::CurrentColor",
                               alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-color"),
                               spec=maybe_logical_spec(side, "color"),
-                              animatable=True, logical = side[1])}
+                              animatable=True, logical = side[1], boxed=True)}
 % endfor
 
 % for side in ALL_SIDES:
@@ -83,7 +83,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
                          animatable=False)}
 
-<%helpers:longhand name="border-image-source" products="gecko" animatable="False"
+<%helpers:longhand name="border-image-source" products="gecko" animatable="False" boxed="True"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-source">
     use std::fmt;
     use style_traits::ToCss;

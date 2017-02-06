@@ -75,7 +75,12 @@ pub trait HasViewportPercentage {
     fn has_viewport_percentage(&self) -> bool;
 }
 
-
+impl<T: HasViewportPercentage> HasViewportPercentage for Box<T> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        (**self).has_viewport_percentage()
+    }
+}
 
 use self::computed::ComputedValueAsSpecified;
 

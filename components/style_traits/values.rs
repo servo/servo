@@ -39,6 +39,14 @@ impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreCommaSeparated {
     }
 }
 
+impl<T: ToCss> ToCss for Box<T> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where W: fmt::Write,
+    {
+        (**self).to_css(dest)
+    }
+}
+
 impl ToCss for Au {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         write!(dest, "{}px", self.to_f64_px())

@@ -218,5 +218,6 @@ ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
                               "Default::default()",
                               animatable=False,
                               spec="https://drafts.csswg.org/css-grid/#propdef-%s" % longhand,
-                              products="gecko")}
+                              products="gecko",
+                              boxed=True)}
 % endfor

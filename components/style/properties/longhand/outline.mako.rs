@@ -11,7 +11,7 @@
 
 // TODO(pcwalton): `invert`
 ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor",
-                          animatable=True, complex_color=True, need_clone=True,
+                          animatable=True, complex_color=True, need_clone=True, boxed=True,
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
 
 <%helpers:longhand name="outline-style" need_clone="True" animatable="False"
