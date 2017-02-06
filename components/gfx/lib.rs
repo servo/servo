@@ -6,7 +6,7 @@
 #![feature(cfg_target_feature)]
 #![cfg_attr(any(target_os = "linux", target_os = "android"), feature(heap_api))]
 
-#![feature(alloc)]
+#![cfg_attr(any(target_os = "linux", target_os = "android"), feature(alloc))]
 #![feature(box_syntax)]
 #![feature(plugin)]
 #![feature(range_contains)]
@@ -15,6 +15,9 @@
 #![plugin(plugins)]
 
 #![deny(unsafe_code)]
+
+#[cfg(any(target_os = "linux", target_os = "android"))]
+extern crate alloc;
 
 extern crate app_units;
 #[macro_use]
