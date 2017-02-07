@@ -884,7 +884,7 @@ mod shorthand_serialization {
         use style::properties::longhands::mask_repeat as repeat;
         use style::properties::longhands::mask_size as size;
         use style::values::specified::Image;
-        use style::values::specified::position::{HorizontalPosition, Position, VerticalPosition};
+        use style::values::specified::position::{HorizontalPosition, VerticalPosition};
         use super::*;
 
         macro_rules! single_vec_value_typedef {

@@ -4,15 +4,10 @@
 
 mod common {
     use std::env;
-    use std::path::{Path, PathBuf};
-    use std::sync::Mutex;
-    use std::time::SystemTime;
+    use std::path::PathBuf;
 
     lazy_static! {
         pub static ref OUTDIR_PATH: PathBuf = PathBuf::from(env::var("OUT_DIR").unwrap()).join("gecko");
-        pub static ref LAST_MODIFIED: Mutex<SystemTime> =
-            Mutex::new(get_modified_time(&env::current_exe().unwrap())
-                       .expect("Failed to get modified time of executable"));
     }
 
     pub const STRUCTS_DEBUG_FILE: &'static str = "structs_debug.rs";
@@ -31,10 +26,6 @@ mod common {
             BuildType::Release => STRUCTS_RELEASE_FILE
         }
     }
-
-    pub fn get_modified_time(file: &Path) -> Option<SystemTime> {
-        file.metadata().and_then(|m| m.modified()).ok()
-    }
 }
 
 #[cfg(feature = "bindgen")]
@@ -46,8 +37,9 @@ mod bindings {
     use std::env;
     use std::fs::File;
     use std::io::{Read, Write};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::sync::Mutex;
+    use std::time::SystemTime;
     use super::common::*;
 
     lazy_static! {
@@ -64,6 +56,13 @@ mod bindings {
             DISTDIR_PATH.join("include/nspr"),
         ];
         static ref ADDED_PATHS: Mutex<HashSet<PathBuf>> = Mutex::new(HashSet::new());
+        pub static ref LAST_MODIFIED: Mutex<SystemTime> =
+            Mutex::new(get_modified_time(&env::current_exe().unwrap())
+                       .expect("Failed to get modified time of executable"));
+    }
+
+    fn get_modified_time(file: &Path) -> Option<SystemTime> {
+        file.metadata().and_then(|m| m.modified()).ok()
     }
 
     fn search_include(name: &str) -> Option<PathBuf> {

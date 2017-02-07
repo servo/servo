@@ -4,7 +4,7 @@
 
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc;
-use style::computed_values::font_family::{FontFamily, FamilyName};
+use style::computed_values::font_family::FamilyName;
 use style::font_face::{FontFaceRule, Source};
 
 #[test]
