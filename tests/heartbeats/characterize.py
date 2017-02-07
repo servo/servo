@@ -65,6 +65,9 @@ HEARTBEAT_PROFILER_CATEGORIES = [
     ("ScriptWorkerEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptServiceWorkerEvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ScriptParseXML", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("ScriptEnterFullscreen", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("ScriptExitFullscreen", HEARTBEAT_DEFAULT_WINDOW_SIZE),
+    ("ScriptWebVREvent", HEARTBEAT_DEFAULT_WINDOW_SIZE),
     ("ApplicationHeartbeat", 100),
 ]
 ENERGY_READER_BIN = "energymon-file-provider"
