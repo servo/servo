@@ -1,0 +1,7 @@
+interface IterableOne {
+	iterable<long>;
+};
+
+interface IterableTwo {
+	iterable<short, double?>;
+};

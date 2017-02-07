@@ -23,9 +23,14 @@
     <style>
       .flexbox {
         display: flex;
-        align-items: baseline;
         border: 1px dashed blue;
         font: 14px sans-serif;
+      }
+      .base {
+        align-items: baseline;
+      }
+      .lastbase {
+        align-items: last baseline;
       }
 
       .big {
@@ -51,7 +56,15 @@
    </style>
   </head>
   <body>
-    <div class="flexbox">
+    <div class="flexbox base">
+      <div class="lime">blk_1line</div>
+      <div class="yellow">blk<br/>2lines</div>
+      <div class="orange"><span class="super">super</span></div>
+      <div class="pink"><span class="sub">sub</span></div>
+      <div class="aqua big">big<br/>text<br/>3lines</div>
+      <i class="tan">ital<br/>ic</i>
+    </div>
+    <div class="flexbox lastbase">
       <div class="lime">blk_1line</div>
       <div class="yellow">blk<br/>2lines</div>
       <div class="orange"><span class="super">super</span></div>

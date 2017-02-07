@@ -1,39 +1,42 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"><head>
-        <title>CSS Reference File</title>
-        <link href="mailto:rhauck@adobe.com" rel="author" title="Rebecca Hauck" />
-    <style>
-       body {
-           margin: 0;
-       }
-       #container {
-           position: relative;
-       }
-       #line {
-           position: absolute;
-           top: 0px;
-           left: 168px;
-           width: 2px;
-           height: 200px;
-           border-left: 2px solid blue;
-       }
-       #square {
-           position: absolute;
-           top: 80px;
-           left: 170px;
-           width: 40px;
-           height: 40px;
-           background-color: green;
-       }
-    </style></head>
-    
-    <body>
-        <p>The test passes if there is a green square to the right of the blue line. There should be no red.</p>
-        <div id="container">
-            <div id="line"></div>
-            <div id="square"></div>
-        </div>
-    
+<!-- Any copyright is dedicated to the Public Domain.
+   - http://creativecommons.org/publicdomain/zero/1.0/ --><html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
+  <title>CSS Shape Test: float left, ellipse(100% 100%) reference</title>
+  <link href="mailto:tlin@mozilla.com" rel="author" title="Ting-Yu Lin" />
+  <link href="http://www.mozilla.org/" rel="author" title="Mozilla" />
+  <style>
+  .container {
+    position: absolute;
+    width: 200px;
+    line-height: 0;
+  }
 
+  .shape {
+    float: left;
+    /* Omit shape-outside */
+    clip-path: ellipse(100% 100%);
+    box-sizing: content-box;
+    height: 40px;
+    width: 40px;
+    padding: 20px 10px;
+    border: solid lightgreen;
+    border-width: 20px 10px;
+    background-color: orange;
+  }
+
+  .box {
+    position: absolute;
+    width: 80px;
+    background-color: blue;
+  }
+  </style>
+
+  </head><body class="container">
+    <div class="shape"></div>
+    <div style="height: 24px; top: 0px; left: 80px;" class="box"></div>
+    <div style="height: 36px; top: 24px; left: 80px;" class="box"></div>
+    <div style="height: 36px; top: 60px; left: 80px;" class="box"></div>
+    <div style="height: 24px; top: 96px; left: 80px;" class="box"></div>
+  
 
 </body></html>

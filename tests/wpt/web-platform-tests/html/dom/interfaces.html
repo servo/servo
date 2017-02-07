@@ -577,12 +577,7 @@ interface CSSStyleSheet : StyleSheet {
 typedef sequence<StyleSheet> StyleSheetList;
 
 partial interface Document {
-  readonly attribute StyleSheetList styleSheets;
-           attribute DOMString? selectedStyleSheetSet;
-  readonly attribute DOMString? lastStyleSheetSet;
-  readonly attribute DOMString? preferredStyleSheetSet;
-  readonly attribute DOMStringList styleSheetSets;
-  void enableStyleSheetsForSet(DOMString? name);
+  [SameObject] readonly attribute StyleSheetList styleSheets;
 };
 
 [NoInterfaceObject] interface LinkStyle {
@@ -1322,6 +1317,7 @@ interface MediaError {
   const unsigned short MEDIA_ERR_DECODE = 3;
   const unsigned short MEDIA_ERR_SRC_NOT_SUPPORTED = 4;
   readonly attribute unsigned short code;
+  readonly attribute DOMString message;
 };
 
 interface AudioTrackList : EventTarget {
@@ -1718,26 +1714,6 @@ interface HTMLTextAreaElement : HTMLElement {
   void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
 };
 
-interface HTMLKeygenElement : HTMLElement {
-           attribute boolean autofocus;
-           attribute DOMString challenge;
-           attribute boolean disabled;
-  readonly attribute HTMLFormElement? form;
-           attribute DOMString keytype;
-           attribute DOMString name;
-
-  readonly attribute DOMString type;
-
-  readonly attribute boolean willValidate;
-  readonly attribute ValidityState validity;
-  readonly attribute DOMString validationMessage;
-  boolean checkValidity();
-  boolean reportValidity();
-  void setCustomValidity(DOMString error);
-
-  readonly attribute NodeList labels;
-};
-
 interface HTMLOutputElement : HTMLElement {
   [PutForwards=value] readonly attribute DOMTokenList htmlFor;
   readonly attribute HTMLFormElement? form;
@@ -1857,14 +1833,19 @@ interface HTMLDialogElement : HTMLElement {
   void close(optional DOMString returnValue);
 };
 
+[HTMLConstructor]
 interface HTMLScriptElement : HTMLElement {
-           attribute DOMString src;
-           attribute DOMString type;
-           attribute DOMString charset;
-           attribute boolean async;
-           attribute boolean defer;
-           attribute DOMString? crossOrigin;
-           attribute DOMString text;
+  [CEReactions] attribute USVString src;
+  [CEReactions] attribute DOMString type;
+  [CEReactions] attribute boolean noModule;
+  [CEReactions] attribute DOMString charset;
+  [CEReactions] attribute boolean async;
+  [CEReactions] attribute boolean defer;
+  [CEReactions] attribute DOMString? crossOrigin;
+  [CEReactions] attribute DOMString text;
+  [CEReactions] attribute DOMString nonce;
+  [CEReactions] attribute DOMString integrity;
+
 
   // also has obsolete members
 };
@@ -3301,7 +3282,6 @@ window.onload = function() {
     HTMLOptGroupElement: ['document.createElement("optgroup")'],
     HTMLOptionElement: ['document.createElement("option")', 'new Option()'],
     HTMLTextAreaElement: ['document.createElement("textarea")'],
-    HTMLKeygenElement: ['document.createElement("keygen")'],
     HTMLOutputElement: ['document.createElement("output")'],
     HTMLProgressElement: ['document.createElement("progress")'],
     HTMLMeterElement: ['document.createElement("meter")'],

@@ -18,13 +18,12 @@
       window.addEventListener("devicemotion", function(e) {
         if (!run) {
           run = true;
-          var _this = this;
           t1.step(function() {
             assert_equals(e.type, "devicemotion");
           });
           t1.done();
           t2.step(function() {
-            assert_equals(_this, window);
+            assert_true(e.target instanceof Window);
           });
           t2.done();
         }

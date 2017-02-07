@@ -27,6 +27,12 @@ html/device-aspect-ratio-005.htm	0ac49f1fea8b7e25286c3d7fb22d32ca79a70d01	?
 xhtml1/device-aspect-ratio-005.xht	0ac49f1fea8b7e25286c3d7fb22d32ca79a70d01	?
 html/device-aspect-ratio-006.htm	820c0a75a20669a129af1c5eaade249c9692a7b6	?
 xhtml1/device-aspect-ratio-006.xht	820c0a75a20669a129af1c5eaade249c9692a7b6	?
+html/media-queries-001.htm	fb89345feeddf62a2b7fd9bc7b9338bd0c253a24	?
+xhtml1/media-queries-001.xht	fb89345feeddf62a2b7fd9bc7b9338bd0c253a24	?
+html/media-queries-002.htm	8851ac866cffe4d0b3d5a54e0e7240ebb64b0d26	?
+xhtml1/media-queries-002.xht	8851ac866cffe4d0b3d5a54e0e7240ebb64b0d26	?
+html/media-queries-003.htm	7ab95ca0874ac97c4261490f1c775d0dd5aa211f	?
+xhtml1/media-queries-003.xht	7ab95ca0874ac97c4261490f1c775d0dd5aa211f	?
 html/min-width-001.htm	097fd2e09118aa15f050793212989bddbb0ad8aa	?
 xhtml1/min-width-001.xht	097fd2e09118aa15f050793212989bddbb0ad8aa	?
 html/min-width-tables-001.htm	e63eaf57baa48408b03756b911cc11dd20e4b850	?
@@ -39,3 +45,11 @@ html/mq-calc-004.htm	e590e4240513b88a1664c3c0f58fb2c8ef8c88d3	?
 xhtml1/mq-calc-004.xht	e590e4240513b88a1664c3c0f58fb2c8ef8c88d3	?
 html/mq-calc-005.htm	1f10f735a2dc2b8dfa6f794e23c73ae94d824a83	?
 xhtml1/mq-calc-005.xht	1f10f735a2dc2b8dfa6f794e23c73ae94d824a83	?
+html/relative-units-001.htm	657a8148b3df5b07b809c441642176994fe91285	?
+xhtml1/relative-units-001.xht	657a8148b3df5b07b809c441642176994fe91285	?
+html/relative-units-002.htm	70bed8bc1264cedd4beae6813c1044c9a997e6c9	?
+xhtml1/relative-units-002.xht	70bed8bc1264cedd4beae6813c1044c9a997e6c9	?
+html/relative-units-003.htm	f323ece075cd85be438348a13b3cf096eb2e9290	?
+xhtml1/relative-units-003.xht	f323ece075cd85be438348a13b3cf096eb2e9290	?
+html/relative-units-004.htm	f6a159e514e4fa80dbc9729492a56def458e3ccd	?
+xhtml1/relative-units-004.xht	f6a159e514e4fa80dbc9729492a56def458e3ccd	?

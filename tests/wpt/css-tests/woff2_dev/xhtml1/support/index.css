@@ -1,0 +1,115 @@
+body {
+	font-family: "Helvetica Neue", "Helvetica", sans-serif;
+	line-height: 175%;
+	font-size: 15px;
+	padding: 20px;
+}
+
+p {
+	margin: 0px;
+	padding: 0px;
+}
+
+a {
+	color: black;
+	border-bottom: 1px solid #CCC;
+	text-decoration: none;
+}
+
+a:hover {
+	background-color: #FF9;
+}
+
+/* super headline */
+
+h1 {
+	font-size: 30px;
+	font-weight: bold;
+	margin: 0px;
+	padding: 0px 0px 20px 0px;
+}
+
+p.installFontsNote {
+	font-weight: bold;
+	color: white;
+	background-color: red;
+	padding: 5px 10px 5px 10px;
+}
+
+p.installFontsNote a {
+	color: white;
+}
+
+.mainNote {
+	margin: 0px;
+	padding: 15px 0px 15px 0px;
+	border-top: 1px solid #CCC;
+}
+
+/* test category */
+
+h2.testCategory {
+	padding: 5px 0px 5px 10px;
+	margin: 40px 0px 14px 0px;
+	color: white;
+	background-color: black;
+	font-size: 15px;
+	font-weight: bold;
+
+}
+
+.testCategoryNote {
+	background-color: #e6e6e6;
+	padding: 5px 10px 5px 10px;
+}
+
+/* test case */
+
+.testCase {
+	border-bottom: 3px solid black;
+	margin: 15px 0px 0px 0px;
+	padding: 0px 0px 15px 0px;
+}
+
+/* test case overview */
+
+.testCaseOverview {
+	padding: 0px 0px 10px 0px;
+}
+
+.testCaseOverview h3 {
+	font-size: 15px;
+	font-weight: bold;
+	margin: 0px;
+	padding: 0px;
+}
+
+/* test case details */
+
+.testCaseDetails {
+	border-top: 1px solid #CCC;
+	padding: 10px 0px 0px 0px;
+}
+
+.testCaseDetails p {
+	padding: 2px 0px 2px 0px;
+}
+
+/* test case pages */
+
+.testCasePages {
+	float: left;
+	width: 50%;
+}
+
+.testCasePages a {
+	color: red;
+}
+
+/* test case expectations */
+
+.testCaseExpectations {
+	display: inline-block;
+	width: 50%;
+}
+

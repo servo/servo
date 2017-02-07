@@ -12,7 +12,7 @@
     <p>Rotate the device to run the test.</p>
     <div id="log"></div>
     <script>
-      var t = async_test();
+      var t = async_test("deviceorientation event fires");
       var run = false;
       window.addEventListener("deviceorientation", function(e) {
         if (!run) {

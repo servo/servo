@@ -55,11 +55,9 @@
 
   test(function(){
     assert_false(d1.open);
-    assert_false(b0.commandDisabled);
     d1.showModal();
     this.add_cleanup(function() { d1.close(); });
     assert_true(d1.open);
-    assert_true(b0.commandDisabled);
     assert_equals(document.activeElement, b1);
   });
 
@@ -80,11 +78,8 @@
 
   test(function(){
     assert_false(d3.open);
-    assert_false(b3.commandDisabled);
     assert_false(d4.open);
-    assert_false(b4.commandDisabled);
     assert_false(d5.open);
-    assert_false(b5.commandDisabled);
     d3.showModal();
     this.add_cleanup(function() { d3.close(); });
     d4.showModal();
@@ -92,11 +87,8 @@
     d5.showModal();
     this.add_cleanup(function() { d5.close(); });
     assert_true(d3.open);
-    assert_true(b3.commandDisabled);
     assert_true(d4.open);
-    assert_true(b4.commandDisabled);
     assert_true(d5.open);
-    assert_false(b5.commandDisabled);
   }, "when opening multiple dialogs, only the newest one is non-inert");
 
   test(function(){

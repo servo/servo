@@ -128,16 +128,18 @@
 
     test(function() {
         var date = new Date();
-        assert_throws(new TypeError(), function() {
-            new DeviceProximityEvent('test', date);
-        });
+        var event = new DeviceProximityEvent('test', date);
+        assert_equals(event.value, Infinity);
+        assert_equals(event.min, -Infinity);
+        assert_equals(event.max, Infinity);
     }, 'eventInitDict argument is Date object');
 
     test(function() {
         var regexp = /abc/;
-        assert_throws(new TypeError(), function() {
-            new DeviceProximityEvent('test', regexp);
-        });
+        var event = new DeviceProximityEvent('test', regexp);
+        assert_equals(event.value, Infinity);
+        assert_equals(event.min, -Infinity);
+        assert_equals(event.max, Infinity);
     }, 'eventInitDict argument is RegExp object');
 
     test(function() {

@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Text Module Level 3 CR Test Suite</h1>
-  <h2>White Space Processing Details (27 tests)</h2>
+  <h2>White Space Processing Details (84 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -72,7 +72,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s4.1.2">+</a>
         <a href="https://www.w3.org/TR/css-text-3/#line-break-transform">4.1.2 Segment Break Transformation Rules</a></th></tr>
-      <!-- 20 tests -->
+      <!-- 77 tests -->
       <tr id="seg-break-transformation-000-4.1.2" class="primary script">
         <td><strong>
             <a href="seg-break-transformation-000.htm">seg-break-transformation-000</a></strong></td>
@@ -257,6 +257,633 @@
         <td>Thai with ZWSP after line break
           <ul class="assert">
             <li>If the character immediately before or immediately after the segment break is the zero-width space character (U+200B), then the break is removed, leaving behind the zero-width space.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-removable-1-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-removable-1.htm">segment-break-transformation-removable-1</a></strong></td>
+        <td><a href="reference/segment-break-transformation-removable-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text 4.1.2. Segment Break Transformation Rules
+          <ul class="assert">
+            <li>Test checks that a collapsible segment break should be removed correctly, if the character immediately before/after the segment break is the zero-width space character (U+200B), or both the character before/after the segment break is F, W, or H (not A), and neither side is Hangul.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-removable-2-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-removable-2.htm">segment-break-transformation-removable-2</a></strong></td>
+        <td><a href="reference/segment-break-transformation-removable-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text 4.1.2. Segment Break Transformation Rules
+          <ul class="assert">
+            <li>Test checks that multiple segment breaks should be removed correctly, if the character immediately before/after the segment breaks is the zero-width space character (U+200B), or both the character before/after the segment breaks is F, W, or H (not A), and neither side is Hangul.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-removable-3-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-removable-3.htm">segment-break-transformation-removable-3</a></strong></td>
+        <td><a href="reference/segment-break-transformation-removable-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text 4.1.2. Segment Break Transformation Rules
+          <ul class="assert">
+            <li>Test checks that a sequence which consists of a collapsible segment break surrounded by multiple white spaces should be removed correctly, if the character immediately before/after the sequence is the zero-width space character (U+200B), or both the character before/after the sequence is F, W, or H (not A), and neither side is Hangul.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-removable-4-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-removable-4.htm">segment-break-transformation-removable-4</a></strong></td>
+        <td><a href="reference/segment-break-transformation-removable-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text 4.1.2. Segment Break Transformation Rules
+          <ul class="assert">
+            <li>Test checks that a sequence which consists of multiple collapsible segment breaks mixed with multiple white spaces should be removed correctly, if the character immediately before/after the sequence is the zero-width space character (U+200B), or both the character before/after the sequence is F, W, or H (not A), and neither side is Hangul.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-001-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-001.htm">segment-break-transformation-rules-001</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-001-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Full-width (F)/East Asian Full-width (F) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-002-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-002.htm">segment-break-transformation-rules-002</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-002-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Full-width (F)/East Asian Half-width (H) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-003-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-003.htm">segment-break-transformation-rules-003</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-003-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Full-width (F)/East Asian Wide (W) except Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-004-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-004.htm">segment-break-transformation-rules-004</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-004-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Full-width (F)/East Asian Narrow (Na) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-005-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-005.htm">segment-break-transformation-rules-005</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-005-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Full-width (F)/East Asian Ambiguous (A) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-006-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-006.htm">segment-break-transformation-rules-006</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-006-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Full-width (F)/Not East Asian (Neutral) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-007-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-007.htm">segment-break-transformation-rules-007</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-007-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Full-width (F)/Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-008-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-008.htm">segment-break-transformation-rules-008</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-008-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Half-width (H)/East Asian Full-width (F) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-009-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-009.htm">segment-break-transformation-rules-009</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-009-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Half-width (H)/East Asian Half-width (H) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-010-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-010.htm">segment-break-transformation-rules-010</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-010-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Half-width (H)/East Asian Wide (W) except Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-011-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-011.htm">segment-break-transformation-rules-011</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-011-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Half-width (H)/East Asian Narrow (Na) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-012-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-012.htm">segment-break-transformation-rules-012</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-012-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Half-width (H)/East Asian Ambiguous (A) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-013-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-013.htm">segment-break-transformation-rules-013</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-013-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Half-width (H)/Not East Asian (Neutral) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-014-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-014.htm">segment-break-transformation-rules-014</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-014-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Half-width (H)/Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-015-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-015.htm">segment-break-transformation-rules-015</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-015-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Wide (W) except Hangul/East Asian Full-width (F) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-016-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-016.htm">segment-break-transformation-rules-016</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-016-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Wide (W) except Hangul/East Asian Half-width (H) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-017-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-017.htm">segment-break-transformation-rules-017</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-017-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Wide (W) except Hangul/East Asian Wide (W) except Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-018-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-018.htm">segment-break-transformation-rules-018</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-018-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Wide (W) except Hangul/East Asian Narrow (Na) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-019-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-019.htm">segment-break-transformation-rules-019</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-019-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Wide (W) except Hangul/East Asian Ambiguous (A) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-020-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-020.htm">segment-break-transformation-rules-020</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-020-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Wide (W) except Hangul/Not East Asian (Neutral) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-021-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-021.htm">segment-break-transformation-rules-021</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-021-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Wide (W) except Hangul/Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-022-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-022.htm">segment-break-transformation-rules-022</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-022-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Narrow (Na)/East Asian Full-width (F) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-023-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-023.htm">segment-break-transformation-rules-023</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-023-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Narrow (Na)/East Asian Half-width (H) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-024-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-024.htm">segment-break-transformation-rules-024</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-024-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Narrow (Na)/East Asian Wide (W) except Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-025-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-025.htm">segment-break-transformation-rules-025</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-025-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Narrow (Na)/East Asian Narrow (Na) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-026-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-026.htm">segment-break-transformation-rules-026</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-026-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Narrow (Na)/East Asian Ambiguous (A) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-027-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-027.htm">segment-break-transformation-rules-027</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-027-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Narrow (Na)/Not East Asian (Neutral) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-028-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-028.htm">segment-break-transformation-rules-028</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-028-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Narrow (Na)/Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-029-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-029.htm">segment-break-transformation-rules-029</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-029-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Ambiguous (A)/East Asian Full-width (F) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-030-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-030.htm">segment-break-transformation-rules-030</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-030-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Ambiguous (A)/East Asian Half-width (H) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-031-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-031.htm">segment-break-transformation-rules-031</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-031-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Ambiguous (A)/East Asian Wide (W) except Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-032-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-032.htm">segment-break-transformation-rules-032</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-032-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Ambiguous (A)/East Asian Narrow (Na) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-033-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-033.htm">segment-break-transformation-rules-033</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-033-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Ambiguous (A)/East Asian Ambiguous (A) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-034-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-034.htm">segment-break-transformation-rules-034</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-034-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Ambiguous (A)/Not East Asian (Neutral) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-035-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-035.htm">segment-break-transformation-rules-035</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-035-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with East Asian Ambiguous (A)/Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-036-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-036.htm">segment-break-transformation-rules-036</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-036-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Not East Asian (Neutral)/East Asian Full-width (F) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-037-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-037.htm">segment-break-transformation-rules-037</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-037-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Not East Asian (Neutral)/East Asian Half-width (H) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-038-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-038.htm">segment-break-transformation-rules-038</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-038-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Not East Asian (Neutral)/East Asian Wide (W) except Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-039-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-039.htm">segment-break-transformation-rules-039</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-039-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Not East Asian (Neutral)/East Asian Narrow (Na) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-040-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-040.htm">segment-break-transformation-rules-040</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-040-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Not East Asian (Neutral)/East Asian Ambiguous (A) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-041-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-041.htm">segment-break-transformation-rules-041</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-041-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Not East Asian (Neutral)/Not East Asian (Neutral) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-042-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-042.htm">segment-break-transformation-rules-042</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-042-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Not East Asian (Neutral)/Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-043-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-043.htm">segment-break-transformation-rules-043</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-043-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Hangul/East Asian Full-width (F) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-044-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-044.htm">segment-break-transformation-rules-044</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-044-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Hangul/East Asian Half-width (H) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-045-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-045.htm">segment-break-transformation-rules-045</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-045-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Hangul/East Asian Wide (W) except Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-046-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-046.htm">segment-break-transformation-rules-046</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-046-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Hangul/East Asian Narrow (Na) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-047-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-047.htm">segment-break-transformation-rules-047</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-047-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Hangul/East Asian Ambiguous (A) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-048-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-048.htm">segment-break-transformation-rules-048</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-048-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Hangul/Not East Asian (Neutral) in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-rules-049-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-rules-049.htm">segment-break-transformation-rules-049</a></strong></td>
+        <td><a href="reference/segment-break-transformation-rules-049-ref.htm">=</a> </td>
+        <td></td>
+        <td>Segment Break Transformation Rules
+          <ul class="assert">
+            <li>'segment-break-transformation-rules: with Hangul/Hangul in front/back of the semgment break.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-unremovable-1-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-unremovable-1.htm">segment-break-transformation-unremovable-1</a></strong></td>
+        <td><a href="reference/segment-break-transformation-unremovable-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text 4.1.2. Segment Break Transformation Rules
+          <ul class="assert">
+            <li>Test checks that a collapsible segment break should be converted to a white space (U+0020), if both the character before/after the segment break is Hangul.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-unremovable-2-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-unremovable-2.htm">segment-break-transformation-unremovable-2</a></strong></td>
+        <td><a href="reference/segment-break-transformation-unremovable-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text 4.1.2. Segment Break Transformation Rules
+          <ul class="assert">
+            <li>Test checks that multiple segment breaks should be converted to a white space (U+0020), if both the character before/after the segment breaks is Hangul.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-unremovable-3-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-unremovable-3.htm">segment-break-transformation-unremovable-3</a></strong></td>
+        <td><a href="reference/segment-break-transformation-unremovable-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text 4.1.2. Segment Break Transformation Rules
+          <ul class="assert">
+            <li>Test checks that a sequence which consists of a collapsible segment break surrounded by multiple white spaces should be converted to a white space (U+0020), if both the character before/after the sequence is Hangul.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="segment-break-transformation-unremovable-4-4.1.2" class="primary">
+        <td><strong>
+            <a href="segment-break-transformation-unremovable-4.htm">segment-break-transformation-unremovable-4</a></strong></td>
+        <td><a href="reference/segment-break-transformation-unremovable-ref.htm">=</a> </td>
+        <td></td>
+        <td>CSS Text 4.1.2. Segment Break Transformation Rules
+          <ul class="assert">
+            <li>Test checks that a sequence which consists of multiple collapsible segment breaks mixed with multiple white spaces should be converted to a white space (U+0020), if both the character before/after the sequence is Hangul.</li>
           </ul>
         </td>
       </tr>

@@ -5,6 +5,7 @@
 MANIFEST.json
 \#*
 _certs
+.virtualenv
 config.json
 node_modules
 scratch

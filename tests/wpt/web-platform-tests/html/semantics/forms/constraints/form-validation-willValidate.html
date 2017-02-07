@@ -22,25 +22,20 @@
       types: ["button", "reset"],
       testData: [{conditions: {}, expected: false, name: "[target] Must be barred from the constraint validation"}]
     },
-    //FIELDSET, OUTPUT elements should not be barred from the constraint validation
+    // FIELDSET and OUTPUT elements are not "submittable elements" and therefore never validate.
     {
       tag: "fieldset",
       types: [],
-      testData: [{conditions: {}, expected: true, name: "[target] Must not be barred from the constraint validation"}]
+      testData: [{conditions: {}, expected: false, name: "[target] The willValidate attribute must be false since FIELDSET is not a submittable element"}]
     },
     {
       tag: "output",
       types: [],
-      testData: [{conditions: {}, expected: true, name: "[target] Must not be barred from the constraint validation"}]
+      testData: [{conditions: {}, expected: false, name: "[target] The willValidate attribute must be false since OUTPUT is not a submittable element"}]
     },
     //OBJECT, KEYGEN, elements must be barred from the constraint validation
     {
       tag: "object",
-      types: [],
-      testData: [{conditions: {}, expected: false, name: "[target] Must be barred from the constraint validation"}]
-    },
-    {
-      tag: "keygen",
       types: [],
       testData: [{conditions: {}, expected: false, name: "[target] Must be barred from the constraint validation"}]
     },

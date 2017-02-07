@@ -46,9 +46,9 @@ class Unchunked(TestChunker):
 class HashChunker(TestChunker):
     def __call__(self):
         chunk_index = self.chunk_number - 1
-        for test_path, tests in manifest:
+        for test_type, test_path, tests in manifest:
             if hash(test_path) % self.total_chunks == chunk_index:
-                yield test_path, tests
+                yield test_type, test_path, tests
 
 class EqualTimeChunker(TestChunker):
     def _group_by_directory(self, manifest_items):
@@ -69,7 +69,7 @@ class EqualTimeChunker(TestChunker):
         by_dir = OrderedDict()
         total_time = 0
 
-        for i, (test_path, tests) in enumerate(manifest_items):
+        for i, (test_type, test_path, tests) in enumerate(manifest_items):
             test_dir = tuple(os.path.split(test_path)[0].split(os.path.sep)[:3])
 
             if not test_dir in by_dir:
@@ -80,7 +80,7 @@ class EqualTimeChunker(TestChunker):
                        "long" else wpttest.LONG_TIMEOUT for test in tests)
             data.time += time
             total_time += time
-            data.tests.append((test_path, tests))
+            data.tests.append((test_type, test_path, tests))
 
         return by_dir, total_time
 
@@ -336,14 +336,14 @@ class TestFilter(object):
                 self.manifest.add_exclude(test_manifests, item)
 
     def __call__(self, manifest_iter):
-        for test_path, tests in manifest_iter:
+        for test_type, test_path, tests in manifest_iter:
             include_tests = set()
             for test in tests:
                 if self.manifest.include(test):
                     include_tests.add(test)
 
             if include_tests:
-                yield test_path, include_tests
+                yield test_type, test_path, include_tests
 
 class TagFilter(object):
     def __init__(self, tags):
@@ -390,14 +390,14 @@ class ManifestLoader(object):
                 pass
 
         if not json_data:
-            manifest_file = manifest.Manifest(None, url_base)
+            manifest_file = manifest.Manifest(url_base)
         else:
             try:
                 manifest_file = manifest.Manifest.from_json(tests_path, json_data)
             except manifest.ManifestVersionMismatch:
-                manifest_file = manifest.Manifest(None, url_base)
+                manifest_file = manifest.Manifest(url_base)
 
-            manifest_update.update(tests_path, url_base, manifest_file)
+            manifest_update.update(tests_path, manifest_file, True)
 
         manifest.write(manifest_file, manifest_path)
 
@@ -505,14 +505,14 @@ class TestLoader(object):
         if self.chunker is not None:
             manifest_items = self.chunker(manifest_items)
 
-        for test_path, tests in manifest_items:
+        for test_type, test_path, tests in manifest_items:
             manifest_file = iter(tests).next().manifest
             metadata_path = self.manifests[manifest_file]["metadata_path"]
             inherit_metadata, test_metadata = self.load_metadata(manifest_file, metadata_path, test_path)
 
             for test in iterfilter(self.meta_filters,
                                    self.iter_wpttest(inherit_metadata, test_metadata, tests)):
-                yield test_path, test.test_type, test
+                yield test_path, test_type, test
 
     def iter_wpttest(self, inherit_metadata, test_metadata, tests):
         for manifest_test in tests:

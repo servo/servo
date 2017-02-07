@@ -93,6 +93,19 @@ cache_test(function(cache) {
         });
 }, 'CacheStorageMatch a string request');
 
+cache_test(function(cache) {
+    var transaction = create_unique_transaction();
+    return cache.put(transaction.request.clone(), transaction.response.clone())
+      .then(function() {
+          return self.caches.match(new Request(transaction.request.url,
+                                              {method: 'HEAD'}));
+        })
+      .then(function(response) {
+          assert_equals(response, undefined,
+                        'A HEAD request should not be matched');
+        });
+}, 'CacheStorageMatch a HEAD request');
+
 promise_test(function(test) {
     var transaction = create_unique_transaction();
     return self.caches.match(transaction.request)
@@ -117,7 +130,7 @@ promise_test(function(test) {
         })
       .then(function(has_foo) {
           assert_false(has_foo, "The cache should still not exist.");
-        })
+        });
 }, 'CacheStorageMatch with no caches available but name provided');
 
 done();

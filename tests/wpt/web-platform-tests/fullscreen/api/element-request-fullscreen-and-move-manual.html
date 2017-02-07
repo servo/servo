@@ -17,9 +17,9 @@ async_test(t => {
   });
   document.onfullscreenerror = t.unreached_func("fullscreenchange event");
 
-  trusted_click(t.step_func(() => {
+  trusted_click(t, () => {
     target.requestFullscreen();
     moveTo.appendChild(target);
-  }), document.body);
+  }, document.body);
 });
 </script>

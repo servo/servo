@@ -132,5 +132,56 @@
       <div class="c"/>
       <div style="flex: 0.5"/>
     </div>
+
+    <!-- space-evenly -->
+    <!-- Center "a" here just as we did above in the "center" case. -->
+    <div class="centerParent">
+      <div class="flexbox center">
+        <div class="a"/>
+      </div>
+    </div>
+    <!-- As above with space-around, we'll use a flex container with invisible
+         flexible items instead of packing space. -->
+    <div class="flexbox" style="display: flex">
+      <div style="flex: 1"/>
+      <div class="a"/>
+      <div style="flex: 1"/>
+      <div class="b"/>
+      <div style="flex: 1"/>
+    </div>
+    <div class="flexbox" style="display: flex">
+      <div style="flex: 1"/>
+      <div class="a"/>
+      <div style="flex: 1"/>
+      <div class="b"/>
+      <div style="flex: 1"/>
+      <div class="c"/>
+      <div style="flex: 1"/>
+    </div>
+
+
+    <!-- left -->
+    <div class="flexbox">
+      <div class="a"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+
+    <!-- right -->
+    <div class="flexbox" style="float:right; clear:right;">
+      <div class="a"/>
+    </div>
+    <div class="flexbox" style="float:right; clear:right;">
+      <div class="a"/><div class="b"/>
+    </div>
+    <div class="flexbox" style="float:right; clear:right;">
+      <div class="a"/><div class="b"/><div class="c"/>
+    </div>
+    <div style="clear:right;"/>
+
   </body>
 </html>

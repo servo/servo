@@ -41,13 +41,13 @@
 
     </script>
     <!-- enforcing policy:
-script-src 'self' 'unsafe-inline' 'nonce-noncynonce' 'nonce-noncy+/=nonce'; connect-src 'self';
+script-src 'self' 'unsafe-inline' 'nonce-noncynonce' 'nonce-noncy+/nonce='; connect-src 'self';
 -->
     <script nonce="noncynonce">
         alert_assert('PASS (1/2)');
 
     </script>
-    <script nonce="noncy+/=nonce">
+    <script nonce="noncy+/nonce=">
         alert_assert('PASS (2/2)');
 
     </script>

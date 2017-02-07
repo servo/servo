@@ -1,0 +1,3 @@
+
+pytest_plugins = "pytester",
+

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<title>Service Worker: Registration-useCache</title>
+<script src="/resources/testharness.js"></script>
+<script src="resources/testharness-helpers.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+
+function registerFirstServiceWorker(test, script, scope, useCache) {
+    var swr, sw;
+
+    var setting = {scope: scope};
+    if (useCache !== undefined) {
+        setting['useCache'] = useCache;
+    }
+
+    return Promise.resolve()
+        .then(() => navigator.serviceWorker.register(script, setting))
+        .then(registration => swr = registration)
+
+        .then(() => wait_for_update(test, swr))
+        .then(worker => sw = worker)
+
+        .then(() => getMessageFromServiceWorker(sw, 'normal'))
+        .then(() => wait_for_state(test, sw, 'activated'))
+        .then(() => assert_true((!!swr.active &&
+                                 !swr.waiting &&
+                                 !swr.installing),
+                                ('The active SW should be the only SW. ' +
+                                 '(a: ' + !!swr.active +
+                                 ',w: ' + !swr.waiting +
+                                 ',i: ' + !swr.installing + ')')))
+        .then(() => swr);
+}
+
+function getMessageFromServiceWorker(sw, httpRequestType, oldValues) {
+    var mainResolveFunction, importedResolveFunction;
+    var promises = [
+        new Promise(function(resolve) {mainResolveFunction = resolve}),
+        new Promise(function(resolve) {importedResolveFunction = resolve})
+    ];
+
+    var messageChannel = new MessageChannel();
+    messageChannel.port1.onmessage = e => {
+        if (httpRequestType) {
+          assert_equals(e.data.type, httpRequestType,
+                        "HTTP request type check.");
+        }
+
+        var compareOldValue = (httpRequestType === 'revalidate') && oldValues;
+        switch(e.data.from) {
+            case 'main':
+                if (compareOldValue) {
+                    assert_not_equals(e.data.value, oldValues[0],
+                                      'Values shouldn\'t be the same');
+                }
+                mainResolveFunction(e.data.value);
+                break;
+            case 'imported':
+                if (compareOldValue) {
+                    assert_not_equals(e.data.value, oldValues[1],
+                                      'Values shouldn\'t be the same');
+                }
+                importedResolveFunction(e.data.value);
+                break;
+        }
+    };
+
+    sw.postMessage({port: messageChannel.port2}, [messageChannel.port2]);
+    return Promise.all(promises);
+}
+
+function testAction(test, registration, action, shouldCreateSW) {
+    var testFunction = shouldCreateSW ? testActionDoesCreateSW
+                                      : testActionDoesNotCreateSW;
+
+    return Promise.resolve()
+        .then(() => testFunction(registration, action, test))
+        .then(() => registration);
+}
+
+function testActionDoesCreateSW(registration, action, test) {
+    var oldValues;
+
+    return Promise.resolve()
+        .then(() => getMessageFromServiceWorker(registration.active))
+        .then(values => oldValues = values)
+
+        .then(() => action())
+        .then(() => wait_for_update(test, registration))
+        .then(worker => getMessageFromServiceWorker(worker,
+                                                    'revalidate',
+                                                    oldValues));
+}
+
+function testActionDoesNotCreateSW(registration, action) {
+    return Promise.resolve()
+        .then(() => action())
+        .then(() => assert_true((!!registration.active &&
+                                 !registration.waiting &&
+                                 !registration.installing),
+                                ('The active SW should still be the only SW. ' +
+                                 '(a: ' + !!registration.active +
+                                 ',w: ' + !registration.waiting +
+                                 ',i: ' + !registration.installing + ')')));
+}
+
+promise_test(function(t) {
+    var script = 'resources/update-max-aged-worker.py' +
+                 '?Test=Test_with_useCache_default';
+    var scope = 'resources/blank.html';
+
+    return Promise.resolve()
+        .then(() => registerFirstServiceWorker(t, script, scope))
+        .then(r => testAction(t, r, r.update.bind(r), true))
+
+        // Tear down
+        .then(() => service_worker_unregister_and_done(t, scope));
+}, 'Test with useCache: default');
+
+promise_test(function(t) {
+    var script = 'resources/update-max-aged-worker.py' +
+                 '?Test=Test_with_useCache_true';
+    var scope = 'resources/blank.html';
+
+    return Promise.resolve()
+        .then(() => registerFirstServiceWorker(t, script, scope, true))
+        .then(r => testAction(t, r, r.update.bind(r), false))
+
+        // Tear down
+        .then(() => service_worker_unregister_and_done(t, scope));
+}, 'Test with useCache: true');
+
+promise_test(function(t) {
+    var script = 'resources/update-max-aged-worker.py' +
+                 '?Test=Test_with_useCache_false';
+    var scope = 'resources/blank.html';
+
+    return Promise.resolve()
+        .then(() => registerFirstServiceWorker(t, script, scope, false))
+        .then(r => testAction(t, r, r.update.bind(r), true))
+
+        // Tear down
+        .then(() => service_worker_unregister_and_done(t, scope));
+  }, 'Test with useCache: false');
+
+promise_test(function(t) {
+    var script = 'resources/update-max-aged-worker.py' +
+                 '?Test=Consecutive_registrations_with_useCache_settings_false_false';
+    var scope = 'resources/blank.html';
+
+    return Promise.resolve()
+        .then(() => registerFirstServiceWorker(t, script, scope, false))
+        .then(r => {
+            var action = navigator.serviceWorker.register.bind(
+                navigator.serviceWorker, script, {scope: scope,
+                                                  useCache: false});
+            return testAction(t, r, action, false);
+        })
+
+        // Tear down
+        .then(() => service_worker_unregister_and_done(t, scope))
+}, "Consecutive registrations with useCache settings(false, false)");
+
+promise_test(function(t) {
+    var script = 'resources/update-max-aged-worker.py' +
+                 '?Test=Consecutive_registrations_with_useCache_settings_false_true';
+    var scope = 'resources/blank.html';
+
+    return Promise.resolve()
+        .then(() => registerFirstServiceWorker(t, script, scope, false))
+        .then(r => testAction(t, r, r.update.bind(r), true))
+        .then(r => {
+            var action = navigator.serviceWorker.register.bind(
+                navigator.serviceWorker, script, {scope: scope,
+                                                  useCache: true});
+            return testAction(t, r, action, false);
+        })
+        .then(r => testAction(t, r, r.update.bind(r), false))
+
+        // Tear down
+        .then(() => service_worker_unregister_and_done(t, scope))
+}, "Consecutive registrations with useCache settings(false, true)");
+
+promise_test(function(t) {
+    var script = 'resources/update-max-aged-worker.py' +
+                 '?Test=Consecutive_registrations_with_useCache_settings_true_false';
+    var scope = 'resources/blank.html';
+
+    return Promise.resolve()
+        .then(() => registerFirstServiceWorker(t, script, scope, true))
+        .then(r => testAction(t, r, r.update.bind(r), false))
+        .then(r => {
+            var action = navigator.serviceWorker.register.bind(
+                navigator.serviceWorker, script, {scope: scope,
+                                                  useCache: false});
+            return testAction(t, r, action, true);
+        })
+        .then(r => testAction(t, r, r.update.bind(r), true))
+
+        // Tear down
+        .then(() => service_worker_unregister_and_done(t, scope));
+}, "Consecutive registrations with useCache settings(true, false)");
+
+promise_test(function(t) {
+    var script = 'resources/update-max-aged-worker.py' +
+                 '?Test=Consecutive_registrations_with_useCache_settings_true_true';
+    var scope = 'resources/blank.html';
+
+    return Promise.resolve()
+        .then(() => registerFirstServiceWorker(t, script, scope, true))
+        .then(r => {
+            var action = navigator.serviceWorker.register.bind(
+                navigator.serviceWorker, script, {scope: scope,
+                                                  useCache: true});
+            return testAction(t, r, action, false);
+        })
+
+        // Tear down
+        .then(() => service_worker_unregister_and_done(t, scope))
+}, "Consecutive registrations with useCache settings(true, true)");
+
+</script>

@@ -3,36 +3,42 @@
 `idlharness.js` automatically generates browser tests for WebIDL interfaces, using
 the testharness.js framework.  To use, first include the following:
 
-    <script src=/resources/testharness.js></script>
-    <script src=/resources/testharnessreport.js></script>
-    <script src=/resources/WebIDLParser.js></script>
-    <script src=/resources/idlharness.js></script>
+```html
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/WebIDLParser.js></script>
+<script src=/resources/idlharness.js></script>
+```
 
 Then you'll need some type of IDLs.  Here's some script that can be run on a
 spec written in HTML, which will grab all the elements with `class="idl"`,
 concatenate them, and replace the body so you can copy-paste:
 
-    var s = "";
-    [].forEach.call(document.getElementsByClassName("idl"), function(idl) {
-      //https://www.w3.org/Bugs/Public/show_bug.cgi?id=14914
-      if (!idl.classList.contains("extract"))
-      {
-        s += idl.textContent + "\n\n";
-      }
-    });
-    document.body.innerHTML = '<pre></pre>';
-    document.body.firstChild.textContent = s;
+```js
+var s = "";
+[].forEach.call(document.getElementsByClassName("idl"), function(idl) {
+  //https://www.w3.org/Bugs/Public/show_bug.cgi?id=14914
+  if (!idl.classList.contains("extract"))
+  {
+    s += idl.textContent + "\n\n";
+  }
+});
+document.body.innerHTML = '<pre></pre>';
+document.body.firstChild.textContent = s;
+```
 
 Once you have that, put it in your script somehow.  The easiest way is to
 embed it literally in an HTML file with `<script type=text/plain>` or similar,
 so that you don't have to do any escaping.  Another possibility is to put it
 in a separate .idl file that's fetched via XHR or similar.  Sample usage:
 
-    var idl_array = new IdlArray();
-    idl_array.add_untested_idls("interface Node { readonly attribute DOMString nodeName; };");
-    idl_array.add_idls("interface Document : Node { readonly attribute DOMString URL; };");
-    idl_array.add_objects({Document: ["document"]});
-    idl_array.test();
+```js
+var idl_array = new IdlArray();
+idl_array.add_untested_idls("interface Node { readonly attribute DOMString nodeName; };");
+idl_array.add_idls("interface Document : Node { readonly attribute DOMString URL; };");
+idl_array.add_objects({Document: ["document"]});
+idl_array.test();
+```
 
 This tests that `window.Document` exists and meets all the requirements of
 WebIDL.  It also tests that window.document (the result of evaluating the
@@ -96,12 +102,16 @@ and outside callers should not use it.
   interfaces every single time.  For instance, HTML defines many interfaces
   that all inherit from `HTMLElement`, so the HTML test suite has something
   like
-    `.add_objects({
-      HTMLHtmlElement: ['document.documentElement'],
-      HTMLHeadElement: ['document.head'],
-      HTMLBodyElement: ['document.body'],
-      ...
-    })`
+
+```js
+.add_objects({
+  HTMLHtmlElement: ['document.documentElement'],
+  HTMLHeadElement: ['document.head'],
+  HTMLBodyElement: ['document.body'],
+  ...
+})
+```
+
   and so on for dozens of element types.  This would mean that it would
   retest that each and every one of those elements implements `HTMLElement`,
   `Element`, and `Node`, which would be thousands of basically redundant tests.

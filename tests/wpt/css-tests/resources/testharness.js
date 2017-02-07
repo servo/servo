@@ -22,7 +22,8 @@ policies and contribution forms [3].
             "normal":10000,
             "long":60000
         },
-        test_timeout:null
+        test_timeout:null,
+        message_events: ["start", "test_state", "result", "completion"]
     };
 
     var xhtml_ns = "http://www.w3.org/1999/xhtml";
@@ -64,6 +65,40 @@ policies and contribution forms [3].
         this.output_handler = null;
         this.all_loaded = false;
         var this_obj = this;
+        this.message_events = [];
+
+        this.message_functions = {
+            start: [add_start_callback, remove_start_callback,
+                    function (properties) {
+                        this_obj._dispatch("start_callback", [properties],
+                                           {type: "start", properties: properties});
+                    }],
+
+            test_state: [add_test_state_callback, remove_test_state_callback,
+                         function(test) {
+                             this_obj._dispatch("test_state_callback", [test],
+                                                {type: "test_state",
+                                                 test: test.structured_clone()});
+                         }],
+            result: [add_result_callback, remove_result_callback,
+                     function (test) {
+                         this_obj.output_handler.show_status();
+                         this_obj._dispatch("result_callback", [test],
+                                            {type: "result",
+                                             test: test.structured_clone()});
+                     }],
+            completion: [add_completion_callback, remove_completion_callback,
+                         function (tests, harness_status) {
+                             var cloned_tests = map(tests, function(test) {
+                                 return test.structured_clone();
+                             });
+                             this_obj._dispatch("completion_callback", [tests, harness_status],
+                                                {type: "complete",
+                                                 tests: cloned_tests,
+                                                 status: harness_status.structured_clone()});
+                         }]
+        }
+
         on_event(window, 'load', function() {
             this_obj.all_loaded = true;
         });
@@ -71,13 +106,22 @@ policies and contribution forms [3].
 
     WindowTestEnvironment.prototype._dispatch = function(selector, callback_args, message_arg) {
         this._forEach_windows(
-                function(w, is_same_origin) {
-                    if (is_same_origin && selector in w) {
+                function(w, same_origin) {
+                    if (same_origin) {
                         try {
-                            w[selector].apply(undefined, callback_args);
-                        } catch (e) {
-                            if (debug) {
-                                throw e;
+                            var has_selector = selector in w;
+                        } catch(e) {
+                            // If document.domain was set at some point same_origin can be
+                            // wrong and the above will fail.
+                            has_selector = false;
+                        }
+                        if (has_selector) {
+                            try {
+                                w[selector].apply(undefined, callback_args);
+                            } catch (e) {
+                                if (debug) {
+                                    throw e;
+                                }
                             }
                         }
                     }
@@ -141,29 +185,38 @@ policies and contribution forms [3].
         this.output_handler = output;
 
         var this_obj = this;
+
         add_start_callback(function (properties) {
             this_obj.output_handler.init(properties);
-            this_obj._dispatch("start_callback", [properties],
-                           { type: "start", properties: properties });
         });
+
         add_test_state_callback(function(test) {
             this_obj.output_handler.show_status();
-            this_obj._dispatch("test_state_callback", [test],
-                               { type: "test_state", test: test.structured_clone() });
         });
+
         add_result_callback(function (test) {
             this_obj.output_handler.show_status();
-            this_obj._dispatch("result_callback", [test],
-                               { type: "result", test: test.structured_clone() });
         });
+
         add_completion_callback(function (tests, harness_status) {
             this_obj.output_handler.show_results(tests, harness_status);
-            var cloned_tests = map(tests, function(test) { return test.structured_clone(); });
-            this_obj._dispatch("completion_callback", [tests, harness_status],
-                               { type: "complete", tests: cloned_tests,
-                                 status: harness_status.structured_clone() });
         });
+        this.setup_messages(settings.message_events);
     };
+
+    WindowTestEnvironment.prototype.setup_messages = function(new_events) {
+        var this_obj = this;
+        forEach(settings.message_events, function(x) {
+            var current_dispatch = this_obj.message_events.indexOf(x) !== -1;
+            var new_dispatch = new_events.indexOf(x) !== -1;
+            if (!current_dispatch && new_dispatch) {
+                this_obj.message_functions[x][0](this_obj.message_functions[x][2]);
+            } else if (current_dispatch && !new_dispatch) {
+                this_obj.message_functions[x][1](this_obj.message_functions[x][2]);
+            }
+        });
+        this.message_events = new_events;
+    }
 
     WindowTestEnvironment.prototype.next_default_test_name = function() {
         //Don't use document.title to work around an Opera bug in XHTML documents
@@ -176,6 +229,9 @@ policies and contribution forms [3].
 
     WindowTestEnvironment.prototype.on_new_harness_properties = function(properties) {
         this.output_handler.setup(properties);
+        if (properties.hasOwnProperty("message_events")) {
+            this.setup_messages(properties.message_events);
+        }
     };
 
     WindowTestEnvironment.prototype.add_on_loaded_callback = function(callback) {
@@ -359,8 +415,20 @@ policies and contribution forms [3].
         self.addEventListener("message",
                 function(event) {
                     if (event.data.type && event.data.type === "connect") {
-                        this_obj._add_message_port(event.ports[0]);
-                        event.ports[0].start();
+                        if (event.ports && event.ports[0]) {
+                            // If a MessageChannel was passed, then use it to
+                            // send results back to the main window.  This
+                            // allows the tests to work even if the browser
+                            // does not fully support MessageEvent.source in
+                            // ServiceWorkers yet.
+                            this_obj._add_message_port(event.ports[0]);
+                            event.ports[0].start();
+                        } else {
+                            // If there is no MessageChannel, then attempt to
+                            // use the MessageEvent.source to send results
+                            // back to the main window.
+                            this_obj._add_message_port(event.source);
+                        }
                     }
                 });
 
@@ -403,6 +471,11 @@ policies and contribution forms [3].
             self instanceof ServiceWorkerGlobalScope) {
             return new ServiceWorkerTestEnvironment();
         }
+        if ('WorkerGlobalScope' in self &&
+            self instanceof WorkerGlobalScope) {
+            return new DedicatedWorkerTestEnvironment();
+        }
+        
         throw new Error("Unsupported test environment");
     }
 
@@ -449,26 +522,102 @@ policies and contribution forms [3].
 
     function promise_test(func, name, properties) {
         var test = async_test(name, properties);
-        Promise.resolve(test.step(func, test, test))
-            .then(
-                function() {
-                    test.done();
-                })
-            .catch(test.step_func(
-                function(value) {
-                    if (value instanceof AssertionError) {
-                        throw value;
-                    }
-                    assert(false, "promise_test", null,
-                           "Unhandled rejection with value: ${value}", {value:value});
-                }));
-    }
-
-    function promise_rejects(test, expected, promise) {
-        return promise.then(test.unreached_func("Should have rejected.")).catch(function(e) {
-            assert_throws(expected, function() { throw e });
+        // If there is no promise tests queue make one.
+        test.step(function() {
+            if (!tests.promise_tests) {
+                tests.promise_tests = Promise.resolve();
+            }
+        });
+        tests.promise_tests = tests.promise_tests.then(function() {
+            return Promise.resolve(test.step(func, test, test))
+                .then(
+                    function() {
+                        test.done();
+                    })
+                .catch(test.step_func(
+                    function(value) {
+                        if (value instanceof AssertionError) {
+                            throw value;
+                        }
+                        assert(false, "promise_test", null,
+                               "Unhandled rejection with value: ${value}", {value:value});
+                    }));
         });
     }
+
+    function promise_rejects(test, expected, promise, description) {
+        return promise.then(test.unreached_func("Should have rejected: " + description)).catch(function(e) {
+            assert_throws(expected, function() { throw e }, description);
+        });
+    }
+
+    /**
+     * This constructor helper allows DOM events to be handled using Promises,
+     * which can make it a lot easier to test a very specific series of events,
+     * including ensuring that unexpected events are not fired at any point.
+     */
+    function EventWatcher(test, watchedNode, eventTypes)
+    {
+        if (typeof eventTypes == 'string') {
+            eventTypes = [eventTypes];
+        }
+
+        var waitingFor = null;
+
+        var eventHandler = test.step_func(function(evt) {
+            assert_true(!!waitingFor,
+                        'Not expecting event, but got ' + evt.type + ' event');
+            assert_equals(evt.type, waitingFor.types[0],
+                          'Expected ' + waitingFor.types[0] + ' event, but got ' +
+                          evt.type + ' event instead');
+            if (waitingFor.types.length > 1) {
+                // Pop first event from array
+                waitingFor.types.shift();
+                return;
+            }
+            // We need to null out waitingFor before calling the resolve function
+            // since the Promise's resolve handlers may call wait_for() which will
+            // need to set waitingFor.
+            var resolveFunc = waitingFor.resolve;
+            waitingFor = null;
+            resolveFunc(evt);
+        });
+
+        for (var i = 0; i < eventTypes.length; i++) {
+            watchedNode.addEventListener(eventTypes[i], eventHandler);
+        }
+
+        /**
+         * Returns a Promise that will resolve after the specified event or
+         * series of events has occured.
+         */
+        this.wait_for = function(types) {
+            if (waitingFor) {
+                return Promise.reject('Already waiting for an event or events');
+            }
+            if (typeof types == 'string') {
+                types = [types];
+            }
+            return new Promise(function(resolve, reject) {
+                waitingFor = {
+                    types: types,
+                    resolve: resolve,
+                    reject: reject
+                };
+            });
+        };
+
+        function stop_watching() {
+            for (var i = 0; i < eventTypes.length; i++) {
+                watchedNode.removeEventListener(eventTypes[i], eventHandler);
+            }
+        };
+
+        test.add_cleanup(stop_watching);
+
+        return this;
+    }
+    expose(EventWatcher, 'EventWatcher');
 
     function setup(func_or_properties, maybe_properties)
     {
@@ -514,6 +663,14 @@ policies and contribution forms [3].
         object.addEventListener(event, callback, false);
     }
 
+    function step_timeout(f, t) {
+        var outer_this = this;
+        var args = Array.prototype.slice.call(arguments, 2);
+        return setTimeout(function() {
+            f.apply(outer_this, args);
+        }, t * tests.timeout_multiplier);
+    }
+
     expose(test, 'test');
     expose(async_test, 'async_test');
     expose(promise_test, 'promise_test');
@@ -522,6 +679,7 @@ policies and contribution forms [3].
     expose(setup, 'setup');
     expose(done, 'done');
     expose(on_event, 'on_event');
+    expose(step_timeout, 'step_timeout');
 
     /*
      * Return a string truncated to the given length, with ... added at the end
@@ -544,10 +702,17 @@ policies and contribution forms [3].
         // instanceof doesn't work if the node is from another window (like an
         // iframe's contentWindow):
         // http://www.w3.org/Bugs/Public/show_bug.cgi?id=12295
-        if ("nodeType" in object &&
-            "nodeName" in object &&
-            "nodeValue" in object &&
-            "childNodes" in object) {
+        try {
+            var has_node_properties = ("nodeType" in object &&
+                                       "nodeName" in object &&
+                                       "nodeValue" in object &&
+                                       "childNodes" in object);
+        } catch (e) {
+            // We're probably cross-origin, which means we aren't a node
+            return false;
+        }
+
+        if (has_node_properties) {
             try {
                 object.nodeType;
             } catch (e) {
@@ -559,6 +724,44 @@ policies and contribution forms [3].
         }
         return false;
     }
+
+    var replacements = {
+        "0": "0",
+        "1": "x01",
+        "2": "x02",
+        "3": "x03",
+        "4": "x04",
+        "5": "x05",
+        "6": "x06",
+        "7": "x07",
+        "8": "b",
+        "9": "t",
+        "10": "n",
+        "11": "v",
+        "12": "f",
+        "13": "r",
+        "14": "x0e",
+        "15": "x0f",
+        "16": "x10",
+        "17": "x11",
+        "18": "x12",
+        "19": "x13",
+        "20": "x14",
+        "21": "x15",
+        "22": "x16",
+        "23": "x17",
+        "24": "x18",
+        "25": "x19",
+        "26": "x1a",
+        "27": "x1b",
+        "28": "x1c",
+        "29": "x1d",
+        "30": "x1e",
+        "31": "x1f",
+        "0xfffd": "ufffd",
+        "0xfffe": "ufffe",
+        "0xffff": "uffff",
+    };
 
     /*
      * Convert a value to a nice, human-readable string
@@ -581,43 +784,9 @@ policies and contribution forms [3].
         switch (typeof val) {
         case "string":
             val = val.replace("\\", "\\\\");
-            for (var i = 0; i < 32; i++) {
-                var replace = "\\";
-                switch (i) {
-                case 0: replace += "0"; break;
-                case 1: replace += "x01"; break;
-                case 2: replace += "x02"; break;
-                case 3: replace += "x03"; break;
-                case 4: replace += "x04"; break;
-                case 5: replace += "x05"; break;
-                case 6: replace += "x06"; break;
-                case 7: replace += "x07"; break;
-                case 8: replace += "b"; break;
-                case 9: replace += "t"; break;
-                case 10: replace += "n"; break;
-                case 11: replace += "v"; break;
-                case 12: replace += "f"; break;
-                case 13: replace += "r"; break;
-                case 14: replace += "x0e"; break;
-                case 15: replace += "x0f"; break;
-                case 16: replace += "x10"; break;
-                case 17: replace += "x11"; break;
-                case 18: replace += "x12"; break;
-                case 19: replace += "x13"; break;
-                case 20: replace += "x14"; break;
-                case 21: replace += "x15"; break;
-                case 22: replace += "x16"; break;
-                case 23: replace += "x17"; break;
-                case 24: replace += "x18"; break;
-                case 25: replace += "x19"; break;
-                case 26: replace += "x1a"; break;
-                case 27: replace += "x1b"; break;
-                case 28: replace += "x1c"; break;
-                case 29: replace += "x1d"; break;
-                case 30: replace += "x1e"; break;
-                case 31: replace += "x1f"; break;
-                }
-                val = val.replace(RegExp(String.fromCharCode(i), "g"), replace);
+            for (var p in replacements) {
+                var replace = "\\" + replacements[p];
+                val = val.replace(RegExp(String.fromCharCode(p), "g"), replace);
             }
             return '"' + val.replace(/"/g, '\\"') + '"';
         case "boolean":
@@ -665,7 +834,12 @@ policies and contribution forms [3].
 
         /* falls through */
         default:
-            return typeof val + ' "' + truncate(String(val), 60) + '"';
+            try {
+                return typeof val + ' "' + truncate(String(val), 1000) + '"';
+            } catch(e) {
+                return ("[stringifying object threw " + String(e) +
+                        " with type " + String(typeof e) + "]");
+            }
         }
     }
     expose(format_value, "format_value");
@@ -953,7 +1127,7 @@ policies and contribution forms [3].
     function _assert_inherits(name) {
         return function (object, property_name, description)
         {
-            assert(typeof object === "object",
+            assert(typeof object === "object" || typeof object === "function",
                    name, description,
                    "provided value is not an object");
 
@@ -1023,6 +1197,7 @@ policies and contribution forms [3].
                 NO_MODIFICATION_ALLOWED_ERR: 'NoModificationAllowedError',
                 NOT_FOUND_ERR: 'NotFoundError',
                 NOT_SUPPORTED_ERR: 'NotSupportedError',
+                INUSE_ATTRIBUTE_ERR: 'InUseAttributeError',
                 INVALID_STATE_ERR: 'InvalidStateError',
                 SYNTAX_ERR: 'SyntaxError',
                 INVALID_MODIFICATION_ERR: 'InvalidModificationError',
@@ -1049,6 +1224,7 @@ policies and contribution forms [3].
                 NoModificationAllowedError: 7,
                 NotFoundError: 8,
                 NotSupportedError: 9,
+                InUseAttributeError: 10,
                 InvalidStateError: 11,
                 SyntaxError: 12,
                 InvalidModificationError: 13,
@@ -1278,6 +1454,14 @@ policies and contribution forms [3].
         });
     };
 
+    Test.prototype.step_timeout = function(f, timeout) {
+        var test_this = this;
+        var args = Array.prototype.slice.call(arguments, 2);
+        return setTimeout(this.step_func(function() {
+            return f.apply(test_this, args);
+        }), timeout * tests.timeout_multiplier);
+    }
+
     Test.prototype.add_cleanup = function(callback) {
         this.cleanup_callbacks.push(callback);
     };
@@ -1359,13 +1543,13 @@ policies and contribution forms [3].
     RemoteTest.prototype.structured_clone = function() {
         var clone = {};
         Object.keys(this).forEach(
-                function(key) {
+                (function(key) {
                     if (typeof(this[key]) === "object") {
                         clone[key] = merge({}, this[key]);
                     } else {
                         clone[key] = this[key];
                     }
-                });
+                }).bind(this));
         clone.phases = merge({}, this.phases);
         return clone;
     };
@@ -1399,15 +1583,24 @@ policies and contribution forms [3].
         var message_port;
 
         if (is_service_worker(worker)) {
-            // The ServiceWorker's implicit MessagePort is currently not
-            // reliably accessible from the ServiceWorkerGlobalScope due to
-            // Blink setting MessageEvent.source to null for messages sent via
-            // ServiceWorker.postMessage(). Until that's resolved, create an
-            // explicit MessageChannel and pass one end to the worker.
-            var message_channel = new MessageChannel();
-            message_port = message_channel.port1;
-            message_port.start();
-            worker.postMessage({type: "connect"}, [message_channel.port2]);
+            if (window.MessageChannel) {
+                // The ServiceWorker's implicit MessagePort is currently not
+                // reliably accessible from the ServiceWorkerGlobalScope due to
+                // Blink setting MessageEvent.source to null for messages sent
+                // via ServiceWorker.postMessage(). Until that's resolved,
+                // create an explicit MessageChannel and pass one end to the
+                // worker.
+                var message_channel = new MessageChannel();
+                message_port = message_channel.port1;
+                message_port.start();
+                worker.postMessage({type: "connect"}, [message_channel.port2]);
+            } else {
+                // If MessageChannel is not available, then try the
+                // ServiceWorker.postMessage() approach using MessageEvent.source
+                // on the other end.
+                message_port = navigator.serviceWorker;
+                worker.postMessage({type: "connect"});
+            }
         } else if (is_shared_worker(worker)) {
             message_port = worker.port;
         } else {
@@ -1436,7 +1629,7 @@ policies and contribution forms [3].
             status: {
                 status: tests.status.ERROR,
                 message: "Error in worker" + filename + ": " + message,
-                stack: e.stack
+                stack: error.stack
             }
         });
         error.preventDefault();
@@ -1760,20 +1953,41 @@ policies and contribution forms [3].
         tests.test_state_callbacks.push(callback);
     }
 
-    function add_result_callback(callback)
-    {
+    function add_result_callback(callback) {
         tests.test_done_callbacks.push(callback);
     }
 
-    function add_completion_callback(callback)
-    {
-       tests.all_done_callbacks.push(callback);
+    function add_completion_callback(callback) {
+        tests.all_done_callbacks.push(callback);
     }
 
     expose(add_start_callback, 'add_start_callback');
     expose(add_test_state_callback, 'add_test_state_callback');
     expose(add_result_callback, 'add_result_callback');
     expose(add_completion_callback, 'add_completion_callback');
+
+    function remove(array, item) {
+        var index = array.indexOf(item);
+        if (index > -1) {
+            array.splice(index, 1);
+        }
+    }
+
+    function remove_start_callback(callback) {
+        remove(tests.start_callbacks, callback);
+    }
+
+    function remove_test_state_callback(callback) {
+        remove(tests.test_state_callbacks, callback);
+    }
+
+    function remove_result_callback(callback) {
+        remove(tests.test_done_callbacks, callback);
+    }
+
+    function remove_completion_callback(callback) {
+       remove(tests.all_done_callbacks, callback);
+    }
 
     /*
      * Output listener
@@ -1882,28 +2096,11 @@ policies and contribution forms [3].
             log.removeChild(log.lastChild);
         }
 
-        var script_prefix = null;
-        var scripts = document.getElementsByTagName("script");
-        for (var i = 0; i < scripts.length; i++) {
-            var src;
-            if (scripts[i].src) {
-                src = scripts[i].src;
-            } else if (scripts[i].href) {
-                //SVG case
-                src = scripts[i].href.baseVal;
-            }
-
-            var matches = src && src.match(/^(.*\/|)testharness\.js$/);
-            if (matches) {
-                script_prefix = matches[1];
-                break;
-            }
-        }
-
-        if (script_prefix !== null) {
+        var harness_url = get_harness_url();
+        if (harness_url !== null) {
             var stylesheet = output_document.createElementNS(xhtml_ns, "link");
             stylesheet.setAttribute("rel", "stylesheet");
-            stylesheet.setAttribute("href", script_prefix + "testharness.css");
+            stylesheet.setAttribute("href", harness_url + "testharness.css");
             var heads = output_document.getElementsByTagName("head");
             if (heads.length) {
                 heads[0].appendChild(stylesheet);
@@ -2258,18 +2455,43 @@ policies and contribution forms [3].
     AssertionError.prototype = Object.create(Error.prototype);
 
     AssertionError.prototype.get_stack = function() {
-        var lines = new Error().stack.split("\n");
-        var rv = [];
-        var re = /\/resources\/testharness\.js/;
+        var stack = new Error().stack;
+        // IE11 does not initialize 'Error.stack' until the object is thrown.
+        if (!stack) {
+            try {
+                throw new Error();
+            } catch (e) {
+                stack = e.stack;
+            }
+        }
+
+        var lines = stack.split("\n");
+
+        // Create a pattern to match stack frames originating within testharness.js.  These include the
+        // script URL, followed by the line/col (e.g., '/resources/testharness.js:120:21').
+        // Escape the URL per http://stackoverflow.com/questions/3561493/is-there-a-regexp-escape-function-in-javascript
+        // in case it contains RegExp characters.
+        var script_url = get_script_url();
+        var re_text = script_url ? script_url.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') : "\\btestharness.js";
+        var re = new RegExp(re_text + ":\\d+:\\d+");
+
+        // Some browsers include a preamble that specifies the type of the error object.  Skip this by
+        // advancing until we find the first stack frame originating from testharness.js.
         var i = 0;
-        // Fire remove any preamble that doesn't match the regexp
-        while (!re.test(lines[i])) {
-            i++
+        while (!re.test(lines[i]) && i < lines.length) {
+            i++;
         }
-        // Then remove top frames in testharness.js itself
-        while (re.test(lines[i])) {
-            i++
+
+        // Then skip the top frames originating from testharness.js to begin the stack at the test code.
+        while (re.test(lines[i]) && i < lines.length) {
+            i++;
         }
+
+        // Paranoid check that we didn't skip all frames.  If so, return the original stack unmodified.
+        if (i >= lines.length) {
+            return stack;
+        }
+
         return lines.slice(i).join("\n");
     }
 
@@ -2317,7 +2539,7 @@ policies and contribution forms [3].
         Array.prototype.push.apply(array, items);
     }
 
-    function forEach (array, callback, thisObj)
+    function forEach(array, callback, thisObj)
     {
         for (var i = 0; i < array.length; i++) {
             if (array.hasOwnProperty(i)) {
@@ -2361,11 +2583,46 @@ policies and contribution forms [3].
         }
     }
 
+    /** Returns the 'src' URL of the first <script> tag in the page to include the file 'testharness.js'. */
+    function get_script_url()
+    {
+        if (!('document' in self)) {
+            return undefined;
+        }
+
+        var scripts = document.getElementsByTagName("script");
+        for (var i = 0; i < scripts.length; i++) {
+            var src;
+            if (scripts[i].src) {
+                src = scripts[i].src;
+            } else if (scripts[i].href) {
+                //SVG case
+                src = scripts[i].href.baseVal;
+            }
+
+            var matches = src && src.match(/^(.*\/|)testharness\.js$/);
+            if (matches) {
+                return src;
+            }
+        }
+        return undefined;
+    }
+
+    /** Returns the URL path at which the files for testharness.js are assumed to reside (e.g., '/resources/').
+        The path is derived from inspecting the 'src' of the <script> tag that included 'testharness.js'. */
+    function get_harness_url()
+    {
+        var script_url = get_script_url();
+
+        // Exclude the 'testharness.js' file from the returned path, but '+ 1' to include the trailing slash.
+        return script_url ? script_url.slice(0, script_url.lastIndexOf('/') + 1) : undefined;
+    }
+
     function supports_post_message(w)
     {
         var supports;
         var type;
-        // Given IE  implements postMessage across nested iframes but not across
+        // Given IE implements postMessage across nested iframes but not across
         // windows or tabs, you can't infer cross-origin communication from the presence
         // of postMessage on the current window object only.
         //

@@ -174,3 +174,68 @@ function waitForAnimationFramesWithDelay(minDelay) {
     }());
   });
 }
+
+// Returns 'matrix()' or 'matrix3d()' function string generated from an array.
+function createMatrixFromArray(array) {
+  return (array.length == 16 ? 'matrix3d' : 'matrix') +
+         '(' + array.join() + ')';
+}
+
+// Returns 'matrix3d()' function string equivalent to
+// 'rotate3d(x, y, z, radian)'.
+function rotate3dToMatrix3d(x, y, z, radian) {
+  return createMatrixFromArray(rotate3dToMatrix(x, y, z, radian));
+}
+
+// Returns an array of the 4x4 matrix equivalent to 'rotate3d(x, y, z, radian)'.
+// https://www.w3.org/TR/css-transforms-1/#Rotate3dDefined
+function rotate3dToMatrix(x, y, z, radian) {
+  var sc = Math.sin(radian / 2) * Math.cos(radian / 2);
+  var sq = Math.sin(radian / 2) * Math.sin(radian / 2);
+
+  // Normalize the vector.
+  var length = Math.sqrt(x*x + y*y + z*z);
+  x /= length;
+  y /= length;
+  z /= length;
+
+  return [
+    1 - 2 * (y*y + z*z) * sq,
+    2 * (x * y * sq + z * sc),
+    2 * (x * z * sq - y * sc),
+    0,
+    2 * (x * y * sq - z * sc),
+    1 - 2 * (x*x + z*z) * sq,
+    2 * (y * z * sq + x * sc),
+    0,
+    2 * (x * z * sq + y * sc),
+    2 * (y * z * sq - x * sc),
+    1 - 2 * (x*x + y*y) * sq,
+    0,
+    0,
+    0,
+    0,
+    1
+  ];
+}
+
+// Compare matrix string like 'matrix(1, 0, 0, 1, 100, 0)' with tolerances.
+function assert_matrix_equals(actual, expected, description) {
+  var matrixRegExp = /^matrix(?:3d)*\((.+)\)/;
+  assert_regexp_match(actual, matrixRegExp,
+    'Actual value is not a matrix')
+  assert_regexp_match(expected, matrixRegExp,
+    'Expected value is not a matrix');
+
+  var actualMatrixArray =
+    actual.match(matrixRegExp)[1].split(',').map(Number);
+  var expectedMatrixArray =
+    expected.match(matrixRegExp)[1].split(',').map(Number);
+
+  assert_equals(actualMatrixArray.length, expectedMatrixArray.length,
+    'dimension of the matrix: ' + description);
+  for (var i = 0; i < actualMatrixArray.length; i++) {
+    assert_approx_equals(actualMatrixArray[i], expectedMatrixArray[i], 0.0001,
+      'expecetd ' + expected + ' but got ' + actual + ": " + description);
+  }
+}

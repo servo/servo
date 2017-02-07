@@ -2,27 +2,31 @@
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
 <title>CSS Basic User Interface Test: caret-color auto</title>
 <link href="mailto:chris@w3.org" rel="author" title="Chris Lilley" />
-<link href="http://www.w3.org/TR/css3-ui/#caret-color" rel="help" title="7.2.1. Coloring the insertion caret: caret-color" />
-<meta content="" name="flags" />
-<meta content="Test checks that caret-color: auto resolves to currentColor" name="assert" />
+<link href="mailto:florian@rivoal.net" rel="author" title="Florian Rivoal" />
+<link href="http://www.w3.org/TR/css3-ui/#caret-color" rel="help" />
+<meta content="interact should" name="flags" />
+<meta content="Test checks that caret-color: auto matches currentColor" name="assert" />
 <style>
-  #container {
-    color: green;
-  }
-  #test {
-    font-size: 2em;
+  textarea {
+    font-size: 3em;
     font-weight: bold;
-    color:currentColor;
-    caret-color:auto;
     width: 10em;
-  }
+    padding: 10px;
+    background: black; /* the color of a thin object like the caret is easier to see on a black background. */
+
+    color: lime;
+    caret-color: auto; /*initial value, but to be sure in case the UA stylesheet sets something else */
   }
 </style>
 </head><body>
-  <p>Test passes if, when the cursor is placed in the textarea for editing, the caret and the text are both green.</p>
+  <p>Test passes if, when the text area below is focused for editing, the text insertion caret is green,
+  like the text in that textarea.</p>
   <p>The shape of the caret, and whether it flashes, are not part of the test.</p>
-  <div id="container">
-    <textarea id="test">Textarea must be green</textarea>
-  </div>
+  <textarea id="test">focus this</textarea>
+  <script>
+    window.onload = function() {
+      document.getElementById("test").focus();
+    }
+  </script>
 
 </body></html>

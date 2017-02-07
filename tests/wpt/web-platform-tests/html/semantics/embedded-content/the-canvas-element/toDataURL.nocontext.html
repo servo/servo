@@ -18,13 +18,16 @@
 <script>
 var t = async_test("toDataURL works before any context has been got");
 _addTest(function(canvas, ctx) {
-  var no_context_data = canvas.toDataURL();
-  var ctx = canvas.getContext('2d');
-  ctx.rect(0, 0, 100, 50);
-  ctx.fillStyle = "rgba(0, 0, 0, 0)";
-  ctx.fill();
-  var data = canvas.toDataURL();
-  assert_equals(no_context_data, data);
+
+var no_context_data = canvas.toDataURL();
+var ctx = canvas.getContext('2d');
+ctx.rect(0, 0, 100, 50);
+ctx.fillStyle = "rgba(0, 0, 0, 0)";
+ctx.fill();
+var data = canvas.toDataURL();
+assert_equals(no_context_data, data);
+
+
 });
 </script>
 

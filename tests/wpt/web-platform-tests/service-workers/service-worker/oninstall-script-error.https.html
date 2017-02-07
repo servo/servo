@@ -33,17 +33,22 @@ function make_test(name, script, expect_install) {
   {
     name: 'install handler throws an error',
     script: 'resources/oninstall-throw-error-worker.js',
-    expect_install: false
+    expect_install: true
   },
   {
     name: 'install handler throws an error, error handler does not cancel',
     script: 'resources/oninstall-throw-error-with-empty-onerror-worker.js',
-    expect_install: false
+    expect_install: true
   },
   {
     name: 'install handler dispatches an event that throws an error',
     script: 'resources/oninstall-throw-error-from-nested-event-worker.js',
     expect_install: true
+  },
+  {
+    name: 'install handler throws an error in the waitUntil',
+    script: 'resources/oninstall-waituntil-throw-error-worker.js',
+    expect_install: false
   },
 
   // The following two cases test what happens when the ServiceWorkerGlobalScope
@@ -54,12 +59,12 @@ function make_test(name, script, expect_install) {
   {
     name: 'install handler throws an error that is cancelled',
     script: 'resources/oninstall-throw-error-then-cancel-worker.js',
-    expect_install: false
+    expect_install: true
   },
   {
     name: 'install handler throws an error and prevents default',
     script: 'resources/oninstall-throw-error-then-prevent-default-worker.js',
-    expect_install: false
+    expect_install: true
   }
 ].forEach(function(test_case) {
     make_test(test_case.name, test_case.script, test_case.expect_install);

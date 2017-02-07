@@ -17,7 +17,7 @@ log = function(t) {l.textContent += ("\n" + t)}
 var steps = [
   function() {f.src = "browsing_context_name-1.html"},
   function() {
-                var navigated = true;
+                navigated = true;
                 assert_equals(f.contentWindow.name, "test", "Initial load");
                 setTimeout(next, 0);
               },
@@ -43,5 +43,5 @@ next = t.step_func(function() {steps[step++]()});
 
 f.onload=next;
 
-onload = setTimeout(next, 0);
+onload = function() { setTimeout(next, 0); };
 </script>

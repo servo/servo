@@ -1,0 +1,228 @@
+SVN-fs-dump-format-version: 2
+
+UUID: 876a30f4-1eed-0310-aeb7-ae314d1e5934
+
+Revision-number: 0
+Prop-content-length: 56
+Content-length: 56
+
+K 8
+svn:date
+V 27
+2005-01-07T23:55:31.755989Z
+PROPS-END
+
+Revision-number: 1
+Prop-content-length: 118
+Content-length: 118
+
+K 7
+svn:log
+V 20
+testrepo setup rev 1
+K 10
+svn:author
+V 3
+hpk
+K 8
+svn:date
+V 27
+2005-01-07T23:55:37.815386Z
+PROPS-END
+
+Node-path: execfile
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 4
+Text-content-md5: d4b5bc61e16310f08c5d11866eba0a22
+Content-length: 14
+
+PROPS-END
+x=42
+
+Node-path: otherdir
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: otherdir/__init__.py
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 0
+Text-content-md5: d41d8cd98f00b204e9800998ecf8427e
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: otherdir/a.py
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 30
+Text-content-md5: 247c7daeb2ee5dcab0aba7bd12bad665
+Content-length: 40
+
+PROPS-END
+from b import stuff as result
+
+
+Node-path: otherdir/b.py
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 15
+Text-content-md5: c1b13503469a7711306d03a4b0721bc6
+Content-length: 25
+
+PROPS-END
+stuff="got it"
+
+
+Node-path: otherdir/c.py
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 75
+Text-content-md5: 250cdb6b5df68536152c681f48297569
+Content-length: 85
+
+PROPS-END
+import py; py.magic.autopath()
+import otherdir.a
+value = otherdir.a.result
+
+
+Node-path: otherdir/d.py
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 72
+Text-content-md5: 940c9c621e7b198e081459642c37f5a7
+Content-length: 82
+
+PROPS-END
+import py; py.magic.autopath()
+from otherdir import a
+value2 = a.result
+
+
+Node-path: sampledir
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: sampledir/otherfile
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 0
+Text-content-md5: d41d8cd98f00b204e9800998ecf8427e
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: samplefile
+Node-kind: file
+Node-action: add
+Prop-content-length: 40
+Text-content-length: 11
+Text-content-md5: 9225ac28b32156979ab6482b8bb5fb8c
+Content-length: 51
+
+K 13
+svn:eol-style
+V 6
+native
+PROPS-END
+samplefile
+
+
+Node-path: samplepickle
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 56
+Text-content-md5: 719d85c1329a33134bb98f56b756c545
+Content-length: 66
+
+PROPS-END
+(dp1
+S'answer'
+p2
+I42
+sI1
+I2
+sS'hello'
+p3
+S'world'
+p4
+s.
+
+Revision-number: 2
+Prop-content-length: 108
+Content-length: 108
+
+K 7
+svn:log
+V 10
+second rev
+K 10
+svn:author
+V 3
+hpk
+K 8
+svn:date
+V 27
+2005-01-07T23:55:39.223202Z
+PROPS-END
+
+Node-path: anotherfile
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 5
+Text-content-md5: 5d41402abc4b2a76b9719d911017c592
+Content-length: 15
+
+PROPS-END
+hello
+
+Revision-number: 3
+Prop-content-length: 106
+Content-length: 106
+
+K 7
+svn:log
+V 9
+third rev
+K 10
+svn:author
+V 3
+hpk
+K 8
+svn:date
+V 27
+2005-01-07T23:55:41.556642Z
+PROPS-END
+
+Node-path: anotherfile
+Node-kind: file
+Node-action: change
+Text-content-length: 5
+Text-content-md5: 7d793037a0760186574b0282f2f435e7
+Content-length: 5
+
+world
+

@@ -2,7 +2,7 @@ import itertools
 import re
 import types
 
-from logger import get_logger
+from .logger import get_logger
 
 any_method = object()
 
@@ -78,7 +78,7 @@ def compile_path_match(route_pattern):
     tokenizer = RouteTokenizer()
     tokens, unmatched = tokenizer.scan(route_pattern)
 
-    assert unmatched is "", unmatched
+    assert unmatched == "", unmatched
 
     compiler = RouteCompiler()
 

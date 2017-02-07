@@ -1,8 +1,7 @@
+import platform
 import os
-import urlparse
-from StringIO import StringIO
 
-blacklist = ["/", "/tools/", "/resources/", "/common/", "/conformance-checkers/", "_certs"]
+from six import BytesIO
 
 def rel_path_to_url(rel_path, url_base="/"):
     assert not os.path.isabs(rel_path)
@@ -12,27 +11,29 @@ def rel_path_to_url(rel_path, url_base="/"):
         url_base += "/"
     return url_base + rel_path.replace(os.sep, "/")
 
-def is_blacklisted(url):
-    for item in blacklist:
-        if item == "/":
-            if "/" not in url[1:]:
-                return True
-        elif url.startswith(item):
-            return True
-    return False
 
 def from_os_path(path):
-    return path.replace(os.path.sep, "/")
+    assert os.path.sep == "/" or platform.system() == "Windows"
+    rv = path.replace(os.path.sep, "/")
+    if "\\" in rv:
+        raise ValueError("path contains \\ when separator is %s" % os.path.sep)
+    return rv
+
 
 def to_os_path(path):
+    assert os.path.sep == "/" or platform.system() == "Windows"
+    if "\\" in path:
+        raise ValueError("normalised path contains \\")
     return path.replace("/", os.path.sep)
 
-class ContextManagerStringIO(StringIO):
+
+class ContextManagerBytesIO(BytesIO):
     def __enter__(self):
         return self
 
     def __exit__(self, *args, **kwargs):
         self.close()
+
 
 class cached_property(object):
     def __init__(self, func):

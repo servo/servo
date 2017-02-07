@@ -1,4 +1,4 @@
-// Extracted from https://w3c.github.io/ServiceWorker/ on 2014-05-06
+// Extracted from https://slightlyoff.github.io/ServiceWorker/spec/service_worker/ on 2014-05-06
 
 [MapClass(DOMString, DOMString)]
 interface HeaderMap {

@@ -11,13 +11,14 @@
             @bottom-right { content: counter(page); }
           }
 </style>
-  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2014-11-26 -->
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2014-11-26 and 2016-11-14 -->
 
   <!-- This reference file is the right-aligned version of
   block-flow-direction-001-ref.xht
   -->
 
-  <meta name="flags" content="ahem image" />
+  <meta name="flags" content="ahem" />
+
   <style type="text/css"><![CDATA[
   body
     {
@@ -26,36 +27,19 @@
 
   div
     {
-      background-color: yellow;
-      direction: ltr;
+      background-color: blue;
+      color: yellow;
       font: 20px/1 Ahem;
-      width: 21em;
-    }
-
-  img
-    {
-      vertical-align: top;
+      padding: 1em;
+      width: 19em;
     }
   ]]></style>
+
  </head>
+
  <body>
 
- <div><img src="support/blue20x20.png" width="420" height="20" alt="Image download support must be enabled" />
-
- <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />   <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="40" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="40" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" />
-
- <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="40" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="40" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" />
-
- <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />
-
- <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="40" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />
-
- <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="40" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />
-
- <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="80" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="40" height="20" alt="Image download support must be enabled" /> <img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="support/blue20x20.png" width="20" height="20" alt="Image download support must be enabled" />
-
- <img src="support/blue20x20.png" width="420" height="20" alt="Image download support must be enabled" />
- </div>
+  <div>P1ro A1ro S1ro S1ro P&nbsp; P A&nbsp; A S&nbsp;&nbsp;&nbsp; S&nbsp;&nbsp;&nbsp; P&nbsp; P A&nbsp; A S&nbsp;&nbsp;&nbsp; S&nbsp;&nbsp;&nbsp; P4ro A4ro S4ro S4ro P&nbsp;&nbsp;&nbsp; A&nbsp; A &nbsp;&nbsp;&nbsp;S &nbsp;&nbsp;&nbsp;S P&nbsp;&nbsp;&nbsp; A&nbsp; A &nbsp;&nbsp;&nbsp;S &nbsp;&nbsp;&nbsp;S P&nbsp;&nbsp;&nbsp; A&nbsp; A S7ro S7ro</div>
 
  </body>
 </html>

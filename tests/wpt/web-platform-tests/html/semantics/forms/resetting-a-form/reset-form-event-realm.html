@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>reset() event firing realm</title>
+<link rel="help" href="https://html.spec.whatwg.org/#resetting-a-form">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-event-fire">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe src="reset-form-event-realm-support.html"></iframe>
+<iframe></iframe>
+
+<script>
+"use strict";
+
+async_test(t => {
+  window.onload = t.step_func_done(() => {
+    const frame0Form  = frames[0].document.forms[0];
+    const frame1Body = frames[1].document.body;
+
+    frame1Body.appendChild(frame0Form);
+
+    let resetCalled = false;
+    frame0Form.onreset = t.step_func(ev => {
+      resetCalled = true;
+
+      const functionConstructorInEvRealm = ev.constructor.constructor;
+      const functionConstructorInFormRealm = frame0Form.constructor.constructor;
+
+      assert_equals(functionConstructorInEvRealm, functionConstructorInFormRealm,
+        "the event must be created in the realm of the target");
+    });
+
+    frame0Form.reset();
+    assert_true(resetCalled, "The reset event handler must have been called");
+  });
+}, "reset()'s event must be fired in the Realm of the target")
+</script>

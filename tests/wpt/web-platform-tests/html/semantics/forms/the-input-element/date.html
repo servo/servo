@@ -16,7 +16,7 @@
       <input id="too_large_value" type="date" value="2099-01-31" min="2011-01-01" max="2011-12-31"/>
       <input id="invalid_min" type="date" value="2011-01-01" min="1999-1" max="2011-12-31"/>
       <input id="invalid_max" type="date" value="2011-01-01" min="2011-01-01" max="2011-13-162-777"/>
-      <input id="min_larger_than_max" type="date" value="2011-01-01" min="2099-01" max="2011-12-31"/>
+      <input id="min_larger_than_max" type="date" value="2011-01-01" min="2099-01-01" max="2011-12-31"/>
       <input id="invalid_value" type="date" value="invalid-date" min="2011-01-01" max="2011-12-31"/>
     </div>
 
@@ -29,20 +29,20 @@
 
       test(function() {
         assert_equals(document.getElementById("valid").value, "2011-11-01");
-        assert_equals(document.getElementById("too_small_value").value, "2011-01-01");
-        assert_equals(document.getElementById("too_large_value").value, "2011-12-31");
+        assert_equals(document.getElementById("too_small_value").value, "1999-01-31");
+        assert_equals(document.getElementById("too_large_value").value, "2099-01-31");
       }, "The value attribute, if specified and not empty, must have a value that is a valid date string.");
 
       test(function() {
-        assert_equals(document.getElementById("valid").min, "2011-01-01"),
-        assert_equals(document.getElementById("invalid_min").min, "")
-      }, "The min attribute, if specified, must have a value that is a valid date string.");
+        assert_equals(document.getElementById("valid").min, "2011-01-01");
+        assert_equals(document.getElementById("invalid_min").min, "1999-1");
+      }, "The min attribute must be reflected verbatim by the min property.");
 
       test(function() {
-        assert_equals(document.getElementById("valid").max, "2011-12-31"),
-        assert_equals(document.getElementById("min_larger_than_max").max, "2099-01"),
-        assert_equals(document.getElementById("invalid_max").max, "")
-      },"The max attribute, if specified, must have a value that is a valid date string.");
+        assert_equals(document.getElementById("valid").max, "2011-12-31");
+        assert_equals(document.getElementById("min_larger_than_max").max, "2011-12-31");
+        assert_equals(document.getElementById("invalid_max").max, "2011-13-162-777");
+      }, "The max attribute must be reflected verbatim by the max property.");
 
       test(function() {
         assert_equals(document.getElementById("invalid_value").value, "");

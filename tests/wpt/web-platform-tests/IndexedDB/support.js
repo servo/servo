@@ -62,12 +62,14 @@ function createdb_for_multiple_tests(dbname, version) {
                     assert_unreached("unexpected open." + evt + " event");
                 }
 
-                if (e.target.result + "" == "[object IDBDatabase]" && !this.db) {
-                    this.db = e.target.result;
+                if (e.target.result + '' == '[object IDBDatabase]' &&
+                    !this.db) {
+                  this.db = e.target.result;
 
-                    this.db.onerror = fail(test, "unexpected db.error");
-                    this.db.onabort = fail(test, "unexpected db.abort");
-                    this.db.onversionchange = fail(test, "unexpected db.versionchange");
+                  this.db.onerror = fail(test, 'unexpected db.error');
+                  this.db.onabort = fail(test, 'unexpected db.abort');
+                  this.db.onversionchange =
+                      fail(test, 'unexpected db.versionchange');
                 }
             })
         })
@@ -102,22 +104,42 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
-function indexeddb_test(upgrade_func, open_func, description) {
-    async_test(function(t) {
-        var dbname = document.location + '-' + t.name;
-        var del = indexedDB.deleteDatabase(dbname);
-        del.onerror = t.unreached_func('deleteDatabase should succeed');
-        var open = indexedDB.open(dbname, 1);
-        open.onerror = t.unreached_func('open should succeed');
-        open.onupgradeneeded = t.step_func(function() {
-            var db = open.result;
-            var tx = open.transaction;
-            upgrade_func(t, db, tx);
-        });
-        open.onsuccess = t.step_func(function() {
-            var db = open.result;
-            if (open_func)
-                open_func(t, db);
-        });
-    }, description);
+function indexeddb_test(upgrade_func, open_func, description, options) {
+  async_test(function(t) {
+    var options = Object.assign({upgrade_will_abort: false}, options);
+    var dbname = document.location + '-' + t.name;
+    var del = indexedDB.deleteDatabase(dbname);
+    del.onerror = t.unreached_func('deleteDatabase should succeed');
+    var open = indexedDB.open(dbname, 1);
+    if (!options.upgrade_will_abort) {
+      open.onsuccess = t.unreached_func('open should not succeed');
+    } else {
+      open.onerror = t.unreached_func('open should succeed');
+    }
+    open.onupgradeneeded = t.step_func(function() {
+      var db = open.result;
+      var tx = open.transaction;
+      upgrade_func(t, db, tx);
+    });
+    open.onsuccess = t.step_func(function() {
+      var db = open.result;
+      if (open_func)
+        open_func(t, db);
+    });
+  }, description);
+}
+
+// Call with a Test and an array of expected results in order. Returns
+// a function; call the function when a result arrives and when the
+// expected number appear the order will be asserted and test
+// completed.
+function expect(t, expected) {
+  var results = [];
+  return result => {
+    results.push(result);
+    if (results.length === expected.length) {
+      assert_array_equals(results, expected);
+      t.done();
+    }
+  };
 }

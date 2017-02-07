@@ -7,8 +7,8 @@ html/css-vars-custom-property-case-sensitive-001.htm	6621d4c36be7454a8997bbf8159
 xhtml1/css-vars-custom-property-case-sensitive-001.xht	6621d4c36be7454a8997bbf8159288825000133e	?
 html/css-vars-custom-property-inheritance.htm	81714590ccc94dddb3216fd5223891ccc9ad4b6c	?
 xhtml1/css-vars-custom-property-inheritance.xht	81714590ccc94dddb3216fd5223891ccc9ad4b6c	?
-html/test_variable_legal_values.htm	019cbba84cf2951566a7d363f4ddc78b6b6f8c65	?
-xhtml1/test_variable_legal_values.xht	019cbba84cf2951566a7d363f4ddc78b6b6f8c65	?
+html/test_variable_legal_values.htm	b9949c109b9887821bf9c20a5f783c657af9c21d	?
+xhtml1/test_variable_legal_values.xht	b9949c109b9887821bf9c20a5f783c657af9c21d	?
 html/variable-declaration-01.htm	0d1c6d96e6f0c7dc9082c8d616b52a74a92c5bac	?
 xhtml1/variable-declaration-01.xht	0d1c6d96e6f0c7dc9082c8d616b52a74a92c5bac	?
 html/variable-declaration-02.htm	c6d3c7d84d4ea1c2322da25c5b67babc33c90506	?
@@ -219,6 +219,8 @@ html/variable-reference-39.htm	87d4f5a8474c7d505a5cedf330b69adbe72425e5	?
 xhtml1/variable-reference-39.xht	87d4f5a8474c7d505a5cedf330b69adbe72425e5	?
 html/variable-reference-40.htm	2dc90de2f2ee674455cc427c1ce8f1e62d9dffee	?
 xhtml1/variable-reference-40.xht	2dc90de2f2ee674455cc427c1ce8f1e62d9dffee	?
+html/variable-reference-without-whitespace.htm	062eab7f81eadff677d0987d9348686f1d158c65	?
+xhtml1/variable-reference-without-whitespace.xht	062eab7f81eadff677d0987d9348686f1d158c65	?
 html/variable-supports-01.htm	aea47c3174023e5424aa8e183ae5915ea18d4ebc	?
 xhtml1/variable-supports-01.xht	aea47c3174023e5424aa8e183ae5915ea18d4ebc	?
 html/variable-supports-02.htm	69456e5880107a4d5d00ef0d6ccc9475abb77331	?
@@ -353,3 +355,7 @@ html/variable-supports-66.htm	2ca28cc9c29d2083fe0b3ed3a4cb764d41a44ed0	?
 xhtml1/variable-supports-66.xht	2ca28cc9c29d2083fe0b3ed3a4cb764d41a44ed0	?
 html/variable-supports-67.htm	d9318198dd393ada88c2c242984cb90ebafa41ee	?
 xhtml1/variable-supports-67.xht	d9318198dd393ada88c2c242984cb90ebafa41ee	?
+html/vars-background-shorthand-001.htm	d7b7e9048415c5b744cc06421f3f773666fc1d0c	?
+xhtml1/vars-background-shorthand-001.xht	d7b7e9048415c5b744cc06421f3f773666fc1d0c	?
+html/vars-font-shorthand-001.htm	22e745357e4d44cccd6e43a7347ce51c7fe75480	?
+xhtml1/vars-font-shorthand-001.xht	22e745357e4d44cccd6e43a7347ce51c7fe75480	?

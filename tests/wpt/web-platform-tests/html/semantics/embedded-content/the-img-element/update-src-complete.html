@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Changing the img src should retain the 'complete' property</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<p id="display"><img src="image.png"></p>
+<script>
+    function check() {
+        var img = document.querySelector("img");
+        assert_true(img.complete, "By onload, image should have loaded");
+        img.src = `image.png?${Math.random()}`;
+        assert_false(img.complete, "Now that we're loading we should no longer be complete");
+        img.onload = function () {
+            assert_true(img.complete, "The new thing should have loaded.");
+            done();
+        }
+    }
+
+    onload = function () {
+        check();
+    };
+
+</script>

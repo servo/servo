@@ -12,22 +12,18 @@
     <p>Rotate the device frame around its z axis to run the test.</p>
     <div id="log"></div>
     <script>
-      var alpha = 0;
+      var t1 = async_test("Alpha is in [0, 360)");
       var run = false;
       window.addEventListener("deviceorientation", function(e) {
-        if (!run) {
+        if (!run && e.alpha !== null) {
           run = true;
-          alpha = e.alpha;
+          t1.step(function() {
+            assert_greater_than_equal(e.alpha, 0);
+            assert_less_than(e.alpha, 360);
+          });
+          t1.done();
         }
       }, false);
-
-      test(function() {
-        assert_true(alpha > 0 && alpha < 360);
-      }, "Alpha is between 0 and 360");
-
-      test(function() {
-        assert_false(alpha > -2 && alpha < 2);
-      }, "Alpha is not around zero (between 0 and 2)");
     </script>
   </body>
 </html>

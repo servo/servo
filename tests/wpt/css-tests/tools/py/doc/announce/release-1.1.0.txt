@@ -1,0 +1,115 @@
+py.test/pylib 1.1.0: Python3, Jython, advanced skipping, cleanups ...
+--------------------------------------------------------------------------------
+
+Features:
+
+* compatible to Python3 (single py2/py3 source), `easy to install`_
+* conditional skipping_: skip/xfail based on platform/dependencies
+* generalized marking_: mark tests one a whole-class or whole-module basis
+
+Fixes:
+
+* code reduction and "de-magification" (e.g. 23 KLoc -> 11 KLOC)
+* distribute testing requires the now separately released execnet_ package
+* funcarg-setup/caching, "same-name" test modules now cause an exlicit error
+* de-cluttered reporting options, --report for skipped/xfail details
+
+Compatibilities
+
+1.1.0 should allow running test code that already worked well with 1.0.2
+plus some more due to improved unittest/nose compatibility.
+
+More information: http://pytest.org
+
+thanks and have fun,
+
+holger (http://twitter.com/hpk42)
+
+.. _execnet: http://codespeak.net/execnet
+.. _`easy to install`: ../install.html
+.. _marking: ../test/plugin/mark.html
+.. _skipping: ../test/plugin/skipping.html
+
+
+Changelog 1.0.2 -> 1.1.0
+-----------------------------------------------------------------------
+
+* remove py.rest tool and internal namespace - it was
+  never really advertised and can still be used with
+  the old release if needed.  If there is interest
+  it could be revived into its own tool i guess.
+
+* fix issue48 and issue59: raise an Error if the module
+  from an imported test file does not seem to come from
+  the filepath - avoids "same-name" confusion that has
+  been reported repeatedly
+
+* merged Ronny's nose-compatibility hacks: now
+  nose-style setup_module() and setup() functions are
+  supported
+
+* introduce generalized py.test.mark function marking
+
+* reshuffle / refine command line grouping
+
+* deprecate parser.addgroup in favour of getgroup which creates option group
+
+* add --report command line option that allows to control showing of skipped/xfailed sections
+
+* generalized skipping: a new way to mark python functions with skipif or xfail
+  at function, class and modules level based on platform or sys-module attributes.
+
+* extend py.test.mark decorator to allow for positional args
+
+* introduce and test "py.cleanup -d" to remove empty directories
+
+* fix issue #59 - robustify unittest test collection
+
+* make bpython/help interaction work by adding an __all__ attribute
+  to ApiModule, cleanup initpkg
+
+* use MIT license for pylib, add some contributors
+
+* remove py.execnet code and substitute all usages with 'execnet' proper
+
+* fix issue50 - cached_setup now caches more to expectations
+  for test functions with multiple arguments.
+
+* merge Jarko's fixes, issue #45 and #46
+
+* add the ability to specify a path for py.lookup to search in
+
+* fix a funcarg cached_setup bug probably only occuring
+  in distributed testing and "module" scope with teardown.
+
+* many fixes and changes for making the code base python3 compatible,
+  many thanks to Benjamin Peterson for helping with this.
+
+* consolidate builtins implementation to be compatible with >=2.3,
+  add helpers to ease keeping 2 and 3k compatible code
+
+* deprecate py.compat.doctest|subprocess|textwrap|optparse
+
+* deprecate py.magic.autopath, remove py/magic directory
+
+* move pytest assertion handling to py/code and a pytest_assertion
+  plugin, add "--no-assert" option, deprecate py.magic namespaces
+  in favour of (less) py.code ones.
+
+* consolidate and cleanup py/code classes and files
+
+* cleanup py/misc, move tests to bin-for-dist
+
+* introduce delattr/delitem/delenv methods to py.test's monkeypatch funcarg
+
+* consolidate py.log implementation, remove old approach.
+
+* introduce py.io.TextIO and py.io.BytesIO for distinguishing between
+  text/unicode and byte-streams (uses underlying standard lib io.*
+  if available)
+
+* make py.unittest_convert helper script available which converts "unittest.py"
+  style files into the simpler assert/direct-test-classes py.test/nosetests
+  style.  The script was written by Laura Creighton.
+
+* simplified internal localpath implementation

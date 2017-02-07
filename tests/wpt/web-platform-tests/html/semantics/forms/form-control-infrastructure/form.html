@@ -9,7 +9,6 @@
 <p><button id="button">button</button>
 <p><fieldset id="fieldset">fieldset</fieldset>
 <p><input id="input">
-<p><keygen id="keygen">
 <p><object id="object">object</object>
 <p><output id="output">output</output>
 <p><select id="select"><option>select</option></select>
@@ -21,8 +20,6 @@
 <p><label id="label-form-form2" form="form2">label-form-form2</label>
 <p><label id="label-with-control">label-with-control <input></label>
 <p><label id="label-for" for="control-for-label">label-for</label> <input id="control-for-label">
-<p><label id="label-with-progress">label-with-progress <progress></progress></label>
-<p><label id="label-with-meter">label-with-meter <meter></meter></label>
 <p>
  <input id="input-with-form-attr-in-form" form="form2">
  <label id="label-for-control-form-in-form" for="input-with-form-attr-in-form">label-for-control-form-in-form</label>
@@ -59,7 +56,6 @@ var listedElements = [
   "button",
   "fieldset",
   "input",
-  "keygen",
   "object",
   "output",
   "select",
@@ -87,8 +83,6 @@ testLabel("label-form", null);
 testLabel("label-form-form2", null);
 testLabel("label-with-control", form);
 testLabel("label-for", form);
-testLabel("label-with-progress", null);
-testLabel("label-with-meter", null);
 testLabel("label-for-control-form-in-form", form2);
 testLabel("label-for-control-form", form2);
 testLabel("label-in-table", null);

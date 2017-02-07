@@ -71,24 +71,30 @@
         }
       );
 
-      // HTML5 spec says the default vaules of min and max attributes are 0 and 100 respectively,
-      // however, Chrome, Opera and Firefox would not give any default value at all...
       test(
         function() {
-          assert_equals(document.getElementById('illegal_min_and_max').min, "0")
+          assert_equals(document.getElementById('illegal_min_and_max').min, "ab")
         },
         "Illegal value of min attribute",
         {
-          "help" : "https://html.spec.whatwg.org/multipage/#range-state-(type=range)"
+          "help" : [
+            "https://html.spec.whatwg.org/multipage/#dom-input-min",
+            "https://html.spec.whatwg.org/multipage/#range-state-(type=range)"
+          ]
         }
       );
 
       test(
         function() {
-          assert_equals(document.getElementById('illegal_min_and_max').max, "100")
+          assert_equals(document.getElementById('illegal_min_and_max').max, "f")
         },
         "Illegal value of max attribute",
-        { "help" : "https://html.spec.whatwg.org/multipage/#range-state-(type=range)" }
+        {
+          "help" : [
+            "https://html.spec.whatwg.org/multipage/#dom-input-max",
+            "https://html.spec.whatwg.org/multipage/#range-state-(type=range)"
+          ]
+        }
       );
 
       test(
@@ -103,10 +109,15 @@
 
       test(
         function() {
-          assert_equals(document.getElementById('illegal_value_and_step').step, "1")
+          assert_equals(document.getElementById('illegal_value_and_step').step, "xyz")
         },
-        "Converting an illegal string to the default step",
-        { "help" : "https://html.spec.whatwg.org/multipage/#range-state-(type=range)" }
+        "Illegal value of step attribute",
+        {
+          "help" : [
+            "https://html.spec.whatwg.org/multipage/#dom-input-step",
+            "https://html.spec.whatwg.org/multipage/#range-state-(type=range)"
+          ]
+        }
       );
 
       test(
@@ -131,7 +142,7 @@
 
       test(
         function() {
-          assert_equals(document.getElementById('empty_attributes').min, "0")
+          assert_equals(document.getElementById('empty_attributes').min, "")
         },
         "default value of min attribute in input type=range",
         { "help" : "https://html.spec.whatwg.org/multipage/#dom-input-min" }
@@ -139,7 +150,7 @@
 
       test(
         function() {
-          assert_equals(document.getElementById('empty_attributes').max, "100")
+          assert_equals(document.getElementById('empty_attributes').max, "")
         },
         "default value of max attribute in input type=range",
         {

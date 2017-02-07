@@ -6,6 +6,8 @@
 <generic xmlns:xlink="http://www.w3.org/1999/xlink">
 
   <link xmlns="http://www.w3.org/1999/xhtml" rel="alternate" href="http://www.hixie.ch/tests/adhoc/css/background/21.xml" type="application/xhtml+xml"/>
+  <link xmlns="http://www.w3.org/1999/xhtml" rel="help" href="https://www.w3.org/TR/CSS2/colors.html#background"/> <!-- I have no real idea of what this is trying to test -->
+  <link xmlns="http://www.w3.org/1999/xhtml" rel="match" href="background-19-alt.xml"/>
 
    <!-->CSS Test: Background: Test Nineteen</-->
 

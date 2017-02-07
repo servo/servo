@@ -1,5 +1,6 @@
 import functools
 import os
+import random
 import shutil
 import subprocess
 import tempfile
@@ -56,7 +57,13 @@ class OpenSSL(object):
             self.cmd += ["-config", self.conf_path]
         self.cmd += list(args)
 
-        env = os.environ.copy()
+        # Copy the environment, converting to plain strings. Windows
+        # StartProcess is picky about all the keys/values being plain strings,
+        # but at least in MSYS shells, the os.environ dictionary can be mixed.
+        env = {}
+        for k, v in os.environ.iteritems():
+            env[k.encode("utf8")] = v.encode("utf8")
+
         if self.base_conf_path is not None:
             env["OPENSSL_CONF"] = self.base_conf_path.encode("utf8")
 
@@ -251,7 +258,10 @@ class OpenSSLEnvironment(object):
         with open(path("index.txt"), "w"):
             pass
         with open(path("serial"), "w") as f:
-            f.write("01")
+            serial = "%x" % random.randint(0, 1000000)
+            if len(serial) % 2:
+                serial = "0" + serial
+            f.write(serial)
 
         self.path = path
 

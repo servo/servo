@@ -39,6 +39,9 @@ following entries are required:
 0.0.0.0     nonexistent-origin.web-platform.test
 ```
 
+If you are behind a proxy, you also need to make sure the domains above are
+excluded from your proxy lookups.
+
 Because web-platform-tests uses git submodules, you must ensure that
 these are up to date. In the root of your checkout, run:
 
@@ -131,8 +134,10 @@ Publication
 
 The master branch is automatically synced to http://w3c-test.org/.
 
-Pull requests that have been checked are automatically mirrored to
-http://w3c-test.org/submissions/.
+Pull requests are automatically mirrored to
+http://w3c-test.org/submissions/ a few minutes after someone with merge
+access has added a comment with "LGTM" (or "w3c-test:mirror") to indicate
+the PR has been checked.
 
 Finding Things
 ==============

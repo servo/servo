@@ -20,7 +20,7 @@
                     detected_pointertypes[event.pointerType] = true;
                     target0.setPointerCapture(event.pointerId);
                     target0.releasePointerCapture(event.pointerId);
-                    assert_equals(target0.hasPointerCapture(e.pointerId), false, "After target0.releasePointerCapture, target0.hasPointerCapture should be false");
+                    assert_equals(target0.hasPointerCapture(event.pointerId), false, "After target0.releasePointerCapture, target0.hasPointerCapture should be false");
                 });
 
                 on_event(target0, "gotpointercapture", function (event) {

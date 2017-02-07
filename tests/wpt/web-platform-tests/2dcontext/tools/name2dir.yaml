@@ -41,5 +41,6 @@ fallback:                             "../html/semantics/embedded-content/the-ca
 initial:                              "../html/semantics/embedded-content/the-canvas-element/"
 security:                             "../html/semantics/embedded-content/the-canvas-element/"
 size:                                 "../html/semantics/embedded-content/the-canvas-element/"
+toBlob:                               "../html/semantics/embedded-content/the-canvas-element/"
 toDataURL:                            "../html/semantics/embedded-content/the-canvas-element/"
 type:                                 "../html/semantics/embedded-content/the-canvas-element/"

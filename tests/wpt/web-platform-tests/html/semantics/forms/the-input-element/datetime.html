@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Date & Time Inputs</title>
+    <title>Date and Time Inputs</title>
     <meta name=viewport content="width=device-width, maximum-scale=1.0, user-scalable=no" />
     <link rel="author" title="Fabrice Clari" href="mailto:f.clari@inno-group.com">
     <link rel="author" title="Dimitri Bocquet" href="mailto:Dimitri.Bocquet@mosquito-fp7.eu">
@@ -11,11 +11,11 @@
   </head>
   <body>
 
-      <h1>Date & Time Inputs</h1>
+      <h1>Date and Time Inputs</h1>
       <div style="display: none">
         <input type="date" value="2011-12-01" min="2011-12-01" max="2011-12-31" step="5" />
         <input type="time" value= "12:00" min="11:30" max="14:00" step="600" />
-        <input type="datetime" value="2011-12-01T12:00Z" min="2011-12-01T12:00Z" max="2011-12-31T22:00Z" step="7200" />
+        <input type="datetime-local" value="2011-12-01T12:00" min="2011-12-01T12:00" max="2011-12-31T22:00" step="7200" />
         <input type="month" value="2011-01" min="2011-01" max="2011-12" step="2" />
         <input type="week" value="2011-W40" min="2011-W20" max="2011-W50" step="2" />
     </div>
@@ -54,19 +54,19 @@
     test(function() {assert_true(typeof(document.getElementsByTagName("input")[1].stepDown) == "function")}, "[time] stepDown method support on input 'time' element", {
       "help" : "https://html.spec.whatwg.org/multipage/#dom-input-stepdown" });
 
-    test(function() {assert_equals(document.getElementsByTagName("input")[2].type, "datetime")}, "datetime type support on input element", {
+    test(function() {assert_equals(document.getElementsByTagName("input")[2].type, "datetime-local")}, "datetime-local type support on input element", {
       "help" : "https://html.spec.whatwg.org/multipage/#dom-input-type" });
-    test(function() {assert_equals(document.getElementsByTagName("input")[2].value, "2011-12-01T12:00Z")}, "[datetime] The must be a valid global date and time string", {
+    test(function() {assert_equals(document.getElementsByTagName("input")[2].value, "2011-12-01T12:00")}, "[datetime-local] The must be a valid local date and time string", {
       "help" : "https://html.spec.whatwg.org/multipage/#dom-input-value" });
-    test(function() {assert_equals(document.getElementsByTagName("input")[2].min, "2011-12-01T12:00Z")}, "[datetime] The min attribute must have a value that is a valid global date and time string", {
+    test(function() {assert_equals(document.getElementsByTagName("input")[2].min, "2011-12-01T12:00")}, "[datetime-local] The min attribute must have a value that is a valid local date and time string", {
       "help" : "https://html.spec.whatwg.org/multipage/#dom-input-min" });
-    test(function() {assert_equals(document.getElementsByTagName("input")[2].max, "2011-12-31T22:00Z")}, "[datetime] The max attribute must have a value that is a valid global date and time string", {
+    test(function() {assert_equals(document.getElementsByTagName("input")[2].max, "2011-12-31T22:00")}, "[datetime-local] The max attribute must have a value that is a valid local date and time string", {
       "help" : "https://html.spec.whatwg.org/multipage/#dom-input-max" });
-    test(function() {assert_equals(document.getElementsByTagName("input")[2].step, "7200")}, "[datetime] The step attribute must be expressed in seconds", {
+    test(function() {assert_equals(document.getElementsByTagName("input")[2].step, "7200")}, "[datetime-local] The step attribute must be expressed in seconds", {
       "help" : "https://html.spec.whatwg.org/multipage/#dom-input-step" });
-    test(function() {assert_true(typeof(document.getElementsByTagName("input")[2].stepUp) == "function")}, "[datetime] stepUp method support on input 'datetime' element", {
+    test(function() {assert_true(typeof(document.getElementsByTagName("input")[2].stepUp) == "function")}, "[datetime-local] stepUp method support on input 'datetime-local' element", {
       "help" : "https://html.spec.whatwg.org/multipage/#dom-input-stepup" });
-    test(function() {assert_true(typeof(document.getElementsByTagName("input")[2].stepDown) == "function")}, "[datetime] stepDown method support on input 'datetime' element", {
+    test(function() {assert_true(typeof(document.getElementsByTagName("input")[2].stepDown) == "function")}, "[datetime-local] stepDown method support on input 'datetime-local' element", {
       "help" : "https://html.spec.whatwg.org/multipage/#dom-input-stepdown" });
 
     test(function() {assert_equals(document.getElementsByTagName("input")[3].type, "month")}, "month type support on input element", {

@@ -52,20 +52,20 @@
     assert_true(document.getElementById('fs2').disabled, "The fieldset is disabled");
     assert_false(document.getElementById('clubname2').willValidate, "fieldset is disabled so is input 'clubname2'");
     assert_false(document.getElementById('clubnum2').willValidate, "fieldset is disabled so is input 'clubnum2'");
-    assert_false(document.getElementById('club2').willValidate, "the first legend is not a child of the disbled fieldset: input 'club2' is disabled");
+    assert_false(document.getElementById('club2').willValidate, "the first legend is not a child of the disabled fieldset: input 'club2' is disabled");
   }, "The first 'legend' element is not a child of the disabled fieldset: Its descendants should be disabled.");
 
   test(function () {
     assert_true(document.getElementById('fs3').disabled, "The fieldset is disabled");
     assert_false(document.getElementById('clubname3').willValidate, "fieldset is disabled so is input 'clubname3'");
     assert_false(document.getElementById('clubnum3').willValidate, "fieldset is disabled so is input 'clubnum3'");
-    assert_false(document.getElementById('club3').willValidate, "the first legend is not a child of the disbled fieldset: input 'club3' is disabled");
+    assert_false(document.getElementById('club3').willValidate, "the first legend is not a child of the disabled fieldset: input 'club3' is disabled");
   }, "The <legend> element is not a child of the disabled fieldset: Its descendants should be disabled.");
 
   test(function () {
     assert_true(document.getElementById('fs4').disabled, "The fieldset is disabled");
     assert_false(document.getElementById('clubname4').willValidate, "fieldset is disabled so is input 'clubname4'");
     assert_false(document.getElementById('clubnum4').willValidate, "fieldset is disabled so is input 'clubnum4'");
-    assert_true(document.getElementById('club4').willValidate, "the first legend a child of the disbled fieldset: input 'club4' is disabled");
+    assert_true(document.getElementById('club4').willValidate, "the first legend a child of the disabled fieldset: input 'club4' is disabled");
   }, "The <legend> element is child of the disabled fieldset: Its descendants should be disabled.");
 </script>

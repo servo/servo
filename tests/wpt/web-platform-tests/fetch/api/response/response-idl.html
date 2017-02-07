@@ -18,6 +18,7 @@
       [NoInterfaceObject,
       Exposed=(Window,Worker)]
       interface Body {
+        readonly attribute ReadableStream? body;
         readonly attribute boolean bodyUsed;
         [NewObject] Promise<ArrayBuffer> arrayBuffer();
         [NewObject] Promise<Blob> blob();
@@ -40,7 +41,6 @@
         readonly attribute boolean ok;
         readonly attribute ByteString statusText;
         [SameObject] readonly attribute Headers headers;
-        readonly attribute ReadableStream? body;
 
         [NewObject] Response clone();
       };

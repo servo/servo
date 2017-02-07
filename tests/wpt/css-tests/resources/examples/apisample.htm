@@ -1,0 +1,175 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Sample HTML5 API Tests</title>
+<meta name="timeout" content="6000">
+</head>
+<body onload="load_test_attr.done()">
+<h1>Sample HTML5 API Tests</h1>
+<div id="log"></div>
+<script src="../testharness.js"></script>
+<script src="../testharnessreport.js"></script>
+<script>
+    setup_run = false;
+    setup(function() {
+            setup_run = true;
+          });
+    test(function() {assert_true(setup_run)}, "Setup function ran");
+
+    // Two examples for testing events from handler and attributes
+    var load_test_event = async_test("window onload event fires when set from the handler");
+
+    function windowLoad()
+    {
+        load_test_event.done();
+    }
+    on_event(window, "load", windowLoad);
+
+    // see the body onload below
+    var load_test_attr = async_test("body element fires the onload event set from the attribute");
+</script>
+<script>
+    function bodyElement()
+    {
+        assert_equals(document.body, document.getElementsByTagName("body")[0]);
+    }
+    test(bodyElement, "document.body should be the first body element in the document");
+
+    test(function() {
+        assert_equals(1,1);
+        assert_equals(NaN, NaN, "NaN case");
+        assert_equals(0, 0, "Zero case");
+    }, "assert_equals tests")
+
+    test(function() {
+        assert_equals(-0, 0, "Zero case");
+    }, "assert_equals tests expected to fail")
+
+    test(function() {
+        assert_not_equals({}, {}, "object case");
+        assert_not_equals(-0, 0, "Zero case");
+    }, "assert_not_equals tests")
+
+    function testAssertPass()
+    {
+        assert_true(true);
+    }
+    test(testAssertPass, "assert_true expected to pass");
+
+    function testAssertFalse()
+    {
+        assert_true(false, "false should not be true");
+    }
+    test(testAssertFalse, "assert_true expected to fail");
+
+    function basicAssertArrayEquals()
+    {
+        assert_array_equals([1, NaN], [1, NaN], "[1, NaN] is equal to [1, NaN]");
+    }
+    test(basicAssertArrayEquals, "basic assert_array_equals test");
+
+    function basicAssertObjectEquals()
+    {
+        assert_object_equals([1, 2, [1, 2]], { 0: 1, 1: 2, 2: { 0: 1, 1: 2} }, "array is equal to object")
+    }
+    test(basicAssertObjectEquals, "basic assert_object_equals test");
+
+    function basicAssertApproxEquals()
+    {
+        assert_approx_equals(10, 11, 1, "10 is approximately (+/- 1) 11")
+    }
+    test(basicAssertApproxEquals, "basic assert_approx_equals test");
+
+    function basicAssertLessThan()
+    {
+        assert_less_than(10, 11, "10 is less than 11")
+    }
+    test(basicAssertApproxEquals, "basic assert_less_than test");
+
+    function basicAssertGreaterThan()
+    {
+        assert_greater_than(10, 11, "10 is not greater than 11");
+    }
+    test(basicAssertGreaterThan, "assert_greater_than expected to fail");
+
+    function basicAssertGreaterThanEqual()
+    {
+        assert_greater_than_equal(10, 10, "10 is greater than or equal to 10")
+    }
+    test(basicAssertGreaterThanEqual, "basic assert_greater_than_equal test");
+
+    function basicAssertLessThanEqual()
+    {
+        assert_greater_than_equal('10', 10, "'10' is not a number")
+    }
+    test(basicAssertLessThanEqual, "assert_less_than_equal expected to fail");
+
+    function testAssertInherits() {
+        var A = function(){this.a = "a"}
+        A.prototype = {b:"b"}
+        var a = new A();
+        assert_exists(a, "a");
+        assert_not_exists(a, "b");
+        assert_inherits(a, "b");
+    }
+    test(testAssertInherits, "test for assert[_not]_exists and insert_inherits")
+
+    test(function()
+    {
+        var a = document.createElement("a")
+        var b = document.createElement("b")
+        assert_throws("NOT_FOUND_ERR", function(){a.removeChild(b)});
+    }, "Test throw DOM exception")
+
+    test(function()
+    {
+        var a = document.createTextNode("a")
+        var b = document.createElement("b")
+        assert_throws("NOT_FOUND_ERR", function(){a.appendChild(b)});
+    }, "Test throw DOM exception expected to fail")
+
+    test(function()
+    {
+        var e = {code:0, name:"TEST_ERR", TEST_ERR:0}
+        assert_throws("TEST_ERR", function() {throw e});
+    }, "Test assert_throws with non-DOM-exception expected to Fail");
+
+    var t = async_test("Test step_func")
+    setTimeout(
+      t.step_func(
+        function () {
+          assert_true(true); t.done();
+        }), 0);
+
+    async_test(function(t) {
+        setTimeout(t.step_func(function (){assert_true(true); t.done();}), 0);
+    }, "Test async test with callback");
+
+    async_test(function() {
+        setTimeout(this.step_func(function (){assert_true(true); this.done();}), 0);
+    }, "Test async test with callback and `this` obj.");
+
+    async_test("test should timeout (fail) with the default of 2 seconds").step(function(){});
+
+    async_test("test should timeout (fail) with a custom set timeout value of 1 second",
+               {timeout:1000}).step(function(){});
+
+    async_test("async test that is never started, should have status Not Run", {timeout:1000});
+
+
+    test(function(t) {
+             window.global = 1;
+             t.add_cleanup(function() {delete window.global});
+             assert_equals(window.global, 1);
+         },
+         "Test that defines a global and cleans it up");
+
+    test(function() {assert_equals(window.global, undefined)},
+         "Test that cleanup handlers from previous test ran");
+
+</script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>noModule IDL attribute must reflect nomodule content attribute</title>
+<link rel="author" title="Yusuke Suzuki" href="mailto:utatane.tea@gmail.com">
+<link rel="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script id="classicWithoutNomodule"></script>
+<script id="classicWithNomodule" nomodule></script>
+<script id="moduleWithoutNomodule" type=module></script>
+<script id="moduleWithNomodule" type=module nomodule></script>
+<script>
+
+test(() => {
+    assert_false(document.getElementById('classicWithoutNomodule').noModule);
+}, 'noModule IDL attribute on a parser created classic script element without nomodule content attribute');
+
+test(() => {
+    assert_true(document.getElementById('classicWithNomodule').noModule);
+}, 'noModule IDL attribute on a parser created classic script element with nomodule content attribute');
+
+test(() => {
+    assert_false(document.getElementById('moduleWithoutNomodule').noModule);
+}, 'noModule IDL attribute on a parser created module script element without nomodule content attribute');
+
+test(() => {
+    assert_true(document.getElementById('moduleWithNomodule').noModule);
+}, 'noModule IDL attribute on a parser created module script element with nomodule content attribute');
+
+
+test(() => {
+    const script = document.createElement('script');
+    assert_false(script.noModule);
+}, 'noModule IDL attribute on a dynamically created script element without nomodule content attribute');
+
+test(() => {
+    const script = document.createElement('script');
+    script.setAttribute('nomodule', 'nomodule');
+    assert_true(script.noModule);
+}, 'noModule IDL attribute on a dynamically created script element after nomodule content attribute is set to "nomodule"');
+
+test(() => {
+    const script = document.createElement('script');
+    script.setAttribute('nomodule', '');
+    assert_true(script.noModule);
+}, 'noModule IDL attribute on a dynamically created script element after nomodule content attribute is set to ""');
+
+test(() => {
+    const script = document.createElement('script');
+    script.setAttribute('nomodule', 'nomodule');
+    assert_true(script.noModule);
+    script.removeAttribute('nomodule');
+    assert_false(script.noModule);
+}, 'noModule IDL attribute on a dynamically created script element after nomodule content attribute had been removed');
+
+test(() => {
+    const script = document.createElement('script');
+    assert_false(script.hasAttribute('nomodule'));
+    script.noModule = true;
+    assert_true(script.hasAttribute('nomodule'));
+}, 'noModule IDL attribute must add nomodule content attribute on setting to true');
+
+test(() => {
+    const script = document.createElement('script');
+    script.setAttribute('nomodule', 'nomodule');
+    script.noModule = false;
+    assert_false(script.hasAttribute('nomodule'));
+}, 'noModule IDL attribute must remove nomodule content attribute on setting to false');
+
+</script>
+</body>
+</html>

@@ -68,11 +68,13 @@ async_test(function(t) {
 async_test(function(t) {
     var scope = 'resources/install-reject-precedence';
     var onRegister = function(worker) {
+        var obj = {};
         wait_for_state(t, worker, 'redundant')
           .then(function() {
               service_worker_unregister_and_done(t, scope);
             })
           .catch(unreached_rejection(t));
+        syncWorker(t, worker, obj);
       };
     runTest(t, scope, onRegister);
   }, 'Test ExtendableEvent waitUntil reject precedence.');

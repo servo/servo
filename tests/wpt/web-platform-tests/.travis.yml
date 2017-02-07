@@ -1,4 +1,5 @@
 dist: trusty
+sudo: required
 language: python
 addons:
   hosts:
@@ -23,6 +24,10 @@ matrix:
         - SCRIPT=ci_lint.sh
     - os: linux
       python: "2.7"
+      env:
+        - SCRIPT=ci_built_diff.sh
+    - os: linux
+      python: "2.7"
       addons:
         apt:
           packages:
@@ -30,7 +35,7 @@ matrix:
       env:
         - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
         - SCRIPT=ci_stability.sh
-        - PRODUCT=firefox
+        - PRODUCT=firefox:nightly
     - os: linux
       sudo: required
       python: "2.7"
@@ -42,10 +47,14 @@ matrix:
       env:
         - secure: "YTSXPwI0DyCA1GhYrLT9KMEV6b7QQKuEeaQgeFDP38OTzJ1+cIj3CC4SRNqbnJ/6SJwPGcdqSxLuV8m4e5HFFnyCcQnJe6h8EMsTehZ7W3j/fP9UYrJqYqvGpe3Vj3xblO5pwBYmq7sg3jAmmuCgAgOW6VGf7cRMucrsmFeo7VM="
         - SCRIPT=ci_stability.sh
-        - PRODUCT=chrome
+        - PRODUCT=chrome:unstable
 script:
   - bash $SCRIPT
+cache:
+  directories:
+    - $HOME/.cache/pip
 notifications:
   email:
     on_success: never
     on_failure: always
+  webhooks: https://w3c-test.org/prbuildbot.py

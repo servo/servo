@@ -380,4 +380,28 @@ promise_test(() => {
 }, 'Underlying source: calling error and returning a rejected promise from pull should cause the stream to error ' +
    'with the first error');
 
+const error1 = { name: 'error1' };
+
+promise_test(t => {
+
+  let pullShouldThrow = false;
+  const rs = new ReadableStream({
+    pull(controller) {
+      if (pullShouldThrow) {
+        throw error1;
+      }
+      controller.enqueue(0);
+    }
+  }, new CountQueuingStrategy({highWaterMark: 1}));
+  const reader = rs.getReader();
+  return Promise.resolve().then(() => {
+    pullShouldThrow = true;
+    return Promise.all([
+      reader.read(),
+      promise_rejects(t, error1, reader.closed, '.closed promise should reject')
+    ]);
+  });
+
+}, 'read should not error if it dequeues and pull() throws');
+
 done();

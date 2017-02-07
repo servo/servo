@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS 2.1 Conformance Test Suite</h1>
-  <h2>User interface (361 tests)</h2>
+  <h2>User interface (360 tests)</h2>
   <table width="100%">
     <col id="test-column">
     <col id="refs-column">
@@ -40,7 +40,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s18.1">+</a>
         <a href="https://www.w3.org/TR/CSS21/ui.html#cursor-props">18.1 Cursors: the 'cursor' property</a></th></tr>
-      <!-- 42 tests -->
+      <!-- 41 tests -->
       <tr id="cursor-001-18.1" class="image interact">
         <td>
             <a href="cursor-001.htm">cursor-001</a></td>
@@ -483,17 +483,6 @@
         <td>Url cursor
           <ul class="assert">
             <li>URI cursor is applied correctly.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="select-cursor-001-manual-18.1" class="HTMLonly interact">
-        <td>
-            <a href="select-cursor-001-manual.htm">select-cursor-001-manual</a></td>
-        <td></td>
-        <td><abbr class="interact" title="Requires user interaction">Interact</abbr></td>
-        <td>cursor property and select element
-          <ul class="assert">
-            <li>Hovering the pointer over a select menu on top of an element with a cursor set should not display said cursor</li>
           </ul>
         </td>
       </tr>
@@ -2905,6 +2894,17 @@
           </ul>
         </td>
       </tr>
+      <tr id="outline-color-176-18.4" class="primary">
+        <td><strong>
+            <a href="outline-color-176.htm">outline-color-176</a></strong></td>
+        <td></td>
+        <td></td>
+        <td>outline-color: invert - longhand form
+          <ul class="assert">
+            <li>This test checks that if color inversion on the pixels on the screen is supported by the user agent, then 'outline-color: invert' in this test should render a filled black square otherwise, if color inversion on the pixels on the screen is not supported by the user agent, then 'outline-color: invert' in this test should compute to the computed color value of the element ('currentColor' in CSS3 ui) which is orange in which case a filled orange square should be rendered.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="outline-color-applies-to-001-18.4" class="">
         <td>
             <a href="outline-color-applies-to-001.htm">outline-color-applies-to-001</a></td>
@@ -3166,17 +3166,6 @@
         <td>Outline is the same on all sides
           <ul class="assert">
             <li>Outline is the same on all sides.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="outline-layout-006-18.4" class="">
-        <td>
-            <a href="outline-layout-006.htm">outline-layout-006</a></td>
-        <td><a href="reference/outline-layout-006-ref.htm">=</a> </td>
-        <td></td>
-        <td>outline - minimum that encloses all the element's boxes
-          <ul class="assert">
-            <li>The outline of an element is the minimum outline that encloses all the element's boxes.</li>
           </ul>
         </td>
       </tr>
@@ -4184,7 +4173,7 @@
       <tr id="outline-width-096-18.4" class="">
         <td>
             <a href="outline-width-096.htm">outline-width-096</a></td>
-        <td></td>
+        <td><a href="reference/outline-width-096-ref.htm">=</a> </td>
         <td></td>
         <td>outline-width - 'outline-style: none' and inherit
           <ul class="assert">

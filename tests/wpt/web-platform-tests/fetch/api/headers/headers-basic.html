@@ -69,11 +69,12 @@
       }, "Create headers with existing headers");
 
       test(function() {
-        var headers = new Headers({test:"test"});
-        var headers2 = new Headers()
-        headers2[Symbol.iterator] = headers[Symbol.iterator]
-        var headers3 = new Headers(headers2)
-        assert_equals(headers3.get("test"), "test")
+        var headers = new Headers()
+        headers[Symbol.iterator] = function *() {
+          yield ["test", "test"]
+        }
+        var headers2 = new Headers(headers)
+        assert_equals(headers2.get("test"), "test")
       }, "Create headers with existing headers with custom iterator");
 
       test(function() {

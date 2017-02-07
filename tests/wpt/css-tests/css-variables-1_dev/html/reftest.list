@@ -106,6 +106,7 @@ variable-reference-37.htm == reference/variable-reference-37-ref.htm
 variable-reference-38.htm == reference/variable-reference-38-ref.htm
 variable-reference-39.htm == support/color-green-ref.htm
 variable-reference-40.htm == reference/variable-reference-40-ref.htm
+variable-reference-without-whitespace.htm == reference/variable-reference-without-whitespace-ref.htm
 variable-supports-01.htm == support/color-green-ref.htm
 variable-supports-02.htm == support/color-green-ref.htm
 variable-supports-03.htm == support/color-green-ref.htm
@@ -173,3 +174,5 @@ variable-supports-64.htm == support/color-green-ref.htm
 variable-supports-65.htm == support/color-green-ref.htm
 variable-supports-66.htm == support/color-green-ref.htm
 variable-supports-67.htm == support/color-green-ref.htm
+vars-background-shorthand-001.htm == reference/vars-background-shorthand-001-ref.htm
+vars-font-shorthand-001.htm == reference/vars-font-shorthand-001-ref.htm

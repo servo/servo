@@ -174,13 +174,49 @@
     {
         assert_equals(mediaElement.readyState, HTMLMediaElement.HAVE_NOTHING);
 
+        var initSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.init);
+        test.expectEvent(sourceBuffer, "updateend", "mediaSegment append ended.");
+        test.expectEvent(mediaElement, "loadedmetadata", "mediaElement metadata.");
+        sourceBuffer.appendBuffer(initSegment);
+
+        test.waitForExpectedEvents(function()
+        {
+            assert_equals(mediaElement.readyState, HTMLMediaElement.HAVE_METADATA);
+            var mediaSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[0]);
+            var index = segmentInfo.init.size + (mediaSegment.length - 1) / 2;
+            // Corrupt the media data from index of mediaData, so it can signal 'decode' error.
+            // Here use mediaSegment to replace the original mediaData[index, index + mediaSegment.length]
+            mediaData.set(mediaSegment, index);
+
+            test.expectEvent(sourceBuffer, "error", "sourceBuffer error.");
+            test.expectEvent(sourceBuffer, "updateend", "mediaSegment append ended.");
+            test.expectEvent(mediaElement, "error", "mediaElement error.");
+            test.expectEvent(mediaSource, "sourceended", "mediaSource ended.");
+            sourceBuffer.appendBuffer(mediaData);
+        });
+
+        test.waitForExpectedEvents(function()
+        {
+            assert_true(mediaElement.error != null);
+            assert_equals(mediaElement.error.code, MediaError.MEDIA_ERR_DECODE);
+            test.done();
+        });
+    }, "Signaling 'decode' error via segment parser loop algorithm after initialization segment has been appended.");
+
+    ErrorTest(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+    {
+        assert_equals(mediaElement.readyState, HTMLMediaElement.HAVE_NOTHING);
+
+        // Fail if the append error algorithm occurs, since the network
+        // error will be provided by us directly via endOfStream().
+        mediaElement.addEventListener("loadedmetadata", test.unreached_func("'loadedmetadata' should not be fired on mediaElement"));
+
         var mediaSegment = MediaSourceUtil.extractSegmentData(mediaData, segmentInfo.media[0]);
         var index = segmentInfo.init.size + (mediaSegment.length - 1) / 2;
         // Corrupt the media data from index of mediaData, so it can signal 'decode' error.
         // Here use mediaSegment to replace the original mediaData[index, index + mediaSegment.length]
         mediaData.set(mediaSegment, index);
 
-        test.expectEvent(mediaElement, "loadedmetadata", "mediaElement metadata.");
         test.expectEvent(sourceBuffer, "error", "sourceBuffer error.");
         test.expectEvent(sourceBuffer, "updateend", "mediaSegment append ended.");
         test.expectEvent(mediaElement, "error", "mediaElement error.");
@@ -189,9 +225,10 @@
 
         test.waitForExpectedEvents(function()
         {
+            assert_equals(mediaElement.readyState, HTMLMediaElement.HAVE_NOTHING);
             assert_true(mediaElement.error != null);
-            assert_equals(mediaElement.error.code, MediaError.MEDIA_ERR_DECODE);
+            assert_equals(mediaElement.error.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);
             test.done();
         });
-    }, "Signaling 'decode' error via segment parser loop algorithm after initialization segment and partial media segment has been appended.");
+    }, "Signaling 'decode' error via segment parser loop algorithm.");
 </script>

@@ -33,11 +33,8 @@ function corsPreflight(desc, corsUrl, method, allowed, headers, safeHeaders) {
       requestInit["headers"] = requestHeaders;
 
       if (allowed) {
-        urlParameters += "&allow_methods=" + method;
+        urlParameters += "&allow_methods=" + method + "&control_request_headers";
         if (headers) {
-          //Let's check prefligh request.
-          //Server will send back headers from Access-Control-Request-Headers in x-control-request-headers
-          urlParameters += "&control_request_headers"
           //Make the server allow the headers
           urlParameters += "&allow_headers=" + headerNames(headers).join("%20%2C");
         }
@@ -54,6 +51,8 @@ function corsPreflight(desc, corsUrl, method, allowed, headers, safeHeaders) {
             let accessControlAllowHeaders = headerNames(headers).sort().join(",");
             assert_equals(resp.headers.get("x-control-request-headers"), accessControlAllowHeaders, "Access-Control-Allow-Headers value");
             return fetch(RESOURCES_DIR + "clean-stash.py?token=" + uuid_token);
+          } else {
+            assert_equals(resp.headers.get("x-control-request-headers"), null, "Access-Control-Request-Headers should be omitted")
           }
         });
       } else {

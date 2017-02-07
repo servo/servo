@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>KeyframeEffect.composite tests</title>
+<link rel="help"
+      href="https://w3c.github.io/web-animations/#dom-keyframeeffect-composite">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(function(t) {
+  var anim = createDiv(t).animate(null);
+  assert_equals(anim.effect.composite, 'replace',
+                'The default value should be replace');
+}, 'Default value');
+
+test(function(t) {
+  var anim = createDiv(t).animate(null);
+  anim.effect.composite = 'add';
+  assert_equals(anim.effect.composite, 'add',
+                'The effect composite value should be replaced');
+}, 'Change composite value');
+
+test(function(t) {
+  var anim = createDiv(t).animate({ left: '10px' });
+
+  anim.effect.composite = 'add';
+  var keyframes = anim.effect.getKeyframes();
+  assert_equals(keyframes[0].composite, undefined,
+                'unspecified keyframe composite value should be absent even ' +
+                'if effect composite is set');
+}, 'Unspecified keyframe composite value when setting effect composite');
+
+test(function(t) {
+  var anim = createDiv(t).animate({ left: '10px', composite: 'replace' });
+
+  anim.effect.composite = 'add';
+  var keyframes = anim.effect.getKeyframes();
+  assert_equals(keyframes[0].composite, 'replace',
+                'specified keyframe composite value should not be overridden ' +
+                'by setting effect composite');
+}, 'Specified keyframe composite value when setting effect composite');
+
+</script>

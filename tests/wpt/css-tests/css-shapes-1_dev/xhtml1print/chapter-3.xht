@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Shapes Module Level 1 CR Test Suite</h1>
-  <h2>Basic Shapes (116 tests)</h2>
+  <h2>Basic Shapes (119 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -65,7 +65,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.1">+</a>
         <a href="https://www.w3.org/TR/css-shapes-1/#supported-basic-shapes">3.1 Supported Shapes</a></th></tr>
-      <!-- 23 tests -->
+      <!-- 26 tests -->
       <tr id="shape-outside-001-3.1" class="ahem">
         <td>
             <a href="shape-outside-001.xht">shape-outside-001</a></td>
@@ -151,6 +151,39 @@
         <td>Shape smaller than float content area - 2 floats
           <ul class="assert">
             <li>This test verifies that inline content only wraps around the shapes, and otherwise overlays the rest of the float margin boxes when two floats are stacked next to each other.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="shape-outside-circle-012-3.1" class="primary">
+        <td><strong>
+            <a href="shape-outside-circle-012.xht">shape-outside-circle-012</a></strong></td>
+        <td><a href="reference/shape-outside-circle-011-ref.xht">=</a> </td>
+        <td></td>
+        <td>float right, circle(closest-side at center) border-box
+          <ul class="assert">
+            <li>Test the boxes are wrapping around the right float shape defined by the basic shape circle(closest-side at center) border-box value.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="shape-outside-circle-023-3.1" class="primary">
+        <td><strong>
+            <a href="shape-outside-circle-023.xht">shape-outside-circle-023</a></strong></td>
+        <td><a href="reference/shape-outside-circle-023-ref.xht">=</a> </td>
+        <td></td>
+        <td>horizontal-tb, float left, circle(50% at left 40px bottom 40px)
+          <ul class="assert">
+            <li>Test the boxes are wrapping around the left float shape defined by circle(50% at left 40px bottom 40px) value under horizontal-tb writing-mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="shape-outside-ellipse-012-3.1" class="primary">
+        <td><strong>
+            <a href="shape-outside-ellipse-012.xht">shape-outside-ellipse-012</a></strong></td>
+        <td><a href="reference/shape-outside-ellipse-011-ref.xht">=</a> </td>
+        <td></td>
+        <td>float right, ellipse(closest-side closest-side at top right)
+          <ul class="assert">
+            <li>Test the right float shape defines an empty float area by the basic shape ellipse(0% 0closest-side closest-side at top right) value.</li>
           </ul>
         </td>
       </tr>

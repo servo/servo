@@ -111,7 +111,7 @@ function queryIframe(url, callback, referrer_policy) {
   window.addEventListener("message", listener);
 }
 
-function queryImage(url, callback, attributes, referrerPolicy) {
+function queryImage(url, callback, attributes, referrerPolicy, test) {
   // For images, we'll test:
   // - images in a `srcdoc` frame to ensure that it uses the referrer
   //   policy of its parent,
@@ -152,11 +152,11 @@ function queryImage(url, callback, attributes, referrerPolicy) {
     }, attributes, window);
   });
 
-  Promise.all([noSrcDocPolicy, srcDocPolicy, pagePolicy]).then(values => {
+  Promise.all([noSrcDocPolicy, srcDocPolicy, pagePolicy]).then(test.step_func(values => {
     assert_equals(values[0].headers.referer, values[2].headers.referer, "Referrer inside 'srcdoc' without its own policy should be the same as embedder's referrer.");
     assert_equals((iframePolicy === "no-referrer" ? undefined : document.location.href), values[1].headers.referer, "Referrer inside 'srcdoc' should use the iframe's policy if it has one");
     callback(wrapResult(url, values[2]), url);
-  });
+  }));
 }
 
 function queryXhr(url, callback) {

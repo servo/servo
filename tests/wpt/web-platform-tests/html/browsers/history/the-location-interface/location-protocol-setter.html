@@ -1,0 +1,106 @@
+<!doctype html>
+<title>Set location.protocol to broken schemes</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<iframe src="data:text/html,<script>
+onmessage = (e) => {
+  let results = [];
+  e.data.forEach((val) => {
+    try {
+      location.protocol = val;
+      results.push('failure')
+    } catch(e) {
+      results.push(e.name)
+    }
+  });
+  parent.postMessage(results, '*')
+}
+</script>"></iframe>
+<iframe srcdoc="<script>
+onmessage = (e) => {
+  let results = [];
+  e.data.forEach((val) => {
+    try {
+      location.protocol = val;
+      results.push('failure')
+    } catch(e) {
+      results.push(e.name)
+    }
+  });
+  parent.postMessage(results, '*')
+}
+</script>"></iframe>
+<script>
+  let broken = [
+    '\x00',
+    '\x01',
+    '\x0A',
+    '\x20',
+    '\x21',
+    '\x7F',
+    '\x80',
+    '\xFF',
+    ':',
+    '†',
+    '\x00x',
+    '\x01x',
+    '\x0Ax',
+    '\x20x',
+    '\x21x',
+    '\x7Fx',
+    '\x80x',
+    '\xFFx',
+    ':x',
+    '†x',
+    '\x00X',
+    '\x01X',
+    '\x0AX',
+    '\x20X',
+    '\x21X',
+    '\x7FX',
+    '\x80X',
+    '\xFFX',
+    ':X',
+    '†X',
+    'x\x00',
+    'x\x01',
+    'x\x0A',
+    'x\x20',
+    'x\x21',
+    'x\x7F',
+    'x\x80',
+    'x\xFF',
+    'x†',
+    'X\x00',
+    'X\x01',
+    'X\x0A',
+    'X\x20',
+    'X\x21',
+    'X\x7F',
+    'X\x80',
+    'X\xFF',
+    'X†',
+    'a\x0A',
+    'a+-.\x0A'
+  ]
+  ;broken.forEach((val) => {
+    test(() => {
+      assert_throws("SyntaxError", () => { location.protocol = val })
+    }, encodeURI(val) + " (percent-encoded) is not a scheme")
+  })
+  let c = 0
+  async_test((t) => {
+    self.onload = t.step_func(() => {
+      self.onmessage = t.step_func((e) => {
+        assert_array_equals(e.data, ("SyntaxError ".repeat(49) + "SyntaxError").split(" "))
+        c++
+        if(c === 2) {
+          t.done()
+        }
+      })
+      self[0].postMessage(broken, "*")
+      self[1].postMessage(broken, "*")
+    })
+  }, "Equivalent tests for data URL and srcdoc <iframe>s")
+</script>

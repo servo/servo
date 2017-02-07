@@ -11,7 +11,7 @@
 async_test(function(t)
 {
     var parent = document.getElementById("parent");
-    trusted_request(parent);
+    trusted_request(t, parent);
     document.onfullscreenchange = t.step_func(function()
     {
         assert_equals(document.fullscreenElement, parent);

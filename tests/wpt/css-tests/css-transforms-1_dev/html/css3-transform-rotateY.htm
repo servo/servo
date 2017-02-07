@@ -5,33 +5,30 @@
     <link href="http://www.w3.org/TR/css-transforms-1/#transform-property" rel="help">
     <link href="http://www.w3.org/TR/css-transforms-1/#funcdef-rotate" rel="help">
     <link href="reference/css3-transform-rotateY-ref.htm" rel="match">
-    <meta content="box width should be equal to projection width if transform rotateY applied" name="assert">
+    <meta content="box width should be equal to projection width if transform rotateY applied" name="assert"> 
     <style type="text/css">
-    .red,
-    .green{
-        width:198px;
-        height: 200px;
-        background-color:green;
+    div {
+        height: 100px;
         position: absolute;
-        top: 50px;
-        left:51px;
-        z-index:10;
+        top: 80px;
     }
-    .red{
-        background-color:red;
-        width: 140px;
-        left:80px;
-        z-index:9;
+    .red {
+        background-color: red;
+        left: 80px;
+        width: 100px;
     }
     .green{
-        transform:rotateY(45deg);
+        background-color: green;
+        left: 30px;
+        transform: rotateY(60deg);
+        width: 200px;
     }
     </style>
 </head>
 <body>
-    <p>The test passes if there is a green rectangle and no red.</p>
-    <div class="green"></div>
+    <p>The test passes if there is a green square and no red.</p>
     <div class="red"></div>
+    <div class="green"></div>
 
 
 </body></html>

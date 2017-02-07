@@ -11,22 +11,23 @@
             @bottom-right { content: counter(page); }
           }
 </style>
-  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-09-03 -->
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" /> <!-- 2013-09-03 and 2016-10-02 -->
   <link rel="help" href="http://www.w3.org/TR/css3-multicol/#crc" title="4.2. 'column-rule-color'" />
   <link rel="help" href="http://www.w3.org/TR/css3-values/#common-keywords" title="3.1.1. CSS-wide keywords: 'initial' and 'inherit'" />
+  <link rel="help" href="https://drafts.csswg.org/css-color-4/#currentcolor-color" title="5.2. The 'currentcolor' keyword" />
   <link rel="match" href="reference/multicol-rule-color-inherit-001-ref.xht" />
   <meta name="flags" content="ahem" />
-  <meta name="assert" content="This test checks that, by default, column-rule-color is the current color applying to the element." />
+  <meta name="assert" content="In this test, div#parent's computed 'column-rule-color' is given by div#parent's 'currentcolor' (a reserved keyword) and not 'red'. Then div.child's 'column-rule-color' take such specified value ('currentcolor') from its parent (due to 'inherit' keyword) and not 'red'. And then, it is applied to div.child's 'column-rule-color'." />
   <style type="text/css"><![CDATA[
   div#parent
   {
-  color: green;
-  font: 1.25em/1 Ahem;
+  color: red;
+  font: 20px/1 Ahem;
   }
 
   div.child
   {
-  color: red;
+  color: green;
   display: inline-block;
   font-size: 1em;
   width: 5em;

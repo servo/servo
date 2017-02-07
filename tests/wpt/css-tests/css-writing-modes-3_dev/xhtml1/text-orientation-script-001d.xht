@@ -1,8 +1,8 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
-<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#4/8, 2048 code points in U+2899-A884).</title>
+<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#4/9, 2048 code points in U+2859-A81D).</title>
 <link href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" rel="help" />
-<meta content="Test orientation of characters where vo=R (#4/8, 2048 code points in U+2899-A884)" name="assert" />
+<meta content="Test orientation of characters where vo=R (#4/9, 2048 code points in U+2859-A81D)" name="assert" />
 <meta content="dom font" name="flags" />
 <link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii" />
 <script src="/resources/testharness.js"></script>
@@ -40,6 +40,8 @@ summary {
 <div id="container">
 <div data-vo="R" class="test">
 <div data-block="Braille">
+<div class="line">⡙⡚⡛⡜⡝⡞⡟⡠⡡⡢⡣⡤⡥⡦⡧⡨⡩⡪⡫⡬⡭⡮⡯⡰⡱⡲⡳⡴⡵⡶⡷⡸</div>
+<div class="line">⡹⡺⡻⡼⡽⡾⡿⢀⢁⢂⢃⢄⢅⢆⢇⢈⢉⢊⢋⢌⢍⢎⢏⢐⢑⢒⢓⢔⢕⢖⢗⢘</div>
 <div class="line">⢙⢚⢛⢜⢝⢞⢟⢠⢡⢢⢣⢤⢥⢦⢧⢨⢩⢪⢫⢬⢭⢮⢯⢰⢱⢲⢳⢴⢵⢶⢷⢸</div>
 <div class="line">⢹⢺⢻⢼⢽⢾⢿⣀⣁⣂⣃⣄⣅⣆⣇⣈⣉⣊⣋⣌⣍⣎⣏⣐⣑⣒⣓⣔⣕⣖⣗⣘</div>
 <div class="line">⣙⣚⣛⣜⣝⣞⣟⣠⣡⣢⣣⣤⣥⣦⣧⣨⣩⣪⣫⣬⣭⣮⣯⣰⣱⣲⣳⣴⣵⣶⣷⣸</div>
@@ -72,7 +74,7 @@ summary {
 <div class="line">⬾⬿⭀⭁⭂⭃⭄⭅⭆⭇⭈⭉⭊⭋⭌⭍⭎⭏⭚⭛⭜⭝⭞⭟⭠⭡⭢⭣⭤⭥⭦⭧</div>
 <div class="line">⭨⭩⭪⭫⭬⭭⭮⭯⭰⭱⭲⭳⭶⭷⭸⭹⭺⭻⭼⭽⭾⭿⮀⮁⮂⮃⮄⮅⮆⮇⮈⮉</div>
 <div class="line">⮊⮋⮌⮍⮎⮏⮐⮑⮒⮓⮔⮕⮘⮙⮚⮛⮜⮝⮞⮟⮠⮡⮢⮣⮤⮥⮦⮧⮨⮩⮪⮫</div>
-<div class="line">⮬⮭⮮⮯⮰⮱⮲⮳⮴⮵⮶⮷</div>
+<div class="line">⮬⮭⮮⮯⮰⮱⮲⮳⮴⮵⮶⮷⯬⯭⯮⯯</div>
 </div>
 <div data-block="Glagolitic">
 <div class="line">ⰀⰁⰂⰃⰄⰅⰆⰇⰈⰉⰊⰋⰌⰍⰎⰏⰐⰑⰒⰓⰔⰕⰖⰗⰘⰙⰚⰛⰜⰝⰞⰟ</div>
@@ -104,7 +106,7 @@ summary {
 <div data-block="Supplemental">
 <div class="line">⸀⸁⸂⸃⸄⸅⸆⸇⸈⸉⸊⸋⸌⸍⸎⸏⸐⸑⸒⸓⸔⸕⸖⸗⸘⸙⸚⸛⸜⸝⸞⸟</div>
 <div class="line">⸠⸡⸢⸣⸤⸥⸦⸧⸨⸩⸪⸫⸬⸭⸮ⸯ⸰⸱⸲⸳⸴⸵⸶⸷⸸⸹⸺⸻⸼⸽⸾⸿</div>
-<div class="line">⹀⹁⹂</div>
+<div class="line">⹀⹁⹂⹃⹄</div>
 </div>
 <div data-block="Lisu">
 <div class="line">ꓐꓑꓒꓓꓔꓕꓖꓗꓘꓙꓚꓛꓜꓝꓞꓟꓠꓡꓢꓣꓤꓥꓦꓧꓨꓩꓪꓫꓬꓭꓮꓯ</div>
@@ -139,22 +141,11 @@ summary {
 <div class="line">꜠꜡ꜢꜣꜤꜥꜦꜧꜨꜩꜪꜫꜬꜭꜮꜯꜰꜱꜲꜳꜴꜵꜶꜷꜸꜹꜺꜻꜼꜽꜾꜿ</div>
 <div class="line">ꝀꝁꝂꝃꝄꝅꝆꝇꝈꝉꝊꝋꝌꝍꝎꝏꝐꝑꝒꝓꝔꝕꝖꝗꝘꝙꝚꝛꝜꝝꝞꝟ</div>
 <div class="line">ꝠꝡꝢꝣꝤꝥꝦꝧꝨꝩꝪꝫꝬꝭꝮꝯꝰꝱꝲꝳꝴꝵꝶꝷꝸꝹꝺꝻꝼꝽꝾꝿ</div>
-<div class="line">ꞀꞁꞂꞃꞄꞅꞆꞇꞈ꞉꞊ꞋꞌꞍꞎꞐꞑꞒꞓꞔꞕꞖꞗꞘꞙꞚꞛꞜꞝꞞꞟꞠ</div>
-<div class="line">ꞡꞢꞣꞤꞥꞦꞧꞨꞩꞪꞫꞬꞭꞰꞱꟷꟸꟹꟺꟻꟼꟽꟾꟿ</div>
+<div class="line">ꞀꞁꞂꞃꞄꞅꞆꞇꞈ꞉꞊ꞋꞌꞍꞎꞏꞐꞑꞒꞓꞔꞕꞖꞗꞘꞙꞚꞛꞜꞝꞞꞟ</div>
+<div class="line">ꞠꞡꞢꞣꞤꞥꞦꞧꞨꞩꞪꞫꞬꞭꞮꞰꞱꞲꞳꞴꞵꞶꞷꟷꟸꟹꟺꟻꟼꟽꟾꟿ</div>
 </div>
 <div data-block="Syloti">
-<div class="line">ꠀꠁꠃꠄꠅꠇꠈꠉꠊꠌꠍꠎꠏꠐꠑꠒꠓꠔꠕꠖꠗꠘꠙꠚꠛꠜꠝꠞꠟꠠꠡꠢ</div>
-<div class="line">꠨꠩꠪꠫</div>
-</div>
-<div data-block="Common">
-<div class="line">꠰꠱꠲꠳꠴꠵꠶꠷꠸꠹</div>
-</div>
-<div data-block="Phags">
-<div class="line">ꡀꡁꡂꡃꡄꡅꡆꡇꡈꡉꡊꡋꡌꡍꡎꡏꡐꡑꡒꡓꡔꡕꡖꡗꡘꡙꡚꡛꡜꡝꡞꡟ</div>
-<div class="line">ꡠꡡꡢꡣꡤꡥꡦꡧꡨꡩꡪꡫꡬꡭꡮꡯꡰꡱꡲꡳ꡴꡵꡶꡷</div>
-</div>
-<div data-block="Saurashtra">
-<div class="line">ꢂꢃꢄ</div>
+<div class="line">ꠀꠁꠃꠄꠅꠇꠈꠉꠊꠌꠍꠎꠏꠐꠑꠒꠓꠔꠕꠖꠗꠘꠙꠚꠛꠜꠝ</div>
 </div>
 </div>
 </div>

@@ -13,8 +13,10 @@ scripts.
 From an HTML or SVG document, start by importing both `testharness.js` and
 `testharnessreport.js` scripts into the document:
 
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
+```html
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+```
 
 Refer to the [Web Workers](#web-workers) section for details and an example on
 testing within a web worker.
@@ -35,14 +37,22 @@ are complete", below.
 
 ## Synchronous Tests ##
 
-To create a synchronous test use the test() function:
+To create a synchronous test use the `test()` function:
 
-    test(test_function, name, properties)
+```js
+test(test_function, name, properties)
+```
 
 `test_function` is a function that contains the code to test. For example a
-trivial passing test would be:
+trivial test for the DOM
+[`hasFeature()`](https://dom.spec.whatwg.org/#dom-domimplementation-hasfeature)
+method (which is defined to always return true) would be:
 
-    test(function() {assert_true(true)}, "assert_true with true")
+```js
+test(function() {
+  assert_true(document.implementation.hasFeature());
+}, "hasFeature() with no arguments")
+```
 
 The function passed in is run in the `test()` call.
 
@@ -54,34 +64,52 @@ metadata, as described in the [metadata](#metadata) section below.
 
 Testing asynchronous features is somewhat more complex since the result of
 a test may depend on one or more events or other callbacks. The API provided
-for testing these features is indended to be rather low-level but hopefully
+for testing these features is intended to be rather low-level but hopefully
 applicable to many situations.
 
-To create a test, one starts by getting a Test object using async_test:
+To create a test, one starts by getting a `Test` object using `async_test`:
 
-    async_test(name, properties)
+```js
+async_test(name, properties)
+```
 
 e.g.
-    var t = async_test("Simple async test")
+
+```js
+var t = async_test("DOMContentLoaded")
+```
 
 Assertions can be added to the test by calling the step method of the test
 object with a function containing the test assertions:
 
-    t.step(function() {assert_true(true)});
+```js
+document.addEventListener("DOMContentLoaded", function() {
+  t.step(function() {
+    assert_true(e.bubbles, "bubbles should be true");
+  });
+});
+```
 
-When all the steps are complete, the done() method must be called:
+When all the steps are complete, the `done()` method must be called:
 
-    t.done();
+```js
+t.done();
+```
 
-As a convenience, async_test can also takes a function as first argument.
+As a convenience, `async_test` can also takes a function as first argument.
 This function is called with the test object as both its `this` object and
 first argument. The above example can be rewritten as:
 
-    async_test(function(t) {
-        object.some_event = function() {
-            t.step(function (){assert_true(true); t.done();});
-        };
-    }, "Simple async test");
+```js
+async_test(function(t) {
+  document.addEventListener("DOMContentLoaded", function() {
+    t.step(function() {
+      assert_true(e.bubbles, "bubbles should be true");
+    });
+    t.done();
+  });
+}, "DOMContentLoaded");
+```
 
 which avoids cluttering the global scope with references to async
 tests instances.
@@ -89,21 +117,43 @@ tests instances.
 The properties argument is identical to that for `test()`.
 
 In many cases it is convenient to run a step in response to an event or a
-callback. A convenient method of doing this is through the step_func method
+callback. A convenient method of doing this is through the `step_func` method
 which returns a function that, when called runs a test step. For example
 
-    object.some_event = t.step_func(function(e) {assert_true(e.a)});
+```js
+document.addEventListener("DOMContentLoaded", t.step_func(function() {
+  assert_true(e.bubbles, "bubbles should be true");
+  t.done();
+});
+```
+
+As a further convenience, the `step_func` that calls `done()` can instead
+use `step_func_done`, as follows:
+
+```js
+document.addEventListener("DOMContentLoaded", t.step_func_done(function() {
+  assert_true(e.bubbles, "bubbles should be true");
+});
+```
 
 For asynchronous callbacks that should never execute, `unreached_func` can
 be used. For example:
 
-    object.some_event = t.unreached_func("some_event should not fire");
+```js
+document.documentElement.addEventListener("DOMContentLoaded",
+  t.unreached_func("DOMContentLoaded should not be fired on the document element"));
+```
+
+Keep in mind that other tests could start executing before an Asynchronous
+Test is finished.
 
 ## Promise Tests ##
 
 `promise_test` can be used to test APIs that are based on Promises:
 
-    promise_test(test_function, name, properties)
+```js
+promise_test(test_function, name, properties)
+```
 
 `test_function` is a function that receives a test as an argument and returns a
 promise. The test completes when the returned promise resolves. The test fails
@@ -111,16 +161,18 @@ if the returned promise rejects.
 
 E.g.:
 
-    function foo() {
-      return Promise.resolve("foo");
-    }
+```js
+function foo() {
+  return Promise.resolve("foo");
+}
 
-    promise_test(function() {
-      return foo()
-        .then(function(result) {
-          assert_equals(result, "foo", "foo should return 'foo'");
-        });
-    }, "Simple example");
+promise_test(function() {
+  return foo()
+    .then(function(result) {
+      assert_equals(result, "foo", "foo should return 'foo'");
+    });
+}, "Simple example");
+```
 
 In the example above, `foo()` returns a Promise that resolves with the string
 "foo". The `test_function` passed into `promise_test` invokes `foo` and attaches
@@ -129,9 +181,14 @@ a resolve reaction that verifies the returned value.
 Note that in the promise chain constructed in `test_function` assertions don't
 need to wrapped in `step` or `step_func` calls.
 
+Unlike Asynchronous Tests, Promise Tests don't start running until after the
+previous Promise Test finishes.
+
 `promise_rejects` can be used to test Promises that need to reject:
 
-    promise_rejects(test_object, code, promise)
+```js
+promise_rejects(test_object, code, promise, description)
+```
 
 The `code` argument is equivalent to the same argument to the `assert_throws`
 function.
@@ -139,13 +196,53 @@ function.
 Here's an example where the `bar()` function returns a Promise that rejects
 with a TypeError:
 
-    function bar() {
-      return Promise.reject(new TypeError());
-    }
+```js
+function bar() {
+  return Promise.reject(new TypeError());
+}
 
-    promise_test(function(t) {
-      return promise_rejects(t, new TypeError(), bar);
-    }, "Another example");
+promise_test(function(t) {
+  return promise_rejects(t, new TypeError(), bar);
+}, "Another example");
+```
+
+`EventWatcher` is a constructor function that allows DOM events to be handled
+using Promises, which can make it a lot easier to test a very specific series
+of events, including ensuring that unexpected events are not fired at any point.
+
+Here's an example of how to use `EventWatcher`:
+
+```js
+var t = async_test("Event order on animation start");
+
+var animation = watchedNode.getAnimations()[0];
+var eventWatcher = new EventWatcher(watchedNode, ['animationstart',
+                                                  'animationiteration',
+                                                  'animationend']);
+
+eventWatcher.wait_for(t, 'animationstart').then(t.step_func(function() {
+  assertExpectedStateAtStartOfAnimation();
+  animation.currentTime = END_TIME; // skip to end
+  // We expect two animationiteration events then an animationend event on
+  // skipping to the end of the animation.
+  return eventWatcher.wait_for(['animationiteration',
+                                'animationiteration',
+                                'animationend']);
+})).then(t.step_func(function() {
+  assertExpectedStateAtEndOfAnimation();
+  t.done();
+}));
+```
+
+`wait_for` either takes the name of a single event and returns a Promise that
+will resolve after that event is fired at the watched node, or else it takes an
+array of the names of a series of events and returns a Promise that will
+resolve after that specific series of events has been fired at the watched node.
+
+`EventWatcher` will assert if an event occurs while there is no `wait_for`()
+created Promise waiting to be fulfilled, or if the event is of a different type
+to the type currently expected. This ensures that only the events that are
+expected occur, in the correct order, and with the correct timing.
 
 ## Single Page Tests ##
 
@@ -155,31 +252,35 @@ wrapping everything in functions for isolation becomes
 burdensome. For these cases `testharness.js` support "single page
 tests".
 
-In order for a test to be interpreted as a single page test, the
+In order for a test to be interpreted as a single page test, then
 it must simply not call `test()` or `async_test()` anywhere on the page, and
 must call the `done()` function to indicate that the test is complete. All
 the `assert_*` functions are avaliable as normal, but are called without
 the normal step function wrapper. For example:
 
-    <!doctype html>
-    <title>Example single-page test</title>
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
-    <body>
-      <script>
-        assert_equals(document.body, document.getElementsByTagName("body")[0])
-        done()
-     </script>
+```html
+<!doctype html>
+<title>Basic document.body test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    assert_equals(document.body, document.getElementsByTagName("body")[0])
+    done()
+ </script>
+```
 
-The test title for sinple page tests is always taken from `document.title`.
+The test title for single page tests is always taken from `document.title`.
 
 ## Making assertions ##
 
 Functions for making assertions start `assert_`. The full list of
-asserts avaliable is documented in the [asserts](#asserts) section
-below.. The general signature is
+asserts avaliable is documented in the [asserts](#list-of-assertions) section
+below. The general signature is
 
-    assert_something(actual, expected, description)
+```js
+assert_something(actual, expected, description)
+```
 
 although not all assertions precisely match this pattern e.g. `assert_true`
 only takes `actual` and `description` as arguments.
@@ -201,11 +302,52 @@ callbacks to the test. Such callbacks are registered using the `add_cleanup`
 function on the test object. All registered callbacks will be run as soon as
 the test result is known. For example
 
-    test(function() {
-             window.some_global = "example";
-             this.add_cleanup(function() {delete window.some_global});
-             assert_true(false);
-         });
+```js
+  test(function() {
+    var element = document.createElement("div");
+    element.setAttribute("id", "null");
+    document.body.appendChild(element);
+    this.add_cleanup(function() { document.body.removeChild(element) });
+    assert_equals(document.getElementById(null), element);
+  }, "Calling document.getElementById with a null argument.");
+```
+
+## Timeouts in Tests ##
+
+In general the use of timeouts in tests is discouraged because this is
+an observed source of instability in real tests when run on CI
+infrastructure. In particular if a test should fail when something
+doesn't happen, it is good practice to simply let the test run to the
+full timeout rather than trying to guess an appropriate shorter
+timeout to use.
+
+In other cases it may be necessary to use a timeout (e.g., for a test
+that only passes if some event is *not* fired). In this case it is
+*not* permitted to use the standard `setTimeout` function. Instead one
+must use the `step_timeout` function:
+
+```js
+async_test(function(t) {
+  var gotEvent = false;
+  document.addEventListener("DOMContentLoaded", t.step_func(function() {
+    assert_false(gotEvent, "Unexpected DOMContentLoaded event");
+    gotEvent = true;
+    t.step_timeout(function() { t.done(); }, 2000);
+  });
+}, "Only one DOMContentLoaded");
+```
+
+The difference between `setTimeout` and `step_timeout` is that the
+latter takes account of the timeout multiplier when computing the
+delay; e.g., in the above case a timeout multiplier of 2 would cause a
+pause of 4000ms before calling the callback. This makes it less likely
+to produce unstable results in slow configurations.
+
+Note that timeouts generally need to be a few seconds long in order to
+produce stable results in all test environments.
+
+For single-page tests, `step_timeout` is also available as a global
+function.
 
 ## Harness Timeout ##
 
@@ -218,7 +360,9 @@ when the test is run on hardware with different performance
 characteristics to a common desktop computer.  In order to opt-in
 to the longer test timeout, the test must specify a meta element:
 
-    <meta name="timeout" content="long">
+```html
+<meta name="timeout" content="long">
+```
 
 Occasionally tests may have a race between the harness timing out and
 a particular test failing; typically when the test waits for some event
@@ -233,7 +377,9 @@ Sometimes tests require non-trivial setup that may fail. For this purpose
 there is a `setup()` function, that may be called with one or two arguments.
 The two argument version is:
 
-    setup(func, properties)
+```js
+setup(func, properties)
+```
 
 The one argument versions may omit either argument.
 func is a function to be run synchronously. `setup()` becomes a no-op once
@@ -272,7 +418,7 @@ is called, the two conditions above apply like normal.
 Dedicated and shared workers don't have an event that corresponds to the `load`
 event in a document. Therefore these worker tests always behave as if the
 `explicit_done` property is set to true. Service workers depend on the
-[install](https://w3c.github.io/ServiceWorker/index.html#service-worker-global-scope-install-event)
+[install](https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#service-worker-global-scope-install-event)
 event which is fired following the completion of [running the
 worker](https://html.spec.whatwg.org/multipage/workers.html#run-a-worker).
 
@@ -283,19 +429,25 @@ There are scenarios in which is is desirable to create a large number of
 used. To make this easier, the `generate_tests` function allows a single
 function to be called with each set of parameters in a list:
 
-    generate_tests(test_function, parameter_lists, properties)
+```js
+generate_tests(test_function, parameter_lists, properties)
+```
 
 For example:
 
-    generate_tests(assert_equals, [
-        ["Sum one and one", 1+1, 2],
-        ["Sum one and zero", 1+0, 1]
-        ])
+```js
+generate_tests(assert_equals, [
+    ["Sum one and one", 1+1, 2],
+    ["Sum one and zero", 1+0, 1]
+    ])
+```
 
 Is equivalent to:
 
-    test(function() {assert_equals(1+1, 2)}, "Sum one and one")
-    test(function() {assert_equals(1+0, 1)}, "Sum one and zero")
+```js
+test(function() {assert_equals(1+1, 2)}, "Sum one and one")
+test(function() {assert_equals(1+0, 1)}, "Sum one and zero")
+```
 
 Note that the first item in each parameter list corresponds to the name of
 the test.
@@ -309,8 +461,8 @@ The framework provides callbacks corresponding to 4 events:
 
  * `start` - triggered when the first Test is created
  * `test_state` - triggered when a test state changes
- * `result` - triggered when a test result is recieved
- * `complete` - triggered when all results are recieved
+ * `result` - triggered when a test result is received
+ * `complete` - triggered when all results are received
 
 The page defining the tests may add callbacks for these events by calling
 the following methods:
@@ -374,7 +526,7 @@ object. These objects are structures as follows:
 
 The `testharness.js` script can be used from within [dedicated workers, shared
 workers](https://html.spec.whatwg.org/multipage/workers.html) and [service
-workers](https://w3c.github.io/ServiceWorker/).
+workers](https://slightlyoff.github.io/ServiceWorker/spec/service_worker/).
 
 Testing from a worker script is different from testing from an HTML document in
 several ways:
@@ -401,40 +553,44 @@ several ways:
   complete](#determining-when-all-tests-are-complete)). So these worker tests
   behave as if they were started with the `explicit_done` option. Service
   workers depend on the
-  [oninstall](https://w3c.github.io/ServiceWorker/index.html#service-worker-global-scope-install-event)
+  [oninstall](https://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html#service-worker-global-scope-install-event)
   event and don't require an explicit `done` call.
 
 Here's an example that uses a dedicated worker.
 
 `worker.js`:
 
-    importScripts("/resources/testharness.js");
+```js
+importScripts("/resources/testharness.js");
 
-    test(function(t) {
-      assert_true(true, "true is true");
-    }, "Simple test");
+test(function(t) {
+  assert_true(true, "true is true");
+}, "Simple test");
 
-    // done() is needed because the testharness is running as if explicit_done
-    // was specified.
-    done();
+// done() is needed because the testharness is running as if explicit_done
+// was specified.
+done();
+```
 
 `test.html`:
 
-    <!DOCTYPE html>
-    <title>Simple test</title>
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
-    <div id="log"></div>
-    <script>
+```html
+<!DOCTYPE html>
+<title>Simple test</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
 
-    fetch_tests_from_worker(new Worker("worker.js"));
+fetch_tests_from_worker(new Worker("worker.js"));
 
-    </script>
+</script>
+```
 
 The argument to the `fetch_tests_from_worker` function can be a
 [`Worker`](https://html.spec.whatwg.org/multipage/workers.html#dedicated-workers-and-the-worker-interface),
 a [`SharedWorker`](https://html.spec.whatwg.org/multipage/workers.html#shared-workers-and-the-sharedworker-interface)
-or a [`ServiceWorker`](https://w3c.github.io/ServiceWorker/#service-worker-obj).
+or a [`ServiceWorker`](https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#service-worker-obj).
 Once called, the containing document fetches all the tests from the worker and
 behaves as if those tests were running in the containing document itself.
 
@@ -463,7 +619,7 @@ length and the value of each indexed property in `actual` is the strictly equal
 to the corresponding property value in `expected`
 
 ### `assert_approx_equals(actual, expected, epsilon, description)`
-asserts that `actual` is a number within +`- `epsilon` of `expected`
+asserts that `actual` is a number within ±`epsilon` of `expected`
 
 ### `assert_less_than(actual, expected, description)`
 asserts that `actual` is a number less than `expected`

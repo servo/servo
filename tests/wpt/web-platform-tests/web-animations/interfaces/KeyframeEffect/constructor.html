@@ -110,7 +110,7 @@ test(function(t) {
     var effect = new KeyframeEffectReadOnly(target, {
       left: ["10px", "20px"]
     }, { composite: composite });
-    assert_equals(effect.getKeyframes()[0].composite, composite,
+    assert_equals(effect.getKeyframes()[0].composite, undefined,
                   "resulting composite for '" + composite + "'");
   });
   gBadCompositeValueTests.forEach(function(composite) {
@@ -120,8 +120,8 @@ test(function(t) {
       }, { composite: composite });
     });
   });
-}, "composite values are parsed correctly when passed to the " +
-   "KeyframeEffectReadOnly constructor in KeyframeTimingOptions");
+}, "composite value is absent if the composite operation specified on the " +
+   "keyframe effect is being used");
 
 gPropertyIndexedKeyframesTests.forEach(function(subtest) {
   test(function(t) {

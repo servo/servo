@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+<!doctype html>
+<meta charset="utf8">
 <title>IndexedDB: object store renaming error handling</title>
 <link rel="help"
       href="https://w3c.github.io/IndexedDB/#dom-idbobjectstore-name">
@@ -7,6 +8,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="support-promises.js"></script>
 <script>
+'use strict';
 
 promise_test(testCase => {
     return createDatabase(testCase, (database, transaction) => {

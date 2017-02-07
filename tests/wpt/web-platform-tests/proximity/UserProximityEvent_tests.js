@@ -124,16 +124,14 @@
 
     test(function() {
         var date = new Date();
-        assert_throws(new TypeError(), function() {
-            new UserProximityEvent('test', date);
-        });
+        var event = new UserProximityEvent('test', date);
+        assert_false(event.near);
     }, 'eventInitDict argument is Date object');
 
     test(function() {
         var regexp = /abc/;
-        assert_throws(new TypeError(), function() {
-            new UserProximityEvent('test', regexp);
-        });
+        var event = new UserProximityEvent('test', regexp);
+        assert_false(event.near);
     }, 'eventInitDict argument is RegExp object');
 
     test(function() {

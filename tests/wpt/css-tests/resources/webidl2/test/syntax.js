@@ -17,11 +17,16 @@ describe("Parses all of the IDLs to produce the correct ASTs", function () {
     
     for (var i = 0, n = idls.length; i < n; i++) {
         var idl = idls[i], json = jsons[i];
+
         var func = (function (idl, json) {
             return function () {
                 try {
+                    var optFile = pth.join(__dirname, "syntax/opt", pth.basename(json));
+                    var opt = undefined;
+                    if (fs.existsSync(optFile))
+                        opt = JSON.parse(fs.readFileSync(optFile, "utf8"));
                     var diff = jdp.diff(JSON.parse(fs.readFileSync(json, "utf8")),
-                                        wp.parse(fs.readFileSync(idl, "utf8")));
+                                        wp.parse(fs.readFileSync(idl, "utf8"), opt));
                     if (diff && debug) console.log(JSON.stringify(diff, null, 4));
                     expect(diff).to.be(undefined);
                 }

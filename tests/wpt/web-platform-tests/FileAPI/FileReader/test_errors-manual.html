@@ -58,6 +58,7 @@
                 reader.onloadend = t.step_func_done(function(event) {
                     assert_equals(event.target.readyState, FileReader.DONE);
                     assert_equals(reader.error.code, 8);
+                    assert_true(reader.error instanceof DOMException);
                 });
 
             }, 'FileReader.error should be NOT_FOUND_ERR if the file is not found when reading');

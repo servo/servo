@@ -41,7 +41,7 @@
 
     </script>
     <!-- enforcing policy:
-script-src 'self' 'unsafe-inline' 'nonce-noncynonce' 'nonce-noncy+/=nonce' 'unsafe-inline'; connect-src 'self';
+script-src 'self' 'unsafe-inline' 'nonce-noncynonce' 'nonce-noncy+/nonce=' 'unsafe-inline'; connect-src 'self';
 -->
     <script nonce="noncynonce">
 
@@ -51,7 +51,7 @@ script-src 'self' 'unsafe-inline' 'nonce-noncynonce' 'nonce-noncy+/=nonce' 'unsa
         alert_assert('PASS (1/2)');
 
     </script>
-    <script nonce="noncy+/=nonce">
+    <script nonce="noncy+/nonce=">
         alert_assert('PASS (2/2)');
 
     </script>
@@ -66,7 +66,7 @@ script-src 'self' 'unsafe-inline' 'nonce-noncynonce' 'nonce-noncy+/=nonce' 'unsa
         This tests that a valid nonce disables inline JavaScript, even if &apos;unsafe-inline&apos; is present.
     </p>
     <div id="log"></div>
-    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=script-src%20&apos;nonce-noncynonce&apos;%20&apos;nonce-noncy+/=nonce&apos;%20&apos;unsafe-inline&apos;"></script>
+    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=script-src%20&apos;nonce-noncynonce&apos;%20&apos;nonce-noncy+/nonce=&apos;%20&apos;unsafe-inline&apos;"></script>
 </body>
 
 </html>

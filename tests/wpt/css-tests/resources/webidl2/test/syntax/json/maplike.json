@@ -1,0 +1,67 @@
+[
+    {
+        "type": "interface",
+        "name": "MapLike",
+        "partial": false,
+        "members": [
+            {
+                "type": "maplike",
+                "idlType": [
+                    {
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "array": false,
+                        "union": false,
+                        "idlType": "long"
+                    },
+                    {
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "array": false,
+                        "union": false,
+                        "idlType": "float"
+                    }
+                ],
+                "readonly": false,
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    },
+    {
+        "type": "interface",
+        "name": "ReadOnlyMapLike",
+        "partial": false,
+        "members": [
+            {
+                "type": "maplike",
+                "idlType": [
+                    {
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "array": false,
+                        "union": false,
+                        "idlType": "long"
+                    },
+                    {
+                        "sequence": false,
+                        "generic": null,
+                        "nullable": false,
+                        "array": false,
+                        "union": false,
+                        "idlType": "float"
+                    }
+                ],
+                "readonly": true,
+                "extAttrs": []
+            }
+        ],
+        "inheritance": null,
+        "extAttrs": []
+    }
+]
+

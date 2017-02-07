@@ -23,7 +23,7 @@
           });
           t1.done();
           t2.step(function() {
-            assert_true(e.constructor.lastIndexOf("DeviceMotionEvent") != -1);
+            assert_true(e instanceof "DeviceMotionEvent");
           });
           t2.done();
         }

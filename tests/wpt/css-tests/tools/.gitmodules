@@ -12,3 +12,9 @@
 [submodule "tools/six"]
 	path = six
 	url = https://github.com/jgraham/six.git
+[submodule "pytest"]
+	path = pytest
+	url = https://github.com/pytest-dev/pytest.git
+[submodule "webdriver"]
+	path = webdriver
+	url = https://github.com/w3c/wdclient.git

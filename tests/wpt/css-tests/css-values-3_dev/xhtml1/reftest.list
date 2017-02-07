@@ -50,6 +50,9 @@ calc-width-block-intrinsic-1.xht == reference/calc-width-block-intrinsic-1-ref.x
 calc-width-table-auto-1.xht == reference/calc-width-table-auto-1-ref.xht
 calc-width-table-fixed-1.xht == reference/calc-width-table-fixed-1-ref.xht
 ch-unit-001.xht == reference/ch-unit-001-ref.xht
+ch-unit-002.xht == reference/ch-unit-002-ref.xht
+ch-unit-003.xht == reference/ch-unit-001-ref.xht
+ch-unit-004.xht == reference/ch-unit-001-ref.xht
 initial-background-color.xht == reference/all-green.xht
 min-width-001.xht == reference/ref-filled-green-100px-square.xht
 mq-calc-001.xht == reference/ref-filled-green-100px-square.xht

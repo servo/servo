@@ -45,6 +45,9 @@ def main(request, response):
             url += "&count=" + str(stashed_data['count'])
         headers.append(("Location", url))
 
+    if "redirect_referrerpolicy" in request.GET:
+        headers.append(("Referrer-Policy", request.GET['redirect_referrerpolicy']))
+
     if token:
         request.server.stash.put(request.GET.first("token"), stashed_data)
         if "max_count" in request.GET:

@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Writing Modes Module Level 3 CR Test Suite</h1>
-  <h2>Introduction to Writing Modes (120 tests)</h2>
+  <h2>Introduction to Writing Modes (121 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -55,7 +55,7 @@
       <!-- 0 tests -->
     </tbody>
     <tbody id="s1.#writing-mode">
-      <!-- 120 tests -->
+      <!-- 121 tests -->
       <tr id="block-flow-direction-004-1.#writing-mode" class="ahem">
         <td>
             <a href="block-flow-direction-004.xht">block-flow-direction-004</a></td>
@@ -592,6 +592,17 @@
         <td>writing mode of document - horizontal position of first block
           <ul class="assert">
             <li>This test checks that, when 'writing-mode' value of the root element is set to 'vertical-rl', then its block boxes are laid out leftwardedly (from right to left) one after the other beginning at its righthand side.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="cursor-text-001-1.#writing-mode" class="interact may">
+        <td>
+            <a href="cursor-text-001.xht">cursor-text-001</a></td>
+        <td></td>
+        <td><abbr class="interact" title="Requires user interaction">Interact</abbr><abbr class="may" title="Behavior tested is preferred but optional">Optional</abbr></td>
+        <td>cursor:text with vertical text
+          <ul class="assert">
+            <li>User agents may automatically display a horizontal I-beam/cursor (e.g. same as the vertical-text keyword) for vertical text.</li>
           </ul>
         </td>
       </tr>

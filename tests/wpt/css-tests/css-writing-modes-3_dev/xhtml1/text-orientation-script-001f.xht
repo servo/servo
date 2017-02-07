@@ -1,8 +1,8 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8" />
-<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#6/8, 2048 code points in U+10344-1169D).</title>
+<title>CSS Writing Modes Test: Test orientation of characters where vo=R (#6/9, 2048 code points in U+101F8-11151).</title>
 <link href="http://www.w3.org/TR/css-writing-modes-3/#text-orientation" rel="help" />
-<meta content="Test orientation of characters where vo=R (#6/8, 2048 code points in U+10344-1169D)" name="assert" />
+<meta content="Test orientation of characters where vo=R (#6/9, 2048 code points in U+101F8-11151)" name="assert" />
 <meta content="dom font" name="flags" />
 <link href="mailto:kojiishi@gmail.com" rel="author" title="Koji Ishii" />
 <script src="/resources/testharness.js"></script>
@@ -39,8 +39,25 @@ summary {
 <div id="details"></div>
 <div id="container">
 <div data-vo="R" class="test">
+<div data-block="Phaistos">
+<div class="line">𐇸𐇹𐇺𐇻𐇼</div>
+</div>
+<div data-block="Lycian">
+<div class="line">𐊀𐊁𐊂𐊃𐊄𐊅𐊆𐊇𐊈𐊉𐊊𐊋𐊌𐊍𐊎𐊏𐊐𐊑𐊒𐊓𐊔𐊕𐊖𐊗𐊘𐊙𐊚𐊛𐊜</div>
+</div>
+<div data-block="Carian">
+<div class="line">𐊠𐊡𐊢𐊣𐊤𐊥𐊦𐊧𐊨𐊩𐊪𐊫𐊬𐊭𐊮𐊯𐊰𐊱𐊲𐊳𐊴𐊵𐊶𐊷𐊸𐊹𐊺𐊻𐊼𐊽𐊾𐊿</div>
+<div class="line">𐋀𐋁𐋂𐋃𐋄𐋅𐋆𐋇𐋈𐋉𐋊𐋋𐋌𐋍𐋎𐋏𐋐</div>
+</div>
+<div data-block="Coptic">
+<div class="line">𐋡𐋢𐋣𐋤𐋥𐋦𐋧𐋨𐋩𐋪𐋫𐋬𐋭𐋮𐋯𐋰𐋱𐋲𐋳𐋴𐋵𐋶𐋷𐋸𐋹𐋺𐋻</div>
+</div>
+<div data-block="Old">
+<div class="line">𐌀𐌁𐌂𐌃𐌄𐌅𐌆𐌇𐌈𐌉𐌊𐌋𐌌𐌍𐌎𐌏𐌐𐌑𐌒𐌓𐌔𐌕𐌖𐌗𐌘𐌙𐌚𐌛𐌜𐌝𐌞𐌟</div>
+<div class="line">𐌠𐌡𐌢𐌣</div>
+</div>
 <div data-block="Gothic">
-<div class="line">𐍄𐍅𐍆𐍇𐍈𐍉𐍊</div>
+<div class="line">𐌰𐌱𐌲𐌳𐌴𐌵𐌶𐌷𐌸𐌹𐌺𐌻𐌼𐌽𐌾𐌿𐍀𐍁𐍂𐍃𐍄𐍅𐍆𐍇𐍈𐍉𐍊</div>
 </div>
 <div data-block="Old">
 <div class="line">𐍐𐍑𐍒𐍓𐍔𐍕𐍖𐍗𐍘𐍙𐍚𐍛𐍜𐍝𐍞𐍟𐍠𐍡𐍢𐍣𐍤𐍥𐍦𐍧𐍨𐍩𐍪𐍫𐍬𐍭𐍮𐍯</div>
@@ -65,6 +82,11 @@ summary {
 <div data-block="Osmanya">
 <div class="line">𐒀𐒁𐒂𐒃𐒄𐒅𐒆𐒇𐒈𐒉𐒊𐒋𐒌𐒍𐒎𐒏𐒐𐒑𐒒𐒓𐒔𐒕𐒖𐒗𐒘𐒙𐒚𐒛𐒜𐒝𐒠𐒡</div>
 <div class="line">𐒢𐒣𐒤𐒥𐒦𐒧𐒨𐒩</div>
+</div>
+<div data-block="Osage">
+<div class="line">𐒰𐒱𐒲𐒳𐒴𐒵𐒶𐒷𐒸𐒹𐒺𐒻𐒼𐒽𐒾𐒿𐓀𐓁𐓂𐓃𐓄𐓅𐓆𐓇𐓈𐓉𐓊𐓋𐓌𐓍𐓎𐓏</div>
+<div class="line">𐓐𐓑𐓒𐓓𐓘𐓙𐓚𐓛𐓜𐓝𐓞𐓟𐓠𐓡𐓢𐓣𐓤𐓥𐓦𐓧𐓨𐓩𐓪𐓫𐓬𐓭𐓮𐓯𐓰𐓱𐓲𐓳</div>
+<div class="line">𐓴𐓵𐓶𐓷𐓸𐓹𐓺𐓻</div>
 </div>
 <div data-block="Elbasan">
 <div class="line">𐔀𐔁𐔂𐔃𐔄𐔅𐔆𐔇𐔈𐔉𐔊𐔋𐔌𐔍𐔎𐔏𐔐𐔑𐔒𐔓𐔔𐔕𐔖𐔗𐔘𐔙𐔚𐔛𐔜𐔝𐔞𐔟</div>
@@ -101,8 +123,8 @@ summary {
 <div class="line">𐢀𐢁𐢂𐢃𐢄𐢅𐢆𐢇𐢈𐢉𐢊𐢋𐢌𐢍𐢎𐢏𐢐𐢑𐢒𐢓𐢔𐢕𐢖𐢗𐢘𐢙𐢚𐢛𐢜𐢝𐢞𐢧</div>
 <div class="line">𐢨𐢩𐢪𐢫𐢬𐢭𐢮𐢯</div>
 </div>
-<div data-block="Old">
-<div class="line">𐪀𐪁𐪂𐪃𐪄𐪅𐪆𐪇𐪈𐪉𐪊𐪋𐪌𐪍𐪎𐪏𐪐𐪑𐪒𐪓𐪔𐪕𐪖𐪗𐪘𐪙𐪚𐪛𐪜𐪝𐪞𐪟</div>
+<div data-block="Hatran">
+<div class="line">𐣠𐣡𐣢𐣣𐣤𐣥𐣦𐣧𐣨𐣩𐣪𐣫𐣬𐣭𐣮𐣯𐣰𐣱𐣲𐣴𐣵𐣻𐣼𐣽𐣾𐣿</div>
 </div>
 <div data-block="Phoenician">
 <div class="line">𐤀𐤁𐤂𐤃𐤄𐤅𐤆𐤇𐤈𐤉𐤊𐤋𐤌𐤍𐤎𐤏𐤐𐤑𐤒𐤓𐤔𐤕𐤖𐤗𐤘𐤙𐤚𐤛𐤟</div>
@@ -111,7 +133,9 @@ summary {
 <div class="line">𐤠𐤡𐤢𐤣𐤤𐤥𐤦𐤧𐤨𐤩𐤪𐤫𐤬𐤭𐤮𐤯𐤰𐤱𐤲𐤳𐤴𐤵𐤶𐤷𐤸𐤹𐤿</div>
 </div>
 <div data-block="Meroitic">
-<div class="line">𐦠𐦡𐦢𐦣𐦤𐦥𐦦𐦧𐦨𐦩𐦪𐦫𐦬𐦭𐦮𐦯𐦰𐦱𐦲𐦳𐦴𐦵𐦶𐦷𐦾𐦿</div>
+<div class="line">𐦠𐦡𐦢𐦣𐦤𐦥𐦦𐦧𐦨𐦩𐦪𐦫𐦬𐦭𐦮𐦯𐦰𐦱𐦲𐦳𐦴𐦵𐦶𐦷𐦼𐦽𐦾𐦿𐧀𐧁𐧂𐧃</div>
+<div class="line">𐧄𐧅𐧆𐧇𐧈𐧉𐧊𐧋𐧌𐧍𐧎𐧏𐧒𐧓𐧔𐧕𐧖𐧗𐧘𐧙𐧚𐧛𐧜𐧝𐧞𐧟𐧠𐧡𐧢𐧣𐧤𐧥</div>
+<div class="line">𐧦𐧧𐧨𐧩𐧪𐧫𐧬𐧭𐧮𐧯𐧰𐧱𐧲𐧳𐧴𐧵𐧶𐧷𐧸𐧹𐧺𐧻𐧼𐧽𐧾𐧿</div>
 </div>
 <div data-block="Kharoshthi">
 <div class="line">𐨀𐨐𐨑𐨒𐨓𐨕𐨖𐨗𐨙𐨚𐨛𐨜𐨝𐨞𐨟𐨠𐨡𐨢𐨣𐨤𐨥𐨦𐨧𐨨𐨩𐨪𐨫𐨬𐨭𐨮𐨯𐨰</div>
@@ -119,6 +143,7 @@ summary {
 </div>
 <div data-block="Old">
 <div class="line">𐩠𐩡𐩢𐩣𐩤𐩥𐩦𐩧𐩨𐩩𐩪𐩫𐩬𐩭𐩮𐩯𐩰𐩱𐩲𐩳𐩴𐩵𐩶𐩷𐩸𐩹𐩺𐩻𐩼𐩽𐩾𐩿</div>
+<div class="line">𐪀𐪁𐪂𐪃𐪄𐪅𐪆𐪇𐪈𐪉𐪊𐪋𐪌𐪍𐪎𐪏𐪐𐪑𐪒𐪓𐪔𐪕𐪖𐪗𐪘𐪙𐪚𐪛𐪜𐪝𐪞𐪟</div>
 </div>
 <div data-block="Manichaean">
 <div class="line">𐫀𐫁𐫂𐫃𐫄𐫅𐫆𐫇𐫈𐫉𐫊𐫋𐫌𐫍𐫎𐫏𐫐𐫑𐫒𐫓𐫔𐫕𐫖𐫗𐫘𐫙𐫚𐫛𐫜𐫝𐫞𐫟</div>
@@ -138,7 +163,10 @@ summary {
 <div data-block="Old">
 <div class="line">𐰀𐰁𐰂𐰃𐰄𐰅𐰆𐰇𐰈𐰉𐰊𐰋𐰌𐰍𐰎𐰏𐰐𐰑𐰒𐰓𐰔𐰕𐰖𐰗𐰘𐰙𐰚𐰛𐰜𐰝𐰞𐰟</div>
 <div class="line">𐰠𐰡𐰢𐰣𐰤𐰥𐰦𐰧𐰨𐰩𐰪𐰫𐰬𐰭𐰮𐰯𐰰𐰱𐰲𐰳𐰴𐰵𐰶𐰷𐰸𐰹𐰺𐰻𐰼𐰽𐰾𐰿</div>
-<div class="line">𐱀𐱁𐱂𐱃𐱄𐱅𐱆𐱇𐱈</div>
+<div class="line">𐱀𐱁𐱂𐱃𐱄𐱅𐱆𐱇𐱈𐲀𐲁𐲂𐲃𐲄𐲅𐲆𐲇𐲈𐲉𐲊𐲋𐲌𐲍𐲎𐲏𐲐𐲑𐲒𐲓𐲔𐲕𐲖</div>
+<div class="line">𐲗𐲘𐲙𐲚𐲛𐲜𐲝𐲞𐲟𐲠𐲡𐲢𐲣𐲤𐲥𐲦𐲧𐲨𐲩𐲪𐲫𐲬𐲭𐲮𐲯𐲰𐲱𐲲𐳀𐳁𐳂𐳃</div>
+<div class="line">𐳄𐳅𐳆𐳇𐳈𐳉𐳊𐳋𐳌𐳍𐳎𐳏𐳐𐳑𐳒𐳓𐳔𐳕𐳖𐳗𐳘𐳙𐳚𐳛𐳜𐳝𐳞𐳟𐳠𐳡𐳢𐳣</div>
+<div class="line">𐳤𐳥𐳦𐳧𐳨𐳩𐳪𐳫𐳬𐳭𐳮𐳯𐳰𐳱𐳲𐳺𐳻𐳼𐳽𐳾𐳿</div>
 </div>
 <div data-block="Rumi">
 <div class="line">𐹠𐹡𐹢𐹣𐹤𐹥𐹦𐹧𐹨𐹩𐹪𐹫𐹬𐹭𐹮𐹯𐹰𐹱𐹲𐹳𐹴𐹵𐹶𐹷𐹸𐹹𐹺𐹻𐹼𐹽𐹾</div>
@@ -161,39 +189,7 @@ summary {
 <div class="line">𑄣𑄤𑄥𑄦𑄶𑄷𑄸𑄹𑄺𑄻𑄼𑄽𑄾𑄿𑅀𑅁𑅂𑅃</div>
 </div>
 <div data-block="Mahajani">
-<div class="line">𑅐𑅑𑅒𑅓𑅔𑅕𑅖𑅗𑅘𑅙𑅚𑅛𑅜𑅝𑅞𑅟𑅠𑅡𑅢𑅣𑅤𑅥𑅦𑅧𑅨𑅩𑅪𑅫𑅬𑅭𑅮𑅯</div>
-<div class="line">𑅰𑅱𑅲𑅴𑅵𑅶</div>
-</div>
-<div data-block="Sharada">
-<div class="line">𑆃𑆄𑆅𑆆𑆇𑆈𑆉𑆊𑆋𑆌𑆍𑆎𑆏𑆐𑆑𑆒𑆓𑆔𑆕𑆖𑆗𑆘𑆙𑆚𑆛𑆜𑆝𑆞𑆟𑆠𑆡𑆢</div>
-<div class="line">𑆣𑆤𑆥𑆦𑆧𑆨𑆩𑆪𑆫𑆬𑆭𑆮𑆯𑆰𑆱𑆲𑇁𑇂𑇃𑇄𑇅𑇆𑇇𑇈𑇍𑇐𑇑𑇒𑇓𑇔𑇕𑇖</div>
-<div class="line">𑇗𑇘𑇙𑇚</div>
-</div>
-<div data-block="Sinhala">
-<div class="line">𑇡𑇢𑇣𑇤𑇥𑇦𑇧𑇨𑇩𑇪𑇫𑇬𑇭𑇮𑇯𑇰𑇱𑇲𑇳𑇴</div>
-</div>
-<div data-block="Khojki">
-<div class="line">𑈀𑈁𑈂𑈃𑈄𑈅𑈆𑈇𑈈𑈉𑈊𑈋𑈌𑈍𑈎𑈏𑈐𑈑𑈓𑈔𑈕𑈖𑈗𑈘𑈙𑈚𑈛𑈜𑈝𑈞𑈟𑈠</div>
-<div class="line">𑈡𑈢𑈣𑈤𑈥𑈦𑈧𑈨𑈩𑈪𑈫𑈸𑈹𑈺𑈻𑈼𑈽</div>
-</div>
-<div data-block="Khudawadi">
-<div class="line">𑊰𑊱𑊲𑊳𑊴𑊵𑊶𑊷𑊸𑊹𑊺𑊻𑊼𑊽𑊾𑊿𑋀𑋁𑋂𑋃𑋄𑋅𑋆𑋇𑋈𑋉𑋊𑋋𑋌𑋍𑋎𑋏</div>
-<div class="line">𑋐𑋑𑋒𑋓𑋔𑋕𑋖𑋗𑋘𑋙𑋚𑋛𑋜𑋝𑋞𑋰𑋱𑋲𑋳𑋴𑋵𑋶𑋷𑋸𑋹</div>
-</div>
-<div data-block="Grantha">
-<div class="line">𑌅𑌆𑌇𑌈𑌉𑌊𑌋𑌌𑌏𑌐𑌓𑌔𑌕𑌖𑌗𑌘𑌙𑌚𑌛𑌜𑌝𑌞𑌟𑌠𑌡𑌢𑌣𑌤𑌥𑌦𑌧𑌨</div>
-<div class="line">𑌪𑌫𑌬𑌭𑌮𑌯𑌰𑌲𑌳𑌵𑌶𑌷𑌸𑌹𑌽𑍝𑍞𑍟𑍠𑍡</div>
-</div>
-<div data-block="Tirhuta">
-<div class="line">𑒀𑒁𑒂𑒃𑒄𑒅𑒆𑒇𑒈𑒉𑒊𑒋𑒌𑒍𑒎𑒏𑒐𑒑𑒒𑒓𑒔𑒕𑒖𑒗𑒘𑒙𑒚𑒛𑒜𑒝𑒞𑒟</div>
-<div class="line">𑒠𑒡𑒢𑒣𑒤𑒥𑒦𑒧𑒨𑒩𑒪𑒫𑒬𑒭𑒮𑒯𑓄𑓅𑓆𑓇𑓐𑓑𑓒𑓓𑓔𑓕𑓖𑓗𑓘𑓙</div>
-</div>
-<div data-block="Modi">
-<div class="line">𑘀𑘁𑘂𑘃𑘄𑘅𑘆𑘇𑘈𑘉𑘊𑘋𑘌𑘍𑘎𑘏𑘐𑘑𑘒𑘓𑘔𑘕𑘖𑘗𑘘𑘙𑘚𑘛𑘜𑘝𑘞𑘟</div>
-<div class="line">𑘠𑘡𑘢𑘣𑘤𑘥𑘦𑘧𑘨𑘩𑘪𑘫𑘬𑘭𑘮𑘯𑙁𑙂𑙃𑙄𑙐𑙑𑙒𑙓𑙔𑙕𑙖𑙗𑙘𑙙</div>
-</div>
-<div data-block="Takri">
-<div class="line">𑚀𑚁𑚂𑚃𑚄𑚅𑚆𑚇𑚈𑚉𑚊𑚋𑚌𑚍𑚎𑚏𑚐𑚑𑚒𑚓𑚔𑚕𑚖𑚗𑚘𑚙𑚚𑚛𑚜𑚝</div>
+<div class="line">𑅐𑅑</div>
 </div>
 </div>
 </div>
