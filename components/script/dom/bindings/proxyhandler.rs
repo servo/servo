@@ -33,7 +33,8 @@ pub unsafe extern "C" fn shadow_check_callback(cx: *mut JSContext,
                                                -> DOMProxyShadowsResult {
     // TODO: support OverrideBuiltins when #12978 is fixed.
 
-    rooted!(in(cx) let expando = get_expando_object(object));
+    rooted!(in(cx) let mut expando = ptr::null_mut());
+    get_expando_object(object, expando.handle_mut());
     if !expando.get().is_null() {
         let mut has_own = false;
         if !JS_AlreadyHasOwnPropertyById(cx, expando.handle(), id, &mut has_own) {
@@ -99,7 +100,8 @@ pub unsafe extern "C" fn define_property(cx: *mut JSContext,
         return true;
     }
 
-    rooted!(in(cx) let expando = ensure_expando_object(cx, proxy));
+    rooted!(in(cx) let mut expando = ptr::null_mut());
+    ensure_expando_object(cx, proxy, expando.handle_mut());
     JS_DefinePropertyById(cx, expando.handle(), id, desc, result)
 }
 
@@ -109,7 +111,8 @@ pub unsafe extern "C" fn delete(cx: *mut JSContext,
                                 id: HandleId,
                                 bp: *mut ObjectOpResult)
                                 -> bool {
-    rooted!(in(cx) let expando = get_expando_object(proxy));
+    rooted!(in(cx) let mut expando = ptr::null_mut());
+    get_expando_object(proxy, expando.handle_mut());
     if expando.is_null() {
         (*bp).code_ = 0 /* OkCode */;
         return true;
@@ -156,31 +159,26 @@ pub unsafe extern "C" fn get_prototype_if_ordinary(_: *mut JSContext,
 }
 
 /// Get the expando object, or null if there is none.
-pub fn get_expando_object(obj: HandleObject) -> *mut JSObject {
-    unsafe {
-        assert!(is_dom_proxy(obj.get()));
-        let val = GetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO);
-        if val.is_undefined() {
-            ptr::null_mut()
-        } else {
-            val.to_object()
-        }
-    }
+pub unsafe fn get_expando_object(obj: HandleObject, expando: MutableHandleObject) {
+    assert!(is_dom_proxy(obj.get()));
+    let val = GetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO);
+    expando.set(if val.is_undefined() {
+        ptr::null_mut()
+    } else {
+        val.to_object()
+    });
 }
 
 /// Get the expando object, or create it if it doesn't exist yet.
 /// Fails on JSAPI failure.
-pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject) -> *mut JSObject {
-    unsafe {
-        assert!(is_dom_proxy(obj.get()));
-        let mut expando = get_expando_object(obj);
-        if expando.is_null() {
-            expando = JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null());
-            assert!(!expando.is_null());
+pub unsafe fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject, expando: MutableHandleObject) {
+    assert!(is_dom_proxy(obj.get()));
+    get_expando_object(obj, expando);
+    if expando.is_null() {
+        expando.set(JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null()));
+        assert!(!expando.is_null());
 
-            SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, &ObjectValue(expando));
-        }
-        expando
+        SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, &ObjectValue(expando.get()));
     }
 }
 
