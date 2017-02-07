@@ -38,6 +38,7 @@ input
 load
 loadstart
 loadend
+event
 progress
 transitionend
 error
