@@ -332,6 +332,25 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
+<%def name="impl_position(ident, gecko_ffi_name, need_clone=False)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        ${set_gecko_property("%s.mXPosition" % gecko_ffi_name, "v.horizontal.into()")}
+        ${set_gecko_property("%s.mYPosition" % gecko_ffi_name, "v.vertical.into()")}
+    }
+<%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+% if need_clone:
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        use values::computed::Position;
+        Position {
+            horizontal: self.gecko.${gecko_ffi_name}.mXPosition.into(),
+            vertical: self.gecko.${gecko_ffi_name}.mYPosition.into(),
+        }
+    }
+% endif
+</%def>
+
 <%def name="impl_color(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
 <%call expr="impl_color_setter(ident, gecko_ffi_name, complex_color)"></%call>
 <%call expr="impl_color_copy(ident, gecko_ffi_name, complex_color)"></%call>
@@ -506,6 +525,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
     predefined_types = {
         "length::LengthOrAuto": impl_style_coord,
         "Length": impl_length,
+        "Position": impl_position,
         "LengthOrPercentage": impl_style_coord,
         "LengthOrPercentageOrAuto": impl_style_coord,
         "LengthOrPercentageOrNone": impl_style_coord,
@@ -1142,7 +1162,7 @@ fn static_assert() {
                           animation-iteration-count animation-timing-function
                           -moz-binding page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
-                          scroll-snap-type-y scroll-snap-destination scroll-snap-coordinate
+                          scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin transform-origin""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
@@ -1313,13 +1333,6 @@ fn static_assert() {
     }
 
     ${impl_coord_copy('scroll_snap_points_y', 'mScrollSnapPointsY')}
-
-    pub fn set_scroll_snap_destination(&mut self, v: longhands::scroll_snap_destination::computed_value::T) {
-        self.gecko.mScrollSnapDestination.mXPosition = v.horizontal.into();
-        self.gecko.mScrollSnapDestination.mYPosition = v.vertical.into();
-    }
-
-    ${impl_simple_copy('scroll_snap_destination', 'mScrollSnapDestination')}
 
     pub fn set_scroll_snap_coordinate(&mut self, v: longhands::scroll_snap_coordinate::computed_value::T) {
         self.gecko.mScrollSnapCoordinate.set_len_pod(v.0.len() as u32);
