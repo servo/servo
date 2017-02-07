@@ -5,7 +5,6 @@
 use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::VRFrameDataBinding;
 use dom::bindings::codegen::Bindings::VRFrameDataBinding::VRFrameDataMethods;
-use dom::bindings::conversions::{slice_to_array_buffer_view, update_array_buffer_view};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::num::Finite;
@@ -13,7 +12,8 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use dom::vrpose::VRPose;
 use dom::window::Window;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{Heap, JSContext, JSObject, MutableHandleObject};
+use js::typedarray::{TypedArray, Float32};
 use std::cell::Cell;
 use webvr_traits::WebVRFrameData;
 
@@ -51,10 +51,14 @@ impl VRFrameData {
         };
 
         unsafe {
-            framedata.left_proj.set(slice_to_array_buffer_view(global.get_cx(), &matrix));
-            framedata.left_view.set(slice_to_array_buffer_view(global.get_cx(), &matrix));
-            framedata.right_proj.set(slice_to_array_buffer_view(global.get_cx(), &matrix));
-            framedata.right_view.set(slice_to_array_buffer_view(global.get_cx(), &matrix));
+            let _ = TypedArray::<Float32>::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+                MutableHandleObject::from_marked_location(framedata.left_view.get_unsafe()));
+            let _ = TypedArray::<Float32>::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+                MutableHandleObject::from_marked_location(framedata.left_proj.get_unsafe()));
+            let _ = TypedArray::<Float32>::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+                MutableHandleObject::from_marked_location(framedata.right_proj.get_unsafe()));
+            let _ = TypedArray::<Float32>::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+                MutableHandleObject::from_marked_location(framedata.right_view.get_unsafe()));
         }
 
         reflect_dom_object(box framedata,
@@ -72,10 +76,23 @@ impl VRFrameData {
     #[allow(unsafe_code)]
     pub fn update(&self, data: &WebVRFrameData) {
         unsafe {
-            update_array_buffer_view(self.left_proj.get(), &data.left_projection_matrix);
-            update_array_buffer_view(self.left_view.get(), &data.left_view_matrix);
-            update_array_buffer_view(self.right_proj.get(), &data.right_projection_matrix);
-            update_array_buffer_view(self.right_view.get(), &data.right_view_matrix);
+            let cx = self.global().get_cx();
+            typedarray!(in(cx) let left_proj_array: Float32Array = self.left_proj.get());
+            if let Ok(mut array) = left_proj_array {
+                array.update(&data.left_projection_matrix);
+            }
+            typedarray!(in(cx) let left_view_array: Float32Array = self.left_view.get());
+            if let Ok(mut array) = left_view_array {
+                array.update(&data.left_view_matrix);
+            }
+            typedarray!(in(cx) let right_proj_array: Float32Array = self.right_proj.get());
+            if let Ok(mut array) = right_proj_array {
+                array.update(&data.right_projection_matrix);
+            }
+            typedarray!(in(cx) let right_view_array: Float32Array = self.right_view.get());
+            if let Ok(mut array) = right_view_array {
+                array.update(&data.right_view_matrix);
+            }
         }
         self.pose.update(&data.pose);
         self.timestamp.set(data.timestamp);
