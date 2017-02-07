@@ -571,8 +571,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         }
     }
 
-    fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
-        match pseudo_class {
+    fn match_non_ts_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
+        match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::AnyLink => unsafe { Gecko_IsLink(self.0) },
             NonTSPseudoClass::Link => unsafe { Gecko_IsUnvisitedLink(self.0) },
@@ -732,7 +732,7 @@ impl<'le> ::selectors::MatchAttr for GeckoElement<'le> {
 impl<'le> ElementExt for GeckoElement<'le> {
     #[inline]
     fn is_link(&self) -> bool {
-        self.match_non_ts_pseudo_class(NonTSPseudoClass::AnyLink)
+        self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink)
     }
 
     #[inline]
