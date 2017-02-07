@@ -8,7 +8,7 @@
 //! done in parallel and is therefore a sequential pass that runs on as little of the flow tree
 //! as possible.
 
-use context::LayoutContext;
+use context::{LayoutContext, with_thread_local_font_context};
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
 use flow::InorderFlowTraversal;
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
@@ -97,7 +97,7 @@ static KATAKANA_IROHA: [char; 47] = [
 /// The generated content resolution traversal.
 pub struct ResolveGeneratedContent<'a> {
     /// The layout context.
-    layout_context: &'a LayoutContext<'a>,
+    layout_context: &'a LayoutContext,
     /// The counter representing an ordered list item.
     list_item: Counter,
     /// Named CSS counters.
@@ -108,7 +108,7 @@ pub struct ResolveGeneratedContent<'a> {
 
 impl<'a> ResolveGeneratedContent<'a> {
     /// Creates a new generated content resolution traversal.
-    pub fn new(layout_context: &'a LayoutContext<'a>) -> ResolveGeneratedContent<'a> {
+    pub fn new(layout_context: &'a LayoutContext) -> ResolveGeneratedContent<'a> {
         ResolveGeneratedContent {
             layout_context: layout_context,
             list_item: Counter::new(),
@@ -444,8 +444,9 @@ fn render_text(layout_context: &LayoutContext,
                                                              info));
     // FIXME(pcwalton): This should properly handle multiple marker fragments. This could happen
     // due to text run splitting.
-    let fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
-                                                        fragments);
+    let fragments = with_thread_local_font_context(layout_context, |font_context| {
+        TextRunScanner::new().scan_for_runs(font_context, fragments)
+    });
     if fragments.is_empty() {
         None
     } else {

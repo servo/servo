@@ -6,7 +6,7 @@
 
 use app_units::Au;
 use block::AbsoluteAssignBSizesTraversal;
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use display_list_builder::{DisplayListBuildState, InlineFlowDisplayListBuilding};
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
@@ -32,7 +32,6 @@ use std::sync::Arc;
 use style::arc_ptr_eq;
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{vertical_align, white_space};
-use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{longhands, ServoComputedValues};
 use style::servo::restyle_damage::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPOSITION, RESOLVE_GENERATED_CONTENT};
@@ -1347,7 +1346,7 @@ impl Flow for InlineFlow {
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
-    fn assign_inline_sizes(&mut self, _: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, _: &LayoutContext) {
         let _scope = layout_debug_scope!("inline::assign_inline_sizes {:x}", self.base.debug_id());
 
         // Initialize content fragment inline-sizes if they haven't been initialized already.
@@ -1506,7 +1505,7 @@ impl Flow for InlineFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, _: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, _: &LayoutContext) {
         // First, gather up the positions of all the containing blocks (if any).
         //
         // FIXME(pcwalton): This will get the absolute containing blocks inside `...` wrong in the

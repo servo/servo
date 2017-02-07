@@ -9,7 +9,7 @@
 use app_units::Au;
 use block::{BlockFlow, CandidateBSizeIterator, ISizeAndMarginsComputer};
 use block::{ISizeConstraintInput, ISizeConstraintSolution};
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
 use euclid::Point2D;
 use flow;
@@ -345,11 +345,12 @@ impl Flow for TableFlow {
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("table::assign_inline_sizes {:x}",
                                             self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table");
 
+        let shared_context = layout_context.shared_context();
         // The position was set to the containing block by the flow's parent.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
 
@@ -464,13 +465,13 @@ impl Flow for TableFlow {
         });
     }
 
-    fn assign_block_size<'a>(&mut self, _: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, _: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table");
         let vertical_spacing = self.spacing().vertical;
         self.block_flow.assign_block_size_for_table_like_flow(vertical_spacing)
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 

@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use cssparser::Color;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
@@ -21,7 +21,6 @@ use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_top_style, vertical_align};
-use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::ServoComputedValues;
 use table::InternalTable;
@@ -82,7 +81,7 @@ impl TableCellFlow {
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
     /// methods.
     #[inline(always)]
-    fn assign_block_size_table_cell_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size_table_cell_base(&mut self, layout_context: &LayoutContext) {
         let remaining = self.block_flow.assign_block_size_block_base(
             layout_context,
             None,
@@ -193,11 +192,12 @@ impl Flow for TableCellFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent table
     /// row.
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("table_cell::assign_inline_sizes {:x}",
                                             self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_cell");
 
+        let shared_context = layout_context.shared_context();
         // The position was set to the column inline-size by the parent flow, table row flow.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
 
@@ -226,12 +226,12 @@ impl Flow for TableCellFlow {
                                                                    |_, _, _, _, _, _| {});
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_cell");
         self.assign_block_size_table_cell_base(layout_context);
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 

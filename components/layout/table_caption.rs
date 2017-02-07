@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use block::BlockFlow;
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
@@ -16,7 +16,6 @@ use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx_traits::print_tree::PrintTree;
 use std::fmt;
 use std::sync::Arc;
-use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 
@@ -54,17 +53,17 @@ impl Flow for TableCaptionFlow {
         self.block_flow.bubble_inline_sizes();
     }
 
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_caption");
-        self.block_flow.assign_inline_sizes(shared_context);
+        self.block_flow.assign_inline_sizes(layout_context);
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_caption");
         self.block_flow.assign_block_size(layout_context);
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 
