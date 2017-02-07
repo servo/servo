@@ -65,6 +65,9 @@ pub fn init() {
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptWorkerEvent);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptServiceWorkerEvent);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptParseXML);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptEnterFullscreen);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptExitFullscreen);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptWebVREvent);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ApplicationHeartbeat);
     unsafe {
         HBS = Some(mem::transmute(Box::new(hbs)));
