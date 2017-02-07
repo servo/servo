@@ -39,7 +39,7 @@ style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
-xi-unicode = "0.0.1"
+xi-unicode = "0.1.0"
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"
