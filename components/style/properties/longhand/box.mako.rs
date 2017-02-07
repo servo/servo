@@ -1056,6 +1056,16 @@ ${helpers.predefined_type("scroll-snap-destination",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
                           animatable=False)}
 
+${helpers.predefined_type("scroll-snap-coordinate",
+                          "Position",
+                          "computed::Position::zero()",
+                          vector=True,
+                          products="gecko",
+                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
+                          animatable=False,
+                          allow_empty=True)}
+
+
 <%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
                    animatable="True"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
