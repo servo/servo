@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import to_rust_ident, ALL_SIDES, maybe_moz_logical_alias %>
+<% from data import to_rust_ident, ALL_SIDES, PHYSICAL_SIDES, maybe_moz_logical_alias %>
 
 ${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse",
                                spec="https://drafts.csswg.org/css-backgrounds/#border-color")}
@@ -141,14 +141,38 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let all_equal = {
+                % for side in PHYSICAL_SIDES:
+                  let border_${side}_width = self.border_${side}_width;
+                  let border_${side}_style = self.border_${side}_style;
+                  let border_${side}_color = self.border_${side}_color;
+                % endfor
+
+                border_top_width == border_right_width &&
+                border_right_width == border_bottom_width &&
+                border_bottom_width == border_left_width &&
+
+                border_top_style == border_right_style &&
+                border_right_style == border_bottom_style &&
+                border_bottom_style == border_left_style &&
+
+                border_top_color == border_right_color &&
+                border_right_color == border_bottom_color &&
+                border_bottom_color == border_left_color
+            };
+
             // If all longhands are all present, then all sides should be the same,
             // so we can just one set of color/style/width
-            super::serialize_directional_border(
-                dest,
-                self.border_${side}_width,
-                self.border_${side}_style,
-                self.border_${side}_color
-            )
+            if all_equal {
+                super::serialize_directional_border(
+                    dest,
+                    self.border_${side}_width,
+                    self.border_${side}_style,
+                    self.border_${side}_color
+                )
+            } else {
+                Ok(())
+            }
         }
     }
 
