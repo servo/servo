@@ -2158,7 +2158,7 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="InheritedText"
                   skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing
-                                  -webkit-text-stroke-width">
+                                  -webkit-text-stroke-width text-emphasis-position">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
@@ -2263,6 +2263,26 @@ fn static_assert() {
             self.gecko.mTextEmphasisStyle = structs::NS_STYLE_TEXT_EMPHASIS_STYLE_NONE as u8;
         }
     }
+
+    pub fn set_text_emphasis_position(&mut self, v: longhands::text_emphasis_position::computed_value::T) {
+        use properties::longhands::text_emphasis_position::*;
+
+        let mut result = match v.0 {
+            HorizontalWritingModeValue::Over => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER as u8,
+            HorizontalWritingModeValue::Under => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER as u8,
+        };
+        match v.1 {
+            VerticalWritingModeValue::Right => {
+                result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT as u8;
+            }
+            VerticalWritingModeValue::Left => {
+                result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT as u8;
+            }
+        }
+        self.gecko.mTextEmphasisPosition = result;
+    }
+
+    <%call expr="impl_simple_copy('text_emphasis_position', 'mTextEmphasisPosition')"></%call>
 
     pub fn set_text_emphasis_style(&mut self, v: longhands::text_emphasis_style::computed_value::T) {
         use nsstring::nsCString;

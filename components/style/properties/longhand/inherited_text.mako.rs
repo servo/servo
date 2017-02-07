@@ -973,7 +973,7 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="text-emphasis-position" animatable="False" products="none"
+<%helpers:longhand name="text-emphasis-position" animatable="False" products="gecko"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
@@ -1068,6 +1068,7 @@ ${helpers.predefined_type(
         Au::from_px(0)
     }
 </%helpers:longhand>
+
 
 // CSS Ruby Layout Module Level 1
 // https://drafts.csswg.org/css-ruby/
