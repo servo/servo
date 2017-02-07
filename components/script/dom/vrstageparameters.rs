@@ -6,12 +6,12 @@ use core::nonzero::NonZero;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::VRStageParametersBinding;
 use dom::bindings::codegen::Bindings::VRStageParametersBinding::VRStageParametersMethods;
-use dom::bindings::conversions::{slice_to_array_buffer_view, update_array_buffer_view};
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Heap, JSContext, JSObject};
+use js::typedarray::Float32Array;
 use webvr_traits::WebVRStageParameters;
 
 #[dom_struct]
@@ -34,8 +34,10 @@ impl VRStageParameters {
             transform: Heap::default()
         };
         unsafe {
-            stage.transform.set(slice_to_array_buffer_view(global.get_cx(),
-                                                           &stage.parameters.borrow().sitting_to_standing_transform));
+            let _ = Float32Array::create(global.get_cx(),
+                                         stage.parameters.borrow().sitting_to_standing_transform.len() as u32,
+                                         Some(&stage.parameters.borrow().sitting_to_standing_transform),
+                                         stage.transform.handle_mut());
         }
 
         stage
@@ -50,7 +52,11 @@ impl VRStageParameters {
     #[allow(unsafe_code)]
     pub fn update(&self, parameters: &WebVRStageParameters) {
         unsafe {
-            update_array_buffer_view(self.transform.get(), &parameters.sitting_to_standing_transform);
+            let cx = self.global().get_cx();
+            typedarray!(in(cx) let array: Float32Array = self.transform.get());
+            if let Ok(mut array) = array {
+                array.update(&parameters.sitting_to_standing_transform);
+            }
         }
         *self.parameters.borrow_mut() = parameters.clone();
     }

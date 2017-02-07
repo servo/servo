@@ -6,12 +6,12 @@ use core::nonzero::NonZero;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding;
 use dom::bindings::codegen::Bindings::VREyeParametersBinding::VREyeParametersMethods;
-use dom::bindings::conversions::slice_to_array_buffer_view;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use dom::vrfieldofview::VRFieldOfView;
 use js::jsapi::{Heap, JSContext, JSObject};
+use js::typedarray::Float32Array;
 use std::default::Default;
 use webvr_traits::WebVREyeParameters;
 
@@ -39,7 +39,10 @@ impl VREyeParameters {
         };
 
         unsafe {
-            result.offset.set(slice_to_array_buffer_view(global.get_cx(), &result.parameters.borrow().offset));
+            let _ = Float32Array::create(global.get_cx(),
+                                         result.parameters.borrow().offset.len() as u32,
+                                         Some(&result.parameters.borrow().offset),
+                                         result.offset.handle_mut());
         }
         result
     }
