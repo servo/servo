@@ -1049,6 +1049,12 @@ ${helpers.single_keyword("animation-fill-mode",
 </%helpers:longhand>
 
 
+${helpers.predefined_type("scroll-snap-destination",
+                          "Position",
+                          "computed::Position::zero()",
+                          products="gecko",
+                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
+                          animatable=False)}
 
 <%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
                    animatable="True"

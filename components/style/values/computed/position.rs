@@ -19,6 +19,16 @@ pub struct Position {
     pub vertical: LengthOrPercentage,
 }
 
+impl Position {
+    /// Construct a position at (0, 0)
+    pub fn zero() -> Self {
+        Position {
+            horizontal: LengthOrPercentage::zero(),
+            vertical: LengthOrPercentage::zero(),
+        }
+    }
+}
+
 impl ToCss for Position {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(self.horizontal.to_css(dest));
