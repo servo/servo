@@ -311,8 +311,6 @@ macro_rules! try_parse_one {
             try!(self.animation_duration.to_css(dest));
             try!(write!(dest, " "));
 
-            // FIXME: timing function is displaying the actual mathematical name "cubic-bezier(0.25, 0.1, 0.25, 1)"
-            // instead of the common name "ease"
             try!(self.animation_timing_function.to_css(dest));
             try!(write!(dest, " "));
 
