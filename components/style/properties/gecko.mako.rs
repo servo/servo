@@ -1169,7 +1169,8 @@ fn static_assert() {
                           animation-iteration-count animation-timing-function
                           -moz-binding page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
-                          scroll-snap-type-y scroll-snap-destination perspective-origin transform-origin""" %>
+                          scroll-snap-type-y scroll-snap-destination scroll-snap-coordinate
+                          perspective-origin transform-origin""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1346,6 +1347,34 @@ fn static_assert() {
     }
 
     ${impl_simple_copy('scroll_snap_destination', 'mScrollSnapDestination')}
+
+    pub fn set_scroll_snap_coordinate(&mut self, v: longhands::scroll_snap_coordinate::computed_value::T) {
+        unsafe { self.gecko.mScrollSnapCoordinate.set_len_pod(v.0.len() as u32); }
+        for (gecko, servo) in self.gecko.mScrollSnapCoordinate
+                               .iter_mut()
+                               .zip(v.0.iter()) {
+            gecko.mXPosition = servo.horizontal.into();
+            gecko.mYPosition = servo.vertical.into();
+        }
+    }
+
+    pub fn copy_scroll_snap_coordinate_from(&mut self, other: &Self) {
+        unsafe {
+            self.gecko.mScrollSnapCoordinate
+                .set_len_pod(other.gecko.mScrollSnapCoordinate.len() as u32);
+        }
+
+        for (this, that) in self.gecko.mScrollSnapCoordinate
+                               .iter_mut()
+                               .zip(other.gecko.mScrollSnapCoordinate.iter()) {
+            *this = *that;
+        }
+    }
+
+    pub fn clone_scroll_snap_coordinate(&self) -> longhands::scroll_snap_coordinate::computed_value::T {
+        let vec = self.gecko.mScrollSnapCoordinate.iter().map(|f| f.into()).collect();
+        longhands::scroll_snap_coordinate::computed_value::T(vec)
+    }
 
     <%def name="transform_function_arm(name, keyword, items)">
         <%
