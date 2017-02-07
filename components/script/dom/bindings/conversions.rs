@@ -580,23 +580,3 @@ pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
     assert!(JS_IsArrayObject(cx, value, &mut result));
     result
 }
-
-/// Creates a typed JS array from a Rust slice
-pub unsafe fn slice_to_array_buffer_view<T>(cx: *mut JSContext, data: &[T]) -> *mut JSObject
-    where T: ArrayBufferViewContents
-{
-    let js_object = T::new(cx, data.len() as u32);
-    assert!(!js_object.is_null());
-    update_array_buffer_view(js_object, data);
-    js_object
-}
-
-/// Updates a typed JS array from a Rust slice
-pub unsafe fn update_array_buffer_view<T>(obj: *mut JSObject, data: &[T])
-    where T: ArrayBufferViewContents
-{
-    let mut buffer = array_buffer_view_data(obj);
-    if let Some(ref mut buffer) = buffer {
-        ptr::copy_nonoverlapping(&data[0], &mut buffer[0], data.len())
-    }
-}

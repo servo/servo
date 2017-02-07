@@ -5,7 +5,6 @@
 use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::VRFrameDataBinding;
 use dom::bindings::codegen::Bindings::VRFrameDataBinding::VRFrameDataMethods;
-use dom::bindings::conversions::{slice_to_array_buffer_view, update_array_buffer_view};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::num::Finite;
@@ -14,6 +13,7 @@ use dom::globalscope::GlobalScope;
 use dom::vrpose::VRPose;
 use dom::window::Window;
 use js::jsapi::{Heap, JSContext, JSObject};
+use js::typedarray::Float32Array;
 use std::cell::Cell;
 use webvr_traits::WebVRFrameData;
 
@@ -50,16 +50,23 @@ impl VRFrameData {
             first_timestamp: Cell::new(0.0)
         };
 
+        let root = reflect_dom_object(box framedata,
+                           global,
+                           VRFrameDataBinding::Wrap);
+
         unsafe {
-            framedata.left_proj.set(slice_to_array_buffer_view(global.get_cx(), &matrix));
-            framedata.left_view.set(slice_to_array_buffer_view(global.get_cx(), &matrix));
-            framedata.right_proj.set(slice_to_array_buffer_view(global.get_cx(), &matrix));
-            framedata.right_view.set(slice_to_array_buffer_view(global.get_cx(), &matrix));
+            let ref framedata = *root;
+            let _ = Float32Array::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+                                         framedata.left_proj.handle_mut());
+            let _ = Float32Array::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+                                         framedata.left_view.handle_mut());
+            let _ = Float32Array::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+                                         framedata.right_proj.handle_mut());
+            let _ = Float32Array::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+                                         framedata.right_view.handle_mut());
         }
 
-        reflect_dom_object(box framedata,
-                           global,
-                           VRFrameDataBinding::Wrap)
+        root
     }
 
     pub fn Constructor(window: &Window) -> Fallible<Root<VRFrameData>> {
@@ -72,10 +79,23 @@ impl VRFrameData {
     #[allow(unsafe_code)]
     pub fn update(&self, data: &WebVRFrameData) {
         unsafe {
-            update_array_buffer_view(self.left_proj.get(), &data.left_projection_matrix);
-            update_array_buffer_view(self.left_view.get(), &data.left_view_matrix);
-            update_array_buffer_view(self.right_proj.get(), &data.right_projection_matrix);
-            update_array_buffer_view(self.right_view.get(), &data.right_view_matrix);
+            let cx = self.global().get_cx();
+            typedarray!(in(cx) let left_proj_array: Float32Array = self.left_proj.get());
+            if let Ok(mut array) = left_proj_array {
+                array.update(&data.left_projection_matrix);
+            }
+            typedarray!(in(cx) let left_view_array: Float32Array = self.left_view.get());
+            if let Ok(mut array) = left_view_array {
+                array.update(&data.left_view_matrix);
+            }
+            typedarray!(in(cx) let right_proj_array: Float32Array = self.right_proj.get());
+            if let Ok(mut array) = right_proj_array {
+                array.update(&data.right_projection_matrix);
+            }
+            typedarray!(in(cx) let right_view_array: Float32Array = self.right_view.get());
+            if let Ok(mut array) = right_view_array {
+                array.update(&data.right_view_matrix);
+            }
         }
         self.pose.update(&data.pose);
         self.timestamp.set(data.timestamp);
