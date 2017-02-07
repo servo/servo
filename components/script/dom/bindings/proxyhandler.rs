@@ -159,30 +159,26 @@ pub unsafe extern "C" fn get_prototype_if_ordinary(_: *mut JSContext,
 }
 
 /// Get the expando object, or null if there is none.
-pub fn get_expando_object(obj: HandleObject, expando: MutableHandleObject) {
-    unsafe {
-        assert!(is_dom_proxy(obj.get()));
-        let val = GetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO);
-        expando.set(if val.is_undefined() {
-            ptr::null_mut()
-        } else {
-            val.to_object()
-        });
-    }
+pub unsafe fn get_expando_object(obj: HandleObject, expando: MutableHandleObject) {
+    assert!(is_dom_proxy(obj.get()));
+    let val = GetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO);
+    expando.set(if val.is_undefined() {
+        ptr::null_mut()
+    } else {
+        val.to_object()
+    });
 }
 
 /// Get the expando object, or create it if it doesn't exist yet.
 /// Fails on JSAPI failure.
-pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject, expando: MutableHandleObject) {
-    unsafe {
-        assert!(is_dom_proxy(obj.get()));
-        get_expando_object(obj, expando);
-        if expando.is_null() {
-            expando.set(JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null()));
-            assert!(!expando.is_null());
+pub unsafe fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject, expando: MutableHandleObject) {
+    assert!(is_dom_proxy(obj.get()));
+    get_expando_object(obj, expando);
+    if expando.is_null() {
+        expando.set(JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null()));
+        assert!(!expando.is_null());
 
-            SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, &ObjectValue(expando.get()));
-        }
+        SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, &ObjectValue(expando.get()));
     }
 }
 
