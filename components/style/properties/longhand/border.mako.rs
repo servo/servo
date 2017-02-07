@@ -257,10 +257,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
         }
     }
 
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut values = vec![];
         for _ in 0..4 {
-            let value = input.try(|input| LengthOrNumber::parse_non_negative(input));
+            let value = input.try(|input| LengthOrNumber::parse_non_negative(context, input));
             match value {
                 Ok(val) => values.push(val),
                 Err(_) => break,

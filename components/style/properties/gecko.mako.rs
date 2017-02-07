@@ -2158,7 +2158,7 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="InheritedText"
                   skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing
-                                  -webkit-text-stroke-width text-emphasis-position">
+                                  -webkit-text-stroke-width text-emphasis-position -moz-tab-size">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
@@ -2326,6 +2326,22 @@ fn static_assert() {
     }
 
     <%call expr="impl_app_units('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth', need_clone=False)"></%call>
+
+    #[allow(non_snake_case)]
+    pub fn set__moz_tab_size(&mut self, v: longhands::_moz_tab_size::computed_value::T) {
+        use values::Either;
+
+        match v {
+            Either::Second(number) => {
+                self.gecko.mTabSize.set_value(CoordDataValue::Factor(number));
+            }
+            Either::First(au) => {
+                self.gecko.mTabSize.set(au);
+            }
+        }
+    }
+
+    <%call expr="impl_coord_copy('_moz_tab_size', 'mTabSize')"></%call>
 
 </%self:impl_trait>
 
