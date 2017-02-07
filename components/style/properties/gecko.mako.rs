@@ -318,6 +318,20 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
+<%def name="impl_length(ident, gecko_ffi_name, need_clone=False)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        ${set_gecko_property(gecko_ffi_name, "v.0")}
+    }
+<%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+% if need_clone:
+    #[allow(non_snake_case)]
+    pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        Au(self.gecko.${gecko_ffi_name})
+    }
+% endif
+</%def>
+
 <%def name="impl_color(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
 <%call expr="impl_color_setter(ident, gecko_ffi_name, complex_color)"></%call>
 <%call expr="impl_color_copy(ident, gecko_ffi_name, complex_color)"></%call>
@@ -491,7 +505,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
         "length::LengthOrAuto": impl_style_coord,
-        "Length": impl_style_coord,
+        "Length": impl_length,
         "LengthOrPercentage": impl_style_coord,
         "LengthOrPercentageOrAuto": impl_style_coord,
         "LengthOrPercentageOrNone": impl_style_coord,
