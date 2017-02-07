@@ -361,11 +361,6 @@ impl webrender_traits::RenderNotifier for RenderNotifier {
     fn new_scroll_frame_ready(&mut self, composite_needed: bool) {
         self.compositor_proxy.send(Msg::NewScrollFrameReady(composite_needed));
     }
-
-    fn pipeline_size_changed(&mut self,
-                             _: webrender_traits::PipelineId,
-                             _: Option<webrender_traits::LayoutSize>) {
-    }
 }
 
 // Used to dispatch functions from webrender to the main thread's event loop.

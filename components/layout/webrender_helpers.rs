@@ -16,7 +16,7 @@ use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode};
 use style::computed_values::filter::{self, Filter};
 use style::values::computed::BorderStyle;
-use webrender_traits::{self, DisplayListBuilder, LayoutTransform};
+use webrender_traits::{self, DisplayListBuilder, ExtendMode, LayoutTransform};
 
 pub trait WebRenderDisplayListConverter {
     fn convert_to_webrender(&self, pipeline_id: PipelineId) -> DisplayListBuilder;
@@ -229,8 +229,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                             let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                             let glyph = webrender_traits::GlyphInstance {
                                 index: glyph.id(),
-                                x: (origin.x + glyph_offset.x).to_f32_px(),
-                                y: (origin.y + glyph_offset.y).to_f32_px(),
+                                point: Point2D::new((origin.x + glyph_offset.x).to_f32_px(),
+                                                    (origin.y + glyph_offset.y).to_f32_px()),
                             };
                             glyphs.push(glyph);
                         }
@@ -309,7 +309,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                       clip,
                                       start_point,
                                       end_point,
-                                      item.stops.clone());
+                                      item.stops.clone(),
+                                      ExtendMode::Clamp);
             }
             DisplayItem::Line(..) => {
                 println!("TODO DisplayItem::Line");
@@ -353,7 +354,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::PopStackingContext(_) => builder.pop_stacking_context(),
             DisplayItem::PushScrollRoot(ref item) => {
-                builder.push_scroll_layer(item.scroll_root.clip.to_rectf(),
+                let clip = builder.new_clip_region(&item.scroll_root.clip.to_rectf(),
+                                                   vec![],
+                                                   None);
+
+                builder.push_scroll_layer(clip,
                                           item.scroll_root.size.to_sizef(),
                                           item.scroll_root.id.convert_to_webrender());
             }

@@ -184,7 +184,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 clear_framebuffer: true,
                 clear_color: webrender_traits::ColorF::new(1.0, 1.0, 1.0, 1.0),
                 render_target_debug: false,
-            })
+            }).expect("Unable to initialize webrender!")
         };
 
         // Important that this call is done in a single-threaded fashion, we
