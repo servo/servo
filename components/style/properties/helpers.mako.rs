@@ -16,26 +16,49 @@
     </%call>
 </%def>
 
-<%def name="predefined_type(name, type, initial_value, parse_method='parse', needs_context=True, **kwargs)">
-    <%call expr="longhand(name, predefined_type=type, **kwargs)">
-        #[allow(unused_imports)]
-        use app_units::Au;
-        use cssparser::{Color as CSSParserColor, RGBA};
-        pub use values::specified::${type} as SpecifiedValue;
-        pub mod computed_value {
-            pub use values::computed::${type} as T;
-        }
-        #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
-        #[allow(unused_variables)]
-        #[inline] pub fn parse(context: &ParserContext, input: &mut Parser)
-                               -> Result<SpecifiedValue, ()> {
-            % if needs_context:
-            specified::${type}::${parse_method}(context, input)
-            % else:
-            specified::${type}::${parse_method}(input)
-            % endif
-        }
-    </%call>
+<%def name="predefined_type(name, type, initial_value, parse_method='parse',
+            needs_context=True, vector=False, **kwargs)">
+    % if vector:
+        <%call expr="vector_longhand(name, predefined_type=type, **kwargs)">
+            #[allow(unused_imports)]
+            use app_units::Au;
+            use cssparser::{Color as CSSParserColor, RGBA};
+            pub use values::specified::${type} as SpecifiedValue;
+            pub mod computed_value {
+                pub use values::computed::${type} as T;
+            }
+            #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
+            #[allow(unused_variables)]
+            #[inline] pub fn parse(context: &ParserContext, input: &mut Parser)
+                                   -> Result<SpecifiedValue, ()> {
+                % if needs_context:
+                specified::${type}::${parse_method}(context, input)
+                % else:
+                specified::${type}::${parse_method}(input)
+                % endif
+            }
+        </%call>
+    % else:
+        <%call expr="longhand(name, predefined_type=type, **kwargs)">
+            #[allow(unused_imports)]
+            use app_units::Au;
+            use cssparser::{Color as CSSParserColor, RGBA};
+            pub use values::specified::${type} as SpecifiedValue;
+            pub mod computed_value {
+                pub use values::computed::${type} as T;
+            }
+            #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
+            #[allow(unused_variables)]
+            #[inline] pub fn parse(context: &ParserContext, input: &mut Parser)
+                                   -> Result<SpecifiedValue, ()> {
+                % if needs_context:
+                specified::${type}::${parse_method}(context, input)
+                % else:
+                specified::${type}::${parse_method}(input)
+                % endif
+            }
+        </%call>
+    % endif
 </%def>
 
 // FIXME (Manishearth): Add computed_value_as_specified argument
