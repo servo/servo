@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use cssparser::{Color, RGBA};
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
 use euclid::Point2D;
@@ -24,7 +24,6 @@ use std::fmt;
 use std::iter::{Enumerate, IntoIterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, border_top_style};
-use style::context::SharedStyleContext;
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
 use style::properties::ServoComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
@@ -338,11 +337,12 @@ impl Flow for TableRowFlow {
                                                                                 pref_inline_size);
     }
 
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("table_row::assign_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_row");
 
+        let shared_context = layout_context.shared_context();
         // The position was set to the containing block by the flow's parent.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
         // FIXME: In case of border-collapse: collapse, inline_start_content_edge should be
@@ -454,7 +454,7 @@ impl Flow for TableRowFlow {
         self.assign_block_size_table_row_base(layout_context);
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 

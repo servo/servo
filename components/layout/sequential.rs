@@ -5,7 +5,7 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use app_units::Au;
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
 use euclid::point::Point2D;
 use floats::SpeculatedFloatPlacement;
@@ -20,7 +20,7 @@ use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
 
 pub use style::sequential::traverse_dom;
 
-pub fn resolve_generated_content(root: &mut Flow, shared: &SharedLayoutContext) {
+pub fn resolve_generated_content(root: &mut Flow, layout_context: &LayoutContext) {
     fn doit(flow: &mut Flow, level: u32, traversal: &mut ResolveGeneratedContent) {
         if !traversal.should_process(flow) {
             return
@@ -33,13 +33,12 @@ pub fn resolve_generated_content(root: &mut Flow, shared: &SharedLayoutContext) 
         }
     }
 
-    let layout_context = LayoutContext::new(shared);
     let mut traversal = ResolveGeneratedContent::new(&layout_context);
     doit(root, 0, &mut traversal)
 }
 
 pub fn traverse_flow_tree_preorder(root: &mut Flow,
-                                   shared: &SharedLayoutContext) {
+                                   layout_context: &LayoutContext) {
     fn doit(flow: &mut Flow,
             assign_inline_sizes: AssignISizes,
             assign_block_sizes: AssignBSizes) {
@@ -56,8 +55,6 @@ pub fn traverse_flow_tree_preorder(root: &mut Flow,
         }
     }
 
-    let layout_context = LayoutContext::new(shared);
-
     if opts::get().bubble_inline_sizes_separately {
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
         {
@@ -66,16 +63,16 @@ pub fn traverse_flow_tree_preorder(root: &mut Flow,
         }
     }
 
-    let assign_inline_sizes = AssignISizes { shared_context: layout_context.shared_context() };
+    let assign_inline_sizes = AssignISizes { layout_context: &layout_context };
     let assign_block_sizes  = AssignBSizes { layout_context: &layout_context };
 
     doit(root, assign_inline_sizes, assign_block_sizes);
 }
 
 pub fn build_display_list_for_subtree<'a>(flow_root: &mut Flow,
-                                          shared_layout_context: &'a SharedLayoutContext)
+                                          layout_context: &'a LayoutContext)
                                           -> DisplayListBuildState<'a> {
-    let mut state = DisplayListBuildState::new(shared_layout_context);
+    let mut state = DisplayListBuildState::new(layout_context);
     flow_root.collect_stacking_contexts(&mut state);
 
     let mut build_display_list = BuildDisplayList { state: state };

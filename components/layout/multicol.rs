@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use block::BlockFlow;
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
 use euclid::Point2D;
 use euclid::Size2D;
@@ -19,7 +19,6 @@ use gfx_traits::print_tree::PrintTree;
 use std::cmp::{min, max};
 use std::fmt;
 use std::sync::Arc;
-use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 use style::values::Either;
@@ -76,8 +75,9 @@ impl Flow for MulticolFlow {
         self.block_flow.bubble_inline_sizes();
     }
 
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "multicol");
+        let shared_context = layout_context.shared_context();
         self.block_flow.compute_inline_sizes(shared_context);
 
         // Move in from the inline-start border edge.
@@ -89,7 +89,7 @@ impl Flow for MulticolFlow {
             self.block_flow.fragment.margin.inline_end +
             self.block_flow.fragment.border_padding.inline_end;
 
-        self.block_flow.assign_inline_sizes(shared_context);
+        self.block_flow.assign_inline_sizes(layout_context);
         let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
         let content_inline_size =
             self.block_flow.fragment.border_box.size.inline - padding_and_borders;
@@ -124,7 +124,7 @@ impl Flow for MulticolFlow {
             |_, _, _, _, _, _| {});
     }
 
-    fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, ctx: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for multicol");
 
         let fragmentation_context = Some(FragmentationContext {
@@ -163,7 +163,7 @@ impl Flow for MulticolFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         self.block_flow.compute_absolute_position(layout_context);
         let pitch = LogicalSize::new(self.block_flow.base.writing_mode, self.column_pitch, Au(0));
         let pitch = pitch.to_physical(self.block_flow.base.writing_mode);
@@ -235,12 +235,12 @@ impl Flow for MulticolColumnFlow {
         self.block_flow.bubble_inline_sizes();
     }
 
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "multicol column");
-        self.block_flow.assign_inline_sizes(shared_context);
+        self.block_flow.assign_inline_sizes(layout_context);
     }
 
-    fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, ctx: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for multicol column");
         self.block_flow.assign_block_size(ctx);
     }
@@ -251,7 +251,7 @@ impl Flow for MulticolColumnFlow {
         Flow::fragment(&mut self.block_flow, layout_context, fragmentation_context)
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 

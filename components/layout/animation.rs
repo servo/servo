@@ -4,7 +4,7 @@
 
 //! CSS transitions and animations.
 
-use context::SharedLayoutContext;
+use context::LayoutContext;
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use ipc_channel::ipc::IpcSender;
@@ -132,7 +132,7 @@ pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
 // NB: This is specific for SelectorImpl, since the layout context and the
 // flows are SelectorImpl specific too. If that goes away at some point,
 // this should be made generic.
-pub fn recalc_style_for_animations(context: &SharedLayoutContext,
+pub fn recalc_style_for_animations(context: &LayoutContext,
                                    flow: &mut Flow,
                                    animations: &HashMap<OpaqueNode,
                                                         Vec<Animation>>) {

@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use block::{BlockFlow, ISizeAndMarginsComputer};
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
 use euclid::Point2D;
 use flow::{Flow, FlowClass, OpaqueFlow};
@@ -20,7 +20,6 @@ use std::fmt;
 use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing};
-use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 use table::{ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
@@ -119,11 +118,12 @@ impl Flow for TableRowGroupFlow {
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("table_rowgroup::assign_inline_sizes {:x}",
                                             self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_rowgroup");
 
+        let shared_context = layout_context.shared_context();
         // The position was set to the containing block by the flow's parent.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
         let (inline_start_content_edge, inline_end_content_edge) = (Au(0), Au(0));
@@ -160,12 +160,12 @@ impl Flow for TableRowGroupFlow {
         });
     }
 
-    fn assign_block_size<'a>(&mut self, _: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, _: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_rowgroup");
         self.block_flow.assign_block_size_for_table_like_flow(self.spacing.vertical)
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 
