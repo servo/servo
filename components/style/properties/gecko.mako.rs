@@ -1128,7 +1128,7 @@ fn static_assert() {
                           animation-iteration-count animation-timing-function
                           -moz-binding page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
-                          scroll-snap-type-y perspective-origin transform-origin""" %>
+                          scroll-snap-type-y scroll-snap-destination perspective-origin transform-origin""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1298,6 +1298,13 @@ fn static_assert() {
     }
 
     ${impl_coord_copy('scroll_snap_points_y', 'mScrollSnapPointsY')}
+
+    pub fn set_scroll_snap_destination(&mut self, v: longhands::scroll_snap_destination::computed_value::T) {
+        self.gecko.mScrollSnapDestination.mXPosition = v.horizontal.into();
+        self.gecko.mScrollSnapDestination.mYPosition = v.vertical.into();
+    }
+
+    ${impl_simple_copy('scroll_snap_destination', 'mScrollSnapDestination')}
 
     <%def name="transform_function_arm(name, keyword, items)">
         <%
