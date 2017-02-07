@@ -1030,6 +1030,15 @@ ${helpers.predefined_type("text-emphasis-color", "CSSColor",
                           boxed=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
 
+
+${helpers.predefined_type(
+    "-moz-tab-size", "LengthOrNumber",
+    "::values::Either::Second(8.0)",
+    "parse_non_negative",
+    products="gecko", animatable=False,
+    spec="https://drafts.csswg.org/css-text-3/#tab-size-property")}
+
+
 // CSS Compatibility
 // https://compat.spec.whatwg.org
 ${helpers.predefined_type(
