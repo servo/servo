@@ -2851,6 +2851,18 @@ clip-path
     }
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="XUL"
+                  skip_longhands="-moz-stack-sizing">
+
+    #[allow(non_snake_case)]
+    pub fn set__moz_stack_sizing(&mut self, v: longhands::_moz_stack_sizing::computed_value::T) {
+        use properties::longhands::_moz_stack_sizing::computed_value::T;
+        self.gecko.mStretchStack = v == T::stretch_to_fit;
+    }
+
+    ${impl_simple_copy('_moz_stack_sizing', 'mStretchStack')}
+</%self:impl_trait>
+
 <%def name="define_ffi_struct_accessor(style_struct)">
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
