@@ -235,51 +235,29 @@ def set_gecko_property(ffi_name, expr):
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
-<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8', resolver=None)">
+<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword, cast_type='u8')">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        % if ident != 'outline_style':
         use properties::longhands::${ident}::computed_value::T as Keyword;
-        % endif
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
-                % if resolver is not None:
-                ${resolver(to_rust_ident(value))} =>
-                    structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast(cast_type)},
-                % else:
                 Keyword::${to_rust_ident(value)} =>
                     structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast(cast_type)},
-                % endif
-
-                % if ident == 'outline_style':
-                    % if to_rust_ident(value) == 'none':
-
-                Either::First(Auto) =>
-                    structs::${keyword.gecko_constant('solid')} ${keyword.maybe_cast(cast_type)},
-
-                    % endif
-                % endif
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}
     }
 </%def>
 
-<%def name="impl_keyword_clone(ident, gecko_ffi_name, keyword, resolver=None)">
+<%def name="impl_keyword_clone(ident, gecko_ffi_name, keyword)">
     #[allow(non_snake_case)]
     pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        % if ident != 'outline_style':
         use properties::longhands::${ident}::computed_value::T as Keyword;
-        % endif
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         match ${get_gecko_property(gecko_ffi_name)} ${keyword.maybe_cast("u32")} {
             % for value in keyword.values_for('gecko'):
-            % if resolver is not None:
-            structs::${keyword.gecko_constant(value)} => ${resolver(to_rust_ident(value))},
-            % else:
             structs::${keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
-            % endif
             % endfor
             % if keyword.gecko_inexhaustive:
             x => panic!("Found unexpected value in style struct for ${ident} property: {:?}", x),
@@ -326,11 +304,11 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
-<%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone, resolver=None, **kwargs)">
-<%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword, resolver=resolver, **kwargs)"></%call>
+<%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone, **kwargs)">
+<%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword, **kwargs)"></%call>
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
 %if need_clone:
-<%call expr="impl_keyword_clone(ident, gecko_ffi_name, keyword, resolver)"></%call>
+<%call expr="impl_keyword_clone(ident, gecko_ffi_name, keyword)"></%call>
 % endif
 </%def>
 
@@ -937,17 +915,37 @@ fn static_assert() {
                   skip_longhands="${skip_outline_longhands}"
                   skip_additionals="*">
 
-    <%def name="outline_style_resolver(value)">
+    #[allow(non_snake_case)]
+    pub fn set_outline_style(&mut self, v: longhands::outline_style::computed_value::T) {
+        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
+        let result = match v {
+            % for value in border_style_keyword.values_for('gecko'):
+                Either::Second(border_style::T::${to_rust_ident(value)}) =>
+                    structs::${border_style_keyword.gecko_constant(value)} ${border_style_keyword.maybe_cast("u8")},
+            % endfor
+                Either::First(Auto) =>
+                    structs::${border_style_keyword.gecko_constant('solid')} ${border_style_keyword.maybe_cast("u8")},
+        };
+        ${set_gecko_property("mOutlineStyle", "result")}
+    }
 
-    % if value == 'none':
-        Either::Second(border_style::T::${value})
-    % else:
-        Either::Second(border_style::T::${value})
-    % endif
-    </%def>
+    #[allow(non_snake_case)]
+    pub fn copy_outline_style_from(&mut self, other: &Self) {
+        self.gecko.mOutlineStyle = other.gecko.mOutlineStyle;
+    }
 
-    <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword,
-                    need_clone=True, resolver=outline_style_resolver) %>
+    #[allow(non_snake_case)]
+    pub fn clone_outline_style(&self) -> longhands::outline_style::computed_value::T {
+        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
+        match ${get_gecko_property("mOutlineStyle")} ${border_style_keyword.maybe_cast("u32")} {
+            % for value in border_style_keyword.values_for('gecko'):
+            structs::${border_style_keyword.gecko_constant(value)} => Either::Second(border_style::T::${value}),
+            % endfor
+            % if border_style_keyword.gecko_inexhaustive:
+            x => panic!("Found unexpected value in style struct for outline_style property: {:?}", x),
+            % endif
+        }
+    }
 
     <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=True,
                       round_to_pixels=True) %>
