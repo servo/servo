@@ -114,5 +114,5 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
         spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-outline-radius)")}
 % endfor
 
-${helpers.predefined_type("outline-offset", "Length", "Au(0)", products="servo", animatable=True,
+${helpers.predefined_type("outline-offset", "Length", "Au(0)", products="servo gecko", animatable=True,
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-offset")}
