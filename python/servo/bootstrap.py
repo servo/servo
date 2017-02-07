@@ -10,6 +10,7 @@ import os
 import platform
 import shutil
 import subprocess
+from subprocess import PIPE
 
 import servo.packages as packages
 from servo.util import extract, download_file, host_triple
@@ -17,27 +18,42 @@ from servo.util import extract, download_file, host_triple
 
 def run_as_root(command):
     if os.geteuid() != 0:
-        try:
-            # Check if sudo'ing possible
-            subprocess.check_call(['sudo', '-v'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            command.insert(0, 'sudo')
-        except:
-            command = ['su', 'root', '-c', ' '.join(command)]
+        command.insert(0, 'sudo')
 
     return subprocess.call(command)
 
 
 def install_salt_dependencies(context, force):
-    print("Installing missing Salt dependencies...")
+    install = False
     if context.distro == 'Ubuntu':
-        run_as_root(['apt-get', 'install', '-y', 'build-essential', 'libssl-dev', 'libffi-dev', 'python-dev'])
-    elif context.distro in ('CentOS', 'CentOS Linux', 'Fedora'):
-        run_as_root(['dnf', 'install', '-y', 'gcc', 'libffi-devel', 'python-devel', 'openssl-devel'])
+        pkgs = ['build-essential', 'libssl-dev', 'libffi-dev', 'python-dev']
+        command = ['apt-get', 'install']
+        if force:
+            command.append('-y')
+        if subprocess.call(['dpkg', '-s'] + pkgs, stdout=PIPE, stderr=PIPE) != 0:
+            install = True
+    elif context.distro in ['CentOS', 'CentOS Linux', 'Fedora']:
+        installed_pkgs = str(subprocess.check_output(['rpm', '-qa'])).replace('\n', '|')
+        pkgs = ['gcc', 'libffi-devel', 'python-devel', 'openssl-devel']
+        for p in pkgs:
+            command = ['dnf', 'install']
+            if force:
+                command.append('-y')
 
-    return salt(context, force, retry=True)
+            if "|{}".format(p) not in installed_pkgs:
+                install = True
+                break
+    else:
+        return
+
+    if install:
+        print("Installing missing Salt dependencies...")
+        run_as_root(command + pkgs)
 
 
-def salt(context, force=False, retry=False):
+def salt(context, force=False):
+    # Ensure Salt dependencies are installed
+    install_salt_dependencies(context, force)
     # Ensure Salt is installed in the virtualenv
     # It's not instaled globally because it's a large, non-required dependency,
     # and the installation fails on Windows
@@ -45,15 +61,12 @@ def salt(context, force=False, retry=False):
     reqs_path = os.path.join(context.topdir, 'python', 'requirements-salt.txt')
     process = subprocess.Popen(
         ["pip", "install", "-q", "-I", "-r", reqs_path],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        stdout=PIPE,
+        stderr=PIPE
     )
     process.wait()
     if process.returncode:
         out, err = process.communicate()
-        if "pycrypto/setup.py" in err and not retry:
-            return install_salt_dependencies(context, force)
-
         print('failed to install Salt via pip:')
         print('Output: {}\nError: {}'.format(out, err))
         return 1
