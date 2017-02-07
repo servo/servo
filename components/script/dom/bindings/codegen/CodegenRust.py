@@ -2510,7 +2510,8 @@ def CopyUnforgeablePropertiesToInstance(descriptor):
     # reflector, so we can make sure we don't get confused by named getters.
     if descriptor.proxy:
         copyCode += """\
-rooted!(in(cx) let expando = ensure_expando_object(cx, obj.handle()));
+rooted!(in(cx) let mut expando = ptr::null_mut());
+ensure_expando_object(cx, obj.handle(), expando.handle_mut());
 """
         obj = "expando"
     else:
@@ -4850,7 +4851,8 @@ if RUST_JSID_IS_STRING(id) {
 
         # FIXME(#11868) Should assign to desc.obj, desc.get() is a copy.
         return get + """\
-rooted!(in(cx) let expando = get_expando_object(proxy));
+rooted!(in(cx) let mut expando = ptr::null_mut());
+get_expando_object(proxy, expando.handle_mut());
 //if (!xpc::WrapperFactory::IsXrayWrapper(proxy) && (expando = GetExpandoObject(proxy))) {
 if !expando.is_null() {
     if !JS_GetPropertyDescriptorById(cx, expando.handle(), id, desc) {
@@ -4981,10 +4983,10 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
 
         body += dedent(
             """
-            let expando = get_expando_object(proxy);
+            rooted!(in(cx) let mut expando = ptr::null_mut());
+            get_expando_object(proxy, expando.handle_mut());
             if !expando.is_null() {
-                rooted!(in(cx) let rooted_expando = expando);
-                GetPropertyKeys(cx, rooted_expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
+                GetPropertyKeys(cx, expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
             }
 
             return true;
@@ -5024,10 +5026,10 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
 
         body += dedent(
             """
-            let expando = get_expando_object(proxy);
+            rooted!(in(cx) let mut expando = ptr::null_mut());
+            get_expando_object(proxy, expando.handle_mut());
             if !expando.is_null() {
-                rooted!(in(cx) let rooted_expando = expando);
-                GetPropertyKeys(cx, rooted_expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
+                GetPropertyKeys(cx, expando.handle(), JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
             }
 
             return true;
@@ -5080,7 +5082,8 @@ if RUST_JSID_IS_STRING(id) {
             named = ""
 
         return indexed + """\
-rooted!(in(cx) let expando = get_expando_object(proxy));
+rooted!(in(cx) let mut expando = ptr::null_mut());
+get_expando_object(proxy, expando.handle_mut());
 if !expando.is_null() {
     let ok = JS_HasPropertyById(cx, expando.handle(), id, bp);
     if !ok || *bp {
@@ -5105,7 +5108,8 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
 
     def getBody(self):
         getFromExpando = """\
-rooted!(in(cx) let expando = get_expando_object(proxy));
+rooted!(in(cx) let mut expando = ptr::null_mut());
+get_expando_object(proxy, expando.handle_mut());
 if !expando.is_null() {
     let mut hasProp = false;
     if !JS_HasPropertyById(cx, expando.handle(), id, &mut hasProp) {
