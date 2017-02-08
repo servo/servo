@@ -363,3 +363,6 @@ impl ClipRectOrAuto {
         }
     }
 }
+
+/// <color> | auto
+pub type ColorOrAuto = Either<CSSColor, Auto>;
