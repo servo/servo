@@ -134,28 +134,6 @@ numericTags = [
 ]
 
 
-def unwrapCastableObject(descriptor, source, codeOnFailure, conversionFunction):
-    """
-    A function for unwrapping an object named by the "source" argument
-    based on the passed-in descriptor. Returns the string of the Rust expression of
-    the appropriate type.
-
-    codeOnFailure is the code to run if unwrapping fails.
-    """
-    args = {
-        "failureCode": CGIndenter(CGGeneric(codeOnFailure), 8).define(),
-        "function": conversionFunction,
-        "source": source,
-    }
-    return """\
-match %(function)s(%(source)s) {
-    Ok(val) => val,
-    Err(()) => {
-%(failureCode)s
-    }
-}""" % args
-
-
 # We'll want to insert the indent at the beginnings of lines, but we
 # don't want to indent empty lines.  So only indent lines that have a
 # non-newline character on them.
@@ -862,8 +840,17 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             else:
                 unwrapFailureCode = failureCode
 
-            templateBody = unwrapCastableObject(
-                descriptor, "${val}", unwrapFailureCode, conversionFunction)
+            templateBody = fill(
+                """
+                match ${function}($${val}) {
+                    Ok(val) => val,
+                    Err(()) => {
+                        $*{failureCode}
+                    }
+                }
+                """,
+                failureCode=unwrapFailureCode + "\n",
+                function=conversionFunction)
 
         declType = CGGeneric(descriptorType)
         if type.nullable():
