@@ -561,9 +561,6 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
 
     // for normal parsed values, add a space between key: and value
     match &appendable_value {
-        &AppendableValue::Css(_) => {
-            try!(write!(dest, " "))
-        },
         &AppendableValue::Declaration(decl) => {
             if !decl.value_is_unparsed() {
                 // for normal parsed values, add a space between key: and value
@@ -572,7 +569,8 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
         },
         // Currently append_serialization is only called with a Css or
         // a Declaration AppendableValue.
-        &AppendableValue::DeclarationsForShorthand(..) => unreachable!()
+        &AppendableValue::DeclarationsForShorthand(..) => unreachable!(),
+        &AppendableValue::Css(_) => {}
     }
 
     try!(append_declaration_value(dest, appendable_value));
