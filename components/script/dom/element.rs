@@ -137,6 +137,8 @@ pub struct Element {
     /// when it has exclusive access to the element.
     #[ignore_heap_size_of = "bitflags defined in rust-selectors"]
     selector_flags: Cell<ElementSelectorFlags>,
+    #[ignore_heap_size_of = "RwLock"]
+    cached_lang: RwLock<Option<Atom>>,
 }
 
 impl fmt::Debug for Element {
@@ -225,6 +227,7 @@ impl Element {
             class_list: Default::default(),
             state: Cell::new(state),
             selector_flags: Cell::new(ElementSelectorFlags::empty()),
+            cached_lang: RwLock::new(None),
         }
     }
 
@@ -353,6 +356,7 @@ pub trait LayoutElementHelpers {
     fn style_attribute(&self) -> *const Option<Arc<RwLock<PropertyDeclarationBlock>>>;
     fn local_name(&self) -> &LocalName;
     fn namespace(&self) -> &Namespace;
+    fn language(&self) -> Atom;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
@@ -689,6 +693,35 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     fn namespace(&self) -> &Namespace {
         unsafe {
             &(*self.unsafe_get()).namespace
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn language(&self) -> Atom {
+        unsafe {
+            let elem = self.unsafe_get();
+            if let Some(ref lang) = *(*elem).cached_lang.read() {
+                lang.clone()
+            } else if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
+                let lang = Atom::from(attr);
+                *(*elem).cached_lang.write() = Some(lang.clone());
+                lang
+            } else if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
+                let lang = Atom::from(attr);
+                *(*elem).cached_lang.write() = Some(lang.clone());
+                lang
+            } else {
+                let lang = self.upcast::<Node>().parent_node_ref()
+                                                .and_then(|node| node.downcast::<Element>())
+                                                .map(|el| el.language())
+                                                .unwrap_or_else(|| {
+                    // TODO: Check meta tags for a pragma-set default language
+                    // TODO: Check HTTP Content-Language header
+                    Atom::from("")
+                });
+                *(*elem).cached_lang.write() = Some(lang.clone());
+                lang
+            }
         }
     }
 
@@ -2112,6 +2145,12 @@ impl VirtualMethods for Element {
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
         match attr.local_name() {
+            &local_name!("lang") => {
+                *self.cached_lang.write() = match mutation {
+                    AttributeMutation::Set(..) => Some(attr.value().as_atom().clone()),
+                    AttributeMutation::Remove => None,
+                };
+            },
             &local_name!("style") => {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() = match mutation {
@@ -2371,6 +2410,8 @@ impl<'a> ::selectors::Element for Root<Element> {
                 }
             },
 
+            NonTSPseudoClass::Lang(ref lang) => self.get_lang() == *lang,
+
             NonTSPseudoClass::ReadOnly =>
                 !Element::state(self).contains(pseudo_class.state_flag()),
 
@@ -2573,6 +2614,28 @@ impl Element {
         }
         // Step 7
         self.set_click_in_progress(false);
+    }
+
+    pub fn get_lang(&self) -> Atom {
+        if let Some(ref lang) = *self.cached_lang.read() {
+            lang.clone()
+        } else if let Some(attr) = self.get_attribute(&ns!(xml), &local_name!("lang")) {
+            let lang = Atom::from(attr.Value());
+            *self.cached_lang.write() = Some(lang.clone());
+            lang
+        } else if let Some(attr) = self.get_attribute(&ns!(), &local_name!("lang")) {
+            let lang = Atom::from(attr.Value());
+            *self.cached_lang.write() = Some(lang.clone());
+            lang
+        } else {
+            let lang = self.upcast::<Node>().GetParentElement().map(|el| el.get_lang()).unwrap_or_else(|| {
+                // TODO: Check meta tags for a pragma-set default language
+                // TODO: Check HTTP Content-Language header
+                Atom::from("")
+            });
+            *self.cached_lang.write() = Some(lang.clone());
+            lang
+        }
     }
 
     pub fn state(&self) -> ElementState {
