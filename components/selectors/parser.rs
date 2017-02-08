@@ -574,7 +574,7 @@ impl From<Specificity> for u32 {
 fn specificity<Impl>(complex_selector: &ComplexSelector<Impl>,
                      pseudo_element: Option<&Impl::PseudoElement>)
                      -> u32
-				     where Impl: SelectorImpl {
+                     where Impl: SelectorImpl {
     let mut specificity = complex_selector_specificity(complex_selector);
     if pseudo_element.is_some() {
         specificity.element_selectors += 1;
@@ -670,7 +670,7 @@ fn parse_complex_selector_and_pseudo_element<P, Impl>(
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
     let (first, mut pseudo_element) = parse_compound_selector(parser, input)?;
-    let mut complex = ComplexSelector{ compound_selector: first, next: None };
+    let mut complex = ComplexSelector { compound_selector: first, next: None };
 
     'outer_loop: while pseudo_element.is_none() {
         let combinator;
@@ -1123,11 +1123,11 @@ fn parse_simple_pseudo_class<P, Impl>(parser: &P, name: Cow<str>) -> Result<Simp
 // NB: pub module in order to access the DummyParser
 #[cfg(test)]
 pub mod tests {
+    use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
     use std::borrow::Cow;
     use std::collections::HashMap;
     use std::fmt;
     use std::sync::Arc;
-    use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
     use super::*;
 
     #[derive(PartialEq, Clone, Debug, Hash, Eq)]
@@ -1219,7 +1219,7 @@ pub mod tests {
             self.default_ns.clone()
         }
 
-        fn namespace_for_prefix(&self, prefix: &String) -> Option<String> {
+        fn namespace_for_prefix(&self, prefix: &str) -> Option<String> {
             self.ns_prefixes.get(prefix).cloned()
         }
     }

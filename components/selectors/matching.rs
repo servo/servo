@@ -1,12 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-use std::borrow::Borrow;
-
 use bloom::BloomFilter;
-
 use parser::{CaseSensitivity, Combinator, ComplexSelector, LocalName};
 use parser::{SimpleSelector, Selector, SelectorImpl};
+use std::borrow::Borrow;
 use tree::Element;
 
 /// The reason why we're doing selector matching.
@@ -240,8 +238,8 @@ fn can_fast_reject<E>(mut selector: &ComplexSelector<E::Impl>,
         for ss in selector.compound_selector.iter() {
             match *ss {
                 SimpleSelector::LocalName(LocalName { ref name, ref lower_name })  => {
-                    if !bf.might_contain(name)
-                    && !bf.might_contain(lower_name) {
+                    if !bf.might_contain(name) &&
+                       !bf.might_contain(lower_name) {
                         return Some(SelectorMatchingResult::NotMatchedGlobally);
                     }
                 },
@@ -320,7 +318,8 @@ fn matches_complex_selector_internal<E>(selector: &ComplexSelector<E::Impl>,
                     // If the failure status is NotMatchedAndRestartFromClosestDescendant
                     // and combinator is Combinator::LaterSibling, give up this Combinator::LaterSibling matching
                     // and restart from the closest descendant combinator.
-                    (SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant, Combinator::LaterSibling) => return result,
+                    (SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant, Combinator::LaterSibling)
+                        => return result,
 
                     // The Combinator::Descendant combinator and the status is
                     // NotMatchedAndRestartFromClosestLaterSibling or
@@ -436,7 +435,8 @@ fn matches_simple_selector<E>(
             relation_if!(matches_last_child(element, reason), AFFECTED_BY_CHILD_INDEX)
         }
         SimpleSelector::OnlyChild => {
-            relation_if!(matches_first_child(element, reason) && matches_last_child(element, reason), AFFECTED_BY_CHILD_INDEX)
+            relation_if!(matches_first_child(element, reason) &&
+                         matches_last_child(element, reason), AFFECTED_BY_CHILD_INDEX)
         }
         SimpleSelector::Root => {
             // We never share styles with an element with no parent, so no point

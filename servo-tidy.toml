@@ -50,6 +50,9 @@ files = [
   "./tests/wpt/mozilla/tests/css/fonts",
   "./tests/wpt/mozilla/tests/css/pre_with_tab.html",
   "./tests/wpt/mozilla/tests/mozilla/textarea_placeholder.html",
+  # Tidy complains about taking &String instead of &str, but they aren't
+  # equivalent given the way the traits are set up.
+  "./components/selectors/tree.rs",
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [

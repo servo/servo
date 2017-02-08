@@ -86,7 +86,6 @@ impl<T> MatchAttr for T where T: MatchAttrGeneric, T::Impl: SelectorImpl<AttrVal
 
     fn match_attr_dash(&self, attr: &AttrSelector<Self::Impl>, value: &String) -> bool {
         self.match_attr(attr, |attr_value| {
-
             // The attribute must start with the pattern.
             if !attr_value.starts_with(value) {
                 return false
