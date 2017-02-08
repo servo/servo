@@ -548,11 +548,6 @@ def typeIsSequenceOrHasSequenceMember(type):
     return False
 
 
-def typeNeedsRooting(type, descriptorProvider):
-    return (type.isGeckoInterface() and
-            descriptorProvider.getDescriptor(type.unroll().inner.identifier.name).needsRooting)
-
-
 def union_native_type(t):
     name = t.unroll().name
     return 'UnionTypes::%s' % name
@@ -1422,8 +1417,6 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         nullable = returnType.nullable()
         dictName = returnType.inner.name if nullable else returnType.name
         result = CGGeneric(dictName)
-        if typeNeedsRooting(returnType, descriptorProvider):
-            raise TypeError("We don't support rootable dictionaries return values")
         if nullable:
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -6122,14 +6115,19 @@ class CGBindingRoot(CGThing):
 
         # Do codegen for all the typdefs
         for t in typedefs:
-            if t.innerType.isUnion():
-                cgthings.extend([CGGeneric("\npub use dom::bindings::codegen::UnionTypes::%s as %s;\n\n" %
-                                           (t.innerType, t.identifier.name))])
+            typeName = getRetvalDeclarationForType(t.innerType, config.getDescriptorProvider())
+            substs = {
+                "name": t.identifier.name,
+                "type": typeName.define(),
+            }
+
+            if t.innerType.isUnion() and not t.innerType.nullable():
+                # Allow using the typedef's name for accessing variants.
+                template = "pub use self::%(type)s as %(name)s;"
             else:
-                assert not typeNeedsRooting(t.innerType, config.getDescriptorProvider)
-                cgthings.extend([CGGeneric("\npub type %s = " % (t.identifier.name)),
-                                 getRetvalDeclarationForType(t.innerType, config.getDescriptorProvider()),
-                                 CGGeneric(";\n\n")])
+                template = "pub type %(name)s = %(type)s;"
+
+            cgthings.append(CGGeneric(template % substs))
 
         # Do codegen for all the dictionaries.
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider())

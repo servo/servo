@@ -7,6 +7,9 @@
 
 enum TestEnum { "", "foo", "bar" };
 typedef (DOMString or URL or Blob) TestTypedef;
+typedef (DOMString or URL or Blob)? TestTypedefNullableUnion;
+typedef DOMString TestTypedefString;
+typedef Blob TestTypedefInterface;
 
 dictionary TestDictionary {
   required boolean requiredValue;
