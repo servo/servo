@@ -353,6 +353,7 @@ pub trait LayoutElementHelpers {
     fn style_attribute(&self) -> *const Option<Arc<RwLock<PropertyDeclarationBlock>>>;
     fn local_name(&self) -> &LocalName;
     fn namespace(&self) -> &Namespace;
+    fn language(&self) -> Atom;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
@@ -689,6 +690,28 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     fn namespace(&self) -> &Namespace {
         unsafe {
             &(*self.unsafe_get()).namespace
+        }
+    }
+
+    #[allow(unsafe_code)]
+    // https://html.spec.whatwg.org/multipage/#language
+    fn language(&self) -> Atom {
+        unsafe {
+            let elem = self.unsafe_get();
+            if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
+                Atom::from(attr)
+            } else if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
+                Atom::from(attr)
+            } else {
+                self.upcast::<Node>().parent_node_ref()
+                                     .and_then(|node| node.downcast::<Element>())
+                                     .map(|el| el.language())
+                                     .unwrap_or_else(|| {
+                    // TODO: Check meta tags for a pragma-set default language
+                    // TODO: Check HTTP Content-Language header
+                    atom!("")
+                })
+            }
         }
     }
 
@@ -2371,6 +2394,10 @@ impl<'a> ::selectors::Element for Root<Element> {
                 }
             },
 
+            // FIXME: This is wrong, we need to instead use extended filtering as per RFC4647
+            //        https://tools.ietf.org/html/rfc4647#section-3.3.2
+            NonTSPseudoClass::Lang(ref lang) => self.get_lang() == *lang,
+
             NonTSPseudoClass::ReadOnly =>
                 !Element::state(self).contains(pseudo_class.state_flag()),
 
@@ -2573,6 +2600,21 @@ impl Element {
         }
         // Step 7
         self.set_click_in_progress(false);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#language
+    pub fn get_lang(&self) -> Atom {
+        if let Some(attr) = self.get_attribute(&ns!(xml), &local_name!("lang")) {
+            Atom::from(attr.Value())
+        } else if let Some(attr) = self.get_attribute(&ns!(), &local_name!("lang")) {
+            Atom::from(attr.Value())
+        } else {
+            self.upcast::<Node>().GetParentElement().map(|el| el.get_lang()).unwrap_or_else(|| {
+                // TODO: Check meta tags for a pragma-set default language
+                // TODO: Check HTTP Content-Language header
+                atom!("")
+            })
+        }
     }
 
     pub fn state(&self) -> ElementState {

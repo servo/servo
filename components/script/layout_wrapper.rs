@@ -618,6 +618,10 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             },
             NonTSPseudoClass::Visited => false,
 
+            // FIXME: This is wrong, we need to instead use extended filtering as per RFC4647
+            //        https://tools.ietf.org/html/rfc4647#section-3.3.2
+            NonTSPseudoClass::Lang(ref lang) => self.element.language() == *lang,
+
             NonTSPseudoClass::ServoNonZeroBorder => unsafe {
                 match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &local_name!("border")) {
                     None | Some(&AttrValue::UInt(_, 0)) => false,
