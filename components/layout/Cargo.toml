@@ -34,7 +34,7 @@ range = {path = "../range"}
 rayon = "0.6"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-selectors = "0.17"
+selectors = { path = "../selectors" }
 serde = "0.8"
 serde_derive = "0.8"
 servo_geometry = {path = "../geometry"}

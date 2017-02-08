@@ -70,7 +70,7 @@ regex = "0.2"
 rustc-serialize = "0.3"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-selectors = "0.17"
+selectors = { path = "../selectors" }
 serde = "0.8"
 servo_atoms = {path = "../atoms"}
 servo_config = {path = "../config", features = ["servo"] }

@@ -1,0 +1,22 @@
+[package]
+
+name = "selectors"
+version = "0.17.0"
+authors = ["Simon Sapin <simon.sapin@exyr.org>", "Alan Jeffrey <ajeffrey@mozilla.com>"]
+documentation = "https://docs.rs/selectors/"
+
+description = "CSS Selectors matching for Rust"
+repository = "https://github.com/servo/servo"
+readme = "README.md"
+keywords = ["css", "selectors"]
+license = "MPL-2.0"
+
+[lib]
+name = "selectors"
+path = "lib.rs"
+
+[dependencies]
+bitflags = "0.7"
+matches = "0.1"
+cssparser = ">=0.6, <0.8"
+fnv = "1.0"
