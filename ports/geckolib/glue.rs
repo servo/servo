@@ -253,7 +253,7 @@ pub extern "C" fn Servo_AnimationValues_Populate(anim: RawGeckoAnimationValueLis
         // and thus can't directly use `geckoiter`
         let local_geckoiter = &mut geckoiter;
         for (gecko, servo) in local_geckoiter.zip(&mut iter) {
-            gecko.mServoValue.set_arc_leaky(Arc::new(servo));
+            gecko.mValue.mServo.set_arc_leaky(Arc::new(servo));
         }
     }
 
