@@ -5,3 +5,4 @@
 mod scaffolding;
 mod serialization;
 mod viewport;
+mod background;
