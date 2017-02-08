@@ -930,9 +930,6 @@ impl BluetoothManager {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getavailability
     fn get_availability(&mut self) -> BluetoothResponseResult {
-        match self.get_adapter() {
-            Ok(_) => Ok(BluetoothResponse::GetAvailability(true)),
-            Err(_) => Ok(BluetoothResponse::GetAvailability(false)),
-        }
+        Ok(BluetoothResponse::GetAvailability(self.get_adapter().is_ok()))
     }
 }
