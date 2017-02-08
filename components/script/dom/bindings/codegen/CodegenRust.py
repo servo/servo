@@ -6122,7 +6122,8 @@ class CGBindingRoot(CGThing):
 
         # Do codegen for all the typdefs
         for t in typedefs:
-            if t.innerType.isUnion():
+            if t.innerType.isUnion() and not t.innerType.nullable():
+                # Allow using the typedef's name for accessing variants.
                 cgthings.extend([CGGeneric("\npub use dom::bindings::codegen::UnionTypes::%s as %s;\n\n" %
                                            (t.innerType, t.identifier.name))])
             else:
