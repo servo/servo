@@ -850,7 +850,7 @@ pub enum PropertyDeclaration {
     % endfor
     /// A custom property declaration, with the property name and the declared
     /// value.
-    Custom(::custom_properties::Name, DeclaredValue<::custom_properties::SpecifiedValue>),
+    Custom(::custom_properties::Name, DeclaredValue<Box<::custom_properties::SpecifiedValue>>),
 }
 
 impl HasViewportPercentage for PropertyDeclaration {
@@ -1029,7 +1029,8 @@ impl PropertyDeclaration {
                         Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                     }
                 };
-                result_list.push((PropertyDeclaration::Custom(name, value), Importance::Normal));
+                result_list.push((PropertyDeclaration::Custom(name, value),
+                                  Importance::Normal));
                 return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
             }
             PropertyId::Longhand(id) => match id {
