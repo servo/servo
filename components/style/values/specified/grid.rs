@@ -8,7 +8,7 @@ use cssparser::Parser;
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::ToCss;
-use values::NoViewportPercentage;
+use values::HasViewportPercentage;
 use values::computed::ComputedValueAsSpecified;
 
 #[derive(PartialEq, Clone, Debug)]
@@ -96,4 +96,4 @@ impl Parse for GridLine {
 }
 
 impl ComputedValueAsSpecified for GridLine {}
-impl NoViewportPercentage for GridLine {}
+no_viewport_percentage!(GridLine);

@@ -20,7 +20,6 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
     use std::fmt;
     use style_traits::ToCss;
     use values::specified::BorderStyle;
-    use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     pub type SpecifiedValue = Either<Auto, BorderStyle>;
