@@ -428,7 +428,18 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
     // Compute style for this element if necessary.
     if compute_self {
-        inherited_style_changed = compute_style(traversal, traversal_data, context, element, &mut data);
+        compute_style(traversal, traversal_data, context, element, &mut data);
+
+        // If we're restyling this element to display:none, throw away all style
+        // data in the subtree, notify the caller to early-return.
+        let display_none = data.styles().is_display_none();
+        if display_none {
+            debug!("New element style is display:none - clearing data from descendants.");
+            clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
+        }
+
+        // FIXME(bholley): Compute this accurately from the call to CalcStyleDifference.
+        inherited_style_changed = true;
     }
 
     // Now that matching and cascading is done, clear the bits corresponding to
@@ -452,7 +463,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
     // Make sure the dirty descendants bit is not set for the root of a
     // display:none subtree, even if the style didn't change (since, if
-    // the style did change, we'd have already cleared it in compute_style).
+    // the style did change, we'd have already cleared it above).
     //
     // This keeps the tree in a valid state without requiring the DOM to
     // check display:none on the parent when inserting new children (which
@@ -464,13 +475,11 @@ pub fn recalc_style_at<E, D>(traversal: &D,
     }
 }
 
-// Computes style, returning true if the inherited styles changed for this
-// element.
 fn compute_style<E, D>(_traversal: &D,
                        traversal_data: &mut PerLevelTraversalData,
                        context: &mut StyleContext<E>,
                        element: E,
-                       mut data: &mut AtomicRefMut<ElementData>) -> bool
+                       mut data: &mut AtomicRefMut<ElementData>)
     where E: TElement,
           D: DomTraversal<E>,
 {
@@ -546,19 +555,6 @@ fn compute_style<E, D>(_traversal: &D,
                                        match_results.relations);
         }
     }
-
-    // If we're restyling this element to display:none, throw away all style data
-    // in the subtree, notify the caller to early-return.
-    let display_none = data.styles().is_display_none();
-    if display_none {
-        debug!("New element style is display:none - clearing data from descendants.");
-        clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
-    }
-
-    // FIXME(bholley): Compute this accurately from the call to CalcStyleDifference.
-    let inherited_styles_changed = true;
-
-    inherited_styles_changed
 }
 
 fn preprocess_children<E, D>(traversal: &D,
