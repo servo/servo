@@ -6132,7 +6132,6 @@ class CGBindingRoot(CGThing):
                 # Allow using the typedef's name for accessing variants.
                 template = "pub use self::%(type)s as %(name)s;"
             else:
-                assert not typeNeedsRooting(t.innerType, config.getDescriptorProvider())
                 template = "pub type %(name)s = %(type)s;"
 
             cgthings.append(CGGeneric(template % substs))
