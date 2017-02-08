@@ -16,12 +16,12 @@
                    spec="https://drafts.csswg.org/css-ui/#propdef-text-overflow">
     use std::fmt;
     use style_traits::ToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     use cssparser;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     #[derive(PartialEq, Eq, Clone, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -108,11 +108,11 @@ ${helpers.single_keyword("unicode-bidi",
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line">
     use std::fmt;
     use style_traits::ToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     #[derive(PartialEq, Eq, Copy, Clone, Debug)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

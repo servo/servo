@@ -10,7 +10,7 @@
     use cssparser::Token;
     use std::ascii::AsciiExt;
     use values::computed::ComputedValueAsSpecified;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
     use super::list_style_type;
 
@@ -18,7 +18,7 @@
     pub use self::computed_value::ContentItem;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         use super::super::list_style_type;
@@ -179,7 +179,7 @@
     use std::fmt;
     use style_traits::ToCss;
     use super::content;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
     use cssparser::{Token, serialize_identifier};
@@ -199,7 +199,7 @@
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

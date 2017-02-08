@@ -8,12 +8,12 @@
 
 <%helpers:longhand name="cursor" animatable="False" spec="https://drafts.csswg.org/css-ui/#cursor">
     pub use self::computed_value::T as SpecifiedValue;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
     use values::specified::url::SpecifiedUrl;
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         use std::fmt;
