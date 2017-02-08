@@ -6122,15 +6122,20 @@ class CGBindingRoot(CGThing):
 
         # Do codegen for all the typdefs
         for t in typedefs:
+            typeName = getRetvalDeclarationForType(t.innerType, config.getDescriptorProvider())
+            substs = {
+                "name": t.identifier.name,
+                "type": typeName.define(),
+            }
+
             if t.innerType.isUnion() and not t.innerType.nullable():
                 # Allow using the typedef's name for accessing variants.
-                cgthings.extend([CGGeneric("\npub use dom::bindings::codegen::UnionTypes::%s as %s;\n\n" %
-                                           (t.innerType, t.identifier.name))])
+                template = "pub use self::%(type)s as %(name)s;"
             else:
                 assert not typeNeedsRooting(t.innerType, config.getDescriptorProvider())
-                cgthings.extend([CGGeneric("\npub type %s = " % (t.identifier.name)),
-                                 getRetvalDeclarationForType(t.innerType, config.getDescriptorProvider()),
-                                 CGGeneric(";\n\n")])
+                template = "pub type %(name)s = %(type)s;"
+
+            cgthings.append(CGGeneric(template % substs))
 
         # Do codegen for all the dictionaries.
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider())
