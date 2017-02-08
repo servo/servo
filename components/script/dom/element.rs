@@ -354,6 +354,7 @@ pub trait LayoutElementHelpers {
     fn style_attribute(&self) -> *const Option<Arc<RwLock<PropertyDeclarationBlock>>>;
     fn local_name(&self) -> &LocalName;
     fn namespace(&self) -> &Namespace;
+    fn get_lang_for_layout(&self) -> String;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
@@ -690,6 +691,30 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     fn namespace(&self) -> &Namespace {
         unsafe {
             &(*self.unsafe_get()).namespace
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_lang_for_layout(&self) -> String {
+        unsafe {
+            let mut current_node = Some(self.upcast::<Node>());
+            while let Some(node) = current_node {
+                current_node = node.parent_node_ref();
+                match node.downcast::<Element>().map(|el| el.unsafe_get()) {
+                    Some(elem) => {
+                        if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
+                            return attr.to_owned();
+                        }
+                        if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
+                            return attr.to_owned();
+                        }
+                    }
+                    None => continue
+                }
+            }
+            // TODO: Check meta tags for a pragma-set default language
+            // TODO: Check HTTP Content-Language header
+            String::new()
         }
     }
 
@@ -2372,6 +2397,10 @@ impl<'a> ::selectors::Element for Root<Element> {
                 }
             },
 
+            // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
+            //                https://tools.ietf.org/html/rfc4647#section-3.3.2
+            NonTSPseudoClass::Lang(ref lang) => lang.eq_ignore_ascii_case(&self.get_lang()),
+
             NonTSPseudoClass::ReadOnly =>
                 !Element::state(self).contains(pseudo_class.state_flag()),
 
@@ -2574,6 +2603,19 @@ impl Element {
         }
         // Step 7
         self.set_click_in_progress(false);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#language
+    pub fn get_lang(&self) -> String {
+        self.upcast::<Node>().inclusive_ancestors().filter_map(|node| {
+            node.downcast::<Element>().and_then(|el| {
+                el.get_attribute(&ns!(xml), &local_name!("lang")).or_else(|| {
+                    el.get_attribute(&ns!(), &local_name!("lang"))
+                }).map(|attr| String::from(attr.Value()))
+            })
+        // TODO: Check meta tags for a pragma-set default language
+        // TODO: Check HTTP Content-Language header
+        }).next().unwrap_or(String::new())
     }
 
     pub fn state(&self) -> ElementState {

@@ -8,7 +8,7 @@
 
 use {Atom, Prefix, Namespace, LocalName};
 use attr::{AttrIdentifier, AttrValue};
-use cssparser::ToCss;
+use cssparser::{Parser as CssParser, ToCss, serialize_identifier};
 use element_state::ElementState;
 use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
@@ -100,44 +100,52 @@ impl PseudoElement {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub enum NonTSPseudoClass {
-    AnyLink,
-    Link,
-    Visited,
     Active,
+    AnyLink,
+    Checked,
+    Disabled,
+    Enabled,
     Focus,
     Fullscreen,
     Hover,
-    Enabled,
-    Disabled,
-    Checked,
     Indeterminate,
-    ServoNonZeroBorder,
+    Lang(Box<str>),
+    Link,
+    PlaceholderShown,
     ReadWrite,
     ReadOnly,
-    PlaceholderShown,
+    ServoNonZeroBorder,
     Target,
+    Visited,
 }
 
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         use self::NonTSPseudoClass::*;
+        if let Lang(ref lang) = *self {
+            dest.write_str(":lang(")?;
+            serialize_identifier(lang, dest)?;
+            return dest.write_str(")");
+        }
+
         dest.write_str(match *self {
-            AnyLink => ":any-link",
-            Link => ":link",
-            Visited => ":visited",
             Active => ":active",
+            AnyLink => ":any-link",
+            Checked => ":checked",
+            Disabled => ":disabled",
+            Enabled => ":enabled",
             Focus => ":focus",
             Fullscreen => ":fullscreen",
             Hover => ":hover",
-            Enabled => ":enabled",
-            Disabled => ":disabled",
-            Checked => ":checked",
             Indeterminate => ":indeterminate",
+            Lang(_) => unreachable!(),
+            Link => ":link",
+            PlaceholderShown => ":placeholder-shown",
             ReadWrite => ":read-write",
             ReadOnly => ":read-only",
-            PlaceholderShown => ":placeholder-shown",
-            Target => ":target",
             ServoNonZeroBorder => ":-servo-nonzero-border",
+            Target => ":target",
+            Visited => ":visited",
         })
     }
 }
@@ -162,6 +170,7 @@ impl NonTSPseudoClass {
             Target => IN_TARGET_STATE,
 
             AnyLink |
+            Lang(_) |
             Link |
             Visited |
             ServoNonZeroBorder => ElementState::empty(),
@@ -204,27 +213,40 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
     fn parse_non_ts_pseudo_class(&self, name: Cow<str>) -> Result<NonTSPseudoClass, ()> {
         use self::NonTSPseudoClass::*;
         let pseudo_class = match_ignore_ascii_case! { &name,
-            "any-link" => AnyLink,
-            "link" => Link,
-            "visited" => Visited,
             "active" => Active,
+            "any-link" => AnyLink,
+            "checked" => Checked,
+            "disabled" => Disabled,
+            "enabled" => Enabled,
             "focus" => Focus,
             "fullscreen" => Fullscreen,
             "hover" => Hover,
-            "enabled" => Enabled,
-            "disabled" => Disabled,
-            "checked" => Checked,
             "indeterminate" => Indeterminate,
+            "link" => Link,
+            "placeholder-shown" => PlaceholderShown,
             "read-write" => ReadWrite,
             "read-only" => ReadOnly,
-            "placeholder-shown" => PlaceholderShown,
             "target" => Target,
+            "visited" => Visited,
             "-servo-nonzero-border" => {
                 if !self.in_user_agent_stylesheet() {
                     return Err(());
                 }
                 ServoNonZeroBorder
             },
+            _ => return Err(())
+        };
+
+        Ok(pseudo_class)
+    }
+
+    fn parse_non_ts_functional_pseudo_class(&self,
+                                            name: Cow<str>,
+                                            parser: &mut CssParser)
+                                            -> Result<NonTSPseudoClass, ()> {
+        use self::NonTSPseudoClass::*;
+        let pseudo_class = match_ignore_ascii_case!{ &name,
+            "lang" => Lang(String::from(try!(parser.expect_ident_or_string())).into_boxed_str()),
             _ => return Err(())
         };
 
