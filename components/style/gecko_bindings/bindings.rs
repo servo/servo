@@ -1302,6 +1302,11 @@ extern "C" {
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
+    pub fn Servo_AnimationValues_GetOpacity(value:
+                                                RawServoAnimationValueBorrowed)
+     -> f32;
+}
+extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString_internal)
      -> RawServoDeclarationBlockStrong;
 }

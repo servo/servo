@@ -205,6 +205,18 @@ pub extern "C" fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueB
     })).into_strong()
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValues_GetOpacity(value: RawServoAnimationValueBorrowed)
+     -> f32
+{
+    let value = AnimationValue::as_arc(&value);
+    if let AnimationValue::Opacity(opacity) = **value {
+        opacity
+    } else {
+        panic!("The AnimationValue should be Opacity");
+    }
+}
+
 /// Takes a ServoAnimationValues and populates it with the animation values corresponding
 /// to a given property declaration block
 #[no_mangle]
