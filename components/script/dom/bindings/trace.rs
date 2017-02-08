@@ -500,6 +500,13 @@ unsafe impl JSTraceable for Mutex<Option<SharedRt>> {
     }
 }
 
+unsafe impl JSTraceable for RwLock<Option<Atom>> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing.
+    }
+}
+
 unsafe impl JSTraceable for RwLock<FontFaceRule> {
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing.
