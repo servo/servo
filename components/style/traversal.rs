@@ -246,7 +246,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // recursively drops Servo ElementData when the XBL insertion parent of
         // an Element is changed.
         if cfg!(feature = "gecko") && thread_local.is_initial_style() &&
-           parent_data.styles().primary.values.has_moz_binding() {
+           parent_data.styles().primary.values().has_moz_binding() {
             if log.allow() { debug!("Parent {:?} has XBL binding, deferring traversal", parent); }
             return false;
         }
@@ -552,7 +552,7 @@ fn compute_style<E, D>(_traversal: &D,
         context.thread_local
                .style_sharing_candidate_cache
                .insert_if_possible(&element,
-                                   &data.styles().primary.values,
+                                   data.styles().primary.values(),
                                    match_results.relations);
     }
 }

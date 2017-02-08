@@ -30,8 +30,9 @@ pub struct ComputedStyle {
     pub rules: StrongRuleNode,
 
     /// The computed values for each property obtained by cascading the
-    /// matched rules.
-    pub values: Arc<ComputedValues>,
+    /// matched rules. This can only be none during a transient interval of
+    /// the styling algorithm, and callers can safely unwrap it.
+    pub values: Option<Arc<ComputedValues>>,
 }
 
 impl ComputedStyle {
@@ -39,8 +40,28 @@ impl ComputedStyle {
     pub fn new(rules: StrongRuleNode, values: Arc<ComputedValues>) -> Self {
         ComputedStyle {
             rules: rules,
-            values: values,
+            values: Some(values),
         }
+    }
+
+    /// Constructs a partial ComputedStyle, whose ComputedVaues will be filled
+    /// in later.
+    pub fn new_partial(rules: StrongRuleNode) -> Self {
+        ComputedStyle {
+            rules: rules,
+            values: None,
+        }
+    }
+
+    /// Returns a reference to the ComputedValues. The values can only be null during
+    /// the styling algorithm, so this is safe to call elsewhere.
+    pub fn values(&self) -> &Arc<ComputedValues> {
+        self.values.as_ref().unwrap()
+    }
+
+    /// Mutable version of the above.
+    pub fn values_mut(&mut self) -> &mut Arc<ComputedValues> {
+        self.values.as_mut().unwrap()
     }
 }
 
@@ -121,7 +142,7 @@ impl ElementStyles {
 
     /// Whether this element `display` value is `none`.
     pub fn is_display_none(&self) -> bool {
-        self.primary.values.get_box().clone_display() == display::T::none
+        self.primary.values().get_box().clone_display() == display::T::none
     }
 }
 

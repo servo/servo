@@ -737,9 +737,9 @@ pub trait MatchMethods : TElement {
                     // can decide more easily if it knows that it's a child of
                     // replaced content, or similar stuff!
                     let maybe_damage = {
-                        let previous = data.get_styles().map(|x| &x.primary.values);
+                        let previous = data.get_styles().map(|x| x.primary.values());
                         let existing = self.existing_style_for_restyle_damage(previous, None);
-                        existing.map(|e| RestyleDamage::compute(e, &shared_style.values))
+                        existing.map(|e| RestyleDamage::compute(e, &shared_style.values()))
                     };
                     if let Some(d) = maybe_damage {
                         data.restyle_mut().damage |= d;
@@ -887,7 +887,7 @@ pub trait MatchMethods : TElement {
             // specific with that frame, but not wanting to flush all of
             // layout).
             debug_assert!(cfg!(feature = "gecko") || d.has_current_styles());
-            &d.styles().primary.values
+            d.styles().primary.values()
         });
 
         let mut new_styles;
@@ -901,9 +901,9 @@ pub trait MatchMethods : TElement {
                     // Update animations before the cascade. This may modify the
                     // value of the old primary style.
                     self.update_animations_for_cascade(&context.shared,
-                                                       &mut previous.primary.values,
+                                                       previous.primary.values_mut(),
                                                        &mut possibly_expired_animations);
-                    (Some(&previous.primary.values), Some(&mut previous.pseudos))
+                    (Some(previous.primary.values()), Some(&mut previous.pseudos))
                 }
             };
 
@@ -924,7 +924,7 @@ pub trait MatchMethods : TElement {
             let damage =
                 self.compute_damage_and_cascade_pseudos(old_primary,
                                                         old_pseudos,
-                                                        &new_styles.primary.values,
+                                                        &new_styles.primary.values(),
                                                         &mut new_styles.pseudos,
                                                         context,
                                                         pseudo_rule_nodes,
@@ -987,7 +987,7 @@ pub trait MatchMethods : TElement {
                         // Update animations before the cascade. This may modify
                         // the value of old_pseudo_style.
                         self.update_animations_for_cascade(&context.shared,
-                                                           &mut old_pseudo_style.values,
+                                                           old_pseudo_style.values_mut(),
                                                            possibly_expired_animations);
                     }
                 }
@@ -996,7 +996,7 @@ pub trait MatchMethods : TElement {
                     self.cascade_node_pseudo_element(context,
                                                      Some(new_primary),
                                                      maybe_old_pseudo_style.as_ref()
-                                                                           .map(|s| &s.values),
+                                                                           .map(|s| s.values()),
                                                      &new_rule_node,
                                                      &possibly_expired_animations,
                                                      CascadeBooleans {
@@ -1008,7 +1008,7 @@ pub trait MatchMethods : TElement {
                 if damage != rebuild_and_reflow {
                     damage = damage | match maybe_old_pseudo_style {
                         None => rebuild_and_reflow,
-                        Some(ref old) => self.compute_restyle_damage(Some(&old.values),
+                        Some(ref old) => self.compute_restyle_damage(Some(old.values()),
                                                                      &new_pseudo_values,
                                                                      Some(&pseudo)),
                     };

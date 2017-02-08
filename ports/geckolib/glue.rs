@@ -683,7 +683,7 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
     let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
     data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent,
                                                data.default_computed_values(), false)
-        .values
+        .values.unwrap()
         .into_strong()
 }
 
@@ -709,7 +709,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
 
     match get_pseudo_style(element, pseudo_tag, data.styles(), doc_data) {
         Some(values) => values.into_strong(),
-        None if !is_probe => data.styles().primary.values.clone().into_strong(),
+        None if !is_probe => data.styles().primary.values().clone().into_strong(),
         None => Strong::null(),
     }
 }
@@ -720,13 +720,13 @@ fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
 {
     let pseudo = PseudoElement::from_atom_unchecked(Atom::from(pseudo_tag), false);
     match SelectorImpl::pseudo_element_cascade_type(&pseudo) {
-        PseudoElementCascadeType::Eager => styles.pseudos.get(&pseudo).map(|s| s.values.clone()),
+        PseudoElementCascadeType::Eager => styles.pseudos.get(&pseudo).map(|s| s.values().clone()),
         PseudoElementCascadeType::Precomputed => unreachable!("No anonymous boxes"),
         PseudoElementCascadeType::Lazy => {
             let d = doc_data.borrow_mut();
-            let base = &styles.primary.values;
+            let base = styles.primary.values();
             d.stylist.lazily_compute_pseudo_element_style(&element, &pseudo, base, &d.default_computed_values())
-                     .map(|s| s.values.clone())
+                     .map(|s| s.values().clone())
         },
     }
 }
@@ -1167,7 +1167,7 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
         return per_doc_data.default_computed_values().clone().into_strong();
     }
 
-    data.styles().primary.values.clone().into_strong()
+    data.styles().primary.values().clone().into_strong()
 }
 
 #[no_mangle]
@@ -1184,7 +1184,7 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
         } else {
             None
         };
-        maybe_pseudo.unwrap_or_else(|| styles.primary.values.clone())
+        maybe_pseudo.unwrap_or_else(|| styles.primary.values().clone())
     };
 
     // In the common case we already have the style. Check that before setting
