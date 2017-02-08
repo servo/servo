@@ -6127,7 +6127,7 @@ class CGBindingRoot(CGThing):
                 cgthings.extend([CGGeneric("\npub use dom::bindings::codegen::UnionTypes::%s as %s;\n\n" %
                                            (t.innerType, t.identifier.name))])
             else:
-                assert not typeNeedsRooting(t.innerType, config.getDescriptorProvider)
+                assert not typeNeedsRooting(t.innerType, config.getDescriptorProvider())
                 cgthings.extend([CGGeneric("\npub type %s = " % (t.identifier.name)),
                                  getRetvalDeclarationForType(t.innerType, config.getDescriptorProvider()),
                                  CGGeneric(";\n\n")])
