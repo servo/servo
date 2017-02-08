@@ -9,7 +9,7 @@
 
 use app_units::Au;
 use block::BlockFlow;
-use context::{LayoutContext, SharedLayoutContext};
+use context::{LayoutContext, with_thread_local_font_context};
 use display_list_builder::{DisplayListBuildState, ListItemFlowDisplayListBuilding};
 use euclid::Point2D;
 use floats::FloatKind;
@@ -20,7 +20,6 @@ use generated_content;
 use inline::InlineFlow;
 use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
-use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 use style::servo::restyle_damage::RESOLVE_GENERATED_CONTENT;
@@ -79,14 +78,15 @@ impl Flow for ListItemFlow {
         self.block_flow.bubble_inline_sizes()
     }
 
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
-        self.block_flow.assign_inline_sizes(shared_context);
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.assign_inline_sizes(layout_context);
 
         let mut marker_inline_start = self.block_flow.fragment.border_box.start.i;
 
         for marker in self.marker_fragments.iter_mut().rev() {
             let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
-            let container_block_size = self.block_flow.explicit_block_containing_size(shared_context);
+            let container_block_size =
+                self.block_flow.explicit_block_containing_size(layout_context.shared_context());
             marker.assign_replaced_inline_size_if_necessary(containing_block_inline_size, container_block_size);
 
             // Do this now. There's no need to do this in bubble-widths, since markers do not
@@ -100,14 +100,16 @@ impl Flow for ListItemFlow {
         }
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         self.block_flow.assign_block_size(layout_context);
 
         // FIXME(pcwalton): Do this during flow construction, like `InlineFlow` does?
-        let marker_line_metrics =
+        let marker_line_metrics = with_thread_local_font_context(layout_context, |font_context| {
             InlineFlow::minimum_line_metrics_for_fragments(&self.marker_fragments,
-                                                           &mut layout_context.font_context(),
-                                                           &*self.block_flow.fragment.style);
+                                                           font_context,
+                                                           &*self.block_flow.fragment.style)
+        });
+
         for marker in &mut self.marker_fragments {
             marker.assign_replaced_block_size_if_necessary();
             let marker_inline_metrics = marker.aligned_inline_metrics(layout_context,
@@ -118,7 +120,7 @@ impl Flow for ListItemFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 

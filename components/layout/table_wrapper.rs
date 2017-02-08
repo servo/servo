@@ -16,7 +16,7 @@
 use app_units::Au;
 use block::{AbsoluteNonReplaced, BlockFlow, FloatNonReplaced, ISizeAndMarginsComputer, ISizeConstraintInput};
 use block::{ISizeConstraintSolution, MarginsMayCollapseFlag};
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use display_list_builder::DisplayListBuildState;
 use euclid::Point2D;
 use floats::FloatKind;
@@ -333,7 +333,7 @@ impl Flow for TableWrapperFlow {
         self.block_flow.bubble_inline_sizes();
     }
 
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow",
                if self.block_flow.base.flags.is_float() {
                    "floated table_wrapper"
@@ -341,6 +341,7 @@ impl Flow for TableWrapperFlow {
                    "table_wrapper"
                });
 
+        let shared_context = layout_context.shared_context();
         self.block_flow.initialize_container_size_for_root(shared_context);
 
         let mut intermediate_column_inline_sizes = self.column_intrinsic_inline_sizes
@@ -419,7 +420,7 @@ impl Flow for TableWrapperFlow {
 
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         debug!("assign_block_size: assigning block_size for table_wrapper");
         let remaining = self.block_flow.assign_block_size_block_base(
             layout_context,
@@ -428,7 +429,7 @@ impl Flow for TableWrapperFlow {
         debug_assert!(remaining.is_none());
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 
@@ -436,11 +437,11 @@ impl Flow for TableWrapperFlow {
         self.block_flow.place_float_if_applicable()
     }
 
-    fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
-                                                            layout_context: &'a LayoutContext<'a>,
-                                                            parent_thread_id: u8,
-                                                            content_box: LogicalRect<Au>)
-                                                            -> bool {
+    fn assign_block_size_for_inorder_child_if_necessary(&mut self,
+                                                        layout_context: &LayoutContext,
+                                                        parent_thread_id: u8,
+                                                        content_box: LogicalRect<Au>)
+                                                        -> bool {
         self.block_flow.assign_block_size_for_inorder_child_if_necessary(layout_context,
                                                                          parent_thread_id,
                                                                          content_box)

@@ -8,7 +8,7 @@
 
 use app_units::Au;
 use canvas_traits::CanvasMsg;
-use context::{LayoutContext, SharedLayoutContext};
+use context::{LayoutContext, with_thread_local_font_context};
 use euclid::{Matrix4D, Point2D, Radians, Rect, Size2D};
 use floats::ClearType;
 use flow::{self, ImmutableFlowUtils};
@@ -368,10 +368,10 @@ impl ImageFragmentInfo {
     /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
     /// sense to me.
     pub fn new(url: Option<ServoUrl>,
-               shared_layout_context: &SharedLayoutContext)
+               layout_context: &LayoutContext)
                -> ImageFragmentInfo {
         let image_or_metadata = url.and_then(|url| {
-            shared_layout_context.get_or_request_image_or_meta(url, UsePlaceholder::Yes)
+            layout_context.get_or_request_image_or_meta(url, UsePlaceholder::Yes)
         });
 
         let (image, metadata) = match image_or_metadata {
@@ -642,8 +642,8 @@ pub struct TruncatedFragmentInfo {
 impl Fragment {
     /// Constructs a new `Fragment` instance.
     pub fn new<N: ThreadSafeLayoutNode>(node: &N, specific: SpecificFragmentInfo, ctx: &LayoutContext) -> Fragment {
-        let style_context = ctx.style_context();
-        let style = node.style(style_context);
+        let shared_context = ctx.shared_context();
+        let style = node.style(shared_context);
         let writing_mode = style.writing_mode;
 
         let mut restyle_damage = node.restyle_damage();
@@ -786,8 +786,9 @@ impl Fragment {
             SpecificFragmentInfo::UnscannedText(
                 box UnscannedTextFragmentInfo::new(text_overflow_string, None)));
         unscanned_ellipsis_fragments.push_back(ellipsis_fragment);
-        let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
-                                                                     unscanned_ellipsis_fragments);
+        let ellipsis_fragments = with_thread_local_font_context(layout_context, |font_context| {
+            TextRunScanner::new().scan_for_runs(font_context, unscanned_ellipsis_fragments)
+        });
         debug_assert!(ellipsis_fragments.len() == 1);
         ellipsis_fragment = ellipsis_fragments.fragments.into_iter().next().unwrap();
         ellipsis_fragment.flags |= IS_ELLIPSIS;
@@ -2111,8 +2112,9 @@ impl Fragment {
                     return InlineMetrics::new(Au(0), Au(0), Au(0));
                 }
                 // See CSS 2.1 § 10.8.1.
-                let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
-                                                                self.style.clone_font());
+                let font_metrics = with_thread_local_font_context(layout_context, |font_context| {
+                    text::font_metrics_for_style(font_context, self.style.clone_font())
+                });
                 let line_height = text::line_height_from_style(&*self.style, &font_metrics);
                 InlineMetrics::from_font_metrics(&info.run.font_metrics, line_height)
             }
@@ -2194,9 +2196,9 @@ impl Fragment {
             match style.get_box().vertical_align {
                 vertical_align::T::baseline => {}
                 vertical_align::T::middle => {
-                    let font_metrics =
-                        text::font_metrics_for_style(&mut layout_context.font_context(),
-                                                     style.clone_font());
+                    let font_metrics = with_thread_local_font_context(layout_context, |font_context| {
+                        text::font_metrics_for_style(font_context, self.style.clone_font())
+                    });
                     offset += (content_inline_metrics.ascent -
                                content_inline_metrics.space_below_baseline -
                                font_metrics.x_height).scale_by(0.5)

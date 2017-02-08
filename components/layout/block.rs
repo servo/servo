@@ -28,7 +28,7 @@
 #![deny(unsafe_code)]
 
 use app_units::{Au, MAX_AU};
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use display_list_builder::{BorderPaintingMode, DisplayListBuildState, FragmentDisplayListBuilding};
 use display_list_builder::BlockFlowDisplayListBuilding;
 use euclid::{Point2D, Rect, Size2D};
@@ -767,11 +767,11 @@ impl BlockFlow {
     /// `inline(always)` because this is only ever called by in-order or non-in-order top-level
     /// methods.
     #[inline(always)]
-    pub fn assign_block_size_block_base<'a>(&mut self,
-                                            layout_context: &'a LayoutContext<'a>,
-                                            mut fragmentation_context: Option<FragmentationContext>,
-                                            margins_may_collapse: MarginsMayCollapseFlag)
-                                            -> Option<Arc<Flow>> {
+    pub fn assign_block_size_block_base(&mut self,
+                                        layout_context: &LayoutContext,
+                                        mut fragmentation_context: Option<FragmentationContext>,
+                                        margins_may_collapse: MarginsMayCollapseFlag)
+                                        -> Option<Arc<Flow>> {
         let _scope = layout_debug_scope!("assign_block_size_block_base {:x}",
                                          self.base.debug_id());
 
@@ -1462,9 +1462,9 @@ impl BlockFlow {
     /// on the floats we could see at the time of inline-size assignment. The job of this function,
     /// therefore, is not only to assign the final size but also to perform the layout again for
     /// this block formatting context if our speculation was wrong.
-    fn assign_inline_position_for_formatting_context<'a>(&mut self,
-                                                         layout_context: &'a LayoutContext<'a>,
-                                                         content_box: LogicalRect<Au>) {
+    fn assign_inline_position_for_formatting_context(&mut self,
+                                                     layout_context: &LayoutContext,
+                                                     content_box: LogicalRect<Au>) {
         debug_assert!(self.formatting_context_type() != FormattingContextType::None);
 
         if !self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
@@ -1546,10 +1546,10 @@ impl BlockFlow {
             // float speculation, instead of acting on the actual results.
             self.fragment.border_box.size.inline = inline_size;
             // Assign final-final inline sizes on all our children.
-            self.assign_inline_sizes(&layout_context.shared.style_context);
+            self.assign_inline_sizes(layout_context);
             // Re-run layout on our children.
             for child in flow::mut_base(self).children.iter_mut() {
-                sequential::traverse_flow_tree_preorder(child, layout_context.shared);
+                sequential::traverse_flow_tree_preorder(child, layout_context);
             }
             // Assign our final-final block size.
             self.assign_block_size(layout_context);
@@ -1883,9 +1883,10 @@ impl Flow for BlockFlow {
     ///
     /// Dual fragments consume some inline-size first, and the remainder is assigned to all child
     /// (block) contexts.
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("block::assign_inline_sizes {:x}", self.base.debug_id());
 
+        let shared_context = layout_context.shared_context();
         self.compute_inline_sizes(shared_context);
 
         // Move in from the inline-start border edge.
@@ -1914,11 +1915,11 @@ impl Flow for BlockFlow {
         }
     }
 
-    fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
-                                                            layout_context: &'a LayoutContext<'a>,
-                                                            parent_thread_id: u8,
-                                                            content_box: LogicalRect<Au>)
-                                                            -> bool {
+    fn assign_block_size_for_inorder_child_if_necessary(&mut self,
+                                                        layout_context: &LayoutContext,
+                                                        parent_thread_id: u8,
+                                                        content_box: LogicalRect<Au>)
+                                                        -> bool {
         if self.base.flags.is_float() {
             return false
         }
@@ -1950,7 +1951,7 @@ impl Flow for BlockFlow {
         false
     }
 
-    fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, ctx: &LayoutContext) {
         let remaining = Flow::fragment(self, ctx, None);
         debug_assert!(remaining.is_none());
     }
@@ -1998,7 +1999,7 @@ impl Flow for BlockFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, _layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, _layout_context: &LayoutContext) {
         // FIXME (mbrubeck): Get the real container size, taking the container writing mode into
         // account.  Must handle vertical writing modes.
         let container_size = Size2D::new(self.base.block_container_inline_size, Au(0));

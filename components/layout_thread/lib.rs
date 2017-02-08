@@ -59,7 +59,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout::animation;
 use layout::construct::ConstructionResult;
-use layout::context::{LayoutContext, SharedLayoutContext};
+use layout::context::LayoutContext;
 use layout::context::heap_size_of_persistent_local_context;
 use layout::display_list_builder::ToGfxColor;
 use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
@@ -506,15 +506,15 @@ impl LayoutThread {
     }
 
     // Create a layout context for use in building display lists, hit testing, &c.
-    fn build_shared_layout_context(&self,
-                                   rw_data: &LayoutThreadData,
-                                   screen_size_changed: bool,
-                                   goal: ReflowGoal)
-                                   -> SharedLayoutContext {
+    fn build_layout_context(&self,
+                            rw_data: &LayoutThreadData,
+                            screen_size_changed: bool,
+                            goal: ReflowGoal)
+                            -> LayoutContext {
         let thread_local_style_context_creation_data =
             ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
 
-        SharedLayoutContext {
+        LayoutContext {
             style_context: SharedStyleContext {
                 viewport_size: self.viewport_size.clone(),
                 screen_size_changed: screen_size_changed,
@@ -623,9 +623,9 @@ impl LayoutThread {
             goal: ReflowGoal::ForDisplay,
             page_clip_rect: max_rect(),
         };
-        let mut layout_context = self.build_shared_layout_context(&*rw_data,
-                                                                  false,
-                                                                  reflow_info.goal);
+        let mut layout_context = self.build_layout_context(&*rw_data,
+                                                           false,
+                                                           reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
                                                      None,
@@ -855,9 +855,9 @@ impl LayoutThread {
     /// benchmarked against those two. It is marked `#[inline(never)]` to aid profiling.
     #[inline(never)]
     fn solve_constraints(layout_root: &mut Flow,
-                         shared_layout_context: &SharedLayoutContext) {
+                         layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints");
-        sequential::traverse_flow_tree_preorder(layout_root, shared_layout_context);
+        sequential::traverse_flow_tree_preorder(layout_root, layout_context);
     }
 
     /// Performs layout constraint solving in parallel.
@@ -869,7 +869,7 @@ impl LayoutThread {
                                   layout_root: &mut Flow,
                                   profiler_metadata: Option<TimerMetadata>,
                                   time_profiler_chan: time::ProfilerChan,
-                                  shared_layout_context: &SharedLayoutContext) {
+                                  layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("solve_constraints_parallel");
 
         // NOTE: this currently computes borders, so any pruning should separate that
@@ -877,7 +877,7 @@ impl LayoutThread {
         parallel::traverse_flow_tree_preorder(layout_root,
                                               profiler_metadata,
                                               time_profiler_chan,
-                                              shared_layout_context,
+                                              layout_context,
                                               traversal);
     }
 
@@ -888,7 +888,7 @@ impl LayoutThread {
                                               query_type: Option<&ReflowQueryType>,
                                               document: Option<&ServoLayoutDocument>,
                                               layout_root: &mut Flow,
-                                              shared_layout_context: &mut SharedLayoutContext,
+                                              layout_context: &mut LayoutContext,
                                               rw_data: &mut LayoutThreadData) {
         let writing_mode = flow::base(layout_root).writing_mode;
         let (metadata, sender) = (self.profiler_metadata(), self.time_profiler_chan.clone());
@@ -905,7 +905,7 @@ impl LayoutThread {
 
             if flow::base(layout_root).restyle_damage.contains(REPOSITION) {
                 layout_root.traverse_preorder(&ComputeAbsolutePositions {
-                    layout_context: shared_layout_context
+                    layout_context: layout_context
                 });
             }
 
@@ -917,7 +917,7 @@ impl LayoutThread {
                     (ReflowGoal::ForDisplay, _) | (ReflowGoal::ForScriptQuery, true) => {
                         let mut build_state =
                             sequential::build_display_list_for_subtree(layout_root,
-                                                                       shared_layout_context);
+                                                                       layout_context);
 
                         debug!("Done building display list.");
 
@@ -1167,9 +1167,9 @@ impl LayoutThread {
         }
 
         // Create a layout context for use throughout the following passes.
-        let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
-                                                                         viewport_size_changed,
-                                                                         data.reflow_info.goal);
+        let mut layout_context = self.build_layout_context(&*rw_data,
+                                                           viewport_size_changed,
+                                                           data.reflow_info.goal);
 
         // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
         let traversal_driver = if self.parallel_flag && self.parallel_traversal.is_some() {
@@ -1178,7 +1178,7 @@ impl LayoutThread {
             TraversalDriver::Sequential
         };
 
-        let traversal = RecalcStyleAndConstructFlows::new(shared_layout_context, traversal_driver);
+        let traversal = RecalcStyleAndConstructFlows::new(layout_context, traversal_driver);
         let dom_depth = Some(0); // This is always the root node.
         let token = {
             let stylist = &<RecalcStyleAndConstructFlows as
@@ -1221,35 +1221,35 @@ impl LayoutThread {
             self.root_flow = self.try_get_layout_root(element.as_node());
         }
 
-        shared_layout_context = traversal.destroy();
+        layout_context = traversal.destroy();
 
         if opts::get().dump_style_tree {
             println!("{:?}", ShowSubtreeDataAndPrimaryValues(element.as_node()));
         }
 
         if opts::get().dump_rule_tree {
-            shared_layout_context.style_context.stylist.rule_tree.dump_stdout();
+            layout_context.style_context.stylist.rule_tree.dump_stdout();
         }
 
         // GC the rule tree if some heuristics are met.
-        unsafe { shared_layout_context.style_context.stylist.rule_tree.maybe_gc(); }
+        unsafe { layout_context.style_context.stylist.rule_tree.maybe_gc(); }
 
         // Perform post-style recalculation layout passes.
         self.perform_post_style_recalc_layout_passes(&data.reflow_info,
                                                      Some(&data.query_type),
                                                      Some(&document),
                                                      &mut rw_data,
-                                                     &mut shared_layout_context);
+                                                     &mut layout_context);
 
         self.respond_to_query_if_necessary(&data.query_type,
                                            &mut *rw_data,
-                                           &mut shared_layout_context);
+                                           &mut layout_context);
     }
 
     fn respond_to_query_if_necessary(&mut self,
                                      query_type: &ReflowQueryType,
                                      rw_data: &mut LayoutThreadData,
-                                     shared: &mut SharedLayoutContext) {
+                                     context: &mut LayoutContext) {
         let mut root_flow = match self.root_flow.clone() {
             Some(root_flow) => root_flow,
             None => return,
@@ -1311,7 +1311,7 @@ impl LayoutThread {
             ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.resolved_style_response =
-                    process_resolved_style_request(shared,
+                    process_resolved_style_request(context,
                                                    node,
                                                    pseudo,
                                                    property,
@@ -1368,9 +1368,9 @@ impl LayoutThread {
             page_clip_rect: max_rect(),
         };
 
-        let mut layout_context = self.build_shared_layout_context(&*rw_data,
-                                                                  false,
-                                                                  reflow_info.goal);
+        let mut layout_context = self.build_layout_context(&*rw_data,
+                                                           false,
+                                                           reflow_info.goal);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
@@ -1401,9 +1401,9 @@ impl LayoutThread {
             page_clip_rect: max_rect(),
         };
 
-        let mut layout_context = self.build_shared_layout_context(&*rw_data,
-                                                                  false,
-                                                                  reflow_info.goal);
+        let mut layout_context = self.build_layout_context(&*rw_data,
+                                                           false,
+                                                           reflow_info.goal);
 
         // No need to do a style recalc here.
         if self.root_flow.is_none() {
@@ -1421,7 +1421,7 @@ impl LayoutThread {
                                                query_type: Option<&ReflowQueryType>,
                                                document: Option<&ServoLayoutDocument>,
                                                rw_data: &mut LayoutThreadData,
-                                               shared: &mut SharedLayoutContext) {
+                                               context: &mut LayoutContext) {
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Kick off animations if any were triggered, expire completed ones.
             animation::update_animation_state(&self.constellation_chan,
@@ -1453,7 +1453,7 @@ impl LayoutThread {
             profile(time::ProfilerCategory::LayoutGeneratedContent,
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
-                    || sequential::resolve_generated_content(FlowRef::deref_mut(&mut root_flow), &shared));
+                    || sequential::resolve_generated_content(FlowRef::deref_mut(&mut root_flow), &context));
 
             // Guess float placement.
             profile(time::ProfilerCategory::LayoutFloatPlacementSpeculation,
@@ -1476,10 +1476,10 @@ impl LayoutThread {
                                                                  FlowRef::deref_mut(&mut root_flow),
                                                                  profiler_metadata,
                                                                  self.time_profiler_chan.clone(),
-                                                                 &*shared);
+                                                                 &*context);
                     } else {
                         //Sequential mode
-                        LayoutThread::solve_constraints(FlowRef::deref_mut(&mut root_flow), &shared)
+                        LayoutThread::solve_constraints(FlowRef::deref_mut(&mut root_flow), &context)
                     }
                 });
             }
@@ -1488,8 +1488,7 @@ impl LayoutThread {
                     self.profiler_metadata(),
                     self.time_profiler_chan.clone(),
                     || {
-                let context = LayoutContext::new(&shared);
-                sequential::store_overflow(&context,
+                sequential::store_overflow(context,
                                            FlowRef::deref_mut(&mut root_flow) as &mut Flow);
             });
 
@@ -1497,7 +1496,7 @@ impl LayoutThread {
                                                  query_type,
                                                  document,
                                                  rw_data,
-                                                 shared);
+                                                 context);
         }
     }
 
@@ -1506,7 +1505,7 @@ impl LayoutThread {
                                        query_type: Option<&ReflowQueryType>,
                                        document: Option<&ServoLayoutDocument>,
                                        rw_data: &mut LayoutThreadData,
-                                       layout_context: &mut SharedLayoutContext) {
+                                       layout_context: &mut LayoutContext) {
         // Build the display list if necessary, and send it to the painter.
         if let Some(mut root_flow) = self.root_flow.clone() {
             self.compute_abs_pos_and_build_display_list(data,

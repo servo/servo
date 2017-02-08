@@ -13,7 +13,7 @@
 use app_units::{AU_PER_PX, Au};
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasData, CanvasMsg, FromLayoutMsg};
-use context::SharedLayoutContext;
+use context::LayoutContext;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D, TypedSize2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
@@ -93,7 +93,7 @@ fn get_cyclic<T>(arr: &[T], index: usize) -> &T {
 }
 
 pub struct DisplayListBuildState<'a> {
-    pub shared_layout_context: &'a SharedLayoutContext,
+    pub layout_context: &'a LayoutContext,
     pub root_stacking_context: StackingContext,
     pub items: HashMap<StackingContextId, Vec<DisplayItem>>,
     pub stacking_context_children: HashMap<StackingContextId, Vec<StackingContext>>,
@@ -114,9 +114,9 @@ pub struct DisplayListBuildState<'a> {
 }
 
 impl<'a> DisplayListBuildState<'a> {
-    pub fn new(shared_layout_context: &'a SharedLayoutContext) -> DisplayListBuildState<'a> {
+    pub fn new(layout_context: &'a LayoutContext) -> DisplayListBuildState<'a> {
         DisplayListBuildState {
-            shared_layout_context: shared_layout_context,
+            layout_context: layout_context,
             root_stacking_context: StackingContext::root(),
             items: HashMap::new(),
             stacking_context_children: HashMap::new(),
@@ -682,7 +682,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                image_url: &ServoUrl,
                                                index: usize) {
         let background = style.get_background();
-        let webrender_image = state.shared_layout_context
+        let webrender_image = state.layout_context
                                    .get_webrender_image_for_url(image_url.clone(),
                                                                 UsePlaceholder::No);
 

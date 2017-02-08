@@ -15,7 +15,7 @@
 
 use app_units::Au;
 use block::BlockFlow;
-use context::LayoutContext;
+use context::{LayoutContext, with_thread_local_font_context};
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, PersistentLayoutData};
 use flex::FlexFlow;
 use floats::FloatKind;
@@ -315,7 +315,7 @@ impl InlineFragmentsAccumulator {
 /// An object that knows how to create flows.
 pub struct FlowConstructor<'a, N: ThreadSafeLayoutNode> {
     /// The layout context.
-    pub layout_context: &'a LayoutContext<'a>,
+    pub layout_context: &'a LayoutContext,
     /// Satisfy the compiler about the unused parameters, which we use to improve the ergonomics of
     /// the ensuing impl {} by removing the need to parameterize all the methods individually.
     phantom2: PhantomData<N>,
@@ -324,7 +324,7 @@ pub struct FlowConstructor<'a, N: ThreadSafeLayoutNode> {
 impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
   FlowConstructor<'a, ConcreteThreadSafeLayoutNode> {
     /// Creates a new flow constructor.
-    pub fn new(layout_context: &'a LayoutContext<'a>) -> Self {
+    pub fn new(layout_context: &'a LayoutContext) -> Self {
         FlowConstructor {
             layout_context: layout_context,
             phantom2: PhantomData,
@@ -333,7 +333,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
     #[inline]
     fn style_context(&self) -> &SharedStyleContext {
-        self.layout_context.style_context()
+        self.layout_context.shared_context()
     }
 
     #[inline]
@@ -351,12 +351,12 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLImageElement)) => {
                 let image_info = box ImageFragmentInfo::new(node.image_url(),
-                                                            &self.layout_context.shared);
+                                                            &self.layout_context);
                 SpecificFragmentInfo::Image(image_info)
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLObjectElement)) => {
                 let image_info = box ImageFragmentInfo::new(node.object_data(),
-                                                            &self.layout_context.shared);
+                                                            &self.layout_context);
                 SpecificFragmentInfo::Image(image_info)
             }
             Some(LayoutNodeType::Element(LayoutElementType::HTMLTableElement)) => {
@@ -434,8 +434,10 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         // for runs might collapse so much whitespace away that only hypothetical fragments
         // remain. In that case the inline flow will compute its ascent and descent to be zero.
         let scanned_fragments =
-            TextRunScanner::new().scan_for_runs(&mut self.layout_context.font_context(),
-                                                fragments.fragments);
+            with_thread_local_font_context(self.layout_context, |font_context| {
+                TextRunScanner::new().scan_for_runs(font_context,
+                                                    mem::replace(&mut fragments.fragments, LinkedList::new()))
+            });
         let mut inline_flow_ref =
             FlowRef::new(Arc::new(InlineFlow::from_fragments(scanned_fragments,
                                                 node.style(self.style_context()).writing_mode)));
@@ -464,8 +466,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             // FIXME(#6503): Use Arc::get_mut().unwrap() here.
             let inline_flow = FlowRef::deref_mut(&mut inline_flow_ref).as_mut_inline();
             inline_flow.minimum_line_metrics =
-                inline_flow.minimum_line_metrics(&mut self.layout_context.font_context(),
-                                                 &node.style(self.style_context()))
+                with_thread_local_font_context(self.layout_context, |font_context| {
+                    inline_flow.minimum_line_metrics(font_context, &node.style(self.style_context()))
+                });
         }
 
         inline_flow_ref.finish();
@@ -1216,7 +1219,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let marker_fragments = match node.style(self.style_context()).get_list().list_style_image {
             Either::First(ref url_value) => {
                 let image_info = box ImageFragmentInfo::new(url_value.url().map(|u| u.clone()),
-                                                            &self.layout_context.shared);
+                                                            &self.layout_context);
                 vec![Fragment::new(node, SpecificFragmentInfo::Image(image_info), self.layout_context)]
             }
             Either::Second(_none) => {
@@ -1232,9 +1235,11 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                             SpecificFragmentInfo::UnscannedText(
                                 box UnscannedTextFragmentInfo::new(text, None)),
                             self.layout_context));
-                        let marker_fragments = TextRunScanner::new().scan_for_runs(
-                            &mut self.layout_context.font_context(),
-                            unscanned_marker_fragments);
+                        let marker_fragments =
+                            with_thread_local_font_context(self.layout_context, |mut font_context| {
+                                TextRunScanner::new().scan_for_runs(&mut font_context,
+                                                                    unscanned_marker_fragments)
+                            });
                         marker_fragments.fragments
                     }
                     ListStyleTypeContent::GeneratedContent(info) => {

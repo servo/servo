@@ -8,7 +8,7 @@
 
 use app_units::{Au, MAX_AU};
 use block::{BlockFlow, MarginsMayCollapseFlag};
-use context::{LayoutContext, SharedLayoutContext};
+use context::LayoutContext;
 use display_list_builder::{DisplayListBuildState, FlexFlowDisplayListBuilding};
 use euclid::Point2D;
 use floats::FloatKind;
@@ -24,7 +24,6 @@ use std::ops::Range;
 use std::sync::Arc;
 use style::computed_values::{align_content, align_self, flex_direction, flex_wrap, justify_content};
 use style::computed_values::border_collapse;
-use style::context::SharedStyleContext;
 use style::logical_geometry::{Direction, LogicalSize};
 use style::properties::ServoComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW};
@@ -489,7 +488,7 @@ impl FlexFlow {
     // Currently, this is the core of BlockFlow::propagate_assigned_inline_size_to_children() with
     // all float and table logic stripped out.
     fn block_mode_assign_inline_sizes(&mut self,
-                                      _shared_context: &SharedStyleContext,
+                                      _layout_context: &LayoutContext,
                                       inline_start_content_edge: Au,
                                       inline_end_content_edge: Au,
                                       content_inline_size: Au) {
@@ -531,7 +530,7 @@ impl FlexFlow {
     }
 
     fn inline_mode_assign_inline_sizes(&mut self,
-                                       _shared_context: &SharedStyleContext,
+                                       layout_context: &LayoutContext,
                                        inline_start_content_edge: Au,
                                        _inline_end_content_edge: Au,
                                        content_inline_size: Au) {
@@ -558,7 +557,8 @@ impl FlexFlow {
         // Calculate non-auto block size to pass to children.
         let box_border = self.block_flow.fragment.box_sizing_boundary(Direction::Block);
 
-        let parent_container_size = self.block_flow.explicit_block_containing_size(_shared_context);
+        let parent_container_size =
+            self.block_flow.explicit_block_containing_size(layout_context.shared_context());
         // https://drafts.csswg.org/css-ui-3/#box-sizing
         let explicit_content_size = self
                                     .block_flow
@@ -669,7 +669,7 @@ impl FlexFlow {
         }
     }
 
-    fn inline_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn inline_mode_assign_block_size(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("flex::inline_mode_assign_block_size");
 
         let line_count = self.lines.len() as i32;
@@ -860,7 +860,7 @@ impl Flow for FlexFlow {
         }
     }
 
-    fn assign_inline_sizes(&mut self, shared_context: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("flex::assign_inline_sizes {:x}", self.block_flow.base.debug_id());
         debug!("assign_inline_sizes");
 
@@ -868,12 +868,13 @@ impl Flow for FlexFlow {
             return
         }
 
-        self.block_flow.initialize_container_size_for_root(shared_context);
+        self.block_flow.initialize_container_size_for_root(layout_context.shared_context());
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
-        self.block_flow.compute_used_inline_size(shared_context, containing_block_inline_size);
+        self.block_flow.compute_used_inline_size(layout_context.shared_context(),
+                                                 containing_block_inline_size);
         if self.block_flow.base.flags.is_float() {
             self.block_flow.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
         }
@@ -920,7 +921,7 @@ impl Flow for FlexFlow {
             Direction::Inline => {
                 self.available_main_size = available_inline_size;
                 self.available_cross_size = available_block_size;
-                self.inline_mode_assign_inline_sizes(shared_context,
+                self.inline_mode_assign_inline_sizes(layout_context,
                                                      inline_start_content_edge,
                                                      inline_end_content_edge,
                                                      content_inline_size)
@@ -928,7 +929,7 @@ impl Flow for FlexFlow {
             Direction::Block  => {
                 self.available_main_size = available_block_size;
                 self.available_cross_size = available_inline_size;
-                self.block_mode_assign_inline_sizes(shared_context,
+                self.block_mode_assign_inline_sizes(layout_context,
                                                     inline_start_content_edge,
                                                     inline_end_content_edge,
                                                     content_inline_size)
@@ -936,7 +937,7 @@ impl Flow for FlexFlow {
         }
     }
 
-    fn assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+    fn assign_block_size(&mut self, layout_context: &LayoutContext) {
         self.block_flow
             .assign_block_size_block_base(layout_context,
                                           None,
@@ -947,7 +948,7 @@ impl Flow for FlexFlow {
         }
     }
 
-    fn compute_absolute_position(&mut self, layout_context: &SharedLayoutContext) {
+    fn compute_absolute_position(&mut self, layout_context: &LayoutContext) {
         self.block_flow.compute_absolute_position(layout_context)
     }
 

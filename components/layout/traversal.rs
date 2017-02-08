@@ -6,7 +6,7 @@
 
 use atomic_refcell::AtomicRefCell;
 use construct::FlowConstructor;
-use context::{LayoutContext, ScopedThreadLocalLayoutContext, SharedLayoutContext};
+use context::{LayoutContext, ScopedThreadLocalLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use flow::{self, PreorderFlowTraversal};
 use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
@@ -23,29 +23,29 @@ use wrapper::{GetRawData, LayoutNodeHelpers, LayoutNodeLayoutData};
 use wrapper::ThreadSafeLayoutNodeHelpers;
 
 pub struct RecalcStyleAndConstructFlows {
-    shared: SharedLayoutContext,
+    context: LayoutContext,
     driver: TraversalDriver,
 }
 
 impl RecalcStyleAndConstructFlows {
-    pub fn shared_layout_context(&self) -> &SharedLayoutContext {
-        &self.shared
+    pub fn layout_context(&self) -> &LayoutContext {
+        &self.context
     }
 }
 
 impl RecalcStyleAndConstructFlows {
     /// Creates a traversal context, taking ownership of the shared layout context.
-    pub fn new(shared: SharedLayoutContext, driver: TraversalDriver) -> Self {
+    pub fn new(context: LayoutContext, driver: TraversalDriver) -> Self {
         RecalcStyleAndConstructFlows {
-            shared: shared,
+            context: context,
             driver: driver,
         }
     }
 
     /// Consumes this traversal context, returning ownership of the shared layout
     /// context to the caller.
-    pub fn destroy(self) -> SharedLayoutContext {
-        self.shared
+    pub fn destroy(self) -> LayoutContext {
+        self.context
     }
 }
 
@@ -66,7 +66,7 @@ impl<E> DomTraversal<E> for RecalcStyleAndConstructFlows
             let el = node.as_element().unwrap();
             let mut data = el.mutate_data().unwrap();
             let mut context = StyleContext {
-                shared: &self.shared.style_context,
+                shared: &self.context.shared_context(),
                 thread_local: &mut thread_local.style_context,
             };
             recalc_style_at(self, traversal_data, &mut context, el, &mut data);
@@ -74,8 +74,7 @@ impl<E> DomTraversal<E> for RecalcStyleAndConstructFlows
     }
 
     fn process_postorder(&self, thread_local: &mut Self::ThreadLocalContext, node: E::ConcreteNode) {
-        let context = LayoutContext::new(&self.shared);
-        construct_flows_at(&context, thread_local, node);
+        construct_flows_at(&self.context, thread_local, node);
     }
 
     fn text_node_needs_traversal(node: E::ConcreteNode) -> bool {
@@ -97,11 +96,11 @@ impl<E> DomTraversal<E> for RecalcStyleAndConstructFlows
     }
 
     fn shared_context(&self) -> &SharedStyleContext {
-        &self.shared.style_context
+        &self.context.style_context
     }
 
     fn create_thread_local_context(&self) -> Self::ThreadLocalContext {
-        ScopedThreadLocalLayoutContext::new(&self.shared)
+        ScopedThreadLocalLayoutContext::new(&self.context)
     }
 
     fn is_parallel(&self) -> bool {
@@ -118,7 +117,7 @@ pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayo
 /// The flow construction traversal, which builds flows for styled nodes.
 #[inline]
 #[allow(unsafe_code)]
-fn construct_flows_at<'a, N>(context: &LayoutContext<'a>,
+fn construct_flows_at<N>(context: &LayoutContext,
                              _thread_local: &mut ScopedThreadLocalLayoutContext<N::ConcreteElement>,
                              node: N)
     where N: LayoutNode,
@@ -153,7 +152,7 @@ fn construct_flows_at<'a, N>(context: &LayoutContext<'a>,
 /// The bubble-inline-sizes traversal, the first part of layout computation. This computes
 /// preferred and intrinsic inline-sizes and bubbles them up the tree.
 pub struct BubbleISizes<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
+    pub layout_context: &'a LayoutContext,
 }
 
 impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
@@ -172,13 +171,13 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
 /// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
 #[derive(Copy, Clone)]
 pub struct AssignISizes<'a> {
-    pub shared_context: &'a SharedStyleContext,
+    pub layout_context: &'a LayoutContext,
 }
 
 impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.assign_inline_sizes(self.shared_context);
+        flow.assign_inline_sizes(self.layout_context);
     }
 
     #[inline]
@@ -192,7 +191,7 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 /// positions. In Gecko this corresponds to `Reflow`.
 #[derive(Copy, Clone)]
 pub struct AssignBSizes<'a> {
-    pub layout_context: &'a LayoutContext<'a>,
+    pub layout_context: &'a LayoutContext,
 }
 
 impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
@@ -221,7 +220,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
 
 #[derive(Copy, Clone)]
 pub struct ComputeAbsolutePositions<'a> {
-    pub layout_context: &'a SharedLayoutContext,
+    pub layout_context: &'a LayoutContext,
 }
 
 impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {

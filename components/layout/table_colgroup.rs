@@ -16,7 +16,6 @@ use layout_debug;
 use std::cmp::max;
 use std::fmt;
 use std::sync::Arc;
-use style::context::SharedStyleContext;
 use style::logical_geometry::LogicalSize;
 use style::properties::ServoComputedValues;
 use style::values::computed::LengthOrPercentageOrAuto;
@@ -80,7 +79,7 @@ impl Flow for TableColGroupFlow {
 
     /// Table column inline-sizes are assigned in the table flow and propagated to table row flows
     /// and/or rowgroup flows. Therefore, table colgroup flows do not need to assign inline-sizes.
-    fn assign_inline_sizes(&mut self, _: &SharedStyleContext) {
+    fn assign_inline_sizes(&mut self, _: &LayoutContext) {
     }
 
     /// Table columns do not have block-size.
