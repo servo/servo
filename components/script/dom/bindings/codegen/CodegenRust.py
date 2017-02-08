@@ -548,11 +548,6 @@ def typeIsSequenceOrHasSequenceMember(type):
     return False
 
 
-def typeNeedsRooting(type, descriptorProvider):
-    return (type.isGeckoInterface() and
-            descriptorProvider.getDescriptor(type.unroll().inner.identifier.name).needsRooting)
-
-
 def union_native_type(t):
     name = t.unroll().name
     return 'UnionTypes::%s' % name
@@ -1422,8 +1417,6 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
         nullable = returnType.nullable()
         dictName = returnType.inner.name if nullable else returnType.name
         result = CGGeneric(dictName)
-        if typeNeedsRooting(returnType, descriptorProvider):
-            raise TypeError("We don't support rootable dictionaries return values")
         if nullable:
             result = CGWrapper(result, pre="Option<", post=">")
         return result
