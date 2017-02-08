@@ -1969,7 +1969,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
             // Values that are not changed by blockification.
             T::none | T::block | T::flex | T::list_item | T::table => None,
             % if product == "gecko":
-            T::contents | T::grid | T::_webkit_box => None,
+            T::contents | T::flow_root | T::grid | T::_webkit_box => None,
             % endif
 
             // Everything becomes block.
