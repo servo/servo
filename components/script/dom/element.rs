@@ -2335,8 +2335,8 @@ impl<'a> ::selectors::Element for Root<Element> {
         self.namespace()
     }
 
-    fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
-        match pseudo_class {
+    fn match_non_ts_pseudo_class(&self, pseudo_class: &NonTSPseudoClass) -> bool {
+        match *pseudo_class {
             // https://github.com/servo/servo/issues/8718
             NonTSPseudoClass::Link |
             NonTSPseudoClass::AnyLink => self.is_link(),
