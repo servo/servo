@@ -505,6 +505,7 @@ mod bindings {
             "RawServoDeclarationBlock",
             "RawGeckoPresContext",
             "RawGeckoPresContextOwned",
+            "RefPtr",
             "ThreadSafeURIHolder",
             "ThreadSafePrincipalHolder",
             "CSSPseudoClassType",
