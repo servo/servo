@@ -617,6 +617,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                 }
             },
             NonTSPseudoClass::Visited => false,
+            NonTSPseudoClass::Lang(ref lang) => self.element.language() == *lang,
 
             NonTSPseudoClass::ServoNonZeroBorder => unsafe {
                 match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &local_name!("border")) {
