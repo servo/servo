@@ -10,7 +10,7 @@ use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{NodeInfo, TElement, TNode};
-use matching::MatchMethods;
+use matching::{MatchMethods, MatchResults};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
 use servo_config::opts;
@@ -339,12 +339,9 @@ fn resolve_style_internal<E, F>(context: &mut StyleContext<E>, element: E, ensur
         }
 
         // Compute our style.
-        let match_results = element.match_element(context);
-        let shareable = match_results.primary_is_shareable();
-        element.cascade_node(context, &mut data, element.parent_element(),
-                             match_results.primary,
-                             match_results.per_pseudo,
-                             shareable);
+        let match_results = element.match_element(context, &mut data);
+        element.cascade_element(context, &mut data,
+                                match_results.primary_is_shareable());
 
         // Conservatively mark us as having dirty descendants, since there might
         // be other unstyled siblings we miss when walking straight up the parent
@@ -504,8 +501,6 @@ fn compute_style<E, D>(_traversal: &D,
         }
     }
 
-    // TODO(emilio): Make cascade_input less expensive to compute in the cases
-    // we don't need to run selector matching.
     let match_results = match kind {
         MatchAndCascade => {
             // Ensure the bloom filter is up to date.
@@ -522,38 +517,40 @@ fn compute_style<E, D>(_traversal: &D,
 
             context.thread_local.bloom_filter.assert_complete(element);
 
-            // Perform the CSS selector matching.
-            context.thread_local.statistics.elements_matched += 1;
 
-            element.match_element(context)
+            // Perform CSS selector matching.
+            context.thread_local.statistics.elements_matched += 1;
+            element.match_element(context, &mut data)
         }
         CascadeWithReplacements(hint) => {
-            element.cascade_with_replacements(hint, context, &mut data)
+            let rule_nodes_changed =
+                element.cascade_with_replacements(hint, context, &mut data);
+            MatchResults {
+                primary_relations: None,
+                rule_nodes_changed: rule_nodes_changed,
+            }
         }
         CascadeOnly => {
-            // TODO(emilio): Stop doing this work, and teach cascade_node about
-            // the current style instead.
-            element.match_results_from_current_style(&*data)
+            MatchResults {
+                primary_relations: None,
+                rule_nodes_changed: false,
+            }
         }
     };
 
-    // Perform the CSS cascade.
+    // Cascade properties and compute values.
     let shareable = match_results.primary_is_shareable();
     unsafe {
-        element.cascade_node(context, &mut data,
-                             element.parent_element(),
-                             match_results.primary,
-                             match_results.per_pseudo,
-                             shareable);
+        element.cascade_element(context, &mut data, shareable);
     }
 
+    // If the style is shareable, add it to the LRU cache.
     if shareable {
-        // Add ourselves to the LRU cache.
         context.thread_local
                .style_sharing_candidate_cache
                .insert_if_possible(&element,
                                    data.styles().primary.values(),
-                                   match_results.relations);
+                                   match_results.primary_relations.unwrap());
     }
 }
 

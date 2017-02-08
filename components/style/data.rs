@@ -76,13 +76,6 @@ impl fmt::Debug for ComputedStyle {
 type PseudoStylesInner = HashMap<PseudoElement, ComputedStyle,
                                  BuildHasherDefault<::fnv::FnvHasher>>;
 
-/// The rule nodes for each of the pseudo-elements of an element.
-///
-/// TODO(emilio): Probably shouldn't be a `HashMap` by default, but a smaller
-/// array.
-pub type PseudoRuleNodes = HashMap<PseudoElement, StrongRuleNode,
-                                   BuildHasherDefault<::fnv::FnvHasher>>;
-
 /// A set of styles for a given element's pseudo-elements.
 ///
 /// This is a map from pseudo-element to `ComputedStyle`.
@@ -96,19 +89,6 @@ impl PseudoStyles {
     /// Construct an empty set of `PseudoStyles`.
     pub fn empty() -> Self {
         PseudoStyles(HashMap::with_hasher(Default::default()))
-    }
-
-    /// Gets the rules that the different pseudo-elements matched.
-    ///
-    /// FIXME(emilio): We could in theory avoid creating these when we have
-    /// support for just re-cascading an element. Then the input to
-    /// `cascade_node` could be `MatchResults` or just `UseExistingStyle`.
-    pub fn get_rules(&self) -> PseudoRuleNodes {
-        let mut rules = HashMap::with_hasher(Default::default());
-        for (pseudo, style) in &self.0 {
-            rules.insert(pseudo.clone(), style.rules.clone());
-        }
-        rules
     }
 }
 
@@ -467,7 +447,14 @@ impl ElementData {
     /// Gets a mutable reference to the element styles. Panic if the element has
     /// never been styled.
     pub fn styles_mut(&mut self) -> &mut ElementStyles {
-        self.styles.as_mut().expect("Caling styles_mut() on unstyled ElementData")
+        self.styles.as_mut().expect("Calling styles_mut() on unstyled ElementData")
+    }
+
+    /// Borrows both styles and restyle mutably at the same time.
+    pub fn styles_and_restyle_mut(&mut self) -> (&mut ElementStyles,
+                                                 Option<&mut RestyleData>) {
+        (self.styles.as_mut().unwrap(),
+         self.restyle.as_mut().map(|r| &mut **r))
     }
 
     /// Sets the computed element styles.
