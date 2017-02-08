@@ -35,8 +35,8 @@ ${helpers.single_keyword("direction", "ltr rtl", need_clone=True, animatable=Fal
     animatable="False"
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-text-orientation"
 >
-    use values::NoViewportPercentage;
-    impl NoViewportPercentage for SpecifiedValue {}
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
@@ -91,8 +91,8 @@ ${helpers.single_keyword("image-rendering",
     use style_traits::ToCss;
     use values::specified::Angle;
 
-    use values::NoViewportPercentage;
-    impl NoViewportPercentage for SpecifiedValue {}
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
 
     use std::f32::consts::PI;
     use values::CSSFloat;
@@ -225,9 +225,9 @@ ${helpers.single_keyword("image-rendering",
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]

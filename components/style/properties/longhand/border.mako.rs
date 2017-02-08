@@ -87,10 +87,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-source">
     use std::fmt;
     use style_traits::ToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
     use values::specified::Image;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         use values::computed;
@@ -279,9 +279,9 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use std::fmt;
     use style_traits::ToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub use super::RepeatKeyword;
@@ -557,10 +557,10 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice">
     use std::fmt;
     use style_traits::ToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
     use values::specified::{Number, Percentage};
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         use values::computed::Number;

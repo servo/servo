@@ -22,9 +22,9 @@ ${helpers.predefined_type("column-width",
                    spec="https://drafts.csswg.org/css-multicol/#propdef-column-count">
     use std::fmt;
     use style_traits::ToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

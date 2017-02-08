@@ -16,8 +16,8 @@ ${helpers.predefined_type("background-color", "CSSColor",
                           has_uncacheable_values="${product == 'gecko'}">
     use std::fmt;
     use style_traits::ToCss;
+    use values::HasViewportPercentage;
     use values::specified::Image;
-    use values::NoViewportPercentage;
 
     pub mod computed_value {
         use values::computed;
@@ -35,7 +35,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
         }
     }
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
