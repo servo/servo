@@ -29,3 +29,60 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
                          gecko_enum_prefix="StyleWindowDragging",
                          animatable=False,
                          spec="None (Nonstandard Firefox-only property)")}
+
+<%helpers:longhand name="caret-color" animatable="False"
+                   spec="https://drafts.csswg.org/css-ui/#caret-color">
+    use cssparser::Color;
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::NoViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl NoViewportPercentage for SpecifiedValue {}
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+
+    pub type SpecifiedValue = computed_value::T;
+
+    pub mod computed_value {
+        use cssparser::Color;
+        use values::{Auto, Either};
+
+        #[derive(PartialEq, Clone, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T (pub Either<Color, Auto>);
+
+    }
+    
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+           
+           match *self {
+               computed_value::T(Either::First(color)) => {
+                    color.to_css(dest)?;
+               },
+               computed_value::T(Either::Second(Auto)) => {
+                    dest.write_str("auto")?;
+               }
+           };
+           
+           Ok(())
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T { 
+        computed_value::T(Either::Second(Auto))
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        use cssparser::RGBA;
+        
+        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+            Ok(computed_value::T(Either::Second(Auto)))
+        }
+        else {
+            Ok(computed_value::T(Either::First(Color::RGBA(RGBA {red: 0.5, green: 0.5, blue: 0.5, alpha: 0.5}))))
+
+        }
+    }
+</%helpers:longhand>
