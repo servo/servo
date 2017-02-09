@@ -9,15 +9,15 @@
 ${helpers.predefined_type("background-color", "CSSColor",
     "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */",
     spec="https://drafts.csswg.org/css-backgrounds/#background-color",
-    animatable=True, complex_color=True)}
+    animatable=True, complex_color=True, boxed=True)}
 
 <%helpers:vector_longhand name="background-image" animatable="False"
                           spec="https://drafts.csswg.org/css-backgrounds/#the-background-image"
                           has_uncacheable_values="${product == 'gecko'}">
     use std::fmt;
     use style_traits::ToCss;
+    use values::HasViewportPercentage;
     use values::specified::Image;
-    use values::NoViewportPercentage;
 
     pub mod computed_value {
         use values::computed;
@@ -35,7 +35,7 @@ ${helpers.predefined_type("background-color", "CSSColor",
         }
     }
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

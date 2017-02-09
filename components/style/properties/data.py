@@ -96,7 +96,7 @@ class Longhand(object):
                  predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, need_index=False, gecko_ffi_name=None, depend_on_viewport_size=False,
                  allowed_in_keyframe_block=True, complex_color=False, cast_type='u8',
-                 has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None):
+                 has_uncacheable_values=False, logical=False, alias=None, extra_prefixes=None, boxed=False):
         self.name = name
         if not spec:
             raise TypeError("Spec should be specified for %s" % name)
@@ -119,6 +119,7 @@ class Longhand(object):
         self.logical = arg_to_bool(logical)
         self.alias = alias.split() if alias else []
         self.extra_prefixes = extra_prefixes.split() if extra_prefixes else []
+        self.boxed = arg_to_bool(boxed)
 
         # https://drafts.csswg.org/css-animations/#keyframes
         # > The <declaration-list> inside of <keyframe-block> accepts any CSS property

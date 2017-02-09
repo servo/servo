@@ -31,8 +31,8 @@
     %>
     use values::computed::ComputedValueAsSpecified;
     use style_traits::ToCss;
-    use values::NoViewportPercentage;
-    impl NoViewportPercentage for SpecifiedValue {}
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -113,8 +113,8 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
         }
     }
 
-    use values::NoViewportPercentage;
-    impl NoViewportPercentage for SpecifiedValue {}
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -152,8 +152,8 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                                   gecko_inexhaustive="True"
                                   gecko_ffi_name="mFloat"
                                   spec="https://drafts.csswg.org/css-box/#propdef-float">
-    use values::NoViewportPercentage;
-    impl NoViewportPercentage for SpecifiedValue {}
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -194,8 +194,8 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                                   gecko_enum_prefix="StyleClear"
                                   gecko_ffi_name="mBreakType"
                                   spec="https://www.w3.org/TR/CSS2/visuren.html#flow-control">
-    use values::NoViewportPercentage;
-    impl NoViewportPercentage for SpecifiedValue {}
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -396,9 +396,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -442,8 +442,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use values::specified::Time;
 
     pub use values::specified::Time as SpecifiedValue;
-    use values::NoViewportPercentage;
-    impl NoViewportPercentage for SpecifiedValue {}
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
         pub use values::computed::Time as T;
@@ -703,8 +703,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
     }
 
-    use values::NoViewportPercentage;
-    impl NoViewportPercentage for SpecifiedValue {}
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -745,8 +745,8 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         SpecifiedValue::parse(input)
     }
 
-    use values::NoViewportPercentage;
-    impl NoViewportPercentage for SpecifiedValue {}
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
 
     impl ComputedValueAsSpecified for SpecifiedValue { }
 </%helpers:vector_longhand>
@@ -773,7 +773,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use std::ops::Deref;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -805,7 +805,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
             })
         }
     }
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         SpecifiedValue::parse(context, input)
@@ -847,7 +847,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
@@ -885,7 +885,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         }
     }
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
@@ -1755,7 +1755,7 @@ ${helpers.single_keyword("transform-style",
                          extra_prefixes="moz webkit",
                          animatable=False)}
 
-<%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit"
+<%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit" boxed="True"
                    spec="https://drafts.csswg.org/css-transforms/#transform-origin-property">
     use app_units::Au;
     use std::fmt;
@@ -1896,7 +1896,8 @@ ${helpers.predefined_type("-moz-binding", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
                           animatable="False",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding)",
-                          disable_when_testing="True")}
+                          disable_when_testing="True",
+                          boxed=True)}
 
 ${helpers.single_keyword("-moz-orient",
                           "inline block horizontal vertical",

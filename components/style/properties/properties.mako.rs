@@ -246,23 +246,29 @@ mod property_bit_field {
         /// the resulting declared value.
         #[allow(non_snake_case)]
         fn substitute_variables_${property.ident}<F>(
-            value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
+            % if property.boxed:
+                value: &DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>,
+            % else:
+                value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
+            % endif
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
             f: F,
             error_reporter: &mut StdBox<ParseErrorReporter + Send>)
-            where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+            % if property.boxed:
+                where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
+            % else:
+                where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+            % endif
         {
-            if let DeclaredValue::WithVariables {
-                ref css, first_token_type, ref base_url, from_shorthand
-            } = *value {
+            if let DeclaredValue::WithVariables(ref with_variables) = *value {
                 // FIXME(heycam): A ParserContextExtraData should be built from data
                 // stored in the WithVariables, in case variable expansion results in
                 // a url() value.
                 let extra_data = ParserContextExtraData::default();
-                substitute_variables_${property.ident}_slow(css,
-                                                            first_token_type,
-                                                            base_url,
-                                                            from_shorthand,
+                substitute_variables_${property.ident}_slow(&with_variables.css,
+                                                            with_variables.first_token_type,
+                                                            &with_variables.base_url,
+                                                            with_variables.from_shorthand,
                                                             custom_properties,
                                                             f,
                                                             error_reporter,
@@ -283,7 +289,11 @@ mod property_bit_field {
                 f: F,
                 error_reporter: &mut StdBox<ParseErrorReporter + Send>,
                 extra_data: ParserContextExtraData)
-                where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+                % if property.boxed:
+                    where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
+                % else:
+                    where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
+                % endif
         {
             f(&
                 ::custom_properties::substitute(css, first_token_type, custom_properties)
@@ -305,7 +315,11 @@ mod property_bit_field {
                                     Some(ShorthandId::${shorthand.camel_case}) => {
                                         shorthands::${shorthand.ident}::parse_value(&context, input)
                                         .map(|result| match result.${property.ident} {
-                                            Some(value) => DeclaredValue::Value(value),
+                                            % if property.boxed:
+                                                Some(value) => DeclaredValue::Value(Box::new(value)),
+                                            % else:
+                                                Some(value) => DeclaredValue::Value(value),
+                                            % endif
                                             None => DeclaredValue::Initial,
                                         })
                                     }
@@ -598,17 +612,8 @@ impl ShorthandId {
 pub enum DeclaredValue<T> {
     /// A known specified value from the stylesheet.
     Value(T),
-    /// A value that contained any css variables.
-    WithVariables {
-        /// The css serialization for this value.
-        css: String,
-        /// The first token type for this serialization.
-        first_token_type: TokenSerializationType,
-        /// The base url.
-        base_url: ServoUrl,
-        /// The shorthand this came from.
-        from_shorthand: Option<ShorthandId>,
-    },
+    /// An unparsed value that contains `var()` functions.
+    WithVariables(Box<UnparsedValue>),
     /// The `initial` keyword.
     Initial,
     /// The `inherit` keyword.
@@ -617,11 +622,25 @@ pub enum DeclaredValue<T> {
     Unset,
 }
 
+/// An unparsed property value that contains `var()` functions.
+#[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct UnparsedValue {
+    /// The css serialization for this value.
+    css: String,
+    /// The first token type for this serialization.
+    first_token_type: TokenSerializationType,
+    /// The base url.
+    base_url: ServoUrl,
+    /// The shorthand this came from.
+    from_shorthand: Option<ShorthandId>,
+}
+
 impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             DeclaredValue::Value(ref v) => v.has_viewport_percentage(),
-            DeclaredValue::WithVariables { .. } => {
+            DeclaredValue::WithVariables(_) => {
                 panic!("DeclaredValue::has_viewport_percentage without \
                         resolving variables!")
             },
@@ -638,11 +657,13 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
     {
         match *self {
             DeclaredValue::Value(ref inner) => inner.to_css(dest),
-            DeclaredValue::WithVariables { ref css, from_shorthand: None, .. } => {
-                dest.write_str(css)
-            }
-            // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-            DeclaredValue::WithVariables { .. } => Ok(()),
+            DeclaredValue::WithVariables(ref with_variables) => {
+                // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+                if with_variables.from_shorthand.is_none() {
+                    dest.write_str(&*with_variables.css)?
+                }
+                Ok(())
+            },
             DeclaredValue::Initial => dest.write_str("initial"),
             DeclaredValue::Inherit => dest.write_str("inherit"),
             DeclaredValue::Unset => dest.write_str("unset"),
@@ -826,11 +847,15 @@ impl PropertyId {
 pub enum PropertyDeclaration {
     % for property in data.longhands:
         /// ${property.name}
-        ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
+        % if property.boxed:
+            ${property.camel_case}(DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>),
+        % else:
+            ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
+        % endif
     % endfor
     /// A custom property declaration, with the property name and the declared
     /// value.
-    Custom(::custom_properties::Name, DeclaredValue<::custom_properties::SpecifiedValue>),
+    Custom(::custom_properties::Name, DeclaredValue<Box<::custom_properties::SpecifiedValue>>),
 }
 
 impl HasViewportPercentage for PropertyDeclaration {
@@ -939,9 +964,12 @@ impl PropertyDeclaration {
         match *self {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(ref value) => match *value {
-                    DeclaredValue::WithVariables { ref css, from_shorthand: Some(s), .. }
-                    if s == shorthand => {
-                        Some(&**css)
+                    DeclaredValue::WithVariables(ref with_variables) => {
+                        if let Some(s) = with_variables.from_shorthand {
+                            if s == shorthand {
+                                Some(&*with_variables.css)
+                            } else { None }
+                        } else { None }
                     }
                     _ => None
                 },
@@ -956,12 +984,12 @@ impl PropertyDeclaration {
         match *self {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(ref value) => match *value {
-                    DeclaredValue::WithVariables { .. } => true,
+                    DeclaredValue::WithVariables(_) => true,
                     _ => false,
                 },
             % endfor
             PropertyDeclaration::Custom(_, ref value) => match *value {
-                DeclaredValue::WithVariables { .. } => true,
+                DeclaredValue::WithVariables(_) => true,
                 _ => false,
             }
         }
@@ -977,7 +1005,7 @@ impl PropertyDeclaration {
       match *self {
           % for property in data.longhands:
               PropertyDeclaration::${property.camel_case}(ref value) => {
-                  matches!(*value, DeclaredValue::WithVariables { .. })
+                  matches!(*value, DeclaredValue::WithVariables(_))
               },
           % endfor
           PropertyDeclaration::Custom(..) => true
@@ -1009,7 +1037,8 @@ impl PropertyDeclaration {
                         Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                     }
                 };
-                result_list.push((PropertyDeclaration::Custom(name, value), Importance::Normal));
+                result_list.push((PropertyDeclaration::Custom(name, value),
+                                  Importance::Normal));
                 return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
             }
             PropertyId::Longhand(id) => match id {
@@ -2299,4 +2328,19 @@ macro_rules! longhand_properties_idents {
             % endfor
         }
     }
+}
+
+/// Retuns all longhands SpecifiedValue sizes. This is used in unit tests.
+#[cfg(feature = "testing")]
+pub fn specified_value_sizes() -> Vec<(&'static str, usize, bool)> {
+    use std::mem::size_of;
+    let mut sizes = vec![];
+
+    % for property in data.longhands:
+        sizes.push(("${property.name}",
+                    size_of::<longhands::${property.ident}::SpecifiedValue>(),
+                    ${"true" if property.boxed else "false"}));
+    % endfor
+
+    sizes
 }

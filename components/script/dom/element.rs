@@ -407,7 +407,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if let Some(color) = bgcolor {
             hints.push(from_declaration(
                 PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
-                    CSSColor { parsed: Color::RGBA(color), authored: None }))));
+                    Box::new(CSSColor { parsed: Color::RGBA(color), authored: None })))));
         }
 
         let background = if let Some(this) = self.downcast::<HTMLBodyElement>() {
@@ -440,10 +440,10 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(color) = color {
             hints.push(from_declaration(
-                PropertyDeclaration::Color(DeclaredValue::Value(CSSRGBA {
+                PropertyDeclaration::Color(DeclaredValue::Value(Box::new(CSSRGBA {
                     parsed: color,
                     authored: None,
-                }))));
+                })))));
         }
 
         let font_family = if let Some(this) = self.downcast::<HTMLFontElement>() {
@@ -480,10 +480,10 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             let width_value = specified::Length::from_px(cellspacing as f32);
             hints.push(from_declaration(
                 PropertyDeclaration::BorderSpacing(DeclaredValue::Value(
-                    border_spacing::SpecifiedValue {
+                    Box::new(border_spacing::SpecifiedValue {
                         horizontal: width_value.clone(),
                         vertical: width_value,
-                    }))));
+                    })))));
         }
 
 

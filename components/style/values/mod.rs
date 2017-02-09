@@ -47,6 +47,19 @@ macro_rules! define_numbered_css_keyword_enum {
     }
 }
 
+/// A macro used to implement HasViewportPercentage trait
+/// for a given type that may never contain viewport units.
+macro_rules! no_viewport_percentage {
+    ($name: ident) => {
+        impl HasViewportPercentage for $name {
+            #[inline]
+            fn has_viewport_percentage(&self) -> bool {
+                false
+            }
+        }
+    };
+}
+
 pub mod computed;
 pub mod specified;
 
@@ -62,16 +75,10 @@ pub trait HasViewportPercentage {
     fn has_viewport_percentage(&self) -> bool;
 }
 
-/// A trait used as a marker to represent that a given type may never contain
-/// viewport units.
-pub trait NoViewportPercentage {}
-
-impl<T> HasViewportPercentage for T
-    where T: NoViewportPercentage,
-{
+impl<T: HasViewportPercentage> HasViewportPercentage for Box<T> {
     #[inline]
     fn has_viewport_percentage(&self) -> bool {
-        false
+        (**self).has_viewport_percentage()
     }
 }
 
@@ -103,7 +110,7 @@ macro_rules! define_keyword_type {
         }
 
         impl ComputedValueAsSpecified for $name {}
-        impl NoViewportPercentage for $name {}
+        no_viewport_percentage!($name);
     };
 }
 

@@ -8,7 +8,7 @@
 
 use Atom;
 use cssparser::{Delimiter, Parser, SourcePosition, Token, TokenSerializationType};
-use parser::{Parse, ParserContext};
+use parser::ParserContext;
 use properties::DeclaredValue;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
@@ -129,16 +129,17 @@ impl ComputedValue {
     }
 }
 
-impl Parse for SpecifiedValue {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+impl SpecifiedValue {
+    /// Parse a custom property SpecifiedValue.
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Box<Self>, ()> {
         let mut references = Some(HashSet::new());
         let (first, css, last) = try!(parse_self_contained_declaration_value(input, &mut references));
-        Ok(SpecifiedValue {
+        Ok(Box::new(SpecifiedValue {
             css: css.into_owned(),
             first_token_type: first,
             last_token_type: last,
             references: references.unwrap(),
-        })
+        }))
     }
 }
 
@@ -328,7 +329,7 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedSpec
                    inherited: &'a Option<Arc<HashMap<Name, ComputedValue>>>,
                    seen: &mut HashSet<&'a Name>,
                    name: &'a Name,
-                   specified_value: &'a DeclaredValue<SpecifiedValue>) {
+                   specified_value: &'a DeclaredValue<Box<SpecifiedValue>>) {
     let was_already_present = !seen.insert(name);
     if was_already_present {
         return;
@@ -360,7 +361,7 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedSpec
                 references: Some(&specified_value.references),
             });
         },
-        DeclaredValue::WithVariables { .. } => unreachable!(),
+        DeclaredValue::WithVariables(_) => unreachable!(),
         DeclaredValue::Initial => {
             map.remove(&name);
         }

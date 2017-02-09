@@ -16,7 +16,7 @@ use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
 use style_traits::ToCss;
-use super::{CSSFloat, HasViewportPercentage, NoViewportPercentage, Either, None_};
+use super::{CSSFloat, HasViewportPercentage, Either, None_};
 use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use super::computed::Shadow as ComputedShadow;
 
@@ -35,7 +35,7 @@ pub mod length;
 pub mod position;
 pub mod url;
 
-impl NoViewportPercentage for i32 {}  // For PropertyDeclaration::Order
+no_viewport_percentage!(i32);  // For PropertyDeclaration::Order
 
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -60,7 +60,7 @@ impl Parse for CSSColor {
     }
 }
 
-impl NoViewportPercentage for CSSColor {}
+no_viewport_percentage!(CSSColor);
 
 impl ToCss for CSSColor {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -79,7 +79,7 @@ pub struct CSSRGBA {
     pub authored: Option<String>,
 }
 
-impl NoViewportPercentage for CSSRGBA {}
+no_viewport_percentage!(CSSRGBA);
 
 impl ToCss for CSSRGBA {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -193,7 +193,7 @@ pub fn parse_number(input: &mut Parser) -> Result<f32, ()> {
 #[allow(missing_docs)]
 pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
 
-impl NoViewportPercentage for BorderRadiusSize {}
+no_viewport_percentage!(BorderRadiusSize);
 
 impl BorderRadiusSize {
     #[allow(missing_docs)]
@@ -402,7 +402,7 @@ define_numbered_css_keyword_enum! { BorderStyle:
     "outset" => outset = 2,
 }
 
-impl NoViewportPercentage for BorderStyle {}
+no_viewport_percentage!(BorderStyle);
 
 impl BorderStyle {
     /// Whether this border style is either none or hidden.
@@ -462,7 +462,7 @@ impl ToCss for Time {
 #[allow(missing_docs)]
 pub struct Number(pub CSSFloat);
 
-impl NoViewportPercentage for Number {}
+no_viewport_percentage!(Number);
 
 impl Parse for Number {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
@@ -512,7 +512,7 @@ impl ToCss for Number {
 #[allow(missing_docs)]
 pub struct Opacity(pub CSSFloat);
 
-impl NoViewportPercentage for Opacity {}
+no_viewport_percentage!(Opacity);
 
 impl Parse for Opacity {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {

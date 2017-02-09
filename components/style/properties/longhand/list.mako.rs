@@ -29,7 +29,7 @@ ${helpers.single_keyword("list-style-type", """
     spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 
 ${helpers.predefined_type("list-style-image", "UrlOrNone", "Either::Second(None_)",
-                          animatable="False",
+                          animatable=False,
                           spec="https://drafts.csswg.org/css-lists/#propdef-list-style-image")}
 
 <%helpers:longhand name="quotes" animatable="False"
@@ -39,7 +39,7 @@ ${helpers.predefined_type("list-style-image", "UrlOrNone", "Either::Second(None_
     use std::fmt;
     use style_traits::ToCss;
     use values::computed::ComputedValueAsSpecified;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
     pub use self::computed_value::T as SpecifiedValue;
 
@@ -50,7 +50,7 @@ ${helpers.predefined_type("list-style-image", "UrlOrNone", "Either::Second(None_
     }
 
     impl ComputedValueAsSpecified for SpecifiedValue {}
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {

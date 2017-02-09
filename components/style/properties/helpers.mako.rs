@@ -9,8 +9,13 @@
         ${caller.body()}
         % if not data.longhands_by_name[name].derived_from:
             pub fn parse_specified(context: &ParserContext, input: &mut Parser)
-                               -> Result<DeclaredValue<SpecifiedValue>, ()> {
-                parse(context, input).map(DeclaredValue::Value)
+                % if data.longhands_by_name[name].boxed:
+                                   -> Result<DeclaredValue<Box<SpecifiedValue>>, ()> {
+                    parse(context, input).map(|result| DeclaredValue::Value(Box::new(result)))
+                % else:
+                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
+                    parse(context, input).map(DeclaredValue::Value)
+                % endif
             }
         % endif
     </%call>
@@ -191,7 +196,7 @@
         % if not property.derived_from:
             use cssparser::Parser;
             use parser::{Parse, ParserContext, ParserContextExtraData};
-            use properties::{CSSWideKeyword, DeclaredValue, ShorthandId};
+            use properties::{CSSWideKeyword, DeclaredValue, UnparsedValue, ShorthandId};
         % endif
         use values::{Auto, Either, None_, Normal};
         use cascade_info::CascadeInfo;
@@ -254,7 +259,7 @@
                                                       .set_${property.ident}(computed ${maybe_wm});
                                 % endif
                             }
-                            DeclaredValue::WithVariables { .. } => unreachable!(),
+                            DeclaredValue::WithVariables(_) => unreachable!(),
                             % if not data.current_style_struct.inherited:
                             DeclaredValue::Unset |
                             % endif
@@ -298,7 +303,11 @@
         }
         % if not property.derived_from:
             pub fn parse_declared(context: &ParserContext, input: &mut Parser)
-                               -> Result<DeclaredValue<SpecifiedValue>, ()> {
+                               % if property.boxed:
+                                   -> Result<DeclaredValue<Box<SpecifiedValue>>, ()> {
+                               % else:
+                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
+                               % endif
                 match input.try(|i| CSSWideKeyword::parse(context, i)) {
                     Ok(CSSWideKeyword::InheritKeyword) => Ok(DeclaredValue::Inherit),
                     Ok(CSSWideKeyword::InitialKeyword) => Ok(DeclaredValue::Initial),
@@ -315,12 +324,12 @@
                             input.reset(start);
                             let (first_token_type, css) = try!(
                                 ::custom_properties::parse_non_custom_with_var(input));
-                            return Ok(DeclaredValue::WithVariables {
+                            return Ok(DeclaredValue::WithVariables(Box::new(UnparsedValue {
                                 css: css.into_owned(),
                                 first_token_type: first_token_type,
                                 base_url: context.base_url.clone(),
                                 from_shorthand: None,
-                            })
+                            })))
                         }
                         specified
                     }
@@ -333,9 +342,9 @@
 <%def name="single_keyword(name, values, vector=False, **kwargs)">
     <%call expr="single_keyword_computed(name, values, vector, **kwargs)">
         use values::computed::ComputedValueAsSpecified;
-        use values::NoViewportPercentage;
+        use values::HasViewportPercentage;
         impl ComputedValueAsSpecified for SpecifiedValue {}
-        impl NoViewportPercentage for SpecifiedValue {}
+        no_viewport_percentage!(SpecifiedValue);
     </%call>
 </%def>
 
@@ -412,7 +421,8 @@
         #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{longhands, PropertyDeclaration, DeclaredValue, ShorthandId};
+        use properties::{DeclaredValue, PropertyDeclaration, UnparsedValue};
+        use properties::{ShorthandId, longhands};
         use properties::declaration_block::Importance;
         use std::fmt;
         use style_traits::ToCss;
@@ -429,7 +439,13 @@
         /// correspond to a shorthand.
         pub struct LonghandsToSerialize<'a> {
             % for sub_property in shorthand.sub_properties:
-                pub ${sub_property.ident}: &'a DeclaredValue<longhands::${sub_property.ident}::SpecifiedValue>,
+                % if sub_property.boxed:
+                    pub ${sub_property.ident}:
+                        &'a DeclaredValue<Box<longhands::${sub_property.ident}::SpecifiedValue>>,
+                % else:
+                    pub ${sub_property.ident}:
+                        &'a DeclaredValue<longhands::${sub_property.ident}::SpecifiedValue>,
+                % endif
             % endfor
         }
 
@@ -489,7 +505,7 @@
                         DeclaredValue::Initial => all_flags &= ALL_INITIAL,
                         DeclaredValue::Inherit => all_flags &= ALL_INHERIT,
                         DeclaredValue::Unset => all_flags &= ALL_UNSET,
-                        DeclaredValue::WithVariables {..} => with_variables = true,
+                        DeclaredValue::WithVariables(_) => with_variables = true,
                         DeclaredValue::Value(..) => {
                             all_flags = SerializeFlags::empty();
                         }
@@ -529,7 +545,11 @@
                 % for sub_property in shorthand.sub_properties:
                     declarations.push((PropertyDeclaration::${sub_property.camel_case}(
                         match value.${sub_property.ident} {
-                            Some(value) => DeclaredValue::Value(value),
+                            % if sub_property.boxed:
+                                Some(value) => DeclaredValue::Value(Box::new(value)),
+                            % else:
+                                Some(value) => DeclaredValue::Value(value),
+                            % endif
                             None => DeclaredValue::Initial,
                         }
                     ), Importance::Normal));
@@ -541,12 +561,12 @@
                     ::custom_properties::parse_non_custom_with_var(input));
                 % for sub_property in shorthand.sub_properties:
                     declarations.push((PropertyDeclaration::${sub_property.camel_case}(
-                        DeclaredValue::WithVariables {
+                        DeclaredValue::WithVariables(Box::new(UnparsedValue {
                             css: css.clone().into_owned(),
                             first_token_type: first_token_type,
                             base_url: context.base_url.clone(),
                             from_shorthand: Some(ShorthandId::${shorthand.camel_case}),
-                        }
+                        }))
                     ), Importance::Normal));
                 % endfor
                 Ok(())

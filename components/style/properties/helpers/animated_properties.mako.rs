@@ -278,7 +278,11 @@ impl AnimationValue {
                     AnimationValue::${prop.camel_case}(ref from) => {
                         PropertyDeclaration::${prop.camel_case}(
                             DeclaredValue::Value(
-                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
+                                % if prop.boxed:
+                                    Box::new(longhands::${prop.ident}::SpecifiedValue::from_computed_value(from))))
+                                % else:
+                                    longhands::${prop.ident}::SpecifiedValue::from_computed_value(from)))
+                                % endif
                     }
                 % endif
             % endfor
@@ -293,7 +297,7 @@ impl AnimationValue {
                     PropertyDeclaration::${prop.camel_case}(ref val) => {
                         let computed = match *val {
                             // https://bugzilla.mozilla.org/show_bug.cgi?id=1326131
-                            DeclaredValue::WithVariables{..} => unimplemented!(),
+                            DeclaredValue::WithVariables(_) => unimplemented!(),
                             DeclaredValue::Value(ref val) => val.to_computed_value(context),
                             % if not prop.style_struct.inherited:
                                 DeclaredValue::Unset |

@@ -25,6 +25,7 @@ ${helpers.predefined_type(
     "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
     products="gecko",
     animatable=False,
+    boxed=True,
     spec="https://www.w3.org/TR/SVGTiny12/painting.html#StopColorProperty")}
 
 ${helpers.predefined_type("stop-opacity", "Opacity", "1.0",
@@ -39,6 +40,7 @@ ${helpers.predefined_type(
     "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
     products="gecko",
     animatable=False,
+    boxed=True,
     spec="https://www.w3.org/TR/SVG/filters.html#FloodColorProperty")}
 
 ${helpers.predefined_type("flood-opacity", "Opacity",
@@ -50,6 +52,7 @@ ${helpers.predefined_type(
     "CSSParserColor::RGBA(RGBA { red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0 })",
     products="gecko",
     animatable=False,
+    boxed=True,
     spec="https://www.w3.org/TR/SVG/filters.html#LightingColorProperty")}
 
 // CSS Masking Module Level 1
@@ -58,11 +61,11 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
                          products="gecko", animatable=False,
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-type")}
 
-<%helpers:longhand name="clip-path" animatable="False" products="gecko"
+<%helpers:longhand name="clip-path" animatable="False" products="gecko" boxed="True"
                    spec="https://drafts.fxtf.org/css-masking/#propdef-clip-path">
     use std::fmt;
     use style_traits::ToCss;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
     use values::specified::basic_shape::{ShapeSource, GeometryBox};
 
     pub mod computed_value {
@@ -83,7 +86,7 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
         ShapeSource::parse(context, input)
     }
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 </%helpers:longhand>
 
 ${helpers.single_keyword("mask-mode",
@@ -196,7 +199,7 @@ ${helpers.single_keyword("mask-composite",
     use std::sync::Arc;
     use values::specified::Image;
     use values::specified::url::SpecifiedUrl;
-    use values::NoViewportPercentage;
+    use values::HasViewportPercentage;
 
     pub mod computed_value {
         use std::fmt;
@@ -222,7 +225,7 @@ ${helpers.single_keyword("mask-composite",
         }
     }
 
-    impl NoViewportPercentage for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
 
     #[derive(Debug, Clone, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

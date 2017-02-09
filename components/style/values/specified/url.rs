@@ -15,7 +15,7 @@ use std::borrow::Cow;
 use std::fmt::{self, Write};
 use std::sync::Arc;
 use style_traits::ToCss;
-use values::NoViewportPercentage;
+use values::HasViewportPercentage;
 use values::computed::ComputedValueAsSpecified;
 
 /// A set of data needed in Gecko to represent a URL.
@@ -202,4 +202,4 @@ impl ToCss for SpecifiedUrl {
 // TODO(emilio): Maybe consider ComputedUrl to save a word in style structs?
 impl ComputedValueAsSpecified for SpecifiedUrl {}
 
-impl NoViewportPercentage for SpecifiedUrl {}
+no_viewport_percentage!(SpecifiedUrl);
