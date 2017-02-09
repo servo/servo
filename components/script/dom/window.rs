@@ -39,7 +39,7 @@ use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
 use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
-use dom::node::{Node, from_untrusted_node_address, window_from_node};
+use dom::node::{Node, from_untrusted_node_address, document_from_node, window_from_node};
 use dom::performance::Performance;
 use dom::promise::Promise;
 use dom::screen::Screen;
@@ -483,7 +483,20 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
     fn GetFrameElement(&self) -> Option<Root<Element>> {
-        self.browsing_context().frame_element().map(Root::from_ref)
+        // Steps 1-3.
+        if let Some(context) = self.browsing_context.get() {
+            // Step 4-5.
+            if let Some(container) = context.frame_element() {
+                // Step 6.
+                let container_doc = document_from_node(container);
+                let current_doc = GlobalScope::current().as_window().Document();
+                if current_doc.origin().same_origin_domain(container_doc.origin()) {
+                    // Step 7.
+                    return Some(Root::from_ref(container));
+                }
+            }
+        }
+        None
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator
