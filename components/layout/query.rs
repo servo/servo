@@ -716,14 +716,14 @@ pub fn process_resolved_style_request<'a, N>(context: &LayoutContext,
     // has a mechanism to give us that within a defined scope (after which point
     // it's cleared to maintained style system invariants).
     let mut tlc = ThreadLocalStyleContext::new(&context.style_context);
-    let context = StyleContext {
+    let mut context = StyleContext {
         shared: &context.style_context,
         thread_local: &mut tlc,
     };
     let mut result = None;
     let ensure = |el: N::ConcreteElement| el.as_node().initialize_data();
     let clear = |el: N::ConcreteElement| el.as_node().clear_data();
-    resolve_style(&context, element, &ensure, &clear, |_: &_| {
+    resolve_style(&mut context, element, &ensure, &clear, |_: &_| {
         let s = process_resolved_style_request_internal(node, pseudo, property, layout_root);
         result = Some(s);
     });

@@ -14,6 +14,7 @@ use element_state::ElementState;
 use parking_lot::RwLock;
 use properties::{ComputedValues, PropertyDeclarationBlock};
 use selector_parser::{ElementExt, PreExistingComputedValues, PseudoElement};
+use selectors::matching::ElementSelectorFlags;
 use sink::Push;
 use std::fmt;
 use std::fmt::Debug;
@@ -321,6 +322,19 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// blockification on this element.  (This function exists so that Gecko
     /// native anonymous content can opt out of this style fixup.)
     fn skip_root_and_item_based_display_fixup(&self) -> bool;
+
+    /// Sets selector flags, which indicate what kinds of selectors may have
+    /// matched on this element and therefore what kind of work may need to
+    /// be performed when DOM state changes.
+    ///
+    /// This is unsafe, like all the flag-setting methods, because it's only safe
+    /// to call with exclusive access to the element. When setting flags on the
+    /// parent during parallel traversal, we use SequentialTask to queue up the
+    /// set to run after the threads join.
+    unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags);
+
+    /// Returns true if the element has all the specified selector flags.
+    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

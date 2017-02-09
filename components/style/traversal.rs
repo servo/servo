@@ -312,7 +312,7 @@ pub trait DomTraversal<E: TElement> : Sync {
 }
 
 /// Helper for the function below.
-fn resolve_style_internal<E, F>(context: &StyleContext<E>, element: E, ensure_data: &F)
+fn resolve_style_internal<E, F>(context: &mut StyleContext<E>, element: E, ensure_data: &F)
                                 -> Option<E>
     where E: TElement,
           F: Fn(E),
@@ -324,12 +324,22 @@ fn resolve_style_internal<E, F>(context: &StyleContext<E>, element: E, ensure_da
     // If the Element isn't styled, we need to compute its style.
     if data.get_styles().is_none() {
         // Compute the parent style if necessary.
-        if let Some(parent) = element.parent_element() {
-            display_none_root = resolve_style_internal(context, parent, ensure_data);
+        let parent = element.parent_element();
+        if let Some(p) = parent {
+            display_none_root = resolve_style_internal(context, p, ensure_data);
+        }
+
+        // Maintain the bloom filter. If it doesn't exist, we need to build it
+        // from scratch. Otherwise we just need to push the parent.
+        if context.thread_local.bloom_filter.is_empty() {
+            context.thread_local.bloom_filter.rebuild(element);
+        } else {
+            context.thread_local.bloom_filter.push(parent.unwrap());
+            context.thread_local.bloom_filter.assert_complete(element);
         }
 
         // Compute our style.
-        let match_results = element.match_element(context, None);
+        let match_results = element.match_element(context);
         let shareable = match_results.primary_is_shareable();
         element.cascade_node(context, &mut data, element.parent_element(),
                              match_results.primary,
@@ -355,13 +365,16 @@ fn resolve_style_internal<E, F>(context: &StyleContext<E>, element: E, ensure_da
 /// first styled Element, ignoring pending restyles. The resolved style is
 /// made available via a callback, and can be dropped by the time this function
 /// returns in the display:none subtree case.
-pub fn resolve_style<E, F, G, H>(context: &StyleContext<E>, element: E,
+pub fn resolve_style<E, F, G, H>(context: &mut StyleContext<E>, element: E,
                                  ensure_data: &F, clear_data: &G, callback: H)
     where E: TElement,
           F: Fn(E),
           G: Fn(E),
           H: FnOnce(&ElementStyles)
 {
+    // Clear the bloom filter, just in case the caller is reusing TLS.
+    context.thread_local.bloom_filter.clear();
+
     // Resolve styles up the tree.
     let display_none_root = resolve_style_internal(context, element, ensure_data);
 
@@ -499,8 +512,7 @@ fn compute_style<E, D>(_traversal: &D,
                     // Perform the CSS selector matching.
                     context.thread_local.statistics.elements_matched += 1;
 
-                    let filter = context.thread_local.bloom_filter.filter();
-                    Some(element.match_element(context, Some(filter)))
+                    Some(element.match_element(context))
                 }
             }
         }

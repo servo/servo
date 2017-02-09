@@ -49,7 +49,7 @@ use script_layout_interface::{HTMLCanvasData, LayoutNodeType, SVGSVGData, Truste
 use script_layout_interface::{OpaqueStyleAndLayoutData, PartialPersistentLayoutData};
 use script_layout_interface::wrapper_traits::{DangerousThreadSafeLayoutNode, GetLayoutData, LayoutNode};
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use selectors::matching::ElementFlags;
+use selectors::matching::ElementSelectorFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -437,6 +437,14 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn skip_root_and_item_based_display_fixup(&self) -> bool {
         false
     }
+
+    unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags) {
+        self.element.insert_selector_flags(flags);
+    }
+
+    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
+        self.element.has_selector_flags(flags)
+    }
 }
 
 impl<'le> PartialEq for ServoLayoutElement<'le> {
@@ -664,10 +672,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         unsafe {
             self.element.html_element_in_html_document_for_layout()
         }
-    }
-
-    fn insert_flags(&self, flags: ElementFlags) {
-        self.element.insert_atomic_flags(flags);
     }
 }
 
@@ -1007,6 +1011,10 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
 
     fn type_id(&self) -> Option<LayoutNodeType> {
         self.as_node().type_id()
+    }
+
+    unsafe fn unsafe_get(self) -> ServoLayoutElement<'le> {
+        self.element
     }
 
     fn get_attr<'a>(&'a self, namespace: &Namespace, name: &LocalName) -> Option<&'a str> {

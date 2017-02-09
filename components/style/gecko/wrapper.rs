@@ -46,6 +46,7 @@ use properties::PropertyDeclarationBlock;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{ElementExt, Snapshot};
 use selectors::Element;
+use selectors::matching::ElementSelectorFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_url::ServoUrl;
 use sink::Push;
@@ -379,6 +380,29 @@ lazy_static! {
     };
 }
 
+/// Converts flags from the layout used by rust-selectors to the layout used
+/// by Gecko. We could align these and then do this without conditionals, but
+/// it's probably not worth the trouble.
+fn selector_flags_to_node_flags(flags: ElementSelectorFlags) -> u32 {
+    use gecko_bindings::structs::*;
+    use selectors::matching::*;
+    let mut gecko_flags = 0u32;
+    if flags.contains(HAS_SLOW_SELECTOR) {
+        gecko_flags |= NODE_HAS_SLOW_SELECTOR as u32;
+    }
+    if flags.contains(HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
+        gecko_flags |= NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS as u32;
+    }
+    if flags.contains(HAS_EDGE_CHILD_SELECTOR) {
+        gecko_flags |= NODE_HAS_EDGE_CHILD_SELECTOR as u32;
+    }
+    if flags.contains(HAS_EMPTY_SELECTOR) {
+        gecko_flags |= NODE_HAS_EMPTY_SELECTOR as u32;
+    }
+
+    gecko_flags
+}
+
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
 
@@ -475,6 +499,16 @@ impl<'le> TElement for GeckoElement<'le> {
         // really roots from the style fixup perspective.  Checking that we
         // are NAC handles both cases.
         self.flags() & (NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE as u32) != 0
+    }
+
+    unsafe fn set_selector_flags(&self, flags: ElementSelectorFlags) {
+        debug_assert!(!flags.is_empty());
+        self.set_flags(selector_flags_to_node_flags(flags));
+    }
+
+    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
+        let node_flags = selector_flags_to_node_flags(flags);
+        (self.flags() & node_flags) == node_flags
     }
 }
 

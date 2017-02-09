@@ -66,7 +66,7 @@ impl<E: TElement> StyleBloom<E> {
 
     /// Push an element to the bloom filter, knowing that it's a child of the
     /// last element parent.
-    fn push(&mut self, element: E) {
+    pub fn push(&mut self, element: E) {
         if cfg!(debug_assertions) {
             if self.elements.is_empty() {
                 assert!(element.parent_element().is_none());
@@ -86,12 +86,20 @@ impl<E: TElement> StyleBloom<E> {
         popped
     }
 
-    fn clear(&mut self) {
+    /// Returns true if the bloom filter is empty.
+    pub fn is_empty(&self) -> bool {
+        self.elements.is_empty()
+    }
+
+
+    /// Clears the bloom filter.
+    pub fn clear(&mut self) {
         self.filter.clear();
         self.elements.clear();
     }
 
-    fn rebuild(&mut self, mut element: E) -> usize {
+    /// Rebuilds the bloom filter up to the parent of the given element.
+    pub fn rebuild(&mut self, mut element: E) -> usize {
         self.clear();
 
         while let Some(parent) = element.parent_element() {

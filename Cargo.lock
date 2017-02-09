@@ -934,7 +934,7 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.17.0",
+ "selectors 0.18.0",
  "servo_url 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",
@@ -1355,7 +1355,7 @@ dependencies = [
  "rayon 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
- "selectors 0.17.0",
+ "selectors 0.18.0",
  "serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1401,7 +1401,7 @@ dependencies = [
  "script 0.0.1",
  "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
- "selectors 0.17.0",
+ "selectors 0.18.0",
  "serde_derive 0.8.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_config 0.0.1",
@@ -2292,7 +2292,7 @@ dependencies = [
  "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_layout_interface 0.0.1",
  "script_traits 0.0.1",
- "selectors 0.17.0",
+ "selectors 0.18.0",
  "serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",
@@ -2336,7 +2336,7 @@ dependencies = [
  "profile_traits 0.0.1",
  "range 0.0.1",
  "script_traits 0.0.1",
- "selectors 0.17.0",
+ "selectors 0.18.0",
  "servo_url 0.0.1",
  "style 0.0.1",
 ]
@@ -2386,7 +2386,7 @@ dependencies = [
 
 [[package]]
 name = "selectors"
-version = "0.17.0"
+version = "0.18.0"
 dependencies = [
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2766,7 +2766,7 @@ dependencies = [
  "rayon 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.17.0",
+ "selectors 0.18.0",
  "serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.23 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",
@@ -2792,7 +2792,7 @@ dependencies = [
  "parking_lot 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "rayon 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.17.0",
+ "selectors 0.18.0",
  "servo_atoms 0.0.1",
  "servo_config 0.0.1",
  "servo_url 0.0.1",
@@ -2829,7 +2829,7 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "parking_lot 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.17.0",
+ "selectors 0.18.0",
  "servo_url 0.0.1",
  "style 0.0.1",
  "style_traits 0.0.1",

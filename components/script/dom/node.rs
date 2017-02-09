@@ -67,7 +67,7 @@ use script_layout_interface::{LayoutElementType, LayoutNodeType, TrustedNodeAddr
 use script_layout_interface::message::Msg;
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
-use selectors::matching::{MatchingReason, matches};
+use selectors::matching::matches;
 use selectors::parser::SelectorList;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
@@ -322,7 +322,7 @@ impl<'a> Iterator for QuerySelectorIterator {
         // (instead of passing `None`)? Probably.
         self.iterator.by_ref().filter_map(|node| {
             if let Some(element) = Root::downcast(node) {
-                if matches(selectors, &element, None, MatchingReason::Other) {
+                if matches(selectors, &element, None) {
                     return Some(Root::upcast(element));
                 }
             }
@@ -685,7 +685,7 @@ impl Node {
             // Step 3.
             Ok(selectors) => {
                 Ok(self.traverse_preorder().filter_map(Root::downcast).find(|element| {
-                    matches(&selectors.0, element, None, MatchingReason::Other)
+                    matches(&selectors.0, element, None)
                 }))
             }
         }

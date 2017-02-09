@@ -83,7 +83,7 @@ use parking_lot::RwLock;
 use ref_filter_map::ref_filter_map;
 use script_layout_interface::message::ReflowQueryType;
 use script_thread::Runnable;
-use selectors::matching::{ElementFlags, MatchingReason, matches};
+use selectors::matching::{ElementSelectorFlags, matches};
 use selectors::matching::{HAS_EDGE_CHILD_SELECTOR, HAS_SLOW_SELECTOR, HAS_SLOW_SELECTOR_LATER_SIBLINGS};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
@@ -95,7 +95,6 @@ use std::default::Default;
 use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;
@@ -109,6 +108,7 @@ use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
 use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
+use style::thread_state;
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA};
 use stylesheet_loader::StylesheetOwner;
@@ -131,7 +131,12 @@ pub struct Element {
     attr_list: MutNullableJS<NamedNodeMap>,
     class_list: MutNullableJS<DOMTokenList>,
     state: Cell<ElementState>,
-    atomic_flags: AtomicElementFlags,
+    /// These flags are set by the style system to indicate the that certain
+    /// operations may require restyling this element or its descendants. The
+    /// flags are not atomic, so the style system takes care of only set them
+    /// when it has exclusive access to the element.
+    #[ignore_heap_size_of = "bitflags defined in rust-selectors"]
+    selector_flags: Cell<ElementSelectorFlags>,
 }
 
 impl fmt::Debug for Element {
@@ -219,7 +224,7 @@ impl Element {
             attr_list: Default::default(),
             class_list: Default::default(),
             state: Cell::new(state),
-            atomic_flags: AtomicElementFlags::new(),
+            selector_flags: Cell::new(ElementSelectorFlags::empty()),
         }
     }
 
@@ -351,7 +356,8 @@ pub trait LayoutElementHelpers {
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
-    fn insert_atomic_flags(&self, flags: ElementFlags);
+    fn insert_selector_flags(&self, flags: ElementSelectorFlags);
+    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
 }
 
 impl LayoutElementHelpers for LayoutJS<Element> {
@@ -720,9 +726,19 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
     #[inline]
     #[allow(unsafe_code)]
-    fn insert_atomic_flags(&self, flags: ElementFlags) {
+    fn insert_selector_flags(&self, flags: ElementSelectorFlags) {
+        debug_assert!(thread_state::get() == thread_state::LAYOUT);
         unsafe {
-            (*self.unsafe_get()).atomic_flags.insert(flags);
+            let f = &(*self.unsafe_get()).selector_flags;
+            f.set(f.get() | flags);
+        }
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
+        unsafe {
+            (*self.unsafe_get()).selector_flags.get().contains(flags)
         }
     }
 }
@@ -1973,7 +1989,7 @@ impl ElementMethods for Element {
         match SelectorParser::parse_author_origin_no_namespace(&selectors) {
             Err(()) => Err(Error::Syntax),
             Ok(selectors) => {
-                Ok(matches(&selectors.0, &Root::from_ref(self), None, MatchingReason::Other))
+                Ok(matches(&selectors.0, &Root::from_ref(self), None))
             }
         }
     }
@@ -1991,7 +2007,8 @@ impl ElementMethods for Element {
                 let root = self.upcast::<Node>();
                 for element in root.inclusive_ancestors() {
                     if let Some(element) = Root::downcast::<Element>(element) {
-                        if matches(&selectors.0, &element, None, MatchingReason::Other) {
+                        if matches(&selectors.0, &element, None)
+                        {
                             return Ok(Some(element));
                         }
                     }
@@ -2231,7 +2248,7 @@ impl VirtualMethods for Element {
             s.children_changed(mutation);
         }
 
-        let flags = self.atomic_flags.get();
+        let flags = self.selector_flags.get();
         if flags.intersects(HAS_SLOW_SELECTOR) {
             // All children of this node need to be restyled when any child changes.
             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -2741,24 +2758,6 @@ impl<'a> AttributeMutation<'a> {
             AttributeMutation::Set(_) => Some(attr.value()),
             AttributeMutation::Removed => None,
         }
-    }
-}
-
-/// Thread-safe wrapper for ElementFlags set during selector matching
-#[derive(JSTraceable, HeapSizeOf)]
-struct AtomicElementFlags(AtomicUsize);
-
-impl AtomicElementFlags {
-    fn new() -> Self {
-        AtomicElementFlags(AtomicUsize::new(0))
-    }
-
-    fn get(&self) -> ElementFlags {
-        ElementFlags::from_bits_truncate(self.0.load(Ordering::Relaxed) as u8)
-    }
-
-    fn insert(&self, flags: ElementFlags) {
-        self.0.fetch_or(flags.bits() as usize, Ordering::Relaxed);
     }
 }
 
