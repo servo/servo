@@ -220,3 +220,15 @@ ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
                               spec="https://drafts.csswg.org/css-grid/#propdef-%s" % longhand,
                               products="gecko")}
 % endfor
+
+${helpers.predefined_type("grid-row-gap",
+                          "LengthOrPercentage",
+                          "computed::LengthOrPercentage::Length(Au(0))",
+                          spec="https://drafts.csswg.org/css-grid/#propdef-grid-row-gap",
+                          animatable=True)}
+
+${helpers.predefined_type("grid-column-gap",
+                          "LengthOrPercentage",
+                          "computed::LengthOrPercentage::Length(Au(0))",
+                          spec="https://drafts.csswg.org/css-grid/#propdef-grid-column-gap",
+                          animatable=True)}
