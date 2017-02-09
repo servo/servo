@@ -5,11 +5,12 @@
 use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use servo_url::ServoUrl;
-use style::parser::ParserContext;
+use style::parser::{ParserContext, Parse};
 use style::properties::longhands::{border_image_outset, border_image_repeat, border_image_slice};
 use style::properties::longhands::{border_image_source, border_image_width};
 use style::properties::shorthands::border_image;
 use style::stylesheets::Origin;
+use style_traits::ToCss;
 
 #[test]
 fn border_image_shorthand_should_parse_when_all_properties_specified() {
@@ -121,4 +122,20 @@ fn border_image_outset_should_return_length_on_length_zero() {
     let mut parser = Parser::new("0em");
     let result = border_image_outset::parse(&context, &mut parser);
     assert_eq!(result.unwrap(), parse_longhand!(border_image_outset, "0em"));
+}
+
+#[test]
+fn test_border_style() {
+    use style::values::specified::BorderStyle;
+
+    assert_roundtrip_with_context!(BorderStyle::parse, r#"none"#);
+    assert_roundtrip_with_context!(BorderStyle::parse, r#"hidden"#);
+    assert_roundtrip_with_context!(BorderStyle::parse, r#"solid"#);
+    assert_roundtrip_with_context!(BorderStyle::parse, r#"double"#);
+    assert_roundtrip_with_context!(BorderStyle::parse, r#"dotted"#);
+    assert_roundtrip_with_context!(BorderStyle::parse, r#"dashed"#);
+    assert_roundtrip_with_context!(BorderStyle::parse, r#"groove"#);
+    assert_roundtrip_with_context!(BorderStyle::parse, r#"ridge"#);
+    assert_roundtrip_with_context!(BorderStyle::parse, r#"inset"#);
+    assert_roundtrip_with_context!(BorderStyle::parse, r#"outset"#);
 }

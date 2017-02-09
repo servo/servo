@@ -59,6 +59,8 @@ use std::ptr;
 use std::sync::Arc;
 use std::cmp;
 use values::computed::ToComputedValue;
+use values::{Either, Auto};
+use computed_values::border_style;
 
 pub mod style_structs {
     % for style_struct in data.style_structs:
@@ -913,7 +915,38 @@ fn static_assert() {
                   skip_longhands="${skip_outline_longhands}"
                   skip_additionals="*">
 
-    <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
+    #[allow(non_snake_case)]
+    pub fn set_outline_style(&mut self, v: longhands::outline_style::computed_value::T) {
+        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
+        let result = match v {
+            % for value in border_style_keyword.values_for('gecko'):
+                Either::Second(border_style::T::${to_rust_ident(value)}) =>
+                    structs::${border_style_keyword.gecko_constant(value)} ${border_style_keyword.maybe_cast("u8")},
+            % endfor
+                Either::First(Auto) =>
+                    structs::${border_style_keyword.gecko_constant('auto')} ${border_style_keyword.maybe_cast("u8")},
+        };
+        ${set_gecko_property("mOutlineStyle", "result")}
+    }
+
+    #[allow(non_snake_case)]
+    pub fn copy_outline_style_from(&mut self, other: &Self) {
+        self.gecko.mOutlineStyle = other.gecko.mOutlineStyle;
+    }
+
+    #[allow(non_snake_case)]
+    pub fn clone_outline_style(&self) -> longhands::outline_style::computed_value::T {
+        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
+        match ${get_gecko_property("mOutlineStyle")} ${border_style_keyword.maybe_cast("u32")} {
+            % for value in border_style_keyword.values_for('gecko'):
+            structs::${border_style_keyword.gecko_constant(value)} => Either::Second(border_style::T::${value}),
+            % endfor
+            structs::${border_style_keyword.gecko_constant('auto')} => Either::First(Auto),
+            % if border_style_keyword.gecko_inexhaustive:
+            x => panic!("Found unexpected value in style struct for outline_style property: {:?}", x),
+            % endif
+        }
+    }
 
     <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=True,
                       round_to_pixels=True) %>
@@ -2809,4 +2842,3 @@ pub unsafe extern "C" fn Servo_GetStyleVariables(_cv: ServoComputedValuesBorrowe
                                                  -> *const nsStyleVariables {
     &*EMPTY_VARIABLES_STRUCT
 }
-

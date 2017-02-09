@@ -10,7 +10,6 @@ ${helpers.four_sides_shorthand("border-color", "border-%s-color", "specified::CS
 
 ${helpers.four_sides_shorthand("border-style", "border-%s-style",
                                "specified::BorderStyle::parse",
-                               needs_context=False,
                                spec="https://drafts.csswg.org/css-backgrounds/#border-style")}
 
 <%helpers:shorthand name="border-width" sub_properties="${
@@ -61,7 +60,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
             }
         }
         if style.is_none() {
-            if let Ok(value) = input.try(specified::BorderStyle::parse) {
+            if let Ok(value) = input.try(|i| specified::BorderStyle::parse(context, i)) {
                 style = Some(value);
                 any = true;
                 continue
