@@ -11,8 +11,8 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::globalscope::GlobalScope;
 use dom::storageevent::StorageEvent;
+use dom::window::Window;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
@@ -35,7 +35,7 @@ impl Storage {
         }
     }
 
-    pub fn new(global: &GlobalScope, storage_type: StorageType) -> Root<Storage> {
+    pub fn new(global: &Window, storage_type: StorageType) -> Root<Storage> {
         reflect_dom_object(box Storage::new_inherited(storage_type), global, StorageBinding::Wrap)
     }
 
@@ -196,7 +196,7 @@ impl Runnable for StorageEventRunnable {
         let window = global.as_window();
 
         let storage_event = StorageEvent::new(
-            &global,
+            &window,
             atom!("storage"),
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),

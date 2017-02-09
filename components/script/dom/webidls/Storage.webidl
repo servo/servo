@@ -7,7 +7,7 @@
  *
  */
 
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface Storage {
 
   readonly attribute unsigned long length;
