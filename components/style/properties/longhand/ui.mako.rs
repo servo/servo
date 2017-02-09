@@ -24,7 +24,7 @@ ${helpers.single_keyword("-moz-user-select", "auto text none all", products="gec
                          animatable=False,
                          spec="https://drafts.csswg.org/css-ui-4/#propdef-user-select")}
 
-<%helpers:longhand name="caret-color" animatable="False"
+<%helpers:longhand name="caret-color" animatable="False" products="none"
                    spec="https://drafts.csswg.org/css-ui/#caret-color">
     use cssparser::Color;
     use std::fmt;
