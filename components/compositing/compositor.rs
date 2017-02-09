@@ -734,7 +734,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let pipeline_id = frame_tree.pipeline.id.to_webrender();
         self.webrender_api.set_root_pipeline(pipeline_id);
-        self.webrender_api.generate_frame();
+        self.webrender_api.generate_frame(None);
 
         self.create_pipeline_details_for_frame_tree(&frame_tree);
 
