@@ -207,8 +207,33 @@ pub extern "C" fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueB
     })).into_strong()
 }
 
+macro_rules! get_property_id_from_nscsspropertyid {
+    ($property_id: ident, $ret: expr) => {{
+        match PropertyId::from_nscsspropertyid($property_id) {
+            Ok(property_id) => property_id,
+            Err(()) => { return $ret; }
+        }
+    }}
+}
+
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValues_GetOpacity(value: RawServoAnimationValueBorrowed)
+pub extern "C" fn Servo_AnimationValue_Serialize(value: RawServoAnimationValueBorrowed,
+                                                 property: nsCSSPropertyID,
+                                                 buffer: *mut nsAString)
+{
+    let uncomputed_value = AnimationValue::as_arc(&value).uncompute();
+    let mut string = String::new();
+    let rv = PropertyDeclarationBlock {
+        declarations: vec![(uncomputed_value, Importance::Normal)],
+        important_count: 0
+    }.single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), &mut string);
+    debug_assert!(rv.is_ok());
+
+    write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValue_GetOpacity(value: RawServoAnimationValueBorrowed)
      -> f32
 {
     let value = AnimationValue::as_arc(&value);
@@ -220,8 +245,8 @@ pub extern "C" fn Servo_AnimationValues_GetOpacity(value: RawServoAnimationValue
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValues_GetTransform(value: RawServoAnimationValueBorrowed,
-                                                     list: &mut structs::RefPtr<nsCSSValueSharedList>)
+pub extern "C" fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValueBorrowed,
+                                                    list: &mut structs::RefPtr<nsCSSValueSharedList>)
 {
     let value = AnimationValue::as_arc(&value);
     if let AnimationValue::Transform(ref servo_list) = **value {
@@ -842,15 +867,6 @@ pub extern "C" fn Servo_DeclarationBlock_GetCssText(declarations: RawServoDeclar
                                                     result: *mut nsAString) {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     declarations.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
-}
-
-macro_rules! get_property_id_from_nscsspropertyid {
-    ($property_id: ident, $ret: expr) => {{
-        match PropertyId::from_nscsspropertyid($property_id) {
-            Ok(property_id) => property_id,
-            Err(()) => { return $ret; }
-        }
-    }}
 }
 
 #[no_mangle]

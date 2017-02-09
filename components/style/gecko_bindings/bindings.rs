@@ -1303,13 +1303,18 @@ extern "C" {
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
-    pub fn Servo_AnimationValues_GetOpacity(value:
-                                                RawServoAnimationValueBorrowed)
+    pub fn Servo_AnimationValue_Serialize(value:
+                                              RawServoAnimationValueBorrowed,
+                                          property: nsCSSPropertyID,
+                                          buffer: *mut nsAString_internal);
+}
+extern "C" {
+    pub fn Servo_AnimationValue_GetOpacity(value: RawServoAnimationValueBorrowed)
      -> f32;
 }
 extern "C" {
-    pub fn Servo_AnimationValues_GetTransform(value: RawServoAnimationValueBorrowed,
-                                              list: &mut RefPtr<nsCSSValueSharedList>);
+    pub fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValueBorrowed,
+                                             list: &mut RefPtr<nsCSSValueSharedList>);
 }
 extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString_internal)
