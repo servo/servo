@@ -30,7 +30,7 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
                          animatable=False,
                          spec="None (Nonstandard Firefox-only property)")}
 
-<%helpers:longhand name="caret-color" animatable="False"
+<%helpers:longhand name="caret-color" animatable="False" products="none"
                    spec="https://drafts.csswg.org/css-ui/#caret-color">
     use cssparser::Color;
     use std::fmt;
