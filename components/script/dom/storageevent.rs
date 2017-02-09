@@ -11,7 +11,6 @@ use dom::bindings::js::{MutNullableJS, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::globalscope::GlobalScope;
 use dom::storage::Storage;
 use dom::window::Window;
 use servo_atoms::Atom;
@@ -50,7 +49,7 @@ impl StorageEvent {
                            StorageEventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalScope,
+    pub fn new(global: &Window,
                type_: Atom,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
@@ -70,7 +69,7 @@ impl StorageEvent {
         ev
     }
 
-    pub fn Constructor(global: &GlobalScope,
+    pub fn Constructor(global: &Window,
                        type_: DOMString,
                        init: &StorageEventBinding::StorageEventInit) -> Fallible<Root<StorageEvent>> {
         let key = init.key.clone();
