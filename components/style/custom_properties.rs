@@ -361,7 +361,7 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedSpec
                 references: Some(&specified_value.references),
             });
         },
-        DeclaredValue::WithVariables { .. } => unreachable!(),
+        DeclaredValue::WithVariables(_) => unreachable!(),
         DeclaredValue::Initial => {
             map.remove(&name);
         }

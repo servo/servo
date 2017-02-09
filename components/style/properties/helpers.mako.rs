@@ -196,7 +196,7 @@
         % if not property.derived_from:
             use cssparser::Parser;
             use parser::{Parse, ParserContext, ParserContextExtraData};
-            use properties::{CSSWideKeyword, DeclaredValue, ShorthandId};
+            use properties::{CSSWideKeyword, DeclaredValue, UnparsedValue, ShorthandId};
         % endif
         use values::{Auto, Either, None_, Normal};
         use cascade_info::CascadeInfo;
@@ -259,7 +259,7 @@
                                                       .set_${property.ident}(computed ${maybe_wm});
                                 % endif
                             }
-                            DeclaredValue::WithVariables { .. } => unreachable!(),
+                            DeclaredValue::WithVariables(_) => unreachable!(),
                             % if not data.current_style_struct.inherited:
                             DeclaredValue::Unset |
                             % endif
@@ -324,12 +324,12 @@
                             input.reset(start);
                             let (first_token_type, css) = try!(
                                 ::custom_properties::parse_non_custom_with_var(input));
-                            return Ok(DeclaredValue::WithVariables {
+                            return Ok(DeclaredValue::WithVariables(Box::new(UnparsedValue {
                                 css: css.into_owned(),
                                 first_token_type: first_token_type,
                                 base_url: context.base_url.clone(),
                                 from_shorthand: None,
-                            })
+                            })))
                         }
                         specified
                     }
@@ -421,7 +421,8 @@
         #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{longhands, PropertyDeclaration, DeclaredValue, ShorthandId};
+        use properties::{DeclaredValue, PropertyDeclaration, UnparsedValue};
+        use properties::{ShorthandId, longhands};
         use properties::declaration_block::Importance;
         use std::fmt;
         use style_traits::ToCss;
@@ -504,7 +505,7 @@
                         DeclaredValue::Initial => all_flags &= ALL_INITIAL,
                         DeclaredValue::Inherit => all_flags &= ALL_INHERIT,
                         DeclaredValue::Unset => all_flags &= ALL_UNSET,
-                        DeclaredValue::WithVariables {..} => with_variables = true,
+                        DeclaredValue::WithVariables(_) => with_variables = true,
                         DeclaredValue::Value(..) => {
                             all_flags = SerializeFlags::empty();
                         }
@@ -560,12 +561,12 @@
                     ::custom_properties::parse_non_custom_with_var(input));
                 % for sub_property in shorthand.sub_properties:
                     declarations.push((PropertyDeclaration::${sub_property.camel_case}(
-                        DeclaredValue::WithVariables {
+                        DeclaredValue::WithVariables(Box::new(UnparsedValue {
                             css: css.clone().into_owned(),
                             first_token_type: first_token_type,
                             base_url: context.base_url.clone(),
                             from_shorthand: Some(ShorthandId::${shorthand.camel_case}),
-                        }
+                        }))
                     ), Importance::Normal));
                 % endfor
                 Ok(())

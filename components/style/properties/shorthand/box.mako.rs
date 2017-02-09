@@ -22,7 +22,7 @@
                 (&DeclaredValue::Value(ref x_value), &DeclaredValue::Value(ref y_container)) => {
                     *x_value == y_container.0
                 },
-                (&DeclaredValue::WithVariables { .. }, &DeclaredValue::WithVariables { .. }) => true,
+                (&DeclaredValue::WithVariables(_), &DeclaredValue::WithVariables(_)) => true,
                 (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
                 (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
                 (&DeclaredValue::Unset, &DeclaredValue::Unset) => true,
@@ -43,8 +43,8 @@
                 (&DeclaredValue::Value(ref x_value), &DeclaredValue::Value(ref y_container)) => {
                     *x_value == y_container.0
                 },
-                (_, &DeclaredValue::WithVariables { .. }) |
-                (&DeclaredValue::WithVariables { .. }, _) => {
+                (_, &DeclaredValue::WithVariables(_)) |
+                (&DeclaredValue::WithVariables(_), _) => {
                     // We don't serialize shorthands with variables
                     return dest.write_str("");
                 },

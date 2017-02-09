@@ -260,17 +260,15 @@ mod property_bit_field {
                 where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
             % endif
         {
-            if let DeclaredValue::WithVariables {
-                ref css, first_token_type, ref base_url, from_shorthand
-            } = *value {
+            if let DeclaredValue::WithVariables(ref with_variables) = *value {
                 // FIXME(heycam): A ParserContextExtraData should be built from data
                 // stored in the WithVariables, in case variable expansion results in
                 // a url() value.
                 let extra_data = ParserContextExtraData::default();
-                substitute_variables_${property.ident}_slow(css,
-                                                            first_token_type,
-                                                            base_url,
-                                                            from_shorthand,
+                substitute_variables_${property.ident}_slow(&with_variables.css,
+                                                            with_variables.first_token_type,
+                                                            &with_variables.base_url,
+                                                            with_variables.from_shorthand,
                                                             custom_properties,
                                                             f,
                                                             error_reporter,
@@ -614,17 +612,8 @@ impl ShorthandId {
 pub enum DeclaredValue<T> {
     /// A known specified value from the stylesheet.
     Value(T),
-    /// A value that contained any css variables.
-    WithVariables {
-        /// The css serialization for this value.
-        css: String,
-        /// The first token type for this serialization.
-        first_token_type: TokenSerializationType,
-        /// The base url.
-        base_url: ServoUrl,
-        /// The shorthand this came from.
-        from_shorthand: Option<ShorthandId>,
-    },
+    /// An unparsed value that contains `var()` functions.
+    WithVariables(Box<UnparsedValue>),
     /// The `initial` keyword.
     Initial,
     /// The `inherit` keyword.
@@ -633,11 +622,25 @@ pub enum DeclaredValue<T> {
     Unset,
 }
 
+/// An unparsed property value that contains `var()` functions.
+#[derive(Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct UnparsedValue {
+    /// The css serialization for this value.
+    css: String,
+    /// The first token type for this serialization.
+    first_token_type: TokenSerializationType,
+    /// The base url.
+    base_url: ServoUrl,
+    /// The shorthand this came from.
+    from_shorthand: Option<ShorthandId>,
+}
+
 impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             DeclaredValue::Value(ref v) => v.has_viewport_percentage(),
-            DeclaredValue::WithVariables { .. } => {
+            DeclaredValue::WithVariables(_) => {
                 panic!("DeclaredValue::has_viewport_percentage without \
                         resolving variables!")
             },
@@ -654,11 +657,13 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
     {
         match *self {
             DeclaredValue::Value(ref inner) => inner.to_css(dest),
-            DeclaredValue::WithVariables { ref css, from_shorthand: None, .. } => {
-                dest.write_str(css)
-            }
-            // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-            DeclaredValue::WithVariables { .. } => Ok(()),
+            DeclaredValue::WithVariables(ref with_variables) => {
+                // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+                if with_variables.from_shorthand.is_none() {
+                    dest.write_str(&*with_variables.css)?
+                }
+                Ok(())
+            },
             DeclaredValue::Initial => dest.write_str("initial"),
             DeclaredValue::Inherit => dest.write_str("inherit"),
             DeclaredValue::Unset => dest.write_str("unset"),
@@ -959,9 +964,12 @@ impl PropertyDeclaration {
         match *self {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(ref value) => match *value {
-                    DeclaredValue::WithVariables { ref css, from_shorthand: Some(s), .. }
-                    if s == shorthand => {
-                        Some(&**css)
+                    DeclaredValue::WithVariables(ref with_variables) => {
+                        if let Some(s) = with_variables.from_shorthand {
+                            if s == shorthand {
+                                Some(&*with_variables.css)
+                            } else { None }
+                        } else { None }
                     }
                     _ => None
                 },
@@ -976,12 +984,12 @@ impl PropertyDeclaration {
         match *self {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(ref value) => match *value {
-                    DeclaredValue::WithVariables { .. } => true,
+                    DeclaredValue::WithVariables(_) => true,
                     _ => false,
                 },
             % endfor
             PropertyDeclaration::Custom(_, ref value) => match *value {
-                DeclaredValue::WithVariables { .. } => true,
+                DeclaredValue::WithVariables(_) => true,
                 _ => false,
             }
         }
@@ -997,7 +1005,7 @@ impl PropertyDeclaration {
       match *self {
           % for property in data.longhands:
               PropertyDeclaration::${property.camel_case}(ref value) => {
-                  matches!(*value, DeclaredValue::WithVariables { .. })
+                  matches!(*value, DeclaredValue::WithVariables(_))
               },
           % endfor
           PropertyDeclaration::Custom(..) => true
