@@ -47,5 +47,6 @@ fn test_caret_color() {
     });
 
     let color = parse_longhand!(caret_color, "blue");
-    assert_eq!(color, caret_color::SpecifiedValue(Either::First(blue_color)));
+    assert_eq!(color,
+               caret_color::SpecifiedValue(Either::First(blue_color)));
 }

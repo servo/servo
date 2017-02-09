@@ -51,10 +51,10 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T (pub Either<Color, Auto>);
     }
-    
+
     impl ToCss for computed_value::T {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-           
+
            match *self {
                computed_value::T(Either::First(color)) => {
                     color.to_css(dest)?;
@@ -63,13 +63,13 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
                     dest.write_str("auto")?;
                }
            };
-           
+
            Ok(())
         }
     }
 
     #[inline]
-    pub fn get_initial_value() -> computed_value::T { 
+    pub fn get_initial_value() -> computed_value::T {
         computed_value::T(Either::Second(Auto))
     }
 
@@ -78,7 +78,7 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
         if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
             return Ok(computed_value::T(Either::Second(Auto)));
         }
-        
+
         if let Ok(color) = Color::parse(input) {
             return Ok(computed_value::T(Either::First(color)));
         }
