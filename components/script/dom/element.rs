@@ -45,6 +45,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
+use dom::htmlformelement::FormControlElementHelpers;
 use dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
 use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
@@ -2222,6 +2223,10 @@ impl VirtualMethods for Element {
             s.bind_to_tree(tree_in_doc);
         }
 
+        if let Some(f) = self.as_maybe_form_control() {
+            f.bind_form_control_to_tree();
+        }
+
         if !tree_in_doc {
             return;
         }
@@ -2236,6 +2241,10 @@ impl VirtualMethods for Element {
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
+
+        if let Some(f) = self.as_maybe_form_control() {
+            f.unbind_form_control_from_tree();
+        }
 
         if !context.tree_in_doc {
             return;

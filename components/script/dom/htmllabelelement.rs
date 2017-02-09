@@ -15,7 +15,7 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, FormControlElementHelpers, HTMLFormElement};
-use dom::node::{document_from_node, Node, UnbindContext};
+use dom::node::{document_from_node, Node};
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
@@ -138,19 +138,6 @@ impl VirtualMethods for HTMLLabelElement {
             },
             _ => {},
         }
-    }
-
-    fn bind_to_tree(&self, tree_in_doc: bool) {
-        if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
-        }
-
-        self.bind_form_control_to_tree();
-    }
-
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
-        self.unbind_form_control_from_tree();
     }
 }
 

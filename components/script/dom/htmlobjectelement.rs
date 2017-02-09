@@ -13,7 +13,7 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::node::{Node, UnbindContext, window_from_node};
+use dom::node::{Node, window_from_node};
 use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
@@ -122,19 +122,6 @@ impl VirtualMethods for HTMLObjectElement {
             },
             _ => {},
         }
-    }
-
-    fn bind_to_tree(&self, tree_in_doc: bool) {
-        if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
-        }
-
-        self.bind_form_control_to_tree();
-    }
-
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
-        self.unbind_form_control_from_tree();
     }
 }
 

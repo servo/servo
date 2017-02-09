@@ -358,7 +358,6 @@ impl VirtualMethods for HTMLTextAreaElement {
             s.bind_to_tree(tree_in_doc);
         }
 
-        self.bind_form_control_to_tree();
         self.upcast::<Element>().check_ancestors_disabled_state_for_form_control();
     }
 
@@ -372,8 +371,6 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
-
-        self.unbind_form_control_from_tree();
 
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();

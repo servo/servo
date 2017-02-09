@@ -29,7 +29,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::htmlmapelement::HTMLMapElement;
 use dom::mouseevent::MouseEvent;
-use dom::node::{Node, NodeDamage, UnbindContext, document_from_node, window_from_node};
+use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -645,19 +645,6 @@ impl VirtualMethods for HTMLImageElement {
             &local_name!("hspace") | &local_name!("vspace") => AttrValue::from_u32(value.into(), 0),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
-    }
-
-    fn bind_to_tree(&self, tree_in_doc: bool) {
-        if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(tree_in_doc);
-        }
-
-        self.bind_form_control_to_tree();
-    }
-
-    fn unbind_from_tree(&self, context: &UnbindContext) {
-        self.super_type().unwrap().unbind_from_tree(context);
-        self.unbind_form_control_from_tree();
     }
 
     fn handle_event(&self, event: &Event) {
