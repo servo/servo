@@ -37,11 +37,10 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
     use style_traits::ToCss;
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
 
     impl NoViewportPercentage for SpecifiedValue {}
     impl ComputedValueAsSpecified for SpecifiedValue {}
-
-    pub type SpecifiedValue = computed_value::T;
 
     pub mod computed_value {
         use cssparser::Color;
