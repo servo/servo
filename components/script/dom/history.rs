@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::HistoryBinding;
 use dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
-use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
@@ -64,7 +63,7 @@ impl HistoryMethods for History {
         } else if delta < 0 {
             TraversalDirection::Back(-delta as usize)
         } else {
-            self.window.Location().Reload();
+            self.window.Location().reload_without_origin_check();
             return;
         };
 
