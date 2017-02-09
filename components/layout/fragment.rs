@@ -1051,7 +1051,8 @@ impl Fragment {
                     // Note: We can not precompute the ratio and store it as a float, because
                     // doing so may result one pixel difference in calculation for certain
                     // images, thus make some tests fail.
-                    inline_size * intrinsic_block_size.0 / intrinsic_inline_size.0
+                    Au((inline_size.0 as i64 * intrinsic_block_size.0 as i64 /
+                        intrinsic_inline_size.0 as i64) as i32)
                 } else {
                     intrinsic_block_size
                 };
@@ -1060,7 +1061,8 @@ impl Fragment {
             (MaybeAuto::Auto, MaybeAuto::Specified(block_size)) => {
                 let block_size = block_constraint.clamp(block_size);
                 let inline_size = if self.has_intrinsic_ratio() {
-                    block_size * intrinsic_inline_size.0 / intrinsic_block_size.0
+                    Au((block_size.0 as i64 * intrinsic_inline_size.0 as i64 /
+                       intrinsic_block_size.0 as i64) as i32)
                 } else {
                     intrinsic_inline_size
                 };
@@ -1075,10 +1077,11 @@ impl Fragment {
                     // First, create two rectangles that keep aspect ratio while may be clamped
                     // by the contraints;
                     let first_isize = inline_constraint.clamp(intrinsic_inline_size);
-                    let first_bsize = first_isize * intrinsic_block_size.0 / intrinsic_inline_size.0;
+                    let first_bsize = Au((first_isize.0 as i64 * intrinsic_block_size.0 as i64 /
+                                          intrinsic_inline_size.0 as i64) as i32);
                     let second_bsize = block_constraint.clamp(intrinsic_block_size);
-                    let second_isize = second_bsize * intrinsic_inline_size.0 / intrinsic_block_size.0;
-
+                    let second_isize = Au((second_bsize.0 as i64 * intrinsic_inline_size.0 as i64 /
+                                           intrinsic_block_size.0 as i64) as i32);
                     let (inline_size, block_size) = match (first_isize.cmp(&intrinsic_inline_size) ,
                                                            second_isize.cmp(&intrinsic_inline_size)) {
                         (Ordering::Equal, Ordering::Equal) =>
