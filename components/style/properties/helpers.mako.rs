@@ -196,7 +196,7 @@
         % if not property.derived_from:
             use cssparser::Parser;
             use parser::{Parse, ParserContext, ParserContextExtraData};
-            use properties::{CSSWideKeyword, DeclaredValue, ShorthandId};
+            use properties::{CSSWideKeyword, DeclaredValue, PropertyDeclarationWithVariables, ShorthandId};
         % endif
         use values::{Auto, Either, None_, Normal};
         use cascade_info::CascadeInfo;
@@ -324,12 +324,12 @@
                             input.reset(start);
                             let (first_token_type, css) = try!(
                                 ::custom_properties::parse_non_custom_with_var(input));
-                            return Ok(DeclaredValue::WithVariables {
+                            return Ok(DeclaredValue::WithVariables(Box::new(PropertyDeclarationWithVariables {
                                 css: css.into_owned(),
                                 first_token_type: first_token_type,
                                 base_url: context.base_url.clone(),
                                 from_shorthand: None,
-                            })
+                            })))
                         }
                         specified
                     }
@@ -421,7 +421,8 @@
         #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{longhands, PropertyDeclaration, DeclaredValue, ShorthandId};
+        use properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationWithVariables};
+        use properties::{ShorthandId, longhands};
         use properties::declaration_block::Importance;
         use std::fmt;
         use style_traits::ToCss;
@@ -560,12 +561,12 @@
                     ::custom_properties::parse_non_custom_with_var(input));
                 % for sub_property in shorthand.sub_properties:
                     declarations.push((PropertyDeclaration::${sub_property.camel_case}(
-                        DeclaredValue::WithVariables {
+                        DeclaredValue::WithVariables(Box::new(PropertyDeclarationWithVariables {
                             css: css.clone().into_owned(),
                             first_token_type: first_token_type,
                             base_url: context.base_url.clone(),
                             from_shorthand: Some(ShorthandId::${shorthand.camel_case}),
-                        }
+                        }))
                     ), Importance::Normal));
                 % endfor
                 Ok(())

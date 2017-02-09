@@ -7,7 +7,7 @@ use style::properties::{PropertyDeclaration, specified_value_sizes};
 
 #[test]
 fn size_of_property_declaration() {
-    let old = 72;
+    let old = 48;
     let new = size_of::<PropertyDeclaration>();
     if new < old {
         panic!("Your changes have decreased the stack size of PropertyDeclaration enum from {} to {}. \
