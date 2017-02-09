@@ -1053,15 +1053,17 @@ ${helpers.predefined_type("scroll-snap-destination",
                           "Position",
                           "computed::Position::zero()",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
-                          animatable=False)}
+                          animatable=True)}
 
 ${helpers.predefined_type("scroll-snap-coordinate",
                           "Position",
                           "computed::Position::zero()",
                           vector=True,
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
-                          animatable=False,
-                          allow_empty=True)}
+                          animatable=True,
+                          allow_empty=True,
+                          delegate_animate=True)}
+
 
 
 <%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"

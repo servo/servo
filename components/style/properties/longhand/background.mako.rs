@@ -89,7 +89,8 @@ ${helpers.predefined_type("background-color", "CSSColor",
 </%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="background-position-x" animatable="True"
-                          spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-x">
+                          spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-x"
+                          delegate_animate="True">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
@@ -139,7 +140,8 @@ ${helpers.predefined_type("background-color", "CSSColor",
 </%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="background-position-y" animatable="True"
-                          spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-y">
+                          spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-y"
+                          delegate_animate="True">
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;

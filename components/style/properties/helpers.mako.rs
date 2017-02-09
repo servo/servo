@@ -74,7 +74,7 @@
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
-<%def name="vector_longhand(name, gecko_only=False, allow_empty=False, **kwargs)">
+<%def name="vector_longhand(name, gecko_only=False, allow_empty=False, delegate_animate=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
         % if not gecko_only:
             use std::fmt;
@@ -105,6 +105,15 @@
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
                 pub struct T(pub Vec<single_value::T>);
+
+                % if delegate_animate:
+                    use properties::animated_properties::Interpolate;
+                    impl Interpolate for T {
+                        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+                            self.0.interpolate(&other.0, progress).map(T)
+                        }
+                    }
+                % endif
             }
 
             impl ToCss for computed_value::T {
