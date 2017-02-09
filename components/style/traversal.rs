@@ -12,7 +12,6 @@ use data::{ElementData, ElementStyles, RestyleKind, StoredRestyleHint};
 use dom::{NodeInfo, TElement, TNode};
 use matching::{MatchMethods, StyleSharingResult};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
-use selector_parser::RestyleDamage;
 use servo_config::opts;
 use std::borrow::BorrowMut;
 use std::mem;
@@ -148,6 +147,47 @@ pub trait DomTraversal<E: TElement> : Sync {
         false
     }
 
+    /// Returns true if an element without dirty descendants needs to be
+    /// traversed.
+    fn element_without_dirty_descendants_needs_traversal(el: E) -> bool {
+        debug_assert!(!el.has_dirty_descendants(),
+                      "only call element_without_dirty_descendants_needs_traversal \
+                       if you know the element does not have dirty descendants");
+
+        // Check the element data. If it doesn't exist, we need to visit
+        // the element.
+        let data = match el.borrow_data() {
+            Some(d) => d,
+            None => return true,
+        };
+
+        // If we don't have any style data, we need to visit the element.
+        if !data.has_styles() {
+            return true;
+        }
+
+        // Check the restyle data.
+        if let Some(r) = data.get_restyle() {
+            // If we have a restyle hint or need to recascade, we need to
+            // visit the element.
+            //
+            // Note that this is different than checking has_current_styles(),
+            // since that can return true even if we have a restyle hint
+            // indicating that the element's descendants (but not necessarily
+            // the element) need restyling.
+            //
+            // Servo uses the post-order traversal for flow construction, so we
+            // need to traverse any element with damage so that we can perform
+            // fixup / reconstruction on our way back up the tree.
+            if !r.hint.is_empty() || r.recascade || (cfg!(feature = "servo") && !r.damage.is_empty()) {
+                return true;
+            }
+        }
+
+        false
+    }
+
+
     /// Returns true if traversal is needed for the given node and subtree.
     fn node_needs_traversal(node: E::ConcreteNode) -> bool {
         // Non-incremental layout visits every node.
@@ -164,42 +204,7 @@ pub trait DomTraversal<E: TElement> : Sync {
                     return true;
                 }
 
-                // Check the element data. If it doesn't exist, we need to visit
-                // the element.
-                let data = match el.borrow_data() {
-                    Some(d) => d,
-                    None => return true,
-                };
-
-                // If we don't have any style data, we need to visit the element.
-                if !data.has_styles() {
-                    return true;
-                }
-
-                // Check the restyle data.
-                if let Some(r) = data.get_restyle() {
-                    // If we have a restyle hint or need to recascade, we need to
-                    // visit the element.
-                    //
-                    // Note that this is different than checking has_current_styles(),
-                    // since that can return true even if we have a restyle hint
-                    // indicating that the element's descendants (but not necessarily
-                    // the element) need restyling.
-                    if !r.hint.is_empty() || r.recascade {
-                        return true;
-                    }
-                }
-
-                // Servo uses the post-order traversal for flow construction, so
-                // we need to traverse any element with damage so that we can perform
-                // fixup / reconstruction on our way back up the tree.
-                if cfg!(feature = "servo") &&
-                   data.get_restyle().map_or(false, |r| r.damage != RestyleDamage::empty())
-                {
-                    return true;
-                }
-
-                false
+                Self::element_without_dirty_descendants_needs_traversal(el)
             },
         }
     }
