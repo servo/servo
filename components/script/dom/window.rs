@@ -469,12 +469,12 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
     fn SessionStorage(&self) -> Root<Storage> {
-        self.session_storage.or_init(|| Storage::new(self.upcast(), StorageType::Session))
+        self.session_storage.or_init(|| Storage::new(self, StorageType::Session))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-localstorage
     fn LocalStorage(&self) -> Root<Storage> {
-        self.local_storage.or_init(|| Storage::new(self.upcast(), StorageType::Local))
+        self.local_storage.or_init(|| Storage::new(self, StorageType::Local))
     }
 
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto
