@@ -31,11 +31,10 @@ ${helpers.single_keyword("-moz-user-select", "auto text none all", products="gec
     use style_traits::ToCss;
     use values::NoViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
 
     impl NoViewportPercentage for SpecifiedValue {}
     impl ComputedValueAsSpecified for SpecifiedValue {}
-
-    pub type SpecifiedValue = computed_value::T;
 
     pub mod computed_value {
         use cssparser::Color;
