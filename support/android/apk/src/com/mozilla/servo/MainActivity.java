@@ -3,10 +3,16 @@ import android.app.NativeActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.System;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 
 public class MainActivity extends android.app.NativeActivity {
@@ -37,6 +43,13 @@ public class MainActivity extends android.app.NativeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        if (needsToExtractAssets()) {
+            try {
+                extractAssets();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         super.onCreate(savedInstanceState);
         final Intent intent = getIntent();
         if (intent.getAction().equals(Intent.ACTION_VIEW)) {
@@ -61,5 +74,43 @@ public class MainActivity extends android.app.NativeActivity {
         int pid = android.os.Process.myPid();
         android.os.Process.killProcess(pid);
         System.exit(0);
+    }
+
+    private boolean needsToExtractAssets() {
+        // todo: also force a reextract when the resources are updated.
+        return !(new File("/sdcard/servo").exists());
+    }
+
+    /**
+     * extracts assets/ in the APK to /sdcard/servo.
+     */
+    private void extractAssets() throws IOException {
+        ZipFile zipFile = null;
+        File targetDir = new File("/sdcard/servo");
+        try {
+            zipFile = new ZipFile(this.getApplicationInfo().sourceDir);
+            for (Enumeration<? extends ZipEntry> e = zipFile.entries(); e.hasMoreElements(); ) {
+                ZipEntry entry = e.nextElement();
+                if (entry.isDirectory() || !entry.getName().startsWith("assets/")) {
+                    continue;
+                }
+                File targetFile = new File(targetDir, entry.getName().substring("assets/".length()));
+                targetFile.getParentFile().mkdirs();
+                byte[] tempBuffer = new byte[(int)entry.getSize()];
+                BufferedInputStream is = null;
+                FileOutputStream os = null;
+                try {
+                    is = new BufferedInputStream(zipFile.getInputStream(entry));
+                    os = new FileOutputStream(targetFile);
+                    is.read(tempBuffer);
+                    os.write(tempBuffer);
+                } finally {
+                    if (is != null) is.close();
+                    if (os != null) os.close();
+                }
+            }
+        } finally {
+            if (zipFile != null) zipFile.close();
+        }
     }
 }
