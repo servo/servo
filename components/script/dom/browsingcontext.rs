@@ -47,7 +47,7 @@ pub struct BrowsingContext {
     /// The pipeline id of the currently active document.
     /// May be None, when the currently active document is in another script thread.
     /// We do not try to keep the pipeline id for documents in other threads,
-    /// as this would require the constelltion notifying many script threads about
+    /// as this would require the constellation notifying many script threads about
     /// the change, which could be expensive.
     currently_active: Cell<Option<PipelineId>>,
 

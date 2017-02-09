@@ -30,7 +30,7 @@ pub struct XOriginLocation {
 
 impl XOriginLocation {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(window: &XOriginWindow) -> XOriginLocation {
+    fn new_inherited(window: &XOriginWindow) -> XOriginLocation {
         XOriginLocation {
             reflector: Reflector::new(),
             window: JS::from_ref(window),
