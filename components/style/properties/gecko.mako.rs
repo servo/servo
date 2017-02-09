@@ -924,7 +924,7 @@ fn static_assert() {
                     structs::${border_style_keyword.gecko_constant(value)} ${border_style_keyword.maybe_cast("u8")},
             % endfor
                 Either::First(Auto) =>
-                    structs::${border_style_keyword.gecko_constant('solid')} ${border_style_keyword.maybe_cast("u8")},
+                    structs::${border_style_keyword.gecko_constant('auto')} ${border_style_keyword.maybe_cast("u8")},
         };
         ${set_gecko_property("mOutlineStyle", "result")}
     }
@@ -941,6 +941,7 @@ fn static_assert() {
             % for value in border_style_keyword.values_for('gecko'):
             structs::${border_style_keyword.gecko_constant(value)} => Either::Second(border_style::T::${value}),
             % endfor
+            structs::${border_style_keyword.gecko_constant('auto')} => Either::First(Auto),
             % if border_style_keyword.gecko_inexhaustive:
             x => panic!("Found unexpected value in style struct for outline_style property: {:?}", x),
             % endif
