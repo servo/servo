@@ -1590,7 +1590,7 @@ impl ScriptThread {
             let chan = &load.layout_chan;
             if chan.send(message::Msg::PrepareToExit(response_chan)).is_ok() {
                 debug!("shutting down layout for page {}", id);
-                response_port.recv().unwrap();
+                response_port.recv();
                 chan.send(message::Msg::ExitNow).ok();
             }
         }
