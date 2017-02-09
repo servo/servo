@@ -37,8 +37,6 @@ test_interfaces([
   "ProgressEvent",
   "Request",
   "Response",
-  "Storage",
-  "StorageEvent",
   "TextDecoder",
   "TextEncoder",
   "URL",
