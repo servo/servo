@@ -44,7 +44,6 @@ ${helpers.single_keyword("-moz-user-select", "auto text none all", products="gec
         #[derive(PartialEq, Clone, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T (pub Either<Color, Auto>);
-
     }
     
     impl ToCss for computed_value::T {
@@ -69,14 +68,15 @@ ${helpers.single_keyword("-moz-user-select", "auto text none all", products="gec
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        use cssparser::RGBA;
-        
-        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-            Ok(computed_value::T(Either::Second(Auto)))
-        }
-        else {
-            Ok(computed_value::T(Either::First(Color::RGBA(RGBA {red: 0.5, green: 0.5, blue: 0.5, alpha: 0.5}))))
 
+        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+            return Ok(computed_value::T(Either::Second(Auto)));
         }
+        
+        if let Ok(color) = Color::parse(input) {
+            return Ok(computed_value::T(Either::First(color)));
+        }
+
+        Err(())
     }
 </%helpers:longhand>
