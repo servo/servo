@@ -1053,6 +1053,7 @@ ${helpers.predefined_type("scroll-snap-destination",
                           "Position",
                           "computed::Position::zero()",
                           products="gecko",
+                          boxed="True",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
                           animatable=True)}
 
