@@ -1322,7 +1322,7 @@ fn static_assert() {
                 "number" : "bindings::Gecko_CSSValue_SetNumber(%s, %s)",
             }
         %>
-        ComputedOperation::${name.title()}(${pattern}) => {
+        longhands::transform::computed_value::ComputedOperation::${name.title()}(${pattern}) => {
             bindings::Gecko_CSSValue_SetFunction(gecko_value, ${len(items) + 1});
             bindings::Gecko_CSSValue_SetKeyword(
                 bindings::Gecko_CSSValue_GetArrayItem(gecko_value, 0),
@@ -1336,27 +1336,20 @@ fn static_assert() {
             % endfor
         }
     </%def>
-    pub fn set_transform(&mut self, other: longhands::transform::computed_value::T) {
+    pub fn convert_transform(input: Vec<longhands::transform::computed_value::ComputedOperation>,
+                             output: &mut structs::root::RefPtr<structs::root::nsCSSValueSharedList>) {
         use gecko_bindings::structs::nsCSSKeyword::*;
         use gecko_bindings::sugar::refptr::RefPtr;
         use properties::longhands::transform::computed_value::ComputedMatrix;
-        use properties::longhands::transform::computed_value::ComputedOperation;
 
-        let vec = if let Some(v) = other.0 {
-            v
-        } else {
-            unsafe {
-                self.gecko.mSpecifiedTransform.clear();
-            }
-            return;
-        };
+        unsafe { output.clear() };
 
         let list = unsafe {
-            RefPtr::from_addrefed(bindings::Gecko_NewCSSValueSharedList(vec.len() as u32))
+            RefPtr::from_addrefed(bindings::Gecko_NewCSSValueSharedList(input.len() as u32))
         };
 
         let mut cur = list.mHead;
-        let mut iter = vec.into_iter();
+        let mut iter = input.into_iter();
         while !cur.is_null() {
             let gecko_value = unsafe { &mut (*cur).mValue };
             let servo = iter.next().expect("Gecko_NewCSSValueSharedList should create a shared \
@@ -1374,7 +1367,19 @@ fn static_assert() {
             }
         }
         debug_assert!(iter.next().is_none());
-        unsafe { self.gecko.mSpecifiedTransform.set_move(list) };
+        unsafe { output.set_move(list) };
+    }
+
+    pub fn set_transform(&mut self, other: longhands::transform::computed_value::T) {
+        let vec = if let Some(v) = other.0 {
+            v
+        } else {
+            unsafe {
+                self.gecko.mSpecifiedTransform.clear();
+            }
+            return;
+        };
+        Self::convert_transform(vec, &mut self.gecko.mSpecifiedTransform);
     }
 
     pub fn copy_transform_from(&mut self, other: &Self) {

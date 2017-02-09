@@ -53,11 +53,13 @@ use style::gecko_bindings::structs::Loader;
 use style::gecko_bindings::structs::RawGeckoPresContextOwned;
 use style::gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
 use style::gecko_bindings::structs::ServoStyleSheet;
+use style::gecko_bindings::structs::nsCSSValueSharedList;
 use style::gecko_bindings::structs::nsTimingFunction;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::sugar::ownership::{FFIArcHelpers, HasArcFFI, HasBoxFFI};
 use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
+use style::gecko_properties::style_structs;
 use style::keyframes::KeyframesStepValue;
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
@@ -205,6 +207,30 @@ pub extern "C" fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueB
     })).into_strong()
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValues_GetOpacity(value: RawServoAnimationValueBorrowed)
+     -> f32
+{
+    let value = AnimationValue::as_arc(&value);
+    if let AnimationValue::Opacity(opacity) = **value {
+        opacity
+    } else {
+        panic!("The AnimationValue should be Opacity");
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValues_GetTransform(value: RawServoAnimationValueBorrowed,
+                                                     list: &mut structs::RefPtr<nsCSSValueSharedList>)
+{
+    let value = AnimationValue::as_arc(&value);
+    if let AnimationValue::Transform(ref servo_list) = **value {
+        style_structs::Box::convert_transform(servo_list.0.clone().unwrap(), list);
+    } else {
+        panic!("The AnimationValue should be transform");
+    }
+}
+
 /// Takes a ServoAnimationValues and populates it with the animation values corresponding
 /// to a given property declaration block
 #[no_mangle]
@@ -253,7 +279,7 @@ pub extern "C" fn Servo_AnimationValues_Populate(anim: RawGeckoAnimationValueLis
         // and thus can't directly use `geckoiter`
         let local_geckoiter = &mut geckoiter;
         for (gecko, servo) in local_geckoiter.zip(&mut iter) {
-            gecko.mServoValue.set_arc_leaky(Arc::new(servo));
+            gecko.mValue.mServo.set_arc_leaky(Arc::new(servo));
         }
     }
 

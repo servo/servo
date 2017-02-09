@@ -156,6 +156,7 @@ use gecko_bindings::structs::Loader;
 use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
+use gecko_bindings::structs::RefPtr;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
 pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
@@ -1300,6 +1301,15 @@ extern "C" {
     pub fn Servo_AnimationValues_Uncompute(value:
                                                RawServoAnimationValueBorrowedListBorrowed)
      -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
+    pub fn Servo_AnimationValues_GetOpacity(value:
+                                                RawServoAnimationValueBorrowed)
+     -> f32;
+}
+extern "C" {
+    pub fn Servo_AnimationValues_GetTransform(value: RawServoAnimationValueBorrowed,
+                                              list: &mut RefPtr<nsCSSValueSharedList>);
 }
 extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString_internal)

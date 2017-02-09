@@ -5152,10 +5152,15 @@ pub mod root {
         pub struct ContainerLayerParameters([u8; 0]);
         #[repr(C)]
         #[derive(Debug)]
+        pub struct AnimationValue {
+            pub mGecko: root::mozilla::StyleAnimationValue,
+            pub mServo: root::RefPtr<root::RawServoAnimationValue>,
+        }
+        #[repr(C)]
+        #[derive(Debug)]
         pub struct PropertyStyleAnimationValuePair {
             pub mProperty: root::nsCSSPropertyID,
-            pub mValue: root::mozilla::StyleAnimationValue,
-            pub mServoValue: root::RefPtr<root::RawServoAnimationValue>,
+            pub mValue: root::mozilla::AnimationValue,
         }
         #[test]
         fn bindgen_test_layout_PropertyStyleAnimationValuePair() {
