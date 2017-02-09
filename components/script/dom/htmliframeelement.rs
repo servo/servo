@@ -327,20 +327,6 @@ impl HTMLIFrameElement {
             false
         }
     }
-
-    pub fn get_content_window(&self) -> Option<Root<Window>> {
-        self.pipeline_id.get()
-            .and_then(|pipeline_id| ScriptThread::find_document(pipeline_id))
-            .and_then(|document| {
-                let current_global = GlobalScope::current();
-                let current_document = current_global.as_window().Document();
-                if document.origin().same_origin(current_document.origin()) {
-                    Some(Root::from_ref(document.window()))
-                } else {
-                    None
-                }
-            })
-    }
 }
 
 pub trait HTMLIFrameElementLayoutMethods {
@@ -512,15 +498,29 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
     fn GetContentWindow(&self) -> Option<Root<BrowsingContext>> {
-        match self.get_content_window() {
-            Some(ref window) => Some(window.browsing_context()),
-            None => None
+        if self.pipeline_id.get().is_some() {
+            ScriptThread::find_browsing_context(self.frame_id)
+        } else {
+            None
         }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
+    // https://html.spec.whatwg.org/multipage/#concept-bcc-content-document
     fn GetContentDocument(&self) -> Option<Root<Document>> {
-        self.get_content_window().map(|window| window.Document())
+        // Step 1.
+        if let Some(pipeline_id) = self.pipeline_id.get() {
+            // Step 2-3.
+            if let Some(document) = ScriptThread::find_document(pipeline_id) {
+                let current = GlobalScope::current().as_window().Document();
+                // Step 4.
+                if current.origin().same_origin_domain(document.origin()) {
+                    // Step 5.
+                    return Some(document);
+                }
+            }
+        }
+        None
     }
 
     // Experimental mozbrowser implementation is based on the webidl

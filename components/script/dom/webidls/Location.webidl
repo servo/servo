@@ -4,26 +4,24 @@
 
 // https://html.spec.whatwg.org/multipage/#location
 [Exposed=Window, Unforgeable] interface Location {
-  /*stringifier*/ attribute USVString href;
-  readonly attribute USVString origin;
-           attribute USVString protocol;
-           attribute USVString host;
-           attribute USVString hostname;
-           attribute USVString port;
-           attribute USVString pathname;
-           attribute USVString search;
-           attribute USVString hash;
+  /*stringifier*/ [Throws] attribute USVString href;
+  [Throws] readonly attribute USVString origin;
+  [Throws]          attribute USVString protocol;
+  [Throws]          attribute USVString host;
+  [Throws]          attribute USVString hostname;
+  [Throws]          attribute USVString port;
+  [Throws]          attribute USVString pathname;
+  [Throws]          attribute USVString search;
+  [Throws]          attribute USVString hash;
 
-  [Throws]
-  void assign(USVString url);
-  [Throws]
-  void replace(USVString url);
-  void reload();
+  [Throws] void assign(USVString url);
+  [Throws] void replace(USVString url);
+  [Throws] void reload();
 
   //[SameObject] readonly attribute USVString[] ancestorOrigins;
 
   // This is only doing as well as gecko right now.
   // https://github.com/servo/servo/issues/7590 is on file for
   // adding attribute stringifier support.
-  stringifier;
+  [Throws] stringifier;
 };
