@@ -15,11 +15,12 @@ use super::{CSSFloat, specified};
 pub use cssparser::Color as CSSColor;
 pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
-pub use super::{Either, None_};
+pub use super::{Auto, Either, None_};
 pub use super::specified::{Angle, BorderStyle, GridLine, Time, UrlOrNone};
 pub use super::specified::url::UrlExtraData;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
+pub use self::position::Position;
 
 pub mod basic_shape;
 pub mod image;
@@ -176,3 +177,57 @@ pub type Number = CSSFloat;
 
 /// A type used for opacity.
 pub type Opacity = CSSFloat;
+
+
+#[derive(Clone, PartialEq, Eq, Copy, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+/// A computed cliprect for clip and image-region
+pub struct ClipRect {
+    pub top: Au,
+    pub right: Option<Au>,
+    pub bottom: Option<Au>,
+    pub left: Au,
+}
+
+impl ToCss for ClipRect {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("rect("));
+        try!(self.top.to_css(dest));
+        try!(dest.write_str(", "));
+        if let Some(right) = self.right {
+            try!(right.to_css(dest));
+            try!(dest.write_str(", "));
+        } else {
+            try!(dest.write_str("auto, "));
+        }
+
+        if let Some(bottom) = self.bottom {
+            try!(bottom.to_css(dest));
+            try!(dest.write_str(", "));
+        } else {
+            try!(dest.write_str("auto, "));
+        }
+
+        try!(self.left.to_css(dest));
+        dest.write_str(")")
+    }
+}
+
+/// rect(...) | auto
+pub type ClipRectOrAuto = Either<ClipRect, Auto>;
+
+impl ClipRectOrAuto {
+    /// Return an auto (default for clip-rect and image-region) value
+    pub fn auto() -> Self {
+        Either::Second(Auto)
+    }
+
+    /// Check if it is auto
+    pub fn is_auto(&self) -> bool {
+        match *self {
+            Either::Second(_) => true,
+            _ => false
+        }
+    }
+}

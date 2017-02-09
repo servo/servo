@@ -21,8 +21,9 @@
     </%call>
 </%def>
 
-<%def name="predefined_type(name, type, initial_value, parse_method='parse', needs_context=True, **kwargs)">
-    <%call expr="longhand(name, predefined_type=type, **kwargs)">
+<%def name="predefined_type(name, type, initial_value, parse_method='parse',
+            needs_context=True, vector=False, **kwargs)">
+    <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
         use cssparser::{Color as CSSParserColor, RGBA};
@@ -40,7 +41,16 @@
             specified::${type}::${parse_method}(input)
             % endif
         }
-    </%call>
+    </%def>
+    % if vector:
+        <%call expr="vector_longhand(name, predefined_type=type, **kwargs)">
+            ${predefined_type_inner(name, type, initial_value, parse_method)}
+        </%call>
+    % else:
+        <%call expr="longhand(name, predefined_type=type, **kwargs)">
+            ${predefined_type_inner(name, type, initial_value, parse_method)}
+        </%call>
+    % endif
 </%def>
 
 // FIXME (Manishearth): Add computed_value_as_specified argument
@@ -56,7 +66,7 @@
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
-<%def name="vector_longhand(name, gecko_only=False, allow_empty=False, **kwargs)">
+<%def name="vector_longhand(name, gecko_only=False, allow_empty=False, delegate_animate=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
         % if not gecko_only:
             use std::fmt;
@@ -87,6 +97,15 @@
                 #[derive(Debug, Clone, PartialEq)]
                 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
                 pub struct T(pub Vec<single_value::T>);
+
+                % if delegate_animate:
+                    use properties::animated_properties::Interpolate;
+                    impl Interpolate for T {
+                        fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
+                            self.0.interpolate(&other.0, progress).map(T)
+                        }
+                    }
+                % endif
             }
 
             impl ToCss for computed_value::T {

@@ -23,3 +23,9 @@ ${helpers.single_keyword("-moz-user-select", "auto text none all", products="gec
                          gecko_inexhaustive=True,
                          animatable=False,
                          spec="https://drafts.csswg.org/css-ui-4/#propdef-user-select")}
+
+${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", products="gecko",
+                         gecko_ffi_name="mWindowDragging",
+                         gecko_enum_prefix="StyleWindowDragging",
+                         animatable=False,
+                         spec="None (Nonstandard Firefox-only property)")}

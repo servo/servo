@@ -328,6 +328,39 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
+<%def name="impl_absolute_length(ident, gecko_ffi_name, need_clone=False)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        ${set_gecko_property(gecko_ffi_name, "v.0")}
+    }
+    <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+    % if need_clone:
+        #[allow(non_snake_case)]
+        pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+            Au(self.gecko.${gecko_ffi_name})
+        }
+    % endif
+</%def>
+
+<%def name="impl_position(ident, gecko_ffi_name, need_clone=False)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        ${set_gecko_property("%s.mXPosition" % gecko_ffi_name, "v.horizontal.into()")}
+        ${set_gecko_property("%s.mYPosition" % gecko_ffi_name, "v.vertical.into()")}
+    }
+    <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+    % if need_clone:
+        #[allow(non_snake_case)]
+        pub fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+            use values::computed::Position;
+            Position {
+                horizontal: self.gecko.${gecko_ffi_name}.mXPosition.into(),
+                vertical: self.gecko.${gecko_ffi_name}.mYPosition.into(),
+            }
+        }
+    % endif
+</%def>
+
 <%def name="impl_color(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
 <%call expr="impl_color_setter(ident, gecko_ffi_name, complex_color)"></%call>
 <%call expr="impl_color_copy(ident, gecko_ffi_name, complex_color)"></%call>
@@ -501,7 +534,8 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
         "length::LengthOrAuto": impl_style_coord,
-        "Length": impl_style_coord,
+        "Length": impl_absolute_length,
+        "Position": impl_position,
         "LengthOrPercentage": impl_style_coord,
         "LengthOrPercentageOrAuto": impl_style_coord,
         "LengthOrPercentageOrNone": impl_style_coord,
@@ -1169,7 +1203,8 @@ fn static_assert() {
                           animation-iteration-count animation-timing-function
                           -moz-binding page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
-                          scroll-snap-type-y perspective-origin transform-origin""" %>
+                          scroll-snap-type-y scroll-snap-coordinate
+                          perspective-origin transform-origin""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1339,6 +1374,34 @@ fn static_assert() {
     }
 
     ${impl_coord_copy('scroll_snap_points_y', 'mScrollSnapPointsY')}
+
+    pub fn set_scroll_snap_coordinate(&mut self, v: longhands::scroll_snap_coordinate::computed_value::T) {
+        unsafe { self.gecko.mScrollSnapCoordinate.set_len_pod(v.0.len() as u32); }
+        for (gecko, servo) in self.gecko.mScrollSnapCoordinate
+                               .iter_mut()
+                               .zip(v.0.iter()) {
+            gecko.mXPosition = servo.horizontal.into();
+            gecko.mYPosition = servo.vertical.into();
+        }
+    }
+
+    pub fn copy_scroll_snap_coordinate_from(&mut self, other: &Self) {
+        unsafe {
+            self.gecko.mScrollSnapCoordinate
+                .set_len_pod(other.gecko.mScrollSnapCoordinate.len() as u32);
+        }
+
+        for (this, that) in self.gecko.mScrollSnapCoordinate
+                               .iter_mut()
+                               .zip(other.gecko.mScrollSnapCoordinate.iter()) {
+            *this = *that;
+        }
+    }
+
+    pub fn clone_scroll_snap_coordinate(&self) -> longhands::scroll_snap_coordinate::computed_value::T {
+        let vec = self.gecko.mScrollSnapCoordinate.iter().map(|f| f.into()).collect();
+        longhands::scroll_snap_coordinate::computed_value::T(vec)
+    }
 
     <%def name="transform_function_arm(name, keyword, items)">
         <%
@@ -1971,7 +2034,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="List"
-                  skip_longhands="list-style-image list-style-type quotes"
+                  skip_longhands="list-style-image list-style-type quotes -moz-image-region"
                   skip_additionals="*">
 
     pub fn set_list_style_image(&mut self, image: longhands::list_style_image::computed_value::T) {
@@ -2036,6 +2099,28 @@ fn static_assert() {
     pub fn copy_quotes_from(&mut self, other: &Self) {
         unsafe { self.gecko.mQuotes.set(&other.gecko.mQuotes); }
     }
+
+    #[allow(non_snake_case)]
+    pub fn set__moz_image_region(&mut self, v: longhands::_moz_image_region::computed_value::T) {
+        use values::Either;
+
+        match v {
+            Either::Second(_auto) => {
+                self.gecko.mImageRegion.x = 0;
+                self.gecko.mImageRegion.y = 0;
+                self.gecko.mImageRegion.width = 0;
+                self.gecko.mImageRegion.height = 0;
+            }
+            Either::First(rect) => {
+                self.gecko.mImageRegion.x = rect.left.0;
+                self.gecko.mImageRegion.y = rect.top.0;
+                self.gecko.mImageRegion.height = rect.bottom.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.y;
+                self.gecko.mImageRegion.width = rect.right.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.x;
+            }
+        }
+    }
+
+    ${impl_simple_copy('_moz_image_region', 'mImageRegion')}
 
 </%self:impl_trait>
 
@@ -2204,7 +2289,7 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="InheritedText"
                   skip_longhands="text-align text-emphasis-style text-shadow line-height letter-spacing word-spacing
-                                  -webkit-text-stroke-width">
+                                  -webkit-text-stroke-width text-emphasis-position -moz-tab-size">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
@@ -2310,6 +2395,26 @@ fn static_assert() {
         }
     }
 
+    pub fn set_text_emphasis_position(&mut self, v: longhands::text_emphasis_position::computed_value::T) {
+        use properties::longhands::text_emphasis_position::*;
+
+        let mut result = match v.0 {
+            HorizontalWritingModeValue::Over => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_OVER as u8,
+            HorizontalWritingModeValue::Under => structs::NS_STYLE_TEXT_EMPHASIS_POSITION_UNDER as u8,
+        };
+        match v.1 {
+            VerticalWritingModeValue::Right => {
+                result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_RIGHT as u8;
+            }
+            VerticalWritingModeValue::Left => {
+                result |= structs::NS_STYLE_TEXT_EMPHASIS_POSITION_LEFT as u8;
+            }
+        }
+        self.gecko.mTextEmphasisPosition = result;
+    }
+
+    <%call expr="impl_simple_copy('text_emphasis_position', 'mTextEmphasisPosition')"></%call>
+
     pub fn set_text_emphasis_style(&mut self, v: longhands::text_emphasis_style::computed_value::T) {
         use nsstring::nsCString;
         use properties::longhands::text_emphasis_style::computed_value::T;
@@ -2352,6 +2457,22 @@ fn static_assert() {
     }
 
     <%call expr="impl_app_units('_webkit_text_stroke_width', 'mWebkitTextStrokeWidth', need_clone=False)"></%call>
+
+    #[allow(non_snake_case)]
+    pub fn set__moz_tab_size(&mut self, v: longhands::_moz_tab_size::computed_value::T) {
+        use values::Either;
+
+        match v {
+            Either::Second(number) => {
+                self.gecko.mTabSize.set_value(CoordDataValue::Factor(number));
+            }
+            Either::First(au) => {
+                self.gecko.mTabSize.set(au);
+            }
+        }
+    }
+
+    <%call expr="impl_coord_copy('_moz_tab_size', 'mTabSize')"></%call>
 
 </%self:impl_trait>
 
@@ -2813,6 +2934,18 @@ clip-path
             Gecko_CopyStyleContentsFrom(&mut self.gecko, &other.gecko)
         }
     }
+</%self:impl_trait>
+
+<%self:impl_trait style_struct_name="XUL"
+                  skip_longhands="-moz-stack-sizing">
+
+    #[allow(non_snake_case)]
+    pub fn set__moz_stack_sizing(&mut self, v: longhands::_moz_stack_sizing::computed_value::T) {
+        use properties::longhands::_moz_stack_sizing::computed_value::T;
+        self.gecko.mStretchStack = v == T::stretch_to_fit;
+    }
+
+    ${impl_simple_copy('_moz_stack_sizing', 'mStretchStack')}
 </%self:impl_trait>
 
 <%def name="define_ffi_struct_accessor(style_struct)">

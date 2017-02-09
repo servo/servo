@@ -1176,10 +1176,11 @@ impl FragmentDisplayListBuilding for Fragment {
     fn adjust_clip_for_style(&self,
                              parent_clip: &mut ClippingRegion,
                              stacking_relative_border_box: &Rect<Au>) {
+        use style::values::Either;
         // Account for `clip` per CSS 2.1 § 11.1.2.
         let style_clip_rect = match (self.style().get_box().position,
-                                     self.style().get_effects().clip.0) {
-            (position::T::absolute, Some(style_clip_rect)) => style_clip_rect,
+                                     self.style().get_effects().clip) {
+            (position::T::absolute, Either::First(style_clip_rect)) => style_clip_rect,
             _ => return,
         };
 

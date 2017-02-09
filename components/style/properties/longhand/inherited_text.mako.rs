@@ -973,7 +973,7 @@ ${helpers.single_keyword("text-align-last",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="text-emphasis-position" animatable="False" products="none"
+<%helpers:longhand name="text-emphasis-position" animatable="False" products="gecko"
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position">
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
@@ -1030,6 +1030,15 @@ ${helpers.predefined_type("text-emphasis-color", "CSSColor",
                           boxed=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
 
+
+${helpers.predefined_type(
+    "-moz-tab-size", "LengthOrNumber",
+    "::values::Either::Second(8.0)",
+    "parse_non_negative",
+    products="gecko", animatable=False,
+    spec="https://drafts.csswg.org/css-text-3/#tab-size-property")}
+
+
 // CSS Compatibility
 // https://compat.spec.whatwg.org
 ${helpers.predefined_type(
@@ -1069,6 +1078,7 @@ ${helpers.predefined_type(
         Au::from_px(0)
     }
 </%helpers:longhand>
+
 
 // CSS Ruby Layout Module Level 1
 // https://drafts.csswg.org/css-ruby/

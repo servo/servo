@@ -1589,7 +1589,7 @@ impl ComputedValues {
         // TODO(gw): Add clip-path, isolation, mask-image, mask-border-source when supported.
         if effects.opacity < 1.0 ||
            !effects.filter.is_empty() ||
-           effects.clip.0.is_some() {
+           !effects.clip.is_auto() {
            effects.mix_blend_mode != mix_blend_mode::T::normal ||
             return transform_style::T::flat;
         }
@@ -2290,10 +2290,10 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
 /// doesn't clip its children.
 #[cfg(feature = "servo")]
 pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ComputedValues>) {
-    if style.get_effects().clip.0.is_some() {
+    if !style.get_effects().clip.is_auto() {
         let mut style = Arc::make_mut(style);
         let effects_style = Arc::make_mut(&mut style.effects);
-        effects_style.clip.0 = None
+        effects_style.clip = Either::auto()
     }
 }
 

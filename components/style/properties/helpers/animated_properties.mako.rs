@@ -10,8 +10,6 @@ use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
 use properties::{DeclaredValue, PropertyDeclaration};
 use properties::longhands;
-use properties::longhands::background_position_x::computed_value::T as BackgroundPositionX;
-use properties::longhands::background_position_y::computed_value::T as BackgroundPositionY;
 use properties::longhands::background_size::computed_value::T as BackgroundSize;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::line_height::computed_value::T as LineHeight;
@@ -33,7 +31,7 @@ use super::ComputedValues;
 use values::CSSFloat;
 use values::Either;
 use values::computed::{Angle, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use values::computed::{BorderRadiusSize, LengthOrNone};
+use values::computed::{BorderRadiusSize, ClipRect, LengthOrNone};
 use values::computed::{CalcLengthOrPercentage, Context, LengthOrPercentage};
 use values::computed::position::{HorizontalPosition, Position, VerticalPosition};
 use values::computed::ToComputedValue;
@@ -724,17 +722,16 @@ impl Interpolate for VerticalPosition {
 
 impl RepeatableListInterpolate for VerticalPosition {}
 
-impl Interpolate for BackgroundPositionX {
+/// https://drafts.csswg.org/css-transitions/#animtype-rect
+impl Interpolate for ClipRect {
     #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        Ok(BackgroundPositionX(try!(self.0.interpolate(&other.0, progress))))
-    }
-}
-
-impl Interpolate for BackgroundPositionY {
-    #[inline]
-    fn interpolate(&self, other: &Self, progress: f64) -> Result<Self, ()> {
-        Ok(BackgroundPositionY(try!(self.0.interpolate(&other.0, progress))))
+    fn interpolate(&self, other: &Self, time: f64) -> Result<Self, ()> {
+        Ok(ClipRect {
+            top: try!(self.top.interpolate(&other.top, time)),
+            right: try!(self.right.interpolate(&other.right, time)),
+            bottom: try!(self.bottom.interpolate(&other.bottom, time)),
+            left: try!(self.left.interpolate(&other.left, time)),
+        })
     }
 }
 

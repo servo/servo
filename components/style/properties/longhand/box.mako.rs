@@ -1049,6 +1049,25 @@ ${helpers.single_keyword("animation-fill-mode",
 </%helpers:longhand>
 
 
+${helpers.predefined_type("scroll-snap-destination",
+                          "Position",
+                          "computed::Position::zero()",
+                          products="gecko",
+                          boxed="True",
+                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
+                          animatable=True)}
+
+${helpers.predefined_type("scroll-snap-coordinate",
+                          "Position",
+                          "computed::Position::zero()",
+                          vector=True,
+                          products="gecko",
+                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-destination)",
+                          animatable=True,
+                          allow_empty=True,
+                          delegate_animate=True)}
+
+
 
 <%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
                    animatable="True"

@@ -16,7 +16,7 @@ use std::f32::consts::PI;
 use std::fmt;
 use std::ops::Mul;
 use style_traits::ToCss;
-use super::{CSSFloat, HasViewportPercentage, Either, None_};
+use super::{Auto, CSSFloat, HasViewportPercentage, Either, None_};
 use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use super::computed::Shadow as ComputedShadow;
 
@@ -27,6 +27,7 @@ pub use self::image::{SizeKeyword, VerticalDirection};
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength, CalcUnit};
+pub use self::position::{HorizontalPosition, Position, VerticalPosition};
 
 pub mod basic_shape;
 pub mod grid;
@@ -664,3 +665,127 @@ impl Shadow {
         })
     }
 }
+
+
+impl HasViewportPercentage for ClipRect {
+    fn has_viewport_percentage(&self) -> bool {
+        self.top.has_viewport_percentage() ||
+        self.right.as_ref().map_or(false, |x| x.has_viewport_percentage()) ||
+        self.bottom.as_ref().map_or(false, |x| x.has_viewport_percentage()) ||
+        self.left.has_viewport_percentage()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// rect(<top>, <left>, <bottom>, <right>) used by clip and image-region
+pub struct ClipRect {
+    /// <top> (<length> | <auto>). Auto maps to 0
+    pub top: Length,
+    /// <right> (<length> | <auto>)
+    pub right: Option<Length>,
+    /// <bottom> (<length> | <auto>)
+    pub bottom: Option<Length>,
+    /// <left> (<length> | <auto>). Auto maps to 0
+    pub left: Length,
+}
+
+
+impl ToCss for ClipRect {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        try!(dest.write_str("rect("));
+
+        try!(self.top.to_css(dest));
+        try!(dest.write_str(", "));
+
+        if let Some(ref right) = self.right {
+            try!(right.to_css(dest));
+            try!(dest.write_str(", "));
+        } else {
+            try!(dest.write_str("auto, "));
+        }
+
+        if let Some(ref bottom) = self.bottom {
+            try!(bottom.to_css(dest));
+            try!(dest.write_str(", "));
+        } else {
+            try!(dest.write_str("auto, "));
+        }
+
+        try!(self.left.to_css(dest));
+
+        try!(dest.write_str(")"));
+        Ok(())
+    }
+}
+
+impl ToComputedValue for ClipRect {
+    type ComputedValue = super::computed::ClipRect;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> super::computed::ClipRect {
+        super::computed::ClipRect {
+            top: self.top.to_computed_value(context),
+            right: self.right.as_ref().map(|right| right.to_computed_value(context)),
+            bottom: self.bottom.as_ref().map(|bottom| bottom.to_computed_value(context)),
+            left: self.left.to_computed_value(context),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &super::computed::ClipRect) -> Self {
+        ClipRect {
+            top: ToComputedValue::from_computed_value(&computed.top),
+            right: computed.right.map(|right| ToComputedValue::from_computed_value(&right)),
+            bottom: computed.bottom.map(|bottom| ToComputedValue::from_computed_value(&bottom)),
+            left: ToComputedValue::from_computed_value(&computed.left),
+        }
+    }
+}
+
+impl Parse for ClipRect {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        use values::specified::Length;
+
+        fn parse_argument(context: &ParserContext, input: &mut Parser) -> Result<Option<Length>, ()> {
+            if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+                Ok(None)
+            } else {
+                Length::parse(context, input).map(Some)
+            }
+        }
+
+        if !try!(input.expect_function()).eq_ignore_ascii_case("rect") {
+            return Err(())
+        }
+
+        // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
+        input.parse_nested_block(|input| {
+            let top = try!(parse_argument(context, input));
+            let right;
+            let bottom;
+            let left;
+
+            if input.try(|input| input.expect_comma()).is_ok() {
+                right = try!(parse_argument(context, input));
+                try!(input.expect_comma());
+                bottom = try!(parse_argument(context, input));
+                try!(input.expect_comma());
+                left = try!(parse_argument(context, input));
+            } else {
+                right = try!(parse_argument(context, input));
+                bottom = try!(parse_argument(context, input));
+                left = try!(parse_argument(context, input));
+            }
+            Ok(ClipRect {
+                top: top.unwrap_or(Length::zero()),
+                right: right,
+                bottom: bottom,
+                left: left.unwrap_or(Length::zero()),
+            })
+        })
+    }
+}
+
+/// rect(...) | auto
+pub type ClipRectOrAuto = Either<ClipRect, Auto>;

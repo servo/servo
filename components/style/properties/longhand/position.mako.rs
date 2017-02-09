@@ -210,6 +210,14 @@ ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
                          products="gecko", animatable=False,
                          spec="https://drafts.csswg.org/css-images/#propdef-object-fit")}
 
+${helpers.predefined_type("object-position",
+                          "Position",
+                          "computed::Position::zero()",
+                          products="gecko",
+                          boxed="True",
+                          spec="https://drafts.csswg.org/css-images-3/#the-object-position",
+                          animatable=True)}
+
 <% grid_longhands = ["grid-row-start", "grid-row-end", "grid-column-start", "grid-column-end"] %>
 
 % for longhand in grid_longhands:
