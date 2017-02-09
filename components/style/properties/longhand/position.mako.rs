@@ -216,7 +216,7 @@ ${helpers.predefined_type("object-position",
                           products="gecko",
                           boxed="True",
                           spec="https://drafts.csswg.org/css-images-3/#the-object-position",
-                          animatable=False)}
+                          animatable=True)}
 
 <% grid_longhands = ["grid-row-start", "grid-row-end", "grid-column-start", "grid-column-end"] %>
 
