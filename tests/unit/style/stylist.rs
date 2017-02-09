@@ -112,11 +112,9 @@ fn test_insert() {
 fn test_get_universal_rules() {
     thread_state::initialize(thread_state::LAYOUT);
     let map = get_mock_map(&["*|*", "#foo > *|*", ".klass", "#id"]);
-    let mut decls = vec![];
 
-    map.get_universal_rules(&mut decls,
-                            CascadeLevel::UserNormal,
-                            CascadeLevel::UserImportant);
+    let decls = map.get_universal_rules(CascadeLevel::UserNormal,
+                                        CascadeLevel::UserImportant);
 
     assert_eq!(decls.len(), 1);
 }

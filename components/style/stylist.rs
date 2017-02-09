@@ -211,14 +211,10 @@ impl Stylist {
                self.state_deps.len());
 
         SelectorImpl::each_precomputed_pseudo_element(|pseudo| {
-            // TODO: Consider not doing this and just getting the rules on the
-            // fly. It should be a bit slower, but we'd take rid of the
-            // extra field, and avoid this precomputation entirely.
             if let Some(map) = self.pseudos_map.remove(&pseudo) {
-                let mut declarations = vec![];
-                map.user_agent.get_universal_rules(&mut declarations,
-                                                   CascadeLevel::UANormal,
-                                                   CascadeLevel::UAImportant);
+                let declarations =
+                    map.user_agent.get_universal_rules(CascadeLevel::UANormal,
+                                                       CascadeLevel::UAImportant);
                 self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
             }
         });
@@ -946,20 +942,21 @@ impl SelectorMap {
 
     /// Append to `rule_list` all universal Rules (rules with selector `*|*`) in
     /// `self` sorted by specificity and source order.
-    pub fn get_universal_rules<V>(&self,
-                                  matching_rules_list: &mut V,
-                                  cascade_level: CascadeLevel,
-                                  important_cascade_level: CascadeLevel)
-        where V: VecLike<ApplicableDeclarationBlock>
-    {
+    pub fn get_universal_rules(&self,
+                               cascade_level: CascadeLevel,
+                               important_cascade_level: CascadeLevel)
+                               -> Vec<ApplicableDeclarationBlock> {
         debug_assert!(!cascade_level.is_important());
         debug_assert!(important_cascade_level.is_important());
         if self.empty {
-            return
+            return vec![];
         }
 
-        let init_len = matching_rules_list.len();
+        let mut matching_rules_list = vec![];
 
+        // We need to insert important rules _after_ normal rules for this to be
+        // correct, and also to not trigger rule tree assertions.
+        let mut important = vec![];
         for rule in self.other_rules.iter() {
             if rule.selector.compound_selector.is_empty() &&
                rule.selector.next.is_none() {
@@ -970,14 +967,21 @@ impl SelectorMap {
                         rule.to_applicable_declaration_block(cascade_level));
                 }
                 if block.any_important() {
-                    matching_rules_list.push(
+                    important.push(
                         rule.to_applicable_declaration_block(important_cascade_level));
                 }
             }
         }
 
-        sort_by_key(&mut matching_rules_list[init_len..],
+        let normal_len = matching_rules_list.len();
+        matching_rules_list.extend(important.into_iter());
+
+        sort_by_key(&mut matching_rules_list[0..normal_len],
                     |block| (block.specificity, block.source_order));
+        sort_by_key(&mut matching_rules_list[normal_len..],
+                    |block| (block.specificity, block.source_order));
+
+        matching_rules_list
     }
 
     fn get_matching_rules_from_hash<E, Str, BorrowedStr: ?Sized, Vector>(
