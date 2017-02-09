@@ -24,7 +24,6 @@ use msg::constellation_msg::PipelineId;
 /// In `browsingcontext.rs`, we create a custom window proxy for these windows,
 /// that throws security exceptions for most accessors. This is not a replacement
 /// for XOWs, but provides belt-and-braces security.
-
 #[dom_struct]
 pub struct XOriginWindow {
     /// The global for this window.

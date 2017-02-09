@@ -4,6 +4,7 @@
 
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::error::{Error, throw_dom_exception};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{DomObject, Reflector};
@@ -45,6 +46,9 @@ pub struct BrowsingContext {
 
     /// The pipeline id of the currently active document.
     /// May be None, when the currently active document is in another script thread.
+    /// We do not try to keep the pipeline id for documents in other threads,
+    /// as this would require the constelltion notifying many script threads about
+    /// the change, which could be expensive.
     currently_active: Cell<Option<PipelineId>>,
 
     /// Has this browsing context been discarded?
@@ -155,15 +159,14 @@ impl BrowsingContext {
     }
 
     pub fn set_currently_active(&self, window: &Window) {
-        let globalscope = window.global();
+        let globalscope = window.upcast();
         self.set_window_proxy(&*globalscope, &PROXY_HANDLER);
         self.currently_active.set(Some(globalscope.pipeline_id()));
     }
 
     pub fn unset_currently_active(&self) {
         let window = XOriginWindow::new(self);
-        let globalscope = window.global();
-        self.set_window_proxy(&*globalscope, &XORIGIN_PROXY_HANDLER);
+        self.set_window_proxy(&*window.upcast(), &XORIGIN_PROXY_HANDLER);
         self.currently_active.set(None);
     }
 
