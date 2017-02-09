@@ -9,7 +9,7 @@
  * Event sent to a window when a storage area changes.
  */
 
-[Constructor(DOMString type, optional StorageEventInit eventInitDict), Exposed=(Window,Worker)]
+[Constructor(DOMString type, optional StorageEventInit eventInitDict), Exposed=Window]
 interface StorageEvent : Event {
   readonly attribute DOMString? key;
   readonly attribute DOMString? oldValue;
