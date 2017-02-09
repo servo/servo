@@ -30,7 +30,7 @@ rayon = "0.6"
 script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
-selectors = "0.17"
+selectors = { path = "../selectors" }
 serde_derive = "0.8"
 serde_json = "0.8"
 servo_config = {path = "../config"}

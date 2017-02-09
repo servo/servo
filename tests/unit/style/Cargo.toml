@@ -22,7 +22,7 @@ owning_ref = "0.2.2"
 parking_lot = "0.3"
 rayon = "0.6"
 rustc-serialize = "0.3"
-selectors = "0.17"
+selectors = {path = "../../../components/selectors"}
 servo_atoms = {path = "../../../components/atoms"}
 servo_config = {path = "../../../components/config"}
 style = {path = "../../../components/style"}
