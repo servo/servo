@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclar
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, jsstring_to_str};
 use dom::bindings::inheritance::Castable;
@@ -261,6 +260,6 @@ pub fn handle_request_animation_frame(documents: &Documents,
 pub fn handle_reload(documents: &Documents,
                      id: PipelineId) {
     if let Some(win) = documents.find_window(id) {
-        win.Location().Reload();
+        win.Location().reload_without_origin_check();
     }
 }

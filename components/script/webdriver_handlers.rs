@@ -113,29 +113,24 @@ pub fn handle_get_frame_id(documents: &Documents,
                            pipeline: PipelineId,
                            webdriver_frame_id: WebDriverFrameId,
                            reply: IpcSender<Result<Option<PipelineId>, ()>>) {
-    let window = match webdriver_frame_id {
+    let result = match webdriver_frame_id {
         WebDriverFrameId::Short(_) => {
             // This isn't supported yet
             Ok(None)
         },
         WebDriverFrameId::Element(x) => {
-            match find_node_by_unique_id(documents, pipeline, x) {
-                Some(ref node) => {
-                    match node.downcast::<HTMLIFrameElement>() {
-                        Some(ref elem) => Ok(elem.get_content_window()),
-                        None => Err(())
-                    }
-                },
-                None => Err(())
-            }
+            find_node_by_unique_id(documents, pipeline, x)
+                .and_then(|node| node.downcast::<HTMLIFrameElement>().map(|elem| elem.pipeline_id()))
+                .ok_or(())
         },
         WebDriverFrameId::Parent => {
-            documents.find_window(pipeline).map(|window| window.parent()).ok_or(())
+            documents.find_window(pipeline)
+                .map(|window| window.parent_info().map(|(parent_id, _)| parent_id))
+                .ok_or(())
         }
     };
 
-    let frame_id = window.map(|x| x.map(|x| x.upcast::<GlobalScope>().pipeline_id()));
-    reply.send(frame_id).unwrap()
+    reply.send(result).unwrap()
 }
 
 pub fn handle_find_element_css(documents: &Documents, pipeline: PipelineId, selector: String,
