@@ -2034,7 +2034,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="List"
-                  skip_longhands="list-style-image list-style-type quotes"
+                  skip_longhands="list-style-image list-style-type quotes -moz-image-region"
                   skip_additionals="*">
 
     pub fn set_list_style_image(&mut self, image: longhands::list_style_image::computed_value::T) {
@@ -2099,6 +2099,28 @@ fn static_assert() {
     pub fn copy_quotes_from(&mut self, other: &Self) {
         unsafe { self.gecko.mQuotes.set(&other.gecko.mQuotes); }
     }
+
+    #[allow(non_snake_case)]
+    pub fn set__moz_image_region(&mut self, v: longhands::_moz_image_region::computed_value::T) {
+        use values::Either;
+
+        match v {
+            Either::Second(_auto) => {
+                self.gecko.mImageRegion.x = 0;
+                self.gecko.mImageRegion.y = 0;
+                self.gecko.mImageRegion.width = 0;
+                self.gecko.mImageRegion.height = 0;
+            }
+            Either::First(rect) => {
+                self.gecko.mImageRegion.x = rect.left.0;
+                self.gecko.mImageRegion.y = rect.top.0;
+                self.gecko.mImageRegion.height = rect.bottom.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.y;
+                self.gecko.mImageRegion.width = rect.right.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.x;
+            }
+        }
+    }
+
+    ${impl_simple_copy('_moz_image_region', 'mImageRegion')}
 
 </%self:impl_trait>
 

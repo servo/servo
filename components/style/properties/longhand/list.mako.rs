@@ -101,3 +101,11 @@ ${helpers.predefined_type("list-style-image", "UrlOrNone", "Either::Second(None_
         }
     }
 </%helpers:longhand>
+
+${helpers.predefined_type("-moz-image-region",
+                          "ClipRectOrAuto",
+                          "computed::ClipRectOrAuto::auto()",
+                          animatable=False,
+                          products="gecko",
+                          boxed="True",
+                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-image-region)")}
