@@ -103,6 +103,7 @@ use msg::constellation_msg::{FrameId, Key, KeyModifiers, KeyState};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
@@ -1988,6 +1989,53 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     }
 }
 
+// https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
+fn is_a_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, original_host: Host) -> bool {
+    // Step 1
+    if host_suffix_string.is_empty() {
+        return false;
+    }
+
+    // Step 2-3.
+    let host = match Host::parse(host_suffix_string) {
+        Ok(host) => host,
+        Err(_) => return false,
+    };
+
+    // Step 4.
+    if host != original_host {
+        // Step 4.1
+        let host = match host {
+            Host::Domain(ref host) => host,
+            _ => return false,
+        };
+        let original_host = match original_host {
+            Host::Domain(ref original_host) => original_host,
+            _ => return false,
+        };
+
+        // Step 4.2
+        let (prefix, suffix) = match original_host.len().checked_sub(host.len()) {
+            Some(index) => original_host.split_at(index),
+            None => return false,
+        };
+        if !prefix.ends_with(".") {
+            return false;
+        }
+        if suffix != host {
+            return false;
+        }
+
+        // Step 4.3
+        if is_pub_domain(host) {
+            return false;
+        }
+    }
+
+    // Step 5
+    return true;
+}
+
 /// https://url.spec.whatwg.org/#network-scheme
 fn url_has_network_scheme(url: &ServoUrl) -> bool {
     match url.scheme() {
@@ -2487,6 +2535,38 @@ impl DocumentMethods for Document {
             Some(Host::Domain(domain)) => DOMString::from(domain),
             Some(host) => DOMString::from(host.to_string()),
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
+    fn SetDomain(&self, value: DOMString) -> ErrorResult {
+        // Step 1.
+        if !self.has_browsing_context {
+            return Err(Error::Security);
+        }
+
+        // TODO: Step 2. "If this Document object's active sandboxing
+        // flag set has its sandboxed document.domain browsing context
+        // flag set, then throw a "SecurityError" DOMException."
+
+        // Step 3-4.
+        let effective_domain = match self.origin.effective_domain() {
+            Some(effective_domain) => effective_domain,
+            None => return Err(Error::Security),
+        };
+
+        // Step 5
+        if !is_a_registrable_domain_suffix_of_or_is_equal_to(&*value, effective_domain) {
+            return Err(Error::Security);
+        }
+
+        // Step 6
+        // Slightly annoying to have to parse twice.
+        match Host::parse(&*value) {
+            Ok(host) => self.origin.set_domain(host),
+            Err(_) => return Err(Error::Security),
+        };
+
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-referrer
@@ -3396,10 +3476,10 @@ impl DocumentMethods for Document {
 
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
-        // This check should probably be same-origin-domain
+        // This check is same-origin not same-origin-domain.
         // https://github.com/whatwg/html/issues/2282
         // https://github.com/whatwg/html/pull/2288
-        if !self.origin.same_origin_domain(&entry_responsible_document.origin) {
+        if !self.origin.same_origin(&entry_responsible_document.origin) {
             // Step 4.
             return Err(Error::Security);
         }
