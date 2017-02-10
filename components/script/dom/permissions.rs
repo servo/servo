@@ -39,6 +39,12 @@ pub trait PermissionAlgorithm {
     fn permission_revoke(descriptor: &Self::Descriptor, status: &Self::Status);
 }
 
+enum Operation {
+    Query,
+    Request,
+    Revoke,
+}
+
 // https://w3c.github.io/permissions/#permissions
 #[dom_struct]
 pub struct Permissions {
@@ -57,6 +63,91 @@ impl Permissions {
                            global,
                            PermissionsBinding::Wrap)
     }
+
+    #[allow(unrooted_must_root)]
+    // https://w3c.github.io/permissions/#dom-permissions-query
+    // https://w3c.github.io/permissions/#dom-permissions-request
+    // https://w3c.github.io/permissions/#dom-permissions-revoke
+    fn manipulate(&self,
+                  op: Operation,
+                  cx: *mut JSContext,
+                  permissionDesc: *mut JSObject,
+                  promise: Option<Rc<Promise>>)
+                  -> Rc<Promise> {
+        // (Query, Request) Step 3.
+        let p = match promise {
+            Some(promise) => promise,
+            None => Promise::new(&self.global()),
+        };
+
+        // (Query, Request, Revoke) Step 1.
+        let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
+            Ok(descriptor) => descriptor,
+            Err(error) => {
+                p.reject_error(cx, error);
+                return p;
+            },
+        };
+
+        // (Query, Request) Step 5.
+        let status = PermissionStatus::new(&self.global(), &root_desc);
+
+        // (Query, Request, Revoke) Step 2.
+        match root_desc.name {
+            PermissionName::Bluetooth => {
+                let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
+                    Ok(descriptor) => descriptor,
+                    Err(error) => {
+                        p.reject_error(cx, error);
+                        return p;
+                    },
+                };
+
+                // (Query, Request) Step 5.
+                let result = BluetoothPermissionResult::new(&self.global(), &status);
+
+                match &op {
+                    // (Request) Step 6 - 8.
+                    &Operation::Request => Bluetooth::permission_request(cx, &p, &bluetooth_desc, &result),
+
+                    // (Query) Step 6 - 7.
+                    &Operation::Query => Bluetooth::permission_query(cx, &p, &bluetooth_desc, &result),
+
+                    // (Revoke) Step 3 - 4.
+                    &Operation::Revoke => Bluetooth::permission_revoke(&bluetooth_desc, &result),
+                }
+            },
+            _ => {
+                match &op {
+                    &Operation::Request => {
+                        // (Request) Step 6.
+                        Permissions::permission_request(cx, &p, &root_desc, &status);
+
+                        // (Request) Step 7. The default algorithm always resolve
+
+                        // (Request) Step 8.
+                        p.resolve_native(cx, &status);
+                    },
+                    &Operation::Query => {
+                        // (Query) Step 6.
+                        Permissions::permission_query(cx, &p, &root_desc, &status);
+
+                        // (Query) Step 7.
+                        p.resolve_native(cx, &status);
+                    },
+                    // (Revoke) Step 3 - 4.
+                    &Operation::Revoke => Permissions::permission_revoke(&root_desc, &status),
+                }
+            },
+        };
+        match op {
+            // (Revoke) Step 5.
+            Operation::Revoke => self.manipulate(Operation::Query, cx, permissionDesc, Some(p)),
+
+            // (Query, Request) Step 4.
+            _ => p,
+        }
+    }
 }
 
 impl PermissionsMethods for Permissions {
@@ -64,137 +155,21 @@ impl PermissionsMethods for Permissions {
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-query
     unsafe fn Query(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        // Step 3.
-        let p = Promise::new(&self.global());
-
-        // Step 1.
-        let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
-            Ok(descriptor) => descriptor,
-            Err(error) => {
-                p.reject_error(cx, error);
-                return p;
-            },
-        };
-
-        // Step 5.
-        let status = PermissionStatus::new(&self.global(), &root_desc);
-
-        // Step 2.
-        match root_desc.name {
-            PermissionName::Bluetooth => {
-                let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
-                    Ok(descriptor) => descriptor,
-                    Err(error) => {
-                        p.reject_error(cx, error);
-                        return p;
-                    },
-                };
-                // Step 5.
-                let result = BluetoothPermissionResult::new(&self.global(), &status);
-                // Step 6.
-                Bluetooth::permission_query(cx, &p, &bluetooth_desc, &result);
-                // Step 7. in permission_query
-            },
-            _ => {
-                // Step 6.
-                Permissions::permission_query(cx, &p, &root_desc, &status);
-
-                // Step 7.
-                p.resolve_native(cx, &status);
-            },
-        };
-
-        // Step 4.
-        return p;
+        self.manipulate(Operation::Query, cx, permissionDesc, None)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-request
     unsafe fn Request(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        // Step 3.
-        let p = Promise::new(&self.global());
-
-        // Step 1.
-        let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
-            Ok(descriptor) => descriptor,
-            Err(error) => {
-                p.reject_error(cx, error);
-                return p;
-            },
-        };
-
-        // Step 5.
-        let status = PermissionStatus::new(&self.global(), &root_desc);
-
-        // Step 2.
-        match root_desc.name {
-            PermissionName::Bluetooth => {
-                let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
-                    Ok(descriptor) => descriptor,
-                    Err(error) => {
-                        p.reject_error(cx, error);
-                        return p;
-                    },
-                };
-                // Step 5.
-                let result = BluetoothPermissionResult::new(&self.global(), &status);
-                // Step 6.
-                Bluetooth::permission_request(cx, &p, &bluetooth_desc, &result);
-                // Step 7 - 8. in permission_request
-            },
-            _ => {
-                // Step 6.
-                Permissions::permission_request(cx, &p, &root_desc, &status);
-
-                // Step 7. The default algorithm always resolve
-
-                // Step 8.
-                p.resolve_native(cx, &status);
-            },
-        };
-        // Step 4.
-        return p;
+        self.manipulate(Operation::Request, cx, permissionDesc, None)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     // https://w3c.github.io/permissions/#dom-permissions-revoke
     unsafe fn Revoke(&self, cx: *mut JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
-        // Step 1.
-        let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
-            Ok(descriptor) => descriptor,
-            Err(error) => {
-                let p = Promise::new(&self.global());
-                p.reject_error(cx, error);
-                return p;
-            },
-        };
-
-        let status = PermissionStatus::new(&self.global(), &root_desc);
-
-        // Step 2.
-        match root_desc.name {
-            PermissionName::Bluetooth => {
-                let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
-                    Ok(descriptor) => descriptor,
-                    Err(error) => {
-                        let p = Promise::new(&self.global());
-                        p.reject_error(cx, error);
-                        return p;
-                    },
-                };
-                let result = BluetoothPermissionResult::new(&self.global(), &status);
-                // Step 3 - 4. in permission_revoke
-                Bluetooth::permission_revoke(&bluetooth_desc, &result);
-            },
-            _ => {
-                Permissions::permission_revoke(&root_desc, &status);
-            },
-        };
-
-        // Step 5.
-        return self.Query(cx, permissionDesc);
+        self.manipulate(Operation::Revoke, cx, permissionDesc, None)
     }
 }
 
