@@ -2262,6 +2262,11 @@ fn static_assert() {
                         Color::CurrentColor => 0,
                     };
                 }
+                Url(ref url) => {
+                    unsafe {
+                        bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.for_ffi());
+                    }
+                }
             }
         }
     }

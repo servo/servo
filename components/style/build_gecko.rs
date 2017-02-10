@@ -552,6 +552,7 @@ mod bindings {
             "nsStyleCoord_CalcValue",
             "nsStyleDisplay",
             "nsStyleEffects",
+            "nsStyleFilter",
             "nsStyleFont",
             "nsStyleGradient",
             "nsStyleGradientStop",

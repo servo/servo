@@ -70,6 +70,9 @@ unsafe impl Sync for nsStyleDisplay {}
 use gecko_bindings::structs::nsStyleEffects;
 unsafe impl Send for nsStyleEffects {}
 unsafe impl Sync for nsStyleEffects {}
+use gecko_bindings::structs::nsStyleFilter;
+unsafe impl Send for nsStyleFilter {}
+unsafe impl Sync for nsStyleFilter {}
 use gecko_bindings::structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -707,6 +710,10 @@ extern "C" {
 extern "C" {
     pub fn Gecko_CopyFiltersFrom(aSrc: *mut nsStyleEffects,
                                  aDest: *mut nsStyleEffects);
+}
+extern "C" {
+    pub fn Gecko_nsStyleFilter_SetURLValue(effects: *mut nsStyleFilter,
+                                           uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_FillAllBackgroundLists(layers: *mut nsStyleImageLayers,

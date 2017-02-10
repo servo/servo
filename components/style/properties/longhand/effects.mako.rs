@@ -94,6 +94,7 @@ ${helpers.predefined_type("clip",
     use style_traits::{self, ToCss};
     use values::{CSSFloat, HasViewportPercentage};
     use values::specified::{Angle, CSSColor, Length, Shadow};
+    use values::specified::url::SpecifiedUrl;
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {
@@ -129,6 +130,7 @@ ${helpers.predefined_type("clip",
         Sepia(CSSFloat),
         % if product == "gecko":
         DropShadow(Shadow),
+        Url(SpecifiedUrl),
         % endif
     }
 
@@ -136,7 +138,8 @@ ${helpers.predefined_type("clip",
         use app_units::Au;
         use values::CSSFloat;
         use values::computed::{CSSColor, Shadow};
-        use values::specified::{Angle};
+        use values::specified::Angle;
+        use values::specified::url::SpecifiedUrl;
 
         #[derive(Clone, PartialEq, Debug)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
@@ -152,6 +155,7 @@ ${helpers.predefined_type("clip",
             Sepia(CSSFloat),
             % if product == "gecko":
             DropShadow(Shadow),
+            Url(SpecifiedUrl),
             % endif
         }
 
@@ -262,6 +266,11 @@ ${helpers.predefined_type("clip",
                     try!(shadow.color.to_css(dest));
                     try!(dest.write_str(")"));
                 }
+                computed_value::Filter::Url(ref url) => {
+                    dest.write_str("url(")?;
+                    url.to_css(dest)?;
+                    dest.write_str(")")?;
+                }
                 % endif
             }
             Ok(())
@@ -302,6 +311,11 @@ ${helpers.predefined_type("clip",
                     }
                     try!(dest.write_str(")"));
                 }
+                SpecifiedFilter::Url(ref url) => {
+                    dest.write_str("url(")?;
+                    url.to_css(dest)?;
+                    dest.write_str(")")?;
+                }
                 % endif
             }
             Ok(())
@@ -319,6 +333,11 @@ ${helpers.predefined_type("clip",
             return Ok(SpecifiedValue(filters))
         }
         loop {
+            % if product == "gecko":
+                if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+                    filters.push(SpecifiedFilter::Url(url));
+                } else
+            % endif
             if let Ok(function_name) = input.try(|input| input.expect_function()) {
                 filters.push(try!(input.parse_nested_block(|input| {
                     match_ignore_ascii_case! { function_name,
@@ -375,6 +394,9 @@ ${helpers.predefined_type("clip",
                     SpecifiedFilter::DropShadow(ref shadow) => {
                         computed_value::Filter::DropShadow(shadow.to_computed_value(context))
                     },
+                    SpecifiedFilter::Url(ref url) => {
+                        computed_value::Filter::Url(url.to_computed_value(context))
+                    }
                     % endif
                 }
             }).collect() }
@@ -394,9 +416,14 @@ ${helpers.predefined_type("clip",
                     computed_value::Filter::Saturate(factor) => SpecifiedFilter::Saturate(factor),
                     computed_value::Filter::Sepia(factor) => SpecifiedFilter::Sepia(factor),
                     % if product == "gecko":
-                    computed_value::Filter::DropShadow(shadow) => {
+                    computed_value::Filter::DropShadow(ref shadow) => {
                         SpecifiedFilter::DropShadow(
-                            ToComputedValue::from_computed_value(&shadow),
+                            ToComputedValue::from_computed_value(shadow),
+                        )
+                    }
+                    computed_value::Filter::Url(ref url) => {
+                        SpecifiedFilter::Url(
+                            ToComputedValue::from_computed_value(url),
                         )
                     }
                     % endif
