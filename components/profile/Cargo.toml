@@ -12,12 +12,12 @@ path = "lib.rs"
 [dependencies]
 profile_traits = {path = "../profile_traits"}
 plugins = {path = "../plugins"}
-ipc-channel = "0.6.3"
+ipc-channel = "0.7"
 heartbeats-simple = "0.4"
 log = "0.3.5"
-serde = "0.8"
-serde_derive = "0.8"
-serde_json = "0.8"
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
 servo_config = {path = "../config", features = ["servo"]}
 time = "0.1.12"
 

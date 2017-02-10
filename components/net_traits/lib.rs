@@ -39,7 +39,7 @@ use hyper::header::{ContentType, Headers, ReferrerPolicy as ReferrerPolicyHeader
 use hyper::http::RawStatus;
 use hyper::mime::{Attr, Mime};
 use hyper_serde::Serde;
-use ipc_channel::SerializeError;
+use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use request::{Request, RequestInit};
@@ -266,7 +266,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
 /// Handle to a resource thread
 pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
 
-pub type IpcSendResult = Result<(), SerializeError>;
+pub type IpcSendResult = Result<(), Error>;
 
 /// Abstraction of the ability to send a particular type of message,
 /// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields

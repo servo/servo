@@ -10,13 +10,13 @@ name = "layout_thread"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.3"
-euclid = "0.10.1"
+app_units = "0.4"
+euclid = "0.11"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.0"
-ipc-channel = "0.6.3"
+ipc-channel = "0.7"
 layout = {path = "../layout"}
 layout_traits = {path = "../layout_traits"}
 lazy_static = "0.2"
@@ -31,8 +31,8 @@ script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
-serde_derive = "0.8"
-serde_json = "0.8"
+serde_derive = "0.9"
+serde_json = "0.9"
 servo_config = {path = "../config"}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
