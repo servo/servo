@@ -56,7 +56,7 @@ pub fn fetch_image_for_layout(url: ServoUrl,
     }));
 
     let document = document_from_node(node);
-    let window = window_from_node(node);
+    let window = document.window();
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let listener = NetworkListener {
