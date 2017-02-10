@@ -386,11 +386,11 @@ impl ImageCache {
                     if let Ok(metadata) = load_from_buf(&pending_load.bytes) {
                         let dimensions = metadata.dimensions();
                         let img_metadata = ImageMetadata { width: dimensions.width,
-                                                         height: dimensions.height };
-                        pending_load.metadata = Some(img_metadata.clone());
+                                                           height: dimensions.height };
                         for listener in &pending_load.listeners {
                             listener.respond(ImageResponse::MetadataLoaded(img_metadata.clone()));
                         }
+                        pending_load.metadata = Some(img_metadata);
                     }
                 }
             }
