@@ -135,6 +135,7 @@ use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use task_source::TaskSource;
 use time;
+use url::Host;
 use url::percent_encoding::percent_decode;
 
 pub enum TouchEventResult {
@@ -2410,14 +2411,18 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(&self) -> DOMString {
         // Step 1.
-        if self.browsing_context().is_none() {
+        if self.has_browsing_context {
             return DOMString::new();
         }
 
-        // Steps 3-4.
-        self.origin.effective_domain()
-            .map(DOMString::from)
-            .unwrap_or_else(DOMString::new)
+        // Step 2.
+        match self.origin.effective_domain() {
+            // Step 3.
+            None => DOMString::new(),
+            // Step 4.
+            Some(Host::Domain(domain)) => DOMString::from(domain),
+            Some(host) => DOMString::from(host.to_string()),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-referrer
