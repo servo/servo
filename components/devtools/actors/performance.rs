@@ -4,8 +4,7 @@
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use protocol::{ActorDescription, JsonPacketStream, Method};
-use serde_json::Value;
-use std::collections::BTreeMap;
+use serde_json::{Map, Value};
 use std::net::TcpStream;
 
 pub struct PerformanceActor {
@@ -55,7 +54,7 @@ impl Actor for PerformanceActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &BTreeMap<String, Value>,
+                      _msg: &Map<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "connect" => {

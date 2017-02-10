@@ -32,7 +32,7 @@ use range::*;
 use script_layout_interface::HTMLCanvasData;
 use script_layout_interface::SVGSVGData;
 use script_layout_interface::wrapper_traits::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use serde::{Serialize, Serializer};
+use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
 use std::{f32, fmt};
 use std::borrow::ToOwned;
@@ -142,12 +142,12 @@ pub struct Fragment {
 }
 
 impl Serialize for Fragment {
-    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
-        let mut state = try!(serializer.serialize_struct("fragment", 3));
-        try!(serializer.serialize_struct_elt(&mut state, "id", &self.debug_id));
-        try!(serializer.serialize_struct_elt(&mut state, "border_box", &self.border_box));
-        try!(serializer.serialize_struct_elt(&mut state, "margin", &self.margin));
-        serializer.serialize_struct_end(state)
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut serializer = try!(serializer.serialize_struct("fragment", 3));
+        try!(serializer.serialize_field("id", &self.debug_id));
+        try!(serializer.serialize_field("border_box", &self.border_box));
+        try!(serializer.serialize_field("margin", &self.margin));
+        serializer.end()
     }
 }
 
@@ -3179,14 +3179,14 @@ impl fmt::Display for DebugId {
 
 #[cfg(not(debug_assertions))]
 impl Serialize for DebugId {
-    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&format!("{:p}", &self))
     }
 }
 
 #[cfg(debug_assertions)]
 impl Serialize for DebugId {
-    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_u16(self.0)
     }
 }

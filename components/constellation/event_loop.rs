@@ -6,7 +6,7 @@
 //! view of a script thread. When an `EventLoop` is dropped, an `ExitScriptThread`
 //! message is sent to the script thread, asking it to shut down.
 
-use ipc_channel::SerializeError;
+use ipc_channel::Error;
 use ipc_channel::ipc::IpcSender;
 use script_traits::ConstellationControlMsg;
 use std::marker::PhantomData;
@@ -34,7 +34,7 @@ impl EventLoop {
     }
 
     /// Send a message to the event loop.
-    pub fn send(&self, msg: ConstellationControlMsg) -> Result<(), SerializeError> {
+    pub fn send(&self, msg: ConstellationControlMsg) -> Result<(), Error> {
         self.script_chan.send(msg)
     }
 

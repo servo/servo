@@ -12,9 +12,8 @@ use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
-use serde_json::{self, Value};
+use serde_json::{self, Map, Value};
 use std::cell::RefCell;
-use std::collections::BTreeMap;
 use std::net::TcpStream;
 
 pub struct InspectorActor {
@@ -65,7 +64,7 @@ impl Actor for HighlighterActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &BTreeMap<String, Value>,
+                      _msg: &Map<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "showBoxModel" => {
@@ -102,7 +101,7 @@ impl Actor for NodeActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &BTreeMap<String, Value>,
+                      msg: &Map<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "modifyAttributes" => {
@@ -276,7 +275,7 @@ impl Actor for WalkerActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &BTreeMap<String, Value>,
+                      msg: &Map<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "querySelector" => {
@@ -451,7 +450,7 @@ impl Actor for PageStyleActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &BTreeMap<String, Value>,
+                      msg: &Map<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getApplied" => {
@@ -503,7 +502,7 @@ impl Actor for PageStyleActor {
                     zIndex: zIndex,
                     boxSizing: boxSizing,
                     autoMargins: if auto_margins {
-                        let mut m = BTreeMap::new();
+                        let mut m = Map::new();
                         let auto = serde_json::value::Value::String("auto".to_owned());
                         if autoMargins.top { m.insert("top".to_owned(), auto.clone()); }
                         if autoMargins.right { m.insert("right".to_owned(), auto.clone()); }
@@ -547,7 +546,7 @@ impl Actor for InspectorActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &BTreeMap<String, Value>,
+                      _msg: &Map<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getWalker" => {

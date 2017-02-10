@@ -12,11 +12,11 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-app_units = "0.3"
+app_units = "0.4"
 atomic_refcell = "0.1"
-cssparser = "0.9"
+cssparser = "0.10"
 env_logger = "0.4"
-euclid = "0.10.1"
+euclid = "0.11"
 lazy_static = "0.2"
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
