@@ -19,7 +19,7 @@ pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
 pub use super::specified::{AlignJustifyContent, AlignJustifySelf};
 pub use super::specified::{Angle, BorderStyle, GridLine, Time, UrlOrNone};
-pub use super::specified::url::UrlExtraData;
+pub use super::specified::url::{SpecifiedUrl, UrlExtraData};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
 pub use self::position::Position;
@@ -183,6 +183,61 @@ pub type Number = CSSFloat;
 
 /// A type used for opacity.
 pub type Opacity = CSSFloat;
+
+
+/// An SVG paint value
+///
+/// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub struct SVGPaint {
+    /// The paint source
+    pub kind: SVGPaintKind,
+    /// The fallback color
+    pub fallback: Option<CSSColor>,
+}
+
+/// An SVG paint value without the fallback
+///
+/// Whereas the spec only allows PaintServer
+/// to have a fallback, Gecko lets the context
+/// properties have a fallback as well.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+pub enum SVGPaintKind {
+    /// `none`
+    None,
+    /// `<color>`
+    Color(CSSColor),
+    /// `url(...)`
+    PaintServer(SpecifiedUrl),
+    /// `context-fill`
+    ContextFill,
+    /// `context-stroke`
+    ContextStroke,
+}
+
+impl ToCss for SVGPaintKind {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            SVGPaintKind::None => dest.write_str("none"),
+            SVGPaintKind::ContextStroke => dest.write_str("context-stroke"),
+            SVGPaintKind::ContextFill => dest.write_str("context-fill"),
+            SVGPaintKind::Color(ref color) => color.to_css(dest),
+            SVGPaintKind::PaintServer(ref server) => server.to_css(dest),
+        }
+    }
+}
+
+impl ToCss for SVGPaint {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.kind.to_css(dest)?;
+        if let Some(ref fallback) = self.fallback {
+            fallback.to_css(dest)?;
+        }
+        Ok(())
+    }
+}
 
 
 #[derive(Clone, PartialEq, Eq, Copy, Debug)]
