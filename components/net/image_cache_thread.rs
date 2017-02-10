@@ -488,7 +488,7 @@ impl ImageCache {
     }
 
     /// Return a completed image if it exists, or None if there is no complete load
-    /// of the complete load is not fully decoded or is unavailable.
+    /// or the complete load is not fully decoded or is unavailable.
     fn get_completed_image_if_available(&self,
                                       url: &ServoUrl,
                                       placeholder: UsePlaceholder)
