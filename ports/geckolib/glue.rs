@@ -164,14 +164,19 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     }
 }
 
+/// Traverses the subtree rooted at `root` for restyling.  Returns whether a
+/// Gecko post-traversal (to perform lazy frame construction, or consume any
+/// RestyleData, or drop any ElementData) is required.
 #[no_mangle]
 pub extern "C" fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                         raw_data: RawServoStyleSetBorrowed,
-                                        behavior: structs::TraversalRootBehavior) -> () {
+                                        behavior: structs::TraversalRootBehavior) -> bool {
     let element = GeckoElement(root);
     debug!("Servo_TraverseSubtree: {:?}", element);
     traverse_subtree(element, raw_data,
                      behavior == structs::TraversalRootBehavior::UnstyledChildrenOnly);
+
+    element.has_dirty_descendants() || element.mutate_data().unwrap().has_restyle()
 }
 
 #[no_mangle]
