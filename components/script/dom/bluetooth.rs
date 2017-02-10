@@ -573,7 +573,6 @@ impl PermissionAlgorithm for Bluetooth {
         }
     }
 
-    #[allow(unrooted_must_root)]
     // https://webbluetoothcg.github.io/web-bluetooth/#query-the-bluetooth-permission
     fn permission_query(cx: *mut JSContext, promise: &Rc<Promise>,
                         descriptor: &BluetoothPermissionDescriptor,
@@ -590,7 +589,7 @@ impl PermissionAlgorithm for Bluetooth {
         }
 
         // Step 4.
-        let mut matching_devices: Vec<JS<BluetoothDevice>> = Vec::new();
+        rooted_vec!(let mut matching_devices);
 
         // TODO: Step 5: Create a map between the current setting object and BluetoothPermissionData
         // extra permission data, which replaces the exisitng EXTRA_PERMISSION_DATA global variable.
@@ -644,13 +643,13 @@ impl PermissionAlgorithm for Bluetooth {
             // Step 6.3.
             // TODO: Implement this correctly, not just using device ids here.
             // https://webbluetoothcg.github.io/web-bluetooth/#get-the-bluetoothdevice-representing
-            if let Some(ref device) = device_map.get(&device_id) {
-                matching_devices.push(JS::from_ref(&*device));
+            if let Some(device) = device_map.get(&device_id) {
+                matching_devices.push(JS::from_ref(&**device));
             }
         }
 
         // Step 7.
-        status.set_devices(matching_devices);
+        status.set_devices(matching_devices.drain(..).collect());
 
         // https://w3c.github.io/permissions/#dom-permissions-query
         // Step 7.
