@@ -15,6 +15,7 @@ use dom::promise::Promise;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
+use servo_config::prefs::PREFS;
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
 use tinyfiledialogs::{self, MessageBoxIcon, YesNo};
@@ -231,7 +232,11 @@ pub fn get_descriptor_permission_state(permission_name: PermissionName ,
     // if the feature is not allowed in non-secure contexcts,
     // and let the user decide to grant the permission or not.
     if !allowed_in_nonsecure_contexts(&permission_name) {
-        return prompt_user(permission_name);
+        if PREFS.get("dom.permissions.testing.allowed_in_nonsecure_contexts").as_boolean().unwrap_or(false) {
+            return PermissionState::Granted;
+        } else {
+            return prompt_user(permission_name);
+        }
     }
 
     // TODO: Step 3: Store the invocation results

@@ -17,7 +17,7 @@ use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::Bluetoot
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerBinding::
     BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
+use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
 use dom::bindings::codegen::UnionTypes::{StringOrStringSequence, StringOrUnsignedLong};
 use dom::bindings::error::Error::{self, Network, Security, Type};
 use dom::bindings::error::Fallible;
@@ -216,11 +216,9 @@ impl Bluetooth {
                                                ServiceUUIDSequence::new(optional_services_uuids));
 
         // Step 3 - 5
-        // FIXME The following call will create a popup, which will mess up the testing...
-        // Maybe create a call to the lower level to check if we are testing or not
-        // if let PermissionState::Denied = get_descriptor_permission_state(PermissionName::Bluetooth, None) {
-        //     return p.reject_error(p.global().get_cx(), Error::NotFound);
-        // }
+        if let PermissionState::Denied = get_descriptor_permission_state(PermissionName::Bluetooth, None) {
+            return p.reject_error(p.global().get_cx(), Error::NotFound);
+        }
 
         // Note: Steps 6 - 8 are implemented in
         // components/net/bluetooth_thread.rs in request_device function.
