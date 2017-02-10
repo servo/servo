@@ -2624,7 +2624,11 @@ clip-path
         clip_path.mType = StyleShapeSourceType::None;
 
         match v {
-            ShapeSource::Url(..) => warn!("stylo: clip-path: url() not yet implemented"),
+            ShapeSource::Url(ref url) => {
+                unsafe {
+                    bindings::Gecko_StyleClipPath_SetURLValue(clip_path, url.for_ffi());
+                }
+            }
             ShapeSource::None => {} // don't change the type
             ShapeSource::Box(reference) => {
                 clip_path.mReferenceBox = reference.into();
@@ -2712,34 +2716,6 @@ clip-path
         use gecko_bindings::bindings::Gecko_CopyClipPathValueFrom;
         unsafe {
             Gecko_CopyClipPathValueFrom(&mut self.gecko.mClipPath, &other.gecko.mClipPath);
-        }
-    }
-
-    pub fn clone_clip_path(&self) -> longhands::clip_path::computed_value::T {
-        use gecko_bindings::structs::StyleShapeSourceType;
-        use gecko_bindings::structs::StyleGeometryBox;
-        use values::computed::basic_shape::*;
-        let ref clip_path = self.gecko.mClipPath;
-
-        match clip_path.mType {
-            StyleShapeSourceType::None => ShapeSource::None,
-            StyleShapeSourceType::Box => {
-                ShapeSource::Box(clip_path.mReferenceBox.into())
-            }
-            StyleShapeSourceType::URL => {
-                warn!("stylo: clip-path: url() not implemented yet");
-                Default::default()
-            }
-            StyleShapeSourceType::Shape => {
-                let reference = if let StyleGeometryBox::NoBox = clip_path.mReferenceBox {
-                    None
-                } else {
-                    Some(clip_path.mReferenceBox.into())
-                };
-                let union = clip_path.__bindgen_anon_1;
-                let shape = unsafe { &**union.mBasicShape.as_ref() };
-                ShapeSource::Shape(shape.into(), reference)
-            }
         }
     }
 </%self:impl_trait>
