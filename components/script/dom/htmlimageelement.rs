@@ -177,7 +177,7 @@ impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn update_image_with_url(&self, img_url: ServoUrl, src: DOMString) {
         {
-            let current_request = self.current_request.borrow_mut();
+            let mut current_request = self.current_request.borrow_mut();
             current_request.parsed_url = Some(img_url.clone());
             current_request.source_url = Some(src);
 
