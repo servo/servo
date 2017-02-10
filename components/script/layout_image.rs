@@ -8,7 +8,7 @@
 //! layout thread holds on to them during asynchronous operations.
 
 use dom::bindings::reflector::DomObject;
-use dom::node::{Node, document_from_node, window_from_node};
+use dom::node::{Node, document_from_node};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::{FetchResponseMsg, FetchResponseListener, FetchMetadata, NetworkError};
