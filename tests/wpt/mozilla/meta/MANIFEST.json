@@ -8654,6 +8654,12 @@
             "url": "/_mozilla/mozilla/mozbrowser/reload.html"
           }
         ],
+        "mozilla/mql_borrow.html": [
+          {
+            "path": "mozilla/mql_borrow.html",
+            "url": "/_mozilla/mozilla/mql_borrow.html"
+          }
+        ],
         "mozilla/navigator.html": [
           {
             "path": "mozilla/navigator.html",

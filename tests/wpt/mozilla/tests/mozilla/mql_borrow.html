@@ -1,0 +1,24 @@
+<html>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+    // Test to make sure matchMedia can be suitably used inside MediaQueryList listeners without any errors in borrowing
+    // mql references
+    var test = async_test("No clashes found while trying to get a refernce to mql");
+
+            var match1 = window.matchMedia("(min-width: 400px)");
+            match1.addListener(test.step_func(function() {
+                var match2 = window.matchMedia("(orientation: landscape)");
+                assert_not_equals(match2, undefined);
+                match2.addListener(test.step_func_done(function() {
+                    var match3 = window.matchMedia("(orientation: portrait)");
+                    assert_not_equals(match3, undefined);
+                }));
+                window.resizeTo(600, 400);
+            }));
+
+    </script>
+
+<body onload="window.resizeTo(600,600)"></body>
+
+</html>
