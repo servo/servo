@@ -987,6 +987,34 @@ impl LengthOrPercentage {
         LengthOrPercentage::parse_internal(input, AllowedNumericType::NonNegative)
     }
 
+    /// Parse a length, treating dimensionless numbers as pixels
+    ///
+    /// https://www.w3.org/TR/SVG2/types.html#presentation-attribute-css-value
+    pub fn parse_numbers_are_pixels(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
+        if let Ok(lop) = input.try(|i| Self::parse_internal(i, AllowedNumericType::All)) {
+            Ok(lop)
+        } else {
+            let num = input.expect_number()?;
+            Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(Au((AU_PER_PX * num) as i32))))
+        }
+    }
+
+    /// Parse a non-negative length, treating dimensionless numbers as pixels
+    ///
+    /// This is nonstandard behavior used by Firefox for SVG
+    pub fn parse_numbers_are_pixels_non_negative(input: &mut Parser) -> Result<LengthOrPercentage, ()> {
+        if let Ok(lop) = input.try(|i| Self::parse_internal(i, AllowedNumericType::NonNegative)) {
+            Ok(lop)
+        } else {
+            let num = input.expect_number()?;
+            if num >= 0. {
+                Ok(LengthOrPercentage::Length(NoCalcLength::Absolute(Au((AU_PER_PX * num) as i32))))
+            } else {
+                Err(())
+            }
+        }
+    }
+
     /// Extract value from ref without a clone, replacing it with a 0 Au
     ///
     /// Use when you need to move out of a length array without cloning

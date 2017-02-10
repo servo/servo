@@ -68,7 +68,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "stroke-width", "LengthOrPercentage",
     "computed::LengthOrPercentage::one()",
-    "parse_non_negative",
+    "parse_numbers_are_pixels_non_negative",
     products="gecko",
     animatable=True,
     needs_context=False,
@@ -104,9 +104,11 @@ ${helpers.predefined_type("stroke-dasharray", "LoPOrNumber", "Either::Second(0.0
 ${helpers.predefined_type(
     "stroke-dashoffset", "LengthOrPercentage",
     "computed::LengthOrPercentage::zero()",
+    "parse_numbers_are_pixels",
     products="gecko",
     animatable=True,
     boxed=True,
+    needs_context=False,
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
 
 // Section 14 - Clipping, Masking and Compositing
