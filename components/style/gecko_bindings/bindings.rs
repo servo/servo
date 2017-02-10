@@ -20,6 +20,7 @@ use gecko_bindings::structs::TraversalRootBehavior;
 use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
 use gecko_bindings::structs::Keyframe;
+use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::SheetParsingMode;
 use gecko_bindings::structs::StyleBasicShape;
@@ -590,11 +591,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetListStyleImage(style_struct: *mut nsStyleList,
-                                   string_bytes: *const u8,
-                                   string_length: u32,
-                                   base_uri: *mut ThreadSafeURIHolder,
-                                   referrer: *mut ThreadSafeURIHolder,
-                                   principal: *mut ThreadSafePrincipalHolder);
+                                   uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_CopyListStyleImageFrom(dest: *mut nsStyleList,
@@ -617,10 +614,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetMozBinding(style_struct: *mut nsStyleDisplay,
-                               string_bytes: *const u8, string_length: u32,
-                               base_uri: *mut ThreadSafeURIHolder,
-                               referrer: *mut ThreadSafeURIHolder,
-                               principal: *mut ThreadSafePrincipalHolder);
+                               bundled_uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_CopyMozBindingFrom(des: *mut nsStyleDisplay,

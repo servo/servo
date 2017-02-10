@@ -1322,18 +1322,9 @@ fn static_assert() {
         match v {
             Either::Second(_none) => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
             Either::First(ref url) => {
-                let extra_data = url.extra_data();
-                let (ptr, len) = match url.as_slice_components() {
-                    Ok(value) => value,
-                    Err(_) => (ptr::null(), 0),
-                };
+
                 unsafe {
-                    Gecko_SetMozBinding(&mut self.gecko,
-                                        ptr,
-                                        len as u32,
-                                        extra_data.base.get(),
-                                        extra_data.referrer.get(),
-                                        extra_data.principal.get());
+                    Gecko_SetMozBinding(&mut self.gecko, url.for_ffi());
                 }
             }
         }
@@ -2066,17 +2057,9 @@ fn static_assert() {
                 }
             }
             Either::First(ref url) => {
-                let (ptr, len) = match url.as_slice_components() {
-                    Ok(value) | Err(value) => value
-                };
-                let extra_data = url.extra_data();
                 unsafe {
                     Gecko_SetListStyleImage(&mut self.gecko,
-                                            ptr,
-                                            len as u32,
-                                            extra_data.base.get(),
-                                            extra_data.referrer.get(),
-                                            extra_data.principal.get());
+                                            url.for_ffi());
                 }
                 // We don't need to record this struct as uncacheable, like when setting
                 // background-image to a url() value, since only properties in reset structs
