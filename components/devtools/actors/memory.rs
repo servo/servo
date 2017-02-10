@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
-use serde_json::Value;
-use std::collections::BTreeMap;
+use serde_json::{Map, Value};
 use std::net::TcpStream;
 
 #[derive(Serialize)]
@@ -32,7 +31,7 @@ impl Actor for MemoryActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       _msg_type: &str,
-                      _msg: &BTreeMap<String, Value>,
+                      _msg: &Map<String, Value>,
                       _stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Ignored)
     }

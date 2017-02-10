@@ -11,8 +11,7 @@ use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::console::ConsoleActor;
 use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
 use protocol::JsonPacketStream;
-use serde_json::Value;
-use std::collections::BTreeMap;
+use serde_json::{Map, Value};
 use std::net::TcpStream;
 
 #[derive(Serialize)]
@@ -88,7 +87,7 @@ impl Actor for TabActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &BTreeMap<String, Value>,
+                      msg: &Map<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "reconfigure" => {

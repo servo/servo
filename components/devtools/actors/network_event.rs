@@ -16,9 +16,8 @@ use hyper::header::Headers;
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use protocol::JsonPacketStream;
-use serde_json::Value;
+use serde_json::{Map, Value};
 use std::borrow::Cow;
-use std::collections::BTreeMap;
 use std::net::TcpStream;
 use time;
 use time::Tm;
@@ -185,7 +184,7 @@ impl Actor for NetworkEventActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &BTreeMap<String, Value>,
+                      _msg: &Map<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getRequestHeaders" => {

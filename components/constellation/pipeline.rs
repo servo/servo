@@ -11,7 +11,7 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use event_loop::EventLoop;
 use gfx::font_cache_thread::FontCacheThread;
-use ipc_channel::SerializeError;
+use ipc_channel::Error;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
@@ -178,7 +178,7 @@ pub struct InitialPipelineState {
 impl Pipeline {
     /// Starts a layout thread, and possibly a script thread, in
     /// a new process if requested.
-    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, SerializeError>
+    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, Error>
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
@@ -523,7 +523,7 @@ impl UnprivilegedPipelineContent {
     }
 
     #[cfg(not(target_os = "windows"))]
-    pub fn spawn_multiprocess(self) -> Result<(), SerializeError> {
+    pub fn spawn_multiprocess(self) -> Result<(), Error> {
         use gaol::sandbox::{self, Sandbox, SandboxMethods};
         use ipc_channel::ipc::IpcOneShotServer;
         use sandboxing::content_process_sandbox_profile;
@@ -571,7 +571,7 @@ impl UnprivilegedPipelineContent {
     }
 
     #[cfg(target_os = "windows")]
-    pub fn spawn_multiprocess(self) -> Result<(), SerializeError> {
+    pub fn spawn_multiprocess(self) -> Result<(), Error> {
         error!("Multiprocess is not supported on Windows.");
         process::exit(1);
     }
