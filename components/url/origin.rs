@@ -100,7 +100,7 @@ known_heap_size!(0, OpaqueOrigin);
 
 /// A representation of an [origin](https://html.spec.whatwg.org/multipage/#origin-2).
 #[derive(Clone, Debug)]
-pub struct MutableOrigin(Rc<(ImmutableOrigin, RefCell<Option<String>>)>);
+pub struct MutableOrigin(Rc<(ImmutableOrigin, RefCell<Option<Host>>)>);
 
 #[cfg(feature = "servo")]
 known_heap_size!(0, MutableOrigin);
@@ -138,7 +138,6 @@ impl MutableOrigin {
         if let Some(ref self_domain) = *(self.0).1.borrow() {
             if let Some(ref other_domain) = *(other.0).1.borrow() {
                 self_domain == other_domain &&
-                    self.immutable().port() == other.immutable().port() &&
                     self.immutable().scheme() == other.immutable().scheme()
             } else {
                 false
@@ -148,16 +147,20 @@ impl MutableOrigin {
         }
     }
 
-    pub fn domain(&self) -> Option<String> {
+    pub fn domain(&self) -> Option<Host> {
         (self.0).1.borrow().clone()
+    }
+
+    pub fn set_domain(&self, domain: Host) {
+        *(self.0).1.borrow_mut() = Some(domain);
     }
 
     pub fn has_domain(&self) -> bool {
         (self.0).1.borrow().is_some()
     }
 
-    pub fn effective_domain(&self) -> Option<String> {
+    pub fn effective_domain(&self) -> Option<Host> {
         self.immutable().host()
-            .map(|host| self.domain().unwrap_or_else(|| host.to_string()))
+            .map(|host| self.domain().unwrap_or_else(|| host.clone()))
     }
 }
