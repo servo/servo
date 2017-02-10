@@ -135,16 +135,15 @@ impl FetchResponseListener for ImageContext {
             self.id,
             FetchResponseMsg::ProcessResponse(metadata.clone()));
 
-        let metadata = metadata.ok().map(|meta| match meta {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+        let metadata = metadata.ok().map(|meta| {
+            match meta {
+                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Filtered { unsafe_, .. } => unsafe_
+            }
         });
 
         let status_code = metadata.as_ref().and_then(|m| {
-            match m.status {
-                Some((c, _)) => Some(c),
-                _ => None,
-            }
+            m.status.map(|(code, _)| code)
         }).unwrap_or(0);
 
         self.status = match status_code {
