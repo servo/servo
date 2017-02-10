@@ -4,7 +4,7 @@
 
 //! `<length>` computed values, and related ones.
 
-use app_units::Au;
+use app_units::{Au, AU_PER_PX};
 use ordered_float::NotNaN;
 use std::fmt;
 use style_traits::ToCss;
@@ -193,6 +193,12 @@ impl LengthOrPercentage {
     #[allow(missing_docs)]
     pub fn zero() -> LengthOrPercentage {
         LengthOrPercentage::Length(Au(0))
+    }
+
+    #[inline]
+    /// 1px length value for SVG defaults
+    pub fn one() -> LengthOrPercentage {
+        LengthOrPercentage::Length(Au(AU_PER_PX))
     }
 
     /// Returns true if the computed value is absolute 0 or 0%.

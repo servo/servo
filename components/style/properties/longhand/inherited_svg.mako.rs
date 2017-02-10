@@ -65,6 +65,16 @@ ${helpers.predefined_type(
     boxed=True,
     spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingStrokePaint")}
 
+${helpers.predefined_type(
+    "stroke-width", "LengthOrPercentage",
+    "computed::LengthOrPercentage::one()",
+    "parse_non_negative",
+    products="gecko",
+    animatable=True,
+    needs_context=False,
+    boxed=True,
+    spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
+
 ${helpers.single_keyword("stroke-linecap", "butt round square",
                          products="gecko", animatable=False,
                          spec="https://www.w3.org/TR/SVG11/painting.html#StrokeLinecapProperty")}
