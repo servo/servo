@@ -102,6 +102,9 @@ pub enum UsePlaceholder {
     Yes,
 }
 
+/// Whether a consumer is in a position to request images or not. This can occur when
+/// animations are being processed by the layout thread while the script thread is executing
+/// in parallel.
 #[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub enum CanRequestImages {
     No,

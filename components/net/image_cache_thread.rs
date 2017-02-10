@@ -358,6 +358,7 @@ impl ImageCache {
                                                              can_request,
                                                              consumer) => {
                 let result = self.get_image_or_meta_if_available(url, use_placeholder, can_request);
+                // TODO(#15501): look for opportunities to clean up cache if this send fails.
                 let _ = consumer.send(result);
             }
             ImageCacheCommand::StoreDecodeImage(id, data) => {
