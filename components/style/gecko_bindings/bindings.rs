@@ -634,6 +634,10 @@ extern "C" {
     pub fn Gecko_UnsetNodeFlags(node: RawGeckoNodeBorrowed, flags: u32);
 }
 extern "C" {
+    pub fn Gecko_SetOwnerDocumentNeedsStyleFlush(element:
+                                                     RawGeckoElementBorrowed);
+}
+extern "C" {
     pub fn Gecko_GetStyleContext(node: RawGeckoNodeBorrowed,
                                  aPseudoTagOrNull: *mut nsIAtom)
      -> *mut nsStyleContext;
@@ -1126,10 +1130,6 @@ extern "C" {
     pub fn Servo_Element_ClearData(node: RawGeckoElementBorrowed);
 }
 extern "C" {
-    pub fn Servo_Element_ShouldTraverse(node: RawGeckoElementBorrowed)
-     -> bool;
-}
-extern "C" {
     pub fn Servo_StyleSheet_Empty(parsing_mode: SheetParsingMode)
      -> RawServoStyleSheetStrong;
 }
@@ -1472,7 +1472,7 @@ extern "C" {
 extern "C" {
     pub fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                  set: RawServoStyleSetBorrowed,
-                                 root_behavior: TraversalRootBehavior);
+                                 root_behavior: TraversalRootBehavior) -> bool;
 }
 extern "C" {
     pub fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed);
