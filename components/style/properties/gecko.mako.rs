@@ -26,7 +26,6 @@ use gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleTypeFrom;
-use gecko_bindings::bindings::Gecko_CopyMozBindingFrom;
 use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendGeneric;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendNamed;
@@ -37,7 +36,6 @@ use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
 use gecko_bindings::bindings::Gecko_SetListStyleImage;
 use gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use gecko_bindings::bindings::Gecko_SetListStyleType;
-use gecko_bindings::bindings::Gecko_SetMozBinding;
 use gecko_bindings::bindings::Gecko_SetNullImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
@@ -398,7 +396,11 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
             }
             SVGPaintKind::PaintServer(url) => {
                 unsafe {
-                    bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, url.for_ffi());
+                    if let Some(ffi) = url.for_ffi() {
+                        bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, ffi);
+                    } else {
+                        return;
+                    }
                 }
             }
             SVGPaintKind::Color(color) => {
@@ -511,6 +513,41 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
     % endif
 </%def>
 
+<%def name="impl_css_url(ident, gecko_ffi_name, need_clone=False)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        use gecko_bindings::sugar::refptr::RefPtr;
+        match v {
+            Either::First(url) => {
+                let refptr = unsafe {
+                    if let Some(ffi) = url.for_ffi() {
+                        let ptr = bindings::Gecko_NewURLValue(ffi);
+                        RefPtr::from_addrefed(ptr)
+                    } else {
+                        self.gecko.${gecko_ffi_name}.clear();
+                        return;
+                    }
+                };
+                self.gecko.${gecko_ffi_name}.set_move(refptr)
+            }
+            Either::Second(_none) => {
+                unsafe {
+                    self.gecko.${gecko_ffi_name}.clear();
+                }
+            }
+        }
+    }
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        unsafe {
+            self.gecko.${gecko_ffi_name}.set(&other.gecko.${gecko_ffi_name});
+        }
+    }
+    % if need_clone:
+        <% raise Exception("Do not know how to handle clone ") %>
+    % endif
+</%def>
+
 <%def name="impl_logical(name, need_clone=False, **kwargs)">
     ${helpers.logical_setter(name, need_clone)}
 </%def>
@@ -600,6 +637,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "Opacity": impl_simple,
         "CSSColor": impl_color,
         "SVGPaint": impl_svg_paint,
+        "UrlOrNone": impl_css_url,
     }
 
     def longhand_method(longhand):
@@ -1278,7 +1316,7 @@ fn static_assert() {
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
-                          -moz-binding page-break-before page-break-after
+                          page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin transform-origin""" %>
@@ -1372,24 +1410,6 @@ fn static_assert() {
     }
 
     <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
-
-    #[allow(non_snake_case)]
-    pub fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
-        use values::Either;
-        match v {
-            Either::Second(_none) => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
-            Either::First(ref url) => {
-
-                unsafe {
-                    Gecko_SetMozBinding(&mut self.gecko, url.for_ffi());
-                }
-            }
-        }
-    }
-    #[allow(non_snake_case)]
-    pub fn copy__moz_binding_from(&mut self, other: &Self) {
-        unsafe { Gecko_CopyMozBindingFrom(&mut self.gecko, &other.gecko); }
-    }
 
     // Temp fix for Bugzilla bug 24000.
     // Map 'auto' and 'avoid' to false, and 'always', 'left', and 'right' to true.
@@ -2115,8 +2135,12 @@ fn static_assert() {
             }
             Either::First(ref url) => {
                 unsafe {
-                    Gecko_SetListStyleImage(&mut self.gecko,
-                                            url.for_ffi());
+                    if let Some(ffi) = url.for_ffi() {
+                        Gecko_SetListStyleImage(&mut self.gecko,
+                                            ffi);
+                    } else {
+                        Gecko_SetListStyleImageNone(&mut self.gecko);
+                    }
                 }
                 // We don't need to record this struct as uncacheable, like when setting
                 // background-image to a url() value, since only properties in reset structs
@@ -2317,7 +2341,9 @@ fn static_assert() {
                 }
                 Url(ref url) => {
                     unsafe {
-                        bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.for_ffi());
+                        if let Some(ffi) = url.for_ffi() {
+                            bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, ffi);
+                        }
                     }
                 }
             }
@@ -2677,7 +2703,9 @@ clip-path
         match v {
             ShapeSource::Url(ref url) => {
                 unsafe {
-                    bindings::Gecko_StyleClipPath_SetURLValue(clip_path, url.for_ffi());
+                    if let Some(ffi) = url.for_ffi() {
+                       bindings::Gecko_StyleClipPath_SetURLValue(clip_path, ffi);
+                    }
                 }
             }
             ShapeSource::None => {} // don't change the type

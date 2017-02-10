@@ -100,3 +100,22 @@ ${helpers.single_keyword("clip-rule", "nonzero evenodd",
                          gecko_inexhaustive=True,
                          animatable=False,
                          spec="https://www.w3.org/TR/SVG11/masking.html#ClipRuleProperty")}
+
+${helpers.predefined_type("marker-start", "UrlOrNone", "Either::Second(None_)",
+                          products="gecko",
+                          animatable="False",
+                          spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties",
+                          boxed=True)}
+
+${helpers.predefined_type("marker-mid", "UrlOrNone", "Either::Second(None_)",
+                          products="gecko",
+                          animatable="False",
+                          spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties",
+                          boxed=True)}
+
+${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
+                          products="gecko",
+                          animatable="False",
+                          spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties",
+                          boxed=True)}
+

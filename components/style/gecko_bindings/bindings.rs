@@ -3,6 +3,7 @@
 pub use nsstring::{nsACString, nsAString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
+use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
@@ -619,14 +620,6 @@ extern "C" {
                                      src: *const nsStyleUserInterface);
 }
 extern "C" {
-    pub fn Gecko_SetMozBinding(style_struct: *mut nsStyleDisplay,
-                               bundled_uri: ServoBundledURI);
-}
-extern "C" {
-    pub fn Gecko_CopyMozBindingFrom(des: *mut nsStyleDisplay,
-                                    src: *const nsStyleDisplay);
-}
-extern "C" {
     pub fn Gecko_GetNodeFlags(node: RawGeckoNodeBorrowed) -> u32;
 }
 extern "C" {
@@ -732,6 +725,15 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_nsStyleSVGPaint_Reset(paint: *mut nsStyleSVGPaint);
+}
+extern "C" {
+    pub fn Gecko_NewURLValue(uri: ServoBundledURI) -> *mut URLValue;
+}
+extern "C" {
+    pub fn Gecko_AddRefCSSURLValueArbitraryThread(aPtr: *mut URLValue);
+}
+extern "C" {
+    pub fn Gecko_ReleaseCSSURLValueArbitraryThread(aPtr: *mut URLValue);
 }
 extern "C" {
     pub fn Gecko_FillAllBackgroundLists(layers: *mut nsStyleImageLayers,
