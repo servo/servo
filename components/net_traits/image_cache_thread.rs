@@ -33,6 +33,9 @@ impl ImageResponder {
     }
 
     pub fn respond(&self, response: ImageResponse) {
+        // This send can fail if thread waiting for this notification has panicked.
+        // That's not a case that's worth warning about.
+        // TODO(#15501): are there cases in which we should perform cleanup?
         let _ = self.sender.send(PendingImageResponse {
             response: response,
             id: self.id,
@@ -143,17 +146,19 @@ impl ImageCacheThread {
     /// the responder will still receive the expected response.
     pub fn add_listener(&self, id: PendingImageId, responder: ImageResponder) {
         let msg = ImageCacheCommand::AddListener(id, responder);
-        let _ = self.chan.send(msg);
+        self.chan.send(msg).expect("Image cache thread is not available");
     }
 
     /// Inform the image cache about a response for a pending request.
     pub fn notify_pending_response(&self, id: PendingImageId, data: FetchResponseMsg) {
         let msg = ImageCacheCommand::StoreDecodeImage(id, data);
-        let _ = self.chan.send(msg);
+        self.chan.send(msg).expect("Image cache thread is not available");
     }
 
     /// Shutdown the image cache thread.
     pub fn exit(&self) {
+        // If the image cache is not available when we're trying to shut it down,
+        // that is not worth warning about.
         let (response_chan, response_port) = ipc::channel().unwrap();
         let _ = self.chan.send(ImageCacheCommand::Exit(response_chan));
         let _ = response_port.recv();
