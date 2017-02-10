@@ -15,8 +15,8 @@ servo = ["heapsize", "heapsize_derive", "serde", "serde_derive",
 
 
 [dependencies]
-url = "1.2"
 heapsize = {version = "0.3.0", optional = true}
 heapsize_derive = {version = "0.1", optional = true}
 serde = {version = "0.8", optional = true}
 serde_derive = {version = "0.8", optional = true}
+url = "1.2"

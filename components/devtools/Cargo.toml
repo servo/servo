@@ -19,6 +19,6 @@ log = "0.3.5"
 msg = {path = "../msg"}
 plugins = {path = "../plugins"}
 serde = "0.8"
-serde_json = "0.8"
 serde_derive = "0.8"
+serde_json = "0.8"
 time = "0.1"

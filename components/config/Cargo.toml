@@ -19,12 +19,12 @@ getopts = "0.2.11"
 lazy_static = "0.2"
 log = "0.3.5"
 num_cpus = "1.1.0"
+plugins = {path = "../plugins", optional = true}
 rustc-serialize = "0.3"
 serde = {version = "0.8", optional = true}
 serde_derive = {version = "0.8", optional = true}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
-plugins = {path = "../plugins", optional = true}
 url = "1.2"
 
 [dev-dependencies]
