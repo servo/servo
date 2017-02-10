@@ -68,7 +68,7 @@ If `virtualenv` does not exist, try `python-virtualenv`.
 ``` sh
 sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
-    fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
+    fontconfig-devel harfbuzz-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
     dbus-devel
 ```
