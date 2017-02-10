@@ -1111,7 +1111,8 @@ impl ScriptThread {
     }
 
     fn handle_msg_from_image_cache(&self, (id, response): (PipelineId, PendingImageResponse)) {
-        if let Some(ref window) = self.documents.borrow().find_window(id) {
+        let window = self.documents.borrow().find_window(id);
+        if let Some(ref window) = window {
             window.pending_image_notification(response);
         }
     }
