@@ -143,7 +143,7 @@ impl FetchResponseListener for ImageContext {
         });
 
         let status_code = metadata.as_ref().and_then(|m| {
-            m.status.map(|(code, _)| code)
+            m.status.as_ref().map(|&(code, _)| code)
         }).unwrap_or(0);
 
         self.status = match status_code {
