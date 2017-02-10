@@ -40,9 +40,9 @@ impl JsonPacketStream for TcpStream {
     }
 
     fn write_merged_json_packet<T: Serialize, U: Serialize>(&mut self, base: &T, extra: &U) {
-        let mut obj = serde_json::to_value(base);
+        let mut obj = serde_json::to_value(base).unwrap();
         let obj = obj.as_object_mut().unwrap();
-        let extra = serde_json::to_value(extra);
+        let extra = serde_json::to_value(extra).unwrap();
         let extra = extra.as_object().unwrap();
 
         for (key, value) in extra {
@@ -79,14 +79,7 @@ impl JsonPacketStream for TcpStream {
                     debug!("{}", packet);
                     return match serde_json::from_str(&packet) {
                         Ok(json) => Ok(Some(json)),
-                        Err(err) => match err {
-                            serde_json::Error::Io(ioerr) => {
-                                return Err(ioerr.description().to_owned())
-                            },
-                            serde_json::Error::Syntax(_, l, c) => {
-                                return Err(format!("syntax at {}:{}", l, c))
-                            },
-                        },
+                        Err(err) => Err(err.description().to_owned()),
                     };
                 },
                 c => buffer.push(c),

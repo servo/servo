@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 gfx = {path = "../gfx"}
-ipc-channel = "0.6.3"
+ipc-channel = "0.7"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
@@ -19,6 +19,7 @@ script_traits = {path = "../script_traits"}
 servo_url = {path = "../url"}
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
+git = "https://github.com/nox/webrender"
+rev = "serde"
 default-features = false
 features = ["serde_derive", "ipc"]

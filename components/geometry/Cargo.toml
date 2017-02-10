@@ -11,9 +11,9 @@ path = "lib.rs"
 
 [features]
 # servo as opposed to geckolib
-servo = ["app_units/plugins", "euclid/unstable"]
+servo = ["euclid/unstable"]
 
 [dependencies]
-app_units = "0.3"
-euclid = "0.10.1"
+app_units = "0.4"
+euclid = "0.11"
 heapsize = "0.3.0"

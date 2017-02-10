@@ -13,6 +13,7 @@ use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::fmt;
 use std::fs::File;
 use std::io::{Read, Error as IoError};
 use std::ops::Deref;
@@ -121,21 +122,25 @@ impl Deref for CachedCTFont {
 }
 
 impl Serialize for CachedCTFont {
-    fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
         serializer.serialize_none()
     }
 }
 
 impl Deserialize for CachedCTFont {
-    fn deserialize<D>(deserializer: &mut D) -> Result<CachedCTFont, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<CachedCTFont, D::Error>
                       where D: Deserializer {
         struct NoneOptionVisitor;
 
         impl Visitor for NoneOptionVisitor {
             type Value = CachedCTFont;
 
+            fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+                write!(fmt, "none")
+            }
+
             #[inline]
-            fn visit_none<E>(&mut self) -> Result<CachedCTFont, E> where E: Error {
+            fn visit_none<E>(self) -> Result<CachedCTFont, E> where E: Error {
                 Ok(CachedCTFont(Mutex::new(HashMap::new())))
             }
         }

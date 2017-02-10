@@ -31,10 +31,10 @@ debugger = {path = "../debugger"}
 devtools = {path = "../devtools"}
 devtools_traits = {path = "../devtools_traits"}
 env_logger = "0.4"
-euclid = "0.10.1"
+euclid = "0.11"
 gfx = {path = "../gfx"}
 gleam = "0.2"
-ipc-channel = "0.6.3"
+ipc-channel = "0.7"
 layout_thread = {path = "../layout_thread"}
 log = "0.3"
 msg = {path = "../msg"}
@@ -54,12 +54,14 @@ webvr_traits = {path = "../webvr_traits"}
 webdriver_server = {path = "../webdriver_server", optional = true}
 
 [dependencies.webrender]
-git = "https://github.com/servo/webrender"
+git = "https://github.com/nox/webrender"
+rev = "serde"
 default-features = false
 features = ["serde_derive"]
 
 [dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
+git = "https://github.com/nox/webrender"
+rev = "serde"
 default-features = false
 features = ["serde_derive", "ipc"]
 
