@@ -490,18 +490,18 @@ impl ImageCache {
     /// Return a completed image if it exists, or None if there is no complete load
     /// or the complete load is not fully decoded or is unavailable.
     fn get_completed_image_if_available(&self,
-                                      url: &ServoUrl,
-                                      placeholder: UsePlaceholder)
-                                      -> Option<Result<ImageOrMetadataAvailable, ImageState>> {
+                                        url: &ServoUrl,
+                                        placeholder: UsePlaceholder)
+                                        -> Option<Result<ImageOrMetadataAvailable, ImageState>> {
         self.completed_loads.get(url).map(|completed_load| {
-            match (completed_load.image_response.clone(), placeholder) {
-                (ImageResponse::Loaded(image), _) |
-                (ImageResponse::PlaceholderLoaded(image), UsePlaceholder::Yes) => {
-                    Ok(ImageOrMetadataAvailable::ImageAvailable(image))
+            match (&completed_load.image_response, placeholder) {
+                (&ImageResponse::Loaded(ref image), _) |
+                (&ImageResponse::PlaceholderLoaded(ref image), UsePlaceholder::Yes) => {
+                    Ok(ImageOrMetadataAvailable::ImageAvailable(image.clone()))
                 }
-                (ImageResponse::PlaceholderLoaded(_), UsePlaceholder::No) |
-                (ImageResponse::None, _) |
-                (ImageResponse::MetadataLoaded(_), _) => {
+                (&ImageResponse::PlaceholderLoaded(_), UsePlaceholder::No) |
+                (&ImageResponse::None, _) |
+                (&ImageResponse::MetadataLoaded(_), _) => {
                     Err(ImageState::LoadError)
                 }
             }
