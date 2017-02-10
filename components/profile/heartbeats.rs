@@ -12,39 +12,67 @@ use std::env::var_os;
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
+use std::sync::atomic::{ATOMIC_BOOL_INIT, AtomicBool, Ordering};
 
 
 static mut HBS: Option<*mut HashMap<ProfilerCategory, Heartbeat>> = None;
+
+// unfortunately can't encompass the actual hashmap in a Mutex (Heartbeat isn't Send/Sync), so we'll use a spinlock
+static mut HBS_SPINLOCK: AtomicBool = ATOMIC_BOOL_INIT;
+
+fn lock_and_work<F, R>(work: F) -> R where F: FnOnce() -> R {
+    unsafe {
+        while HBS_SPINLOCK.compare_and_swap(false, true, Ordering::SeqCst) {}
+    }
+    let result = work();
+    unsafe {
+        HBS_SPINLOCK.store(false, Ordering::SeqCst);
+    }
+    result
+}
 
 /// Initialize heartbeats
 pub fn init() {
     let mut hbs: Box<HashMap<ProfilerCategory, Heartbeat>> = Box::new(HashMap::new());
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ApplicationHeartbeat);
-    unsafe {
-        HBS = Some(Box::into_raw(hbs));
-    }
+    lock_and_work(||
+        unsafe {
+            HBS = Some(Box::into_raw(hbs));
+        }
+    );
 }
 
 /// Log regmaining buffer data and cleanup heartbeats
 pub fn cleanup() {
-    unsafe {
-        if let Some(hbs_ptr) = HBS {
-            let mut hbs: Box<HashMap<ProfilerCategory, Heartbeat>> = Box::from_raw(hbs_ptr);
-            for (_, mut v) in hbs.iter_mut() {
-                // log any remaining heartbeat records before dropping
-                log_heartbeat_records(v);
+    let hbs_opt: Option<Box<HashMap<ProfilerCategory, Heartbeat>>> = lock_and_work(||
+        unsafe {
+            match HBS {
+                Some(hbs_ptr) => {
+                    let ret = Some(Box::from_raw(hbs_ptr));
+                    HBS = None;
+                    ret
+                },
+                None => None,
             }
-            hbs.clear();
         }
-        HBS = None;
+    );
+    if let Some(mut hbs) = hbs_opt {
+        for (_, mut v) in hbs.iter_mut() {
+            // log any remaining heartbeat records before dropping
+            log_heartbeat_records(v);
+        }
+        hbs.clear();
     }
 }
 
 /// Check if a heartbeat exists for the given category
 pub fn is_heartbeat_enabled(category: &ProfilerCategory) -> bool {
-    unsafe {
-        HBS.map_or(false, |hbs_ptr| (*hbs_ptr).contains_key(category) || is_create_heartbeat(category))
-    }
+    let is_enabled = lock_and_work(||
+        unsafe {
+            HBS.map_or(false, |hbs_ptr| (*hbs_ptr).contains_key(category))
+        }
+    );
+    is_enabled || is_create_heartbeat(category)
 }
 
 /// Issue a heartbeat (if one exists) for the given category
@@ -53,16 +81,18 @@ pub fn maybe_heartbeat(category: &ProfilerCategory,
                        end_time: u64,
                        start_energy: u64,
                        end_energy: u64) {
-    unsafe {
-        if let Some(hbs_ptr) = HBS {
-            if !(*hbs_ptr).contains_key(category) {
-                maybe_create_heartbeat(&mut (*hbs_ptr), category.clone());
-            }
-            if let Some(mut h) = (*hbs_ptr).get_mut(category) {
-                (*h).heartbeat(0, 1, start_time, end_time, start_energy, end_energy);
+    lock_and_work(||
+        unsafe {
+            if let Some(hbs_ptr) = HBS {
+                if !(*hbs_ptr).contains_key(category) {
+                    maybe_create_heartbeat(&mut (*hbs_ptr), category.clone());
+                }
+                if let Some(mut h) = (*hbs_ptr).get_mut(category) {
+                    (*h).heartbeat(0, 1, start_time, end_time, start_energy, end_energy);
+                }
             }
         }
-    }
+    );
 }
 
 // TODO(cimes): Android doesn't really do environment variables. Need a better way to configure dynamically.
@@ -130,7 +160,8 @@ fn log_heartbeat_records(hb: &mut Heartbeat) {
 }
 
 /// Callback function used to log the window buffer.
-/// When this is called from native C, the heartbeat is safely locked
+/// When this is called from native C, the heartbeat is safely locked internally and the global lock is held.
+/// If calling from this file, you must already hold the global lock!
 extern fn heartbeat_window_callback(hb: *const HeartbeatContext) {
     unsafe {
         if let Some(hbs_ptr) = HBS {
