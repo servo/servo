@@ -30,8 +30,9 @@ pub struct ComputedStyle {
     pub rules: StrongRuleNode,
 
     /// The computed values for each property obtained by cascading the
-    /// matched rules.
-    pub values: Arc<ComputedValues>,
+    /// matched rules. This can only be none during a transient interval of
+    /// the styling algorithm, and callers can safely unwrap it.
+    pub values: Option<Arc<ComputedValues>>,
 }
 
 impl ComputedStyle {
@@ -39,8 +40,28 @@ impl ComputedStyle {
     pub fn new(rules: StrongRuleNode, values: Arc<ComputedValues>) -> Self {
         ComputedStyle {
             rules: rules,
-            values: values,
+            values: Some(values),
         }
+    }
+
+    /// Constructs a partial ComputedStyle, whose ComputedVaues will be filled
+    /// in later.
+    pub fn new_partial(rules: StrongRuleNode) -> Self {
+        ComputedStyle {
+            rules: rules,
+            values: None,
+        }
+    }
+
+    /// Returns a reference to the ComputedValues. The values can only be null during
+    /// the styling algorithm, so this is safe to call elsewhere.
+    pub fn values(&self) -> &Arc<ComputedValues> {
+        self.values.as_ref().unwrap()
+    }
+
+    /// Mutable version of the above.
+    pub fn values_mut(&mut self) -> &mut Arc<ComputedValues> {
+        self.values.as_mut().unwrap()
     }
 }
 
@@ -55,13 +76,6 @@ impl fmt::Debug for ComputedStyle {
 type PseudoStylesInner = HashMap<PseudoElement, ComputedStyle,
                                  BuildHasherDefault<::fnv::FnvHasher>>;
 
-/// The rule nodes for each of the pseudo-elements of an element.
-///
-/// TODO(emilio): Probably shouldn't be a `HashMap` by default, but a smaller
-/// array.
-pub type PseudoRuleNodes = HashMap<PseudoElement, StrongRuleNode,
-                                   BuildHasherDefault<::fnv::FnvHasher>>;
-
 /// A set of styles for a given element's pseudo-elements.
 ///
 /// This is a map from pseudo-element to `ComputedStyle`.
@@ -75,19 +89,6 @@ impl PseudoStyles {
     /// Construct an empty set of `PseudoStyles`.
     pub fn empty() -> Self {
         PseudoStyles(HashMap::with_hasher(Default::default()))
-    }
-
-    /// Gets the rules that the different pseudo-elements matched.
-    ///
-    /// FIXME(emilio): We could in theory avoid creating these when we have
-    /// support for just re-cascading an element. Then the input to
-    /// `cascade_node` could be `MatchResults` or just `UseExistingStyle`.
-    pub fn get_rules(&self) -> PseudoRuleNodes {
-        let mut rules = HashMap::with_hasher(Default::default());
-        for (pseudo, style) in &self.0 {
-            rules.insert(pseudo.clone(), style.rules.clone());
-        }
-        rules
     }
 }
 
@@ -121,7 +122,7 @@ impl ElementStyles {
 
     /// Whether this element `display` value is `none`.
     pub fn is_display_none(&self) -> bool {
-        self.primary.values.get_box().clone_display() == display::T::none
+        self.primary.values().get_box().clone_display() == display::T::none
     }
 }
 
@@ -446,7 +447,14 @@ impl ElementData {
     /// Gets a mutable reference to the element styles. Panic if the element has
     /// never been styled.
     pub fn styles_mut(&mut self) -> &mut ElementStyles {
-        self.styles.as_mut().expect("Caling styles_mut() on unstyled ElementData")
+        self.styles.as_mut().expect("Calling styles_mut() on unstyled ElementData")
+    }
+
+    /// Borrows both styles and restyle mutably at the same time.
+    pub fn styles_and_restyle_mut(&mut self) -> (&mut ElementStyles,
+                                                 Option<&mut RestyleData>) {
+        (self.styles.as_mut().unwrap(),
+         self.restyle.as_mut().map(|r| &mut **r))
     }
 
     /// Sets the computed element styles.

@@ -349,7 +349,7 @@ impl Stylist {
             }
         };
         self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), default_style, inherit_all)
-            .values
+            .values.unwrap()
     }
 
     /// Computes a pseudo-element style lazily during layout.

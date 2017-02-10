@@ -8,9 +8,9 @@
 
 use atomic_refcell::{AtomicRefCell, AtomicRefMut};
 use context::{SharedStyleContext, StyleContext, ThreadLocalStyleContext};
-use data::{ElementData, ElementStyles, RestyleKind, StoredRestyleHint};
+use data::{ElementData, ElementStyles, StoredRestyleHint};
 use dom::{NodeInfo, TElement, TNode};
-use matching::{MatchMethods, StyleSharingResult};
+use matching::{MatchMethods, MatchResults};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
 use servo_config::opts;
@@ -246,7 +246,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         // recursively drops Servo ElementData when the XBL insertion parent of
         // an Element is changed.
         if cfg!(feature = "gecko") && thread_local.is_initial_style() &&
-           parent_data.styles().primary.values.has_moz_binding() {
+           parent_data.styles().primary.values().has_moz_binding() {
             if log.allow() { debug!("Parent {:?} has XBL binding, deferring traversal", parent); }
             return false;
         }
@@ -339,12 +339,9 @@ fn resolve_style_internal<E, F>(context: &mut StyleContext<E>, element: E, ensur
         }
 
         // Compute our style.
-        let match_results = element.match_element(context);
-        let shareable = match_results.primary_is_shareable();
-        element.cascade_node(context, &mut data, element.parent_element(),
-                             match_results.primary,
-                             match_results.per_pseudo,
-                             shareable);
+        let match_results = element.match_element(context, &mut data);
+        element.cascade_element(context, &mut data,
+                                match_results.primary_is_shareable());
 
         // Conservatively mark us as having dirty descendants, since there might
         // be other unstyled siblings we miss when walking straight up the parent
@@ -428,7 +425,18 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
     // Compute style for this element if necessary.
     if compute_self {
-        inherited_style_changed = compute_style(traversal, traversal_data, context, element, &mut data);
+        compute_style(traversal, traversal_data, context, element, &mut data);
+
+        // If we're restyling this element to display:none, throw away all style
+        // data in the subtree, notify the caller to early-return.
+        let display_none = data.styles().is_display_none();
+        if display_none {
+            debug!("New element style is display:none - clearing data from descendants.");
+            clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
+        }
+
+        // FIXME(bholley): Compute this accurately from the call to CalcStyleDifference.
+        inherited_style_changed = true;
     }
 
     // Now that matching and cascading is done, clear the bits corresponding to
@@ -452,7 +460,7 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 
     // Make sure the dirty descendants bit is not set for the root of a
     // display:none subtree, even if the style didn't change (since, if
-    // the style did change, we'd have already cleared it in compute_style).
+    // the style did change, we'd have already cleared it above).
     //
     // This keeps the tree in a valid state without requiring the DOM to
     // check display:none on the parent when inserting new children (which
@@ -464,101 +472,86 @@ pub fn recalc_style_at<E, D>(traversal: &D,
     }
 }
 
-// Computes style, returning true if the inherited styles changed for this
-// element.
 fn compute_style<E, D>(_traversal: &D,
                        traversal_data: &mut PerLevelTraversalData,
                        context: &mut StyleContext<E>,
                        element: E,
-                       mut data: &mut AtomicRefMut<ElementData>) -> bool
+                       mut data: &mut AtomicRefMut<ElementData>)
     where E: TElement,
           D: DomTraversal<E>,
 {
+    use data::RestyleKind::*;
+    use matching::StyleSharingResult::*;
+
     context.thread_local.statistics.elements_styled += 1;
     let shared_context = context.shared;
+    let kind = data.restyle_kind();
 
-    // TODO(emilio): Make cascade_input less expensive to compute in the cases
-    // we don't need to run selector matching.
-    let cascade_input = match data.restyle_kind() {
-        RestyleKind::MatchAndCascade => {
-            // Check to see whether we can share a style with someone.
-            let sharing_result = unsafe {
-                element.share_style_if_possible(&mut context.thread_local.style_sharing_candidate_cache,
-                                                shared_context,
-                                                &mut data)
-            };
+    // First, try the style sharing cache. If we get a match we can skip the rest
+    // of the work.
+    if let MatchAndCascade = kind {
+        let sharing_result = unsafe {
+            let cache = &mut context.thread_local.style_sharing_candidate_cache;
+            element.share_style_if_possible(cache, shared_context, &mut data)
+        };
+        if let StyleWasShared(index) = sharing_result {
+            context.thread_local.statistics.styles_shared += 1;
+            context.thread_local.style_sharing_candidate_cache.touch(index);
+            return;
+        }
+    }
 
-            match sharing_result {
-                StyleSharingResult::StyleWasShared(index) => {
-                    context.thread_local.statistics.styles_shared += 1;
-                    context.thread_local.style_sharing_candidate_cache.touch(index);
-                    None
-                }
-                StyleSharingResult::CannotShare => {
-                    // Ensure the bloom filter is up to date.
-                    let dom_depth =
-                        context.thread_local.bloom_filter
-                               .insert_parents_recovering(element,
-                                                          traversal_data.current_dom_depth);
+    let match_results = match kind {
+        MatchAndCascade => {
+            // Ensure the bloom filter is up to date.
+            let dom_depth =
+                context.thread_local.bloom_filter
+                       .insert_parents_recovering(element,
+                                                  traversal_data.current_dom_depth);
 
-                    // Update the dom depth with the up-to-date dom depth.
-                    //
-                    // Note that this is always the same than the pre-existing depth,
-                    // but it can change from unknown to known at this step.
-                    traversal_data.current_dom_depth = Some(dom_depth);
+            // Update the dom depth with the up-to-date dom depth.
+            //
+            // Note that this is always the same than the pre-existing depth,
+            // but it can change from unknown to known at this step.
+            traversal_data.current_dom_depth = Some(dom_depth);
 
-                    context.thread_local.bloom_filter.assert_complete(element);
+            context.thread_local.bloom_filter.assert_complete(element);
 
-                    // Perform the CSS selector matching.
-                    context.thread_local.statistics.elements_matched += 1;
 
-                    Some(element.match_element(context))
-                }
+            // Perform CSS selector matching.
+            context.thread_local.statistics.elements_matched += 1;
+            element.match_element(context, &mut data)
+        }
+        CascadeWithReplacements(hint) => {
+            let rule_nodes_changed =
+                element.cascade_with_replacements(hint, context, &mut data);
+            MatchResults {
+                primary_relations: None,
+                rule_nodes_changed: rule_nodes_changed,
             }
         }
-        RestyleKind::CascadeWithReplacements(hint) => {
-            Some(element.cascade_with_replacements(hint, context, &mut data))
-        }
-        RestyleKind::CascadeOnly => {
-            // TODO(emilio): Stop doing this work, and teach cascade_node about
-            // the current style instead.
-            Some(element.match_results_from_current_style(&*data))
+        CascadeOnly => {
+            MatchResults {
+                primary_relations: None,
+                rule_nodes_changed: false,
+            }
         }
     };
 
-    if let Some(match_results) = cascade_input {
-        // Perform the CSS cascade.
-        let shareable = match_results.primary_is_shareable();
-        unsafe {
-            element.cascade_node(context, &mut data,
-                                 element.parent_element(),
-                                 match_results.primary,
-                                 match_results.per_pseudo,
-                                 shareable);
-        }
-
-        if shareable {
-            // Add ourselves to the LRU cache.
-            context.thread_local
-                   .style_sharing_candidate_cache
-                   .insert_if_possible(&element,
-                                       &data.styles().primary.values,
-                                       match_results.relations);
-        }
+    // Cascade properties and compute values.
+    let shareable = match_results.primary_is_shareable();
+    unsafe {
+        element.cascade_element(context, &mut data, shareable);
     }
 
-    // If we're restyling this element to display:none, throw away all style data
-    // in the subtree, notify the caller to early-return.
-    let display_none = data.styles().is_display_none();
-    if display_none {
-        debug!("New element style is display:none - clearing data from descendants.");
-        clear_descendant_data(element, &|e| unsafe { D::clear_element_data(&e) });
+    // If the style is shareable, add it to the LRU cache.
+    if shareable {
+        context.thread_local
+               .style_sharing_candidate_cache
+               .insert_if_possible(&element,
+                                   data.styles().primary.values(),
+                                   match_results.primary_relations.unwrap());
     }
-
-    // FIXME(bholley): Compute this accurately from the call to CalcStyleDifference.
-    let inherited_styles_changed = true;
-
-    inherited_styles_changed
 }
 
 fn preprocess_children<E, D>(traversal: &D,

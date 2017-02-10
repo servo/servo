@@ -197,7 +197,7 @@ fn fmt_with_data_and_primary_values<N: TNode>(f: &mut fmt::Formatter, n: N) -> f
         let dd = el.has_dirty_descendants();
         let data = el.borrow_data();
         let styles = data.as_ref().and_then(|d| d.get_styles());
-        let values = styles.map(|s| &s.primary.values);
+        let values = styles.map(|s| s.primary.values());
         write!(f, "{:?} dd={} data={:?} values={:?}", el, dd, &data, values)
     } else {
         write!(f, "{:?}", n)
@@ -276,7 +276,7 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
     /// values as an argument here, but otherwise Servo would crash due to
     /// double borrows to return it.
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_computed_values: Option<&'a Arc<ComputedValues>>,
+                                             current_computed_values: &'a Arc<ComputedValues>,
                                              pseudo: Option<&PseudoElement>)
                                              -> Option<&'a PreExistingComputedValues>;
 

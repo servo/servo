@@ -393,10 +393,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     #[inline]
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_cv: Option<&'a Arc<ComputedValues>>,
+                                             current_cv: &'a Arc<ComputedValues>,
                                              _pseudo_element: Option<&PseudoElement>)
                                              -> Option<&'a Arc<ComputedValues>> {
-        current_cv
+        Some(current_cv)
     }
 
     fn has_dirty_descendants(&self) -> bool {
@@ -777,7 +777,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         debug_assert!(self.is_text_node());
         let parent = self.node.parent_node().unwrap().as_element().unwrap();
         let parent_data = parent.get_data().unwrap().borrow();
-        parent_data.styles().primary.values.clone()
+        parent_data.styles().primary.values().clone()
     }
 
     fn debug_id(self) -> usize {
