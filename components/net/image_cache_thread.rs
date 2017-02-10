@@ -388,7 +388,7 @@ impl ImageCache {
                                                          height: dimensions.height };
                         pending_load.metadata = Some(img_metadata.clone());
                         for listener in &pending_load.listeners {
-                            listener.notify(ImageResponse::MetadataLoaded(img_metadata.clone()));
+                            listener.respond(ImageResponse::MetadataLoaded(img_metadata.clone()));
                         }
                     }
                 }
@@ -464,7 +464,7 @@ impl ImageCache {
         self.completed_loads.insert(pending_load.url.into(), completed_load);
 
         for listener in pending_load.listeners {
-            listener.notify(image_response.clone());
+            listener.respond(image_response.clone());
         }
     }
 
@@ -475,13 +475,13 @@ impl ImageCache {
                     listener: ImageResponder) {
         if let Some(load) = self.pending_loads.get_by_key_mut(&id) {
             if let Some(ref metadata) = load.metadata {
-                listener.notify(ImageResponse::MetadataLoaded(metadata.clone()));
+                listener.respond(ImageResponse::MetadataLoaded(metadata.clone()));
             }
             load.add_listener(listener);
             return;
         }
         if let Some(load) = self.completed_loads.values().find(|l| l.id == id) {
-            listener.notify(load.image_response.clone());
+            listener.respond(load.image_response.clone());
             return;
         }
         warn!("Couldn't find cached entry for listener {:?}", id);
