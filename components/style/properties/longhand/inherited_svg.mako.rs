@@ -93,6 +93,22 @@ ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0",
                           products="gecko", animatable=False,
                           spec="https://www.w3.org/TR/SVG11/painting.html#StrokeOpacityProperty")}
 
+${helpers.predefined_type("stroke-dasharray", "LoPOrNumber", "Either::Second(0.0)",
+                          "parse_non_negative",
+                          vector="True",
+                          products="gecko",
+                          animatable="False",
+                          space_separated_allowed="True",
+                          spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
+
+${helpers.predefined_type(
+    "stroke-dashoffset", "LengthOrPercentage",
+    "computed::LengthOrPercentage::zero()",
+    products="gecko",
+    animatable=True,
+    boxed=True,
+    spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
+
 // Section 14 - Clipping, Masking and Compositing
 ${helpers.single_keyword("clip-rule", "nonzero evenodd",
                          products="gecko",

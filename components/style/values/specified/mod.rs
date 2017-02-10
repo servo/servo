@@ -824,6 +824,21 @@ impl ToComputedValue for SVGPaintKind {
     }
 }
 
+/// <length> | <percentage> | <number>
+pub type LoPOrNumber = Either<LengthOrPercentage, Number>;
+
+impl LoPOrNumber {
+    /// parse a <length-percentage> | <number> enforcing that the contents aren't negative
+    pub fn parse_non_negative(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(lop) = input.try(LengthOrPercentage::parse_non_negative) {
+            Ok(Either::First(lop))
+        } else if let Ok(num) = input.try(Number::parse_non_negative) {
+            Ok(Either::Second(num))
+        } else {
+            Err(())
+        }
+    }
+}
 
 impl HasViewportPercentage for ClipRect {
     fn has_viewport_percentage(&self) -> bool {

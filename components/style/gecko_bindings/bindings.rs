@@ -727,6 +727,14 @@ extern "C" {
     pub fn Gecko_nsStyleSVGPaint_Reset(paint: *mut nsStyleSVGPaint);
 }
 extern "C" {
+    pub fn Gecko_nsStyleSVG_SetDashArrayLength(svg: *mut nsStyleSVG,
+                                               len: u32);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVG_CopyDashArray(dst: *mut nsStyleSVG,
+                                          src: *const nsStyleSVG);
+}
+extern "C" {
     pub fn Gecko_NewURLValue(uri: ServoBundledURI) -> *mut URLValue;
 }
 extern "C" {

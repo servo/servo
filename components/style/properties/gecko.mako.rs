@@ -2800,7 +2800,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedSVG"
-                  skip_longhands="paint-order"
+                  skip_longhands="paint-order stroke-dasharray"
                   skip_additionals="*">
     pub fn set_paint_order(&mut self, v: longhands::paint_order::computed_value::T) {
         use self::longhands::paint_order;
@@ -2825,6 +2825,25 @@ clip-path
     }
 
     ${impl_simple_copy('paint_order', 'mPaintOrder')}
+
+    pub fn set_stroke_dasharray(&mut self, v: longhands::stroke_dasharray::computed_value::T) {
+        unsafe {
+            bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut self.gecko, v.0.len() as u32);
+        }
+
+        for (mut gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v.0.into_iter()) {
+            match servo {
+                Either::First(lop) => gecko.set(lop),
+                Either::Second(number) => gecko.set_value(CoordDataValue::Factor(number)),
+            }
+        }
+    }
+
+    pub fn copy_stroke_dasharray_from(&mut self, other: &Self) {
+        unsafe {
+            bindings::Gecko_nsStyleSVG_CopyDashArray(&mut self.gecko, &other.gecko);
+        }
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Color"
