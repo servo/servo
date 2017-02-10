@@ -11,6 +11,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 use app_units::Au;
+use cssparser::Color;
 use custom_properties::ComputedValuesMap;
 use gecko_bindings::bindings;
 % for style_struct in data.style_structs:
@@ -274,6 +275,19 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
+
+/// Convert a Servo color into an nscolor; with currentColor as 0
+///
+/// Call sites will need to be updated after https://bugzilla.mozilla.org/show_bug.cgi?id=760345
+fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
+    match color {
+        Color::RGBA(rgba) => {
+            convert_rgba_to_nscolor(&rgba)
+        },
+        Color::CurrentColor => 0,
+    }
+}
+
 <%def name="impl_color_setter(ident, gecko_ffi_name, complex_color=True)">
     #[allow(unreachable_code)]
     #[allow(non_snake_case)]
@@ -281,12 +295,7 @@ def set_gecko_property(ffi_name, expr):
         % if complex_color:
             let result = v.into();
         % else:
-            use cssparser::Color;
-            let result = match v {
-                Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba),
-                // FIXME #13547
-                Color::CurrentColor => 0,
-            };
+            let result = color_to_nscolor_zero_currentcolor(v);
         % endif
         ${set_gecko_property(gecko_ffi_name, "result")}
     }
@@ -306,7 +315,6 @@ def set_gecko_property(ffi_name, expr):
         % if complex_color:
             ${get_gecko_property(gecko_ffi_name)}.into()
         % else:
-            use cssparser::Color;
             Color::RGBA(convert_nscolor_to_rgba(${get_gecko_property(gecko_ffi_name)}))
         % endif
     }
@@ -367,6 +375,54 @@ def set_gecko_property(ffi_name, expr):
 % if need_clone:
     <%call expr="impl_color_clone(ident, gecko_ffi_name, complex_color)"></%call>
 % endif
+</%def>
+
+<%def name="impl_svg_paint(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, mut v: longhands::${ident}::computed_value::T) {
+        use values::computed::SVGPaintKind;
+        use self::structs::nsStyleSVGPaintType;
+
+        let ref mut paint = ${get_gecko_property(gecko_ffi_name)};
+        unsafe {
+            bindings::Gecko_nsStyleSVGPaint_Reset(paint);
+        }
+        let fallback = v.fallback.take();
+        match v.kind {
+            SVGPaintKind::None => return,
+            SVGPaintKind::ContextFill => {
+                paint.mType = nsStyleSVGPaintType::eStyleSVGPaintType_ContextFill;
+            }
+            SVGPaintKind::ContextStroke => {
+                paint.mType = nsStyleSVGPaintType::eStyleSVGPaintType_ContextStroke;
+            }
+            SVGPaintKind::PaintServer(url) => {
+                unsafe {
+                    bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, url.for_ffi());
+                }
+            }
+            SVGPaintKind::Color(color) => {
+                paint.mType = nsStyleSVGPaintType::eStyleSVGPaintType_Color;
+                unsafe {
+                    *paint.mPaint.mColor.as_mut() = color_to_nscolor_zero_currentcolor(color);
+                }
+            }
+        }
+
+        if let Some(fallback) = fallback {
+            paint.mFallbackColor = color_to_nscolor_zero_currentcolor(fallback);
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        unsafe {
+            bindings::Gecko_nsStyleSVGPaint_CopyFrom(
+                &mut ${get_gecko_property(gecko_ffi_name)},
+                & ${get_gecko_property(gecko_ffi_name, "other")}
+            );
+        }
+    }
 </%def>
 
 <%def name="impl_app_units(ident, gecko_ffi_name, need_clone, round_to_pixels=False)">
@@ -543,6 +599,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "Number": impl_simple,
         "Opacity": impl_simple,
         "CSSColor": impl_color,
+        "SVGPaint": impl_svg_paint,
     }
 
     def longhand_method(longhand):
@@ -2130,7 +2187,6 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Effects"
                   skip_longhands="box-shadow filter">
     pub fn set_box_shadow(&mut self, v: longhands::box_shadow::computed_value::T) {
-        use cssparser::Color;
 
         self.gecko.mBoxShadow.replace_with_new(v.0.len() as u32);
 
@@ -2161,8 +2217,6 @@ fn static_assert() {
     }
 
     pub fn clone_box_shadow(&self) -> longhands::box_shadow::computed_value::T {
-        use cssparser::Color;
-
         let buf = self.gecko.mBoxShadow.iter().map(|shadow| {
             longhands::box_shadow::single_value::computed_value::T {
                 offset_x: Au(shadow.mXOffset),
@@ -2177,7 +2231,6 @@ fn static_assert() {
     }
 
     pub fn set_filter(&mut self, v: longhands::filter::computed_value::T) {
-        use cssparser::Color;
         use properties::longhands::filter::computed_value::Filter::*;
         use gecko_bindings::structs::nsCSSShadowArray;
         use gecko_bindings::structs::nsStyleFilter;
@@ -2304,7 +2357,6 @@ fn static_assert() {
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
 
     pub fn set_text_shadow(&mut self, v: longhands::text_shadow::computed_value::T) {
-        use cssparser::Color;
         self.gecko.mTextShadow.replace_with_new(v.0.len() as u32);
 
         for (servo, gecko_shadow) in v.0.into_iter()
@@ -2332,7 +2384,6 @@ fn static_assert() {
     }
 
     pub fn clone_text_shadow(&self) -> longhands::text_shadow::computed_value::T {
-        use cssparser::Color;
 
         let buf = self.gecko.mTextShadow.iter().map(|shadow| {
             longhands::text_shadow::computed_value::TextShadow {
@@ -2718,6 +2769,11 @@ clip-path
             Gecko_CopyClipPathValueFrom(&mut self.gecko.mClipPath, &other.gecko.mClipPath);
         }
     }
+</%self:impl_trait>
+
+<%self:impl_trait style_struct_name="InheritedSVG"
+                  skip_longhands=""
+                  skip_additionals="*">
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Color"

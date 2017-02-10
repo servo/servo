@@ -10,7 +10,7 @@ use font_metrics::FontMetricsProvider;
 use properties::ComputedValues;
 use std::fmt;
 use style_traits::ToCss;
-use super::{CSSFloat, specified};
+use super::{CSSFloat, RGBA, specified};
 
 pub use cssparser::Color as CSSColor;
 pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image};
@@ -195,6 +195,26 @@ pub struct SVGPaint {
     pub kind: SVGPaintKind,
     /// The fallback color
     pub fallback: Option<CSSColor>,
+}
+
+impl Default for SVGPaint {
+    fn default() -> Self {
+        SVGPaint {
+            kind: SVGPaintKind::None,
+            fallback: None,
+        }
+    }
+}
+
+impl SVGPaint {
+    /// Opaque black color
+    pub fn black() -> Self {
+        let rgba = RGBA::from_floats(0., 0., 0., 1.);
+        SVGPaint {
+            kind: SVGPaintKind::Color(CSSColor::RGBA(rgba)),
+            fallback: None,
+        }
+    }
 }
 
 /// An SVG paint value without the fallback

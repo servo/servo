@@ -33,6 +33,14 @@ ${helpers.single_keyword("color-interpolation-filters", "auto sRGB linearRGB",
                          animatable=False,
                          spec="https://www.w3.org/TR/SVG11/painting.html#ColorInterpolationFiltersProperty")}
 
+${helpers.predefined_type(
+    "fill", "SVGPaint",
+    "::values::computed::SVGPaint::black()",
+    products="gecko",
+    animatable=False,
+    boxed=True,
+    spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingFillPaint")}
+
 ${helpers.predefined_type("fill-opacity", "Opacity", "1.0",
                           products="gecko", animatable=False,
                           spec="https://www.w3.org/TR/SVG11/painting.html#FillOpacityProperty")}
@@ -48,6 +56,14 @@ ${helpers.single_keyword("shape-rendering",
                          products="gecko",
                          animatable=False,
                          spec="https://www.w3.org/TR/SVG11/painting.html#ShapeRenderingProperty")}
+
+${helpers.predefined_type(
+    "stroke", "SVGPaint",
+    "Default::default()",
+    products="gecko",
+    animatable=False,
+    boxed=True,
+    spec="https://www.w3.org/TR/SVG2/painting.html#SpecifyingStrokePaint")}
 
 ${helpers.single_keyword("stroke-linecap", "butt round square",
                          products="gecko", animatable=False,

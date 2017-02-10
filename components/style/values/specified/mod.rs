@@ -670,6 +670,8 @@ impl Shadow {
     }
 }
 
+no_viewport_percentage!(SVGPaint);
+
 /// An SVG paint value
 ///
 /// https://www.w3.org/TR/SVG2/painting.html#SpecifyingPaint

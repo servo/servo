@@ -118,6 +118,9 @@ unsafe impl Sync for nsStyleQuoteValues {}
 use gecko_bindings::structs::nsStyleSVG;
 unsafe impl Send for nsStyleSVG {}
 unsafe impl Sync for nsStyleSVG {}
+use gecko_bindings::structs::nsStyleSVGPaint;
+unsafe impl Send for nsStyleSVGPaint {}
+unsafe impl Sync for nsStyleSVGPaint {}
 use gecko_bindings::structs::nsStyleSVGReset;
 unsafe impl Send for nsStyleSVGReset {}
 unsafe impl Sync for nsStyleSVGReset {}
@@ -718,6 +721,17 @@ extern "C" {
 extern "C" {
     pub fn Gecko_nsStyleFilter_SetURLValue(effects: *mut nsStyleFilter,
                                            uri: ServoBundledURI);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVGPaint_CopyFrom(dest: *mut nsStyleSVGPaint,
+                                          src: *const nsStyleSVGPaint);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVGPaint_SetURLValue(paint: *mut nsStyleSVGPaint,
+                                             uri: ServoBundledURI);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVGPaint_Reset(paint: *mut nsStyleSVGPaint);
 }
 extern "C" {
     pub fn Gecko_FillAllBackgroundLists(layers: *mut nsStyleImageLayers,
