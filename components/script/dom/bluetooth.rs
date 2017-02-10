@@ -215,12 +215,12 @@ impl Bluetooth {
         let option = RequestDeviceoptions::new(BluetoothScanfilterSequence::new(uuid_filters),
                                                ServiceUUIDSequence::new(optional_services_uuids));
 
-        // Step 3 - 5
+        // Step 4 - 5.
         if let PermissionState::Denied = get_descriptor_permission_state(PermissionName::Bluetooth, None) {
             return p.reject_error(p.global().get_cx(), Error::NotFound);
         }
 
-        // Note: Steps 6 - 8 are implemented in
+        // Note: Step 3, 6 - 8 are implemented in
         // components/net/bluetooth_thread.rs in request_device function.
         self.get_bluetooth_thread().send(BluetoothRequest::RequestDevice(option, sender)).unwrap();
     }

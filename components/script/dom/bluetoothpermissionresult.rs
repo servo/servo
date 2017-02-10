@@ -87,8 +87,9 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
     fn handle_response(&self, response: BluetoothResponse, promise_cx: *mut JSContext, promise: &Rc<Promise>) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
-            // Step 11, 13 - 14.
+            // Step 3, 11, 13 - 14.
             BluetoothResponse::RequestDevice(device) => {
+                self.set_state(PermissionState::Granted);
                 let bluetooth = self.get_bluetooth();
                 let mut device_instance_map = bluetooth.get_device_map().borrow_mut();
                 if let Some(ref existing_device) = device_instance_map.get(&device.id) {
