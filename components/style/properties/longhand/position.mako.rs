@@ -229,3 +229,17 @@ ${helpers.predefined_type("object-position",
                               products="gecko",
                               boxed=True)}
 % endfor
+
+${helpers.predefined_type("grid-row-gap",
+                          "LengthOrPercentage",
+                          "computed::LengthOrPercentage::Length(Au(0))",
+                          spec="https://drafts.csswg.org/css-grid/#propdef-grid-row-gap",
+                          animatable=True,
+                          products="gecko")}
+
+${helpers.predefined_type("grid-column-gap",
+                          "LengthOrPercentage",
+                          "computed::LengthOrPercentage::Length(Au(0))",
+                          spec="https://drafts.csswg.org/css-grid/#propdef-grid-column-gap",
+                          animatable=True,
+                          products="gecko")}
