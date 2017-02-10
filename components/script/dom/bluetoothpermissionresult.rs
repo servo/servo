@@ -33,7 +33,7 @@ pub struct BluetoothPermissionResult {
 
 impl BluetoothPermissionResult {
     #[allow(unrooted_must_root)]
-    pub fn new_inherited(status: &PermissionStatus) -> BluetoothPermissionResult {
+    fn new_inherited(status: &PermissionStatus) -> BluetoothPermissionResult {
         let result = BluetoothPermissionResult {
             status: PermissionStatus::new_inherited(status.get_query()),
             devices: DOMRefCell::new(Vec::new()),
@@ -89,10 +89,10 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
             // Step 11, 13 - 14.
             BluetoothResponse::RequestDevice(device) => {
-                let bluetooth = &self.get_bluetooth();
+                let bluetooth = self.get_bluetooth();
                 let mut device_instance_map = bluetooth.get_device_map().borrow_mut();
                 if let Some(ref existing_device) = device_instance_map.get(&device.id) {
-                    // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothpermissionresult
+                    // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
                     // Step 3.
                     self.set_devices(vec!(JS::from_ref(&*existing_device)));
 
@@ -103,7 +103,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 let bt_device = BluetoothDevice::new(&self.global(),
                                                      DOMString::from(device.id.clone()),
                                                      device.name.map(DOMString::from),
-                                                     bluetooth);
+                                                     &bluetooth);
                 device_instance_map.insert(device.id.clone(), JS::from_ref(&bt_device));
                 add_new_allowed_device(
                     AllowedBluetoothDevice {
@@ -114,7 +114,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                         mayUseGATT: true,
                     }
                 );
-                // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothpermissionresult
+                // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
                 // Step 3.
                 self.set_devices(vec!(JS::from_ref(&bt_device)));
 

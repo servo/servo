@@ -247,9 +247,9 @@ fn prompt_user(permission_name: PermissionName) -> PermissionState {
                                               &format!("{} {:?} ?", QUERY_DIALOG_MESSAGE, permission_name),
                                               MessageBoxIcon::Question,
                                               YesNo::No) {
-        YesNo::Yes => return PermissionState::Granted,
-        YesNo::No => return PermissionState::Denied,
-    };
+        YesNo::Yes => PermissionState::Granted,
+        YesNo::No => PermissionState::Denied,
+    }
 }
 
 #[cfg(not(target_os = "linux"))]

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use core::clone::Clone;
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{self, PermissionDescriptor, PermissionName};
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionState, PermissionStatusMethods};
@@ -11,21 +9,22 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use std::cell::Cell;
 
 // https://w3c.github.io/permissions/#permissionstatus
 #[dom_struct]
 pub struct PermissionStatus {
     eventtarget: EventTarget,
-    state: DOMRefCell<PermissionState>,
-    query: DOMRefCell<PermissionName>,
+    state: Cell<PermissionState>,
+    query: Cell<PermissionName>,
 }
 
 impl PermissionStatus {
     pub fn new_inherited(query: PermissionName) -> PermissionStatus {
         PermissionStatus {
             eventtarget: EventTarget::new_inherited(),
-            state: DOMRefCell::new(PermissionState::Denied),
-            query: DOMRefCell::new(query),
+            state: Cell::new(PermissionState::Denied),
+            query: Cell::new(query),
         }
     }
 
@@ -36,18 +35,18 @@ impl PermissionStatus {
     }
 
     pub fn set_state(&self, state: PermissionState) {
-        *self.state.borrow_mut() = state;
+        self.state.set(state);
     }
 
     pub fn get_query(&self) -> PermissionName {
-        self.query.borrow().clone()
+        self.query.get()
     }
 }
 
 impl PermissionStatusMethods for PermissionStatus {
     // https://w3c.github.io/permissions/#dom-permissionstatus-state
     fn State(&self) -> PermissionState {
-        self.state.borrow().clone()
+        self.state.get()
     }
 
     // https://w3c.github.io/permissions/#dom-permissionstatus-onchange

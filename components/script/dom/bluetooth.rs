@@ -580,8 +580,7 @@ impl PermissionAlgorithm for Bluetooth {
     fn permission_query(cx: *mut JSContext, promise: &Rc<Promise>,
                         descriptor: &BluetoothPermissionDescriptor,
                         status: &BluetoothPermissionResult) {
-        // Step 1.
-        // TODO: `environment settings object` is not implemented in Servo yet.
+        // Step 1: We are not using the `global` variable.
 
         // Step 2.
         status.set_state(get_descriptor_permission_state(status.get_query(), None));
@@ -615,11 +614,12 @@ impl PermissionAlgorithm for Bluetooth {
                 }
             }
             let device_id = String::from(allowed_device.deviceId.as_ref());
+
+            // Step 6.2.
             if let Some(ref filters) = descriptor.filters {
                 let mut scan_filters: Vec<BluetoothScanfilter> = Vec::new();
 
-                // NOTE(zakorgy): This canonicalizing step is missing from the specification.
-                // But there is an issue for this: https://github.com/WebBluetoothCG/web-bluetooth/issues/347
+                // Step 6.2.1.
                 for filter in filters {
                     match canonicalize_filter(&filter) {
                         Ok(f) => scan_filters.push(f),
@@ -627,7 +627,7 @@ impl PermissionAlgorithm for Bluetooth {
                     }
                 }
 
-                // Step 6.2.
+                // Step 6.2.2.
                 // Instead of creating an internal slot we send an ipc message to the Bluetooth thread
                 // to check if one of the filters matches.
                 let (sender, receiver) = ipc::channel().unwrap();
@@ -643,7 +643,7 @@ impl PermissionAlgorithm for Bluetooth {
                 };
             }
 
-            // Step 6.4.
+            // Step 6.3.
             // TODO: Implement this correctly, not just using device ids here.
             // https://webbluetoothcg.github.io/web-bluetooth/#get-the-bluetoothdevice-representing
             if let Some(ref device) = device_map.get(&device_id) {
@@ -659,8 +659,7 @@ impl PermissionAlgorithm for Bluetooth {
         promise.resolve_native(cx, status);
     }
 
-    // NOTE(zakorgy): There is no link for this algorithm until this PR for the spec is pending:
-    // https://github.com/WebBluetoothCG/web-bluetooth/pull/349
+    // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
     fn permission_request(cx: *mut JSContext, promise: &Rc<Promise>,
                           descriptor: &BluetoothPermissionDescriptor,
                           status: &BluetoothPermissionResult) {
