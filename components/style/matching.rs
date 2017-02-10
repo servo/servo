@@ -13,7 +13,7 @@ use atomic_refcell::AtomicRefMut;
 use cache::LRUCache;
 use cascade_info::CascadeInfo;
 use context::{SequentialTask, SharedStyleContext, StyleContext};
-use data::{ComputedStyle, ElementData, ElementStyles};
+use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{SendElement, TElement, TNode};
 use properties::{CascadeFlags, ComputedValues, SHAREABLE, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP, cascade};
 use properties::longhands::display::computed_value as display;
@@ -556,13 +556,9 @@ trait PrivateMatchMethods: TElement {
             }
         }
 
-        // Accumulate restyle damage unless we've already maxed it out.
+        // Accumulate restyle damage.
         if let Some(old) = old_values {
-            let restyle = restyle.expect("Old values but no restyle?");
-            if restyle.damage != RestyleDamage::rebuild_and_reflow() {
-                let d = self.compute_restyle_damage(Some(&old), &new_values, pseudo);
-                restyle.damage |= d;
-            }
+            self.accumulate_damage(restyle.unwrap(), &old, &new_values, pseudo);
         }
 
         // Set the new computed values.
@@ -570,6 +566,18 @@ trait PrivateMatchMethods: TElement {
             style.values = Some(new_values);
         } else {
             primary_style.values = Some(new_values);
+        }
+    }
+
+    /// Computes and applies restyle damage unless we've already maxed it out.
+    fn accumulate_damage(&self,
+                         restyle: &mut RestyleData,
+                         old_values: &Arc<ComputedValues>,
+                         new_values: &Arc<ComputedValues>,
+                         pseudo: Option<&PseudoElement>) {
+        if restyle.damage != RestyleDamage::rebuild_and_reflow() {
+            let d = self.compute_restyle_damage(&old_values, &new_values, pseudo);
+            restyle.damage |= d;
         }
     }
 
@@ -804,21 +812,18 @@ pub trait MatchMethods : TElement {
                 Ok(shared_style) => {
                     // Yay, cache hit. Share the style.
 
-                    // TODO: add the display: none optimisation here too! Even
-                    // better, factor it out/make it a bit more generic so Gecko
-                    // can decide more easily if it knows that it's a child of
-                    // replaced content, or similar stuff!
-                    let maybe_damage = {
-                        let previous = data.get_styles().map(|x| x.primary.values());
-                        let existing = self.existing_style_for_restyle_damage(previous, None);
-                        existing.map(|e| RestyleDamage::compute(e, &shared_style.values()))
-                    };
-                    if let Some(d) = maybe_damage {
-                        data.restyle_mut().damage |= d;
+                    // Accumulate restyle damage.
+                    debug_assert_eq!(data.has_styles(), data.has_restyle());
+                    let old_values = data.get_styles_mut()
+                                         .and_then(|s| s.primary.values.take());
+                    if let Some(old) = old_values {
+                        self.accumulate_damage(data.restyle_mut(), &old,
+                                               shared_style.values(), None);
                     }
 
-                    // We never put elements with pseudo style into the style sharing cache,
-                    // so we can just mint an ElementStyles directly here.
+                    // We never put elements with pseudo style into the style
+                    // sharing cache, so we can just mint an ElementStyles
+                    // directly here.
                     //
                     // See https://bugzilla.mozilla.org/show_bug.cgi?id=1329361
                     let styles = ElementStyles::new(shared_style);
@@ -901,40 +906,26 @@ pub trait MatchMethods : TElement {
     /// pseudo-element, compute the restyle damage used to determine which
     /// kind of layout or painting operations we'll need.
     fn compute_restyle_damage(&self,
-                              old_style: Option<&Arc<ComputedValues>>,
-                              new_style: &Arc<ComputedValues>,
+                              old_values: &Arc<ComputedValues>,
+                              new_values: &Arc<ComputedValues>,
                               pseudo: Option<&PseudoElement>)
                               -> RestyleDamage
     {
-        match self.existing_style_for_restyle_damage(old_style, pseudo) {
-            Some(ref source) => RestyleDamage::compute(source, new_style),
+        match self.existing_style_for_restyle_damage(old_values, pseudo) {
+            Some(ref source) => RestyleDamage::compute(source, new_values),
             None => {
-                // If there's no style source, two things can happen:
-                //
-                //  1. This is not an incremental restyle (old_style is none).
-                //     In this case we can't do too much than sending
-                //     rebuild_and_reflow.
-                //
-                //  2. This is an incremental restyle, but the old display value
-                //     is none, so there's no effective way for Gecko to get the
-                //     style source (which is the style context).
-                //
-                //     In this case, we could return either
-                //     RestyleDamage::empty(), in the case both displays are
-                //     none, or rebuild_and_reflow, otherwise.
-                //
-                if let Some(old_style) = old_style {
-                    // FIXME(emilio): This should assert the old style is
-                    // display: none, but we still can't get an old style
-                    // context for other stuff that should give us a style
-                    // context source like display: contents, so we fall on the
-                    // safe side here.
-                    if new_style.get_box().clone_display() == display::T::none &&
-                        old_style.get_box().clone_display() == display::T::none {
-                        return RestyleDamage::empty();
-                    }
+                // If there's no style source, that likely means that Gecko
+                // couldn't find a style context. This happens with display:none
+                // elements, and probably a number of other edge cases that
+                // we don't handle well yet (like display:contents).
+                if new_values.get_box().clone_display() == display::T::none &&
+                    old_values.get_box().clone_display() == display::T::none {
+                    // The style remains display:none. No need for damage.
+                    RestyleDamage::empty()
+                } else {
+                    // Something else. Be conservative for now.
+                    RestyleDamage::rebuild_and_reflow()
                 }
-                RestyleDamage::rebuild_and_reflow()
             }
         }
     }

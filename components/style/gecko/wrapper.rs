@@ -451,14 +451,9 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_cv: Option<&'a Arc<ComputedValues>>,
+                                             _existing_values: &'a Arc<ComputedValues>,
                                              pseudo: Option<&PseudoElement>)
                                              -> Option<&'a nsStyleContext> {
-        if current_cv.is_none() {
-            // Don't bother in doing an ffi call to get null back.
-            return None;
-        }
-
         unsafe {
             let atom_ptr = pseudo.map(|p| p.as_atom().as_ptr())
                                  .unwrap_or(ptr::null_mut());

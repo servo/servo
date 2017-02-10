@@ -393,10 +393,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     #[inline]
     fn existing_style_for_restyle_damage<'a>(&'a self,
-                                             current_cv: Option<&'a Arc<ComputedValues>>,
+                                             current_cv: &'a Arc<ComputedValues>,
                                              _pseudo_element: Option<&PseudoElement>)
                                              -> Option<&'a Arc<ComputedValues>> {
-        current_cv
+        Some(current_cv)
     }
 
     fn has_dirty_descendants(&self) -> bool {
