@@ -4,9 +4,8 @@
 
 use flow::{Flow, FlowClass};
 use flow_ref::FlowRef;
-use serde::{Serialize, Serializer};
-use serde_json::{to_value, Value};
-use serde_json::builder::ObjectBuilder;
+use serde::ser::{Serialize, SerializeSeq, Serializer};
+use serde_json::{Map, Value, to_value};
 use std::collections::{LinkedList, linked_list};
 use std::sync::Arc;
 
@@ -24,30 +23,29 @@ pub struct FlowList {
 }
 
 impl Serialize for FlowList {
-    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
-        let mut state = try!(serializer.serialize_seq(Some(self.len())));
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut serializer = try!(serializer.serialize_seq(Some(self.len())));
         for f in self.iter() {
-            let flow_val = ObjectBuilder::new()
-                .insert("class", f.class())
-                .insert("data", match f.class() {
-                    FlowClass::Block => to_value(f.as_block()),
-                    FlowClass::Inline => to_value(f.as_inline()),
-                    FlowClass::Table => to_value(f.as_table()),
-                    FlowClass::TableWrapper => to_value(f.as_table_wrapper()),
-                    FlowClass::TableRowGroup => to_value(f.as_table_rowgroup()),
-                    FlowClass::TableRow => to_value(f.as_table_row()),
-                    FlowClass::TableCell => to_value(f.as_table_cell()),
-                    FlowClass::Flex => to_value(f.as_flex()),
-                    FlowClass::ListItem | FlowClass::TableColGroup | FlowClass::TableCaption |
-                    FlowClass::Multicol | FlowClass::MulticolColumn => {
-                        Value::Null // Not implemented yet
-                    }
-                })
-                .build();
-
-            try!(serializer.serialize_seq_elt(&mut state, flow_val));
+            let mut flow_val = Map::new();
+            flow_val.insert("class".to_owned(), to_value(f.class()).unwrap());
+            let data = match f.class() {
+                FlowClass::Block => to_value(f.as_block()).unwrap(),
+                FlowClass::Inline => to_value(f.as_inline()).unwrap(),
+                FlowClass::Table => to_value(f.as_table()).unwrap(),
+                FlowClass::TableWrapper => to_value(f.as_table_wrapper()).unwrap(),
+                FlowClass::TableRowGroup => to_value(f.as_table_rowgroup()).unwrap(),
+                FlowClass::TableRow => to_value(f.as_table_row()).unwrap(),
+                FlowClass::TableCell => to_value(f.as_table_cell()).unwrap(),
+                FlowClass::Flex => to_value(f.as_flex()).unwrap(),
+                FlowClass::ListItem | FlowClass::TableColGroup | FlowClass::TableCaption |
+                FlowClass::Multicol | FlowClass::MulticolColumn => {
+                    Value::Null // Not implemented yet
+                }
+            };
+            flow_val.insert("data".to_owned(), data);
+            try!(serializer.serialize_element(&flow_val));
         }
-        serializer.serialize_seq_end(state)
+        serializer.end()
     }
 }
 

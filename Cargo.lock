@@ -352,7 +352,7 @@ dependencies = [
  "glob 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "libloading 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libloading 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -485,11 +485,11 @@ dependencies = [
 
 [[package]]
 name = "content-blocker"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "regex 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 0.9.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -667,10 +667,6 @@ dependencies = [
 
 [[package]]
 name = "dtoa"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "dwmapi-sys"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1290,10 +1286,6 @@ dependencies = [
 
 [[package]]
 name = "itoa"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "jpeg-decoder"
 version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1472,12 +1464,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "libloading"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "target_build_utils 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "target_build_utils 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1708,7 +1700,7 @@ name = "net"
 version = "0.0.1"
 dependencies = [
  "brotli 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "content-blocker 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "content-blocker 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "flate2 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1756,7 +1748,7 @@ dependencies = [
 name = "net_tests"
 version = "0.0.1"
 dependencies = [
- "content-blocker 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "content-blocker 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "flate2 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2242,7 +2234,7 @@ name = "rust-webvr"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "libloading 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libloading 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.8.23 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2486,16 +2478,6 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "0.8.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "dtoa 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "itoa 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "num-traits 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "servo"
 version = "0.0.1"
 dependencies = [
@@ -2949,12 +2931,12 @@ dependencies = [
 
 [[package]]
 name = "target_build_utils"
-version = "0.1.2"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "phf 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_json 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 0.9.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3428,7 +3410,7 @@ dependencies = [
 "checksum cocoa 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8afbd6c6e37c1339655701a2a17a86188916a775d1e89fb329737600a1747f98"
 "checksum color_quant 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a475fc4af42d83d28adf72968d9bcfaf035a1a9381642d8e85d8a04957767b0d"
 "checksum compiletest_rs 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "f3f344389765ad7bec166f64c1b39ed6dd2b54d81c4c5dd8af789169351d380c"
-"checksum content-blocker 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "5893d533bce3cea1f59dd239ae577d4f88e4eccb4bed3b1d9cd51a33b187f7f6"
+"checksum content-blocker 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "44dfb2f06e219a5bdec05c5811dde4d893c34c49ffed384c9d0a2e9caca9c154"
 "checksum cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "0e3d6405328b6edb412158b3b7710e2634e23f3614b9bb1c412df7952489a626"
 "checksum core-foundation 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f51ce3b8ebe311c56de14231eb57572c15abebd2d32b3bcb99bcdb9c101f5ac3"
 "checksum core-foundation-sys 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "41115a6aa5d3e1e5ef98148373f25971d1fad53818553f216495f9e67e90a624"
@@ -3441,7 +3423,6 @@ dependencies = [
 "checksum deflate 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)" = "24c5f3de3a8e183ab9a169654b652407e5e80bed40986bcca92c2b088b9bfa80"
 "checksum deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1614659040e711785ed8ea24219140654da1729f3ec8a47a9719d041112fe7bf"
 "checksum device 0.0.1 (git+https://github.com/servo/devices)" = "<none>"
-"checksum dtoa 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "0dd841b58510c9618291ffa448da2e4e0f699d984d436122372f446dae62263d"
 "checksum dwmapi-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "07c4c7cc7b396419bc0a4d90371d0cee16cb5053b53647d287c0b728000c41fe"
 "checksum dwrote 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "5998238340a4625b5e1cf52341bd330c5ad91a39a41527ed8af20f95a258a96c"
 "checksum encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)" = "6b0d943856b990d12d3b55b359144ff341533e516d94098b1d3fc1ac666d36ec"
@@ -3493,7 +3474,6 @@ dependencies = [
 "checksum inflate 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "e7e0062d2dc2f17d2f13750d95316ae8a2ff909af0fda957084f5defd87c43bb"
 "checksum io-surface 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "10d25285115b9d34be1328fdc5af15d34174472a9f23d1994d2d14a7ec8c537a"
 "checksum ipc-channel 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)" = "21d8c09fc5e4681ff70098ffbeaf9b1cfaa3589dc97eab519e11324a6b9942c5"
-"checksum itoa 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ae3088ea4baeceb0284ee9eea42f591226e6beaecf65373e41b38d95a1b8e7a1"
 "checksum jpeg-decoder 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)" = "5c4ff3d14e7ef3522471ab712832c3dd50001f7fb7aa4cdc48af811d63b531e9"
 "checksum js 0.1.4 (git+https://github.com/servo/rust-mozjs)" = "<none>"
 "checksum kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7507624b29483431c0ba2d82aece8ca6cdba9382bff4ddd0f7490560c056098d"
@@ -3504,7 +3484,7 @@ dependencies = [
 "checksum leak 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "bd100e01f1154f2908dfa7d02219aeab25d0b9c7fa955164192e3245255a0c73"
 "checksum leaky-cow 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "40a8225d44241fd324a8af2806ba635fc7c8a7e9a7de4d5cf3ef54e71f5926fc"
 "checksum libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)" = "684f330624d8c3784fb9558ca46c4ce488073a8d22450415c5eb4f4cfb0d11b5"
-"checksum libloading 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "84816a8c6ed8163dfe0dbdd2b09d35c6723270ea77a4c7afa4bedf038a36cb99"
+"checksum libloading 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "fd1835a714c1f67ba073a493493c23686a480e2614e208c921834808b1f19d8f"
 "checksum libressl-pnacl-sys 2.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "cbc058951ab6a3ef35ca16462d7642c4867e6403520811f28537a4e2f2db3e71"
 "checksum libz-sys 1.0.13 (registry+https://github.com/rust-lang/crates.io-index)" = "e5ee912a45d686d393d5ac87fac15ba0ba18daae14e8e7543c63ebf7fb7e970c"
 "checksum log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)" = "ab83497bf8bf4ed2a74259c1c802351fcd67a65baa86394b6ba73c36f4838054"
@@ -3579,8 +3559,9 @@ dependencies = [
 "checksum serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)" = "793aa8d4a777e46a68bbf88998cd957e638427ba5bfb0de22c92ff277b65bd21"
 "checksum serde_codegen 0.8.23 (registry+https://github.com/rust-lang/crates.io-index)" = "a4c5d8a33087d8984f9535daa62a6498a08f6476050b00ab9339dd847e4c25cc"
 "checksum serde_codegen_internals 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)" = "afad7924a009f859f380e4a2e3a509a845c2ac66435fcead74a4d983b21ae806"
-"checksum serde_derive 0.8.23 (registry+https://github.com/rust-lang/crates.io-index)" = "ce44e5f4264b39e9d29c875357b7cc3ebdfb967bb9e22bfb5e44ffa400af5306"
-"checksum serde_json 0.8.4 (registry+https://github.com/rust-lang/crates.io-index)" = "3f7d3c184d35801fb8b32b46a7d58d57dbcc150b0eb2b46a1eb79645e8ecfd5b"
+"checksum serde_codegen_internals 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c3172bf2940b975c0e4f6ab42a511c0a4407d4f46ccef87a9d3615db5c26fa96"
+"checksum serde_derive 0.9.7 (registry+https://github.com/rust-lang/crates.io-index)" = "6af30425c5161deb200aac4803c62b903eb3be7e889c5823d0e16c4ce0ce989c"
+"checksum serde_json 0.9.6 (registry+https://github.com/rust-lang/crates.io-index)" = "e095e4e94e7382b76f48e93bd845ffddda62df8dfd4c163b1bfa93d40e22e13a"
 "checksum servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "21069a884c33fe6ee596975e1f3849ed88c4ec857fbaf11d33672d8ebe051217"
 "checksum servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "93f799b649b4a2bf362398910eca35240704c7e765e780349b2bb1070d892262"
 "checksum servo-fontconfig-sys 4.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a0af4a4d7746467921486e5c5420f815cc016a6bf5574210d8e9c00f4afae224"
@@ -3608,7 +3589,7 @@ dependencies = [
 "checksum syntex_errors 0.54.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dee2f6e49c075f71332bb775219d5982bee6732d26227fa1ae1b53cdb12f5cc5"
 "checksum syntex_pos 0.54.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8df3921c7945dfb9ffc53aa35adb2cf4313b5ab5f079c3619b3d4eb82a0efc2b"
 "checksum syntex_syntax 0.54.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dc960085bae44591e22d01f6c0e82a8aec832f8659aca556cdf8ecbdac2bb47b"
-"checksum target_build_utils 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "54c550e226618cd35334b75e92bfa5437c61474bdb75c38bf330ab5a8037b77c"
+"checksum target_build_utils 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f42dc058080c19c6a58bdd1bf962904ee4f5ef1fe2a81b529f31dacc750c679f"
 "checksum tempdir 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)" = "87974a6f5c1dfb344d733055601650059a3363de2a6104819293baff662132d6"
 "checksum tendril 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "cebf864c2d90394a1b66d6fe45963f9a177f2af81a0edea5060f77627f9c4587"
 "checksum term 0.4.5 (registry+https://github.com/rust-lang/crates.io-index)" = "d168af3930b369cfe245132550579d47dfd873d69470755a19c2c6568dbbd989"

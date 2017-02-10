@@ -91,13 +91,13 @@ impl HeapSizeOf for UntrustedNodeAddress {
 unsafe impl Send for UntrustedNodeAddress {}
 
 impl Serialize for UntrustedNodeAddress {
-    fn serialize<S: Serializer>(&self, s: &mut S) -> Result<(), S::Error> {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         (self.0 as usize).serialize(s)
     }
 }
 
 impl Deserialize for UntrustedNodeAddress {
-    fn deserialize<D: Deserializer>(d: &mut D) -> Result<UntrustedNodeAddress, D::Error> {
+    fn deserialize<D: Deserializer>(d: D) -> Result<UntrustedNodeAddress, D::Error> {
         let value: usize = try!(Deserialize::deserialize(d));
         Ok(UntrustedNodeAddress::from_id(value))
     }

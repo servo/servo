@@ -524,7 +524,7 @@ bitflags! {
 }
 
 impl Serialize for BlockFlowFlags {
-    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         self.bits().serialize(serializer)
     }
 }

@@ -29,8 +29,8 @@ net_traits = {path = "../net_traits"}
 ordered-float = "0.4"
 plugins = {path = "../plugins"}
 range = {path = "../range"}
-serde = "0.8"
-serde_derive = "0.8"
+serde = "0.9"
+serde_derive = "0.9"
 servo_atoms = {path = "../atoms"}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}

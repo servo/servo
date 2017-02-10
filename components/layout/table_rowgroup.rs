@@ -45,7 +45,7 @@ pub struct TableRowGroupFlow {
 }
 
 impl Serialize for TableRowGroupFlow {
-    fn serialize<S: Serializer>(&self, serializer: &mut S) -> Result<(), S::Error> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         self.block_flow.serialize(serializer)
     }
 }
