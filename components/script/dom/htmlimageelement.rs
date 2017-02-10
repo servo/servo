@@ -177,13 +177,16 @@ impl PreInvoke for ImageContext {}
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn update_image_with_url(&self, img_url: ServoUrl, src: DOMString) {
-        self.current_request.borrow_mut().parsed_url = Some(img_url.clone());
-        self.current_request.borrow_mut().source_url = Some(src);
+        {
+            let current_request = self.current_request.borrow_mut();
+            current_request.parsed_url = Some(img_url.clone());
+            current_request.source_url = Some(src);
 
-        LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
-        let document = document_from_node(self);
-        self.current_request.borrow_mut().blocker =
-            Some(LoadBlocker::new(&*document, LoadType::Image(img_url.clone())));
+            LoadBlocker::terminate(&mut current_request.blocker);
+            let document = document_from_node(self);
+            current_request.blocker = 
+                Some(LoadBlocker::new(&*document, LoadType::Image(img_url.clone())));
+        }
 
         fn add_cache_listener_for_element(image_cache: &ImageCacheThread,
                                           id: PendingImageId,
