@@ -20,6 +20,7 @@ use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use style::context::{SharedStyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
 
@@ -96,8 +97,10 @@ pub struct LayoutContext {
 
 impl Drop for LayoutContext {
     fn drop(&mut self) {
-        if let Some(ref pending_images) = self.pending_images {
-            assert!(pending_images.lock().unwrap().is_empty());
+        if !thread::panicking() {
+            if let Some(ref pending_images) = self.pending_images {
+                assert!(pending_images.lock().unwrap().is_empty());
+            }
         }
     }
 }
@@ -131,7 +134,7 @@ impl LayoutContext {
             Ok(image_or_metadata) => Some(image_or_metadata),
             // Image failed to load, so just return nothing
             Err(ImageState::LoadError) => None,
-            // Not yet requested, async mode - request image or metadata from the cache
+            // Not yet requested - request image or metadata from the cache
             Err(ImageState::NotRequested(id)) => {
                 let image = PendingImage {
                     state: PendingImageState::Unrequested(url),

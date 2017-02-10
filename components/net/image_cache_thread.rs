@@ -63,7 +63,7 @@ struct PendingLoad {
 
     // Once loading is complete, the result of the operation.
     result: Option<Result<(), NetworkError>>,
-    listeners: Vec<ImageListener>,
+    listeners: Vec<ImageResponder>,
 
     // The url being loaded. Do not forget that this may be several Mb
     // if we are loading a data: url.
@@ -87,7 +87,7 @@ impl PendingLoad {
         }
     }
 
-    fn add_listener(&mut self, listener: ImageListener) {
+    fn add_listener(&mut self, listener: ImageResponder) {
         self.listeners.push(listener);
     }
 }
@@ -189,12 +189,6 @@ impl CompletedLoad {
     }
 }
 
-/// Stores information to notify a client when the state
-/// of an image changes.
-struct ImageListener {
-    responder: ImageResponder,
-}
-
 // A key used to communicate during loading.
 type LoadKey = PendingImageId;
 
@@ -211,18 +205,6 @@ impl LoadKeyGenerator {
     fn next(&mut self) -> PendingImageId {
         self.counter += 1;
         PendingImageId(self.counter)
-    }
-}
-
-impl ImageListener {
-    fn new(responder: ImageResponder) -> ImageListener {
-        ImageListener {
-            responder: responder,
-        }
-    }
-
-    fn notify(&self, image_response: ImageResponse) {
-        self.responder.respond(image_response);
     }
 }
 
@@ -490,8 +472,7 @@ impl ImageCache {
     /// listener if the image is complete.
     fn add_listener(&mut self,
                     id: PendingImageId,
-                    responder: ImageResponder) {
-        let listener = ImageListener::new(responder);
+                    listener: ImageResponder) {
         if let Some(load) = self.pending_loads.get_by_key_mut(&id) {
             if let Some(ref metadata) = load.metadata {
                 listener.notify(ImageResponse::MetadataLoaded(metadata.clone()));

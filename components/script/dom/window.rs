@@ -1195,7 +1195,7 @@ impl Window {
 
             let mut images = self.pending_layout_images.borrow_mut();
             let nodes = images.entry(id).or_insert(vec![]);
-            if nodes.iter().find(|n| **n == JS::from_ref(&*node)).is_none() {
+            if nodes.iter().find(|n| &**n as *const _ == &*node as *const _).is_none() {
                 let (responder, responder_listener) = ipc::channel().unwrap();
                 let pipeline = self.upcast::<GlobalScope>().pipeline_id();
                 let image_cache_chan = self.image_cache_chan.clone();
