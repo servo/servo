@@ -634,6 +634,10 @@ extern "C" {
     pub fn Gecko_UnsetNodeFlags(node: RawGeckoNodeBorrowed, flags: u32);
 }
 extern "C" {
+    pub fn Gecko_SetOwnerDocumentNeedsStyleFlush(element:
+                                                     RawGeckoElementBorrowed);
+}
+extern "C" {
     pub fn Gecko_GetStyleContext(node: RawGeckoNodeBorrowed,
                                  aPseudoTagOrNull: *mut nsIAtom)
      -> *mut nsStyleContext;
