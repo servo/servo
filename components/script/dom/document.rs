@@ -103,6 +103,7 @@ use msg::constellation_msg::{FrameId, Key, KeyModifiers, KeyState};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
@@ -2410,20 +2411,83 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
-    fn Domain(&self) -> DOMString {
+    fn GetDomain(&self) -> Fallible<DOMString> {
         // Step 1.
         if !self.has_browsing_context {
-            return DOMString::new();
+            return Ok(DOMString::new());
         }
 
         // Step 2.
         match self.origin.effective_domain() {
             // Step 3.
-            None => DOMString::new(),
+            None => Ok(DOMString::new()),
             // Step 4.
-            Some(Host::Domain(domain)) => DOMString::from(domain),
-            Some(host) => DOMString::from(host.to_string()),
+            Some(Host::Domain(domain)) => Ok(DOMString::from(domain)),
+            Some(host) => Ok(DOMString::from(host.to_string())),
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
+    fn SetDomain(&self, value: DOMString) -> ErrorResult {
+        // Step 1.
+        if !self.has_browsing_context {
+            return Err(Error::Security);
+        }
+
+        // TODO: Step 2. "If this Document object's active sandboxing
+        // flag set has its sandboxed document.domain browsing context
+        // flag set, then throw a "SecurityError" DOMException."
+
+        // Step 3.
+        if value.is_empty() {
+            return Err(Error::Security);
+        }
+
+        // Step 4-5.
+        let host = match Host::parse(&*value) {
+            Ok(host) => host,
+            Err(_) => return Err(Error::Security),
+        };
+
+        // Step 6.
+        let effective_domain = match self.origin.effective_domain() {
+            Some(effective_domain) => effective_domain,
+            None => return Err(Error::Security),
+        };
+
+        // Step 7.
+        if host != effective_domain {
+            // Step 7.1
+            let host = match host {
+                Host::Domain(ref host) => host,
+                _ => return Err(Error::Security),
+            };
+            let effective_domain = match effective_domain {
+                Host::Domain(ref effective_domain) => effective_domain,
+                _ => return Err(Error::Security),
+            };
+
+            // Step 7.2
+            let (prefix, suffix) = match effective_domain.len().checked_sub(host.len()) {
+                Some(index) => effective_domain.split_at(index),
+                None => return Err(Error::Security),
+            };
+            if !prefix.ends_with(".") {
+                return Err(Error::Security);
+            }
+            if suffix != host {
+                return Err(Error::Security);
+            }
+
+            // Step 7.3
+            if is_pub_domain(&*host) {
+                return Err(Error::Security);
+            }
+        }
+
+        // Step 8.
+        self.origin.set_domain(host);
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-referrer
