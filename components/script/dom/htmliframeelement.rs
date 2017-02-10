@@ -509,18 +509,22 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#concept-bcc-content-document
     fn GetContentDocument(&self) -> Option<Root<Document>> {
         // Step 1.
-        if let Some(pipeline_id) = self.pipeline_id.get() {
-            // Step 2-3.
-            if let Some(document) = ScriptThread::find_document(pipeline_id) {
-                let current = GlobalScope::current().as_window().Document();
-                // Step 4.
-                if current.origin().same_origin_domain(document.origin()) {
-                    // Step 5.
-                    return Some(document);
-                }
-            }
+        let pipeline_id = match self.pipeline_id.get() {
+            None => return None,
+            Some(pipeline_id) => pipeline_id,
+        };
+        // Step 2-3.
+        let document = match ScriptThread::find_document(pipeline_id) {
+            None => return None,
+            Some(document) => document,
+        };
+        // Step 4.
+        let current = GlobalScope::current().as_window().Document();
+        if !current.origin().same_origin_domain(document.origin()) {
+            return None;
         }
-        None
+        // Step 5.
+        Some(document)
     }
 
     // Experimental mozbrowser implementation is based on the webidl
