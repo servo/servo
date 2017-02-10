@@ -9,9 +9,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGL
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use dom::bindings::conversions::{ArrayBufferViewContents, ConversionResult, FromJSValConvertible, ToJSValConvertible};
-use dom::bindings::conversions::{array_buffer_to_vec, array_buffer_view_data, array_buffer_view_data_checked};
-use dom::bindings::conversions::{array_buffer_view_to_vec, array_buffer_view_to_vec_checked};
+use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS, Root};
@@ -39,8 +37,9 @@ use dom::window::Window;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ConversionBehavior;
-use js::jsapi::{JSContext, JSObject, JS_GetArrayBufferViewType, Type};
+use js::jsapi::{JSContext, JSObject, JS_GetArrayBufferViewType, Type, Rooted};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
+use js::typedarray::{TypedArray, TypedArrayElement, Float32, Int32};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -499,7 +498,8 @@ impl WebGLRenderingContext {
                                          format: TexFormat,
                                          data_type: TexDataType,
                                          unpacking_alignment: u32,
-                                         data: *mut JSObject)
+                                         data: *mut JSObject,
+                                         cx: *mut JSContext)
                                          -> Result<u32, ()> {
         let element_size = data_type.element_size();
         let components_per_element = data_type.components_per_element();
@@ -511,12 +511,14 @@ impl WebGLRenderingContext {
         // if it is UNSIGNED_SHORT_5_6_5, UNSIGNED_SHORT_4_4_4_4,
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
+        typedarray!(in(cx) let typedarray_u8: Uint8Array = data);
+        typedarray!(in(cx) let typedarray_u16: Uint16Array = data);
         let received_size = if data.is_null() {
             element_size
         } else {
-            if array_buffer_view_data_checked::<u16>(data).is_some() {
+            if typedarray_u16.is_ok() {
                 2
-            } else if array_buffer_view_data_checked::<u8>(data).is_some() {
+            } else if typedarray_u8.is_ok() {
                 1
             } else {
                 self.webgl_error(InvalidOperation);
@@ -774,19 +776,24 @@ impl Drop for WebGLRenderingContext {
 #[allow(unsafe_code)]
 unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
                                             sequence_or_abv: *mut JSObject,
-                                            config: <T as FromJSValConvertible>::Config) -> Result<Vec<T>, Error>
-    where T: ArrayBufferViewContents + FromJSValConvertible,
-          <T as FromJSValConvertible>::Config: Clone,
+                                            config: <T::Element as FromJSValConvertible>::Config)
+                                            -> Result<Vec<T::Element>, Error>
+    where T: TypedArrayElement,
+          T::Element: FromJSValConvertible + Clone,
+          <T::Element as FromJSValConvertible>::Config: Clone,
 {
-    assert!(!sequence_or_abv.is_null());
-    if let Some(v) = array_buffer_view_to_vec_checked::<T>(sequence_or_abv) {
-        return Ok(v);
+    // TODO(servo/rust-mozjs#330): replace this with a macro that supports generic types.
+    let mut typed_array_root = Rooted::new_unrooted();
+    let typed_array: Option<TypedArray<T>> =
+          TypedArray::from(cx, &mut typed_array_root, sequence_or_abv).ok();
+    if let Some(mut typed_array) = typed_array {
+        return Ok(typed_array.as_slice().to_vec());
     }
-
+    assert!(!sequence_or_abv.is_null());
     rooted!(in(cx) let mut val = UndefinedValue());
     sequence_or_abv.to_jsval(cx, val.handle_mut());
 
-    match Vec::<T>::from_jsval(cx, val.handle(), config) {
+    match Vec::<T::Element>::from_jsval(cx, val.handle(), config) {
         Ok(ConversionResult::Success(v)) => Ok(v),
         Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
         // FIXME: What to do here? Generated code only aborts the execution of
@@ -796,13 +803,13 @@ unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
 }
 
 #[allow(unsafe_code)]
-unsafe fn fallible_array_buffer_view_to_vec<T>(abv: *mut JSObject) -> Result<Vec<T>, Error>
-    where T: ArrayBufferViewContents
+unsafe fn fallible_array_buffer_view_to_vec(cx: *mut JSContext, abv: *mut JSObject) -> Result<Vec<u8>, Error>
 {
     assert!(!abv.is_null());
-    match array_buffer_view_to_vec::<T>(abv) {
-        Some(v) => Ok(v),
-        None => Err(Error::Type("Not an ArrayBufferView".to_owned())),
+    typedarray!(in(cx) let array_buffer_view: ArrayBufferView = abv);
+    match array_buffer_view {
+        Ok(mut v) => Ok(v.as_slice().to_vec()),
+        Err(_) => Err(Error::Type("Not an ArrayBufferView".to_owned())),
     }
 }
 
@@ -1181,15 +1188,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferData(&self, _cx: *mut JSContext, target: u32, data: *mut JSObject, usage: u32) -> Fallible<()> {
+    unsafe fn BufferData(&self, cx: *mut JSContext, target: u32, data: *mut JSObject, usage: u32) -> Fallible<()> {
         if data.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        let data_vec = match array_buffer_to_vec::<u8>(data) {
-            Some(data) => data,
-            // Not an ArrayBuffer object, maybe an ArrayBufferView?
-            None => try!(fallible_array_buffer_view_to_vec::<u8>(data)),
+        typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
+        let data_vec = match array_buffer {
+            Ok(mut data) => data.as_slice().to_vec(),
+            Err(_) => try!(fallible_array_buffer_view_to_vec(cx, data)),
         };
 
         let bound_buffer = match target {
@@ -1249,15 +1256,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    unsafe fn BufferSubData(&self, _cx: *mut JSContext, target: u32, offset: i64, data: *mut JSObject) -> Fallible<()> {
+    unsafe fn BufferSubData(&self, cx: *mut JSContext, target: u32, offset: i64, data: *mut JSObject) -> Fallible<()> {
         if data.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        let data_vec = match array_buffer_to_vec::<u8>(data) {
-            Some(data) => data,
-            // Not an ArrayBuffer object, maybe an ArrayBufferView?
-            None => try!(fallible_array_buffer_view_to_vec::<u8>(data)),
+        typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
+        let data_vec = match array_buffer {
+            Ok(mut data) => data.as_slice().to_vec(),
+            Err(_) => try!(fallible_array_buffer_view_to_vec(cx, data)),
         };
 
         let bound_buffer = match target {
@@ -1287,9 +1294,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    unsafe fn CompressedTexImage2D(&self, _cx: *mut JSContext, _target: u32, _level: i32, _internal_format: u32,
+    unsafe fn CompressedTexImage2D(&self, cx: *mut JSContext, _target: u32, _level: i32, _internal_format: u32,
                             _width: i32, _height: i32, _border: i32, pixels: *mut JSObject) -> Fallible<()> {
-        let _data = try!(fallible_array_buffer_view_to_vec::<u8>(pixels) );
+        let _data = try!(fallible_array_buffer_view_to_vec(cx, pixels) );
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
         self.webgl_error(InvalidEnum);
@@ -1298,10 +1305,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    unsafe fn CompressedTexSubImage2D(&self, _cx: *mut JSContext, _target: u32, _level: i32,
+    unsafe fn CompressedTexSubImage2D(&self, cx: *mut JSContext, _target: u32, _level: i32,
                                _xoffset: i32, _yoffset: i32, _width: i32, _height: i32,
                                _format: u32, pixels: *mut JSObject) -> Fallible<()> {
-        let _data = try!(fallible_array_buffer_view_to_vec::<u8>(pixels));
+        let _data = try!(fallible_array_buffer_view_to_vec(cx, pixels));
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
         self.webgl_error(InvalidEnum);
@@ -2066,15 +2073,16 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
-    unsafe fn ReadPixels(&self, _cx: *mut JSContext, x: i32, y: i32, width: i32, height: i32,
+    unsafe fn ReadPixels(&self, cx: *mut JSContext, x: i32, y: i32, width: i32, height: i32,
                   format: u32, pixel_type: u32, pixels: *mut JSObject) -> Fallible<()> {
         if pixels.is_null() {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        let mut data = match { array_buffer_view_data::<u8>(pixels) } {
-            Some(data) => data,
-            None => return Err(Error::Type("Not an ArrayBufferView".to_owned())),
+        typedarray!(in(cx) let mut pixels_data: ArrayBufferView = pixels);
+        let mut data = match { pixels_data.as_mut() } {
+            Ok(data) => data.as_mut_slice(),
+            Err(_) => return Err(Error::Type("Not an ArrayBufferView".to_owned())),
         };
 
         if !self.validate_framebuffer_complete() {
@@ -2320,7 +2328,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<i32>(cx, data, ConversionBehavior::Default));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default));
 
         if self.validate_uniform_parameters(uniform, UniformSetterType::Int, &data_vec) {
             self.ipc_renderer
@@ -2338,7 +2346,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
 
         if self.validate_uniform_parameters(uniform, UniformSetterType::Float, &data_vec) {
             self.ipc_renderer
@@ -2367,7 +2375,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
 
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec2,
@@ -2400,7 +2408,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<i32>(cx, data, ConversionBehavior::Default));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default));
 
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec2,
@@ -2433,7 +2441,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
 
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec3,
@@ -2466,7 +2474,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<i32>(cx, data, ConversionBehavior::Default));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default));
 
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec3,
@@ -2500,7 +2508,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<i32>(cx, data, ConversionBehavior::Default));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Int32>(cx, data, ConversionBehavior::Default));
 
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::IntVec4,
@@ -2533,7 +2541,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
 
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatVec4,
@@ -2554,7 +2562,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         transpose: bool,
                         data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatMat2,
                                             &data_vec) {
@@ -2574,7 +2582,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         transpose: bool,
                         data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatMat3,
                                             &data_vec) {
@@ -2594,7 +2602,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                         transpose: bool,
                         data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
         if self.validate_uniform_parameters(uniform,
                                             UniformSetterType::FloatMat4,
                                             &data_vec) {
@@ -2634,7 +2642,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     unsafe fn VertexAttrib1fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
         if data_vec.len() < 1 {
             return Ok(self.webgl_error(InvalidOperation));
         }
@@ -2651,7 +2659,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     unsafe fn VertexAttrib2fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
         if data_vec.len() < 2 {
             return Ok(self.webgl_error(InvalidOperation));
         }
@@ -2668,7 +2676,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     unsafe fn VertexAttrib3fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
         if data_vec.len() < 3 {
             return Ok(self.webgl_error(InvalidOperation));
         }
@@ -2685,7 +2693,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     #[allow(unsafe_code)]
     unsafe fn VertexAttrib4fv(&self, cx: *mut JSContext, indx: u32, data: *mut JSObject) -> Fallible<()> {
         assert!(!data.is_null());
-        let data_vec = try!(typed_array_or_sequence_to_vec::<f32>(cx, data, ()));
+        let data_vec = try!(typed_array_or_sequence_to_vec::<Float32>(cx, data, ()));
         if data_vec.len() < 4 {
             return Ok(self.webgl_error(InvalidOperation));
         }
@@ -2749,7 +2757,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     #[allow(unsafe_code)]
     unsafe fn TexImage2D(&self,
-                  _cx: *mut JSContext,
+                  cx: *mut JSContext,
                   target: u32,
                   level: i32,
                   internal_format: u32,
@@ -2762,7 +2770,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data = if data_ptr.is_null() {
             None
         } else {
-            Some(try!(fallible_array_buffer_view_to_vec::<u8>(data_ptr)))
+            Some(try!(fallible_array_buffer_view_to_vec(cx, data_ptr)))
         };
 
         let validator = TexImage2DValidator::new(self, target, level,
@@ -2788,7 +2796,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let expected_byte_length =
             match { self.validate_tex_image_2d_data(width, height,
                                                     format, data_type,
-                                                    unpacking_alignment, data_ptr) } {
+                                                    unpacking_alignment, data_ptr, cx) } {
                 Ok(byte_length) => byte_length,
                 Err(()) => return Ok(()),
             };
@@ -2859,7 +2867,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     #[allow(unsafe_code)]
     unsafe fn TexSubImage2D(&self,
-                     _cx: *mut JSContext,
+                     cx: *mut JSContext,
                      target: u32,
                      level: i32,
                      xoffset: i32,
@@ -2872,7 +2880,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data = if data_ptr.is_null() {
             None
         } else {
-            Some(try!(fallible_array_buffer_view_to_vec::<u8>(data_ptr)))
+            Some(try!(fallible_array_buffer_view_to_vec(cx, data_ptr)))
         };
 
 
@@ -2898,7 +2906,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let expected_byte_length =
             match { self.validate_tex_image_2d_data(width, height,
                                                     format, data_type,
-                                                    unpacking_alignment, data_ptr) } {
+                                                    unpacking_alignment, data_ptr, cx) } {
                 Ok(byte_length) => byte_length,
                 Err(()) => return Ok(()),
             };
