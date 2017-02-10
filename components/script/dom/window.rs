@@ -42,7 +42,7 @@ use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
 use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
-use dom::node::{Node, from_untrusted_node_address, document_from_node, window_from_node, NodeDamage};
+use dom::node::{Node, NodeDamage, document_from_node, from_untrusted_node_address, window_from_node};
 use dom::performance::Performance;
 use dom::promise::Promise;
 use dom::screen::Screen;
@@ -529,19 +529,23 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-frameelement
     fn GetFrameElement(&self) -> Option<Root<Element>> {
         // Steps 1-3.
-        if let Some(context) = self.browsing_context.get() {
-            // Step 4-5.
-            if let Some(container) = context.frame_element() {
-                // Step 6.
-                let container_doc = document_from_node(container);
-                let current_doc = GlobalScope::current().as_window().Document();
-                if current_doc.origin().same_origin_domain(container_doc.origin()) {
-                    // Step 7.
-                    return Some(Root::from_ref(container));
-                }
-            }
+        let context = match self.browsing_context.get() {
+            None => return None,
+            Some(context) => context,
+        };
+        // Step 4-5.
+        let container = match context.frame_element() {
+            None => return None,
+            Some(container) => container,
+        };
+        // Step 6.
+        let container_doc = document_from_node(container);
+        let current_doc = GlobalScope::current().as_window().Document();
+        if !current_doc.origin().same_origin_domain(container_doc.origin()) {
+            return None;
         }
-        None
+        // Step 7.
+        Some(Root::from_ref(container))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator

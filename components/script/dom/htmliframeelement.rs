@@ -498,11 +498,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
     fn GetContentWindow(&self) -> Option<Root<BrowsingContext>> {
-        if self.pipeline_id.get().is_some() {
-            ScriptThread::find_browsing_context(self.frame_id)
-        } else {
-            None
-        }
+        self.pipeline_id.get().and_then(|_| ScriptThread::find_browsing_context(self.frame_id))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
@@ -514,6 +510,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
             Some(pipeline_id) => pipeline_id,
         };
         // Step 2-3.
+        // Note that this lookup will fail if the document is dissimilar-origin,
+        // so we should return None in that case.
         let document = match ScriptThread::find_document(pipeline_id) {
             None => return None,
             Some(document) => document,
