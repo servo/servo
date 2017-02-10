@@ -52,6 +52,7 @@ fn is_unrooted_ty(cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool
                 } else if match_def_path(cx, did.did, &["core", "cell", "Ref"])
                         || match_def_path(cx, did.did, &["core", "cell", "RefMut"])
                         || match_def_path(cx, did.did, &["core", "slice", "Iter"])
+                        || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "Entry"])
                         || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "OccupiedEntry"])
                         || match_def_path(cx, did.did, &["std", "collections", "hash", "map", "VacantEntry"]) {
                     // Structures which are semantically similar to an &ptr.

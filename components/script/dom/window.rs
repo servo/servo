@@ -338,7 +338,6 @@ impl Window {
         self.webvr_thread.clone()
     }
 
-    #[allow(unrooted_must_root)]
     pub fn pending_image_notification(&self, response: PendingImageResponse) {
         //XXXjdm could be more efficient to send the responses to the layout thread,
         //       rather than making the layout thread talk to the image cache to
