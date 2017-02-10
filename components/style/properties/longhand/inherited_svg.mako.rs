@@ -119,3 +119,132 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                           spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties",
                           boxed=True)}
 
+<%helpers:longhand name="paint-order"
+                   animatable="False"
+                   products="gecko"
+                   spec="https://www.w3.org/TR/SVG2/painting.html#PaintOrder">
+
+    use values::computed::ComputedValueAsSpecified;
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+
+    pub const NORMAL: u8 = 0;
+    pub const FILL: u8 = 1;
+    pub const STROKE: u8 = 2;
+    pub const MARKERS: u8 = 3;
+
+    // number of bits for each component
+    pub const SHIFT: u8 = 2;
+    // mask with above bits set
+    pub const MASK: u8 = 0b11;
+    // number of non-normal keyword values
+    pub const COUNT: u8 = 3;
+    // all keywords
+    pub const ALL: [u8; 3] = [FILL, STROKE, MARKERS];
+
+    /// Represented as a six-bit field, of 3 two-bit pairs
+    ///
+    /// Each pair can be set to FILL, STROKE, or MARKERS
+    /// Lowest significant bit pairs are highest priority.
+    ///  `normal` is the empty bitfield. The three pairs are
+    /// never zero in any case other than `normal`.
+    ///
+    /// Higher priority values, i.e. the values specified first,
+    /// will be painted first (and may be covered by paintings of lower priority)
+    #[derive(PartialEq, Clone, Copy, Debug)]
+    pub struct SpecifiedValue(pub u8);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    impl SpecifiedValue {
+        pub fn bits_at(&self, pos: u8) -> u8 {
+            (self.0 >> pos * SHIFT) & MASK
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+        if let Ok(()) = input.try(|i| i.expect_ident_matching("normal")) {
+            Ok(SpecifiedValue(0))
+        } else {
+            let mut value = 0;
+            // bitfield representing what we've seen so far
+            // bit 1 is fill, bit 2 is stroke, bit 3 is markers
+            let mut seen = 0;
+            let mut pos = 0;
+
+            loop {
+
+                let result = input.try(|i| {
+                    match_ignore_ascii_case! { i.expect_ident()?,
+                        "fill" => Ok(FILL),
+                        "stroke" => Ok(STROKE),
+                        "markers" => Ok(MARKERS),
+                        _ => Err(())
+                    }
+                });
+
+                match result {
+                    Ok(val) => {
+                        if (seen & (1 << val)) != 0 {
+                            // don't parse the same ident twice
+                            return Err(())
+                        } else {
+                            value |= val << (pos * SHIFT);
+                            seen |= 1 << val;
+                            pos += 1;
+                        }
+                    }
+                    Err(()) => break,
+                }
+            }
+
+            if value == 0 {
+                // couldn't find any keyword
+                Err(())
+            } else {
+                // fill in rest
+                for i in pos..COUNT {
+                    for paint in &ALL {
+                        // if not seen, set bit at position, mark as seen
+                        if (seen & (1 << paint)) == 0 {
+                            seen |= 1 << paint;
+                            value |= paint << (i * SHIFT);
+                            break;
+                        }
+                    }
+                }
+
+                Ok(SpecifiedValue(value))
+            }
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if self.0 == 0 {
+                return dest.write_str("normal")
+            }
+
+            for pos in 0..COUNT {
+                if pos != 0 {
+                    dest.write_str(" ")?
+                }
+                match self.bits_at(pos) {
+                    FILL => dest.write_str("fill")?,
+                    STROKE => dest.write_str("stroke")?,
+                    MARKERS => dest.write_str("markers")?,
+                    _ => unreachable!(),
+                }
+            }
+            Ok(())
+        }
+    }
+
+    no_viewport_percentage!(SpecifiedValue);
+
+    impl ComputedValueAsSpecified for SpecifiedValue { }
+</%helpers:longhand>
+

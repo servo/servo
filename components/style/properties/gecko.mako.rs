@@ -2800,8 +2800,31 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedSVG"
-                  skip_longhands=""
+                  skip_longhands="paint-order"
                   skip_additionals="*">
+    pub fn set_paint_order(&mut self, v: longhands::paint_order::computed_value::T) {
+        use self::longhands::paint_order;
+
+        if v.0 == 0 {
+            self.gecko.mPaintOrder = structs::NS_STYLE_PAINT_ORDER_NORMAL as u8;
+        } else {
+            let mut order = 0;
+
+            for pos in 0..3 {
+                let geckoval = match v.bits_at(pos) {
+                    paint_order::FILL => structs::NS_STYLE_PAINT_ORDER_FILL as u8,
+                    paint_order::STROKE => structs::NS_STYLE_PAINT_ORDER_STROKE as u8,
+                    paint_order::MARKERS => structs::NS_STYLE_PAINT_ORDER_MARKERS as u8,
+                    _ => unreachable!(),
+                };
+                order |= geckoval << (pos * structs::NS_STYLE_PAINT_ORDER_BITWIDTH as u8);
+            }
+
+            self.gecko.mPaintOrder = order;
+        }
+    }
+
+    ${impl_simple_copy('paint_order', 'mPaintOrder')}
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Color"
