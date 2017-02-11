@@ -2411,7 +2411,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(&self) -> DOMString {
         // Step 1.
-        if self.has_browsing_context {
+        if !self.has_browsing_context {
             return DOMString::new();
         }
 
