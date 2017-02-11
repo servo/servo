@@ -177,7 +177,7 @@ Use `RUST_BACKTRACE=1` to dump the backtrace when Servo panics.
 
 ### println!()
 
-You will want to add your own logs. Luckily, many structures [implement the `fmt::Debug` trait](https://doc.rust-lang.org/std/fmt/#fmt::display-vs-fmt::debug), so adding:
+You will want to add your own logs. Luckily, many structures [implement the `fmt::Debug` trait](https://doc.rust-lang.org/std/fmt/#fmtdisplay-vs-fmtdebug), so adding:
 
 ``` rust
 println!("foobar: {:?}", foobar)
