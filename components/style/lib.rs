@@ -106,6 +106,7 @@ pub mod restyle_hints;
 pub mod rule_tree;
 pub mod scoped_tls;
 pub mod selector_parser;
+pub mod shared_lock;
 pub mod stylist;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod sequential;
@@ -168,6 +169,8 @@ macro_rules! reexport_computed_values {
 longhand_properties_idents!(reexport_computed_values);
 
 /// Returns whether the two arguments point to the same value.
+///
+/// FIXME: Remove this and use Arc::ptr_eq once we require Rust 1.17
 #[inline]
 pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
     let a: &T = &**a;
