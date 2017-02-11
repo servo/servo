@@ -140,7 +140,6 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
 
     let token = RecalcStyleOnly::pre_traverse(element, &per_doc_data.stylist, unstyled_children_only);
     if !token.should_traverse() {
-        error!("Unnecessary call to traverse_subtree");
         return;
     }
 
