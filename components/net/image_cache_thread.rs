@@ -17,6 +17,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::fs::File;
 use std::io::{self, Read};
+use std::mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
@@ -56,7 +57,7 @@ fn is_image_opaque(format: webrender_traits::ImageFormat, bytes: &[u8]) -> bool 
 struct PendingLoad {
     // The bytes loaded so far. Reset to an empty vector once loading
     // is complete and the buffer has been transmitted to the decoder.
-    bytes: Vec<u8>,
+    bytes: ImageBytes,
 
     // Image metadata, if available.
     metadata: Option<ImageMetadata>,
@@ -70,6 +71,40 @@ struct PendingLoad {
     url: ServoUrl,
 }
 
+enum ImageBytes {
+    InProgress(Vec<u8>),
+    Complete(Arc<Vec<u8>>),
+}
+
+impl ImageBytes {
+    fn extend_from_slice(&mut self, data: &[u8]) {
+        match *self {
+            ImageBytes::InProgress(ref mut bytes) => bytes.extend_from_slice(data),
+            ImageBytes::Complete(_) => panic!("attempted modification of complete image bytes"),
+        }
+    }
+
+    fn mark_complete(&mut self) -> Arc<Vec<u8>> {
+        let bytes = {
+            let own_bytes = match *self {
+                ImageBytes::InProgress(ref mut bytes) => bytes,
+                ImageBytes::Complete(_) => panic!("attempted modification of complete image bytes"),
+            };
+            mem::replace(own_bytes, vec![])
+        };
+        let bytes = Arc::new(bytes);
+        *self = ImageBytes::Complete(bytes.clone());
+        bytes
+    }
+
+    fn as_slice(&self) -> &[u8] {
+        match *self {
+            ImageBytes::InProgress(ref bytes) => &bytes,
+            ImageBytes::Complete(ref bytes) => &*bytes,
+        }
+    }
+}
+
 enum LoadResult {
     Loaded(Image),
     PlaceholderLoaded(Arc<Image>),
@@ -79,7 +114,7 @@ enum LoadResult {
 impl PendingLoad {
     fn new(url: ServoUrl) -> PendingLoad {
         PendingLoad {
-            bytes: vec!(),
+            bytes: ImageBytes::InProgress(vec!()),
             metadata: None,
             result: None,
             listeners: vec!(),
@@ -383,7 +418,7 @@ impl ImageCache {
                 pending_load.bytes.extend_from_slice(&data);
                 //jmr0 TODO: possibly move to another task?
                 if let None = pending_load.metadata {
-                    if let Ok(metadata) = load_from_buf(&pending_load.bytes) {
+                    if let Ok(metadata) = load_from_buf(&pending_load.bytes.as_slice()) {
                         let dimensions = metadata.dimensions();
                         let img_metadata = ImageMetadata { width: dimensions.width,
                                                            height: dimensions.height };
@@ -399,11 +434,11 @@ impl ImageCache {
                     Ok(()) => {
                         let pending_load = self.pending_loads.get_by_key_mut(&msg.key).unwrap();
                         pending_load.result = Some(result);
-                        let bytes = pending_load.bytes.clone();
+                        let bytes = pending_load.bytes.mark_complete();
                         let sender = self.decoder_sender.clone();
 
                         self.thread_pool.execute(move || {
-                            let msg = decode_bytes_sync(key, &bytes);
+                            let msg = decode_bytes_sync(key, &*bytes);
                             sender.send(msg).unwrap();
                         });
                     }
@@ -526,7 +561,7 @@ impl ImageCache {
             match result {
                 CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
                     (&Some(Ok(_)), _) =>
-                        decode_bytes_sync(key, &pl.bytes),
+                        decode_bytes_sync(key, &pl.bytes.as_slice()),
                     (&None, &Some(ref meta)) =>
                         return Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone())),
                     (&Some(Err(_)), _) | (&None, &None) =>
