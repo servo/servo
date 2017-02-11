@@ -6,11 +6,11 @@ use core::nonzero::NonZero;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::VRPoseBinding;
 use dom::bindings::codegen::Bindings::VRPoseBinding::VRPoseMethods;
-use dom::bindings::conversions::{slice_to_array_buffer_view, update_array_buffer_view};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Heap, JSContext, JSObject};
+use js::typedarray::Float32Array;
 use std::ptr;
 use webvr_traits::webvr;
 
@@ -33,9 +33,12 @@ unsafe fn update_or_create_typed_array(cx: *mut JSContext,
     match src {
         Some(ref data) => {
             if dst.get().is_null() {
-                dst.set(slice_to_array_buffer_view(cx, &data));
+                let _ = Float32Array::create(cx, data.len() as u32, src, dst.handle_mut());
             } else {
-                update_array_buffer_view(dst.get(), &data);
+                typedarray!(in(cx) let array: Float32Array = dst.get());
+                if let Ok(mut array) = array {
+                    array.update(data);
+                }
             }
         },
         None => {
