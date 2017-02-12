@@ -7,12 +7,76 @@
 
 use dom::bindings::error::{Error, Fallible};
 use dom::globalscope::GlobalScope;
-use js::jsapi::{HandleValue, MutableHandleValue};
-use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_STRUCTURED_CLONE_VERSION};
-use js::jsapi::{JS_ClearPendingException, JS_WriteStructuredClone};
+use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue};
+use js::jsapi::{Heap, JSContext};
+use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
+use js::jsapi::{JS_ClearPendingException, JSObject, JS_ReadStructuredClone};
+use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone};
+use js::jsapi::{MutableHandleObject, TransferableOwnership};
 use libc::size_t;
+use std::os::raw;
 use std::ptr;
 use std::slice;
+
+
+#[allow(unused_variables, dead_code)]
+unsafe extern "C" fn read_callback(cx: *mut JSContext,
+                           r: *mut JSStructuredCloneReader,
+                           tag: u32,
+                           data: u32,
+                           closure: *mut raw::c_void) -> *mut JSObject {
+    Heap::default().get()
+}
+
+#[allow(unused_variables, dead_code)]
+unsafe extern "C" fn write_callback(cx: *mut JSContext, w: *mut JSStructuredCloneWriter,
+                            obj: HandleObject, closure: *mut raw::c_void) -> bool {
+    false
+}
+
+#[allow(unused_variables, dead_code)]
+unsafe extern "C" fn read_transfer_callback(cx: *mut JSContext,
+                                    r: *mut JSStructuredCloneReader,
+                                    tag: u32,
+                                    content: *mut raw::c_void,
+                                    extra_data: u64,
+                                    closure: *mut raw::c_void,
+                                    return_object: MutableHandleObject) -> bool {
+    false
+}
+
+#[allow(unused_variables, dead_code)]
+unsafe extern "C" fn write_transfer_callback(cx: *mut JSContext,
+                                     obj: Handle<*mut JSObject>,
+                                     closure: *mut raw::c_void,
+                                     tag: *mut u32,
+                                     ownership: *mut TransferableOwnership,
+                                     content:  *mut *mut raw::c_void,
+                                     extra_data: *mut u64) -> bool {
+    false
+}
+
+#[allow(unused_variables, dead_code)]
+unsafe extern "C" fn free_transfer_callback(tag: u32,
+                                   ownership: TransferableOwnership,
+                                   content: *mut raw::c_void,
+                                   extra_data: u64,
+                                   closure: *mut raw::c_void) {
+}
+
+#[allow(unused_variables, dead_code)]
+unsafe extern "C" fn report_error_callback(cx: *mut JSContext, errorid: u32) {
+}
+
+#[allow(dead_code)]
+static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredCloneCallbacks {
+    read: Some(read_callback),
+    write: Some(write_callback),
+    reportError: Some(report_error_callback),
+    readTransfer: Some(read_transfer_callback),
+    writeTransfer: Some(write_transfer_callback),
+    freeTransfer: Some(free_transfer_callback),
+};
 
 /// A buffer for a structured clone.
 pub enum StructuredCloneData {
