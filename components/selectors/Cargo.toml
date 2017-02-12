@@ -18,5 +18,5 @@ path = "lib.rs"
 [dependencies]
 bitflags = "0.7"
 matches = "0.1"
-cssparser = ">=0.6, <0.8"
+cssparser = { git = "https://github.com/emilio/rust-cssparser", branch = "color" }
 fnv = "1.0"

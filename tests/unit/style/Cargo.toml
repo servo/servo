@@ -14,7 +14,7 @@ testing = ["style/testing"]
 
 [dependencies]
 app_units = "0.3"
-cssparser = {version = "0.7", features = ["heap_size"]}
+cssparser = { git = "https://github.com/emilio/rust-cssparser", branch = "color" }
 euclid = "0.10.1"
 html5ever-atoms = "0.1"
 matches = "0.1"
