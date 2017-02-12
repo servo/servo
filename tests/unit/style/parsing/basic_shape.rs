@@ -96,6 +96,8 @@ fn test_circle() {
     assert_roundtrip_basicshape!(Circle::parse, "circle(closest-side at center)", "circle(at 50% 50%)");
     assert_roundtrip_basicshape!(Circle::parse, "circle(farthest-side at center)",
                                                 "circle(farthest-side at 50% 50%)");
+    assert_roundtrip_basicshape!(Circle::parse, "circle(10px)",
+                                                "circle(10px at 50% 50%)");
     assert_roundtrip_basicshape!(Circle::parse, "circle(20px at center)", "circle(20px at 50% 50%)");
     assert_roundtrip_basicshape!(Circle::parse, "circle(calc(1px + 50%) at center)",
                                                 "circle(calc(1px + 50%) at 50% 50%)");
@@ -114,6 +116,7 @@ fn test_circle() {
                                                 "circle(at left 5% bottom 1px)");
 
     assert!(parse(Circle::parse, "circle(at top 40%)").is_err());
+    assert!(parse(Circle::parse, "circle(-10px)").is_err());
 }
 
 #[test]
