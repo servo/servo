@@ -46,21 +46,19 @@ use js::error::throw_type_error;
 use js::glue::{GetProxyPrivate, IsWrapper};
 use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
-use js::jsapi::{HandleId, HandleObject, HandleValue, JSContext};
-use js::jsapi::{JSObject, JSString};
-use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetObjectAsArrayBuffer, JS_GetObjectAsArrayBufferView};
-use js::jsapi::{JS_GetReservedSlot, JS_GetTwoByteStringCharsAndLength};
-use js::jsapi::{JS_IsArrayObject, JS_NewStringCopyN, JS_StringHasLatin1Chars};
-use js::jsapi::{JS_NewFloat32Array, JS_NewFloat64Array};
-use js::jsapi::{JS_NewInt8Array, JS_NewInt16Array, JS_NewInt32Array};
+use js::jsapi::{HandleId, HandleObject, HandleValue, JSContext, JSObject, JSString};
+use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
+use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_IsArrayObject};
+use js::jsapi::{JS_NewFloat32Array, JS_NewFloat64Array, JS_NewInt8Array};
+use js::jsapi::{JS_NewInt16Array, JS_NewInt32Array, JS_NewStringCopyN};
 use js::jsapi::{JS_NewUint8Array, JS_NewUint16Array, JS_NewUint32Array};
-use js::jsapi::{MutableHandleValue, Type};
+use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, Type};
 use js::jsval::{ObjectValue, StringValue};
 use js::rust::{ToString, get_object_class, is_dom_class, is_dom_object, maybe_wrap_value};
 use libc;
 use num_traits::Float;
 use servo_config::opts;
-use std::{char, mem, ptr, slice};
+use std::{char, ptr, slice};
 
 /// A trait to check whether a given `JSObject` implements an IDL interface.
 pub trait IDLInterface {
@@ -552,24 +550,6 @@ unsafe impl ArrayBufferViewContents for f64 {
     unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
         JS_NewFloat64Array(cx, num)
     }
-}
-
-/// Returns a mutable slice of the Array Buffer View data, viewed as T, without
-/// checking the real type of it.
-pub unsafe fn array_buffer_view_data<'a, T>(abv: *mut JSObject) -> Option<&'a mut [T]>
-    where T: ArrayBufferViewContents
-{
-    assert!(!abv.is_null());
-
-    let mut byte_length = 0;
-    let mut ptr = ptr::null_mut();
-    let mut is_shared = false;
-    let ret = JS_GetObjectAsArrayBufferView(abv, &mut byte_length, &mut is_shared, &mut ptr);
-    assert!(!is_shared);
-    if ret.is_null() {
-        return None;
-    }
-    Some(slice::from_raw_parts_mut(ptr as *mut T, byte_length as usize / mem::size_of::<T>()))
 }
 
 /// Returns whether `value` is an array-like object.
