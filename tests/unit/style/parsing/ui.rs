@@ -37,7 +37,7 @@ fn test_caret_color() {
     use style::properties::longhands::caret_color;
 
     let auto = parse_longhand!(caret_color, "auto");
-    assert_eq!(auto, caret_color::SpecifiedValue(Either::Second(Auto)));
+    assert_eq!(auto, Either::Second(Auto));
 
     let blue_color = Color::RGBA(RGBA {
         red: 0.0,
@@ -47,6 +47,5 @@ fn test_caret_color() {
     });
 
     let color = parse_longhand!(caret_color, "blue");
-    assert_eq!(color,
-               caret_color::SpecifiedValue(Either::First(blue_color)));
+    assert_eq!(color, Either::First(blue_color));
 }
