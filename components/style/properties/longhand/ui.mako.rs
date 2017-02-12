@@ -32,56 +32,35 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
 
 <%helpers:longhand name="caret-color" animatable="False" products="none"
                    spec="https://drafts.csswg.org/css-ui/#caret-color">
-    use cssparser::Color;
     use std::fmt;
     use style_traits::ToCss;
-    use values::NoViewportPercentage;
-    use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
 
-    impl NoViewportPercentage for SpecifiedValue {}
-    impl ComputedValueAsSpecified for SpecifiedValue {}
-
     pub mod computed_value {
-        use cssparser::Color;
+        use cssparser::{Color, Parser};
+        use parser::{Parse, ParserContext};
         use values::{Auto, Either};
+        use values::NoViewportPercentage;
+        use values::computed::ComputedValueAsSpecified;
 
-        #[derive(PartialEq, Clone, Debug)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-        pub struct T (pub Either<Color, Auto>);
-    }
+        impl NoViewportPercentage for Color {}
+        impl ComputedValueAsSpecified for Color {}
 
-    impl ToCss for computed_value::T {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-
-           match *self {
-               computed_value::T(Either::First(color)) => {
-                    color.to_css(dest)?;
-               },
-               computed_value::T(Either::Second(Auto)) => {
-                    dest.write_str("auto")?;
-               }
-           };
-
-           Ok(())
+        impl Parse for Color {
+            fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+                Self::parse(input)
+            }
         }
+
+        pub type T = Either<Color, Auto>;
     }
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(Either::Second(Auto))
+        Either::Second(Auto)
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-
-        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-            return Ok(computed_value::T(Either::Second(Auto)));
-        }
-
-        if let Ok(color) = Color::parse(input) {
-            return Ok(computed_value::T(Either::First(color)));
-        }
-
-        Err(())
+        computed_value::T::parse(_context, input)
     }
 </%helpers:longhand>
