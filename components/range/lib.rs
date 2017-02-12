@@ -9,7 +9,6 @@
 extern crate heapsize;
 #[macro_use] extern crate heapsize_derive;
 extern crate num_traits;
-extern crate rustc_serialize;
 #[macro_use]
 extern crate serde_derive;
 
@@ -145,7 +144,7 @@ macro_rules! int_range_index {
 }
 
 /// A range of indices
-#[derive(Clone, Copy, Deserialize, HeapSizeOf, RustcEncodable, Serialize)]
+#[derive(Clone, Copy, Deserialize, HeapSizeOf, Serialize)]
 pub struct Range<I> {
     begin: I,
     length: I,
