@@ -180,7 +180,8 @@ pub mod animated_properties {
 
 // TODO(SimonSapin): Convert this to a syntax extension rather than a Mako template.
 // Maybe submit for inclusion in libstd?
-mod property_bit_field {
+#[allow(missing_docs)]
+pub mod property_bit_field {
     use logical_geometry::WritingMode;
 
     /// A bitfield for all longhand properties, in order to quickly test whether
@@ -342,7 +343,7 @@ mod property_bit_field {
 /// any given property, by importance then source order.
 ///
 /// The input and output are in source order
-fn deduplicate_property_declarations(block: &mut PropertyDeclarationBlock) {
+pub fn deduplicate_property_declarations(block: &mut PropertyDeclarationBlock) {
     let mut deduplicated = Vec::with_capacity(block.declarations.len());
     let mut seen_normal = PropertyBitField::new();
     let mut seen_important = PropertyBitField::new();
@@ -1024,10 +1025,12 @@ impl PropertyDeclaration {
     /// we only set them here so that we don't have to reallocate
     pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser,
                  result_list: &mut Vec<(PropertyDeclaration, Importance)>,
+                 properties_seen: &mut PropertyBitField, possibly_duplicated: &mut bool,
                  in_keyframe_block: bool)
                  -> PropertyDeclarationParseResult {
         match id {
             PropertyId::Custom(name) => {
+                *possibly_duplicated = true;
                 let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
                     Ok(CSSWideKeyword::UnsetKeyword) => DeclaredValue::Unset,
                     Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
@@ -1060,6 +1063,8 @@ impl PropertyDeclaration {
 
                         match longhands::${property.ident}::parse_declared(context, input) {
                             Ok(value) => {
+                                *possibly_duplicated |= properties_seen.get_${property.ident}();
+                                properties_seen.set_${property.ident}();
                                 result_list.push((PropertyDeclaration::${property.camel_case}(value),
                                                   Importance::Normal));
                                 PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
@@ -1091,6 +1096,8 @@ impl PropertyDeclaration {
                     match input.try(|i| CSSWideKeyword::parse(context, i)) {
                         Ok(CSSWideKeyword::InheritKeyword) => {
                             % for sub_property in shorthand.sub_properties:
+                                *possibly_duplicated |= properties_seen.get_${sub_property.ident}();
+                                properties_seen.set_${sub_property.ident}();
                                 result_list.push((
                                     PropertyDeclaration::${sub_property.camel_case}(
                                         DeclaredValue::Inherit), Importance::Normal));
@@ -1099,6 +1106,8 @@ impl PropertyDeclaration {
                         },
                         Ok(CSSWideKeyword::InitialKeyword) => {
                             % for sub_property in shorthand.sub_properties:
+                                *possibly_duplicated |= properties_seen.get_${sub_property.ident}();
+                                properties_seen.set_${sub_property.ident}();
                                 result_list.push((
                                     PropertyDeclaration::${sub_property.camel_case}(
                                         DeclaredValue::Initial), Importance::Normal));
@@ -1107,13 +1116,21 @@ impl PropertyDeclaration {
                         },
                         Ok(CSSWideKeyword::UnsetKeyword) => {
                             % for sub_property in shorthand.sub_properties:
+                                *possibly_duplicated |= properties_seen.get_${sub_property.ident}();
+                                properties_seen.set_${sub_property.ident}();
                                 result_list.push((PropertyDeclaration::${sub_property.camel_case}(
                                         DeclaredValue::Unset), Importance::Normal));
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
                         Err(()) => match shorthands::${shorthand.ident}::parse(context, input, result_list) {
-                            Ok(()) => PropertyDeclarationParseResult::ValidOrIgnoredDeclaration,
+                            Ok(()) => {
+                                % for sub_property in shorthand.sub_properties:
+                                    *possibly_duplicated |= properties_seen.get_${sub_property.ident}();
+                                    properties_seen.set_${sub_property.ident}();
+                                % endfor
+                                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                            },
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
                         }
                     }

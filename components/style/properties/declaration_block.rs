@@ -16,6 +16,7 @@ use std::fmt;
 use style_traits::ToCss;
 use stylesheets::Origin;
 use super::*;
+use super::property_bit_field::PropertyBitField;
 
 /// A declaration [importance][importance].
 ///
@@ -522,7 +523,10 @@ pub fn parse_one_declaration(id: PropertyId,
     let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     Parser::new(input).parse_entirely(|parser| {
         let mut results = vec![];
-        match PropertyDeclaration::parse(id, &context, parser, &mut results, false) {
+        let mut properties_seen = PropertyBitField::new();
+        let mut possibly_duplicated = false;
+        match PropertyDeclaration::parse(id, &context, parser, &mut results,
+                                         &mut properties_seen, &mut possibly_duplicated, false) {
             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
             _ => Err(())
         }
@@ -532,7 +536,9 @@ pub fn parse_one_declaration(id: PropertyId,
 /// A struct to parse property declarations.
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    declarations: Vec<(PropertyDeclaration, Importance)>
+    declarations: Vec<(PropertyDeclaration, Importance)>,
+    properties_seen: PropertyBitField,
+    possibly_duplicated: bool
 }
 
 
@@ -554,7 +560,8 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
         let id = try!(PropertyId::parse(name.into()));
         let old_len = self.declarations.len();
         let parse_result = input.parse_until_before(Delimiter::Bang, |input| {
-            match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, false) {
+            match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations,
+                                             &mut self.properties_seen, &mut self.possibly_duplicated, false) {
                 PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(()),
                 _ => Err(())
             }
@@ -590,6 +597,8 @@ pub fn parse_property_declaration_list(context: &ParserContext,
     let parser = PropertyDeclarationParser {
         context: context,
         declarations: vec![],
+        properties_seen: PropertyBitField::new(),
+        possibly_duplicated: false
     };
     let mut iter = DeclarationListParser::new(input, parser);
     while let Some(declaration) = iter.next() {
@@ -611,6 +620,8 @@ pub fn parse_property_declaration_list(context: &ParserContext,
         declarations: iter.parser.declarations,
         important_count: important_count,
     };
-    super::deduplicate_property_declarations(&mut block);
+    if iter.parser.possibly_duplicated {
+        super::deduplicate_property_declarations(&mut block);
+    }
     block
 }
