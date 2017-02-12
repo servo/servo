@@ -13,6 +13,7 @@ use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, DeclaredValue};
 use properties::PropertyDeclarationParseResult;
+use properties::property_bit_field::PropertyBitField;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use std::fmt;
@@ -362,6 +363,8 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         let parser = KeyframeDeclarationParser {
             context: self.context,
             declarations: vec![],
+            properties_seen: PropertyBitField::new(),
+            possibly_duplicated: false
         };
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
@@ -388,7 +391,9 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
 
 struct KeyframeDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    declarations: Vec<(PropertyDeclaration, Importance)>
+    declarations: Vec<(PropertyDeclaration, Importance)>,
+    properties_seen: PropertyBitField,
+    possibly_duplicated: bool
 }
 
 /// Default methods reject all at rules.
@@ -404,7 +409,8 @@ impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
         let id = try!(PropertyId::parse(name.into()));
         let old_len = self.declarations.len();
-        match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, true) {
+        match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations,
+                                         &mut self.properties_seen, &mut self.possibly_duplicated, true) {
             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
             _ => {
                 self.declarations.truncate(old_len);

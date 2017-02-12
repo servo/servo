@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 mod background;
+mod parse;
 mod scaffolding;
 mod serialization;
 mod viewport;
