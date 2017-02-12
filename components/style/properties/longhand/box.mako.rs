@@ -835,6 +835,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub use properties::longhands::transition_timing_function::single_value::get_initial_value;
     pub use properties::longhands::transition_timing_function::single_value::get_initial_specified_value;
     pub use properties::longhands::transition_timing_function::single_value::parse;
+    pub use properties::longhands::transition_timing_function::single_value::FunctionKeyword;
     pub use properties::longhands::transition_timing_function::single_value::SpecifiedValue;
 </%helpers:vector_longhand>
 

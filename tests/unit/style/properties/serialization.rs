@@ -1114,4 +1114,85 @@ mod shorthand_serialization {
             assert_eq!(s, "none");
         }
     }
+
+    mod animation {
+        pub use super::*;
+        use servo_atoms::Atom;
+        use style::properties::longhands::animation_delay;
+        use style::properties::longhands::animation_direction;
+        use style::properties::longhands::animation_duration;
+        use style::properties::longhands::animation_fill_mode;
+        use style::properties::longhands::animation_iteration_count;
+        use style::properties::longhands::animation_name;
+        use style::properties::longhands::animation_play_state;
+        use style::properties::longhands::animation_timing_function;
+        use style::values::specified::Time as TimeContainer;
+
+        macro_rules! create_animation_properties {
+            ($duration:expr, $timing_enum:ident, $delay:expr, $direction:ident, $fill_mode:ident,
+             $iteration_count:expr, $play_state:ident, $name:expr) => {
+                {
+                    let mut properties = Vec::new();
+                    let animation_duration = DeclaredValue::Value(
+                        animation_duration::SpecifiedValue(vec![TimeContainer($duration)])
+                    );
+                    let animation_timing_function = DeclaredValue::Value(
+                        animation_timing_function::SpecifiedValue(vec![
+                            animation_timing_function::single_value::SpecifiedValue::Keyword(
+                                animation_timing_function::single_value::FunctionKeyword::$timing_enum)
+                        ])
+                    );
+                    let animation_delay = DeclaredValue::Value(
+                        animation_delay::SpecifiedValue(vec![TimeContainer($delay)])
+                    );
+                    let animation_direction = DeclaredValue::Value(
+                        animation_direction::SpecifiedValue(vec![
+                            animation_direction::single_value::SpecifiedValue::$direction
+                        ])
+                    );
+                    let animation_fill_mode = DeclaredValue::Value(
+                        animation_fill_mode::SpecifiedValue(vec![
+                            animation_fill_mode::single_value::SpecifiedValue::$fill_mode
+                        ])
+                    );
+                    let animation_iteration_count = DeclaredValue::Value(
+                        animation_iteration_count::SpecifiedValue(vec![
+                            animation_iteration_count::single_value::SpecifiedValue::Number($iteration_count)
+                        ])
+                    );
+                    let animation_play_state = DeclaredValue::Value(
+                        animation_play_state::SpecifiedValue(vec![
+                            animation_play_state::single_value::SpecifiedValue::$play_state
+                        ])
+                    );
+                    let animation_name = DeclaredValue::Value(
+                        animation_name::SpecifiedValue(vec![
+                            animation_name::single_value::SpecifiedValue(Atom::from($name))
+                        ])
+                    );
+
+                    properties.push(PropertyDeclaration::AnimationDuration(animation_duration));
+                    properties.push(PropertyDeclaration::AnimationTimingFunction(animation_timing_function));
+                    properties.push(PropertyDeclaration::AnimationDelay(animation_delay));
+                    properties.push(PropertyDeclaration::AnimationDirection(animation_direction));
+                    properties.push(PropertyDeclaration::AnimationFillMode(animation_fill_mode));
+                    properties.push(PropertyDeclaration::AnimationIterationCount(animation_iteration_count));
+                    properties.push(PropertyDeclaration::AnimationPlayState(animation_play_state));
+                    properties.push(PropertyDeclaration::AnimationName(animation_name));
+
+                    properties
+                }
+            };
+        }
+
+        #[test]
+        fn serialize_single_animation() {
+            let animation_properties = create_animation_properties!(
+                3.0, EaseIn, 5.0, normal, forwards, 7.0, paused, "my-anim");
+
+            let serialization = shorthand_properties_to_string(animation_properties);
+
+            assert_eq!(serialization, "animation: 3s ease-in 5s normal forwards 7 paused my-anim;")
+        }
+    }
 }
