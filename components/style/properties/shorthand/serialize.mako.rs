@@ -61,7 +61,7 @@ pub fn serialize_four_sides<W, I>(dest: &mut W,
 fn serialize_directional_border<W, I,>(dest: &mut W,
                                                 width: &DeclaredValue<I>,
                                                 style: &DeclaredValue<BorderStyle>,
-                                                color: &DeclaredValue<Box<CSSColor>>)
+                                                color: &DeclaredValue<CSSColor>)
                                                 -> fmt::Result where W: fmt::Write, I: ToCss {
     match *width {
         DeclaredValue::Value(ref width) => {

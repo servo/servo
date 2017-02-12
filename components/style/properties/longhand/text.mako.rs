@@ -28,7 +28,7 @@
     pub enum Side {
         Clip,
         Ellipsis,
-        String(String),
+        String(Box<str>),
     }
 
     #[derive(PartialEq, Eq, Clone, Debug)]
@@ -66,7 +66,7 @@
                     _ => Err(())
                 }
             } else {
-                Ok(Side::String(try!(input.expect_string()).into_owned()))
+                Ok(Side::String(try!(input.expect_string()).into_owned().into_boxed_str()))
             }
         }
     }
@@ -210,9 +210,8 @@ ${helpers.single_keyword("text-decoration-style",
 
 ${helpers.predefined_type(
     "text-decoration-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+    "CSSParserColor::RGBA(RGBA::new(0, 0, 0, 255))",
     complex_color=True,
     products="gecko",
     animatable=True,
-    boxed=True,
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-color")}

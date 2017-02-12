@@ -147,7 +147,7 @@ ${helpers.single_keyword("column-fill", "auto balance", extra_prefixes="moz",
 ${helpers.predefined_type("column-rule-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
                           products="gecko", animatable=True, extra_prefixes="moz",
-                          complex_color=True, need_clone=True, boxed=True,
+                          complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-color")}
 
 // It's not implemented in servo or gecko yet.

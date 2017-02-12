@@ -1016,9 +1016,9 @@ impl ToAzureStyle for RGBA {
     type Target = Color;
 
     fn to_azure_style(self) -> Color {
-        Color::rgba(self.red as AzFloat,
-                    self.green as AzFloat,
-                    self.blue as AzFloat,
-                    self.alpha as AzFloat)
+        Color::rgba(self.red_f32() as AzFloat,
+                    self.green_f32() as AzFloat,
+                    self.blue_f32() as AzFloat,
+                    self.alpha_f32() as AzFloat)
     }
 }
