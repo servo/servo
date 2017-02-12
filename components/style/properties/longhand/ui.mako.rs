@@ -40,10 +40,10 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
         use cssparser::{Color, Parser};
         use parser::{Parse, ParserContext};
         use values::{Auto, Either};
-        use values::NoViewportPercentage;
+        use values::HasViewportPercentage;
         use values::computed::ComputedValueAsSpecified;
 
-        impl NoViewportPercentage for Color {}
+        no_viewport_percentage!(Color);
         impl ComputedValueAsSpecified for Color {}
 
         impl Parse for Color {
