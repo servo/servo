@@ -44,5 +44,5 @@ gdi32-sys = "0.2"
 [target.'cfg(target_os = "macos")'.dependencies]
 osmesa-src = {git = "https://github.com/servo/osmesa-src"}
 
-# [target.x86_64-unknown-linux-gnu.dependencies]
-# osmesa-src = {git = "https://github.com/servo/osmesa-src"}
+[target.x86_64-unknown-linux-gnu.dependencies]
+osmesa-src = {git = "https://github.com/servo/osmesa-src"}
