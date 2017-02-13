@@ -33,6 +33,8 @@ use gecko_bindings::bindings::Gecko_FontFamilyList_Clear;
 use gecko_bindings::bindings::Gecko_SetCursorArrayLength;
 use gecko_bindings::bindings::Gecko_SetCursorImage;
 use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
+use gecko_bindings::bindings::Gecko_nsStyleFont_SetLang;
+use gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
 use gecko_bindings::bindings::Gecko_SetListStyleImage;
 use gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use gecko_bindings::bindings::Gecko_SetListStyleType;
@@ -53,7 +55,7 @@ use properties::longhands;
 use properties::{DeclaredValue, Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use std::fmt::{self, Debug};
-use std::mem::{transmute, zeroed};
+use std::mem::{forget, transmute, zeroed};
 use std::ptr;
 use std::sync::Arc;
 use std::cmp;
@@ -1119,7 +1121,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="font-family font-size font-size-adjust font-weight font-synthesis"
+    skip_longhands="font-family font-size font-size-adjust font-weight font-synthesis -x-lang"
     skip_additionals="*">
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -1228,6 +1230,21 @@ fn static_assert() {
         }
     }
 
+    #[allow(non_snake_case)]
+    pub fn set__x_lang(&mut self, v: longhands::_x_lang::computed_value::T) {
+        let ptr = v.0.as_ptr();
+        forget(v);
+        unsafe {
+            Gecko_nsStyleFont_SetLang(&mut self.gecko, ptr);
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn copy__x_lang_from(&mut self, other: &Self) {
+        unsafe {
+            Gecko_nsStyleFont_CopyLangFrom(&mut self.gecko, &other.gecko);
+        }
+    }
 </%self:impl_trait>
 
 <%def name="impl_copy_animation_value(ident, gecko_ffi_name)">

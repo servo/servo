@@ -993,14 +993,21 @@ pub extern "C" fn Servo_DeclarationBlock_PropertyIsSet(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(_:
+pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(declarations:
                                                              RawServoDeclarationBlockBorrowed,
-                                                             _:
+                                                             property:
                                                              nsCSSPropertyID,
-                                                             _:
-                                                             *const nsAString) {
-    // 
-    error!("stylo: Don't know how to handle ident presentation attributes (-x-lang)");
+                                                             value:
+                                                             *mut nsIAtom) {
+    use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
+    use style::properties::longhands::_x_lang::computed_value::T as Lang;
+
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let long = get_longhand_from_id!(property);
+    let prop = match_wrap_declared! { long,
+        XLang => Lang(Atom::from(value)),
+    };
+    declarations.write().declarations.push((prop, Default::default()));
 }
 
 #[no_mangle]
