@@ -122,6 +122,16 @@ ${helpers.single_keyword("unicode-bidi",
             const UNDERLINE = 0x02,
             const LINE_THROUGH = 0x04,
             const BLINK = 0x08,
+        % if product == "gecko":
+            /// Only set by presentation attributes
+            ///
+            /// Setting this will mean that text-decorations use the color
+            /// specified by `color` in quirks mode.
+            ///
+            /// For example, this gives <a href=foo><font color="red">text</font></a>
+            /// a red text decoration
+            const COLOR_OVERRIDE = 0x10,
+        % endif
         }
     }
 

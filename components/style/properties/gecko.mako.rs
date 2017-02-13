@@ -2610,6 +2610,9 @@ fn static_assert() {
         if v.contains(longhands::text_decoration_line::BLINK) {
             bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_BLINK as u8;
         }
+        if v.contains(longhands::text_decoration_line::COLOR_OVERRIDE) {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL as u8;
+        }
         self.gecko.mTextDecorationLine = bits;
     }
 
