@@ -9,6 +9,7 @@ use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use euclid::Size2D;
 use parking_lot::RwLock;
+use rayon;
 use selectors::Element;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -90,6 +91,20 @@ use stylesheet_loader::StylesheetLoader;
  * depend on but good enough for our purposes.
  */
 
+lazy_static! {
+    static ref STYLE_THREAD_POOL: Option<rayon::ThreadPool> = {
+        let num_threads = *NUM_THREADS;
+        if num_threads <= 1 {
+            return None;
+        }
+
+        let configuration =
+            rayon::Configuration::new().set_num_threads(num_threads);
+        let pool = rayon::ThreadPool::new(configuration).ok();
+        pool
+    };
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_Initialize() -> () {
     // Initialize logging.
@@ -148,7 +163,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
         }
     }
 
-    let mut per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     let token = RecalcStyleOnly::pre_traverse(element, &per_doc_data.stylist, unstyled_children_only);
     if !token.should_traverse() {
@@ -159,7 +174,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
     let shared_style_context = create_shared_context(&per_doc_data);
-    let traversal_driver = if per_doc_data.num_threads == 1 || per_doc_data.work_queue.is_none() {
+    let traversal_driver = if STYLE_THREAD_POOL.is_none() {
         TraversalDriver::Sequential
     } else {
         TraversalDriver::Parallel
@@ -169,7 +184,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     let known_depth = None;
     if traversal_driver.is_parallel() {
         parallel::traverse_dom(&traversal, element, known_depth, token,
-                               per_doc_data.work_queue.as_mut().unwrap());
+                               STYLE_THREAD_POOL.as_ref().unwrap());
     } else {
         sequential::traverse_dom(&traversal, element, token);
     }
