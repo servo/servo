@@ -2230,6 +2230,15 @@ fn static_assert() {
 
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Table" skip_longhands="-x-span">
+    #[allow(non_snake_case)]
+    pub fn set__x_span(&mut self, v: longhands::_x_span::computed_value::T) {
+        self.gecko.mSpan = v.0
+    }
+
+    ${impl_simple_copy('_x_span', 'mSpan')}
+</%self:impl_trait>
+
 <%self:impl_trait style_struct_name="Effects"
                   skip_longhands="box-shadow filter">
     pub fn set_box_shadow(&mut self, v: longhands::box_shadow::computed_value::T) {

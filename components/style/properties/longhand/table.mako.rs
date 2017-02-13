@@ -9,3 +9,39 @@
 ${helpers.single_keyword("table-layout", "auto fixed",
                          gecko_ffi_name="mLayoutStrategy", animatable=False,
                          spec="https://drafts.csswg.org/css-tables/#propdef-table-layout")}
+
+<%helpers:longhand name="-x-span" products="gecko"
+                   spec="Internal-only (for `<col span>` pres attr)"
+                   animatable="False"
+                   internal="True">
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+    pub type SpecifiedValue = computed_value::T;
+    pub mod computed_value {
+        use std::fmt;
+        use style_traits::ToCss;
+
+        #[derive(PartialEq, Clone, Copy, Debug)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T(pub i32);
+
+        impl ToCss for T {
+            fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+                Ok(())
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(1)
+    }
+
+    // never parse it, only set via presentation attribute
+    fn parse(_: &ParserContext, _: &mut Parser) -> Result<SpecifiedValue, ()> {
+        Err(())
+    }
+</%helpers:longhand>

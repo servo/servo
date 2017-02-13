@@ -1041,10 +1041,18 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetIntValue(_: RawServoDeclarationBlockBorrowed,
-                                                     _: nsCSSPropertyID,
-                                                     _: i32) {
-    error!("stylo: Don't know how to handle integer presentation attributes (-x-span)");
+pub extern "C" fn Servo_DeclarationBlock_SetIntValue(declarations: RawServoDeclarationBlockBorrowed,
+                                                     property: nsCSSPropertyID,
+                                                     value: i32) {
+    use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
+    use style::properties::longhands::_x_span::computed_value::T as Span;
+
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let long = get_longhand_from_id!(property);
+    let prop = match_wrap_declared! { long,
+        XSpan => Span(value),
+    };
+    declarations.write().declarations.push((prop, Default::default()));
 }
 
 #[no_mangle]
