@@ -158,3 +158,74 @@ impl HasViewportPercentage for TrackBreadth<LengthOrPercentage> {
         }
     }
 }
+
+#[allow(missing_docs)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// https://drafts.csswg.org/css-grid/#typedef-track-size
+pub enum TrackSize<L> {
+    Breadth(TrackBreadth<L>),
+    MinMax(TrackBreadth<L>, TrackBreadth<L>),
+    FitContent(L),
+}
+
+impl<L> Default for TrackSize<L> {
+    fn default() -> Self {
+        TrackSize::Breadth(TrackBreadth::Keyword(TrackKeyword::Auto))
+    }
+}
+
+impl Parse for TrackSize<LengthOrPercentage> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(b) = input.try(|i| TrackBreadth::parse(context, i)) {
+            Ok(TrackSize::Breadth(b))
+        } else {
+            if input.try(|i| i.expect_function_matching("minmax")).is_ok() {
+                Ok(try!(input.parse_nested_block(|input| {
+                    let inflexible_breadth = if let Ok(lop) = input.try(LengthOrPercentage::parse_non_negative) {
+                        Ok(TrackBreadth::Breadth(lop))
+                    } else {
+                        TrackKeyword::parse(input).map(TrackBreadth::Keyword)
+                    };
+
+                    try!(input.expect_comma());
+                    Ok(TrackSize::MinMax(try!(inflexible_breadth), try!(TrackBreadth::parse(context, input))))
+                })))
+            } else {
+                try!(input.expect_function_matching("fit-content"));
+                Ok(try!(LengthOrPercentage::parse(context, input).map(TrackSize::FitContent)))
+            }
+        }
+    }
+}
+
+impl<L: ToCss> ToCss for TrackSize<L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            TrackSize::Breadth(ref b) => b.to_css(dest),
+            TrackSize::MinMax(ref infexible, ref flexible) => {
+                try!(dest.write_str("minmax("));
+                try!(infexible.to_css(dest));
+                try!(dest.write_str(","));
+                try!(flexible.to_css(dest));
+                dest.write_str(")")
+            },
+            TrackSize::FitContent(ref lop) => {
+                try!(dest.write_str("fit-content("));
+                try!(lop.to_css(dest));
+                dest.write_str(")")
+            },
+        }
+    }
+}
+
+impl HasViewportPercentage for TrackSize<LengthOrPercentage> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            TrackSize::Breadth(ref b) => b.has_viewport_percentage(),
+            TrackSize::MinMax(ref inf_b, ref b) => inf_b.has_viewport_percentage() || b.has_viewport_percentage(),
+            TrackSize::FitContent(ref lop) => lop.has_viewport_percentage(),
+        }
+    }
+}
