@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::XOriginWindowBinding;
-use dom::bindings::codegen::Bindings::XOriginWindowBinding::XOriginWindowMethods;
+use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
+use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
 use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
+use dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use dom::globalscope::GlobalScope;
-use dom::xoriginlocation::XOriginLocation;
 use ipc_channel::ipc;
 use js::jsapi::{JSContext, HandleValue};
 use js::jsval::{JSVal, UndefinedValue};
@@ -25,7 +25,7 @@ use msg::constellation_msg::PipelineId;
 /// that throws security exceptions for most accessors. This is not a replacement
 /// for XOWs, but provides belt-and-braces security.
 #[dom_struct]
-pub struct XOriginWindow {
+pub struct DissimilarOriginWindow {
     /// The global for this window.
     globalscope: GlobalScope,
 
@@ -33,17 +33,17 @@ pub struct XOriginWindow {
     browsing_context: JS<BrowsingContext>,
 
     /// The location of this window, initialized lazily.
-    location: MutNullableJS<XOriginLocation>,
+    location: MutNullableJS<DissimilarOriginLocation>,
 }
 
-impl XOriginWindow {
+impl DissimilarOriginWindow {
     #[allow(unsafe_code)]
-    pub fn new(browsing_context: &BrowsingContext) -> Root<XOriginWindow> {
+    pub fn new(browsing_context: &BrowsingContext) -> Root<DissimilarOriginWindow> {
         let globalscope = browsing_context.global();
         let cx = globalscope.get_cx();
         // Any timer events fired on this window are ignored.
         let (timer_event_chan, _) = ipc::channel().unwrap();
-        let win = box XOriginWindow {
+        let win = box DissimilarOriginWindow {
             globalscope: GlobalScope::new_inherited(PipelineId::new(),
                                                     globalscope.devtools_chan().cloned(),
                                                     globalscope.mem_profiler_chan().clone(),
@@ -55,11 +55,11 @@ impl XOriginWindow {
             browsing_context: JS::from_ref(browsing_context),
             location: MutNullableJS::new(None),
         };
-        unsafe { XOriginWindowBinding::Wrap(cx, win) }
+        unsafe { DissimilarOriginWindowBinding::Wrap(cx, win) }
     }
 }
 
-impl XOriginWindowMethods for XOriginWindow {
+impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
     // https://html.spec.whatwg.org/multipage/#dom-window
     fn Window(&self) -> Root<BrowsingContext> {
         Root::from_ref(&*self.browsing_context)
@@ -134,7 +134,7 @@ impl XOriginWindowMethods for XOriginWindow {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location
-    fn Location(&self) -> Root<XOriginLocation> {
-        self.location.or_init(|| XOriginLocation::new(self))
+    fn Location(&self) -> Root<DissimilarOriginLocation> {
+        self.location.or_init(|| DissimilarOriginLocation::new(self))
     }
 }

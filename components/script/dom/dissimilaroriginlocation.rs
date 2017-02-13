@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::XOriginLocationBinding;
-use dom::bindings::codegen::Bindings::XOriginLocationBinding::XOriginLocationMethods;
+use dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding;
+use dom::bindings::codegen::Bindings::DissimilarOriginLocationBinding::DissimilarOriginLocationMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::Reflector;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::bindings::str::USVString;
-use dom::xoriginwindow::XOriginWindow;
+use dom::dissimilaroriginwindow::DissimilarOriginWindow;
 
 /// Represents a dissimilar-origin `Location` that exists in another script thread.
 ///
@@ -19,32 +19,32 @@ use dom::xoriginwindow::XOriginWindow;
 /// still need to function.
 
 #[dom_struct]
-pub struct XOriginLocation {
+pub struct DissimilarOriginLocation {
     /// The reflector. Once we have XOWs, this will have a cross-origin
     /// wrapper placed around it.
     reflector: Reflector,
 
     /// The window associated with this location.
-    window: JS<XOriginWindow>,
+    window: JS<DissimilarOriginWindow>,
 }
 
-impl XOriginLocation {
+impl DissimilarOriginLocation {
     #[allow(unrooted_must_root)]
-    fn new_inherited(window: &XOriginWindow) -> XOriginLocation {
-        XOriginLocation {
+    fn new_inherited(window: &DissimilarOriginWindow) -> DissimilarOriginLocation {
+        DissimilarOriginLocation {
             reflector: Reflector::new(),
             window: JS::from_ref(window),
         }
     }
 
-    pub fn new(window: &XOriginWindow) -> Root<XOriginLocation> {
-        reflect_dom_object(box XOriginLocation::new_inherited(window),
+    pub fn new(window: &DissimilarOriginWindow) -> Root<DissimilarOriginLocation> {
+        reflect_dom_object(box DissimilarOriginLocation::new_inherited(window),
                            window,
-                           XOriginLocationBinding::Wrap)
+                           DissimilarOriginLocationBinding::Wrap)
     }
 }
 
-impl XOriginLocationMethods for XOriginLocation {
+impl DissimilarOriginLocationMethods for DissimilarOriginLocation {
     // https://html.spec.whatwg.org/multipage/#dom-location-href
     fn GetHref(&self) -> Fallible<USVString> {
         Err(Error::Security)

@@ -14,14 +14,14 @@
 
 // https://html.spec.whatwg.org/multipage/#window
 [Global, NoInterfaceObject]
-interface XOriginWindow : GlobalScope {
+interface DissimilarOriginWindow : GlobalScope {
   [Unforgeable] readonly attribute WindowProxy window;
   [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
   [Unforgeable] readonly attribute WindowProxy? parent;
   [Unforgeable] readonly attribute WindowProxy? top;
   [Replaceable] readonly attribute WindowProxy frames;
   [Replaceable] readonly attribute unsigned long length;
-  [Unforgeable] readonly attribute XOriginLocation location;
+  [Unforgeable] readonly attribute DissimilarOriginLocation location;
 
   void close();
   readonly attribute boolean closed;

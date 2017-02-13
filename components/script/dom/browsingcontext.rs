@@ -11,10 +11,10 @@ use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
+use dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
-use dom::xoriginwindow::XOriginWindow;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
@@ -165,7 +165,7 @@ impl BrowsingContext {
     }
 
     pub fn unset_currently_active(&self) {
-        let window = XOriginWindow::new(self);
+        let window = DissimilarOriginWindow::new(self);
         self.set_window_proxy(&*window.upcast(), &XORIGIN_PROXY_HANDLER);
         self.currently_active.set(None);
     }
@@ -371,7 +371,7 @@ pub fn new_window_proxy_handler() -> WindowProxyHandler {
 
 // The proxy traps for cross-origin windows.
 // These traps often throw security errors, and only pass on calls to methods
-// defined in the XOriginWindow IDL.
+// defined in the DissimilarOriginWindow IDL.
 
 #[allow(unsafe_code)]
 unsafe fn throw_security_error(cx: *mut JSContext) -> bool {
