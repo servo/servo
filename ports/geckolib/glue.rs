@@ -1150,10 +1150,22 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(_:
-                                                    RawServoDeclarationBlockBorrowed,
-                                                    _: *const nsAString) {
+pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
+                                                       RawServoDeclarationBlockBorrowed,
+                                                       value: *const nsAString) {
+    use cssparser::Parser;
+    use style::properties::{DeclaredValue, PropertyDeclaration};
+    use style::properties::longhands::font_family::SpecifiedValue as FontFamily;
 
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let string = unsafe { (*value).to_string() };
+    let mut parser = Parser::new(&string);
+    if let Ok(family) = FontFamily::parse(&mut parser) {
+        if parser.is_exhausted() {
+            let decl = PropertyDeclaration::FontFamily(DeclaredValue::Value(family));
+            declarations.write().declarations.push((decl, Default::default()));
+        }
+    }
 }
 
 #[no_mangle]
