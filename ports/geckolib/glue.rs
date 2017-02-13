@@ -961,7 +961,24 @@ macro_rules! get_longhand_from_id {
                 return $retval
             }
         }
+    };
+    ($id:expr) => {
+        get_longhand_from_id!($id, ())
     }
+}
+
+macro_rules! match_wrap_declared {
+    ($longhand:ident, $($property:ident => $inner:expr,)*) => (
+        match $longhand {
+            $(
+                LonghandId::$property => PropertyDeclaration::$property(DeclaredValue::Value($inner)),
+            )*
+            _ => {
+                error!("stylo: Don't know how to handle presentation property {:?}", $longhand);
+                return
+            }
+        }
+    )
 }
 
 #[no_mangle]
@@ -1002,26 +1019,87 @@ pub extern "C" fn Servo_DeclarationBlock_SetIntValue(_: RawServoDeclarationBlock
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(_:
+pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
                                                        RawServoDeclarationBlockBorrowed,
-                                                       _: nsCSSPropertyID,
-                                                       _: f32) {
+                                                       property: nsCSSPropertyID,
+                                                       value: f32) {
+    use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
+    use style::properties::longhands::border_spacing::SpecifiedValue as BorderSpacing;
+    use style::values::specified::length::NoCalcLength;
+    use style::values::specified::BorderWidth;
 
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let long = get_longhand_from_id!(property);
+    let nocalc = NoCalcLength::from_px(value);
+
+    let prop = match_wrap_declared! { long,
+        Height => nocalc.into(),
+        Width => nocalc.into(),
+        BorderTopWidth => BorderWidth::Width(nocalc.into()),
+        BorderRightWidth => BorderWidth::Width(nocalc.into()),
+        BorderBottomWidth => BorderWidth::Width(nocalc.into()),
+        BorderLeftWidth => BorderWidth::Width(nocalc.into()),
+        MarginTop => nocalc.into(),
+        MarginRight => nocalc.into(),
+        MarginBottom => nocalc.into(),
+        MarginLeft => nocalc.into(),
+        PaddingTop => nocalc.into(),
+        PaddingRight => nocalc.into(),
+        PaddingBottom => nocalc.into(),
+        PaddingLeft => nocalc.into(),
+        BorderSpacing => Box::new(
+            BorderSpacing {
+                horizontal: nocalc.into(),
+                vertical: nocalc.into(),
+            }
+        ),
+    };
+    declarations.write().declarations.push((prop, Default::default()));
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(_:
+pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(declarations:
                                                          RawServoDeclarationBlockBorrowed,
-                                                         _: nsCSSPropertyID,
-                                                         _: f32) {
+                                                         property: nsCSSPropertyID,
+                                                         value: f32) {
+    use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
+    use style::values::specified::length::Percentage;
 
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let long = get_longhand_from_id!(property);
+    let pc = Percentage(value);
+
+    let prop = match_wrap_declared! { long,
+        Height => pc.into(),
+        Width => pc.into(),
+        MarginTop => pc.into(),
+        MarginRight => pc.into(),
+        MarginBottom => pc.into(),
+        MarginLeft => pc.into(),
+    };
+    declarations.write().declarations.push((prop, Default::default()));
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(_:
+pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
                                                       RawServoDeclarationBlockBorrowed,
-                                                      _: nsCSSPropertyID) {
+                                                      property: nsCSSPropertyID) {
+    use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
+    use style::values::specified::LengthOrPercentageOrAuto;
 
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let long = get_longhand_from_id!(property);
+    let auto = LengthOrPercentageOrAuto::Auto;
+
+    let prop = match_wrap_declared! { long,
+        Height => auto,
+        Width => auto,
+        MarginTop => auto,
+        MarginRight => auto,
+        MarginBottom => auto,
+        MarginLeft => auto,
+    };
+    declarations.write().declarations.push((prop, Default::default()));
 }
 
 #[no_mangle]
