@@ -510,19 +510,20 @@ impl Interpolate for RGBA {
             val.max(0.).min(1.)
         }
 
-        let alpha = clamp(try!(self.alpha().interpolate(&other.alpha(), progress)));
+        let alpha = clamp(try!(self.alpha_f32().interpolate(&other.alpha_f32(), progress)));
         if alpha == 0. {
             Ok(RGBA::transparent())
         } else {
-            let red = clamp(try!((self.red() * self.alpha())
-                                 .interpolate(&(other.red() * other.alpha()), progress))
-                                 * 1. / alpha);
-            let green = clamp(try!((self.green() * self.alpha())
-                                   .interpolate(&(other.green() * other.alpha()), progress))
-                                   * 1. / alpha);
-            let blue = clamp(try!((self.blue() * self.alpha())
-                                  .interpolate(&(other.blue() * other.alpha()), progress))
-                                  * 1. / alpha);
+            // NB: We rely on RGBA::from_floats clamping already.
+            let red = try!((self.red_f32() * self.alpha_f32())
+                            .interpolate(&(other.red_f32() * other.alpha_f32()), progress))
+                            * 1. / alpha;
+            let green = try!((self.green_f32() * self.alpha_f32())
+                             .interpolate(&(other.green_f32() * other.alpha_f32()), progress))
+                             * 1. / alpha;
+            let blue = try!((self.blue_f32() * self.alpha_f32())
+                             .interpolate(&(other.blue_f32() * other.alpha_f32()), progress))
+                             * 1. / alpha;
             Ok(RGBA::from_floats(red, green, blue, alpha))
         }
     }

@@ -1339,11 +1339,11 @@ fn is_rect_valid(rect: Rect<f64>) -> bool {
 fn serialize<W>(color: &RGBA, dest: &mut W) -> fmt::Result
     where W: fmt::Write
 {
-    let red = color.r;
-    let green = color.g;
-    let blue = color.b;
+    let red = color.red;
+    let green = color.green;
+    let blue = color.blue;
 
-    if color.alpha() == 1f32 {
+    if color.alpha == 255 {
         write!(dest,
                "#{:x}{:x}{:x}{:x}{:x}{:x}",
                red >> 4,
@@ -1353,6 +1353,6 @@ fn serialize<W>(color: &RGBA, dest: &mut W) -> fmt::Result
                blue >> 4,
                blue & 0xF)
     } else {
-        write!(dest, "rgba({}, {}, {}, {})", red, green, blue, color.alpha())
+        write!(dest, "rgba({}, {}, {}, {})", red, green, blue, color.alpha_f32())
     }
 }
