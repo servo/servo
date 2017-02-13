@@ -1511,7 +1511,7 @@ impl ScriptThread {
         let (response_chan, response_port) = channel();
         chan.send(message::Msg::PrepareToExit(response_chan)).ok();
         debug!("shutting down layout for page {}", id);
-        response_port.recv().unwrap();
+        let _ = response_port.recv();
         chan.send(message::Msg::ExitNow).ok();
         self.constellation_chan.send(ConstellationMsg::PipelineExited(id)).ok();
 
