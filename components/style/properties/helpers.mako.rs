@@ -376,7 +376,44 @@
     </%call>
 </%def>
 
-<%def name="single_keyword_computed(name, values, vector=False, extra_specified=None, **kwargs)">
+<%def name="gecko_keyword_conversion(keyword, values=None, type='SpecifiedValue')">
+    <%
+        if not values:
+            values = keyword.values_for(product)
+    %>
+    #[cfg(feature = "gecko")]
+    impl ${type} {
+        /// Obtain a specified value from a Gecko keyword value
+        ///
+        /// Intended for use with presentation attributes, not style structs
+        pub fn from_gecko_keyword(kw: u32) -> Self {
+            use gecko_bindings::structs;
+            % if keyword.gecko_enum_prefix:
+                % for value in values:
+                    // We can't match on enum values if we're matching on a u32
+                    const ${to_rust_ident(value).upper()}: u32
+                        = structs::${keyword.gecko_enum_prefix}::${to_camel_case(value)} as u32;
+                % endfor
+                match kw {
+                    % for value in values:
+                        ${to_rust_ident(value).upper()} => ${type}::${to_rust_ident(value)},
+                    % endfor
+                    x => panic!("Found unexpected value in style struct for ${keyword.name} property: {:?}", x),
+                }
+            % else:
+                match kw {
+                    % for value in values:
+                        structs::${keyword.gecko_constant(value)} => ${type}::${to_rust_ident(value)},
+                    % endfor
+                    x => panic!("Found unexpected value in style struct for ${keyword.name} property: {:?}", x),
+                }
+            % endif
+        }
+    }
+</%def>
+
+<%def name="single_keyword_computed(name, values, vector=False,
+            extra_specified=None, needs_conversion=False, **kwargs)">
     <%
         keyword_kwargs = {a: kwargs.pop(a, None) for a in [
             'gecko_constant_prefix', 'gecko_enum_prefix',
@@ -385,11 +422,11 @@
         ]}
     %>
 
-    <%def name="inner_body()">
+    <%def name="inner_body(keyword, extra_specified=None, needs_conversion=False)">
         % if extra_specified:
             use style_traits::ToCss;
             define_css_keyword_enum! { SpecifiedValue:
-                % for value in data.longhands_by_name[name].keyword.values_for(product) + extra_specified.split():
+                % for value in keyword.values_for(product) + extra_specified.split():
                     "${value}" => ${to_rust_ident(value)},
                 % endfor
             }
@@ -424,15 +461,25 @@
                 SpecifiedValue::parse(input)
             }
         }
+
+        % if needs_conversion:
+            <%
+                conversion_values = keyword.values_for(product)
+                if extra_specified:
+                    conversion_values += extra_specified.split()
+            %>
+            ${gecko_keyword_conversion(keyword, values=conversion_values)}
+        % endif
     </%def>
     % if vector:
         <%call expr="vector_longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
-            ${inner_body()}
+            ${inner_body(Keyword(name, values, **keyword_kwargs))}
             ${caller.body()}
         </%call>
     % else:
         <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
-            ${inner_body()}
+            ${inner_body(Keyword(name, values, **keyword_kwargs),
+                         extra_specified=extra_specified, needs_conversion=needs_conversion)}
             ${caller.body()}
         </%call>
     % endif

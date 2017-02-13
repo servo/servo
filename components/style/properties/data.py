@@ -67,7 +67,7 @@ class Keyword(object):
             raise Exception("Bad product: " + product)
 
     def gecko_constant(self, value):
-        moz_stripped = value.replace("-moz-", '') if self.gecko_strip_moz_prefix else value
+        moz_stripped = value.replace("-moz-", '') if self.gecko_strip_moz_prefix else value.replace("-moz-", 'moz-')
         mapped = self.consts_map.get(value)
         if self.gecko_enum_prefix:
             parts = moz_stripped.split('-')

@@ -16,6 +16,7 @@ ${helpers.single_keyword("empty-cells", "show hide",
                          spec="https://drafts.csswg.org/css-tables/#propdef-empty-cells")}
 ${helpers.single_keyword("caption-side", "top bottom",
                          extra_gecko_values="right left top-outside bottom-outside",
+                         needs_conversion="True",
                          animatable=False,
                          spec="https://drafts.csswg.org/css-tables/#propdef-caption-side")}
 

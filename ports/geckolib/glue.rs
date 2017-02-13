@@ -1004,11 +1004,40 @@ pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(_:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(_:
+#[allow(unreachable_code)]
+pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
                                                          RawServoDeclarationBlockBorrowed,
-                                                         _: nsCSSPropertyID,
-                                                         _: i32) {
+                                                         property: nsCSSPropertyID,
+                                                         value: i32) {
+    use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
+    use style::properties::longhands;
+    use style::values::specified::{BorderStyle, NoCalcLength};
 
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let long = get_longhand_from_id!(property);
+    let value = value as u32;
+
+    let prop = match_wrap_declared! { long,
+        MozUserModify => longhands::_moz_user_modify::SpecifiedValue::from_gecko_keyword(value),
+        // TextEmphasisPosition => FIXME implement text-emphasis-position
+        Display => longhands::display::SpecifiedValue::from_gecko_keyword(value),
+        Float => longhands::float::SpecifiedValue::from_gecko_keyword(value),
+        VerticalAlign => longhands::vertical_align::SpecifiedValue::from_gecko_keyword(value),
+        TextAlign => longhands::text_align::SpecifiedValue::from_gecko_keyword(value),
+        Clear => longhands::clear::SpecifiedValue::from_gecko_keyword(value),
+        FontSize => {
+            // We rely on Gecko passing in font-size values (0...7) here.
+            longhands::font_size::SpecifiedValue(NoCalcLength::from_font_size_int(value as u8).into())
+        },
+        ListStyleType => longhands::list_style_type::SpecifiedValue::from_gecko_keyword(value),
+        WhiteSpace => longhands::white_space::SpecifiedValue::from_gecko_keyword(value),
+        CaptionSide => longhands::caption_side::SpecifiedValue::from_gecko_keyword(value),
+        BorderTopStyle => BorderStyle::from_gecko_keyword(value),
+        BorderRightStyle => BorderStyle::from_gecko_keyword(value),
+        BorderBottomStyle => BorderStyle::from_gecko_keyword(value),
+        BorderLeftStyle => BorderStyle::from_gecko_keyword(value),
+    };
+    declarations.write().declarations.push((prop, Default::default()));
 }
 
 #[no_mangle]
@@ -1171,7 +1200,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(_:
                                                         RawServoDeclarationBlockBorrowed) {
-
+    error!("stylo: Don't know how to handle quirks-mode text-decoration color overrides");
 }
 
 #[no_mangle]

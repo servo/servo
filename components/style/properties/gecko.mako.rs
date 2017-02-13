@@ -233,8 +233,6 @@ def get_gecko_property(ffi_name, self_param = "self"):
     return "%s.gecko.%s" % (self_param, ffi_name)
 
 def set_gecko_property(ffi_name, expr):
-    if ffi_name == "__LIST_STYLE_TYPE__":
-        return "unsafe { Gecko_SetListStyleType(&mut self.gecko, %s as u32); }" % expr
     if "mBorderColor" in ffi_name:
         ffi_name = ffi_name.replace("mBorderColor",
                                     "*self.gecko.__bindgen_anon_1.mBorderColor.as_mut()")
@@ -2154,8 +2152,32 @@ fn static_assert() {
         unsafe { Gecko_CopyListStyleImageFrom(&mut self.gecko, &other.gecko); }
     }
 
-    ${impl_keyword_setter("list_style_type", "__LIST_STYLE_TYPE__",
-                           data.longhands_by_name["list-style-type"].keyword)}
+    pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T) {
+        use properties::longhands::list_style_type::computed_value::T as Keyword;
+        <%
+            keyword = data.longhands_by_name["list-style-type"].keyword
+            # The first four are @counter-styles
+            # The rest have special fallback behavior
+            special = """upper-roman lower-roman upper-alpha lower-alpha
+                         japanese-informal japanese-formal korean-hangul-formal korean-hanja-informal
+                         korean-hanja-formal simp-chinese-informal simp-chinese-formal
+                         trad-chinese-informal trad-chinese-formal""".split()
+        %>
+        let result = match v {
+            % for value in keyword.values_for('gecko'):
+                % if value in special:
+                    // Special keywords are implemented as @counter-styles
+                    // and need to be manually set as strings
+                    Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant("none")},
+                % else:
+                    Keyword::${to_rust_ident(value)} =>
+                        structs::${keyword.gecko_constant(value)},
+                % endif
+            % endfor
+        };
+        unsafe { Gecko_SetListStyleType(&mut self.gecko, result as u32); }
+    }
+
 
     pub fn copy_list_style_type_from(&mut self, other: &Self) {
         unsafe {
@@ -2379,7 +2401,7 @@ fn static_assert() {
                                   -webkit-text-stroke-width text-emphasis-position -moz-tab-size">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
-                                                  "-moz-right match-parent") %>
+                                                  "-moz-right match-parent char") %>
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
 
     pub fn set_text_shadow(&mut self, v: longhands::text_shadow::computed_value::T) {
