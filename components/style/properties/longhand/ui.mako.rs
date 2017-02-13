@@ -30,37 +30,9 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
                          animatable=False,
                          spec="None (Nonstandard Firefox-only property)")}
 
-<%helpers:longhand name="caret-color" animatable="False" products="none"
-                   spec="https://drafts.csswg.org/css-ui/#caret-color">
-    use std::fmt;
-    use style_traits::ToCss;
-    pub use self::computed_value::T as SpecifiedValue;
-
-    pub mod computed_value {
-        use cssparser::{Color, Parser};
-        use parser::{Parse, ParserContext};
-        use values::{Auto, Either};
-        use values::HasViewportPercentage;
-        use values::computed::ComputedValueAsSpecified;
-
-        no_viewport_percentage!(Color);
-        impl ComputedValueAsSpecified for Color {}
-
-        impl Parse for Color {
-            fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-                Self::parse(input)
-            }
-        }
-
-        pub type T = Either<Color, Auto>;
-    }
-
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        Either::Second(Auto)
-    }
-
-    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        computed_value::T::parse(_context, input)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("caret-color", 
+                          "ColorOrAuto", 
+                          "Either::Second(Auto)",
+                          spec="https://drafts.csswg.org/css-ui/#caret-color",
+                          animatable="False",
+                          boxed="True")}

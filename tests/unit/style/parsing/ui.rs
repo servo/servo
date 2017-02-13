@@ -7,6 +7,7 @@ use media_queries::CSSErrorReporterTest;
 use style::parser::ParserContext;
 use style::stylesheets::Origin;
 use style::values::{Auto, Either};
+use style::values::specified::CSSColor;
 
 #[test]
 fn test_caret_color() {
@@ -15,12 +16,15 @@ fn test_caret_color() {
     let auto = parse_longhand!(caret_color, "auto");
     assert_eq!(auto, Either::Second(Auto));
 
-    let blue_color = Color::RGBA(RGBA {
-        red: 0.0,
-        green: 0.0,
-        blue: 1.0,
-        alpha: 1.0,
-    });
+    let blue_color = CSSColor {
+        parsed: Color::RGBA(RGBA {
+            red: 0.0,
+            green: 0.0,
+            blue: 1.0,
+            alpha: 1.0,
+        }),
+        authored: Some("blue".to_string()),
+    };
 
     let color = parse_longhand!(caret_color, "blue");
     assert_eq!(color, Either::First(blue_color));
