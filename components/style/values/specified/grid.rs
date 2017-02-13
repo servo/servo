@@ -4,12 +4,13 @@
 
 //! A grid line type.
 
-use cssparser::Parser;
+use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::ToCss;
-use values::HasViewportPercentage;
+use values::{CSSFloat, HasViewportPercentage};
 use values::computed::ComputedValueAsSpecified;
+use values::specified::LengthOrPercentage;
 
 #[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -97,3 +98,63 @@ impl Parse for GridLine {
 
 impl ComputedValueAsSpecified for GridLine {}
 no_viewport_percentage!(GridLine);
+
+define_css_keyword_enum!{ TrackKeyword:
+    "auto" => Auto,
+    "max-content" => MaxContent,
+    "min-content" => MinContent
+}
+
+#[allow(missing_docs)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// https://drafts.csswg.org/css-grid/#typedef-track-breadth
+pub enum TrackBreadth<L> {
+    Breadth(L),
+    Flex(CSSFloat),
+    Keyword(TrackKeyword),
+}
+
+/// Parse a single flexible length.
+pub fn parse_flex(input: &mut Parser) -> Result<CSSFloat, ()> {
+    match try!(input.next()) {
+        Token::Dimension(ref value, ref unit) if unit.to_lowercase() == "fr" && value.value.is_sign_positive()
+            => Ok(value.value),
+        _ => Err(()),
+    }
+}
+
+impl Parse for TrackBreadth<LengthOrPercentage> {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if let Ok(lop) = input.try(LengthOrPercentage::parse_non_negative) {
+            Ok(TrackBreadth::Breadth(lop))
+        } else {
+            if let Ok(f) = input.try(parse_flex) {
+                Ok(TrackBreadth::Flex(f))
+            } else {
+                TrackKeyword::parse(input).map(TrackBreadth::Keyword)
+            }
+        }
+    }
+}
+
+impl<L: ToCss> ToCss for TrackBreadth<L> {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            TrackBreadth::Breadth(ref lop) => lop.to_css(dest),
+            TrackBreadth::Flex(ref value) => write!(dest, "{}fr", value),
+            TrackBreadth::Keyword(ref k) => k.to_css(dest),
+        }
+    }
+}
+
+impl HasViewportPercentage for TrackBreadth<LengthOrPercentage> {
+    #[inline]
+    fn has_viewport_percentage(&self) -> bool {
+        if let TrackBreadth::Breadth(ref lop) = *self {
+            lop.has_viewport_percentage()
+        } else {
+            false
+        }
+    }
+}
