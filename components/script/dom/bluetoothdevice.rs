@@ -15,7 +15,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::bluetooth::{allowed_devices_contains_id, AsyncBluetoothListener, Bluetooth, response_async};
+use dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
@@ -228,7 +228,8 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt
     fn GetGatt(&self) -> Option<Root<BluetoothRemoteGATTServer>> {
         // Step 1.
-        if allowed_devices_contains_id(self.id.clone()) && !self.is_represented_device_null() {
+        if self.global().as_window().bluetooth_extra_permission_data()
+               .allowed_devices_contains_id(self.id.clone()) && !self.is_represented_device_null() {
             return Some(self.get_gatt())
         }
         // Step 2.

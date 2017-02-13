@@ -26,6 +26,7 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
+use dom::bluetooth::BluetoothExtraPermissionData;
 use dom::browsingcontext::BrowsingContext;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -209,6 +210,8 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
+    bluetooth_extra_permission_data: BluetoothExtraPermissionData,
+
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
     page_clip_rect: Cell<Rect<Au>>,
@@ -311,6 +314,10 @@ impl Window {
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
         self.bluetooth_thread.clone()
+    }
+
+    pub fn bluetooth_extra_permission_data(&self) -> &BluetoothExtraPermissionData {
+         &self.bluetooth_extra_permission_data
     }
 
     pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
@@ -1678,6 +1685,7 @@ impl Window {
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
             bluetooth_thread: bluetooth_thread,
+            bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(max_rect()),
             resize_event: Cell::new(None),
             layout_chan: layout_chan,

@@ -15,7 +15,7 @@ use dom::bindings::error::Error;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::bluetooth::{add_new_allowed_device, AsyncBluetoothListener, Bluetooth};
+use dom::bluetooth::{AsyncBluetoothListener, Bluetooth};
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::globalscope::GlobalScope;
 use dom::permissionstatus::PermissionStatus;
@@ -106,7 +106,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                                                      device.name.map(DOMString::from),
                                                      &bluetooth);
                 device_instance_map.insert(device.id.clone(), JS::from_ref(&bt_device));
-                add_new_allowed_device(
+                self.global().as_window().bluetooth_extra_permission_data().add_new_allowed_device(
                     AllowedBluetoothDevice {
                         // TODO fix this
                         // allowedServices only relevant if the device store it as an internal slot as well
