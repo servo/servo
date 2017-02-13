@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHa
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
@@ -249,7 +250,10 @@ pub struct Window {
 
     /// A handle for communicating messages to the webvr thread, if available.
     #[ignore_heap_size_of = "channels are hard"]
-    webvr_thread: Option<IpcSender<WebVRMsg>>
+    webvr_thread: Option<IpcSender<WebVRMsg>>,
+
+    /// A map for storing the previous permission state read results.
+    permission_state_invocation_results: DOMRefCell<HashMap<String, PermissionState>>
 }
 
 impl Window {
@@ -337,6 +341,10 @@ impl Window {
 
     pub fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
         self.webvr_thread.clone()
+    }
+
+    pub fn permission_state_invocation_results(&self) -> &DOMRefCell<HashMap<String, PermissionState>> {
+        &self.permission_state_invocation_results
     }
 }
 
@@ -1704,7 +1712,8 @@ impl Window {
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             media_query_lists: WeakMediaQueryListVec::new(),
             test_runner: Default::default(),
-            webvr_thread: webvr_thread
+            webvr_thread: webvr_thread,
+            permission_state_invocation_results: DOMRefCell::new(HashMap::new()),
         };
 
         unsafe {

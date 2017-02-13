@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionDescriptor, PermissionName, PermissionState};
+use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
 use dom::bindings::codegen::Bindings::PermissionsBinding::{self, PermissionsMethods};
 use dom::bindings::error::Error;
 use dom::bindings::js::Root;
@@ -22,9 +23,9 @@ use tinyfiledialogs::{self, MessageBoxIcon, YesNo};
 
 #[cfg(target_os = "linux")]
 const DIALOG_TITLE: &'static str = "Permission request dialog";
-#[cfg(target_os = "linux")]
-const QUERY_DIALOG_MESSAGE: &'static str = "Can't guarantee, that the current context is secure.
-\t\tStill grant permission for";
+const NONSECURE_DIALOG_MESSAGE: &'static str = "feature is only safe to use in secure context,\
+ but servo can't guarantee\n that the current context is secure. Do you want to proceed and grant permission?";
+const REQUEST_DIALOG_MESSAGE: &'static str = "Do you want to grant permission for";
 const ROOT_DESC_CONVERSION_ERROR: &'static str = "Can't convert to an IDL value of type PermissionDescriptor";
 
 pub trait PermissionAlgorithm {
@@ -114,8 +115,17 @@ impl Permissions {
                     // (Query) Step 6 - 7.
                     &Operation::Query => Bluetooth::permission_query(cx, &p, &bluetooth_desc, &result),
 
-                    // (Revoke) Step 3 - 4.
-                    &Operation::Revoke => Bluetooth::permission_revoke(&bluetooth_desc, &result),
+                    &Operation::Revoke => {
+                        // (Revoke) Step 3.
+                        let globalscope = self.global();
+                        globalscope.as_window()
+                                   .permission_state_invocation_results()
+                                   .borrow_mut()
+                                   .remove(&root_desc.name.to_string());
+
+                        // (Revoke) Step 4.
+                        Bluetooth::permission_revoke(&bluetooth_desc, &result)
+                    },
                 }
             },
             _ => {
@@ -136,8 +146,18 @@ impl Permissions {
                         // (Query) Step 7.
                         p.resolve_native(cx, &status);
                     },
-                    // (Revoke) Step 3 - 4.
-                    &Operation::Revoke => Permissions::permission_revoke(&root_desc, &status),
+
+                    &Operation::Revoke => {
+                        // (Revoke) Step 3.
+                        let globalscope = self.global();
+                        globalscope.as_window()
+                                   .permission_state_invocation_results()
+                                   .borrow_mut()
+                                   .remove(&root_desc.name.to_string());
+
+                        // (Revoke) Step 4.
+                        Permissions::permission_revoke(&root_desc, &status);
+                    },
                 }
             },
         };
@@ -210,46 +230,85 @@ impl PermissionAlgorithm for Permissions {
         // Step 1.
         Permissions::permission_query(cx, promise, descriptor, status);
 
-        // TODO: Step 2 - 4: `environment settings object` is not implemented in Servo yet.
-        // For this reason in the `get_descriptor_permission_state` function we can't decide
-        // if we have a secure context or not, or store the previous invocation results.
-        // Without these the remaining steps can't be implemented properly.
+        match status.State() {
+            // Step 3.
+            PermissionState::Prompt => {
+                let perm_name = status.get_query();
+                // https://w3c.github.io/permissions/#request-permission-to-use (Step 3 - 4)
+                let state =
+                    prompt_user(&format!("{} {} ?", REQUEST_DIALOG_MESSAGE, perm_name.clone()));
+
+                let globalscope = GlobalScope::current();
+                globalscope.as_window()
+                           .permission_state_invocation_results()
+                           .borrow_mut()
+                           .insert(perm_name.to_string(), state);
+            },
+
+            // Step 2.
+            _ => return,
+        }
+
+        // Step 4.
+        Permissions::permission_query(cx, promise, descriptor, status);
     }
 
     fn permission_revoke(_descriptor: &PermissionDescriptor, _status: &PermissionStatus) {}
 }
 
 // https://w3c.github.io/permissions/#permission-state
-pub fn get_descriptor_permission_state(permission_name: PermissionName ,
-                                       _env_settings_obj: Option<*mut JSObject>)
+pub fn get_descriptor_permission_state(permission_name: PermissionName,
+                                       env_settings_obj: Option<&GlobalScope>)
                                        -> PermissionState {
-    // TODO: Step 1: If settings wasn’t passed, set it to the current settings object.
-    // TODO: `environment settings object` is not implemented in Servo yet.
+    // Step 1.
+    let settings = match env_settings_obj {
+        Some(env_settings_obj) => Root::from_ref(env_settings_obj),
+        None => GlobalScope::current(),
+    };
 
     // Step 2.
     // TODO: The `is the environment settings object a non-secure context` check is missing.
     // The current solution is a workaround with a message box to warn about this,
     // if the feature is not allowed in non-secure contexcts,
     // and let the user decide to grant the permission or not.
-    if !allowed_in_nonsecure_contexts(&permission_name) {
-        if PREFS.get("dom.permissions.testing.allowed_in_nonsecure_contexts").as_boolean().unwrap_or(false) {
-            return PermissionState::Granted;
-        } else {
-            return prompt_user(permission_name);
-        }
+    let state = match allowed_in_nonsecure_contexts(&permission_name) {
+        true => PermissionState::Prompt,
+        false => {
+            match PREFS.get("dom.permissions.testing.allowed_in_nonsecure_contexts").as_boolean().unwrap_or(false) {
+                true => PermissionState::Granted,
+                false => {
+                    settings.as_window()
+                            .permission_state_invocation_results()
+                            .borrow_mut()
+                            .remove(&permission_name.to_string());
+                    prompt_user(&format!("The {} {}", permission_name, NONSECURE_DIALOG_MESSAGE))
+                },
+            }
+        },
+    };
+
+    // Step 3.
+    if let Some(prev_result) = settings.as_window()
+                                       .permission_state_invocation_results()
+                                       .borrow()
+                                       .get(&permission_name.to_string()) {
+        return prev_result.clone();
     }
 
-    // TODO: Step 3: Store the invocation results
-    // TODO: `environment settings object` is not implemented in Servo yet.
+    // Store the invocation result
+    settings.as_window()
+            .permission_state_invocation_results()
+            .borrow_mut()
+            .insert(permission_name.to_string(), state);
 
     // Step 4.
-    PermissionState::Granted
+    state
 }
 
 #[cfg(target_os = "linux")]
-fn prompt_user(permission_name: PermissionName) -> PermissionState {
+fn prompt_user(message: &str) -> PermissionState {
     match tinyfiledialogs::message_box_yes_no(DIALOG_TITLE,
-                                              &format!("{} {:?} ?", QUERY_DIALOG_MESSAGE, permission_name),
+                                              message,
                                               MessageBoxIcon::Question,
                                               YesNo::No) {
         YesNo::Yes => PermissionState::Granted,
@@ -258,7 +317,7 @@ fn prompt_user(permission_name: PermissionName) -> PermissionState {
 }
 
 #[cfg(not(target_os = "linux"))]
-fn prompt_user(_permission_name: PermissionName) -> PermissionState {
+fn prompt_user(_message: &str) -> PermissionState {
     // TODO popup only supported on linux
     PermissionState::Denied
 }

@@ -4,12 +4,14 @@
 
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{self, PermissionDescriptor, PermissionName};
-use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionState, PermissionStatusMethods};
+use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionNameValues, PermissionState};
+use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use std::cell::Cell;
+use std::fmt::{self, Display, Formatter};
 
 // https://w3c.github.io/permissions/#permissionstatus
 #[dom_struct]
@@ -51,4 +53,10 @@ impl PermissionStatusMethods for PermissionStatus {
 
     // https://w3c.github.io/permissions/#dom-permissionstatus-onchange
     event_handler!(onchange, GetOnchange, SetOnchange);
+}
+
+impl Display for PermissionName {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", PermissionNameValues::strings[*self as usize].to_string())
+    }
 }
