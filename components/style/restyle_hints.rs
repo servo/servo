@@ -29,6 +29,11 @@ bitflags! {
     /// id, class, and attribute selectors. Doing this conservatively is
     /// expensive, and so we use RestyleHints to short-circuit work we know is
     /// unnecessary.
+    ///
+    /// Note that the bit values here must be kept in sync with the Gecko
+    /// nsRestyleHint values.  If you add more bits with matching values,
+    /// please add assertions to assert_restyle_hints_match in
+    /// tests/unit/stylo/sanity_checks.rs.
     pub flags RestyleHint: u32 {
         /// Rerun selector matching on the element.
         const RESTYLE_SELF = 0x01,
@@ -46,7 +51,7 @@ bitflags! {
         /// Don't re-run selector-matching on the element, only the style
         /// attribute has changed, and this change didn't have any other
         /// dependencies.
-        const RESTYLE_STYLE_ATTRIBUTE = 0x10,
+        const RESTYLE_STYLE_ATTRIBUTE = 0x80,
     }
 }
 
