@@ -243,7 +243,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
         self.options.or_init(|| {
             let window = window_from_node(self);
             HTMLOptionsCollection::new(
-                &window, self.upcast(), box OptionsFilter)
+                &window, self, box OptionsFilter)
         })
     }
 

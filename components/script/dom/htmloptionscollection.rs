@@ -16,6 +16,7 @@ use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmloptionelement::HTMLOptionElement;
+use dom::htmlselectelement::HTMLSelectElement;
 use dom::node::{document_from_node, Node};
 use dom::window::Window;
 
@@ -25,16 +26,16 @@ pub struct HTMLOptionsCollection {
 }
 
 impl HTMLOptionsCollection {
-    fn new_inherited(root: &Node, filter: Box<CollectionFilter + 'static>) -> HTMLOptionsCollection {
+    fn new_inherited(select: &HTMLSelectElement, filter: Box<CollectionFilter + 'static>) -> HTMLOptionsCollection {
         HTMLOptionsCollection {
-            collection: HTMLCollection::new_inherited(root, filter),
+            collection: HTMLCollection::new_inherited(select.upcast(), filter),
         }
     }
 
-    pub fn new(window: &Window, root: &Node, filter: Box<CollectionFilter + 'static>)
+    pub fn new(window: &Window, select: &HTMLSelectElement, filter: Box<CollectionFilter + 'static>)
         -> Root<HTMLOptionsCollection>
     {
-        reflect_dom_object(box HTMLOptionsCollection::new_inherited(root, filter),
+        reflect_dom_object(box HTMLOptionsCollection::new_inherited(select, filter),
                            window,
                            HTMLOptionsCollectionBinding::Wrap)
     }
