@@ -584,6 +584,7 @@ mod bindings {
             "nsStyleVisibility",
             "nsStyleXUL",
             "nsTimingFunction",
+            "nscolor",
             "nscoord",
             "nsresult",
             "Loader",

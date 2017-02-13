@@ -159,6 +159,7 @@ use gecko_bindings::structs::nsStyleXUL;
 unsafe impl Send for nsStyleXUL {}
 unsafe impl Sync for nsStyleXUL {}
 use gecko_bindings::structs::nsTimingFunction;
+use gecko_bindings::structs::nscolor;
 use gecko_bindings::structs::nscoord;
 use gecko_bindings::structs::nsresult;
 use gecko_bindings::structs::Loader;
@@ -1440,11 +1441,68 @@ extern "C" {
                                                          nsCSSPropertyID);
 }
 extern "C" {
-    pub fn Servo_DeclarationBlock_AddPresValue(declarations:
+    pub fn Servo_DeclarationBlock_PropertyIsSet(declarations:
+                                                    RawServoDeclarationBlockBorrowed,
+                                                property: nsCSSPropertyID)
+     -> bool;
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetIdentStringValue(declarations:
+                                                          RawServoDeclarationBlockBorrowed,
+                                                      property:
+                                                          nsCSSPropertyID,
+                                                      value:
+                                                          *const nsAString_internal);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetKeywordValue(declarations:
+                                                      RawServoDeclarationBlockBorrowed,
+                                                  property: nsCSSPropertyID,
+                                                  value: i32);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetIntValue(declarations:
+                                                  RawServoDeclarationBlockBorrowed,
+                                              property: nsCSSPropertyID,
+                                              value: i32);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetPixelValue(declarations:
+                                                    RawServoDeclarationBlockBorrowed,
+                                                property: nsCSSPropertyID,
+                                                value: f32);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetPercentValue(declarations:
+                                                      RawServoDeclarationBlockBorrowed,
+                                                  property: nsCSSPropertyID,
+                                                  value: f32);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetAutoValue(declarations:
                                                    RawServoDeclarationBlockBorrowed,
-                                               property: nsCSSPropertyID,
-                                               css_value:
-                                                   nsCSSValueBorrowedMut);
+                                               property: nsCSSPropertyID);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetCurrentColor(declarations:
+                                                      RawServoDeclarationBlockBorrowed,
+                                                  property: nsCSSPropertyID);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetColorValue(declarations:
+                                                    RawServoDeclarationBlockBorrowed,
+                                                property: nsCSSPropertyID,
+                                                value: nscolor);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetFontFamily(declarations:
+                                                    RawServoDeclarationBlockBorrowed,
+                                                value:
+                                                    *const nsAString_internal);
+}
+extern "C" {
+    pub fn Servo_DeclarationBlock_SetTextDecorationColorOverride(declarations:
+                                                                     RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
     pub fn Servo_CSSSupports2(name: *const nsACString_internal,
