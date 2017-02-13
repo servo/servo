@@ -91,6 +91,7 @@ pub enum BluetoothRequest {
     WatchAdvertisements(String, IpcSender<BluetoothResponseResult>),
     SetRepresentedToNull(Vec<String>, Vec<String>, Vec<String>),
     IsRepresentedDeviceNull(String, IpcSender<bool>),
+    GetAvailability(IpcSender<BluetoothResponseResult>),
     Test(String, IpcSender<BluetoothResult<()>>),
     Exit,
 }
@@ -107,4 +108,5 @@ pub enum BluetoothResponse {
     WriteValue(Vec<u8>),
     EnableNotification(()),
     WatchAdvertisements(()),
+    GetAvailability(bool),
 }

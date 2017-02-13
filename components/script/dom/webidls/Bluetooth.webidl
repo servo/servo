@@ -29,8 +29,8 @@ dictionary RequestDeviceOptions {
 
 [Pref="dom.bluetooth.enabled"]
 interface Bluetooth : EventTarget {
-  // [SecureContext]
-  // Promise<boolean> getAvailability();
+  [SecureContext]
+  Promise<boolean> getAvailability();
   [SecureContext]
   attribute EventHandler onavailabilitychanged;
   // [SecureContext, SameObject]
