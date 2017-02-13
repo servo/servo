@@ -886,7 +886,7 @@ impl BluetoothManager {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-startnotifications
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-stopnotifications
     fn enable_notification(&mut self, id: String, enable: bool) -> BluetoothResponseResult {
-        // (StartNotifications) Step 2 - 3.
+        // (StartNotifications) Step 3 - 4.
         // (StopNotifications) Step 1 - 2.
         if !self.characteristic_is_cached(&id) {
             return Err(BluetoothError::InvalidState);
@@ -909,11 +909,11 @@ impl BluetoothManager {
                     // (StopNotification)  Step 5.
                     Ok(_) => return Ok(BluetoothResponse::EnableNotification(())),
 
-                    // (StartNotification) Step 4.
+                    // (StartNotification) Step 5.
                     Err(_) => return Err(BluetoothError::NotSupported),
                 }
             },
-            // (StartNotification) Step 3.
+            // (StartNotification) Step 4.
             None => return Err(BluetoothError::InvalidState),
         }
     }

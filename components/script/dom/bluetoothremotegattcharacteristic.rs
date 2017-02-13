@@ -209,22 +209,22 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             return p;
         }
 
-        // Step 4.
+        // Step 2.
+        if !self.Service().Device().Gatt().Connected() {
+            p.reject_error(p_cx, Network);
+            return p;
+        }
+
+        // Step 5.
         if !(self.Properties().Notify() ||
              self.Properties().Indicate()) {
             p.reject_error(p_cx, NotSupported);
             return p;
         }
 
-        // TODO: Step 5: Implement `active notification context set` for BluetoothRemoteGATTCharacteristic.
+        // TODO: Step 6: Implement `active notification context set` for BluetoothRemoteGATTCharacteristic.
 
-        // Step 6.
-        if !self.Service().Device().Gatt().Connected() {
-            p.reject_error(p_cx, Network);
-            return p;
-        }
-
-        // Note: Steps 2 - 3, 7 - 11 are implemented in components/bluetooth/lib.rs in enable_notification function
+        // Note: Steps 3 - 4, 7 - 11 are implemented in components/bluetooth/lib.rs in enable_notification function
         // and in handle_response function.
         let sender = response_async(&p, self);
         self.get_bluetooth_thread().send(
