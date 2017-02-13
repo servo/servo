@@ -184,7 +184,7 @@ impl ToFilterOps for filter::T {
                 Filter::Grayscale(amount) => result.push(webrender_traits::FilterOp::Grayscale(amount)),
                 Filter::HueRotate(angle) => result.push(webrender_traits::FilterOp::HueRotate(angle.0)),
                 Filter::Invert(amount) => result.push(webrender_traits::FilterOp::Invert(amount)),
-                Filter::Opacity(amount) => result.push(webrender_traits::FilterOp::Opacity(amount)),
+                Filter::Opacity(amount) => result.push(webrender_traits::FilterOp::Opacity(amount.into())),
                 Filter::Saturate(amount) => result.push(webrender_traits::FilterOp::Saturate(amount)),
                 Filter::Sepia(amount) => result.push(webrender_traits::FilterOp::Sepia(amount)),
             }
@@ -347,8 +347,8 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                               stacking_context.bounds.to_rectf(),
                                               clip,
                                               stacking_context.z_index,
-                                              &LayoutTransform::from_untyped(&stacking_context.transform),
-                                              &LayoutTransform::from_untyped(&stacking_context.perspective),
+                                              LayoutTransform::from_untyped(&stacking_context.transform).into(),
+                                              LayoutTransform::from_untyped(&stacking_context.perspective),
                                               stacking_context.blend_mode.to_blend_mode(),
                                               stacking_context.filters.to_filter_ops());
             }
