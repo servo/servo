@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding;
 use dom::bindings::codegen::Bindings::HTMLOptionsCollectionBinding::HTMLOptionsCollectionMethods;
+use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::codegen::UnionTypes::{HTMLOptionElementOrHTMLOptGroupElement, HTMLElementOrLong};
 use dom::bindings::error::{Error, ErrorResult};
@@ -182,5 +183,23 @@ impl HTMLOptionsCollectionMethods for HTMLOptionsCollection {
         if let Some(element) = self.upcast().IndexedGetter(index as u32) {
             element.Remove();
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex
+    fn SelectedIndex(&self) -> i32 {
+        self.upcast()
+            .root_node()
+            .downcast::<HTMLSelectElement>()
+            .expect("HTMLOptionsCollection not rooted on a HTMLSelectElement")
+            .SelectedIndex()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex
+    fn SetSelectedIndex(&self, index: i32) {
+        self.upcast()
+            .root_node()
+            .downcast::<HTMLSelectElement>()
+            .expect("HTMLOptionsCollection not rooted on a HTMLSelectElement")
+            .SetSelectedIndex(index)
     }
 }
