@@ -64,10 +64,10 @@ use style::gecko_properties::style_structs;
 use style::keyframes::KeyframesStepValue;
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
-use style::properties::{CascadeFlags, ComputedValues, Importance, PropertyDeclaration};
+use style::properties::{ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock, PropertyId};
-use style::properties::{apply_declarations, parse_one_declaration};
 use style::properties::animated_properties::{AnimationValue, Interpolate, TransitionProperty};
+use style::properties::parse_one_declaration;
 use style::restyle_hints::RestyleHint;
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
@@ -329,36 +329,6 @@ pub extern "C" fn Servo_AnimationValue_AddRef(anim: RawServoAnimationValueBorrow
 #[no_mangle]
 pub extern "C" fn Servo_AnimationValue_Release(anim: RawServoAnimationValueBorrowed) -> () {
     unsafe { AnimationValue::release(anim) };
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_RestyleWithAddedDeclaration(raw_data: RawServoStyleSetBorrowed,
-                                                    declarations: RawServoDeclarationBlockBorrowed,
-                                                    previous_style: ServoComputedValuesBorrowed)
-  -> ServoComputedValuesStrong
-{
-    let previous_style = ComputedValues::as_arc(&previous_style);
-    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-
-    let guard = declarations.read();
-
-    let declarations = || {
-        guard.declarations.iter().rev().map(|&(ref decl, _importance)| decl)
-    };
-
-    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
-
-    // FIXME (bug 1303229): Use the actual viewport size here
-    let computed = apply_declarations(Size2D::new(Au(0), Au(0)),
-                                      /* is_root_element = */ false,
-                                      declarations,
-                                      previous_style,
-                                      data.default_computed_values(),
-                                      None,
-                                      Box::new(StdoutErrorReporter),
-                                      None,
-                                      CascadeFlags::empty());
-    Arc::new(computed).into_strong()
 }
 
 #[no_mangle]

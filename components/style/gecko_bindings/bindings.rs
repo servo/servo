@@ -1272,14 +1272,6 @@ extern "C" {
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
-    pub fn Servo_RestyleWithAddedDeclaration(set: RawServoStyleSetBorrowed,
-                                             declarations:
-                                                 RawServoDeclarationBlockBorrowed,
-                                             previous_style:
-                                                 ServoComputedValuesBorrowed)
-     -> ServoComputedValuesStrong;
-}
-extern "C" {
     pub fn Servo_AnimationValues_Populate(arg1:
                                               RawGeckoAnimationValueListBorrowedMut,
                                           arg2:
