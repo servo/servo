@@ -15,8 +15,8 @@ use std::boxed::Box as StdBox;
 use std::fmt;
 use style_traits::ToCss;
 use stylesheets::Origin;
-use super::property_bit_field::PropertyBitField;
 use super::*;
+use super::property_bit_field::PropertyBitField;
 
 /// A declaration [importance][importance].
 ///

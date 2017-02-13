@@ -47,7 +47,7 @@ fn property_declaration_parse_seen_before_should_set_flag() {
     let mut seen_properties = PropertyBitField::new();
     let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
- 
+
     let mut parser = Parser::new("initial");
     let id = PropertyId::parse("width".into()).unwrap();
     seen_properties.set_width();
@@ -65,7 +65,7 @@ fn property_declaration_parse_custom_should_set_flag() {
     let mut seen_properties = PropertyBitField::new();
     let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
- 
+
     let mut parser = Parser::new("initial");
     let id = PropertyId::parse("--custom-property".into()).unwrap();
 
