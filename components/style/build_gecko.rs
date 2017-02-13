@@ -136,6 +136,16 @@ mod bindings {
             }
             if cfg!(target_os = "linux") {
                 builder = builder.clang_arg("-DOS_LINUX=1");
+            } else if cfg!(target_os = "solaris") {
+                builder = builder.clang_arg("-DOS_SOLARIS=1")
+            } else if cfg!(target_os = "dragonfly") {
+                builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_DRAGONFLY=1")
+            } else if cfg!(target_os = "freebsd") {
+                builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_FREEBSD=1")
+            } else if cfg!(target_os = "netbsd") {
+                builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_NETBSD=1")
+            } else if cfg!(target_os = "openbsd") {
+                builder = builder.clang_arg("-DOS_BSD=1").clang_arg("-DOS_OPENBSD=1")
             } else if cfg!(target_os = "macos") {
                 builder = builder.clang_arg("-DOS_MACOSX=1")
                     .clang_arg("-stdlib=libc++")
