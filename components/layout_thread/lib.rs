@@ -989,7 +989,7 @@ impl LayoutThread {
                 viewport_size,
                 builder,
                 true);
-            self.webrender_api.generate_frame();
+            self.webrender_api.generate_frame(None);
         });
     }
 
