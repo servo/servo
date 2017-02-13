@@ -1103,18 +1103,50 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(_:
+pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(declarations:
                                                          RawServoDeclarationBlockBorrowed,
-                                                         _: nsCSSPropertyID) {
+                                                         property: nsCSSPropertyID) {
+    use cssparser::Color;
+    use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
+    use style::values::specified::CSSColor;
 
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let long = get_longhand_from_id!(property);
+    let cc = CSSColor { parsed: Color::CurrentColor, authored: None };
+
+    let prop = match_wrap_declared! { long,
+        BorderTopColor => cc,
+        BorderRightColor => cc,
+        BorderBottomColor => cc,
+        BorderLeftColor => cc,
+    };
+    declarations.write().declarations.push((prop, Default::default()));
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_SetColorValue(_:
-                                                    RawServoDeclarationBlockBorrowed,
-                                                    _: nsCSSPropertyID,
-                                                    _: structs::nscolor) {
+pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
+                                                       RawServoDeclarationBlockBorrowed,
+                                                       property: nsCSSPropertyID,
+                                                       value: structs::nscolor) {
+    use cssparser::Color;
+    use style::gecko::values::convert_nscolor_to_rgba;
+    use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
+    use style::values::specified::{CSSColor, CSSRGBA};
 
+    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+    let long = get_longhand_from_id!(property);
+    let rgba = convert_nscolor_to_rgba(value);
+    let color = CSSColor { parsed: Color::RGBA(rgba), authored: None };
+
+    let prop = match_wrap_declared! { long,
+        BorderTopColor => color,
+        BorderRightColor => color,
+        BorderBottomColor => color,
+        BorderLeftColor => color,
+        Color => CSSRGBA { parsed: rgba, authored: None },
+        BackgroundColor => color,
+    };
+    declarations.write().declarations.push((prop, Default::default()));
 }
 
 #[no_mangle]
