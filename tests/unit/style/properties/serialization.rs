@@ -1114,4 +1114,107 @@ mod shorthand_serialization {
             assert_eq!(s, "none");
         }
     }
+
+    mod animation {
+        pub use super::*;
+        use cssparser::Parser;
+        use media_queries::CSSErrorReporterTest;
+        use servo_url::ServoUrl;
+        use style::parser::ParserContext;
+        use style::properties::{parse_property_declaration_list, PropertyDeclarationBlock};
+        use style::stylesheets::Origin;
+
+        fn property_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
+            let url = ServoUrl::parse("http://localhost").unwrap();
+            let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+            let mut parser = Parser::new(css_properties);
+            parse_property_declaration_list(&context, &mut parser)
+        }
+
+        #[test]
+        fn serialize_single_animation() {
+            let block = property_declaration_block("\
+                animation-name: bounce;\
+                animation-duration: 1s;\
+                animation-timing-function: ease-in;\
+                animation-delay: 0s;\
+                animation-direction: normal;\
+                animation-fill-mode: forwards;\
+                animation-iteration-count: infinite;\
+                animation-play-state: paused;");
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "animation: 1s ease-in 0s normal forwards infinite paused bounce;")
+        }
+
+        #[test]
+        fn serialize_multiple_animations() {
+            let block = property_declaration_block("\
+                animation-name: bounce, roll;\
+                animation-duration: 1s, 0.2s;\
+                animation-timing-function: ease-in, linear;\
+                animation-delay: 0s, 1s;\
+                animation-direction: normal, reverse;\
+                animation-fill-mode: forwards, backwards;\
+                animation-iteration-count: infinite, 2;\
+                animation-play-state: paused, running;");
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "animation: 1s ease-in 0s normal forwards infinite paused bounce, 0.2s linear 1s reverse backwards 2 running roll;");
+        }
+
+        #[test]
+        fn serialize_multiple_animations_unequal_property_lists() {
+            // animation-direction only has one value.
+            let block = property_declaration_block("\
+                animation-name: bounce, roll;\
+                animation-duration: 1s, 0.2s;\
+                animation-timing-function: ease-in, linear;\
+                animation-delay: 0s, 1s;\
+                animation-direction: normal;\
+                animation-fill-mode: forwards, backwards;\
+                animation-iteration-count: infinite, 2;\
+                animation-play-state: paused, running;");
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "animation: ;");
+        }
+
+        #[test]
+        fn serialize_multiple_without_all_properties_returns_longhand() {
+            // timing function and direction are missing, so no shorthand is returned.
+            let block_text = "animation-name: bounce, roll; \
+                              animation-duration: 1s, 0.2s; \
+                              animation-delay: 0s, 1s; \
+                              animation-fill-mode: forwards, backwards; \
+                              animation-iteration-count: infinite, 2; \
+                              animation-play-state: paused, running;";
+            let block = property_declaration_block(block_text);
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, block_text);
+        }
+
+        #[test]
+        fn serialize_empty_longhand_animation() {
+            // If there are no declared values for the properties the serialization is empty.
+            let block = property_declaration_block("\
+                animation-name: ;\
+                animation-duration: ;\
+                animation-timing-function: ;\
+                animation-delay: ;\
+                animation-direction: ;\
+                animation-fill-mode: ;\
+                animation-iteration-count: ;\
+                animation-play-state: ;");
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "");
+        }
+    }
 }

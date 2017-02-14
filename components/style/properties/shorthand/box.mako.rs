@@ -308,28 +308,88 @@ macro_rules! try_parse_one {
 
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.animation_duration.to_css(dest));
-            try!(write!(dest, " "));
+            fn extract_value<T>(x: &DeclaredValue<T>) -> Option< &T> {
+                match *x {
+                    DeclaredValue::Value(ref val) => Some(val),
+                    _ => None,
+                }
+            }
 
-            try!(self.animation_timing_function.to_css(dest));
-            try!(write!(dest, " "));
+            let len = extract_value(self.animation_name).map(|i| i.0.len()).unwrap_or(0);
+            // There should be at least one declared value
+            if len == 0 {
+                return dest.write_str("")
+            }
 
-            try!(self.animation_delay.to_css(dest));
-            try!(write!(dest, " "));
+            // usuper says on #15398: For computation, the value should be cycled, but for
+            // serialization of specified value, it should just return empty if the list lengths
+            // don't match each other.
+            % for name in "duration timing_function delay direction fill_mode iteration_count play_state".split():
+                let other_len = extract_value(self.animation_${name}).map(|i| i.0.len())
+                                                                     .unwrap_or(0);
+                if other_len != len {
+                    return dest.write_str("")
+                }
+            % endfor
 
-            try!(self.animation_direction.to_css(dest));
-            try!(write!(dest, " "));
+            let mut first = true;
+            for i in 0..len {
+                % for name in "name duration timing_function delay direction fill_mode iteration_count play_state".split():
+                    let ${name} = if let DeclaredValue::Value(ref arr) = *self.animation_${name} {
+                        arr.0.get(i)
+                    } else {
+                        None
+                    };
+                % endfor
 
-            try!(self.animation_fill_mode.to_css(dest));
-            try!(write!(dest, " "));
+                if first {
+                    first = false;
+                } else {
+                    try!(write!(dest, ", "));
+                }
 
-            try!(self.animation_iteration_count.to_css(dest));
-            try!(write!(dest, " "));
+                if let Some(duration) = duration {
+                    try!(duration.to_css(dest));
+                    try!(write!(dest, " "));
+                }
 
-            try!(self.animation_play_state.to_css(dest));
-            try!(write!(dest, " "));
+                if let Some(timing_function) = timing_function {
+                    try!(timing_function.to_css(dest));
+                    try!(write!(dest, " "));
+                }
 
-            self.animation_name.to_css(dest)
+                if let Some(delay) = delay {
+                    try!(delay.to_css(dest));
+                    try!(write!(dest, " "));
+                }
+
+                if let Some(direction) = direction {
+                    try!(direction.to_css(dest));
+                    try!(write!(dest, " "));
+                }
+
+                if let Some(fill_mode) = fill_mode {
+                    try!(fill_mode.to_css(dest));
+                    try!(write!(dest, " "));
+                }
+
+                if let Some(iteration_count) = iteration_count {
+                    try!(iteration_count.to_css(dest));
+                    try!(write!(dest, " "));
+                }
+
+                if let Some(play_state) = play_state {
+                    try!(play_state.to_css(dest));
+                    try!(write!(dest, " "));
+                }
+
+                if let Some(name) = name {
+                    try!(name.to_css(dest));
+                }
+
+            }
+
+            Ok(())
         }
     }
 </%helpers:shorthand>
