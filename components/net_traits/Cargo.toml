@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 msg = {path = "../msg"}
-ipc-channel = "0.5"
+ipc-channel = "0.6.2"
 heapsize = "0.3.0"
 heapsize_derive = "0.1"
 hyper = "0.9.9"

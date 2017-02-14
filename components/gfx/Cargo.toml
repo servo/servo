@@ -20,7 +20,7 @@ gfx_traits = {path = "../gfx_traits"}
 harfbuzz-sys = "0.1"
 heapsize = "0.3.0"
 heapsize_derive = "0.1"
-ipc-channel = "0.5"
+ipc-channel = "0.6.2"
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
