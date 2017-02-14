@@ -22,10 +22,9 @@ ${helpers.single_keyword("vector-effect", "none non-scaling-stroke",
 
 ${helpers.predefined_type(
     "stop-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+    "CSSParserColor::RGBA(RGBA::new(0, 0, 0, 255))",
     products="gecko",
     animatable=False,
-    boxed=True,
     spec="https://www.w3.org/TR/SVGTiny12/painting.html#StopColorProperty")}
 
 ${helpers.predefined_type("stop-opacity", "Opacity", "1.0",
@@ -37,10 +36,9 @@ ${helpers.predefined_type("stop-opacity", "Opacity", "1.0",
 
 ${helpers.predefined_type(
     "flood-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+    "CSSParserColor::RGBA(RGBA::new(0, 0, 0, 255))",
     products="gecko",
     animatable=False,
-    boxed=True,
     spec="https://www.w3.org/TR/SVG/filters.html#FloodColorProperty")}
 
 ${helpers.predefined_type("flood-opacity", "Opacity",
@@ -49,10 +47,9 @@ ${helpers.predefined_type("flood-opacity", "Opacity",
 
 ${helpers.predefined_type(
     "lighting-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA { red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0 })",
+    "CSSParserColor::RGBA(RGBA::new(255, 255, 255, 255))",
     products="gecko",
     animatable=False,
-    boxed=True,
     spec="https://www.w3.org/TR/SVG/filters.html#LightingColorProperty")}
 
 // CSS Masking Module Level 1

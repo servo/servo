@@ -429,7 +429,7 @@ ${helpers.single_keyword("text-align-last",
 <%helpers:longhand name="-servo-text-decorations-in-effect"
                    derived_from="display text-decoration"
                    need_clone="True" products="servo"
-                   animatable="False" boxed="True"
+                   animatable="False"
                    spec="Nonstandard (Internal property used by Servo)">
     use cssparser::RGBA;
     use std::fmt;
@@ -1025,9 +1025,8 @@ ${helpers.single_keyword("text-align-last",
 
 ${helpers.predefined_type("text-emphasis-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
-                          products="gecko",animatable=True,
+                          products="gecko", animatable=True,
                           complex_color=True, need_clone=True,
-                          boxed=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
 
 
@@ -1045,14 +1044,14 @@ ${helpers.predefined_type(
     "-webkit-text-fill-color", "CSSColor",
     "CSSParserColor::CurrentColor",
     products="gecko", animatable=True,
-    complex_color=True, need_clone=True, boxed=True,
+    complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-fill-color")}
 
 ${helpers.predefined_type(
     "-webkit-text-stroke-color", "CSSColor",
     "CSSParserColor::CurrentColor",
     products="gecko", animatable=True,
-    complex_color=True, need_clone=True, boxed=True,
+    complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
 
 <%helpers:longhand products="gecko" name="-webkit-text-stroke-width" animatable="False"

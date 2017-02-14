@@ -607,12 +607,7 @@ impl CollapsedBorder {
         CollapsedBorder {
             style: border_top_style::T::none,
             width: Au(0),
-            color: Color::RGBA(RGBA {
-                red: 0.0,
-                green: 0.0,
-                blue: 0.0,
-                alpha: 0.0,
-            }),
+            color: Color::RGBA(RGBA::transparent()),
             provenance: CollapsedBorderProvenance::FromTable,
         }
     }

@@ -983,12 +983,12 @@ pub extern "C" fn Servo_DeclarationBlock_AddPresValue(declarations: RawServoDecl
         }
         LonghandId::Color => {
             if let Some(color) = css_value.color_value() {
-                PropertyDeclaration::Color(DeclaredValue::Value(Box::new(
+                PropertyDeclaration::Color(DeclaredValue::Value(
                     specified::CSSRGBA {
                         parsed: convert_nscolor_to_rgba(color),
                         authored: None
                     }
-                )))
+                ))
             } else {
                 error!("stylo: got unexpected non-integer value for color presentation attribute");
                 return

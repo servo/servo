@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 bitflags = "0.7"
-cssparser = {version = "0.7", features = ["heap_size", "serde-serialization"]}
+cssparser = {version = "0.8", features = ["heap_size", "serde-serialization"]}
 heapsize = "0.3.0"
 heapsize_derive = "0.1"
 plugins = {path = "../plugins"}

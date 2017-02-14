@@ -47,14 +47,14 @@ no_viewport_percentage!(i32);  // For PropertyDeclaration::Order
 #[allow(missing_docs)]
 pub struct CSSColor {
     pub parsed: cssparser::Color,
-    pub authored: Option<String>,
+    pub authored: Option<Box<str>>,
 }
 
 impl Parse for CSSColor {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let start_position = input.position();
         let authored = match input.next() {
-            Ok(Token::Ident(s)) => Some(s.into_owned()),
+            Ok(Token::Ident(s)) => Some(s.into_owned().into_boxed_str()),
             _ => None,
         };
         input.reset(start_position);
@@ -81,7 +81,7 @@ impl ToCss for CSSColor {
 #[allow(missing_docs)]
 pub struct CSSRGBA {
     pub parsed: cssparser::RGBA,
-    pub authored: Option<String>,
+    pub authored: Option<Box<str>>,
 }
 
 no_viewport_percentage!(CSSRGBA);

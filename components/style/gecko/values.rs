@@ -225,20 +225,18 @@ impl GeckoStyleCoordConvertible for None_ {
 
 /// Convert a given RGBA value to `nscolor`.
 pub fn convert_rgba_to_nscolor(rgba: &RGBA) -> u32 {
-    (((rgba.alpha * 255.0).round() as u32) << 24) |
-    (((rgba.blue  * 255.0).round() as u32) << 16) |
-    (((rgba.green * 255.0).round() as u32) << 8) |
-     ((rgba.red   * 255.0).round() as u32)
+    ((rgba.alpha as u32) << 24) |
+    ((rgba.blue as u32) << 16) |
+    ((rgba.green as u32) << 8) |
+    (rgba.red as u32)
 }
 
 /// Convert a given `nscolor` to a Servo RGBA value.
 pub fn convert_nscolor_to_rgba(color: u32) -> RGBA {
-    RGBA {
-        red:    ((color        & 0xff) as f32) / 255.0,
-        green: (((color >>  8) & 0xff) as f32) / 255.0,
-        blue:  (((color >> 16) & 0xff) as f32) / 255.0,
-        alpha: (((color >> 24) & 0xff) as f32) / 255.0,
-    }
+    RGBA::new((color & 0xff) as u8,
+              (color >> 8 & 0xff) as u8,
+              (color >> 16 & 0xff) as u8,
+              (color >> 24 & 0xff) as u8)
 }
 
 /// Round `width` down to the nearest device pixel, but any non-zero value that

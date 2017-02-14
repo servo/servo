@@ -2188,7 +2188,7 @@ pub trait ToGfxColor {
 
 impl ToGfxColor for RGBA {
     fn to_gfx_color(&self) -> ColorF {
-        ColorF::new(self.red, self.green, self.blue, self.alpha)
+        ColorF::new(self.red_f32(), self.green_f32(), self.blue_f32(), self.alpha_f32())
     }
 }
 

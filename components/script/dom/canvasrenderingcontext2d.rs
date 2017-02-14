@@ -90,12 +90,7 @@ struct CanvasContextState {
 
 impl CanvasContextState {
     fn new() -> CanvasContextState {
-        let black = RGBA {
-            red: 0.0,
-            green: 0.0,
-            blue: 0.0,
-            alpha: 1.0,
-        };
+        let black = RGBA::new(0, 0, 0, 255);
         CanvasContextState {
             global_alpha: 1.0,
             global_composition: CompositionOrBlending::default(),
@@ -110,7 +105,7 @@ impl CanvasContextState {
             shadow_offset_x: 0.0,
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
-            shadow_color: RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 0.0 }, // transparent black
+            shadow_color: RGBA::transparent(),
         }
     }
 }
@@ -490,12 +485,7 @@ impl CanvasRenderingContext2D {
                         style.GetPropertyValue(DOMString::from("display")) == "none";
 
                     if element_not_rendered {
-                        Ok(RGBA {
-                            red: 0.0,
-                            green: 0.0,
-                            blue: 0.0,
-                            alpha: 1.0,
-                        })
+                        Ok(RGBA::new(0, 0, 0, 255))
                     } else {
                         self.parse_color(&style.GetPropertyValue(DOMString::from("color")))
                     }
@@ -1349,11 +1339,11 @@ fn is_rect_valid(rect: Rect<f64>) -> bool {
 fn serialize<W>(color: &RGBA, dest: &mut W) -> fmt::Result
     where W: fmt::Write
 {
-    let red = (color.red * 255.).round() as u8;
-    let green = (color.green * 255.).round() as u8;
-    let blue = (color.blue * 255.).round() as u8;
+    let red = color.red;
+    let green = color.green;
+    let blue = color.blue;
 
-    if color.alpha == 1f32 {
+    if color.alpha == 255 {
         write!(dest,
                "#{:x}{:x}{:x}{:x}{:x}{:x}",
                red >> 4,
@@ -1363,6 +1353,6 @@ fn serialize<W>(color: &RGBA, dest: &mut W) -> fmt::Result
                blue >> 4,
                blue & 0xF)
     } else {
-        write!(dest, "rgba({}, {}, {}, {})", red, green, blue, color.alpha)
+        write!(dest, "rgba({}, {}, {}, {})", red, green, blue, color.alpha_f32())
     }
 }

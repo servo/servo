@@ -57,7 +57,7 @@ impl CanvasGradientMethods for CanvasGradient {
         let color = if parser.is_exhausted() {
             match color {
                 Ok(CSSColor::RGBA(rgba)) => rgba,
-                Ok(CSSColor::CurrentColor) => RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 },
+                Ok(CSSColor::CurrentColor) => RGBA::new(0, 0, 0, 255),
                 _ => return Err(Error::Syntax)
             }
         } else {

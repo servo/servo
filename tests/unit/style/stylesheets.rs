@@ -183,12 +183,10 @@ fn test_parse_stylesheet() {
                 block: Arc::new(RwLock::new(PropertyDeclarationBlock {
                     declarations: vec![
                         (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
-                            Box::new(longhands::background_color::SpecifiedValue {
-                                authored: Some("blue".to_owned()),
-                                parsed: cssparser::Color::RGBA(cssparser::RGBA {
-                                    red: 0., green: 0., blue: 1., alpha: 1.
-                                }),
-                            })
+                            longhands::background_color::SpecifiedValue {
+                                authored: Some("blue".to_owned().into_boxed_str()),
+                                parsed: cssparser::Color::RGBA(cssparser::RGBA::new(0, 0, 255, 255)),
+                            }
                          )),
                          Importance::Normal),
                         (PropertyDeclaration::BackgroundPositionX(DeclaredValue::Value(
