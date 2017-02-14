@@ -36,6 +36,7 @@ use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
 use dom::browsingcontext::BrowsingContext;
@@ -93,7 +94,7 @@ use script_traits::WebVREventMsg;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue, AsyncJobHandler};
 use servo_config::opts;
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
@@ -1018,6 +1019,8 @@ impl ScriptThread {
                 self.handle_visibility_change_msg(pipeline_id, visible),
             ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id, frame_id, visible) =>
                 self.handle_visibility_change_complete_msg(parent_pipeline_id, frame_id, visible),
+            ConstellationControlMsg::PostMessage(pipeline_id, origin, data) =>
+                self.handle_post_message_msg(pipeline_id, origin, data),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
                                                      frame_id,
                                                      event) =>
@@ -1396,6 +1399,13 @@ impl ScriptThread {
         }
     }
 
+    fn handle_post_message_msg(&self, pipeline_id: PipelineId, origin: Option<ImmutableOrigin>, data: Vec<u8>) {
+        match { self.documents.borrow().find_window(pipeline_id) } {
+            None => return warn!("postMessage after pipeline {} closed.", pipeline_id),
+            Some(window) => window.post_message(origin, StructuredCloneData::Vector(data)),
+        }
+    }
+
     /// Handles a mozbrowser event, for example see:
     /// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
     fn handle_mozbrowser_event_msg(&self,
@@ -1705,7 +1715,7 @@ impl ScriptThread {
 
         match self.browsing_contexts.borrow_mut().entry(incomplete.frame_id) {
             hash_map::Entry::Vacant(entry) => {
-                let browsing_context = BrowsingContext::new(&window, frame_element);
+                let browsing_context = BrowsingContext::new(&window, incomplete.frame_id, frame_element);
                 entry.insert(JS::from_ref(&*browsing_context));
                 window.init_browsing_context(&browsing_context);
             },
