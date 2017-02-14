@@ -9599,6 +9599,11 @@
      {}
     ]
    ],
+   "mozilla/cross-origin-objects/frame.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/details_ui_closed_ref.html": [
     [
      {}
@@ -12701,6 +12706,14 @@
     [
      "/_mozilla/mozilla/collections.html",
      {}
+    ]
+   ],
+   "mozilla/cross-origin-objects/cross-origin-objects.html": [
+    [
+     "/_mozilla/mozilla/cross-origin-objects/cross-origin-objects.html",
+     {
+      "timeout": "long"
+     }
     ]
    ],
    "mozilla/deterministic-raf.html": [
@@ -25319,6 +25332,14 @@
   "mozilla/collections.html": [
    "f1029d519aa7017a1a3d18a891a0774b9a39f847",
    "testharness"
+  ],
+  "mozilla/cross-origin-objects/cross-origin-objects.html": [
+   "e652fca659f4f3b6c9469da224d313f1d7794f07",
+   "testharness"
+  ],
+  "mozilla/cross-origin-objects/frame.html": [
+   "dc9cd0af288e67202b3db551516613a2707201c5",
+   "support"
   ],
   "mozilla/details_ui_closed.html": [
    "2acbe3afbec267bad4dd986803e636740a707507",
