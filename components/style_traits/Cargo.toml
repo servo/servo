@@ -15,7 +15,7 @@ servo = ["heapsize", "heapsize_derive", "serde", "serde_derive",
 
 [dependencies]
 app_units = "0.3"
-cssparser = "0.8"
+cssparser = "0.9"
 euclid = "0.10.1"
 heapsize = {version = "0.3.0", optional = true}
 heapsize_derive = {version = "0.1", optional = true}

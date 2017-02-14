@@ -5,6 +5,7 @@
 //! Helper types and traits for the handling of CSS values.
 
 use app_units::Au;
+use cssparser::UnicodeRange;
 use std::fmt;
 
 /// The real `ToCss` trait can't be implemented for types in crates that don't
@@ -26,6 +27,8 @@ pub trait ToCss {
 
 /// Marker trait to automatically implement ToCss for Vec<T>.
 pub trait OneOrMoreCommaSeparated {}
+
+impl OneOrMoreCommaSeparated for UnicodeRange {}
 
 impl<T> ToCss for Vec<T> where T: ToCss + OneOrMoreCommaSeparated {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -69,6 +72,7 @@ impl_to_css_for_predefined_type!(u32);
 impl_to_css_for_predefined_type!(::cssparser::Token<'a>);
 impl_to_css_for_predefined_type!(::cssparser::RGBA);
 impl_to_css_for_predefined_type!(::cssparser::Color);
+impl_to_css_for_predefined_type!(::cssparser::UnicodeRange);
 
 #[macro_export]
 macro_rules! define_css_keyword_enum {

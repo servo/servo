@@ -6,7 +6,7 @@
 
 #![deny(missing_docs)]
 
-use cssparser::{Parser, SourcePosition};
+use cssparser::{Parser, SourcePosition, UnicodeRange};
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
@@ -107,5 +107,11 @@ pub trait Parse : Sized {
 impl<T> Parse for Vec<T> where T: Parse + OneOrMoreCommaSeparated {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         input.parse_comma_separated(|input| T::parse(context, input))
+    }
+}
+
+impl Parse for UnicodeRange {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        UnicodeRange::parse(input)
     }
 }
