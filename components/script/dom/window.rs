@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHa
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
@@ -26,6 +27,7 @@ use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
+use dom::bluetooth::BluetoothExtraPermissionData;
 use dom::browsingcontext::BrowsingContext;
 use dom::crypto::Crypto;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
@@ -209,6 +211,8 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothRequest>,
 
+    bluetooth_extra_permission_data: BluetoothExtraPermissionData,
+
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
     page_clip_rect: Cell<Rect<Au>>,
@@ -246,7 +250,10 @@ pub struct Window {
 
     /// A handle for communicating messages to the webvr thread, if available.
     #[ignore_heap_size_of = "channels are hard"]
-    webvr_thread: Option<IpcSender<WebVRMsg>>
+    webvr_thread: Option<IpcSender<WebVRMsg>>,
+
+    /// A map for storing the previous permission state read results.
+    permission_state_invocation_results: DOMRefCell<HashMap<String, PermissionState>>
 }
 
 impl Window {
@@ -313,6 +320,10 @@ impl Window {
         self.bluetooth_thread.clone()
     }
 
+    pub fn bluetooth_extra_permission_data(&self) -> &BluetoothExtraPermissionData {
+         &self.bluetooth_extra_permission_data
+    }
+
     pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
         self.error_reporter.clone()
     }
@@ -330,6 +341,10 @@ impl Window {
 
     pub fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
         self.webvr_thread.clone()
+    }
+
+    pub fn permission_state_invocation_results(&self) -> &DOMRefCell<HashMap<String, PermissionState>> {
+        &self.permission_state_invocation_results
     }
 }
 
@@ -1678,6 +1693,7 @@ impl Window {
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
             bluetooth_thread: bluetooth_thread,
+            bluetooth_extra_permission_data: BluetoothExtraPermissionData::new(),
             page_clip_rect: Cell::new(max_rect()),
             resize_event: Cell::new(None),
             layout_chan: layout_chan,
@@ -1696,7 +1712,8 @@ impl Window {
             scroll_offsets: DOMRefCell::new(HashMap::new()),
             media_query_lists: WeakMediaQueryListVec::new(),
             test_runner: Default::default(),
-            webvr_thread: webvr_thread
+            webvr_thread: webvr_thread,
+            permission_state_invocation_results: DOMRefCell::new(HashMap::new()),
         };
 
         unsafe {

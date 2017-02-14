@@ -1845,6 +1845,8 @@ class CGImports(CGWrapper):
                 return type.flatMemberTypes
             if type.isDictionary():
                 return [type] + getTypesFromDictionary(type)
+            if type.isSequence():
+                return componentTypes(type.inner)
             return [type]
 
         def isImportable(type):

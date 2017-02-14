@@ -10,8 +10,9 @@ promise_test(t => {
         filters: [{services: [heart_rate.name]}]
     })
     .then(device => {
+        var gatt_server = device.gatt;
         window.testRunner.setBluetoothMockDataSet(adapter_type.empty);
-        return promise_rejects(t, 'NetworkError', device.gatt.connect());
+        return promise_rejects(t, 'NetworkError', gatt_server.connect());
     });
 }, 'Device goes out of range. Reject with NetworkError.');
 </script>
