@@ -46,7 +46,6 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_late_lint_pass(box lints::unrooted_must_root::UnrootedPass::new());
     reg.register_late_lint_pass(box lints::privatize::PrivatizePass);
     reg.register_late_lint_pass(box lints::inheritance_integrity::InheritancePass);
-    reg.register_late_lint_pass(box lints::transmute_type::TransmutePass);
     reg.register_early_lint_pass(box lints::ban::BanPass);
     reg.register_attribute("_dom_struct_marker".to_string(), Whitelisted);
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
