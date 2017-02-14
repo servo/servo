@@ -642,3 +642,9 @@ impl<T: DomObject> Drop for Root<T> {
         }
     }
 }
+
+unsafe impl<T: DomObject> JSTraceable for Root<T> {
+    unsafe fn trace(&self, _: *mut JSTracer) {
+        // Already traced.
+    }
+}

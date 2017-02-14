@@ -4103,6 +4103,7 @@ class CGUnionStruct(CGThing):
             % (self.type, v["name"]) for v in templateVars
         ]
         return ("""\
+#[derive(JSTraceable)]
 pub enum %s {
 %s
 }
@@ -5881,6 +5882,7 @@ class CGDictionary(CGThing):
                        for m in self.memberInfo]
 
         return (string.Template(
+                "#[derive(JSTraceable)]\n"
                 "pub struct ${selfName} {\n" +
                 "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +
