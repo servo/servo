@@ -225,10 +225,10 @@ impl GeckoStyleCoordConvertible for None_ {
 
 /// Convert a given RGBA value to `nscolor`.
 pub fn convert_rgba_to_nscolor(rgba: &RGBA) -> u32 {
-    ((rgba.a as u32) << 24) |
-    ((rgba.b as u32) << 16) |
-    ((rgba.g as u32) << 8) |
-    (rgba.r as u32)
+    ((rgba.alpha as u32) << 24) |
+    ((rgba.blue as u32) << 16) |
+    ((rgba.green as u32) << 8) |
+    (rgba.red as u32)
 }
 
 /// Convert a given `nscolor` to a Servo RGBA value.

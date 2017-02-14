@@ -544,7 +544,7 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.8.0"
-source = "git+https://github.com/emilio/rust-cssparser?branch=color#35ea5580738f32e3f102e918a5016feddeb03c19"
+source = "git+https://github.com/emilio/rust-cssparser?branch=color#173ef5f6cc0fa467f672165489a609ada2a97f71"
 dependencies = [
  "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
