@@ -4,9 +4,12 @@
 
 use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
+use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::browsingcontext::BrowsingContext;
 use dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use dom::globalscope::GlobalScope;
@@ -15,6 +18,9 @@ use ipc_channel::ipc;
 use js::jsapi::{JSContext, HandleValue};
 use js::jsval::{JSVal, UndefinedValue};
 use msg::constellation_msg::PipelineId;
+use script_traits::ScriptMsg as ConstellationMsg;
+use servo_url::ImmutableOrigin;
+use servo_url::ServoUrl;
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.
 ///
@@ -107,8 +113,27 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
 
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
-    unsafe fn PostMessage(&self, _: *mut JSContext, _: HandleValue, _: DOMString) {
-        // TODO: Implement x-origin postMessage
+    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue, origin: DOMString) -> ErrorResult {
+        // Step 3-5.
+        let origin = match &origin[..] {
+            "*" => None,
+            "/" => {
+                // TODO: Should be the origin of the incumbent settings object.
+                None
+            },
+            url => match ServoUrl::parse(&url) {
+                Ok(url) => Some(url.origin()),
+                Err(_) => return Err(Error::Syntax),
+            }
+        };
+
+        // Step 1-2, 6-8.
+        // TODO(#12717): Should implement the `transfer` argument.
+        let data = try!(StructuredCloneData::write(cx, message));
+
+        // Step 9.
+        self.post_message(origin, data);
+        Ok(())
     }
 
     #[allow(unsafe_code)]
@@ -137,5 +162,12 @@ impl DissimilarOriginWindowMethods for DissimilarOriginWindow {
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> Root<DissimilarOriginLocation> {
         self.location.or_init(|| DissimilarOriginLocation::new(self))
+    }
+}
+
+impl DissimilarOriginWindow {
+    pub fn post_message(&self, origin: Option<ImmutableOrigin>, data: StructuredCloneData) {
+        let msg = ConstellationMsg::PostMessage(self.browsing_context.frame_id(), origin, data.move_to_arraybuffer());
+        let _ = self.upcast::<GlobalScope>().constellation_chan().send(msg);
     }
 }
