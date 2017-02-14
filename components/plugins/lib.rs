@@ -34,8 +34,6 @@ use syntax::symbol::Symbol;
 /// Handles the auto-deriving for `#[derive(JSTraceable)]`
 pub mod jstraceable;
 pub mod lints;
-/// Autogenerates implementations of DomObject on DOM structs
-pub mod reflector;
 /// Utilities for writing plugins
 mod utils;
 
@@ -44,10 +42,6 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(
         Symbol::intern("dom_struct"),
         MultiModifier(box jstraceable::expand_dom_struct));
-
-    reg.register_syntax_extension(
-        Symbol::intern("_generate_reflector"),
-        MultiDecorator(box reflector::expand_reflector));
 
     reg.register_late_lint_pass(box lints::unrooted_must_root::UnrootedPass::new());
     reg.register_late_lint_pass(box lints::privatize::PrivatizePass);

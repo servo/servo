@@ -83,8 +83,20 @@ pub trait DomObject {
     }
 }
 
+impl DomObject for Reflector {
+    fn reflector(&self) -> &Self {
+        self
+    }
+}
+
 /// A trait to initialize the `Reflector` for a DOM object.
 pub trait MutDomObject: DomObject {
     /// Initializes the Reflector
     fn init_reflector(&mut self, obj: *mut JSObject);
+}
+
+impl MutDomObject for Reflector {
+    fn init_reflector(&mut self, obj: *mut JSObject) {
+        self.set_jsobject(obj)
+    }
 }

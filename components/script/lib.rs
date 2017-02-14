@@ -39,6 +39,8 @@ extern crate core;
 #[macro_use]
 extern crate cssparser;
 extern crate devtools_traits;
+#[macro_use]
+extern crate domobject_derive;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
