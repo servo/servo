@@ -78,6 +78,7 @@ use event_loop::EventLoop;
 use frame::{Frame, FrameChange, FrameState, FrameTreeIterator, FullFrameTreeIterator};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
+use ipc_channel::SerializeError;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
@@ -109,7 +110,6 @@ use servo_remutex::ReentrantMutex;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::{HashMap, VecDeque};
-use std::io::Error as IOError;
 use std::iter::once;
 use std::marker::PhantomData;
 use std::process;
@@ -1228,7 +1228,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.pipelines.remove(&pipeline_id);
     }
 
-    fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IOError) {
+    fn handle_send_error(&mut self, pipeline_id: PipelineId, err: SerializeError) {
         // Treat send error the same as receiving a panic message
         debug!("Pipeline {:?} send error ({}).", pipeline_id, err);
         let top_level_frame_id = self.get_top_level_frame_for_pipeline(pipeline_id);

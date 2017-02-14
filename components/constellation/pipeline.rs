@@ -11,6 +11,7 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use event_loop::EventLoop;
 use gfx::font_cache_thread::FontCacheThread;
+use ipc_channel::SerializeError;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
@@ -31,7 +32,6 @@ use std::collections::HashMap;
 #[cfg(not(windows))]
 use std::env;
 use std::ffi::OsStr;
-use std::io::Error as IOError;
 use std::process;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
@@ -178,7 +178,7 @@ pub struct InitialPipelineState {
 impl Pipeline {
     /// Starts a layout thread, and possibly a script thread, in
     /// a new process if requested.
-    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, IOError>
+    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState) -> Result<Pipeline, SerializeError>
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
@@ -523,7 +523,7 @@ impl UnprivilegedPipelineContent {
     }
 
     #[cfg(not(target_os = "windows"))]
-    pub fn spawn_multiprocess(self) -> Result<(), IOError> {
+    pub fn spawn_multiprocess(self) -> Result<(), SerializeError> {
         use gaol::sandbox::{self, Sandbox, SandboxMethods};
         use ipc_channel::ipc::IpcOneShotServer;
         use sandboxing::content_process_sandbox_profile;
@@ -571,7 +571,7 @@ impl UnprivilegedPipelineContent {
     }
 
     #[cfg(target_os = "windows")]
-    pub fn spawn_multiprocess(self) -> Result<(), IOError> {
+    pub fn spawn_multiprocess(self) -> Result<(), SerializeError> {
         error!("Multiprocess is not supported on Windows.");
         process::exit(1);
     }

@@ -31,7 +31,7 @@ num = []
 
 [ignore]
 # Ignored packages with duplicated versions
-packages = ["bitflags", "byteorder", "semver"]
+packages = ["bitflags", "byteorder", "mio", "miow", "slab", "semver"]
 # Files that are ignored for all tidy and lint checks.
 files = [
   # Generated and upstream code combined with our own. Could use cleanup
