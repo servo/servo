@@ -21,7 +21,6 @@ clippy = ["plugins/clippy"]
 debugmozjs = ["script/debugmozjs"]
 
 [dependencies]
-backtrace = "0.3"
 bluetooth_traits = {path = "../bluetooth_traits"}
 bluetooth = {path = "../bluetooth"}
 canvas = {path = "../canvas"}
@@ -36,9 +35,7 @@ euclid = "0.10.1"
 gfx = {path = "../gfx"}
 gleam = "0.2"
 ipc-channel = "0.5"
-layout = {path = "../layout"}
 layout_thread = {path = "../layout_thread"}
-libc = "0.2"
 log = "0.3"
 msg = {path = "../msg"}
 net = {path = "../net"}
@@ -52,7 +49,6 @@ script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo"]}
-url = "1.2"
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
 webdriver_server = {path = "../webdriver_server", optional = true}
@@ -66,13 +62,6 @@ features = ["serde_derive"]
 git = "https://github.com/servo/webrender"
 default-features = false
 features = ["serde_derive", "ipc"]
-
-[target.'cfg(not(target_os = "android"))'.dependencies]
-sig = "0.1"
-
-[target.'cfg(target_os = "android")'.dependencies]
-log = "0.3"
-android_glue = "0.2"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
