@@ -10,6 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
 use dom::window::Window;
 use js::jsapi::{HandleValue, JSContext};
@@ -55,7 +56,7 @@ impl PopStateEvent {
 
     pub fn Constructor(window: &Window,
                        type_: DOMString,
-                       init: &PopStateEventBinding::PopStateEventInit)
+                       init: RootedTraceableBox<PopStateEventBinding::PopStateEventInit>)
                        -> Fallible<Root<PopStateEvent>> {
         Ok(PopStateEvent::new(window,
                               Atom::from(type_),

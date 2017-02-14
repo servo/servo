@@ -27,6 +27,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::bindings::trace::RootedTraceableBox;
 use dom::bindings::weakref::MutableWeakRef;
 use dom::blob::{Blob, BlobImpl};
 use dom::globalscope::GlobalScope;
@@ -402,7 +403,7 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
-    fn DictMatchesPassedValues(&self, arg: &TestDictionary) -> bool {
+    fn DictMatchesPassedValues(&self, arg: RootedTraceableBox<TestDictionary>) -> bool {
         arg.type_.as_ref().map(|s| s == "success").unwrap_or(false) &&
             arg.nonRequiredNullable.is_none() &&
             arg.nonRequiredNullable2 == Some(None)

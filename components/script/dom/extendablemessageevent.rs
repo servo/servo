@@ -9,6 +9,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::extendableevent::ExtendableEvent;
@@ -47,15 +48,14 @@ impl ExtendableMessageEvent {
 
     pub fn Constructor(worker: &ServiceWorkerGlobalScope,
                        type_: DOMString,
-                       init: &ExtendableMessageEventBinding::ExtendableMessageEventInit)
+                       init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>)
                        -> Fallible<Root<ExtendableMessageEvent>> {
         let global = worker.upcast::<GlobalScope>();
-        rooted!(in(global.get_cx()) let data = init.data.get());
         let ev = ExtendableMessageEvent::new(global,
                                              Atom::from(type_),
                                              init.parent.parent.bubbles,
                                              init.parent.parent.cancelable,
-                                             data.handle(),
+                                             init.data.handle(),
                                              init.origin.clone().unwrap(),
                                              init.lastEventId.clone().unwrap());
         Ok(ev)

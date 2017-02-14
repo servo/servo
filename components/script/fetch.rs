@@ -10,6 +10,7 @@ use dom::bindings::error::Error;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
+use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom::headers::Guard;
 use dom::promise::Promise;
@@ -68,7 +69,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> NetTraitsRequestInit 
 
 // https://fetch.spec.whatwg.org/#fetch-method
 #[allow(unrooted_must_root)]
-pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: &RequestInit) -> Rc<Promise> {
+pub fn Fetch(global: &GlobalScope, input: RequestInfo, init: RootedTraceableBox<RequestInit>) -> Rc<Promise> {
     let core_resource_thread = global.core_resource_thread();
 
     // Step 1

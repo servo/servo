@@ -10,6 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{HandleValue, JSContext};
@@ -51,7 +52,7 @@ impl CustomEvent {
     #[allow(unsafe_code)]
     pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
-                       init: &CustomEventBinding::CustomEventInit)
+                       init: RootedTraceableBox<CustomEventBinding::CustomEventInit>)
                        -> Fallible<Root<CustomEvent>> {
         Ok(CustomEvent::new(global,
                             Atom::from(type_),

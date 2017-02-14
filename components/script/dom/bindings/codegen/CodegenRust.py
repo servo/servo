@@ -19,6 +19,7 @@ from WebIDL import (
     IDLBuiltinType,
     IDLNullValue,
     IDLNullableType,
+    IDLObject,
     IDLType,
     IDLInterfaceMember,
     IDLUndefinedValue,
@@ -1090,6 +1091,12 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         typeName = "%s::%s" % (CGDictionary.makeModuleName(type.inner),
                                CGDictionary.makeDictionaryName(type.inner))
         declType = CGGeneric(typeName)
+        empty = "%s::empty(cx)" % typeName
+
+        if isMember != "Dictionary" and type_needs_tracing(type):
+            declType = CGTemplatedType("RootedTraceableBox", declType)
+            empty = "RootedTraceableBox::new(%s)" % empty
+
         template = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
                     "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
                     "    Ok(ConversionResult::Failure(error)) => {\n"
@@ -1098,7 +1105,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                     "    _ => { %s },\n"
                     "}" % (indent(failOrPropagate, 8), exceptionCode))
 
-        return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
+        return handleOptional(template, declType, handleDefaultNull(empty))
 
     if type.isVoid():
         # This one only happens for return values, and its easy: Just
@@ -3147,7 +3154,7 @@ class CGCallGenerator(CGThing):
         args = CGList([CGGeneric(arg) for arg in argsPre], ", ")
         for (a, name) in arguments:
             # XXXjdm Perhaps we should pass all nontrivial types by borrowed pointer
-            if a.type.isDictionary():
+            if a.type.isDictionary() and not type_needs_tracing(a.type):
                 name = "&" + name
             args.append(CGGeneric(name))
 
@@ -5577,6 +5584,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::utils::trace_global',
         'dom::bindings::trace::JSTraceable',
         'dom::bindings::trace::RootedTraceable',
+        'dom::bindings::trace::RootedTraceableBox',
         'dom::bindings::callback::CallSetup',
         'dom::bindings::callback::CallbackContainer',
         'dom::bindings::callback::CallbackInterface',
@@ -6163,6 +6171,45 @@ class CGBindingRoot(CGThing):
         return stripTrailingWhitespace(self.root.define())
 
 
+def type_needs_tracing(t):
+    assert isinstance(t, IDLObject), (t, type(t))
+
+    if t.isType():
+        if isinstance(t, IDLWrapperType):
+            return type_needs_tracing(t.inner)
+
+        if t.nullable():
+            return type_needs_tracing(t.inner)
+
+        if t.isAny():
+            return True
+
+        if t.isObject():
+            return True
+
+        if t.isSequence():
+            return type_needs_tracing(t.inner)
+
+        return False
+
+    if t.isDictionary():
+        if t.parent and type_needs_tracing(t.parent):
+            return True
+
+        if any(type_needs_tracing(member.type) for member in t.members):
+            return True
+
+        return False
+
+    if t.isInterface():
+        return False
+
+    if t.isEnum():
+        return False
+
+    assert False, (t, type(t))
+
+
 def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, variadic=False):
     info = getJSToNativeConversionInfo(
         ty, descriptorProvider, isArgument=True)
@@ -6176,7 +6223,7 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
     elif optional and not defaultValue:
         declType = CGWrapper(declType, pre="Option<", post=">")
 
-    if ty.isDictionary():
+    if ty.isDictionary() and not type_needs_tracing(ty):
         declType = CGWrapper(declType, pre="&")
 
     return declType.define()

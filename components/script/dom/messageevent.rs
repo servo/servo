@@ -10,6 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
@@ -60,16 +61,13 @@ impl MessageEvent {
 
     pub fn Constructor(global: &GlobalScope,
                        type_: DOMString,
-                       init: &MessageEventBinding::MessageEventInit)
+                       init: RootedTraceableBox<MessageEventBinding::MessageEventInit>)
                        -> Fallible<Root<MessageEvent>> {
-        // Dictionaries need to be rooted
-        // https://github.com/servo/servo/issues/6381
-        rooted!(in(global.get_cx()) let data = init.data.get());
         let ev = MessageEvent::new(global,
                                    Atom::from(type_),
                                    init.parent.bubbles,
                                    init.parent.cancelable,
-                                   data.handle(),
+                                   init.data.handle(),
                                    init.origin.clone(),
                                    init.lastEventId.clone());
         Ok(ev)

@@ -20,6 +20,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom::headers::{Guard, Headers};
 use dom::promise::Promise;
@@ -80,7 +81,7 @@ impl Request {
     // https://fetch.spec.whatwg.org/#dom-request
     pub fn Constructor(global: &GlobalScope,
                        input: RequestInfo,
-                       init: &RequestInit)
+                       init: RootedTraceableBox<RequestInit>)
                        -> Fallible<Root<Request>> {
         // Step 1
         let temporary_request: NetTraitsRequest;
@@ -311,7 +312,7 @@ impl Request {
         if let Some(possible_header) = init.headers.as_ref() {
             match possible_header {
                 &HeadersInit::Headers(ref init_headers) => {
-                    headers_copy = init_headers.clone();
+                    headers_copy = Root::from_ref(&*init_headers);
                 }
                 &HeadersInit::ByteStringSequenceSequence(ref init_sequence) => {
                     try!(headers_copy.fill(Some(
