@@ -1479,8 +1479,6 @@ dependencies = [
 name = "libservo"
 version = "0.0.1"
 dependencies = [
- "android_glue 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "backtrace 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bluetooth 0.0.1",
  "bluetooth_traits 0.0.1",
  "canvas 0.0.1",
@@ -1496,9 +1494,7 @@ dependencies = [
  "gfx 0.0.1",
  "gleam 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "layout 0.0.1",
  "layout_thread 0.0.1",
- "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net 0.0.1",
@@ -1512,7 +1508,6 @@ dependencies = [
  "servo_config 0.0.1",
  "servo_url 0.0.1",
  "style 0.0.1",
- "url 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webdriver_server 0.0.1",
  "webrender 0.15.0 (git+https://github.com/servo/webrender)",
  "webrender_traits 0.14.0 (git+https://github.com/servo/webrender)",
