@@ -36,6 +36,7 @@ caseless = "0.1.0"
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
 cssparser = {version = "0.7", features = ["heap_size", "serde-serialization"]}
 devtools_traits = {path = "../devtools_traits"}
+domobject_derive = {path = "../domobject_derive"}
 encoding = "0.2"
 euclid = "0.10.1"
 fnv = "1.0"
