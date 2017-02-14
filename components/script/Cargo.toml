@@ -35,6 +35,7 @@ canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
 cssparser = {version = "0.8", features = ["heap_size", "serde-serialization"]}
+deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 domobject_derive = {path = "../domobject_derive"}
 encoding = "0.2"

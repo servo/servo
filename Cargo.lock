@@ -598,6 +598,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "deny_public_fields"
+version = "0.0.1"
+dependencies = [
+ "syn 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synstructure 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "deque"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2030,6 +2038,7 @@ name = "plugin_compiletest"
 version = "0.0.1"
 dependencies = [
  "compiletest_helper 0.0.1",
+ "deny_public_fields 0.0.1",
  "plugins 0.0.1",
  "script 0.0.1",
 ]
@@ -2256,6 +2265,7 @@ dependencies = [
  "cmake 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "deny_public_fields 0.0.1",
  "devtools_traits 0.0.1",
  "domobject_derive 0.0.1",
  "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",

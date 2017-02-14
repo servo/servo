@@ -28,8 +28,7 @@ use std::rc::Rc;
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
 pub struct OneshotTimerHandle(i32);
 
-#[derive(JSTraceable, HeapSizeOf)]
-#[privatize]
+#[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
 pub struct OneshotTimers {
     js_timers: JsTimers,
     #[ignore_heap_size_of = "Defined in std"]
@@ -53,8 +52,7 @@ pub struct OneshotTimers {
     expected_event_id: Cell<TimerEventId>,
 }
 
-#[derive(JSTraceable, HeapSizeOf)]
-#[privatize]
+#[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
 struct OneshotTimer {
     handle: OneshotTimerHandle,
     source: TimerSource,
@@ -302,8 +300,7 @@ impl OneshotTimers {
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord)]
 pub struct JsTimerHandle(i32);
 
-#[derive(JSTraceable, HeapSizeOf)]
-#[privatize]
+#[derive(DenyPublicFields, HeapSizeOf, JSTraceable)]
 pub struct JsTimers {
     next_timer_handle: Cell<JsTimerHandle>,
     active_timers: DOMRefCell<HashMap<JsTimerHandle, JsTimerEntry>>,
