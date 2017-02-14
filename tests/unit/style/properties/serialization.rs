@@ -1114,4 +1114,28 @@ mod shorthand_serialization {
             assert_eq!(s, "none");
         }
     }
+
+    mod quotes {
+        pub use super::*;
+
+        #[test]
+        fn should_serialize_none_correctly() {
+            use cssparser::Parser;
+            use media_queries::CSSErrorReporterTest;
+            use style::parser::ParserContext;
+            use style::properties::longhands::quotes;
+            use style::stylesheets::Origin;
+
+            let mut s = String::new();
+            let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
+            let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+
+            let parsed = quotes::parse(&context, &mut Parser::new("none")).unwrap();
+            let try_serialize = parsed.to_css(&mut s);
+
+            assert_eq!(try_serialize.is_ok(), true);
+            assert_eq!(s, "none");
+        }
+
+    }
 }
