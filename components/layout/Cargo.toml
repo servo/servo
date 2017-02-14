@@ -14,7 +14,7 @@ app_units = "0.3"
 atomic_refcell = "0.1"
 bitflags = "0.7"
 canvas_traits = {path = "../canvas_traits"}
-cssparser = {version = "0.8", features = ["heap_size", "serde-serialization"]}
+cssparser = {version = "0.9", features = ["heap_size", "serde-serialization"]}
 euclid = "0.10.1"
 fnv = "1.0"
 gfx = {path = "../gfx"}

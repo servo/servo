@@ -12,6 +12,7 @@
 use computed_values::{font_style, font_weight, font_stretch};
 use computed_values::font_family::FamilyName;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
+#[cfg(feature = "gecko")] use cssparser::UnicodeRange;
 use parser::{ParserContext, log_css_error, Parse};
 use std::fmt;
 use std::iter;
@@ -238,7 +239,7 @@ macro_rules! font_face_descriptors {
                 dest.write_str("@font-face {\n")?;
                 $(
                     dest.write_str(concat!("  ", $m_name, ": "))?;
-                    self.$m_ident.to_css(dest)?;
+                    ToCss::to_css(&self.$m_ident, dest)?;
                     dest.write_str(";\n")?;
                 )*
                 $(
@@ -247,7 +248,7 @@ macro_rules! font_face_descriptors {
                     // But it can be false for other descriptors.
                     if self.$o_ident != $o_initial {
                         dest.write_str(concat!("  ", $o_name, ": "))?;
-                        self.$o_ident.to_css(dest)?;
+                        ToCss::to_css(&self.$o_ident, dest)?;
                         dest.write_str(";\n")?;
                     }
                 )*
@@ -298,8 +299,8 @@ font_face_descriptors! {
         "font-stretch" stretch: font_stretch::T = font_stretch::T::normal,
 
         /// The ranges of code points outside of which this font face should not be used.
-        "unicode-range" unicode_range: Vec<unicode_range::Range> = vec![
-            unicode_range::Range { start: 0, end: unicode_range::MAX }
+        "unicode-range" unicode_range: Vec<UnicodeRange> = vec![
+            UnicodeRange { start: 0, end: 0x10FFFF }
         ],
     ]
 }
@@ -315,52 +316,4 @@ font_face_descriptors! {
     ]
     optional descriptors = [
     ]
-}
-
-/// https://drafts.csswg.org/css-fonts/#unicode-range-desc
-#[cfg(feature = "gecko")]
-pub mod unicode_range {
-    use cssparser::{Parser, Token};
-    use parser::{ParserContext, Parse};
-    use std::fmt;
-    use style_traits::{ToCss, OneOrMoreCommaSeparated};
-
-    /// Maximum value of the end of a range
-    pub const MAX: u32 = ::std::char::MAX as u32;
-
-    /// A single range: https://drafts.csswg.org/css-fonts/#urange-value
-    #[derive(Debug, PartialEq, Eq)]
-    pub struct Range {
-        /// Start of the range, inclusive
-        pub start: u32,
-
-        /// End of the range, inclusive
-        pub end: u32,
-    }
-
-    impl OneOrMoreCommaSeparated for Range {}
-
-    impl Parse for Range {
-        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-            // FIXME: The unicode-range token has been removed from the CSS Syntax spec,
-            // cssparser should be updated accordingly
-            // and implement https://drafts.csswg.org/css-syntax/#urange instead
-            match input.next() {
-                Ok(Token::UnicodeRange(start, end)) => {
-                    if end <= MAX && start <= end {
-                        Ok(Range { start: start, end: end })
-                    } else {
-                        Err(())
-                    }
-                }
-                _ => Err(())
-            }
-        }
-    }
-
-    impl ToCss for Range {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            Token::UnicodeRange(self.start, self.end).to_css(dest)
-        }
-    }
 }
