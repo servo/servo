@@ -1032,8 +1032,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isAny():
         assert not isEnforceRange and not isClamp
 
-        declType = ""
-        default = ""
         if isMember == "Dictionary":
             # TODO: Need to properly root dictionaries
             # https://github.com/servo/servo/issues/6381
@@ -1047,17 +1045,18 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                 default = "UndefinedValue()"
             else:
                 raise TypeError("Can't handle non-null, non-undefined default value here")
-        else:
-            declType = CGGeneric("HandleValue")
+            return handleOptional("${val}", declType, default)
 
-            if defaultValue is None:
-                default = None
-            elif isinstance(defaultValue, IDLNullValue):
-                default = "HandleValue::null()"
-            elif isinstance(defaultValue, IDLUndefinedValue):
-                default = "HandleValue::undefined()"
-            else:
-                raise TypeError("Can't handle non-null, non-undefined default value here")
+        declType = CGGeneric("HandleValue")
+
+        if defaultValue is None:
+            default = None
+        elif isinstance(defaultValue, IDLNullValue):
+            default = "HandleValue::null()"
+        elif isinstance(defaultValue, IDLUndefinedValue):
+            default = "HandleValue::undefined()"
+        else:
+            raise TypeError("Can't handle non-null, non-undefined default value here")
 
         return handleOptional("${val}", declType, default)
 
