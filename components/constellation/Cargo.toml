@@ -20,7 +20,7 @@ devtools_traits = {path = "../devtools_traits"}
 euclid = "0.10.1"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-ipc-channel = "0.5"
+ipc-channel = "0.6.3"
 layout_traits = {path = "../layout_traits"}
 log = "0.3.5"
 msg = {path = "../msg"}
