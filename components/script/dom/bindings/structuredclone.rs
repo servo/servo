@@ -19,53 +19,55 @@ use std::ptr;
 use std::slice;
 
 
-#[allow(unused_variables, dead_code)]
-unsafe extern "C" fn read_callback(cx: *mut JSContext,
-                           r: *mut JSStructuredCloneReader,
-                           tag: u32,
-                           data: u32,
-                           closure: *mut raw::c_void) -> *mut JSObject {
+#[allow(dead_code)]
+unsafe extern "C" fn read_callback(_cx: *mut JSContext,
+                                   _r: *mut JSStructuredCloneReader,
+                                   _tag: u32,
+                                   _data: u32,
+                                   _closure: *mut raw::c_void) -> *mut JSObject {
     Heap::default().get()
 }
 
-#[allow(unused_variables, dead_code)]
-unsafe extern "C" fn write_callback(cx: *mut JSContext, w: *mut JSStructuredCloneWriter,
-                            obj: HandleObject, closure: *mut raw::c_void) -> bool {
+#[allow(dead_code)]
+unsafe extern "C" fn write_callback(_cx: *mut JSContext,
+                                    _w: *mut JSStructuredCloneWriter,
+                                    _obj: HandleObject,
+                                    _closure: *mut raw::c_void) -> bool {
     false
 }
 
-#[allow(unused_variables, dead_code)]
-unsafe extern "C" fn read_transfer_callback(cx: *mut JSContext,
-                                    r: *mut JSStructuredCloneReader,
-                                    tag: u32,
-                                    content: *mut raw::c_void,
-                                    extra_data: u64,
-                                    closure: *mut raw::c_void,
-                                    return_object: MutableHandleObject) -> bool {
+#[allow(dead_code)]
+unsafe extern "C" fn read_transfer_callback(_cx: *mut JSContext,
+                                            _r: *mut JSStructuredCloneReader,
+                                            _tag: u32,
+                                            _content: *mut raw::c_void,
+                                            _extra_data: u64,
+                                            _closure: *mut raw::c_void,
+                                            _return_object: MutableHandleObject) -> bool {
     false
 }
 
-#[allow(unused_variables, dead_code)]
-unsafe extern "C" fn write_transfer_callback(cx: *mut JSContext,
-                                     obj: Handle<*mut JSObject>,
-                                     closure: *mut raw::c_void,
-                                     tag: *mut u32,
-                                     ownership: *mut TransferableOwnership,
-                                     content:  *mut *mut raw::c_void,
-                                     extra_data: *mut u64) -> bool {
+#[allow(dead_code)]
+unsafe extern "C" fn write_transfer_callback(_cx: *mut JSContext,
+                                             _obj: Handle<*mut JSObject>,
+                                             _closure: *mut raw::c_void,
+                                             _tag: *mut u32,
+                                             _ownership: *mut TransferableOwnership,
+                                             _content:  *mut *mut raw::c_void,
+                                             _extra_data: *mut u64) -> bool {
     false
 }
 
-#[allow(unused_variables, dead_code)]
-unsafe extern "C" fn free_transfer_callback(tag: u32,
-                                   ownership: TransferableOwnership,
-                                   content: *mut raw::c_void,
-                                   extra_data: u64,
-                                   closure: *mut raw::c_void) {
+#[allow(dead_code)]
+unsafe extern "C" fn free_transfer_callback(_tag: u32,
+                                            _ownership: TransferableOwnership,
+                                            _content: *mut raw::c_void,
+                                            _extra_data: u64,
+                                            _closure: *mut raw::c_void) {
 }
 
-#[allow(unused_variables, dead_code)]
-unsafe extern "C" fn report_error_callback(cx: *mut JSContext, errorid: u32) {
+#[allow(dead_code)]
+unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, _errorid: u32) {
 }
 
 #[allow(dead_code)]
