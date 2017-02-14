@@ -929,10 +929,8 @@ impl RangeMethods for Range {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(HeapSizeOf, JSTraceable, deny_public_fields)]
 #[must_root]
-#[privatize]
-#[derive(HeapSizeOf)]
 pub struct BoundaryPoint {
     node: MutJS<Node>,
     offset: Cell<u32>,

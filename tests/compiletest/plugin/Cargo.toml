@@ -12,4 +12,5 @@ doctest = false
 [dependencies]
 compiletest_helper = {path = "../helper"}
 plugins = {path = "../../../components/plugins"}
+privatize_derive = {path = "../../../components/privatize_derive"}
 script = {path = "../../../components/script"}

@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(plugin, custom_attribute)]
-#![plugin(plugins)]
 #![allow(dead_code)]
 
-#[privatize]
+#[derive(deny_public_fields)]
 struct Foo {
     pub v1: i32,
     //~^ ERROR Field v1 is public where only private fields are allowed

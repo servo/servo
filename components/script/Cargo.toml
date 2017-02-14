@@ -63,6 +63,7 @@ open = "1.1.1"
 parking_lot = "0.3"
 phf = "0.7.18"
 plugins = {path = "../plugins"}
+privatize_derive = {path = "../privatize_derive"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 ref_filter_map = "1.0.1"

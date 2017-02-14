@@ -2037,6 +2037,7 @@ version = "0.0.1"
 dependencies = [
  "compiletest_helper 0.0.1",
  "plugins 0.0.1",
+ "privatize_derive 0.0.1",
  "script 0.0.1",
 ]
 
@@ -2064,6 +2065,14 @@ dependencies = [
  "deflate 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "inflate 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-iter 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "privatize_derive"
+version = "0.0.1"
+dependencies = [
+ "syn 0.10.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synstructure 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2292,6 +2301,7 @@ dependencies = [
  "phf_codegen 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_shared 0.7.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
+ "privatize_derive 0.0.1",
  "profile_traits 0.0.1",
  "range 0.0.1",
  "ref_filter_map 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",

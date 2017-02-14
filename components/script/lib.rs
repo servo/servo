@@ -72,6 +72,8 @@ extern crate open;
 extern crate parking_lot;
 extern crate phf;
 #[macro_use]
+extern crate privatize_derive;
+#[macro_use]
 extern crate profile_traits;
 extern crate range;
 extern crate ref_filter_map;
