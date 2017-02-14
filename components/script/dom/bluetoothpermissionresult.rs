@@ -5,17 +5,15 @@
 use bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::{self, BluetoothPermissionResultMethods};
-use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::AllowedBluetoothDevice;
 use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusBinding::PermissionStatusMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
-use dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use dom::bindings::error::Error;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::bluetooth::{AsyncBluetoothListener, Bluetooth};
+use dom::bluetooth::{AsyncBluetoothListener, Bluetooth, AllowedBluetoothDevice};
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::globalscope::GlobalScope;
 use dom::permissionstatus::PermissionStatus;
@@ -108,9 +106,6 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 device_instance_map.insert(device.id.clone(), JS::from_ref(&bt_device));
                 self.global().as_window().bluetooth_extra_permission_data().add_new_allowed_device(
                     AllowedBluetoothDevice {
-                        // TODO fix this
-                        // allowedServices only relevant if the device store it as an internal slot as well
-                        allowedServices: StringOrStringSequence::String(DOMString::from("all".to_owned())),
                         deviceId: DOMString::from(device.id),
                         mayUseGATT: true,
                     }

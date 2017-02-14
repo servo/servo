@@ -12,17 +12,6 @@ dictionary BluetoothPermissionDescriptor : PermissionDescriptor {
   boolean acceptAllDevices = false;
 };
 
-dictionary AllowedBluetoothDevice {
-  required DOMString deviceId;
-  required boolean mayUseGATT;
-  // An allowedServices of "all" means all services are allowed.
-  required (DOMString or sequence<UUID>) allowedServices;
-};
-
-dictionary BluetoothPermissionData {
-  required sequence<AllowedBluetoothDevice> allowedDevices/* = []*/;
-};
-
 [Pref="dom.bluetooth.enabled"]
 interface BluetoothPermissionResult : PermissionStatus {
   // attribute FrozenArray<BluetoothDevice> devices;

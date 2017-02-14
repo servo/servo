@@ -11,21 +11,18 @@ use core::clone::Clone;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{self, BluetoothDataFilterInit, BluetoothLEScanFilterInit};
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothMethods, RequestDeviceOptions};
-use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::AllowedBluetoothDevice;
-use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionData;
 use dom::bindings::codegen::Bindings::BluetoothPermissionResultBinding::BluetoothPermissionDescriptor;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerBinding::
     BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionName, PermissionState};
-use dom::bindings::codegen::UnionTypes::{StringOrStringSequence, StringOrUnsignedLong};
+use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::error::Error::{self, Network, Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::DOMString;
-use dom::bindings::trace::JSTraceable;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothpermissionresult::BluetoothPermissionResult;
 use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID, UUID};
@@ -33,13 +30,13 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm};
 use dom::promise::Promise;
-use heapsize::{HeapSizeOf, heap_size_of};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ConversionResult;
 use js::jsapi::{JSAutoCompartment, JSContext, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 use script_thread::Runnable;
+use std::cell::Ref;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -60,62 +57,34 @@ const OPTIONS_ERROR: &'static str = "Fields of 'options' conflict with each othe
  Either 'acceptAllDevices' member must be true, or 'filters' member must be set to a value.";
 const BT_DESC_CONVERSION_ERROR: &'static str = "Can't convert to an IDL value of type BluetoothPermissionDescriptor";
 
-impl Clone for StringOrStringSequence {
-    fn clone(&self) -> StringOrStringSequence {
-        match self {
-            &StringOrStringSequence::String(ref s) => StringOrStringSequence::String(s.clone()),
-            &StringOrStringSequence::StringSequence(ref v) => StringOrStringSequence::StringSequence(v.clone()),
-        }
-    }
-}
-
-impl Clone for AllowedBluetoothDevice {
-    fn clone(&self) -> AllowedBluetoothDevice {
-        AllowedBluetoothDevice {
-            deviceId: self.deviceId.clone(),
-            mayUseGATT: self.mayUseGATT,
-            allowedServices: self.allowedServices.clone(),
-        }
-    }
+#[derive(HeapSizeOf, JSTraceable)]
+pub struct AllowedBluetoothDevice {
+    pub deviceId: DOMString,
+    pub mayUseGATT: bool,
 }
 
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct BluetoothExtraPermissionData {
-    permission_data: DOMRefCell<BluetoothPermissionData>,
+    allowed_devices: DOMRefCell<Vec<AllowedBluetoothDevice>>,
 }
 
 impl BluetoothExtraPermissionData {
     pub fn new() -> BluetoothExtraPermissionData {
         BluetoothExtraPermissionData {
-            permission_data: DOMRefCell::new(BluetoothPermissionData { allowedDevices: Vec::new() }),
+            allowed_devices: DOMRefCell::new(Vec::new()),
         }
     }
 
     pub fn add_new_allowed_device(&self, allowed_device: AllowedBluetoothDevice) {
-        self.permission_data.borrow_mut().allowedDevices.push(allowed_device);
+        self.allowed_devices.borrow_mut().push(allowed_device);
     }
 
-    fn get_allowed_devices(&self) -> Vec<AllowedBluetoothDevice> {
-        self.permission_data.borrow().allowedDevices.clone()
+    fn get_allowed_devices(&self) -> Ref<Vec<AllowedBluetoothDevice>> {
+        self.allowed_devices.borrow()
     }
 
     pub fn allowed_devices_contains_id(&self, id: DOMString) -> bool {
-        self.permission_data.borrow_mut().allowedDevices.iter().any(|d| d.deviceId == id)
-    }
-}
-
-impl HeapSizeOf for BluetoothPermissionData {
-    #[allow(unsafe_code)]
-    fn heap_size_of_children(&self) -> usize {
-        unsafe { heap_size_of(self.allowedDevices.as_ptr() as *const _) }
-    }
-}
-
-#[allow(unsafe_code)]
-unsafe impl JSTraceable for BluetoothPermissionData {
-    #[inline]
-    unsafe fn trace(&self, _: *mut ::js::jsapi::JSTracer) {
-        // Do nothing
+        self.allowed_devices.borrow().iter().any(|d| d.deviceId == id)
     }
 }
 
@@ -553,9 +522,6 @@ impl AsyncBluetoothListener for Bluetooth {
 
                 self.global().as_window().bluetooth_extra_permission_data().add_new_allowed_device(
                     AllowedBluetoothDevice {
-                        // TODO fix this
-                        // allowedServices only relevant if the device store it as an inter slot as well
-                        allowedServices: StringOrStringSequence::String(DOMString::from("all".to_owned())),
                         deviceId: DOMString::from(device.id),
                         mayUseGATT: true,
                     }
@@ -611,19 +577,15 @@ impl PermissionAlgorithm for Bluetooth {
         // Step 4.
         rooted_vec!(let mut matching_devices);
 
-        // TODO: Step 5: Create a map between the current setting object and BluetoothPermissionData
-        // extra permission data, which replaces the exisitng EXTRA_PERMISSION_DATA global variable.
-        // For this also use the extra permission data constraints from the specification:
-        // https://webbluetoothcg.github.io/web-bluetooth/#dictdef-bluetoothpermissiondata
-
         // Step 5.
-        let allowed_devices = status.global().as_window().bluetooth_extra_permission_data().get_allowed_devices();
+        let global = status.global();
+        let allowed_devices = global.as_window().bluetooth_extra_permission_data().get_allowed_devices();
 
         let bluetooth = status.get_bluetooth();
         let device_map = bluetooth.get_device_map().borrow();
 
         // Step 6.
-        for allowed_device in allowed_devices {
+        for allowed_device in allowed_devices.iter() {
             // Step 6.1.
             if let Some(ref id) = descriptor.deviceId {
                 if &allowed_device.deviceId != id {
@@ -697,7 +659,8 @@ impl PermissionAlgorithm for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#revoke-bluetooth-access
     fn permission_revoke(_descriptor: &BluetoothPermissionDescriptor, status: &BluetoothPermissionResult) {
         // Step 1.
-        let allowed_devices = status.global().as_window().bluetooth_extra_permission_data().get_allowed_devices();
+        let global = status.global();
+        let allowed_devices = global.as_window().bluetooth_extra_permission_data().get_allowed_devices();
         // Step 2.
         let bluetooth = status.get_bluetooth();
         let device_map = bluetooth.get_device_map().borrow();
