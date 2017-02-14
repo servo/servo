@@ -16,6 +16,8 @@ pub use cssparser::Color as CSSColor;
 pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::{Auto, Either, None_};
+#[cfg(feature = "gecko")]
+pub use super::specified::AlignJustifyContent;
 pub use super::specified::{Angle, BorderStyle, GridLine, Time, UrlOrNone};
 pub use super::specified::url::UrlExtraData;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -120,6 +122,8 @@ impl ToComputedValue for specified::CSSColor {
     }
 }
 
+#[cfg(feature = "gecko")]
+impl ComputedValueAsSpecified for specified::AlignJustifyContent {}
 impl ComputedValueAsSpecified for specified::BorderStyle {}
 
 #[derive(Debug, PartialEq, Clone, Copy)]

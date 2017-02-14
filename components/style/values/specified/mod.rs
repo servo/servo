@@ -20,6 +20,8 @@ use super::{Auto, CSSFloat, HasViewportPercentage, Either, None_};
 use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use super::computed::Shadow as ComputedShadow;
 
+#[cfg(feature = "gecko")]
+pub use self::align::AlignJustifyContent;
 pub use self::grid::GridLine;
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -29,6 +31,8 @@ pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercent
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength, CalcUnit};
 pub use self::position::{HorizontalPosition, Position, VerticalPosition};
 
+#[cfg(feature = "gecko")]
+pub mod align;
 pub mod basic_shape;
 pub mod grid;
 pub mod image;
