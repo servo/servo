@@ -790,12 +790,12 @@ fn http_redirect_fetch(request: Rc<Request>,
     main_fetch(request, cache, cors_flag, true, target, done_chan, context)
 }
 
-fn try_url_origin_to_hyper_origin(url_origin: UrlOrigin) -> Option<HyperOrigin> {
-    match url_origin {
+fn try_url_origin_to_hyper_origin(url_origin: &UrlOrigin) -> Option<HyperOrigin> {
+    match *url_origin {
         // TODO Set "Origin: null" when hyper supports it
         UrlOrigin::Opaque(_) => None,
-        UrlOrigin::Tuple(scheme, host, port) =>
-            Some(HyperOrigin::new(scheme, host.to_string(), Some(port)))
+        UrlOrigin::Tuple(ref scheme, ref host, ref port) =>
+            Some(HyperOrigin::new(scheme.clone(), host.to_string(), Some(port.clone())))
     }
 }
 
@@ -856,18 +856,15 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             unreachable!()
     };
 
-    // Step 7
-    if http_request.omit_origin_header.get() == false {
+    // Step 9
+    if !http_request.omit_origin_header.get() {
         let method = http_request.method.borrow();
         if cors_flag || (*method != Method::Get && *method != Method::Head) {
-            match *http_request.origin.borrow() {
-                Origin::Origin(ref url_origin) =>
-                    match try_url_origin_to_hyper_origin(url_origin.clone()) {
-                        Some(hyper_origin) => http_request.headers.borrow_mut().set(hyper_origin),
-                        None => (),
-                    },
-                // TODO Set origin to client origin when request has client object
-                Origin::Client => (),
+            debug_assert!(*http_request.origin.borrow() != Origin::Client);
+            if let Origin::Origin(ref url_origin) = *http_request.origin.borrow() {
+                if let Some(hyper_origin) = try_url_origin_to_hyper_origin(url_origin) {
+                    http_request.headers.borrow_mut().set(hyper_origin)
+                }
             }
         }
     }
