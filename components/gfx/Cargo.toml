@@ -26,7 +26,7 @@ libc = "0.2"
 log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-ordered-float = "0.2.2"
+ordered-float = "0.4"
 plugins = {path = "../plugins"}
 range = {path = "../range"}
 serde = "0.8"

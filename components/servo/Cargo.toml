@@ -67,9 +67,6 @@ git = "https://github.com/servo/webrender"
 default-features = false
 features = ["serde_derive", "ipc"]
 
-[target.'cfg(not(target_os = "android"))'.dependencies]
-sig = "0.1"
-
 [target.'cfg(target_os = "android")'.dependencies]
 log = "0.3"
 android_glue = "0.2"
