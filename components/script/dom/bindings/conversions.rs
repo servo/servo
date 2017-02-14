@@ -37,6 +37,7 @@ use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector};
 use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::bindings::trace::{JSTraceable, RootedTraceableBox};
 use dom::bindings::utils::DOMClass;
 use js;
 pub use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionResult};
@@ -113,6 +114,22 @@ impl <T: DomObject + IDLInterface> FromJSValConvertible for Root<T> {
         Ok(match root_from_handlevalue(value) {
             Ok(result) => ConversionResult::Success(result),
             Err(()) => ConversionResult::Failure("value is not an object".into()),
+        })
+    }
+}
+
+impl <T: FromJSValConvertible + JSTraceable> FromJSValConvertible for RootedTraceableBox<T> {
+    type Config = T::Config;
+
+    unsafe fn from_jsval(cx: *mut JSContext,
+                         value: HandleValue,
+                         config: Self::Config)
+                         -> Result<ConversionResult<Self>, ()> {
+        T::from_jsval(cx, value, config).map(|result| {
+            match result {
+                ConversionResult::Success(v) => ConversionResult::Success(RootedTraceableBox::new(v)),
+                ConversionResult::Failure(e) => ConversionResult::Failure(e),
+            }
         })
     }
 }
