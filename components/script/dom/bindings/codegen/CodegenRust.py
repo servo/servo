@@ -581,11 +581,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     If isDefinitelyObject is True, that means we know the value
     isObject() and we have no need to recheck that.
 
-    if isMember is True, we're being converted from a property of some
-    JS object, not from an actual method argument, so we can't rely on
-    our jsval being rooted or outliving us in any way.  Any caller
-    passing true needs to ensure that it is handled correctly in
-    typeIsSequenceOrHasSequenceMember.
+    isMember is `False`, "Dictionary", "Union" or "Variadic", and affects
+    whether this function returns code suitable for an on-stack rooted binding
+    or suitable for storing in an appropriate larger structure.
 
     invalidEnumValueFatal controls whether an invalid enum value conversion
     attempt will throw (if true) or simply return without doing anything (if
@@ -4059,7 +4057,8 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     info = getJSToNativeConversionInfo(
         type, descriptorProvider, failureCode="return Ok(None);",
         exceptionCode='return Err(());',
-        isDefinitelyObject=True)
+        isDefinitelyObject=True,
+        isMember="Union")
     template = info.template
 
     jsConversion = string.Template(template).substitute({
