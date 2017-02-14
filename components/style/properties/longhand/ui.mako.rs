@@ -31,9 +31,10 @@ ${helpers.single_keyword("-moz-window-dragging", "default drag no-drag", product
                          animatable=False,
                          spec="None (Nonstandard Firefox-only property)")}
 
-${helpers.predefined_type("caret-color", 
-                          "ColorOrAuto", 
+${helpers.predefined_type("caret-color",
+                          "ColorOrAuto",
                           "Either::Second(Auto)",
                           spec="https://drafts.csswg.org/css-ui/#caret-color",
                           animatable="False",
+                          products="none",
                           boxed="True")}
