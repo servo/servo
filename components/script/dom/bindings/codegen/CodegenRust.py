@@ -1090,13 +1090,13 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         typeName = "%s::%s" % (CGDictionary.makeModuleName(type.inner),
                                CGDictionary.makeDictionaryName(type.inner))
         declType = CGGeneric(typeName)
-        template = ("match %s::new(cx, ${val}) {\n"
+        template = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
                     "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
                     "    Ok(ConversionResult::Failure(error)) => {\n"
                     "%s\n"
                     "    }\n"
                     "    _ => { %s },\n"
-                    "}" % (typeName, indent(failOrPropagate, 8), exceptionCode))
+                    "}" % (indent(failOrPropagate, 8), exceptionCode))
 
         return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
 
