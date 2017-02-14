@@ -2,61 +2,42 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 use heartbeats_simple::HeartbeatPow as Heartbeat;
-use heartbeats_simple::HeartbeatPowContext as HeartbeatContext;
 use profile_traits::time::ProfilerCategory;
+use self::synchronized_heartbeat::{heartbeat_window_callback, lock_and_work};
 use servo_config::opts;
 use std::collections::HashMap;
 use std::env::var_os;
 use std::error::Error;
 use std::fs::File;
 use std::path::Path;
-use std::sync::atomic::{ATOMIC_BOOL_INIT, AtomicBool, Ordering};
-
-
-static mut HBS: Option<*mut HashMap<ProfilerCategory, Heartbeat>> = None;
-
-// unfortunately can't encompass the actual hashmap in a Mutex (Heartbeat isn't Send/Sync), so we'll use a spinlock
-static mut HBS_SPINLOCK: AtomicBool = ATOMIC_BOOL_INIT;
-
-fn lock_and_work<F, R>(work: F) -> R where F: FnOnce() -> R {
-    unsafe {
-        while HBS_SPINLOCK.compare_and_swap(false, true, Ordering::SeqCst) {}
-    }
-    let result = work();
-    unsafe {
-        HBS_SPINLOCK.store(false, Ordering::SeqCst);
-    }
-    result
-}
 
 /// Initialize heartbeats
 pub fn init() {
-    let mut hbs: Box<HashMap<ProfilerCategory, Heartbeat>> = Box::new(HashMap::new());
-    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ApplicationHeartbeat);
-    lock_and_work(||
-        unsafe {
-            HBS = Some(Box::into_raw(hbs));
+    lock_and_work(|hbs_opt|
+        if (*hbs_opt).is_none() {
+            let mut hbs: Box<HashMap<ProfilerCategory, Heartbeat>> = Box::new(HashMap::new());
+            maybe_create_heartbeat(&mut hbs, ProfilerCategory::ApplicationHeartbeat);
+            *hbs_opt = Some(Box::into_raw(hbs))
         }
     );
 }
 
 /// Log regmaining buffer data and cleanup heartbeats
 pub fn cleanup() {
-    let hbs_opt: Option<Box<HashMap<ProfilerCategory, Heartbeat>>> = lock_and_work(||
-        unsafe {
-            match HBS {
-                Some(hbs_ptr) => {
-                    let ret = Some(Box::from_raw(hbs_ptr));
-                    HBS = None;
-                    ret
-                },
-                None => None,
-            }
+    let hbs_opt_box: Option<Box<HashMap<ProfilerCategory, Heartbeat>>> = lock_and_work(|hbs_opt|
+        match *hbs_opt {
+            Some(hbs_ptr) => {
+                let ret = unsafe {
+                    Some(Box::from_raw(hbs_ptr))
+                };
+                *hbs_opt = None;
+                ret
+            },
+            None => None,
         }
     );
-    if let Some(mut hbs) = hbs_opt {
+    if let Some(mut hbs) = hbs_opt_box {
         for (_, mut v) in hbs.iter_mut() {
             // log any remaining heartbeat records before dropping
             log_heartbeat_records(v);
@@ -67,10 +48,12 @@ pub fn cleanup() {
 
 /// Check if a heartbeat exists for the given category
 pub fn is_heartbeat_enabled(category: &ProfilerCategory) -> bool {
-    let is_enabled = lock_and_work(||
-        unsafe {
-            HBS.map_or(false, |hbs_ptr| (*hbs_ptr).contains_key(category))
-        }
+    let is_enabled = lock_and_work(|hbs_opt|
+        (*hbs_opt).map_or(false, |hbs_ptr|
+            unsafe {
+                (*hbs_ptr).contains_key(category)
+            }
+        )
     );
     is_enabled || is_create_heartbeat(category)
 }
@@ -81,9 +64,9 @@ pub fn maybe_heartbeat(category: &ProfilerCategory,
                        end_time: u64,
                        start_energy: u64,
                        end_energy: u64) {
-    lock_and_work(||
-        unsafe {
-            if let Some(hbs_ptr) = HBS {
+    lock_and_work(|hbs_opt|
+        if let Some(hbs_ptr) = *hbs_opt {
+            unsafe {
                 if !(*hbs_ptr).contains_key(category) {
                     maybe_create_heartbeat(&mut (*hbs_ptr), category.clone());
                 }
@@ -159,15 +142,39 @@ fn log_heartbeat_records(hb: &mut Heartbeat) {
     }
 }
 
-/// Callback function used to log the window buffer.
-/// When this is called from native C, the heartbeat is safely locked internally and the global lock is held.
-/// If calling from this file, you must already hold the global lock!
-extern fn heartbeat_window_callback(hb: *const HeartbeatContext) {
-    unsafe {
-        if let Some(hbs_ptr) = HBS {
-            for (_, v) in (*hbs_ptr).iter_mut() {
-                if &v.hb as *const HeartbeatContext == hb {
-                    log_heartbeat_records(v);
+mod synchronized_heartbeat {
+    use heartbeats_simple::HeartbeatPow as Heartbeat;
+    use heartbeats_simple::HeartbeatPowContext as HeartbeatContext;
+    use profile_traits::time::ProfilerCategory;
+    use std::collections::HashMap;
+    use std::sync::atomic::{ATOMIC_BOOL_INIT, AtomicBool, Ordering};
+    use super::log_heartbeat_records;
+
+    static mut HBS: Option<*mut HashMap<ProfilerCategory, Heartbeat>> = None;
+
+    // unfortunately can't encompass the actual hashmap in a Mutex (Heartbeat isn't Send/Sync), so we'll use a spinlock
+    static HBS_SPINLOCK: AtomicBool = ATOMIC_BOOL_INIT;
+
+    pub fn lock_and_work<F, R>(work: F) -> R
+        where F: FnOnce(&mut Option<*mut HashMap<ProfilerCategory, Heartbeat>>) -> R {
+        while HBS_SPINLOCK.compare_and_swap(false, true, Ordering::SeqCst) {}
+        let result = unsafe {
+            work(&mut HBS)
+        };
+        HBS_SPINLOCK.store(false, Ordering::SeqCst);
+        result
+    }
+
+    /// Callback function used to log the window buffer.
+    /// When this is called from native C, the heartbeat is safely locked internally and the global lock is held.
+    /// If calling from this file, you must already hold the global lock!
+    pub extern fn heartbeat_window_callback(hb: *const HeartbeatContext) {
+        unsafe {
+            if let Some(hbs_ptr) = HBS {
+                for (_, v) in (*hbs_ptr).iter_mut() {
+                    if &v.hb as *const HeartbeatContext == hb {
+                        log_heartbeat_records(v);
+                    }
                 }
             }
         }
