@@ -139,12 +139,12 @@ impl Request {
         // TODO: `environment settings object` is not implemented in Servo yet.
 
         // Step 10
-        if !init.window.is_undefined() && !init.window.is_null() {
+        if !init.window.handle().is_null_or_undefined() {
             return Err(Error::Type("Window is present and is not null".to_string()))
         }
 
         // Step 11
-        if !init.window.is_undefined() {
+        if !init.window.handle().is_undefined() {
             window = Window::NoWindow;
         }
 
@@ -179,7 +179,7 @@ impl Request {
             init.redirect.is_some() ||
             init.referrer.is_some() ||
             init.referrerPolicy.is_some() ||
-            !init.window.is_undefined() {
+            !init.window.handle().is_undefined() {
                 // Step 13.1
                 if request.mode == NetTraitsRequestMode::Navigate {
                     return Err(Error::Type(

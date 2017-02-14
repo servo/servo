@@ -93,7 +93,7 @@ impl ErrorEvent {
 
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
-        rooted!(in(global.get_cx()) let error = init.error);
+        rooted!(in(global.get_cx()) let error = init.error.get());
         let event = ErrorEvent::new(
                 global,
                 Atom::from(type_),

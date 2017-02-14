@@ -64,7 +64,7 @@ impl MessageEvent {
                        -> Fallible<Root<MessageEvent>> {
         // Dictionaries need to be rooted
         // https://github.com/servo/servo/issues/6381
-        rooted!(in(global.get_cx()) let data = init.data);
+        rooted!(in(global.get_cx()) let data = init.data.get());
         let ev = MessageEvent::new(global,
                                    Atom::from(type_),
                                    init.parent.bubbles,

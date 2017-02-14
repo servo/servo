@@ -50,7 +50,7 @@ impl ExtendableMessageEvent {
                        init: &ExtendableMessageEventBinding::ExtendableMessageEventInit)
                        -> Fallible<Root<ExtendableMessageEvent>> {
         let global = worker.upcast::<GlobalScope>();
-        rooted!(in(global.get_cx()) let data = init.data);
+        rooted!(in(global.get_cx()) let data = init.data.get());
         let ev = ExtendableMessageEvent::new(global,
                                              Atom::from(type_),
                                              init.parent.parent.bubbles,

@@ -53,7 +53,6 @@ impl PopStateEvent {
         ev
     }
 
-    #[allow(unsafe_code)]
     pub fn Constructor(window: &Window,
                        type_: DOMString,
                        init: &PopStateEventBinding::PopStateEventInit)
@@ -62,7 +61,7 @@ impl PopStateEvent {
                               Atom::from(type_),
                               init.parent.bubbles,
                               init.parent.cancelable,
-                              unsafe { HandleValue::from_marked_location(&init.state) }))
+                              init.state.handle()))
     }
 }
 

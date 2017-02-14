@@ -1031,21 +1031,22 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     if type.isAny():
         assert not isEnforceRange and not isClamp
+        assert isMember != "Union"
 
         if isMember == "Dictionary":
             # TODO: Need to properly root dictionaries
             # https://github.com/servo/servo/issues/6381
-            declType = CGGeneric("JSVal")
+            declType = CGGeneric("Heap<JSVal>")
 
             if defaultValue is None:
                 default = None
             elif isinstance(defaultValue, IDLNullValue):
-                default = "NullValue()"
+                default = "Heap::new(NullValue())"
             elif isinstance(defaultValue, IDLUndefinedValue):
-                default = "UndefinedValue()"
+                default = "Heap::new(UndefinedValue())"
             else:
                 raise TypeError("Can't handle non-null, non-undefined default value here")
-            return handleOptional("${val}", declType, default)
+            return handleOptional("Heap::new(${val}.get())", declType, default)
 
         declType = CGGeneric("HandleValue")
 
@@ -1065,13 +1066,22 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         # TODO: Need to root somehow
         # https://github.com/servo/servo/issues/6382
-        declType = CGGeneric("*mut JSObject")
+        default = "ptr::null_mut()"
         templateBody = wrapObjectTemplate("${val}.get().to_object()",
-                                          "ptr::null_mut()",
+                                          default,
                                           isDefinitelyObject, type, failureCode)
 
+        if isMember in ("Dictionary", "Union"):
+            declType = CGGeneric("Heap<*mut JSObject>")
+            templateBody = "Heap::new(%s)" % templateBody
+            default = "Heap::new(%s)" % default
+        else:
+            # TODO: Need to root somehow
+            # https://github.com/servo/servo/issues/6382
+            declType = CGGeneric("*mut JSObject")
+
         return handleOptional(templateBody, declType,
-                              handleDefaultNull("ptr::null_mut()"))
+                              handleDefaultNull(default))
 
     if type.isDictionary():
         # There are no nullable dictionaries
@@ -2230,6 +2240,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::types::*',
         'js::error::throw_type_error',
         'js::jsapi::HandleValue',
+        'js::jsapi::Heap',
         'js::jsapi::JSContext',
         'js::jsapi::JSObject',
         'js::jsapi::MutableHandleValue',
@@ -4049,7 +4060,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         typeName = builtinNames[type.tag()]
     elif type.isObject():
         name = type.name
-        typeName = "*mut JSObject"
+        typeName = "Heap<*mut JSObject>"
     else:
         raise TypeError("Can't handle %s in unions yet" % type)
 
@@ -5993,8 +6004,6 @@ class CGDictionary(CGThing):
         default = info.default
         replacements = {"val": "rval.handle()"}
         conversion = string.Template(templateBody).substitute(replacements)
-        if memberType.isAny():
-            conversion = "%s.get()" % conversion
 
         assert (member.defaultValue is None) == (default is None)
         if not member.optional:
