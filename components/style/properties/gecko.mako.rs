@@ -610,15 +610,11 @@ impl ${style_struct.gecko_struct_name} {
     % for longhand in stub_longhands:
     #[allow(non_snake_case)]
     pub fn set_${longhand.ident}(&mut self, _: longhands::${longhand.ident}::computed_value::T) {
-        if cfg!(debug_assertions) {
-            println!("stylo: Unimplemented property setter: ${longhand.name}");
-        }
+        warn!("stylo: Unimplemented property setter: ${longhand.name}");
     }
     #[allow(non_snake_case)]
     pub fn copy_${longhand.ident}_from(&mut self, _: &Self) {
-        if cfg!(debug_assertions) {
-            println!("stylo: Unimplemented property setter: ${longhand.name}");
-        }
+        warn!("stylo: Unimplemented property setter: ${longhand.name}");
     }
     % if longhand.need_clone:
     #[allow(non_snake_case)]
@@ -2628,7 +2624,7 @@ clip-path
         clip_path.mType = StyleShapeSourceType::None;
 
         match v {
-            ShapeSource::Url(..) => println!("stylo: clip-path: url() not yet implemented"),
+            ShapeSource::Url(..) => warn!("stylo: clip-path: url() not yet implemented"),
             ShapeSource::None => {} // don't change the type
             ShapeSource::Box(reference) => {
                 clip_path.mReferenceBox = reference.into();

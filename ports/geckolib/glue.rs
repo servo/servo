@@ -6,12 +6,13 @@ use app_units::Au;
 use atomic_refcell::AtomicRefMut;
 use cssparser::Parser;
 use cssparser::ToCss as ParserToCss;
-use env_logger;
+use env_logger::LogBuilder;
 use euclid::Size2D;
 use parking_lot::RwLock;
 use selectors::Element;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
+use std::env;
 use std::fmt::Write;
 use std::mem;
 use std::ptr;
@@ -91,10 +92,13 @@ use stylesheet_loader::StylesheetLoader;
 
 #[no_mangle]
 pub extern "C" fn Servo_Initialize() -> () {
-    // Enable standard Rust logging.
-    //
-    // See https://doc.rust-lang.org/log/env_logger/index.html for instructions.
-    env_logger::init().unwrap();
+    // Initialize logging.
+    let mut builder = LogBuilder::new();
+    let default_level = if cfg!(debug_assertions) { "warn" } else { "error" };
+    match env::var("RUST_LOG") {
+      Ok(v) => builder.parse(&v).init().unwrap(),
+      _ => builder.parse(default_level).init().unwrap(),
+    };
 
     // Pretend that we're a Servo Layout thread, to make some assertions happy.
     thread_state::initialize(thread_state::LAYOUT);
@@ -318,8 +322,8 @@ pub extern "C" fn Servo_AnimationValues_Populate(anim: RawGeckoAnimationValueLis
 
     // we should have gone through both iterators
     if iter.next().is_some() || geckoiter.next().is_some() {
-        error!("stylo: Mismatched sizes of Gecko and Servo \
-                array during animation value construction");
+        warn!("stylo: Mismatched sizes of Gecko and Servo \
+               array during animation value construction");
     }
 }
 
@@ -671,7 +675,7 @@ pub extern "C" fn Servo_ResolvePseudoStyle(element: RawGeckoElementBorrowed,
 
     // FIXME(bholley): Assert against this.
     if data.get_styles().is_none() {
-        error!("Calling Servo_ResolvePseudoStyle on unstyled element");
+        warn!("Calling Servo_ResolvePseudoStyle on unstyled element");
         return if is_probe {
             Strong::null()
         } else {
@@ -962,7 +966,7 @@ pub extern "C" fn Servo_DeclarationBlock_AddPresValue(declarations: RawServoDecl
     let long = match prop {
         Ok(PropertyId::Longhand(long)) => long,
         _ => {
-            error!("stylo: unknown presentation property with id {:?}", property);
+            warn!("stylo: unknown presentation property with id {:?}", property);
             return
         }
     };
@@ -977,7 +981,7 @@ pub extern "C" fn Servo_DeclarationBlock_AddPresValue(declarations: RawServoDecl
                     )
                 ))
             } else {
-                error!("stylo: got unexpected non-integer value for font-size presentation attribute");
+                warn!("stylo: got unexpected non-integer value for font-size presentation attribute");
                 return
             }
         }
@@ -990,12 +994,12 @@ pub extern "C" fn Servo_DeclarationBlock_AddPresValue(declarations: RawServoDecl
                     }
                 ))
             } else {
-                error!("stylo: got unexpected non-integer value for color presentation attribute");
+                warn!("stylo: got unexpected non-integer value for color presentation attribute");
                 return
             }
         }
         _ => {
-            error!("stylo: cannot handle longhand {:?} from presentation attribute", long);
+            warn!("stylo: cannot handle longhand {:?} from presentation attribute", long);
             return
         }
     };
@@ -1116,7 +1120,7 @@ pub extern "C" fn Servo_TakeChangeHint(element: RawGeckoElementBorrowed) -> nsCh
         data.clear_restyle();
         d
     } else {
-        error!("Trying to get change hint from unstyled element");
+        warn!("Trying to get change hint from unstyled element");
         GeckoRestyleDamage::empty()
     };
 
@@ -1134,7 +1138,7 @@ pub extern "C" fn Servo_ResolveStyle(element: RawGeckoElementBorrowed,
     let data = unsafe { element.ensure_data() }.borrow_mut();
 
     if !data.has_current_styles() {
-        error!("Resolving style on unstyled element with lazy computation forbidden.");
+        warn!("Resolving style on unstyled element with lazy computation forbidden.");
         let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
         return per_doc_data.default_computed_values().clone().into_strong();
     }
