@@ -13,7 +13,7 @@ use dom::{DirtyDescendants, NodeInfo, TElement, TNode};
 use matching::{MatchMethods, MatchResults};
 use restyle_hints::{RESTYLE_DESCENDANTS, RESTYLE_SELF};
 use selector_parser::RestyleDamage;
-use servo_config::opts;
+use config;
 use std::borrow::BorrowMut;
 use stylist::Stylist;
 
@@ -175,7 +175,7 @@ pub trait DomTraversal<E: TElement> : Sync {
     /// Returns true if traversal is needed for the given node and subtree.
     fn node_needs_traversal(node: E::ConcreteNode, animation_only: bool) -> bool {
         // Non-incremental layout visits every node.
-        if cfg!(feature = "servo") && opts::get().nonincremental_layout {
+        if cfg!(feature = "servo") && config::nonincremental_layout_enabled() {
             return true;
         }
 

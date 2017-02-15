@@ -70,7 +70,7 @@ extern crate rayon;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
-extern crate servo_config;
+#[cfg(feature = "servo")] extern crate servo_config;
 extern crate servo_url;
 extern crate smallvec;
 #[macro_use]
@@ -86,6 +86,7 @@ pub mod bezier;
 pub mod bloom;
 pub mod cache;
 pub mod cascade_info;
+#[allow(missing_docs)] pub mod config;
 pub mod context;
 pub mod custom_properties;
 pub mod data;

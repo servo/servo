@@ -23,7 +23,7 @@ use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
-use servo_config::opts;
+use config;
 use sink::ForgetfulSink;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
@@ -1021,7 +1021,7 @@ pub trait MatchMethods : TElement {
                                       shared_context: &SharedStyleContext,
                                       data: &mut AtomicRefMut<ElementData>)
                                       -> StyleSharingResult {
-        if opts::get().disable_share_style_cache {
+        if config::disable_share_style_cache_enabled() {
             return StyleSharingResult::CannotShare
         }
 
