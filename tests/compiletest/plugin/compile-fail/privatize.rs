@@ -4,10 +4,13 @@
 
 #![allow(dead_code)]
 
+#[macro_use]
+extern crate deny_public_fields;
+
 #[derive(DenyPublicFields)]
+//~^ ERROR custom derive attribute panicked
 struct Foo {
     pub v1: i32,
-    //~^ ERROR Field v1 is public where only private fields are allowed
     v2: i32
 }
 
