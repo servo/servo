@@ -39,6 +39,9 @@ rustc-with-gold = true
 # Defaults to prompting before building
 #mode = "dev"
 
+# Whether to enable LLVM assertions in rustc.
+#llvm-assertions = true
+
 # Set "android = true" or use `mach build --android` to build the Android app.
 android = false
 
