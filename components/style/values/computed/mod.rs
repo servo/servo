@@ -11,6 +11,7 @@ use properties::ComputedValues;
 use std::fmt;
 use style_traits::ToCss;
 use super::{CSSFloat, specified};
+use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 
 pub use cssparser::Color as CSSColor;
 pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image};
@@ -222,6 +223,12 @@ impl ToCss for ClipRect {
 
 /// rect(...) | auto
 pub type ClipRectOrAuto = Either<ClipRect, Auto>;
+
+#[allow(missing_docs)]
+pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;
+
+#[allow(missing_docs)]
+pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
 
 impl ClipRectOrAuto {
     /// Return an auto (default for clip-rect and image-region) value
