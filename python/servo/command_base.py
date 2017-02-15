@@ -268,6 +268,9 @@ class CommandBase(object):
         llvm_assertions_default = ("SERVO_RUSTC_LLVM_ASSERTIONS" in os.environ
                                    or host_platform() not in platforms_with_rustc_alt_builds)
 
+        # https://github.com/rust-lang/rust/issues/39644
+        incremental_compilation_is_buggy = "windows" in host_platform()
+
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
         self.config["build"].setdefault("mode", "")
@@ -275,7 +278,7 @@ class CommandBase(object):
         self.config["build"].setdefault("debug-mozjs", False)
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
-        self.config["build"].setdefault("incremental", False)
+        self.config["build"].setdefault("incremental", not incremental_compilation_is_buggy)
 
         self.config.setdefault("android", {})
         self.config["android"].setdefault("sdk", "")
@@ -293,6 +296,9 @@ class CommandBase(object):
 
     def set_use_stable_rust(self, use_stable_rust=True):
         self._use_stable_rust = use_stable_rust
+        if use_stable_rust:
+            # FIXME: Stable is two versions behind on incremental compilation bug fixes
+            self.config["build"]["incremental"] = False
         if not self.config["tools"]["system-rust"]:
             self.config["tools"]["rust-root"] = path.join(
                 self.context.sharedir, "rust", self.rust_path())
