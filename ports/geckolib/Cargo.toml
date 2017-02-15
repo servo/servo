@@ -15,7 +15,7 @@ bindgen = ["style/use_bindgen"]
 [dependencies]
 app_units = "0.3"
 atomic_refcell = "0.1"
-cssparser = {version = "0.8"}
+cssparser = {version = "0.9"}
 env_logger = {version = "0.4", default-features = false} # disable `regex` to reduce code size
 euclid = "0.10.1"
 lazy_static = "0.2"

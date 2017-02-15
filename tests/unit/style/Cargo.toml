@@ -14,7 +14,7 @@ testing = ["style/testing"]
 
 [dependencies]
 app_units = "0.3"
-cssparser = {version = "0.8", features = ["heap_size"]}
+cssparser = {version = "0.9", features = ["heap_size"]}
 euclid = "0.10.1"
 html5ever-atoms = "0.1"
 matches = "0.1"

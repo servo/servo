@@ -7,10 +7,10 @@
 #![deny(missing_docs)]
 
 use {Atom, Prefix, Namespace};
-use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
+use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, stylesheet_encoding, EncodingSupport};
 use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
-use encoding::EncodingRef;
+use encoding::{self, EncodingRef, DecoderTrap};
 use error_reporting::ParseErrorReporter;
 use font_face::{FontFaceRule, parse_font_face_block};
 use keyframes::{Keyframe, parse_keyframe_list};
@@ -24,6 +24,7 @@ use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fmt;
+use std::str;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use style_traits::ToCss;
@@ -541,6 +542,33 @@ impl ToCss for StyleRule {
         try!(dest.write_str("}"));
         Ok(())
     }
+}
+
+struct RustEncoding;
+
+impl EncodingSupport for RustEncoding {
+    type Encoding = EncodingRef;
+
+    fn utf8() -> Self::Encoding {
+        encoding::all::UTF_8
+    }
+
+    fn is_utf16_be_or_le(encoding: &Self::Encoding) -> bool {
+        matches!(encoding.name(), "utf-16be" | "utf-16le")
+    }
+
+    fn from_label(ascii_label: &[u8]) -> Option<Self::Encoding> {
+        str::from_utf8(ascii_label).ok().and_then(encoding::label::encoding_from_whatwg_label)
+    }
+}
+
+fn decode_stylesheet_bytes(css: &[u8], protocol_encoding_label: Option<&str>,
+                           environment_encoding: Option<EncodingRef>)
+                           -> (String, EncodingRef) {
+    let fallback_encoding = stylesheet_encoding::<RustEncoding>(
+        css, protocol_encoding_label.map(str::as_bytes), environment_encoding);
+    let (result, used_encoding) = encoding::decode(css, DecoderTrap::Replace, fallback_encoding);
+    (result.unwrap(), used_encoding)
 }
 
 impl Stylesheet {
