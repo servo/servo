@@ -594,6 +594,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                             p2y = try!(specified::parse_number(input));
                             Ok(())
                         }));
+                        if p1x < 0.0 || p1x > 1.0 || p2x < 0.0 || p2x > 1.0 {
+                            return Err(())
+                        }
+
                         let (p1, p2) = (Point2D::new(p1x, p1y), Point2D::new(p2x, p2y));
                         Ok(SpecifiedValue::CubicBezier(p1, p2))
                     },
@@ -601,6 +605,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         let (mut step_count, mut start_end) = (0, StartEnd::End);
                         try!(input.parse_nested_block(|input| {
                             step_count = try!(specified::parse_integer(input));
+                            if step_count < 1 {
+                                return Err(())
+                            }
+
                             if input.try(|input| input.expect_comma()).is_ok() {
                                 start_end = try!(match_ignore_ascii_case! {
                                     try!(input.expect_ident()),
