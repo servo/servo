@@ -484,6 +484,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "constellation_tests"
+version = "0.0.1"
+dependencies = [
+ "constellation 0.0.1",
+ "msg 0.0.1",
+ "servo_url 0.0.1",
+]
+
+[[package]]
 name = "content-blocker"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2460,6 +2469,7 @@ dependencies = [
  "backtrace 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)",
  "compiletest_helper 0.0.1",
+ "constellation_tests 0.0.1",
  "gfx_tests 0.0.1",
  "glutin_app 0.0.1",
  "layout_tests 0.0.1",

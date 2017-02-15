@@ -53,3 +53,4 @@ pub use constellation::{Constellation, FromCompositorLogger, FromScriptLogger, I
 pub use pipeline::UnprivilegedPipelineContent;
 #[cfg(not(target_os = "windows"))]
 pub use sandboxing::content_process_sandbox_profile;
+pub use frame::Frame;

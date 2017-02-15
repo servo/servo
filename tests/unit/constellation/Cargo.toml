@@ -1,0 +1,15 @@
+[package]
+name = "constellation_tests"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+
+[lib]
+name = "constellation_tests"
+path = "lib.rs"
+doctest = false
+
+[dependencies]
+constellation = {path = "../../../components/constellation"}
+msg = {path = "../../../components/msg"}
+servo_url = {path = "../../../components/url"}
