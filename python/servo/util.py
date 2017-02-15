@@ -20,7 +20,7 @@ import zipfile
 import urllib2
 
 
-def host_triple():
+def host_platform():
     os_type = platform.system().lower()
     if os_type == "linux":
         os_type = "unknown-linux-gnu"
@@ -42,7 +42,11 @@ def host_triple():
         os_type = "unknown-freebsd"
     else:
         os_type = "unknown"
+    return os_type
 
+
+def host_triple():
+    os_type = host_platform()
     cpu_type = platform.machine().lower()
     if os_type.endswith("-msvc"):
         # vcvars*.bat should set it properly

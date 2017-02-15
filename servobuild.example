@@ -40,7 +40,7 @@ rustc-with-gold = true
 #mode = "dev"
 
 # Whether to enable LLVM assertions in rustc.
-#llvm-assertions = true
+#llvm-assertions = false
 
 # Set "android = true" or use `mach build --android` to build the Android app.
 android = false

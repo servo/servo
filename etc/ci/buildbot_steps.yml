@@ -14,9 +14,9 @@ mac-rel-wpt2:
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
 
 mac-dev-unit:
-  - ./mach build --dev
-  - ./mach test-unit
-  - ./mach build-cef
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
   - ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
@@ -46,10 +46,10 @@ mac-rel-intermittent:
 linux-dev:
   - ./mach test-tidy --no-progress --all
   - ./mach test-tidy --no-progress --self-test
-  - ./mach build --dev
-  - ./mach test-compiletest
-  - ./mach test-unit
-  - ./mach build-cef
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-compiletest
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
   - ./mach build-geckolib
   - ./mach test-stylo
   - bash ./etc/ci/lockfile_changed.sh
