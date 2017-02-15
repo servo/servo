@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A grid line type.
+//! Necessary types for [grid](https://drafts.csswg.org/css-grid/).
 
 use cssparser::{Parser, Token};
 use parser::{Parse, ParserContext};
 use std::fmt;
 use style_traits::ToCss;
 use values::{CSSFloat, HasViewportPercentage};
-use values::computed::ComputedValueAsSpecified;
+use values::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use values::specified::LengthOrPercentage;
 
 #[derive(PartialEq, Clone, Debug)]
@@ -159,6 +159,29 @@ impl HasViewportPercentage for TrackBreadth<LengthOrPercentage> {
     }
 }
 
+impl<L: ToComputedValue> ToComputedValue for TrackBreadth<L> {
+    type ComputedValue = TrackBreadth<L::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            TrackBreadth::Breadth(ref lop) => TrackBreadth::Breadth(lop.to_computed_value(context)),
+            TrackBreadth::Flex(fr) => TrackBreadth::Flex(fr),
+            TrackBreadth::Keyword(k) => TrackBreadth::Keyword(k),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            TrackBreadth::Breadth(ref lop) =>
+                TrackBreadth::Breadth(ToComputedValue::from_computed_value(lop)),
+            TrackBreadth::Flex(fr) => TrackBreadth::Flex(fr),
+            TrackBreadth::Keyword(k) => TrackBreadth::Keyword(k),
+        }
+    }
+}
+
 #[allow(missing_docs)]
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -226,6 +249,33 @@ impl HasViewportPercentage for TrackSize<LengthOrPercentage> {
             TrackSize::Breadth(ref b) => b.has_viewport_percentage(),
             TrackSize::MinMax(ref inf_b, ref b) => inf_b.has_viewport_percentage() || b.has_viewport_percentage(),
             TrackSize::FitContent(ref lop) => lop.has_viewport_percentage(),
+        }
+    }
+}
+
+impl<L: ToComputedValue> ToComputedValue for TrackSize<L> {
+    type ComputedValue = TrackSize<L::ComputedValue>;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> Self::ComputedValue {
+        match *self {
+            TrackSize::Breadth(ref b) => TrackSize::Breadth(b.to_computed_value(context)),
+            TrackSize::MinMax(ref b_1, ref b_2) =>
+                TrackSize::MinMax(b_1.to_computed_value(context), b_2.to_computed_value(context)),
+            TrackSize::FitContent(ref lop) => TrackSize::FitContent(lop.to_computed_value(context)),
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self::ComputedValue) -> Self {
+        match *computed {
+            TrackSize::Breadth(ref b) =>
+                TrackSize::Breadth(ToComputedValue::from_computed_value(b)),
+            TrackSize::MinMax(ref b_1, ref b_2) =>
+                TrackSize::MinMax(ToComputedValue::from_computed_value(b_1),
+                                  ToComputedValue::from_computed_value(b_2)),
+            TrackSize::FitContent(ref lop) =>
+                TrackSize::FitContent(ToComputedValue::from_computed_value(lop)),
         }
     }
 }

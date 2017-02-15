@@ -22,7 +22,7 @@ use super::computed::Shadow as ComputedShadow;
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignJustifyContent, AlignJustifySelf};
-pub use self::grid::GridLine;
+pub use self::grid::{GridLine, TrackBreadth, TrackKeyword, TrackSize};
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use self::image::{SizeKeyword, VerticalDirection};
