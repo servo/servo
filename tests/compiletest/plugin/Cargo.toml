@@ -11,5 +11,6 @@ doctest = false
 
 [dependencies]
 compiletest_helper = {path = "../helper"}
+deny_public_fields = {path = "../../../components/deny_public_fields"}
 plugins = {path = "../../../components/plugins"}
 script = {path = "../../../components/script"}

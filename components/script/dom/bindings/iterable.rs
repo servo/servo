@@ -11,11 +11,11 @@ use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyAndVal
 use dom::bindings::codegen::Bindings::IterableIteratorBinding::IterableKeyOrValueResult;
 use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, DomObject, MutDomObject, reflect_dom_object};
+use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::globalscope::GlobalScope;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::{JSContext, JSObject, MutableHandleValue, MutableHandleObject, HandleValue};
+use js::jsapi::{HandleValue, JSContext, JSObject, MutableHandleObject};
 use js::jsval::UndefinedValue;
 use std::cell::Cell;
 use std::ptr;
@@ -47,38 +47,12 @@ pub trait Iterable {
 
 /// An iterator over the iterable entries of a given DOM interface.
 //FIXME: #12811 prevents dom_struct with type parameters
-//#[dom_struct]
-#[must_root]
-#[privatize]
-#[derive(JSTraceable)]
-#[derive(HeapSizeOf)]
+#[dom_struct]
 pub struct IterableIterator<T: DomObject + JSTraceable + Iterable> {
     reflector: Reflector,
     iterable: JS<T>,
     type_: IteratorType,
     index: Cell<u32>,
-}
-
-impl<T: DomObject + JSTraceable + Iterable> DomObject for IterableIterator<T> {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector
-    }
-}
-
-impl<T: DomObject + JSTraceable + Iterable> MutDomObject for IterableIterator<T> {
-    fn init_reflector(&mut self, obj: *mut JSObject) {
-        self.reflector.set_jsobject(obj);
-    }
-}
-
-impl<T: DomObject + JSTraceable + Iterable> ToJSValConvertible for IterableIterator<T> {
-    #[allow(unsafe_code)]
-    unsafe fn to_jsval(&self,
-                       cx: *mut JSContext,
-                       rval: MutableHandleValue) {
-        let object = DomObject::reflector(self).get_jsobject();
-        object.to_jsval(cx, rval)
-    }
 }
 
 impl<T: DomObject + JSTraceable + Iterable> IterableIterator<T> {

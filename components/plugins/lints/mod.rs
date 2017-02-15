@@ -4,6 +4,4 @@
 
 pub mod ban;
 pub mod inheritance_integrity;
-pub mod privatize;
-pub mod transmute_type;
 pub mod unrooted_must_root;
