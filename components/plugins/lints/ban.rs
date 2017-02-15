@@ -43,5 +43,11 @@ impl EarlyLintPass for BanPass {
             .is_some() {
             cx.span_lint(BANNED_TYPE, ty.span, "Banned type DOMRefCell<JS<T>> detected. Use MutJS<JS<T>> instead")
         }
+        if match_ty_unwrap(ty, &["dom", "bindings", "cell", "DOMRefCell"])
+            .and_then(|t| t.get(0))
+            .and_then(|t| match_ty_unwrap(&**t, &["js", "jsapi", "Heap"]))
+            .is_some() {
+            cx.span_lint(BANNED_TYPE, ty.span, "Banned type DOMRefCell<Heap<T>> detected. Use Heap<T> directly instead")
+        }
     }
 }
