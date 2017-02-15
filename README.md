@@ -149,7 +149,7 @@ Servo's build system automatically downloads a Rust compiler to build itself.
 This is normally a specific revision of Rust upstream, but sometimes has a
 backported patch or two.
 If you'd like to know which nightly build of Rust we use, see
-[`rust-nightly-date`](https://github.com/servo/servo/blob/master/rust-nightly-date).
+[`rust-commit-hash`](https://github.com/servo/servo/blob/master/rust-commit-hash).
 
 ## Building
 

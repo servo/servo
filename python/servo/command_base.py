@@ -303,7 +303,7 @@ class CommandBase(object):
     def rust_version(self):
         if self._rust_version is None or self._use_stable_rust != self._rust_version_is_stable:
             filename = path.join(self.context.topdir,
-                                 "rust-stable-version" if self._use_stable_rust else "rust-nightly-date")
+                                 "rust-stable-version" if self._use_stable_rust else "rust-commit-hash")
             with open(filename) as f:
                 self._rust_version = f.read().strip()
         return self._rust_version
