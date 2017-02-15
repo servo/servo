@@ -11,7 +11,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Heap, JSContext, JSObject};
-use js::typedarray::Float32Array;
+use js::typedarray::{Float32Array, CreateWith};
 use webvr_traits::WebVRStageParameters;
 
 #[dom_struct]
@@ -33,10 +33,10 @@ impl VRStageParameters {
             parameters: DOMRefCell::new(parameters),
             transform: Heap::default()
         };
+        // XXX unsound!
         unsafe {
             let _ = Float32Array::create(global.get_cx(),
-                                         stage.parameters.borrow().sitting_to_standing_transform.len() as u32,
-                                         Some(&stage.parameters.borrow().sitting_to_standing_transform),
+                                         CreateWith::Slice(&stage.parameters.borrow().sitting_to_standing_transform),
                                          stage.transform.handle_mut());
         }
 
