@@ -27,7 +27,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use js::jsapi::JSAutoCompartment;
 use js::jsval::UndefinedValue;
-use js::typedarray::ArrayBuffer;
+use js::typedarray::{ArrayBuffer, CreateWith};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use net_traits::CookieSource::HTTP;
 use net_traits::CoreResourceMsg::{SetCookiesForUrl, WebsocketConnect};
@@ -609,8 +609,7 @@ impl Runnable for MessageReceivedTask {
                         BinaryType::Arraybuffer => {
                             rooted!(in(cx) let mut array_buffer = ptr::null_mut());
                             assert!(ArrayBuffer::create(cx,
-                                                        data.len() as u32,
-                                                        Some(data.as_slice()),
+                                                        CreateWith::Slice(&data),
                                                         array_buffer.handle_mut())
                                     .is_ok());
 

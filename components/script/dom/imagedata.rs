@@ -11,7 +11,7 @@ use dom::globalscope::GlobalScope;
 use euclid::size::Size2D;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::rust::Runtime;
-use js::typedarray::Uint8ClampedArray;
+use js::typedarray::{Uint8ClampedArray, CreateWith};
 use std::default::Default;
 use std::ptr;
 use std::vec::Vec;
@@ -26,19 +26,26 @@ pub struct ImageData {
 
 impl ImageData {
     #[allow(unsafe_code)]
-    pub fn new(global: &GlobalScope, width: u32, height: u32, data: Option<Vec<u8>>) -> Root<ImageData> {
+    pub fn new(global: &GlobalScope, width: u32, height: u32, mut data: Option<Vec<u8>>) -> Root<ImageData> {
         let imagedata = box ImageData {
             reflector_: Reflector::new(),
             width: width,
             height: height,
             data: Heap::default(),
         };
+        let len = width * height * 4;
 
         unsafe {
             let cx = global.get_cx();
             rooted!(in (cx) let mut js_object = ptr::null_mut());
-            let data = data.as_ref().map(|d| &d[..]);
-            Uint8ClampedArray::create(cx, width * height * 4, data, js_object.handle_mut()).unwrap();
+            let data = match data {
+                Some(ref mut d) => {
+                    d.resize(len as usize, 0);
+                    CreateWith::Slice(&d[..])
+                },
+                None => CreateWith::Length(len),
+            };
+            Uint8ClampedArray::create(cx, data, js_object.handle_mut()).unwrap();
             (*imagedata).data.set(js_object.get());
         }
 

@@ -14,7 +14,7 @@ use encoding::EncoderTrap;
 use encoding::Encoding;
 use encoding::all::UTF_8;
 use js::jsapi::{JSContext, JSObject};
-use js::typedarray::Uint8Array;
+use js::typedarray::{Uint8Array, CreateWith};
 use std::ptr;
 
 #[dom_struct]
@@ -53,7 +53,7 @@ impl TextEncoderMethods for TextEncoder {
         let encoded = UTF_8.encode(&input.0, EncoderTrap::Strict).unwrap();
 
         rooted!(in(cx) let mut js_object = ptr::null_mut());
-        assert!(Uint8Array::create(cx, encoded.len() as u32, Some(encoded.as_slice()), js_object.handle_mut()).is_ok());
+        assert!(Uint8Array::create(cx, CreateWith::Slice(&encoded), js_object.handle_mut()).is_ok());
 
         NonZero::new(js_object.get())
     }
