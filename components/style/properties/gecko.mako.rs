@@ -864,7 +864,7 @@ fn static_assert() {
 <% skip_position_longhands = " ".join(x.ident for x in SIDES + GRID_LINES) %>
 <%self:impl_trait style_struct_name="Position"
                   skip_longhands="${skip_position_longhands} z-index box-sizing order align-content
-                                  justify-content">
+                                  justify-content align-self justify-self">
     % for side in SIDES:
     <% impl_split_style_coord("%s" % side.ident,
                               "mOffset",
@@ -913,6 +913,18 @@ fn static_assert() {
     }
 
     ${impl_simple_copy('justify_content', 'mJustifyContent')}
+
+    pub fn set_align_self(&mut self, v: longhands::align_self::computed_value::T) {
+        self.gecko.mAlignSelf = v.0.bits()
+    }
+
+    ${impl_simple_copy('align_self', 'mAlignSelf')}
+
+    pub fn set_justify_self(&mut self, v: longhands::justify_self::computed_value::T) {
+        self.gecko.mJustifySelf = v.0.bits()
+    }
+
+    ${impl_simple_copy('justify_self', 'mJustifySelf')}
 
     pub fn set_box_sizing(&mut self, v: longhands::box_sizing::computed_value::T) {
         use computed_values::box_sizing::T;

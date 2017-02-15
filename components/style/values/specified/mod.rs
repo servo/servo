@@ -21,7 +21,7 @@ use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
 use super::computed::Shadow as ComputedShadow;
 
 #[cfg(feature = "gecko")]
-pub use self::align::AlignJustifyContent;
+pub use self::align::{AlignJustifyContent, AlignJustifySelf};
 pub use self::grid::GridLine;
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
