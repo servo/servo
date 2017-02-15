@@ -330,6 +330,8 @@ def check_lock(file_name, contents):
 
     packages_by_name = {}
     for package in content.get("package", []):
+        if "replace" in package:
+            continue
         source = package.get("source", "")
         if source == r"registry+https://github.com/rust-lang/crates.io-index":
             source = "crates.io"
