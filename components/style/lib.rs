@@ -87,6 +87,7 @@ pub mod bezier;
 pub mod bloom;
 pub mod cache;
 pub mod cascade_info;
+#[allow(missing_docs)] pub mod config;
 pub mod context;
 pub mod custom_properties;
 pub mod data;

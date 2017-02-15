@@ -12,6 +12,7 @@ use animation::{self, Animation, PropertyAnimation};
 use atomic_refcell::AtomicRefMut;
 use cache::{LRUCache, LRUCacheMutIterator};
 use cascade_info::CascadeInfo;
+use config;
 use context::{SequentialTask, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
 use dom::{AnimationRules, SendElement, TElement, TNode};
@@ -24,7 +25,6 @@ use selector_parser::{PseudoElement, RestyleDamage, SelectorImpl};
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
-#[cfg(feature = "servo")] use servo_config::opts;
 use sink::ForgetfulSink;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
@@ -975,7 +975,11 @@ pub trait MatchMethods : TElement {
                                       shared_context: &SharedStyleContext,
                                       data: &mut AtomicRefMut<ElementData>)
                                       -> StyleSharingResult {
+<<<<<<< ca3cd64d6b1999292d634bfa237c2705e6d575c1
         if is_share_style_cache_disabled() {
+=======
+        if config::disable_share_style_cache_enabled() {
+>>>>>>> Change code for serialization for {box,text}-shadow so blur-radius
             return StyleSharingResult::CannotShare
         }
 

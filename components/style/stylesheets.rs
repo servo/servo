@@ -10,6 +10,7 @@ use {Atom, Prefix, Namespace};
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser};
 use cssparser::{AtRuleType, RuleListParser, SourcePosition, Token, parse_one_rule};
 use cssparser::ToCss as ParserToCss;
+#[cfg(feature = "servo")] use config;
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "servo")]
 use font_face::FontFaceRuleData;
@@ -27,9 +28,6 @@ use parser::{Parse, ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::SelectorList;
-#[cfg(feature = "servo")]
-use servo_config::prefs::PREFS;
-#[cfg(not(feature = "gecko"))]
 use servo_url::ServoUrl;
 use shared_lock::{SharedRwLock, Locked, ToCssWithGuard, SharedRwLockReadGuard};
 use std::cell::Cell;
@@ -1058,7 +1056,12 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
             },
             "viewport" => {
+<<<<<<< ca3cd64d6b1999292d634bfa237c2705e6d575c1
                 if is_viewport_enabled() {
+=======
+                if config::layout_viewport_enabled() ||
+                   cfg!(feature = "gecko") {
+>>>>>>> Change code for serialization for {box,text}-shadow so blur-radius
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
                 } else {
                     Err(())
