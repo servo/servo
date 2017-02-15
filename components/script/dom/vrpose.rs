@@ -10,7 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Heap, JSContext, JSObject};
-use js::typedarray::Float32Array;
+use js::typedarray::{Float32Array, CreateWith};
 use std::ptr;
 use webvr_traits::webvr;
 
@@ -31,9 +31,9 @@ unsafe fn update_or_create_typed_array(cx: *mut JSContext,
                       dst: &DOMRefCell<Heap<*mut JSObject>>) {
     let dst = dst.borrow();
     match src {
-        Some(ref data) => {
+        Some(data) => {
             if dst.get().is_null() {
-                let _ = Float32Array::create(cx, data.len() as u32, src, dst.handle_mut());
+                let _ = Float32Array::create(cx, CreateWith::Slice(data), dst.handle_mut());
             } else {
                 typedarray!(in(cx) let array: Float32Array = dst.get());
                 if let Ok(mut array) = array {

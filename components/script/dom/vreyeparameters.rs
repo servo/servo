@@ -11,7 +11,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use dom::vrfieldofview::VRFieldOfView;
 use js::jsapi::{Heap, JSContext, JSObject};
-use js::typedarray::Float32Array;
+use js::typedarray::{Float32Array, CreateWith};
 use std::default::Default;
 use webvr_traits::WebVREyeParameters;
 
@@ -40,8 +40,7 @@ impl VREyeParameters {
 
         unsafe {
             let _ = Float32Array::create(global.get_cx(),
-                                         result.parameters.borrow().offset.len() as u32,
-                                         Some(&result.parameters.borrow().offset),
+                                         CreateWith::Slice(&result.parameters.borrow().offset),
                                          result.offset.handle_mut());
         }
         result

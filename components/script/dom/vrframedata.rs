@@ -13,7 +13,7 @@ use dom::globalscope::GlobalScope;
 use dom::vrpose::VRPose;
 use dom::window::Window;
 use js::jsapi::{Heap, JSContext, JSObject};
-use js::typedarray::Float32Array;
+use js::typedarray::{Float32Array, CreateWith};
 use std::cell::Cell;
 use webvr_traits::WebVRFrameData;
 
@@ -56,13 +56,13 @@ impl VRFrameData {
 
         unsafe {
             let ref framedata = *root;
-            let _ = Float32Array::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+            let _ = Float32Array::create(global.get_cx(), CreateWith::Slice(&matrix),
                                          framedata.left_proj.handle_mut());
-            let _ = Float32Array::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+            let _ = Float32Array::create(global.get_cx(), CreateWith::Slice(&matrix),
                                          framedata.left_view.handle_mut());
-            let _ = Float32Array::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+            let _ = Float32Array::create(global.get_cx(), CreateWith::Slice(&matrix),
                                          framedata.right_proj.handle_mut());
-            let _ = Float32Array::create(global.get_cx(), matrix.len() as u32, Some(&matrix),
+            let _ = Float32Array::create(global.get_cx(), CreateWith::Slice(&matrix),
                                          framedata.right_view.handle_mut());
         }
 
