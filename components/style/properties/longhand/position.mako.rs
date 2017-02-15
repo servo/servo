@@ -272,4 +272,14 @@ ${helpers.predefined_type("object-position",
                                   products="gecko",
                                   boxed=True)}
     % endfor
+
+    // NOTE: According to the spec, this should handle multiple values of `<track-size>`,
+    // but gecko supports only a single value
+    ${helpers.predefined_type("grid-auto-%ss" % kind,
+                              "TrackSize",
+                              "Default::default()",
+                              animatable=False,
+                              spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-%ss" % kind,
+                              products="gecko",
+                              boxed=True)}
 % endfor
