@@ -8,7 +8,7 @@
 extern crate deny_public_fields;
 
 #[derive(DenyPublicFields)]
-//~^ ERROR custom derive attribute panicked
+//~^ ERROR proc-macro derive panicked
 struct Foo {
     pub v1: i32,
     v2: i32

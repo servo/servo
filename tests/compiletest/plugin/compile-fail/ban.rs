@@ -12,7 +12,7 @@ use std::cell::Cell;
 
 struct Foo {
     bar: Cell<JSVal>
-    //~^ ERROR Banned type Cell<JSVal> detected. Use MutJS<JSVal> instead,
+    //~^ ERROR Banned type Cell<JSVal> detected. Use MutJS<JSVal> instead
 }
 
 fn main() {}
