@@ -27,6 +27,7 @@ use dom::{OpaqueNode, SendNode, TElement, TNode};
 use rayon;
 use scoped_tls::ScopedTLS;
 use std::borrow::Borrow;
+use time;
 use traversal::{DomTraversal, PerLevelTraversalData, PreTraverseToken};
 
 /// The chunk size used to split the parallel traversal nodes.
@@ -44,6 +45,9 @@ pub fn traverse_dom<E, D>(traversal: &D,
     where E: TElement,
           D: DomTraversal<E>,
 {
+    let dump_stats = TraversalStatistics::should_dump();
+    let start_time = if dump_stats { Some(time::precise_time_s()) } else { None };
+
     debug_assert!(traversal.is_parallel());
     // Handle Gecko's eager initial styling. We don't currently support it
     // in conjunction with bottom-up traversal. If we did, we'd need to put
@@ -74,14 +78,15 @@ pub fn traverse_dom<E, D>(traversal: &D,
     });
 
     // Dump statistics to stdout if requested.
-    if TraversalStatistics::should_dump() {
+    if dump_stats {
         let slots = unsafe { tls.unsafe_get() };
-        let aggregate = slots.iter().fold(TraversalStatistics::default(), |acc, t| {
+        let mut aggregate = slots.iter().fold(TraversalStatistics::default(), |acc, t| {
             match *t.borrow() {
                 None => acc,
                 Some(ref cx) => &cx.borrow().statistics + &acc,
             }
         });
+        aggregate.compute_traversal_time(start_time.unwrap());
         println!("{}", aggregate);
     }
 }
