@@ -103,7 +103,7 @@ impl From<nsRestyleHint> for RestyleHint {
         // FIXME(bholley): Finish aligning the binary representations here and
         // then .expect() the result of the checked version.
         if Self::from_bits(raw_bits).is_none() {
-            error!("stylo: dropping unsupported restyle hint bits");
+            warn!("stylo: dropping unsupported restyle hint bits");
         }
 
         Self::from_bits_truncate(raw_bits)

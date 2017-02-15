@@ -471,7 +471,7 @@ impl RuleNode {
             }
             None => {
                 if indent != 0 {
-                    error!("How has this happened?");
+                    warn!("How has this happened?");
                 }
                 let _ = write!(writer, "(root)");
             }

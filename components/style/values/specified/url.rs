@@ -101,7 +101,7 @@ impl SpecifiedUrl {
                 // FIXME(heycam) should ensure we always have a principal, etc.,
                 // when parsing style attributes and re-parsing due to CSS
                 // Variables.
-                println!("stylo: skipping declaration without ParserContextExtraData");
+                warn!("stylo: skipping declaration without ParserContextExtraData");
                 return Err(())
             },
         };
