@@ -639,7 +639,6 @@ impl Shadow {
     // disable_spread_and_inset is for filter: drop-shadow(...)
     #[allow(missing_docs)]
     pub fn parse(context:  &ParserContext, input: &mut Parser, disable_spread_and_inset: bool) -> Result<Shadow, ()> {
-        let length_count = if disable_spread_and_inset { 3 } else { 4 };
         let mut lengths = [Length::zero(), Length::zero(), Length::zero(), Length::zero()];
         let mut lengths_parsed = false;
         let mut color = None;
@@ -655,21 +654,15 @@ impl Shadow {
             if !lengths_parsed {
                 if let Ok(value) = input.try(|i| Length::parse(context, i)) {
                     lengths[0] = value;
-                    let mut length_parsed_count = 1;
-                    while length_parsed_count < length_count {
-                        if let Ok(value) = input.try(|i| Length::parse(context, i)) {
-                            lengths[length_parsed_count] = value
-                        } else {
-                            break
+                    lengths[1] = try!(Length::parse(context, input));
+                    if let Ok(value) = input.try(|i| Length::parse_non_negative(i)) {
+                        lengths[2] = value;
+                        if !disable_spread_and_inset {
+                            if let Ok(value) = input.try(|i| Length::parse(context, i)) {
+                                lengths[3] = value;
+                            }
                         }
-                        length_parsed_count += 1;
                     }
-
-                    // The first two lengths must be specified.
-                    if length_parsed_count < 2 {
-                        return Err(())
-                    }
-
                     lengths_parsed = true;
                     continue
                 }
@@ -688,11 +681,12 @@ impl Shadow {
             return Err(())
         }
 
+        debug_assert!(!disable_spread_and_inset || lengths[3] == Length::zero());
         Ok(Shadow {
             offset_x: lengths[0].take(),
             offset_y: lengths[1].take(),
             blur_radius: lengths[2].take(),
-            spread_radius: if disable_spread_and_inset { Length::zero() } else { lengths[3].take() },
+            spread_radius: lengths[3].take(),
             color: color,
             inset: inset,
         })
