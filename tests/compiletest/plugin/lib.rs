@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 extern crate compiletest_helper;
-#[macro_use]
-extern crate deny_public_fields;
 
 #[test]
 fn compile_test() {
