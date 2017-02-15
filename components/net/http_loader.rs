@@ -792,7 +792,7 @@ fn http_redirect_fetch(request: Rc<Request>,
 
 fn try_url_origin_to_hyper_origin(url_origin: &UrlOrigin) -> Option<HyperOrigin> {
     match *url_origin {
-        // TODO Set "Origin: null" when hyper supports it
+        // TODO (servo/servo#15569) Set "Origin: null" when hyper supports it
         UrlOrigin::Opaque(_) => None,
         UrlOrigin::Tuple(ref scheme, ref host, ref port) =>
             Some(HyperOrigin::new(scheme.clone(), host.to_string(), Some(port.clone())))
