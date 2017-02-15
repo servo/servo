@@ -610,14 +610,18 @@ impl ${style_struct.gecko_struct_name} {
     % for longhand in stub_longhands:
     #[allow(non_snake_case)]
     pub fn set_${longhand.ident}(&mut self, _: longhands::${longhand.ident}::computed_value::T) {
+        use std::io::stdout;
         if cfg!(debug_assertions) {
-            println!("stylo: Unimplemented property setter: ${longhand.name}");
+            let _ = write!(&mut stdout(),
+                           "stylo: Unimplemented property setter: ${longhand.name}");
         }
     }
     #[allow(non_snake_case)]
     pub fn copy_${longhand.ident}_from(&mut self, _: &Self) {
+        use std::io::stdout;
         if cfg!(debug_assertions) {
-            println!("stylo: Unimplemented property setter: ${longhand.name}");
+            let _ = write!(&mut stdout(),
+                           "stylo: Unimplemented property setter: ${longhand.name}");
         }
     }
     % if longhand.need_clone:
