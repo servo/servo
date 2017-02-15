@@ -698,7 +698,7 @@ impl FormControl for HTMLImageElement {
         self.upcast::<Element>()
     }
 
-    fn is_reassociatable(&self) -> bool {
+    fn is_listed(&self) -> bool {
         false
     }
 }

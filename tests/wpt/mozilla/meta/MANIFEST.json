@@ -12754,24 +12754,6 @@
      {}
     ]
    ],
-   "mozilla/form_attribute.html": [
-    [
-     "/_mozilla/mozilla/form_attribute.html",
-     {}
-    ]
-   ],
-   "mozilla/form_owner_and_table.html": [
-    [
-     "/_mozilla/mozilla/form_owner_and_table.html",
-     {}
-    ]
-   ],
-   "mozilla/form_owner_and_table_2.html": [
-    [
-     "/_mozilla/mozilla/form_owner_and_table_2.html",
-     {}
-    ]
-   ],
    "mozilla/form_submit_about.html": [
     [
      "/_mozilla/mozilla/form_submit_about.html",
@@ -25251,18 +25233,6 @@
   ],
   "mozilla/follow-hyperlink.html": [
    "3407915dc9912d4d681c47ec5227278a198139ab",
-   "testharness"
-  ],
-  "mozilla/form_attribute.html": [
-   "46f783ddbe21c914d452e175083a2ad266475654",
-   "testharness"
-  ],
-  "mozilla/form_owner_and_table.html": [
-   "7172d74bb5572091ee09abf30a4f6892b85aca3a",
-   "testharness"
-  ],
-  "mozilla/form_owner_and_table_2.html": [
-   "3b1dea35bb4af384125904d69bf569109965714f",
    "testharness"
   ],
   "mozilla/form_submit_about.html": [

@@ -631,7 +631,6 @@ impl Document {
         }
     }
 
-
     /// Attempt to find a named element in this page's document.
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     pub fn find_fragment_node(&self, fragid: &str) -> Option<Root<Element>> {
@@ -2058,7 +2057,7 @@ impl Document {
             ignore_destructive_writes_counter: Default::default(),
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableJS::new(None),
-            form_id_listener_map: DOMRefCell::new(HashMap::new()),
+            form_id_listener_map: Default::default(),
         }
     }
 

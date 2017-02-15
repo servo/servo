@@ -165,7 +165,7 @@ bitflags! {
         const DIRTY_ON_VIEWPORT_SIZE_CHANGE = 0x80,
 
         #[doc = "Specifies whether the parser has set an associated form owner for \
-                 this element. Only applicable for form - associatable elements."]
+                 this element. Only applicable for form-associatable elements."]
         const PARSER_ASSOCIATED_FORM_OWNER = 0x90,
     }
 }
@@ -2671,6 +2671,15 @@ pub trait VecPreOrderInsertionHelper<T> {
 impl<T> VecPreOrderInsertionHelper<T> for Vec<JS<T>>
     where T: DerivedFrom<Node> + DomObject
 {
+    /// This algorithm relies on the following assumptions:
+    /// * any elements inserted in this vector share the same tree root
+    /// * any time an element is removed from the tree root, it is also removed from this array
+    /// * any time an element is moved within the tree, it is removed from this array and re-inserted
+    ///
+    /// Under these assumptions, an element's tree-order position in this array can be determined by
+    /// performing a [preorder traversal](https://dom.spec.whatwg.org/#concept-tree-order) of the tree root's children,
+    /// and increasing the destination index in the array every time a node in the array is encountered during
+    /// the traversal.
     fn insert_pre_order(&mut self, elem: &T, tree_root: &Node) {
         if self.is_empty() {
             self.push(JS::from_ref(elem));

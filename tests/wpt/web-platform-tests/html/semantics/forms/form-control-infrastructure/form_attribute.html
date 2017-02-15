@@ -60,19 +60,19 @@
 
       reassociateableElements.forEach(function(localName) {
         function testControl(test_, desc) {
-          var control = document.createElement(localName);
+          test(function() {
+            var control = document.createElement(localName);
 
           while(placeholder.firstChild)
             placeholder.removeChild(placeholder.firstChild);
 
-          form1 = document.createElement("form");
-          form2 = document.createElement("form");
-          form1.id = "form1";
-          form2.id = "form2";
-          placeholder.appendChild(form1);
-          placeholder.appendChild(form2);
+            form1 = document.createElement("form");
+            form2 = document.createElement("form");
+            form1.id = "form1";
+            form2.id = "form2";
+            placeholder.appendChild(form1);
+            placeholder.appendChild(form2);
 
-          test(function() {
             test_.call(control);
           }, "[" + localName.toUpperCase() + "] " + desc);
         }

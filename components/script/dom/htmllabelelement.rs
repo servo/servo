@@ -153,13 +153,11 @@ impl HTMLLabelElement {
 
 impl FormControl for HTMLLabelElement {
     fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
-        if let Some(e) = self.GetControl() {
+        self.GetControl().and_then(|e| {
             let form_control = e.upcast::<Element>().as_maybe_form_control()
                                 .expect("Element must be a form control");
             form_control.form_owner()
-        } else {
-            None
-        }
+        })
     }
 
     fn set_form_owner(&self, _: Option<&HTMLFormElement>) {

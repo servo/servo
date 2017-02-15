@@ -513,12 +513,11 @@ impl HTMLFormElement {
         let controls = self.controls.borrow();
         let mut data_set = Vec::new();
         for child in controls.iter() {
-            let child = child.upcast::<Node>();
             // Step 3.1: The field element is disabled.
-            match child.downcast::<Element>() {
-                Some(el) if !el.disabled_state() => (),
-                _ => continue,
+            if child.disabled_state() {
+                continue;
             }
+            let child = child.upcast::<Node>();
 
             // Step 3.1: The field element has a datalist element ancestor.
             if child.ancestors()
@@ -653,7 +652,6 @@ impl HTMLFormElement {
                 }
                 NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
                     // Unimplemented
-                    {}
                 }
                 _ => {}
             }
@@ -871,7 +869,7 @@ pub trait FormControl: DomObject {
 
     fn to_element<'a>(&'a self) -> &'a Element;
 
-    fn is_reassociatable(&self) -> bool {
+    fn is_listed(&self) -> bool {
         true
     }
 
@@ -898,13 +896,13 @@ pub trait FormControl: DomObject {
                                         .next();
 
         // Step 1
-        if old_owner.is_some() && !(self.is_reassociatable() && has_form_id) {
+        if old_owner.is_some() && !(self.is_listed() && has_form_id) {
             if nearest_form_ancestor == old_owner {
                 return;
             }
         }
 
-        let new_owner = if self.is_reassociatable() && has_form_id && node.is_in_doc() {
+        let new_owner = if self.is_listed() && has_form_id && elem.is_connected() {
             // Step 3
             let doc = document_from_node(node);
             let form_id = elem.get_string_attribute(&local_name!("form"));
@@ -928,26 +926,38 @@ pub trait FormControl: DomObject {
 
     // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
     fn form_attribute_mutated(&self, mutation: AttributeMutation) {
-        let elem = self.to_element();
-        let form_id = elem.get_string_attribute(&local_name!("form"));
-
         match mutation {
             AttributeMutation::Set(_) => {
-                let node = elem.upcast::<Node>();
-                if self.is_reassociatable() && !form_id.is_empty() && node.is_in_doc() {
-                    let doc = document_from_node(node);
-                    doc.register_form_id_listener(form_id, self);
-                }
+                self.register_if_necessary();
             },
             AttributeMutation::Removed => {
-                if self.is_reassociatable() && !form_id.is_empty() {
-                    let doc = document_from_node(elem.upcast::<Node>());
-                    doc.unregister_form_id_listener(form_id, self);
-                }
+                self.unregister_if_necessary();
             },
         }
 
         self.reset_form_owner();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
+    fn register_if_necessary(&self) {
+        let elem = self.to_element();
+        let form_id = elem.get_string_attribute(&local_name!("form"));
+        let node = elem.upcast::<Node>();
+
+        if self.is_listed() && !form_id.is_empty() && node.is_in_doc() {
+            let doc = document_from_node(node);
+            doc.register_form_id_listener(form_id, self);
+        }
+    }
+
+    fn unregister_if_necessary(&self) {
+        let elem = self.to_element();
+        let form_id = elem.get_string_attribute(&local_name!("form"));
+
+        if self.is_listed() && !form_id.is_empty() {
+            let doc = document_from_node(elem.upcast::<Node>());
+            doc.unregister_form_id_listener(form_id, self);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#association-of-controls-and-forms
@@ -975,22 +985,14 @@ pub trait FormControl: DomObject {
             elem.is_in_same_home_subtree(&*form)
         });
 
-        // FIXME: We should call `form_attribute_mutated` method here,
-        // but also we don't want to call reset_form_owner() method in
-        // `form_attribute_mutated`. We should fix this.
-        // self.form_attribute_mutated(AttributeMutation::Removed);
-        let form_id = elem.get_string_attribute(&local_name!("form"));
-        if self.is_reassociatable() && !form_id.is_empty() {
-            let doc = document_from_node(elem.upcast::<Node>());
-            doc.unregister_form_id_listener(form_id, self);
-        }
+        self.unregister_if_necessary();
 
         // Since this control has been unregistered from the id->listener map
         // in the previous step, reset_form_owner will not be invoked on it
         // when the form owner element is unbound (i.e it is in the same
         // subtree) if it appears later in the tree order. Hence invoke
         // reset from here if this control has the form attribute set.
-        if !same_subtree || (self.is_reassociatable() && has_form_attr) {
+        if !same_subtree || (self.is_listed() && has_form_attr) {
             self.reset_form_owner();
         }
     }
@@ -1047,7 +1049,6 @@ impl VirtualMethods for HTMLFormElement {
 
         // Collect the controls to reset because reset_form_owner
         // will mutably borrow self.controls
-        //let mut to_reset: RootedVec<JS<Element>> = RootedVec::new();
         rooted_vec!(let mut to_reset);
         to_reset.extend(self.controls.borrow().iter()
                         .filter(|c| !c.is_in_same_home_subtree(self))
