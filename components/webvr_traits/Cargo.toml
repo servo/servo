@@ -10,7 +10,7 @@ name = "webvr_traits"
 path = "lib.rs"
 
 [dependencies]
-ipc-channel = "0.5"
+ipc-channel = "0.6.3"
 msg = {path = "../msg"}
 serde = "0.8"
 serde_derive = "0.8"

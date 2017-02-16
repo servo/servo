@@ -11,11 +11,11 @@ path = "lib.rs"
 
 [dependencies]
 gfx = {path = "../gfx"}
-script_traits = {path = "../script_traits"}
+ipc-channel = "0.6.3"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
-ipc-channel = "0.5"
+script_traits = {path = "../script_traits"}
 servo_url = {path = "../url"}
 
 [dependencies.webrender_traits]
