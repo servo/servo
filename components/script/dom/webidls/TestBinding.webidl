@@ -429,6 +429,22 @@ interface TestBinding {
   void passVariadicAny(any... args);
   void passVariadicObject(object... args);
 
+  void passArrayBuffer(ArrayBuffer arg);
+  void passNullableArrayBuffer(ArrayBuffer? arg);
+  void passOptionalArrayBuffer(optional ArrayBuffer arg);
+  void passOptionalNullableArrayBuffer(optional ArrayBuffer? arg);
+  void passOptionalNullableArrayBufferWithDefaultValue(optional ArrayBuffer? arg = null);
+  void passArrayBufferView(ArrayBufferView arg);
+  void passInt8Array(Int8Array arg);
+  void passInt16Array(Int16Array arg);
+  void passInt32Array(Int32Array arg);
+  void passUint8Array(Uint8Array arg);
+  void passUint8ClampedArray(Uint8ClampedArray arg);
+  void passUint16Array(Uint16Array arg);
+  void passUint32Array(Uint32Array arg);
+  void passFloat32Array(Float32Array arg);
+  void passFloat64Array(Float64Array arg);
+
   void passSequenceSequence(sequence<sequence<long>> seq);
   sequence<sequence<long>> returnSequenceSequence();
   void passUnionSequenceSequence((long or sequence<sequence<long>>) seq);

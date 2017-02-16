@@ -413,6 +413,7 @@ class CGMethodCall(CGThing):
                     # large enough that we can examine this argument.
                     info = getJSToNativeConversionInfo(
                         type, descriptor, failureCode="break;", isDefinitelyObject=True)
+                    assert not info.needsRooting
                     template = info.template
                     declType = info.declType
 
@@ -531,28 +532,44 @@ def union_native_type(t):
     return 'UnionTypes::%s' % name
 
 
+def typed_array_native_type(t):
+    """
+    Returns the name of the native type for `t`.
+    """
+    assert t.isSpiderMonkeyInterface()
+    assert t.isArrayBuffer() or t.isArrayBufferView() or t.isTypedArray()
+    name = t.unroll().name
+    return 'typedarray::%s' % name
+
+
 class JSToNativeConversionInfo():
     """
     An object representing information about a JS-to-native conversion.
     """
-    def __init__(self, template, default=None, declType=None):
+    def __init__(self, template, default=None, declType=None,
+                 needsRooting=False):
         """
         template: A string representing the conversion code.  This will have
                   template substitution performed on it as follows:
 
           ${val} is a handle to the JS::Value in question
+          ${root} is the name of a `Rooted` on the stack, if `needsRooting` is true.
 
         default: A string or None representing rust code for default value(if any).
 
         declType: A CGThing representing the native C++ type we're converting
                   to.  This is allowed to be None if the conversion code is
                   supposed to be used as-is.
+
+        needsRooting: A boolean indicating whether the caller needs to provide
+                      a `Rooted` on the stack.
         """
         assert isinstance(template, str)
         assert declType is None or isinstance(declType, CGThing)
         self.template = template
         self.default = default
         self.declType = declType
+        self.needsRooting = needsRooting
 
 
 def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
@@ -633,9 +650,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     else:
         failOrPropagate = failureCode
 
-    def handleOptional(template, declType, default):
+    def handleOptional(template, declType, default, needsRooting=False):
         assert (defaultValue is None) == (default is None)
-        return JSToNativeConversionInfo(template, default, declType)
+        return JSToNativeConversionInfo(template, default, declType, needsRooting=needsRooting)
 
     # Unfortunately, .capitalize() on a string will lowercase things inside the
     # string, which we do not want.
@@ -702,6 +719,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
                                                 isMember=isMember)
+        assert not innerInfo.needsRooting
         declType = wrapInNativeContainerType(type, innerInfo.declType)
         config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
 
@@ -863,7 +881,34 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
     if type.isSpiderMonkeyInterface():
-        raise TypeError("Can't handle SpiderMonkey interface arguments yet")
+        assert not isEnforceRange
+        assert not isClamp
+        ty = typed_array_native_type(type)
+        templateBody = fill(
+            """
+            {
+                let array = ${ty}::from(cx, &mut $${root}, $${val}.get().to_object());
+                match array {
+                    Ok(array) => array,
+                    Err(()) => {
+                        let error = "Object was not a typed array";
+                        $*{failure}
+                    }
+                }
+            }
+            """,
+            ty=ty,
+            failure=failOrPropagate)
+
+        declType = CGGeneric(ty)
+        if type.nullable():
+            templateBody = "Some(%s)" % templateBody
+            declType = CGWrapper(declType, pre="Option<", post=">")
+
+        templateBody = wrapObjectTemplate(templateBody, "None", isDefinitelyObject, type,
+                                          failureCode)
+        return handleOptional(templateBody, declType, handleDefaultNull("None"),
+                              needsRooting=True)
 
     if type.isDOMString():
         nullBehavior = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
@@ -1245,10 +1290,19 @@ class CGArgumentConverter(CGThing):
             else:
                 assert not default
 
-            self.converter = instantiateJSToNativeConversionTemplate(
-                template, replacementVariables, declType, "arg%d" % index)
+            self.converter = CGList([], "\n")
+
+            if info.needsRooting:
+                name = "__root%d" % index
+                root = "let mut {root} = Rooted::new_unrooted();".format(root=name)
+                replacementVariables["root"] = name
+                self.converter.append(CGGeneric(root))
+
+            self.converter.append(instantiateJSToNativeConversionTemplate(
+                template, replacementVariables, declType, "arg%d" % index))
         else:
             assert argument.optional
+            assert not info.needsRooting
             variadicConversion = {
                 "val": string.Template("${args}.get(variadicArg)").substitute(replacer),
             }
@@ -4060,6 +4114,7 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         type, descriptorProvider, failureCode="return Ok(None);",
         exceptionCode='return Err(());',
         isDefinitelyObject=True)
+    assert not info.needsRooting
     template = info.template
 
     jsConversion = string.Template(template).substitute({
@@ -4649,6 +4704,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             info = getJSToNativeConversionInfo(
                 argument.type, descriptor, treatNullAs=argument.treatNullAs,
                 exceptionCode="return false;")
+            assert not info.needsRooting
             template = info.template
             declType = info.declType
 
@@ -5489,6 +5545,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::jsapi::MutableHandleValue',
         'js::jsapi::ObjectOpResult',
         'js::jsapi::PropertyDescriptor',
+        'js::jsapi::Rooted',
         'js::jsapi::RootedId',
         'js::jsapi::RootedObject',
         'js::jsapi::RootedString',
@@ -5517,6 +5574,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::rust::define_methods',
         'js::rust::define_properties',
         'js::rust::get_object_class',
+        'js::typedarray',
         'dom',
         'dom::bindings',
         'dom::bindings::codegen::InterfaceObjectMap',
@@ -5854,6 +5912,7 @@ class CGDictionary(CGThing):
                                          defaultValue=member.defaultValue,
                                          exceptionCode="return Err(());"))
             for member in dictionary.members]
+        assert not any(i.needsRooting for (_, i) in self.memberInfo)
 
     def define(self):
         if not self.generatable:
@@ -6482,6 +6541,7 @@ class CallbackMember(CGNativeMember):
             isCallbackReturnValue="Callback",
             # XXXbz we should try to do better here
             sourceDescription="return value")
+        assert not info.needsRooting
         template = info.template
         declType = info.declType
 
