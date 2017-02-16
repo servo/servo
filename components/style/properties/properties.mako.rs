@@ -1288,19 +1288,19 @@ pub mod style_structs {
                 /// Whether the text decoration has an underline.
                 #[inline]
                 pub fn has_underline(&self) -> bool {
-                    self.${text_decoration_field}.underline
+                    self.${text_decoration_field}.contains(longhands::${text_decoration_field}::UNDERLINE)
                 }
 
                 /// Whether the text decoration has an overline.
                 #[inline]
                 pub fn has_overline(&self) -> bool {
-                    self.${text_decoration_field}.overline
+                    self.${text_decoration_field}.contains(longhands::${text_decoration_field}::OVERLINE)
                 }
 
                 /// Whether the text decoration has a line through.
                 #[inline]
                 pub fn has_line_through(&self) -> bool {
-                    self.${text_decoration_field}.line_through
+                    self.${text_decoration_field}.contains(longhands::${text_decoration_field}::LINE_THROUGH)
                 }
             % endif
         }
