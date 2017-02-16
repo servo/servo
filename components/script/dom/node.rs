@@ -1140,7 +1140,7 @@ impl<T> Iterator for SiblingIterator<T> where T: DerivedFrom<Node> {
             None => return None,
             Some(current) => current,
         };
-        while let Some(next_sibling) = current.GetNextSibling() {
+        if let Some(next_sibling) = current.GetNextSibling() {
             if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
                 self.current = Some(Root::upcast(next_sibling.clone()));
                 return Some(next_sibling);
@@ -1164,7 +1164,7 @@ impl<T> Iterator for ReverseSiblingIterator<T> where T: DerivedFrom<Node> {
             None => return None,
             Some(current) => current,
         };
-        while let Some(previous_sibling) = current.GetPreviousSibling() {
+        if let Some(previous_sibling) = current.GetPreviousSibling() {
             if let Some(previous_sibling) = Root::downcast::<T>(previous_sibling) {
                 self.current = Some(Root::upcast(previous_sibling.clone()));
                 return Some(previous_sibling);
@@ -1199,10 +1199,14 @@ impl<T> FollowingIterator<T> where T: DerivedFrom<Node> {
             return None;
         }
 
-        while let Some(next_sibling) = current.GetNextSibling() {
+        if let Some(next_sibling) = current.GetNextSibling() {
             if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
                 self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
-                return Some(next_sibling.clone())
+                if let Some(next_sibling) = current.GetNextSibling() {
+                    return Root::downcast::<T>(next_sibling);
+                } else {
+                    return None;
+                }
             }
         }
 
@@ -1210,10 +1214,14 @@ impl<T> FollowingIterator<T> where T: DerivedFrom<Node> {
             if self.root == ancestor {
                 break;
             }
-            while let Some(next_sibling) = ancestor.GetNextSibling() {
+            if let Some(next_sibling) = ancestor.GetNextSibling() {
                 if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
                     self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
-                    return Some(next_sibling.clone())
+                    if let Some(next_sibling) = ancestor.GetNextSibling() {
+                        return Root::downcast::<T>(next_sibling);
+                    } else {
+                        return None;
+                    }
                 }
             }
         }
@@ -1232,17 +1240,14 @@ impl<T> Iterator for FollowingIterator<T> where T: DerivedFrom<Node> {
             Some(current) => current,
         };
 
-        while let Some(first_child) = current.GetFirstChild() {
+        if let Some(first_child) = current.GetFirstChild() {
             if let Some(first_child) = Root::downcast::<T>(first_child) {
                 self.current = Some(Root::upcast::<Node>(first_child.clone()));
-                return Some(first_child);
-            }
-        }
-
-        while let Some(first_child) = current.GetFirstChild() {
-            if let Some(first_child) = Root::downcast::<T>(first_child) {
-                self.current = Some(Root::upcast::<Node>(first_child.clone()));
-                return Some(first_child);
+                if let Some(first_child) = current.GetFirstChild() {
+                    return Root::downcast::<T>(first_child);
+                } else {
+                    return None;
+                }
             }
         }
 
@@ -1272,21 +1277,21 @@ impl<T> Iterator for PrecedingIterator<T> where T: DerivedFrom<Node> {
         } else if let Some(previous_sibling) = current.GetPreviousSibling() {
             if self.root == previous_sibling {
                 None
-            } else if let Some(last_child) = previous_sibling.descending_last_children::<T>().last() {
-                Some(Root::upcast::<Node>(last_child))
+            } else if let Some(last_child) = previous_sibling.descending_last_children::<Node>().last() {
+                Some(last_child)
             } else {
-                Some(Root::upcast::<Node>(previous_sibling))
+                Some(previous_sibling)
             }
         } else {
-            if let Some(parent_node) = current.GetParentNode() {
-                Some(Root::upcast::<Node>(parent_node))
-            } else {
-                None
-            }
+            current.GetParentNode()
         };
 
         //TODO: dominotree - not sure how to handle failures here - is returning None okay if it can't cast to T?
-        return Root::downcast::<T>(current);
+        if let Some(current_node) = self.current.take() {
+            Root::downcast::<T>(current_node)
+        } else {
+            None
+        }
     }
 }
 
@@ -1533,7 +1538,7 @@ impl Node {
                         // Step 6.1.1(a)
                         _ => return Err(Error::HierarchyRequest),
                     }
-                },
+                }
                 // Step 6.2
                 NodeTypeId::Element(_) => {
                     if !parent.children::<Element>().next().is_none() {
