@@ -200,6 +200,57 @@ impl Parse for AlignJustifyContent {
     }
 }
 
+/// Value of the `align-self` or `justify-self` property.
+///
+/// https://drafts.csswg.org/css-align/#self-alignment
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct AlignJustifySelf(pub AlignFlags);
+
+impl AlignJustifySelf {
+    /// The initial value 'auto'
+    #[inline]
+    pub fn auto() -> Self {
+        AlignJustifySelf(ALIGN_AUTO)
+    }
+}
+
+no_viewport_percentage!(AlignJustifySelf);
+
+impl ToCss for AlignJustifySelf {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}
+
+impl Parse for AlignJustifySelf {
+    // auto | normal | stretch | <baseline-position> |
+    // [ <overflow-position>? && <self-position> ]
+    fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        // auto | normal | stretch | <baseline-position>
+        if let Ok(value) = input.try(parse_auto_normal_stretch_baseline) {
+            return Ok(AlignJustifySelf(value))
+        }
+        // [ <overflow-position>? && <self-position> ]
+        if let Ok(value) = input.try(parse_overflow_self_position) {
+            return Ok(AlignJustifySelf(value))
+        }
+        Err(())
+    }
+}
+
+
+// auto | normal | stretch | <baseline-position>
+fn parse_auto_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
+    let ident = input.expect_ident()?;
+    match_ignore_ascii_case! { ident,
+        "auto" => Ok(ALIGN_AUTO),
+        "normal" => Ok(ALIGN_NORMAL),
+        "stretch" => Ok(ALIGN_STRETCH),
+        "baseline" => Ok(ALIGN_BASELINE),
+        _ => Err(())
+    }
+}
+
 // normal | <baseline-position>
 fn parse_normal_or_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
@@ -261,6 +312,41 @@ fn parse_overflow_position(input: &mut Parser) -> Result<AlignFlags, ()> {
     match_ignore_ascii_case! { ident,
         "safe" => Ok(ALIGN_SAFE),
         "unsafe" => Ok(ALIGN_UNSAFE),
+        _ => Err(())
+    }
+}
+
+// [ <overflow-position>? && <self-position> ]
+fn parse_overflow_self_position(input: &mut Parser) -> Result<AlignFlags, ()> {
+    // <self-position> followed by optional <overflow-position>
+    if let Ok(mut self_position) = input.try(|input| parse_self_position(input)) {
+        if let Ok(overflow) = input.try(|input| parse_overflow_position(input)) {
+            self_position |= overflow;
+        }
+        return Ok(self_position)
+    }
+    // <overflow-position> followed by required <self-position>
+    if let Ok(overflow) = input.try(|input| parse_overflow_position(input)) {
+        if let Ok(self_position) = input.try(|input| parse_self_position(input)) {
+            return Ok(overflow | self_position)
+        }
+    }
+    return Err(())
+}
+
+// <self-position>
+fn parse_self_position(input: &mut Parser) -> Result<AlignFlags, ()> {
+    let ident = input.expect_ident()?;
+    match_ignore_ascii_case! { ident,
+        "start" => Ok(ALIGN_START),
+        "end" => Ok(ALIGN_END),
+        "flex-start" => Ok(ALIGN_FLEX_START),
+        "flex-end" => Ok(ALIGN_FLEX_END),
+        "center" => Ok(ALIGN_CENTER),
+        "left" => Ok(ALIGN_LEFT),
+        "right" => Ok(ALIGN_RIGHT),
+        "self-start" => Ok(ALIGN_SELF_START),
+        "self-end" => Ok(ALIGN_SELF_END),
         _ => Err(())
     }
 }
