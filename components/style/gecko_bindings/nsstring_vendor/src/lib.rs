@@ -9,21 +9,18 @@
 //! Use `&{mut,} nsA[C]String` for functions in rust which wish to take or
 //! mutate XPCOM strings. The other string types `Deref` to this type.
 //!
-//! Use `ns[C]String<'a>` for string struct members which don't leave rust, and
+//! Use `ns[C]String<'a>` (`ns[C]String` in C++) for string struct members, and
 //! as an intermediate between rust string data structures (such as `String`,
 //! `Vec<u16>`, `&str`, and `&[u16]`) and `&{mut,} nsA[C]String` (using
 //! `ns[C]String::from(value)`). These conversions, when possible, will not
-//! perform any allocations.
+//! perform any allocations. When using this type in structs shared with C++,
+//! the correct lifetime argument is usually `'static`.
 //!
 //! Use `nsFixed[C]String` or `ns_auto_[c]string!` for dynamic stack allocated
 //! strings which are expected to hold short string values.
 //!
 //! Use `*{const,mut} nsA[C]String` (`{const,} nsA[C]String*` in C++) for
 //! function arguments passed across the rust/C++ language boundary.
-//!
-//! Use `ns[C]StringRepr` for string struct members which are shared between
-//! rust and C++, but be careful, because this type lacks a `Drop`
-//! implementation.
 //!
 //! # String Types
 //!
@@ -74,16 +71,10 @@
 //! When passing this type by reference, prefer passing a `&nsA[C]String` or
 //! `&mut nsA[C]String`. to passing this type.
 //!
-//! This type is _not_ `#[repr(C)]`, as it has a `Drop` impl, which in versions
-//! of `rustc < 1.13` adds drop flags to the struct, which messes up the layout,
-//! making it unsafe to pass across the FFI boundary. The rust compiler will
-//! warn if this type appears in `extern "C"` function definitions.
-//!
 //! When passing this type across the language boundary, pass it as `*const
 //! nsA[C]String` for an immutable reference, or `*mut nsA[C]String` for a
-//! mutable reference.
-//!
-//! This type is similar to the C++ type of the same name.
+//! mutable reference. This struct may also be included in `#[repr(C)]`
+//! structs shared with C++.
 //!
 //! ## `nsFixed[C]String<'a>`
 //!
@@ -99,16 +90,11 @@
 //! When passing this type by reference, prefer passing a `&nsA[C]String` or
 //! `&mut nsA[C]String`. to passing this type.
 //!
-//! This type is _not_ `#[repr(C)]`, as it has a `Drop` impl, which in versions
-//! of `rustc < 1.13` adds drop flags to the struct, which messes up the layout,
-//! making it unsafe to pass across the FFI boundary. The rust compiler will
-//! warn if this type appears in `extern "C"` function definitions.
-//!
 //! When passing this type across the language boundary, pass it as `*const
 //! nsA[C]String` for an immutable reference, or `*mut nsA[C]String` for a
-//! mutable reference.
-//!
-//! This type is similar to the C++ type of the same name.
+//! mutable reference. This struct may also be included in `#[repr(C)]`
+//! structs shared with C++, although `nsFixed[C]String` objects are uncommon
+//! as struct members.
 //!
 //! ## `ns_auto_[c]string!($name)`
 //!
@@ -122,20 +108,16 @@
 //!
 //! ## `ns[C]StringRepr`
 //!
-//! This type represents a C++ `ns[C]String`. This type is `#[repr(C)]` and is
-//! safe to use in struct definitions which are shared across the language
-//! boundary. It automatically dereferences to `&{mut,} nsA[C]String`, and thus
-//! can be treated similarially to `ns[C]String`.
+//! This crate also provides the type `ns[C]StringRepr` which acts conceptually
+//! similar to an `ns[C]String<'static>`, however, it does not have a `Drop`
+//! implementation.
 //!
 //! If this type is dropped in rust, it will not free its backing storage. This
-//! is because types implementing `Drop` have a drop flag added, which messes up
-//! the layout of this type. When drop flags are removed, which should happen in
-//! `rustc 1.13` (see rust-lang/rust#35764), this type will likely be removed,
-//! and replaced with direct usage of `ns[C]String<'a>`, as its layout may be
-//! identical. This module provides rust bindings to our xpcom ns[C]String
-//! types.
+//! can be useful when implementing FFI types which contain `ns[C]String` members
+//! which invoke their member's destructors through C++ code.
 
 #![allow(non_camel_case_types)]
+#![deny(warnings)]
 
 use std::ops::{Deref, DerefMut};
 use std::marker::PhantomData;
@@ -146,6 +128,7 @@ use std::fmt;
 use std::cmp;
 use std::str;
 use std::u32;
+use std::os::raw::c_void;
 
 //////////////////////////////////
 // Internal Implemenation Flags //
@@ -154,12 +137,7 @@ use std::u32;
 const F_NONE: u32 = 0; // no flags
 
 // data flags are in the lower 16-bits
-const F_TERMINATED: u32 = 1 << 0; // IsTerminated returns true
-const F_VOIDED: u32 = 1 << 1; // IsVoid returns true
-const F_SHARED: u32 = 1 << 2; // mData points to a heap-allocated, shared buffer
 const F_OWNED: u32 = 1 << 3; // mData points to a heap-allocated, raw buffer
-const F_FIXED: u32 = 1 << 4; // mData points to a fixed-size writable, dependent buffer
-const F_LITERAL: u32 = 1 << 5; // mData points to a string literal; F_TERMINATED will also be set
 
 // class flags are in the upper 16-bits
 const F_CLASS_FIXED: u32 = 1 << 16; // indicates that |this| is of type nsTFixedString
@@ -176,8 +154,6 @@ macro_rules! define_string_types {
         FixedString = $FixedString: ident;
 
         StringRepr = $StringRepr: ident;
-        FixedStringRepr = $FixedStringRepr: ident;
-        AutoStringRepr = $AutoStringRepr: ident;
     } => {
         /// The representation of a ns[C]String type in C++. This type is
         /// used internally by our definition of ns[C]String to ensure layout
@@ -185,10 +161,7 @@ macro_rules! define_string_types {
         ///
         /// This type may also be used in place of a C++ ns[C]String inside of
         /// struct definitions which are shared with C++, as it has identical
-        /// layout to our ns[C]String type. Due to drop flags, our ns[C]String
-        /// type does not have identical layout. When drop flags are removed,
-        /// this type will likely be made a private implementation detail, and
-        /// its uses will be replaced with `ns[C]String`.
+        /// layout to our ns[C]String type.
         ///
         /// This struct will leak its data if dropped from rust. See the module
         /// documentation for more information on this type.
@@ -217,17 +190,6 @@ macro_rules! define_string_types {
             }
         }
 
-        /// The representation of a nsFixed[C]String type in C++. This type is
-        /// used internally by our definition of nsFixed[C]String to ensure layout
-        /// compatibility with the C++ nsFixed[C]String type.
-        #[repr(C)]
-        #[derive(Debug)]
-        struct $FixedStringRepr {
-            base: $StringRepr,
-            capacity: u32,
-            buffer: *mut $char_t,
-        }
-
         /// This type is the abstract type which is used for interacting with
         /// strings in rust. Each string type can derefence to an instance of
         /// this type, which provides the useful operations on strings.
@@ -250,8 +212,10 @@ macro_rules! define_string_types {
             type Target = [$char_t];
             fn deref(&self) -> &[$char_t] {
                 unsafe {
-                    // This is legal, as all $AString values actually point to a
-                    // $StringRepr
+                    // All $AString values point to a struct prefix which is
+                    // identical to $StringRepr, this we can transmute `self`
+                    // into $StringRepr to get the reference to the underlying
+                    // data.
                     let this: &$StringRepr = mem::transmute(self);
                     if this.data.is_null() {
                         debug_assert!(this.length == 0);
@@ -261,6 +225,12 @@ macro_rules! define_string_types {
                         slice::from_raw_parts(this.data, this.length as usize)
                     }
                 }
+            }
+        }
+
+        impl AsRef<[$char_t]> for $AString {
+            fn as_ref(&self) -> &[$char_t] {
+                self
             }
         }
 
@@ -288,6 +258,7 @@ macro_rules! define_string_types {
             }
         }
 
+        #[repr(C)]
         pub struct $String<'a> {
             hdr: $StringRepr,
             _marker: PhantomData<&'a [$char_t]>,
@@ -319,6 +290,24 @@ macro_rules! define_string_types {
             }
         }
 
+        impl<'a> AsRef<[$char_t]> for $String<'a> {
+            fn as_ref(&self) -> &[$char_t] {
+                &self
+            }
+        }
+
+        impl<'a> From<&'a String> for $String<'a> {
+            fn from(s: &'a String) -> $String<'a> {
+                $String::from(&s[..])
+            }
+        }
+
+        impl<'a> From<&'a Vec<$char_t>> for $String<'a> {
+            fn from(s: &'a Vec<$char_t>) -> $String<'a> {
+                $String::from(&s[..])
+            }
+        }
+
         impl<'a> From<&'a [$char_t]> for $String<'a> {
             fn from(s: &'a [$char_t]) -> $String<'a> {
                 assert!(s.len() < (u32::MAX as usize));
@@ -344,6 +333,9 @@ macro_rules! define_string_types {
                 let length = s.len() as u32;
                 let ptr = s.as_ptr();
                 mem::forget(s);
+                unsafe {
+                    Gecko_IncrementStringAdoptCount(ptr as *mut _);
+                }
                 $String {
                     hdr: $StringRepr {
                         data: ptr,
@@ -417,19 +409,14 @@ macro_rules! define_string_types {
             }
         }
 
-        impl<'a> Drop for $String<'a> {
-            fn drop(&mut self) {
-                unsafe {
-                    self.finalize();
-                }
-            }
-        }
-
         /// A nsFixed[C]String is a string which uses a fixed size mutable
         /// backing buffer for storing strings which will fit within that
         /// buffer, rather than using heap allocations.
+        #[repr(C)]
         pub struct $FixedString<'a> {
-            hdr: $FixedStringRepr,
+            base: $String<'a>,
+            capacity: u32,
+            buffer: *mut $char_t,
             _marker: PhantomData<&'a mut [$char_t]>,
         }
 
@@ -439,15 +426,16 @@ macro_rules! define_string_types {
                 assert!(len < (u32::MAX as usize));
                 let buf_ptr = buf.as_mut_ptr();
                 $FixedString {
-                    hdr: $FixedStringRepr {
-                        base: $StringRepr {
+                    base: $String {
+                        hdr: $StringRepr {
                             data: ptr::null(),
                             length: 0,
                             flags: F_CLASS_FIXED,
                         },
-                        capacity: len as u32,
-                        buffer: buf_ptr,
+                        _marker: PhantomData,
                     },
+                    capacity: len as u32,
+                    buffer: buf_ptr,
                     _marker: PhantomData,
                 }
             }
@@ -456,13 +444,19 @@ macro_rules! define_string_types {
         impl<'a> Deref for $FixedString<'a> {
             type Target = $AString;
             fn deref(&self) -> &$AString {
-                &self.hdr.base
+                &self.base
             }
         }
 
         impl<'a> DerefMut for $FixedString<'a> {
             fn deref_mut(&mut self) -> &mut $AString {
-                &mut self.hdr.base
+                &mut self.base
+            }
+        }
+
+        impl<'a> AsRef<[$char_t]> for $FixedString<'a> {
+            fn as_ref(&self) -> &[$char_t] {
+                &self
             }
         }
 
@@ -513,14 +507,6 @@ macro_rules! define_string_types {
                 $AString::eq(self, *other)
             }
         }
-
-        impl<'a> Drop for $FixedString<'a> {
-            fn drop(&mut self) {
-                unsafe {
-                    self.finalize();
-                }
-            }
-        }
     }
 }
 
@@ -536,38 +522,32 @@ define_string_types! {
     FixedString = nsFixedCString;
 
     StringRepr = nsCStringRepr;
-    FixedStringRepr = nsFixedCStringRepr;
-    AutoStringRepr = nsAutoCStringRepr;
 }
 
 impl nsACString {
-    /// Leaves the nsACString in an unstable state with a dangling data pointer.
-    /// Should only be used in drop implementations of rust types which wrap
-    /// this type.
-    unsafe fn finalize(&mut self) {
-        Gecko_FinalizeCString(self);
-    }
-
-    pub fn assign(&mut self, other: &nsACString) {
+    pub fn assign<T: AsRef<[u8]> + ?Sized>(&mut self, other: &T) {
+        let s = nsCString::from(other.as_ref());
         unsafe {
-            Gecko_AssignCString(self as *mut _, other as *const _);
+            Gecko_AssignCString(self, &*s);
         }
     }
 
-    pub fn assign_utf16(&mut self, other: &nsAString) {
-        self.assign(&nsCString::new());
+    pub fn assign_utf16<T: AsRef<[u16]> + ?Sized>(&mut self, other: &T) {
+        self.assign(&[]);
         self.append_utf16(other);
     }
 
-    pub fn append(&mut self, other: &nsACString) {
+    pub fn append<T: AsRef<[u8]> + ?Sized>(&mut self, other: &T) {
+        let s = nsCString::from(other.as_ref());
         unsafe {
-            Gecko_AppendCString(self as *mut _, other as *const _);
+            Gecko_AppendCString(self, &*s);
         }
     }
 
-    pub fn append_utf16(&mut self, other: &nsAString) {
+    pub fn append_utf16<T: AsRef<[u16]> + ?Sized>(&mut self, other: &T) {
+        let s = nsString::from(other.as_ref());
         unsafe {
-            Gecko_AppendUTF16toCString(self as *mut _, other as *const _);
+            Gecko_AppendUTF16toCString(self, &*s);
         }
     }
 
@@ -578,6 +558,14 @@ impl nsACString {
     pub fn truncate(&mut self) {
         unsafe {
             Gecko_TruncateCString(self);
+        }
+    }
+}
+
+impl<'a> Drop for nsCString<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            Gecko_FinalizeCString(&mut **self);
         }
     }
 }
@@ -646,44 +634,46 @@ define_string_types! {
     FixedString = nsFixedString;
 
     StringRepr = nsStringRepr;
-    FixedStringRepr = nsFixedStringRepr;
-    AutoStringRepr = nsAutoStringRepr;
 }
 
 impl nsAString {
-    /// Leaves the nsAString in an unstable state with a dangling data pointer.
-    /// Should only be used in drop implementations of rust types which wrap
-    /// this type.
-    unsafe fn finalize(&mut self) {
-        Gecko_FinalizeString(self);
-    }
-
-    pub fn assign(&mut self, other: &nsAString) {
+    pub fn assign<T: AsRef<[u16]> + ?Sized>(&mut self, other: &T) {
+        let s = nsString::from(other.as_ref());
         unsafe {
-            Gecko_AssignString(self as *mut _, other as *const _);
+            Gecko_AssignString(self, &*s);
         }
     }
 
-    pub fn assign_utf8(&mut self, other: &nsACString) {
-        self.assign(&nsString::new());
+    pub fn assign_utf8<T: AsRef<[u8]> + ?Sized>(&mut self, other: &T) {
+        self.assign(&[]);
         self.append_utf8(other);
     }
 
-    pub fn append(&mut self, other: &nsAString) {
+    pub fn append<T: AsRef<[u16]> + ?Sized>(&mut self, other: &T) {
+        let s = nsString::from(other.as_ref());
         unsafe {
-            Gecko_AppendString(self as *mut _, other as *const _);
+            Gecko_AppendString(self, &*s);
         }
     }
 
-    pub fn append_utf8(&mut self, other: &nsACString) {
+    pub fn append_utf8<T: AsRef<[u8]> + ?Sized>(&mut self, other: &T) {
+        let s = nsCString::from(other.as_ref());
         unsafe {
-            Gecko_AppendUTF8toString(self as *mut _, other as *const _);
+            Gecko_AppendUTF8toString(self, &*s);
         }
     }
 
     pub fn truncate(&mut self) {
         unsafe {
             Gecko_TruncateString(self);
+        }
+    }
+}
+
+impl<'a> Drop for nsString<'a> {
+    fn drop(&mut self) {
+        unsafe {
+            Gecko_FinalizeString(&mut **self);
         }
     }
 }
@@ -732,9 +722,16 @@ macro_rules! ns_auto_string {
     }
 }
 
+#[cfg(not(debug_assertions))]
+#[allow(non_snake_case)]
+unsafe fn Gecko_IncrementStringAdoptCount(_: *mut c_void) {}
+
 // NOTE: These bindings currently only expose infallible operations. Perhaps
 // consider allowing for fallible methods?
 extern "C" {
+    #[cfg(debug_assertions)]
+    fn Gecko_IncrementStringAdoptCount(data: *mut c_void);
+
     // Gecko implementation in nsSubstring.cpp
     fn Gecko_FinalizeCString(this: *mut nsACString);
     fn Gecko_AssignCString(this: *mut nsACString, other: *const nsACString);

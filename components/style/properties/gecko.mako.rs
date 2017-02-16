@@ -952,7 +952,7 @@ fn static_assert() {
     pub fn copy_${value.name}_from(&mut self, other: &Self) {
         self.gecko.${value.gecko}.mHasSpan = other.gecko.${value.gecko}.mHasSpan;
         self.gecko.${value.gecko}.mInteger = other.gecko.${value.gecko}.mInteger;
-        self.gecko.${value.gecko}.mLineName.assign(&other.gecko.${value.gecko}.mLineName);
+        self.gecko.${value.gecko}.mLineName.assign(&*other.gecko.${value.gecko}.mLineName);
     }
     % endfor
 
@@ -1592,7 +1592,7 @@ fn static_assert() {
         // The length of mAnimations is often greater than mAnimationXXCount,
         // don't copy values over the count.
         for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate().take(count as usize) {
-            animation.mName.assign(&other.gecko.mAnimations[index].mName);
+            animation.mName.assign(&*other.gecko.mAnimations[index].mName);
         }
     }
     ${impl_animation_count('name', 'Name')}
@@ -2459,7 +2459,7 @@ fn static_assert() {
         self.clear_text_emphasis_style_if_string();
         if other.gecko.mTextEmphasisStyle == structs::NS_STYLE_TEXT_EMPHASIS_STYLE_STRING as u8 {
             self.gecko.mTextEmphasisStyleString
-                      .assign(&other.gecko.mTextEmphasisStyleString)
+                      .assign(&*other.gecko.mTextEmphasisStyleString)
         }
         self.gecko.mTextEmphasisStyle = other.gecko.mTextEmphasisStyle;
     }
@@ -2553,7 +2553,7 @@ fn static_assert() {
         use gecko_bindings::structs::nsStyleTextOverflowSide;
         fn set(side: &mut nsStyleTextOverflowSide, other: &nsStyleTextOverflowSide) {
             if other.mType == structs::NS_STYLE_TEXT_OVERFLOW_STRING as u8 {
-                side.mString.assign(&other.mString)
+                side.mString.assign(&*other.mString)
             }
             side.mType = other.mType
         }
