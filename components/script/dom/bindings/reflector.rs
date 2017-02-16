@@ -27,9 +27,8 @@ pub fn reflect_dom_object<T, U>(
 
 /// A struct to store a reference to the reflector of a DOM object.
 #[allow(unrooted_must_root)]
-#[must_root]
-#[servo_lang = "reflector"]
 #[derive(HeapSizeOf)]
+#[must_root]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
 pub struct Reflector {
     #[ignore_heap_size_of = "defined and measured in rust-mozjs"]

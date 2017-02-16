@@ -14,10 +14,8 @@ pub fn expand_dom_struct(cx: &mut ExtCtxt, sp: Span, _: &MetaItem, anno: Annotat
         item2.attrs.push(quote_attr!(cx, #[repr(C)]));
         item2.attrs.push(quote_attr!(cx, #[derive(JSTraceable)]));
         item2.attrs.push(quote_attr!(cx, #[derive(HeapSizeOf)]));
+        item2.attrs.push(quote_attr!(cx, #[derive(DenyPublicFields)]));
         item2.attrs.push(quote_attr!(cx, #[derive(DomObject)]));
-        // #[dom_struct] gets consumed, so this lets us keep around a residue
-        // Do NOT register a modifier/decorator on this attribute
-        item2.attrs.push(quote_attr!(cx, #[_dom_struct_marker]));
         Annotatable::Item(P(item2))
     } else {
         cx.span_err(sp, "#[dom_struct] applied to something other than a struct");
