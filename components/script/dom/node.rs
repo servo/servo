@@ -2126,8 +2126,7 @@ impl NodeMethods for Node {
                 // Step 6.2
                 NodeTypeId::Element(..) => {
                     if self.children::<Element>()
-                           .any(|c| c.upcast::<Node>() != child) 
-                    {
+                           .any(|c| c.upcast::<Node>() != child) {
                         return Err(Error::HierarchyRequest);
                     }
                     if child.following_siblings::<Node>()
@@ -2138,8 +2137,9 @@ impl NodeMethods for Node {
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if self.children::<DocumentType>()
-                           .any(|c| c.upcast::<Node>() != child) 
+                    if self.children::<Node>()
+                           .any(|c| c.is_doctype() &&
+                                &*c != child)
                     {
                         return Err(Error::HierarchyRequest);
                     }
@@ -2565,22 +2565,22 @@ impl<'a> ChildrenMutation<'a> {
             // Add/remove at start of container: Return the first following element.
             ChildrenMutation::Prepend { next, .. } |
             ChildrenMutation::Replace { prev: None, next: Some(next), .. } => {
-                next.inclusively_following_siblings::<Element>().map(Root::upcast).next()
+                next.inclusively_following_siblings::<Node>().filter(|node| node.is::<Element>()).next()
             }
             // Add/remove at end of container: Return the last preceding element.
             ChildrenMutation::Append { prev, .. } |
             ChildrenMutation::Replace { prev: Some(prev), next: None, .. } => {
-                prev.inclusively_preceding_siblings::<Element>().map(Root::upcast).next()
+                prev.inclusively_preceding_siblings::<Node>().filter(|node| node.is::<Element>()).next()
             }
             // Insert or replace in the middle:
             ChildrenMutation::Insert { prev, next, .. } |
             ChildrenMutation::Replace { prev: Some(prev), next: Some(next), .. } => {
                 if prev.inclusively_preceding_siblings::<Node>().all(|node| !node.is::<Element>()) {
                     // Before the first element: Return the first following element.
-                    next.inclusively_following_siblings::<Element>().map(Root::upcast).next()
+                    next.inclusively_following_siblings::<Node>().filter(|node| node.is::<Element>()).next()
                 } else if next.inclusively_following_siblings::<Node>().all(|node| !node.is::<Element>()) {
                     // After the last element: Return the last preceding element.
-                    prev.inclusively_preceding_siblings::<Element>().map(Root::upcast).next()
+                    prev.inclusively_preceding_siblings::<Node>().filter(|node| node.is::<Element>()).next()
                 } else {
                     None
                 }
