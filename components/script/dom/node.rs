@@ -2107,8 +2107,9 @@ impl NodeMethods for Node {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if self.children::<Element>().any(|c| c.upcast::<Node>() != child) {
-                                return Err(Error::HierarchyRequest);
+                            if self.children::<Element>()
+                                .any(|c| c.upcast::<Node>() != child) {
+                                    return Err(Error::HierarchyRequest);
                             }
                             if child.following_siblings::<DocumentType>().count() > 0 {
                                 return Err(Error::HierarchyRequest);
@@ -2120,17 +2121,20 @@ impl NodeMethods for Node {
                 },
                 // Step 6.2
                 NodeTypeId::Element(..) => {
-                    if self.children::<Element>().any(|c| c.upcast::<Node>() != child) {
-                        return Err(Error::HierarchyRequest);
+                    if self.children::<Element>()
+                        .any(|c| c.upcast::<Node>() != child) {
+                            return Err(Error::HierarchyRequest);
                     }
-                    if child.following_siblings::<Node>().any(|child| child.is_doctype()) {
-                        return Err(Error::HierarchyRequest);
+                    if child.following_siblings::<Node>()
+                        .any(|child| child.is_doctype()) {
+                            return Err(Error::HierarchyRequest);
                     }
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if self.children::<DocumentType>().any(|c| c.upcast::<Node>() != child) {
-                        return Err(Error::HierarchyRequest);
+                    if self.children::<DocumentType>()
+                        .any(|c| c.upcast::<Node>() != child) {
+                            return Err(Error::HierarchyRequest);
                     }
                     if self.children::<Node>()
                            .take_while(|c| &**c != child)
