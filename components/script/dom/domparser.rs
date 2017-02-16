@@ -53,8 +53,7 @@ impl DOMParserMethods for DOMParser {
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Root<Document>> {
         let url = self.window.get_url();
-        let content_type =
-            DOMString::from(DOMParserBinding::SupportedTypeValues::strings[ty as usize]);
+        let content_type = DOMString::from(ty.as_str());
         let doc = self.window.Document();
         let loader = DocumentLoader::new(&*doc.loader());
         match ty {

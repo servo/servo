@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::{self, PermissionDescriptor, PermissionName};
-use dom::bindings::codegen::Bindings::PermissionStatusBinding::{PermissionNameValues, PermissionState};
+use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionStatusMethods;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
@@ -57,6 +57,6 @@ impl PermissionStatusMethods for PermissionStatus {
 
 impl Display for PermissionName {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", PermissionNameValues::strings[*self as usize].to_string())
+        write!(f, "{}", self.as_str())
     }
 }

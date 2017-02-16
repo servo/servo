@@ -3992,12 +3992,18 @@ pub const strings: &'static [&'static str] = &[
     %s,
 ];
 
+impl super::%s {
+    pub fn as_str(&self) -> &'static str {
+        strings[*self as usize]
+    }
+}
+
 impl ToJSValConvertible for super::%s {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         strings[*self as usize].to_jsval(cx, rval);
     }
 }
-""" % (",\n    ".join(['"%s"' % val for val in enum.values()]), enum.identifier.name)
+""" % (",\n    ".join(['"%s"' % val for val in enum.values()]), enum.identifier.name, enum.identifier.name)
 
         self.cgRoot = CGList([
             CGGeneric(decl),
