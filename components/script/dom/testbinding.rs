@@ -27,13 +27,14 @@ use dom::bindings::num::Finite;
 use dom::bindings::refcounted::TrustedPromise;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::bindings::trace::RootedTraceableBox;
 use dom::bindings::weakref::MutableWeakRef;
 use dom::blob::{Blob, BlobImpl};
 use dom::globalscope::GlobalScope;
 use dom::promise::Promise;
 use dom::promisenativehandler::{PromiseNativeHandler, Callback};
 use dom::url::URL;
-use js::jsapi::{HandleObject, HandleValue, JSContext, JSObject, JSAutoCompartment};
+use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject, JSAutoCompartment};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
 use script_traits::MsDuration;
@@ -338,12 +339,12 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> { Some(vec![1]) }
     fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> TestDictionary {
         TestDictionary {
-            anyValue: NullValue(),
+            anyValue: Heap::new(NullValue()),
             booleanValue: None,
             byteValue: None,
             dict: TestDictionaryDefaults {
                 UnrestrictedDoubleValue: 0.0,
-                anyValue: NullValue(),
+                anyValue: Heap::new(NullValue()),
                 booleanValue: false,
                 bytestringValue: ByteString::new(vec![]),
                 byteValue: 0,
@@ -359,7 +360,7 @@ impl TestBindingMethods for TestBinding {
                 nullableFloatValue: None,
                 nullableLongLongValue: None,
                 nullableLongValue: None,
-                nullableObjectValue: ptr::null_mut(),
+                nullableObjectValue: Heap::new(ptr::null_mut()),
                 nullableOctetValue: None,
                 nullableShortValue: None,
                 nullableStringValue: None,
@@ -402,7 +403,7 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
-    fn DictMatchesPassedValues(&self, arg: &TestDictionary) -> bool {
+    fn DictMatchesPassedValues(&self, arg: RootedTraceableBox<TestDictionary>) -> bool {
         arg.type_.as_ref().map(|s| s == "success").unwrap_or(false) &&
             arg.nonRequiredNullable.is_none() &&
             arg.nonRequiredNullable2 == Some(None)

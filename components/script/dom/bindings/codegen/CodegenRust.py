@@ -19,6 +19,7 @@ from WebIDL import (
     IDLBuiltinType,
     IDLNullValue,
     IDLNullableType,
+    IDLObject,
     IDLType,
     IDLInterfaceMember,
     IDLUndefinedValue,
@@ -581,11 +582,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     If isDefinitelyObject is True, that means we know the value
     isObject() and we have no need to recheck that.
 
-    if isMember is True, we're being converted from a property of some
-    JS object, not from an actual method argument, so we can't rely on
-    our jsval being rooted or outliving us in any way.  Any caller
-    passing true needs to ensure that it is handled correctly in
-    typeIsSequenceOrHasSequenceMember.
+    isMember is `False`, "Dictionary", "Union" or "Variadic", and affects
+    whether this function returns code suitable for an on-stack rooted binding
+    or suitable for storing in an appropriate larger structure.
 
     invalidEnumValueFatal controls whether an invalid enum value conversion
     attempt will throw (if true) or simply return without doing anything (if
@@ -1033,33 +1032,33 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     if type.isAny():
         assert not isEnforceRange and not isClamp
+        assert isMember != "Union"
 
-        declType = ""
-        default = ""
         if isMember == "Dictionary":
             # TODO: Need to properly root dictionaries
             # https://github.com/servo/servo/issues/6381
-            declType = CGGeneric("JSVal")
+            declType = CGGeneric("Heap<JSVal>")
 
             if defaultValue is None:
                 default = None
             elif isinstance(defaultValue, IDLNullValue):
-                default = "NullValue()"
+                default = "Heap::new(NullValue())"
             elif isinstance(defaultValue, IDLUndefinedValue):
-                default = "UndefinedValue()"
+                default = "Heap::new(UndefinedValue())"
             else:
                 raise TypeError("Can't handle non-null, non-undefined default value here")
+            return handleOptional("Heap::new(${val}.get())", declType, default)
+
+        declType = CGGeneric("HandleValue")
+
+        if defaultValue is None:
+            default = None
+        elif isinstance(defaultValue, IDLNullValue):
+            default = "HandleValue::null()"
+        elif isinstance(defaultValue, IDLUndefinedValue):
+            default = "HandleValue::undefined()"
         else:
-            declType = CGGeneric("HandleValue")
-
-            if defaultValue is None:
-                default = None
-            elif isinstance(defaultValue, IDLNullValue):
-                default = "HandleValue::null()"
-            elif isinstance(defaultValue, IDLUndefinedValue):
-                default = "HandleValue::undefined()"
-            else:
-                raise TypeError("Can't handle non-null, non-undefined default value here")
+            raise TypeError("Can't handle non-null, non-undefined default value here")
 
         return handleOptional("${val}", declType, default)
 
@@ -1068,13 +1067,22 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
         # TODO: Need to root somehow
         # https://github.com/servo/servo/issues/6382
-        declType = CGGeneric("*mut JSObject")
+        default = "ptr::null_mut()"
         templateBody = wrapObjectTemplate("${val}.get().to_object()",
-                                          "ptr::null_mut()",
+                                          default,
                                           isDefinitelyObject, type, failureCode)
 
+        if isMember in ("Dictionary", "Union"):
+            declType = CGGeneric("Heap<*mut JSObject>")
+            templateBody = "Heap::new(%s)" % templateBody
+            default = "Heap::new(%s)" % default
+        else:
+            # TODO: Need to root somehow
+            # https://github.com/servo/servo/issues/6382
+            declType = CGGeneric("*mut JSObject")
+
         return handleOptional(templateBody, declType,
-                              handleDefaultNull("ptr::null_mut()"))
+                              handleDefaultNull(default))
 
     if type.isDictionary():
         # There are no nullable dictionaries
@@ -1083,15 +1091,21 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         typeName = "%s::%s" % (CGDictionary.makeModuleName(type.inner),
                                CGDictionary.makeDictionaryName(type.inner))
         declType = CGGeneric(typeName)
-        template = ("match %s::new(cx, ${val}) {\n"
+        empty = "%s::empty(cx)" % typeName
+
+        if isMember != "Dictionary" and type_needs_tracing(type):
+            declType = CGTemplatedType("RootedTraceableBox", declType)
+            empty = "RootedTraceableBox::new(%s)" % empty
+
+        template = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
                     "    Ok(ConversionResult::Success(dictionary)) => dictionary,\n"
                     "    Ok(ConversionResult::Failure(error)) => {\n"
                     "%s\n"
                     "    }\n"
                     "    _ => { %s },\n"
-                    "}" % (typeName, indent(failOrPropagate, 8), exceptionCode))
+                    "}" % (indent(failOrPropagate, 8), exceptionCode))
 
-        return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
+        return handleOptional(template, declType, handleDefaultNull(empty))
 
     if type.isVoid():
         # This one only happens for return values, and its easy: Just
@@ -2233,6 +2247,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'dom::types::*',
         'js::error::throw_type_error',
         'js::jsapi::HandleValue',
+        'js::jsapi::Heap',
         'js::jsapi::JSContext',
         'js::jsapi::JSObject',
         'js::jsapi::MutableHandleValue',
@@ -3139,7 +3154,7 @@ class CGCallGenerator(CGThing):
         args = CGList([CGGeneric(arg) for arg in argsPre], ", ")
         for (a, name) in arguments:
             # XXXjdm Perhaps we should pass all nontrivial types by borrowed pointer
-            if a.type.isDictionary():
+            if a.type.isDictionary() and not type_needs_tracing(a.type):
                 name = "&" + name
             args.append(CGGeneric(name))
 
@@ -4052,14 +4067,15 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
         typeName = builtinNames[type.tag()]
     elif type.isObject():
         name = type.name
-        typeName = "*mut JSObject"
+        typeName = "Heap<*mut JSObject>"
     else:
         raise TypeError("Can't handle %s in unions yet" % type)
 
     info = getJSToNativeConversionInfo(
         type, descriptorProvider, failureCode="return Ok(None);",
         exceptionCode='return Err(());',
-        isDefinitelyObject=True)
+        isDefinitelyObject=True,
+        isMember="Union")
     template = info.template
 
     jsConversion = string.Template(template).substitute({
@@ -4094,6 +4110,7 @@ class CGUnionStruct(CGThing):
             % (self.type, v["name"]) for v in templateVars
         ]
         return ("""\
+#[derive(JSTraceable)]
 pub enum %s {
 %s
 }
@@ -5567,6 +5584,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::utils::trace_global',
         'dom::bindings::trace::JSTraceable',
         'dom::bindings::trace::RootedTraceable',
+        'dom::bindings::trace::RootedTraceableBox',
         'dom::bindings::callback::CallSetup',
         'dom::bindings::callback::CallbackContainer',
         'dom::bindings::callback::CallbackInterface',
@@ -5872,6 +5890,7 @@ class CGDictionary(CGThing):
                        for m in self.memberInfo]
 
         return (string.Template(
+                "#[derive(JSTraceable)]\n"
                 "pub struct ${selfName} {\n" +
                 "${inheritance}" +
                 "\n".join(memberDecls) + "\n" +
@@ -5995,8 +6014,6 @@ class CGDictionary(CGThing):
         default = info.default
         replacements = {"val": "rval.handle()"}
         conversion = string.Template(templateBody).substitute(replacements)
-        if memberType.isAny():
-            conversion = "%s.get()" % conversion
 
         assert (member.defaultValue is None) == (default is None)
         if not member.optional:
@@ -6154,6 +6171,45 @@ class CGBindingRoot(CGThing):
         return stripTrailingWhitespace(self.root.define())
 
 
+def type_needs_tracing(t):
+    assert isinstance(t, IDLObject), (t, type(t))
+
+    if t.isType():
+        if isinstance(t, IDLWrapperType):
+            return type_needs_tracing(t.inner)
+
+        if t.nullable():
+            return type_needs_tracing(t.inner)
+
+        if t.isAny():
+            return True
+
+        if t.isObject():
+            return True
+
+        if t.isSequence():
+            return type_needs_tracing(t.inner)
+
+        return False
+
+    if t.isDictionary():
+        if t.parent and type_needs_tracing(t.parent):
+            return True
+
+        if any(type_needs_tracing(member.type) for member in t.members):
+            return True
+
+        return False
+
+    if t.isInterface():
+        return False
+
+    if t.isEnum():
+        return False
+
+    assert False, (t, type(t))
+
+
 def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, variadic=False):
     info = getJSToNativeConversionInfo(
         ty, descriptorProvider, isArgument=True)
@@ -6167,7 +6223,7 @@ def argument_type(descriptorProvider, ty, optional=False, defaultValue=None, var
     elif optional and not defaultValue:
         declType = CGWrapper(declType, pre="Option<", post=">")
 
-    if ty.isDictionary():
+    if ty.isDictionary() and not type_needs_tracing(ty):
         declType = CGWrapper(declType, pre="&")
 
     return declType.define()

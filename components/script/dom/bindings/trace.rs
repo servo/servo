@@ -653,6 +653,61 @@ impl<'a, T: JSTraceable + 'static> Drop for RootedTraceable<'a, T> {
     }
 }
 
+/// Roots any JSTraceable thing
+///
+/// If you have a valid DomObject, use Root.
+/// If you have GC things like *mut JSObject or JSVal, use rooted!.
+/// If you have an arbitrary number of DomObjects to root, use rooted_vec!.
+/// If you know what you're doing, use this.
+pub struct RootedTraceableBox<T: 'static + JSTraceable> {
+    ptr: *mut T,
+}
+
+unsafe impl<T: JSTraceable + 'static> JSTraceable for RootedTraceableBox<T> {
+    unsafe fn trace(&self, tracer: *mut JSTracer) {
+        (*self.ptr).trace(tracer);
+    }
+}
+
+impl<T: JSTraceable + 'static> RootedTraceableBox<T> {
+    /// Root a JSTraceable thing for the life of this RootedTraceable
+    pub fn new(traceable: T) -> RootedTraceableBox<T> {
+        let traceable = Box::into_raw(box traceable);
+        unsafe {
+            RootedTraceableSet::add(traceable);
+        }
+        RootedTraceableBox {
+            ptr: traceable,
+        }
+    }
+}
+
+impl<T: JSTraceable> Deref for RootedTraceableBox<T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        unsafe {
+            &*self.ptr
+        }
+    }
+}
+
+impl<T: JSTraceable> DerefMut for RootedTraceableBox<T> {
+    fn deref_mut(&mut self) -> &mut T {
+        unsafe {
+            &mut *self.ptr
+        }
+    }
+}
+
+impl<T: JSTraceable + 'static> Drop for RootedTraceableBox<T> {
+    fn drop(&mut self) {
+        unsafe {
+            RootedTraceableSet::remove(self.ptr);
+            let _ = Box::from_raw(self.ptr);
+        }
+    }
+}
+
 /// A vector of items to be rooted with `RootedVec`.
 /// Guaranteed to be empty when not rooted.
 /// Usage: `rooted_vec!(let mut v);` or if you have an

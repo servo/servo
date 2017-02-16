@@ -26,6 +26,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::DomObject;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
+use dom::bindings::trace::RootedTraceableBox;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::bluetooth::BluetoothExtraPermissionData;
 use dom::browsingcontext::BrowsingContext;
@@ -921,7 +922,7 @@ impl WindowMethods for Window {
 
     #[allow(unrooted_must_root)]
     // https://fetch.spec.whatwg.org/#fetch-method
-    fn Fetch(&self, input: RequestOrUSVString, init: &RequestInit) -> Rc<Promise> {
+    fn Fetch(&self, input: RequestOrUSVString, init: RootedTraceableBox<RequestInit>) -> Rc<Promise> {
         fetch::Fetch(&self.upcast(), input, init)
     }
 

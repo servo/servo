@@ -20,6 +20,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString};
+use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom::headers::{Guard, Headers};
 use dom::promise::Promise;
@@ -80,7 +81,7 @@ impl Request {
     // https://fetch.spec.whatwg.org/#dom-request
     pub fn Constructor(global: &GlobalScope,
                        input: RequestInfo,
-                       init: &RequestInit)
+                       init: RootedTraceableBox<RequestInit>)
                        -> Fallible<Root<Request>> {
         // Step 1
         let temporary_request: NetTraitsRequest;
@@ -139,12 +140,12 @@ impl Request {
         // TODO: `environment settings object` is not implemented in Servo yet.
 
         // Step 10
-        if !init.window.is_undefined() && !init.window.is_null() {
+        if !init.window.handle().is_null_or_undefined() {
             return Err(Error::Type("Window is present and is not null".to_string()))
         }
 
         // Step 11
-        if !init.window.is_undefined() {
+        if !init.window.handle().is_undefined() {
             window = Window::NoWindow;
         }
 
@@ -179,7 +180,7 @@ impl Request {
             init.redirect.is_some() ||
             init.referrer.is_some() ||
             init.referrerPolicy.is_some() ||
-            !init.window.is_undefined() {
+            !init.window.handle().is_undefined() {
                 // Step 13.1
                 if request.mode == NetTraitsRequestMode::Navigate {
                     return Err(Error::Type(
@@ -311,7 +312,7 @@ impl Request {
         if let Some(possible_header) = init.headers.as_ref() {
             match possible_header {
                 &HeadersInit::Headers(ref init_headers) => {
-                    headers_copy = init_headers.clone();
+                    headers_copy = Root::from_ref(&*init_headers);
                 }
                 &HeadersInit::ByteStringSequenceSequence(ref init_sequence) => {
                     try!(headers_copy.fill(Some(

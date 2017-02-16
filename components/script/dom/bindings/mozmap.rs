@@ -23,7 +23,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 
 /// The `MozMap` (open-ended dictionary) type.
-#[derive(Clone)]
+#[derive(Clone, JSTraceable)]
 pub struct MozMap<T> {
     map: HashMap<DOMString, T>,
 }
