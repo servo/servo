@@ -1512,7 +1512,7 @@ impl Node {
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
                     if node.children::<Node>()
-                        .any(|c| c.is::<Text>())
+                           .any(|c| c.is::<Text>())
                     {
                         return Err(Error::HierarchyRequest);
                     }
@@ -1549,7 +1549,7 @@ impl Node {
                 // Step 6.3
                 NodeTypeId::DocumentType => {
                     if parent.children::<Node>()
-                              .any(|c| c.is_doctype())
+                             .any(|c| c.is_doctype())
                     {
                         return Err(Error::HierarchyRequest);
                     }
@@ -2110,8 +2110,7 @@ impl NodeMethods for Node {
                         0 => (),
                         // Step 6.1.2
                         1 => {
-                            if self.children::<Element>()
-                                .any(|c| c.upcast::<Node>() != child) {
+                            if self.children::<Element>().any(|c| c.upcast::<Node>() != child) {
                                     return Err(Error::HierarchyRequest);
                             }
                             if child.following_siblings::<Node>()
