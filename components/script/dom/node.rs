@@ -854,8 +854,8 @@ impl Node {
             index if index < -1 => return Err(Error::IndexSize),
             -1 => {
                 let last_child = self.upcast::<Node>().GetLastChild();
-                match last_child.and_then(|node| node.inclusively_preceding_siblings::<Element>()
-                                                     //.filter_map(Root::downcast::<Element>)
+                match last_child.and_then(|node| node.inclusively_preceding_siblings::<Node>()
+                                                     .filter_map(Root::downcast::<Element>)
                                                      .filter(|elem| is_delete_type(elem))
                                                      .next()) {
                     Some(element) => element,
@@ -1530,8 +1530,9 @@ impl Node {
                                 return Err(Error::HierarchyRequest);
                             }
                             if let Some(child) = child {
-                                if child.inclusively_following_siblings::<DocumentType>().count() > 0 {
-                                    return Err(Error::HierarchyRequest);
+                                if child.inclusively_following_siblings::<Node>()
+                                        .any(|child| child.is_doctype()) {
+                                            return Err(Error::HierarchyRequest);
                                 }
                             }
                         },
@@ -1545,14 +1546,15 @@ impl Node {
                         return Err(Error::HierarchyRequest);
                     }
                     if let Some(ref child) = child {
-                        if child.inclusively_following_siblings::<DocumentType>().count() > 0 {
-                            return Err(Error::HierarchyRequest);
+                        if child.inclusively_following_siblings::<Node>()
+                            .any(|child| child.is_doctype()) {
+                                return Err(Error::HierarchyRequest);
                         }
                     }
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if parent.children::<DocumentType>().count() > 0 {
+                    if parent.children::<Node>().any(|c| c.is_doctype()) {
                         return Err(Error::HierarchyRequest);
                     }
                     match child {
@@ -2103,7 +2105,7 @@ impl NodeMethods for Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
-                    if node.children::<Text>().count() > 0
+                    if node.children::<Node>().any(|c| c.is::<Text>())
                     {
                         return Err(Error::HierarchyRequest);
                     }
@@ -2127,7 +2129,7 @@ impl NodeMethods for Node {
                     if self.children::<Element>().any(|c| c.upcast::<Node>() != child) {
                         return Err(Error::HierarchyRequest);
                     }
-                    if child.following_siblings::<DocumentType>().count() > 0 {
+                    if child.following_siblings::<Node>().any(|child| child.is_doctype()) {
                         return Err(Error::HierarchyRequest);
                     }
                 },

@@ -91,7 +91,7 @@ pub trait LayoutNode: Debug + GetLayoutData + TNode {
             current: self.last_child(),
         })
     }
-    
+
     fn traverse_preorder(self) -> TreeIterator<Self> {
         TreeIterator::new(self)
     }

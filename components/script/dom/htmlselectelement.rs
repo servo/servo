@@ -94,7 +94,7 @@ impl HTMLSelectElement {
                     let node = Root::downcast::<HTMLOptionElement>(node).unwrap();
                     Choice3::First(iter::once(node))
                 } else if node.is::<HTMLOptGroupElement>() {
-                    Choice3::Second(node.children::<Element>().filter_map(Root::downcast))
+                    Choice3::Second(node.children::<Node>().filter_map(Root::downcast))
                 } else {
                     Choice3::Third(iter::empty())
                 }

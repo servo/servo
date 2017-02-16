@@ -67,12 +67,12 @@ impl HTMLTableCellElementMethods for HTMLTableCellElement {
 
         let parent_children = match self_node.GetParentNode() {
             Some(ref parent_node) if parent_node.is::<HTMLTableRowElement>() => {
-                parent_node.children::<HTMLTableCellElement>()
+                parent_node.children::<Node>()
             },
             _ => return -1,
         };
 
-        parent_children.map(Root::upcast::<Node>)
+        parent_children.filter(|c| c.is::<HTMLTableCellElement>())
                        .position(|c| &*c == self_node)
                        .map_or(-1, |p| p as i32)
     }

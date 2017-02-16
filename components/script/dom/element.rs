@@ -2255,9 +2255,9 @@ impl VirtualMethods for Element {
         } else {
             if flags.intersects(HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
                 if let Some(next_child) = mutation.next_child() {
-                    for child in next_child.inclusively_following_siblings::<Element>() {
+                    for child in next_child.inclusively_following_siblings::<Node>() {
                         if child.is::<Element>() {
-                            child.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+                            child.dirty(NodeDamage::OtherNodeDamage);
                         }
                     }
                 }
@@ -2319,15 +2319,15 @@ impl<'a> ::selectors::Element for Root<Element> {
     }
 
     fn last_child_element(&self) -> Option<Root<Element>> {
-        self.node.rev_children::<Element>().filter_map(Root::downcast).next()
+        self.node.rev_children::<Node>().filter_map(Root::downcast).next()
     }
 
     fn prev_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.preceding_siblings::<Element>().filter_map(Root::downcast).next()
+        self.node.preceding_siblings::<Node>().filter_map(Root::downcast).next()
     }
 
     fn next_sibling_element(&self) -> Option<Root<Element>> {
-        self.node.following_siblings::<Element>().filter_map(Root::downcast).next()
+        self.node.following_siblings::<Node>().filter_map(Root::downcast).next()
     }
 
     fn is_root(&self) -> bool {

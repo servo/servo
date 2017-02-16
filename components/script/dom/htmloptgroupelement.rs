@@ -71,7 +71,9 @@ impl VirtualMethods for HTMLOptGroupElement {
                 let el = self.upcast::<Element>();
                 el.set_disabled_state(disabled_state);
                 el.set_enabled_state(!disabled_state);
-                let options = el.upcast::<Node>().children::<HTMLOptionElement>();
+                let options = el.upcast::<Node>().children::<Node>().filter(|child| {
+                    child.is::<HTMLOptionElement>()
+                }).map(|child| Root::from_ref(child.downcast::<HTMLOptionElement>().unwrap()));
                 if disabled_state {
                     for option in options {
                         let el = option.upcast::<Element>();
