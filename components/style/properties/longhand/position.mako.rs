@@ -93,7 +93,7 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
 % else:
     ${helpers.predefined_type(name="justify-content",
                               type="AlignJustifyContent",
-                              initial_value="specified::AlignJustifyContent::auto()",
+                              initial_value="specified::AlignJustifyContent::normal()",
                               spec="https://drafts.csswg.org/css-flexbox/#justify-content-property",
                               extra_prefixes="webkit",
                               animatable=False)}
@@ -118,7 +118,7 @@ ${helpers.single_keyword("align-items", "stretch flex-start flex-end center base
 % else:
     ${helpers.predefined_type(name="align-content",
                               type="AlignJustifyContent",
-                              initial_value="specified::AlignJustifyContent::auto()",
+                              initial_value="specified::AlignJustifyContent::normal()",
                               spec="https://drafts.csswg.org/css-flexbox/#align-content-property",
                               extra_prefixes="webkit",
                               animatable=False)}
