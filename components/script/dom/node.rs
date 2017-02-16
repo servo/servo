@@ -1511,7 +1511,8 @@ impl Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
-                    if node.children::<Text>().count() > 0
+                    if node.children::<Node>()
+                        .any(|c| c.is::<Text>())
                     {
                         return Err(Error::HierarchyRequest);
                     }
@@ -1548,8 +1549,9 @@ impl Node {
                 // Step 6.3
                 NodeTypeId::DocumentType => {
                     if parent.children::<Node>()
-                        .any(|c| c.is_doctype()) {
-                            return Err(Error::HierarchyRequest);
+                              .any(|c| c.is_doctype())
+                    {
+                        return Err(Error::HierarchyRequest);
                     }
                     match child {
                         Some(child) => {
@@ -2099,7 +2101,8 @@ impl NodeMethods for Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
-                    if node.children::<Node>().any(|c| c.is::<Text>())
+                    if node.children::<Node>()
+                           .any(|c| c.is::<Text>())
                     {
                         return Err(Error::HierarchyRequest);
                     }
@@ -2111,7 +2114,8 @@ impl NodeMethods for Node {
                                 .any(|c| c.upcast::<Node>() != child) {
                                     return Err(Error::HierarchyRequest);
                             }
-                            if child.following_siblings::<DocumentType>().count() > 0 {
+                            if child.following_siblings::<Node>()
+                                    .any(|child| child.is_doctype()) {
                                 return Err(Error::HierarchyRequest);
                             }
                         },
@@ -2122,19 +2126,22 @@ impl NodeMethods for Node {
                 // Step 6.2
                 NodeTypeId::Element(..) => {
                     if self.children::<Element>()
-                        .any(|c| c.upcast::<Node>() != child) {
-                            return Err(Error::HierarchyRequest);
+                           .any(|c| c.upcast::<Node>() != child) 
+                    {
+                        return Err(Error::HierarchyRequest);
                     }
                     if child.following_siblings::<Node>()
-                        .any(|child| child.is_doctype()) {
-                            return Err(Error::HierarchyRequest);
+                            .any(|child| child.is_doctype())
+                    {
+                        return Err(Error::HierarchyRequest);
                     }
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
                     if self.children::<DocumentType>()
-                        .any(|c| c.upcast::<Node>() != child) {
-                            return Err(Error::HierarchyRequest);
+                           .any(|c| c.upcast::<Node>() != child) 
+                    {
+                        return Err(Error::HierarchyRequest);
                     }
                     if self.children::<Node>()
                            .take_while(|c| &**c != child)
