@@ -2494,7 +2494,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(&self) -> Option<Root<DocumentType>> {
-        self.upcast::<Node>().children::<Element>().filter_map(Root::downcast).next()
+        self.upcast::<Node>().children::<Node>().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documentelement

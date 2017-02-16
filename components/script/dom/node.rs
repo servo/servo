@@ -1200,14 +1200,13 @@ impl<T> FollowingIterator<T> where T: DerivedFrom<Node> {
         }
 
         if let Some(next_sibling) = current.GetNextSibling() {
-            if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
-                self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
-                if let Some(next_sibling) = current.GetNextSibling() {
-                    return Root::downcast::<T>(next_sibling);
-                } else {
-                    return None;
-                }
+            self.current = Some(next_sibling.clone());
+            if let Some(next_sibling) = current.GetNextSibling() {
+                return Root::downcast::<T>(next_sibling);
+            } else {
+                return None;
             }
+            
         }
 
         for ancestor in current.inclusive_ancestors() {
@@ -1215,13 +1214,11 @@ impl<T> FollowingIterator<T> where T: DerivedFrom<Node> {
                 break;
             }
             if let Some(next_sibling) = ancestor.GetNextSibling() {
-                if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
-                    self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
-                    if let Some(next_sibling) = ancestor.GetNextSibling() {
-                        return Root::downcast::<T>(next_sibling);
-                    } else {
-                        return None;
-                    }
+                self.current = Some(next_sibling.clone());
+                if let Some(next_sibling) = ancestor.GetNextSibling() {
+                    return Root::downcast::<T>(next_sibling);
+                } else {
+                    return None;
                 }
             }
         }
@@ -1241,13 +1238,9 @@ impl<T> Iterator for FollowingIterator<T> where T: DerivedFrom<Node> {
         };
 
         if let Some(first_child) = current.GetFirstChild() {
-            if let Some(first_child) = Root::downcast::<T>(first_child) {
-                self.current = Some(Root::upcast::<Node>(first_child.clone()));
-                if let Some(first_child) = current.GetFirstChild() {
-                    return Root::downcast::<T>(first_child);
-                } else {
-                    return None;
-                }
+            self.current = Some(first_child.clone());
+            if let Some(first_child) = current.GetFirstChild() {
+                return Root::downcast::<T>(first_child);
             }
         }
 
@@ -1363,10 +1356,8 @@ impl<T> TreeIterator<T> where T: DerivedFrom<Node> {
                 break;
             }
             if let Some(next_sibling) = ancestor.GetNextSibling() {
-                if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
-                    self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
-                    return Root::downcast::<T>(current);
-                }
+                self.current = Some(next_sibling.clone());
+                return Root::downcast::<T>(current);
             }
             self.depth -= 1;
         }
@@ -1387,9 +1378,9 @@ impl<T> Iterator for TreeIterator<T> where T: DerivedFrom<Node> {
             Some(current) => current,
         };
         if let Some(first_child) = current.GetFirstChild() {
+            self.depth += 1;
+            self.current = Some(first_child.clone());
             if let Some(first_child) = Root::downcast::<T>(first_child) {
-                self.depth += 1;
-                self.current = Some(Root::upcast::<Node>(first_child.clone()));
                 return Some(first_child);
             }
         };
