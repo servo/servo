@@ -92,28 +92,41 @@
         })
     }
 
-    // This may be a bit off, unsure, possibly needs changes
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if let DeclaredValue::Value(ref style) = *self.font_style {
-                try!(style.to_css(dest));
-                try!(write!(dest, " "));
+
+            fn extract_value<T>(x: &DeclaredValue<T>) -> Option< &T> {
+                match *x {
+                    DeclaredValue::Value(ref val) => Some(val),
+                    _ => None,
+                }
             }
 
-            if let DeclaredValue::Value(ref variant) = *self.font_variant {
-                try!(variant.to_css(dest));
-                try!(write!(dest, " "));
+    % if product == "gecko":
+        % for sub_property in "font_size_adjust font_kerning font_variant_caps font_variant_position".split():
+            match extract_value(self.${sub_property}) {
+                Some(val) => {},
+                None => return try!(dest.write_str("")),
             }
+        % endfor
+    % endif
 
-            if let DeclaredValue::Value(ref weight) = *self.font_weight {
-                try!(weight.to_css(dest));
-                try!(write!(dest, " "));
+    % if product == "none":
+            match extract_value(self.font_language_override) {
+                Some(val) => {},
+                None => return try!(dest.write_str("")),
             }
+    % endif
 
-            if let DeclaredValue::Value(ref stretch) = *self.font_stretch {
-                try!(stretch.to_css(dest));
-                try!(write!(dest, " "));
+    % for sub_property in "font_style font_variant font_weight font_stretch".split():
+            match extract_value(self.${sub_property}) {
+                Some(val) => {
+                    try!(val.to_css(dest));
+                    try!(write!(dest, " "));
+                },
+                None => {},
             }
+    % endfor
 
             try!(self.font_size.to_css(dest));
             if let DeclaredValue::Value(ref height) = *self.line_height {
@@ -125,8 +138,30 @@
                     }
                 }
             }
-
             try!(write!(dest, " "));
+
+    % if product == "gecko":
+        % for sub_property in "font_size_adjust font_kerning font_variant_caps" \
+                              "font_variant_position".split():
+            match extract_value(self.${sub_property}) {
+                Some(val) => {
+                    try!(val.to_css(dest));
+                    try!(write!(dest, " "));
+                },
+                None => {},
+            }
+        % endfor
+    % endif
+
+    % if product == "none":
+            match extract_value(self.font_language_override) {
+                Some(val) => {
+                    try!(val.to_css(dest));
+                    try!(write!(dest, " "));
+                },
+                None => {},
+            }
+    % endif
 
             self.font_family.to_css(dest)
         }
