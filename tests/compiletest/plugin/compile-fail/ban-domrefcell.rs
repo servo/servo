@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(plugin)]
-#![plugin(plugins)]
+#![plugin(script_plugins)]
 
 extern crate script;
 
