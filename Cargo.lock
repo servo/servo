@@ -2071,8 +2071,8 @@ version = "0.0.1"
 dependencies = [
  "compiletest_helper 0.0.1",
  "deny_public_fields 0.0.1",
- "plugins 0.0.1",
  "script 0.0.1",
+ "script_plugins 0.0.1",
 ]
 
 [[package]]
@@ -2335,6 +2335,7 @@ dependencies = [
  "regex 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
  "script_layout_interface 0.0.1",
+ "script_plugins 0.0.1",
  "script_traits 0.0.1",
  "selectors 0.18.0",
  "serde 0.8.20 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2384,6 +2385,10 @@ dependencies = [
  "servo_url 0.0.1",
  "style 0.0.1",
 ]
+
+[[package]]
+name = "script_plugins"
+version = "0.0.1"
 
 [[package]]
 name = "script_tests"

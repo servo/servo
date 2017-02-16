@@ -1,18 +1,10 @@
 [package]
-name = "plugins"
+name = "script_plugins"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
 publish = false
 
 [lib]
-name = "plugins"
 path = "lib.rs"
 plugin = true
-
-[dependencies.clippy_lints]
-version = "0.0.112"
-optional = true
-
-[features]
-clippy = ["clippy_lints"]
