@@ -3027,7 +3027,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
     fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().rev_children::<Element>().next()
+        self.upcast::<Node>().rev_children::<Node>().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount

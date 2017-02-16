@@ -56,7 +56,7 @@ impl DocumentFragmentMethods for DocumentFragment {
     fn GetElementById(&self, id: DOMString) -> Option<Root<Element>> {
         let node = self.upcast::<Node>();
         let id = Atom::from(id);
-        node.traverse_preorder::<Element>().find(|descendant| {
+         node.traverse_preorder::<Node>().filter_map(Root::downcast::<Element>).find(|descendant| {
             match descendant.get_attribute(&ns!(), &local_name!("id")) {
                 None => false,
                 Some(attr) => *attr.value().as_atom() == id,
@@ -71,7 +71,7 @@ impl DocumentFragmentMethods for DocumentFragment {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
     fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().rev_children::<Element>().next()
+        self.upcast::<Node>().rev_children::<Node>().filter_map(Root::downcast::<Element>).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount
