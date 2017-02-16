@@ -1241,6 +1241,8 @@ impl<T> Iterator for FollowingIterator<T> where T: DerivedFrom<Node> {
             self.current = Some(first_child.clone());
             if let Some(first_child) = current.GetFirstChild() {
                 return Root::downcast::<T>(first_child);
+            } else {
+                return None;
             }
         }
 
@@ -1522,15 +1524,15 @@ impl Node {
                             }
                             if let Some(child) = child {
                                 if child.inclusively_following_siblings::<Node>()
-                                        .any(|child| child.is_doctype()) {
-                                            return Err(Error::HierarchyRequest);
+                                    .any(|child| child.is_doctype()) {
+                                        return Err(Error::HierarchyRequest);
                                 }
                             }
                         },
                         // Step 6.1.1(a)
                         _ => return Err(Error::HierarchyRequest),
                     }
-                }
+                },
                 // Step 6.2
                 NodeTypeId::Element(_) => {
                     if !parent.children::<Element>().next().is_none() {
@@ -1545,8 +1547,9 @@ impl Node {
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if parent.children::<Node>().any(|c| c.is_doctype()) {
-                        return Err(Error::HierarchyRequest);
+                    if parent.children::<Node>()
+                        .any(|c| c.is_doctype()) {
+                            return Err(Error::HierarchyRequest);
                     }
                     match child {
                         Some(child) => {
