@@ -854,8 +854,8 @@ impl Node {
             index if index < -1 => return Err(Error::IndexSize),
             -1 => {
                 let last_child = self.upcast::<Node>().GetLastChild();
-                match last_child.and_then(|node| node.inclusively_preceding_siblings::<Element>()
-                                                     //.filter_map(Root::downcast::<Element>)
+                match last_child.and_then(|node| node.inclusively_preceding_siblings::<Node>()
+                                                     .filter_map(Root::downcast::<Element>)
                                                      .filter(|elem| is_delete_type(elem))
                                                      .next()) {
                     Some(element) => element,
@@ -1140,7 +1140,7 @@ impl<T> Iterator for SiblingIterator<T> where T: DerivedFrom<Node> {
             None => return None,
             Some(current) => current,
         };
-        while let Some(next_sibling) = current.GetNextSibling() {
+        if let Some(next_sibling) = current.GetNextSibling() {
             if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
                 self.current = Some(Root::upcast(next_sibling.clone()));
                 return Some(next_sibling);
@@ -1164,7 +1164,7 @@ impl<T> Iterator for ReverseSiblingIterator<T> where T: DerivedFrom<Node> {
             None => return None,
             Some(current) => current,
         };
-        while let Some(previous_sibling) = current.GetPreviousSibling() {
+        if let Some(previous_sibling) = current.GetPreviousSibling() {
             if let Some(previous_sibling) = Root::downcast::<T>(previous_sibling) {
                 self.current = Some(Root::upcast(previous_sibling.clone()));
                 return Some(previous_sibling);
@@ -1199,10 +1199,12 @@ impl<T> FollowingIterator<T> where T: DerivedFrom<Node> {
             return None;
         }
 
-        while let Some(next_sibling) = current.GetNextSibling() {
-            if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
-                self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
-                return Some(next_sibling.clone())
+        if let Some(next_sibling) = current.GetNextSibling() {
+            self.current = Some(next_sibling.clone());
+            if let Some(next_sibling) = current.GetNextSibling() {
+                return Root::downcast::<T>(next_sibling);
+            } else {
+                return None;
             }
         }
 
@@ -1210,10 +1212,12 @@ impl<T> FollowingIterator<T> where T: DerivedFrom<Node> {
             if self.root == ancestor {
                 break;
             }
-            while let Some(next_sibling) = ancestor.GetNextSibling() {
-                if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
-                    self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
-                    return Some(next_sibling.clone())
+            if let Some(next_sibling) = ancestor.GetNextSibling() {
+                self.current = Some(next_sibling.clone());
+                if let Some(next_sibling) = ancestor.GetNextSibling() {
+                    return Root::downcast::<T>(next_sibling);
+                } else {
+                    return None;
                 }
             }
         }
@@ -1232,17 +1236,12 @@ impl<T> Iterator for FollowingIterator<T> where T: DerivedFrom<Node> {
             Some(current) => current,
         };
 
-        while let Some(first_child) = current.GetFirstChild() {
-            if let Some(first_child) = Root::downcast::<T>(first_child) {
-                self.current = Some(Root::upcast::<Node>(first_child.clone()));
-                return Some(first_child);
-            }
-        }
-
-        while let Some(first_child) = current.GetFirstChild() {
-            if let Some(first_child) = Root::downcast::<T>(first_child) {
-                self.current = Some(Root::upcast::<Node>(first_child.clone()));
-                return Some(first_child);
+        if let Some(first_child) = current.GetFirstChild() {
+            self.current = Some(first_child.clone());
+            if let Some(first_child) = current.GetFirstChild() {
+                return Root::downcast::<T>(first_child);
+            } else {
+                return None;
             }
         }
 
@@ -1272,21 +1271,21 @@ impl<T> Iterator for PrecedingIterator<T> where T: DerivedFrom<Node> {
         } else if let Some(previous_sibling) = current.GetPreviousSibling() {
             if self.root == previous_sibling {
                 None
-            } else if let Some(last_child) = previous_sibling.descending_last_children::<T>().last() {
-                Some(Root::upcast::<Node>(last_child))
+            } else if let Some(last_child) = previous_sibling.descending_last_children::<Node>().last() {
+                Some(last_child)
             } else {
-                Some(Root::upcast::<Node>(previous_sibling))
+                Some(previous_sibling)
             }
         } else {
-            if let Some(parent_node) = current.GetParentNode() {
-                Some(Root::upcast::<Node>(parent_node))
-            } else {
-                None
-            }
+            current.GetParentNode()
         };
 
         //TODO: dominotree - not sure how to handle failures here - is returning None okay if it can't cast to T?
-        return Root::downcast::<T>(current);
+        if let Some(current_node) = self.current.take() {
+            Root::downcast::<T>(current_node)
+        } else {
+            None
+        }
     }
 }
 
@@ -1301,11 +1300,10 @@ impl<T> Iterator for LastChildIterator<T> where T: DerivedFrom<Node> {
     fn next(&mut self) -> Option<Self::Item> {
         let current = match self.current.take() {
             None => return None,
-            //TODO - dominotree - really not sure about this unwrap() here - figure out how to handle "bad" types
-            Some(current) => Root::downcast::<T>(current).unwrap(),
+            Some(current) => current,
         };
-        self.current = Root::upcast::<Node>(current.clone()).GetLastChild();
-        Some(current)
+        self.current = current.GetLastChild();
+        Root::downcast::<T>(current.clone())
     }
 }
 
@@ -1320,11 +1318,10 @@ impl<T> Iterator for AncestorIterator<T> where T: DerivedFrom<Node> {
     fn next(&mut self) -> Option<Self::Item> {
         let current = match self.current.take() {
             None => return None,
-            //TODO - dominotree - really not sure about this unwrap() here - figure out how to handle "bad" types
-            Some(current) => Root::downcast::<T>(current).unwrap(),
+            Some(current) => current,
         };
-        self.current = Root::upcast::<Node>(current.clone()).GetParentNode();
-        Some(current)
+        self.current = current.GetParentNode();
+        Root::downcast::<T>(current.clone())
     }
 }
 
@@ -1358,10 +1355,8 @@ impl<T> TreeIterator<T> where T: DerivedFrom<Node> {
                 break;
             }
             if let Some(next_sibling) = ancestor.GetNextSibling() {
-                if let Some(next_sibling) = Root::downcast::<T>(next_sibling) {
-                    self.current = Some(Root::upcast::<Node>(next_sibling.clone()));
-                    return Root::downcast::<T>(current);
-                }
+                self.current = Some(next_sibling.clone());
+                return Root::downcast::<T>(current);
             }
             self.depth -= 1;
         }
@@ -1382,9 +1377,9 @@ impl<T> Iterator for TreeIterator<T> where T: DerivedFrom<Node> {
             Some(current) => current,
         };
         if let Some(first_child) = current.GetFirstChild() {
+            self.depth += 1;
+            self.current = Some(first_child.clone());
             if let Some(first_child) = Root::downcast::<T>(first_child) {
-                self.depth += 1;
-                self.current = Some(Root::upcast::<Node>(first_child.clone()));
                 return Some(first_child);
             }
         };
@@ -1513,7 +1508,8 @@ impl Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
-                    if node.children::<Text>().count() > 0
+                    if node.children::<Node>()
+                           .any(|c| c.is::<Text>())
                     {
                         return Err(Error::HierarchyRequest);
                     }
@@ -1525,8 +1521,9 @@ impl Node {
                                 return Err(Error::HierarchyRequest);
                             }
                             if let Some(child) = child {
-                                if child.inclusively_following_siblings::<DocumentType>().count() > 0 {
-                                    return Err(Error::HierarchyRequest);
+                                if child.inclusively_following_siblings::<Node>()
+                                    .any(|child| child.is_doctype()) {
+                                        return Err(Error::HierarchyRequest);
                                 }
                             }
                         },
@@ -1540,14 +1537,17 @@ impl Node {
                         return Err(Error::HierarchyRequest);
                     }
                     if let Some(ref child) = child {
-                        if child.inclusively_following_siblings::<DocumentType>().count() > 0 {
-                            return Err(Error::HierarchyRequest);
+                        if child.inclusively_following_siblings::<Node>()
+                            .any(|child| child.is_doctype()) {
+                                return Err(Error::HierarchyRequest);
                         }
                     }
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if parent.children::<DocumentType>().count() > 0 {
+                    if parent.children::<Node>()
+                             .any(|c| c.is_doctype())
+                    {
                         return Err(Error::HierarchyRequest);
                     }
                     match child {
@@ -2098,7 +2098,8 @@ impl NodeMethods for Node {
                 // Step 6.1
                 NodeTypeId::DocumentFragment => {
                     // Step 6.1.1(b)
-                    if node.children::<Text>().count() > 0
+                    if node.children::<Node>()
+                           .any(|c| c.is::<Text>())
                     {
                         return Err(Error::HierarchyRequest);
                     }
@@ -2107,9 +2108,10 @@ impl NodeMethods for Node {
                         // Step 6.1.2
                         1 => {
                             if self.children::<Element>().any(|c| c.upcast::<Node>() != child) {
-                                return Err(Error::HierarchyRequest);
+                                    return Err(Error::HierarchyRequest);
                             }
-                            if child.following_siblings::<DocumentType>().count() > 0 {
+                            if child.following_siblings::<Node>()
+                                    .any(|child| child.is_doctype()) {
                                 return Err(Error::HierarchyRequest);
                             }
                         },
@@ -2119,16 +2121,22 @@ impl NodeMethods for Node {
                 },
                 // Step 6.2
                 NodeTypeId::Element(..) => {
-                    if self.children::<Element>().any(|c| c.upcast::<Node>() != child) {
+                    if self.children::<Element>()
+                           .any(|c| c.upcast::<Node>() != child) {
                         return Err(Error::HierarchyRequest);
                     }
-                    if child.following_siblings::<DocumentType>().count() > 0 {
+                    if child.following_siblings::<Node>()
+                            .any(|child| child.is_doctype())
+                    {
                         return Err(Error::HierarchyRequest);
                     }
                 },
                 // Step 6.3
                 NodeTypeId::DocumentType => {
-                    if self.children::<DocumentType>().any(|c| c.upcast::<Node>() != child) {
+                    if self.children::<Node>()
+                           .any(|c| c.is_doctype() &&
+                                &*c != child)
+                    {
                         return Err(Error::HierarchyRequest);
                     }
                     if self.children::<Node>()
@@ -2553,22 +2561,22 @@ impl<'a> ChildrenMutation<'a> {
             // Add/remove at start of container: Return the first following element.
             ChildrenMutation::Prepend { next, .. } |
             ChildrenMutation::Replace { prev: None, next: Some(next), .. } => {
-                next.inclusively_following_siblings::<Element>().map(Root::upcast).next()
+                next.inclusively_following_siblings::<Node>().filter(|node| node.is::<Element>()).next()
             }
             // Add/remove at end of container: Return the last preceding element.
             ChildrenMutation::Append { prev, .. } |
             ChildrenMutation::Replace { prev: Some(prev), next: None, .. } => {
-                prev.inclusively_preceding_siblings::<Element>().map(Root::upcast).next()
+                prev.inclusively_preceding_siblings::<Node>().filter(|node| node.is::<Element>()).next()
             }
             // Insert or replace in the middle:
             ChildrenMutation::Insert { prev, next, .. } |
             ChildrenMutation::Replace { prev: Some(prev), next: Some(next), .. } => {
                 if prev.inclusively_preceding_siblings::<Node>().all(|node| !node.is::<Element>()) {
                     // Before the first element: Return the first following element.
-                    next.inclusively_following_siblings::<Element>().map(Root::upcast).next()
+                    next.inclusively_following_siblings::<Node>().filter(|node| node.is::<Element>()).next()
                 } else if next.inclusively_following_siblings::<Node>().all(|node| !node.is::<Element>()) {
                     // After the last element: Return the last preceding element.
-                    prev.inclusively_preceding_siblings::<Element>().map(Root::upcast).next()
+                    prev.inclusively_preceding_siblings::<Node>().filter(|node| node.is::<Element>()).next()
                 } else {
                     None
                 }

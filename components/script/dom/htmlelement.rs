@@ -531,7 +531,8 @@ impl HTMLElement {
         // Traverse entire tree for <label> elements with `for` attribute matching `id`
         let root_element = element.root_element();
         let root_node = root_element.upcast::<Node>();
-        let children = root_node.traverse_preorder::<Element>()
+        let children = root_node.traverse_preorder::<Node>()
+                                .filter_map(Root::downcast::<Element>)
                                 .filter(|elem| elem.is::<HTMLLabelElement>())
                                 .filter(|elem| elem.get_string_attribute(&local_name!("for")) == id)
                                 .map(Root::upcast::<Node>);

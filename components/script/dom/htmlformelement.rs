@@ -466,21 +466,25 @@ impl HTMLFormElement {
         // FIXME(#3553): This is an incorrect way of getting controls owned by the
         //               form, refactor this when html5ever's form owner PR lands
         // Step 1-3
-        let invalid_controls = node.traverse_preorder::<Element>().filter_map(|el| {
-            if el.disabled_state() {
-                None
-            } else {
-                let validatable = match el.as_maybe_validatable() {
-                    Some(v) => v,
-                    None => return None
-                };
-                if !validatable.is_instance_validatable() {
-                    None
-                } else if validatable.validate(ValidationFlags::empty()) {
+        let invalid_controls = node.traverse_preorder::<Node>().filter_map(|field| {
+            if let Some(el) = field.downcast::<Element>() {
+                if el.disabled_state() {
                     None
                 } else {
-                    Some(FormSubmittableElement::from_element(&el))
+                    let validatable = match el.as_maybe_validatable() {
+                        Some(v) => v,
+                        None => return None
+                    };
+                    if !validatable.is_instance_validatable() {
+                        None
+                    } else if validatable.validate(ValidationFlags::empty()) {
+                        None
+                    } else {
+                        Some(FormSubmittableElement::from_element(&el))
+                    }
                 }
+            } else {
+                None
             }
         }).collect::<Vec<FormSubmittableElement>>();
         // Step 4

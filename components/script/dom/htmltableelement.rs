@@ -276,9 +276,9 @@ impl HTMLTableElementMethods for HTMLTableElement {
                                                  &document_from_node(self));
         let node = self.upcast::<Node>();
         let last_tbody =
-            node.rev_children::<HTMLTableSectionElement>()
-                .map(Root::upcast::<Element>)
-                .find(|n| n.local_name() == &local_name!("tbody"));
+            node.rev_children::<Node>()
+                .filter_map(Root::downcast::<Element>)
+                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody"));
         let reference_element =
             last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
@@ -303,9 +303,9 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
         if number_of_row_elements == 0 {
             // append new row to last or new tbody in table
-            if let Some(last_tbody) = node.rev_children::<HTMLTableSectionElement>()
-                .map(Root::upcast::<Element>)
-                .find(|n| n.local_name() == &local_name!("tbody")) {
+            if let Some(last_tbody) = node.rev_children::<Node>()
+                .filter_map(Root::downcast::<Element>)
+                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody")) {
                     last_tbody.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
                                                .expect("InsertRow failed to append first row.");
                 } else {

@@ -1809,7 +1809,8 @@ impl Document {
     /// Iterate over all iframes in the document.
     pub fn iter_iframes(&self) -> impl Iterator<Item=Root<HTMLIFrameElement>> {
         self.upcast::<Node>()
-            .traverse_preorder::<HTMLIFrameElement>()
+            .traverse_preorder::<Node>()
+            .filter_map(Root::downcast::<HTMLIFrameElement>)
     }
 
     /// Find an iframe element in the document.
@@ -2493,7 +2494,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(&self) -> Option<Root<DocumentType>> {
-        self.upcast::<Node>().children::<DocumentType>().next()
+        self.upcast::<Node>().children::<Node>().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documentelement
@@ -2870,7 +2871,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-head
     fn GetHead(&self) -> Option<Root<HTMLHeadElement>> {
         self.get_html_element()
-            .and_then(|root| root.upcast::<Node>().children::<HTMLHeadElement>().next())
+            .and_then(|root| root.upcast::<Node>().children::<Node>().filter_map(Root::downcast).next())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-currentscript
@@ -3026,7 +3027,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-parentnode-lastelementchild
     fn GetLastElementChild(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().rev_children::<Element>().next()
+        self.upcast::<Node>().rev_children::<Node>().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-childelementcount

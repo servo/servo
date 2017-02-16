@@ -225,12 +225,12 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling
     fn GetPreviousElementSibling(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().preceding_siblings::<Element>().next()
+        self.upcast::<Node>().preceding_siblings::<Node>().filter_map(Root::downcast).next()
     }
 
     // https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-nextelementsibling
     fn GetNextElementSibling(&self) -> Option<Root<Element>> {
-        self.upcast::<Node>().following_siblings::<Element>().next()
+        self.upcast::<Node>().following_siblings::<Node>().filter_map(Root::downcast).next()
     }
 }
 
