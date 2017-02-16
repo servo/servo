@@ -569,7 +569,36 @@ trait PrivateMatchMethods: TElement {
         }
     }
 
+    /// Computes and applies non-redundant damage.
+    #[cfg(feature = "gecko")]
+    fn accumulate_damage(&self,
+                         restyle: &mut RestyleData,
+                         old_values: &Arc<ComputedValues>,
+                         new_values: &Arc<ComputedValues>,
+                         pseudo: Option<&PseudoElement>) {
+        // If an ancestor is already getting reconstructed by Gecko's top-down
+        // frame constructor, no need to apply damage.
+        if restyle.damage_handled.contains(RestyleDamage::reconstruct()) {
+            restyle.damage = RestyleDamage::empty();
+            return;
+        }
+
+        // Add restyle damage, but only the bits that aren't redundant with respect
+        // to damage applied on our ancestors.
+        //
+        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1301258#c12
+        // for followup work to make the optimization here more optimal by considering
+        // each bit individually.
+        if !restyle.damage.contains(RestyleDamage::reconstruct()) {
+            let new_damage = self.compute_restyle_damage(&old_values, &new_values, pseudo);
+            if !restyle.damage_handled.contains(new_damage) {
+                restyle.damage |= new_damage;
+            }
+        }
+    }
+
     /// Computes and applies restyle damage unless we've already maxed it out.
+    #[cfg(feature = "servo")]
     fn accumulate_damage(&self,
                          restyle: &mut RestyleData,
                          old_values: &Arc<ComputedValues>,
@@ -712,7 +741,7 @@ pub trait MatchMethods : TElement {
             if let Some(r) = data.get_restyle_mut() {
                 // Any changes to the matched pseudo-elements trigger
                 // reconstruction.
-                r.damage |= RestyleDamage::rebuild_and_reflow();
+                r.damage |= RestyleDamage::reconstruct();
             }
         }
 
@@ -924,7 +953,7 @@ pub trait MatchMethods : TElement {
                     RestyleDamage::empty()
                 } else {
                     // Something else. Be conservative for now.
-                    RestyleDamage::rebuild_and_reflow()
+                    RestyleDamage::reconstruct()
                 }
             }
         }

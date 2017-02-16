@@ -245,7 +245,7 @@ static NO_SNAPSHOT: Option<Snapshot> = None;
 /// We really want to store an Option<Snapshot> here, but we can't drop Gecko
 /// Snapshots off-main-thread. So we make a convenient little wrapper to provide
 /// the semantics of Option<Snapshot>, while deferring the actual drop.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SnapshotOption {
     snapshot: Option<Snapshot>,
     destroyed: bool,
@@ -292,7 +292,7 @@ impl Deref for SnapshotOption {
 /// Transient data used by the restyle algorithm. This structure is instantiated
 /// either before or during restyle traversal, and is cleared at the end of node
 /// processing.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct RestyleData {
     /// The restyle hint, which indicates whether selectors need to be rematched
     /// for this element, its children, and its descendants.
@@ -306,20 +306,19 @@ pub struct RestyleData {
     /// afte restyling.
     pub damage: RestyleDamage,
 
+    /// The restyle damage that has already been handled by our ancestors, and does
+    /// not need to be applied again at this element. Only non-empty during the
+    /// traversal, once ancestor damage has been calculated.
+    ///
+    /// Note that this optimization mostly makes sense in terms of Gecko's top-down
+    /// frame constructor and change list processing model. We don't bother with it
+    /// for Servo for now.
+    #[cfg(feature = "gecko")]
+    pub damage_handled: RestyleDamage,
+
     /// An optional snapshot of the original state and attributes of the element,
     /// from which we may compute additional restyle hints at traversal time.
     pub snapshot: SnapshotOption,
-}
-
-impl Default for RestyleData {
-    fn default() -> Self {
-        RestyleData {
-            hint: StoredRestyleHint::default(),
-            recascade: false,
-            damage: RestyleDamage::empty(),
-            snapshot: SnapshotOption::empty(),
-        }
-    }
 }
 
 impl RestyleData {
@@ -354,6 +353,28 @@ impl RestyleData {
             self.recascade ||
             self.snapshot.is_some()
     }
+
+    /// Returns damage handled.
+    #[cfg(feature = "gecko")]
+    pub fn damage_handled(&self) -> RestyleDamage {
+        self.damage_handled
+    }
+
+    /// Returns damage handled (always empty for servo).
+    #[cfg(feature = "servo")]
+    pub fn damage_handled(&self) -> RestyleDamage {
+        RestyleDamage::empty()
+    }
+
+    /// Sets damage handled.
+    #[cfg(feature = "gecko")]
+    pub fn set_damage_handled(&mut self, d: RestyleDamage) {
+        self.damage_handled = d;
+    }
+
+    /// Sets damage handled. No-op for Servo.
+    #[cfg(feature = "servo")]
+    pub fn set_damage_handled(&mut self, _: RestyleDamage) {}
 }
 
 /// Style system data associated with an Element.
