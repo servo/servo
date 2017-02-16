@@ -12,6 +12,7 @@ use gecko_bindings::structs::RawServoAnimationValue;
 use gecko_bindings::structs::RawServoDeclarationBlock;
 use gecko_bindings::structs::RawGeckoPresContext;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
+use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::ThreadSafeURIHolder;
 use gecko_bindings::structs::ThreadSafePrincipalHolder;
 use gecko_bindings::structs::CSSPseudoClassType;
@@ -156,7 +157,6 @@ use gecko_bindings::structs::Loader;
 use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
-use gecko_bindings::structs::RefPtr;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
 pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
 pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
@@ -500,11 +500,13 @@ extern "C" {
      -> u32;
 }
 extern "C" {
-    pub fn Gecko_GetStyleAttrDeclarationBlock(element: RawGeckoElementBorrowed)
+    pub fn Gecko_GetStyleAttrDeclarationBlock(element:
+                                                  RawGeckoElementBorrowed)
      -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
-    pub fn Gecko_GetHTMLPresentationAttrDeclarationBlock(element: RawGeckoElementBorrowed)
+    pub fn Gecko_GetHTMLPresentationAttrDeclarationBlock(element:
+                                                             RawGeckoElementBorrowed)
      -> RawServoDeclarationBlockStrongBorrowedOrNull;
 }
 extern "C" {
@@ -1305,8 +1307,10 @@ extern "C" {
      -> f32;
 }
 extern "C" {
-    pub fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValueBorrowed,
-                                             list: &mut RefPtr<nsCSSValueSharedList>);
+    pub fn Servo_AnimationValue_GetTransform(value:
+                                                 RawServoAnimationValueBorrowed,
+                                             list:
+                                                 *mut RefPtr<nsCSSValueSharedList>);
 }
 extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString_internal)

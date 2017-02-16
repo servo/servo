@@ -135,16 +135,22 @@ impl WeakAtom {
     /// Returns whether this atom is static.
     #[inline]
     pub fn is_static(&self) -> bool {
+        // FIXME(emilio): re-introduce bitfield accessors:
+        //
+        // https://github.com/servo/rust-bindgen/issues/519
         unsafe {
-            (*self.as_ptr()).mIsStatic() != 0
+            ((*self.as_ptr())._bitfield_1 & (0x80000000 as u32)) != 0
         }
     }
 
     /// Returns the length of the atom string.
     #[inline]
     pub fn len(&self) -> u32 {
+        // FIXME(emilio): re-introduce bitfield accessors:
+        //
+        // https://github.com/servo/rust-bindgen/issues/519
         unsafe {
-            (*self.as_ptr()).mLength()
+            (*self.as_ptr())._bitfield_1 & 0x7FFFFFFF
         }
     }
 
@@ -282,10 +288,11 @@ impl From<*mut nsIAtom> for Atom {
     fn from(ptr: *mut nsIAtom) -> Atom {
         debug_assert!(!ptr.is_null());
         unsafe {
-            if (*ptr).mIsStatic() == 0 {
+            let ret = Atom(WeakAtom::new(ptr));
+            if !ret.is_static() {
                 Gecko_AddRefAtom(ptr);
             }
-            Atom(WeakAtom::new(ptr))
+            ret
         }
     }
 }
