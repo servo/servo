@@ -1858,8 +1858,12 @@ cfg_if! {
             pub static nsGkAtoms_onvoicechange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms15onvoiceschangedE"]
             pub static nsGkAtoms_onvoiceschanged: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms19onvrdisplayactivateE"]
+            pub static nsGkAtoms_onvrdisplayactivate: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18onvrdisplayconnectE"]
             pub static nsGkAtoms_onvrdisplayconnect: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms21onvrdisplaydeactivateE"]
+            pub static nsGkAtoms_onvrdisplaydeactivate: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms21onvrdisplaydisconnectE"]
             pub static nsGkAtoms_onvrdisplaydisconnect: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms24onvrdisplaypresentchangeE"]
@@ -6771,8 +6775,12 @@ cfg_if! {
             pub static nsGkAtoms_onvoicechange: *mut nsIAtom;
             #[link_name = "?onvoiceschanged@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onvoiceschanged: *mut nsIAtom;
+            #[link_name = "?onvrdisplayactivate@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onvrdisplayactivate: *mut nsIAtom;
             #[link_name = "?onvrdisplayconnect@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onvrdisplayconnect: *mut nsIAtom;
+            #[link_name = "?onvrdisplaydeactivate@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_onvrdisplaydeactivate: *mut nsIAtom;
             #[link_name = "?onvrdisplaydisconnect@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_onvrdisplaydisconnect: *mut nsIAtom;
             #[link_name = "?onvrdisplaypresentchange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -11684,8 +11692,12 @@ cfg_if! {
             pub static nsGkAtoms_onvoicechange: *mut nsIAtom;
             #[link_name = "\x01?onvoiceschanged@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onvoiceschanged: *mut nsIAtom;
+            #[link_name = "\x01?onvrdisplayactivate@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onvrdisplayactivate: *mut nsIAtom;
             #[link_name = "\x01?onvrdisplayconnect@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onvrdisplayconnect: *mut nsIAtom;
+            #[link_name = "\x01?onvrdisplaydeactivate@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_onvrdisplaydeactivate: *mut nsIAtom;
             #[link_name = "\x01?onvrdisplaydisconnect@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_onvrdisplaydisconnect: *mut nsIAtom;
             #[link_name = "\x01?onvrdisplaypresentchange@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -16600,8 +16612,12 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvoicechange as *mut _) } };
 ("onvoiceschanged") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvoiceschanged as *mut _) } };
+("onvrdisplayactivate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvrdisplayactivate as *mut _) } };
 ("onvrdisplayconnect") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvrdisplayconnect as *mut _) } };
+("onvrdisplaydeactivate") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvrdisplaydeactivate as *mut _) } };
 ("onvrdisplaydisconnect") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_onvrdisplaydisconnect as *mut _) } };
 ("onvrdisplaypresentchange") =>
