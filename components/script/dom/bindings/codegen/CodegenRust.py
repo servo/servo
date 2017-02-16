@@ -722,6 +722,9 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         if type.nullable():
             declType = CGWrapper(declType, pre="Option<", post=" >")
 
+        if isMember != "Dictionary" and type_needs_tracing(type):
+            declType = CGTemplatedType("RootedTraceableBox", declType)
+
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
                         "    Ok(ConversionResult::Success(value)) => value,\n"
                         "    Ok(ConversionResult::Failure(error)) => {\n"
@@ -6195,6 +6198,9 @@ def type_needs_tracing(t):
 
         if t.isSequence():
             return type_needs_tracing(t.inner)
+
+        if t.isUnion():
+            return any(type_needs_tracing(member) for member in t.flatMemberTypes)
 
         return False
 
