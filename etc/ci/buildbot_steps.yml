@@ -79,24 +79,24 @@ linux-nightly:
   - ./etc/ci/upload_nightly.sh linux
 
 android:
-  - ./mach build --android --dev
-  - ./mach package --android --dev
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --android --dev
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
   - python ./etc/ci/check_dynamic_symbols.py
 
 android-nightly:
-  - ./mach build --android --release
-  - ./mach package --android --release
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --android --release
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --android --release
   - ./etc/ci/upload_nightly.sh android
 
 arm32:
-  - ./mach build --rel --target=arm-unknown-linux-gnueabihf
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --rel --target=arm-unknown-linux-gnueabihf
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
 arm64:
-  - ./mach build --rel --target=aarch64-unknown-linux-gnu
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --rel --target=aarch64-unknown-linux-gnu
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
