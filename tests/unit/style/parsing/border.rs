@@ -139,3 +139,12 @@ fn test_border_style() {
     assert_roundtrip_with_context!(BorderStyle::parse, r#"inset"#);
     assert_roundtrip_with_context!(BorderStyle::parse, r#"outset"#);
 }
+
+#[test]
+fn test_border_spacing() {
+    use style::properties::longhands::border_spacing;
+
+    assert_parser_exhausted!(border_spacing, "1px rubbish", false);
+    assert_parser_exhausted!(border_spacing, "1px", true);
+    assert_parser_exhausted!(border_spacing, "1px 2px", true);
+}
