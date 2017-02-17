@@ -31,6 +31,7 @@ extern crate net_traits;
 extern crate offscreen_gl_context;
 extern crate profile_traits;
 extern crate script_traits;
+extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate servo_config;
