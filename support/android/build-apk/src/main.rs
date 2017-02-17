@@ -72,11 +72,11 @@ fn main() {
     }
 
     let ndkcmd = Command::new(ndk_path.join("ndk-build"))
-                              .arg("-B")
-                              .stdout(Stdio::inherit())
-                              .stderr(Stdio::inherit())
-                              .current_dir(directory.clone())
-                              .status();
+        .arg("-B")
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .current_dir(directory.clone())
+        .status();
     if ndkcmd.is_err() || ndkcmd.unwrap().code().unwrap() != 0 {
         println!("Error while executing program `ndk-build`, or missing program.");
         process::exit(1);
@@ -91,13 +91,13 @@ fn main() {
 
     // Copy over the resources
     let cpcmd = Command::new("cp")
-                             .arg("-R")
-                             .arg(&resdir)
-                             .arg(&directory.join("assets"))
-                             .stdout(Stdio::inherit())
-                             .stderr(Stdio::inherit())
-                             .current_dir(directory.clone())
-                             .status();
+        .arg("-R")
+        .arg(&resdir)
+        .arg(&directory.join("assets"))
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .current_dir(directory.clone())
+        .status();
     if cpcmd.is_err() || cpcmd.unwrap().code().unwrap() != 0 {
         println!("Error while copying files from the resources dir to the assets dir");
         process::exit(1);
@@ -105,18 +105,18 @@ fn main() {
 
     // Update the project
     let androidcmd = Command::new(sdk_path.join("tools").join("android"))
-                                  .arg("update")
-                                  .arg("project")
-                                  .arg("--name")
-                                  .arg("Servo")
-                                  .arg("--target")
-                                  .arg(&android_platform)
-                                  .arg("--path")
-                                  .arg(".")
-                                  .stdout(Stdio::inherit())
-                                  .stderr(Stdio::inherit())
-                                  .current_dir(directory.clone())
-                                  .status();
+        .arg("update")
+        .arg("project")
+        .arg("--name")
+        .arg("Servo")
+        .arg("--target")
+        .arg(&android_platform)
+        .arg("--path")
+        .arg(".")
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .current_dir(directory.clone())
+        .status();
     if androidcmd.is_err() || androidcmd.unwrap().code().unwrap() != 0 {
         println!("Error while updating the project with the android command");
         process::exit(1);
@@ -129,8 +129,7 @@ fn main() {
     } else {
         antcmd.arg("release");
     }
-    let antresult = antcmd
-        .stdout(Stdio::inherit())
+    let antresult = antcmd.stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .current_dir(directory.clone())
         .status();
@@ -143,73 +142,72 @@ fn main() {
     // Release builds also need to be signed. For now, we use a simple debug
     // signing key.
     if debug {
-        fs::copy(&directory.join("bin").join("Servo-debug.apk"),
-                 &args.output).unwrap();
+        fs::copy(&directory.join("bin").join("Servo-debug.apk"), &args.output).unwrap();
     } else {
         let keystore_dir = env::home_dir().expect("Please have a home directory");
         let keystore_dir = Path::new(&keystore_dir).join(".keystore");
         let keytoolcmd = Command::new("keytool")
-                                  .arg("-list")
-                                  .arg("-storepass")
-                                  .arg("android")
-                                  .arg("-alias")
-                                  .arg("androiddebugkey")
-                                  .arg("-keystore")
-                                  .arg(&keystore_dir)
-                                  .stdout(Stdio::inherit())
-                                  .stderr(Stdio::inherit())
-                                  .current_dir(directory.clone())
-                                  .status();
+            .arg("-list")
+            .arg("-storepass")
+            .arg("android")
+            .arg("-alias")
+            .arg("androiddebugkey")
+            .arg("-keystore")
+            .arg(&keystore_dir)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .current_dir(directory.clone())
+            .status();
         if keytoolcmd.is_err() || keytoolcmd.unwrap().code().unwrap() != 0 {
             let keytoolcreatecmd = Command::new("keytool")
-                                  .arg("-genkeypair")
-                                  .arg("-keystore")
-                                  .arg(&keystore_dir)
-                                  .arg("-storepass")
-                                  .arg("android")
-                                  .arg("-alias")
-                                  .arg("androiddebugkey")
-                                  .arg("-keypass")
-                                  .arg("android")
-                                  .arg("-dname")
-                                  .arg("CN=Android Debug,O=Android,C=US")
-                                  .arg("-keyalg")
-                                  .arg("RSA")
-                                  .arg("-validity")
-                                  .arg("365")
-                                  .stdout(Stdio::inherit())
-                                  .stderr(Stdio::inherit())
-                                  .current_dir(directory.clone())
-                                  .status();
-            if keytoolcreatecmd.is_err() ||
-               keytoolcreatecmd.unwrap().code().unwrap() != 0 {
-                   println!("Error while using `keytool` to create the debug keystore.");
-                   process::exit(1);
-               }
+                .arg("-genkeypair")
+                .arg("-keystore")
+                .arg(&keystore_dir)
+                .arg("-storepass")
+                .arg("android")
+                .arg("-alias")
+                .arg("androiddebugkey")
+                .arg("-keypass")
+                .arg("android")
+                .arg("-dname")
+                .arg("CN=Android Debug,O=Android,C=US")
+                .arg("-keyalg")
+                .arg("RSA")
+                .arg("-validity")
+                .arg("365")
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .current_dir(directory.clone())
+                .status();
+            if keytoolcreatecmd.is_err() || keytoolcreatecmd.unwrap().code().unwrap() != 0 {
+                println!("Error while using `keytool` to create the debug keystore.");
+                process::exit(1);
+            }
         }
 
         let jarsigncmd = Command::new("jarsigner")
-                                  .arg("-digestalg")
-                                  .arg("SHA1")
-                                  .arg("-sigalg")
-                                  .arg("MD5withRSA")
-                                  .arg("-storepass")
-                                  .arg("android")
-                                  .arg("-keystore")
-                                  .arg(&keystore_dir)
-                                  .arg(&directory.join("bin").join("Servo-release-unsigned.apk"))
-                                  .arg("androiddebugkey")
-                                  .stdout(Stdio::inherit())
-                                  .stderr(Stdio::inherit())
-                                  .current_dir(directory.clone())
-                                  .status();
+            .arg("-digestalg")
+            .arg("SHA1")
+            .arg("-sigalg")
+            .arg("MD5withRSA")
+            .arg("-storepass")
+            .arg("android")
+            .arg("-keystore")
+            .arg(&keystore_dir)
+            .arg(&directory.join("bin").join("Servo-release-unsigned.apk"))
+            .arg("androiddebugkey")
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .current_dir(directory.clone())
+            .status();
         if jarsigncmd.is_err() || jarsigncmd.unwrap().code().unwrap() != 0 {
             println!("Error while using `jarsign` to sign the APK.");
             process::exit(1);
         }
 
         fs::copy(&directory.join("bin").join("Servo-release-unsigned.apk"),
-                 &args.output).unwrap();
+                 &args.output)
+            .unwrap();
     }
 
 }
@@ -233,16 +231,16 @@ fn parse_arguments() -> (Args, Vec<String>) {
 
     loop {
         let arg = match args.next() {
-            None => return (
-                Args {
+            None => {
+                return (Args {
                     output: result_output.expect("Could not find -o argument"),
                     root_path: result_root_path.expect("Could not find -r enlistment root argument"),
                     target_path: result_target_path.expect("Could not find -t target path argument"),
                     shared_libraries: result_shared_libraries,
                 },
-                result_passthrough
-            ),
-            Some(arg) => arg
+                        result_passthrough)
+            },
+            Some(arg) => arg,
         };
 
         match &*arg {
@@ -250,12 +248,12 @@ fn parse_arguments() -> (Args, Vec<String>) {
                 result_output = Some(PathBuf::from(args.next().expect("-o must be followed by the output name")));
             },
             "-r" => {
-                result_root_path =
-                    Some(PathBuf::from(args.next().expect("-r must be followed by the enlistment root directory")));
+                result_root_path = Some(PathBuf::from(args.next()
+                    .expect("-r must be followed by the enlistment root directory")));
             },
             "-t" => {
-                result_target_path =
-                    Some(PathBuf::from(args.next().expect("-t must be followed by the target output directory")));
+                result_target_path = Some(PathBuf::from(args.next()
+                    .expect("-t must be followed by the target output directory")));
             },
             "-l" => {
                 let name = args.next().expect("-l must be followed by a library name");
@@ -264,13 +262,13 @@ fn parse_arguments() -> (Args, Vec<String>) {
                 // Also pass these through.
                 result_passthrough.push(arg);
                 result_passthrough.push(name);
-            }
+            },
             _ => {
                 if arg.starts_with("-l") {
                     result_shared_libraries.insert(vec!["lib", &arg[2..], ".so"].concat());
                 }
                 result_passthrough.push(arg)
-            }
+            },
         };
     }
 }
@@ -287,15 +285,13 @@ fn find_native_libs(args: &Args) -> HashMap<String, PathBuf> {
             (Some(file_name), Some(extension)) => {
                 let file_name = file_name.to_str().unwrap();
 
-                if file_name.starts_with("lib") &&
-                    extension == "so" &&
-                    args.shared_libraries.contains(file_name) {
-                        println!("Adding the file {:?}", file_name);
-                        native_shared_libs.insert(file_name.to_string(), path.to_path_buf().clone());
-                        break;
+                if file_name.starts_with("lib") && extension == "so" && args.shared_libraries.contains(file_name) {
+                    println!("Adding the file {:?}", file_name);
+                    native_shared_libs.insert(file_name.to_string(), path.to_path_buf().clone());
+                    break;
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 
