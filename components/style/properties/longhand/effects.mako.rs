@@ -487,7 +487,7 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
             }
             Ok(())
         }) {
-            match LengthOrPercentage::parse(context, input) {
+            match input.try(|input| LengthOrPercentage::parse(context, input)) {
                 Ok(value) => {
                     if horizontal.is_none() {
                         horizontal = Some(value);
