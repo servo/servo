@@ -22,7 +22,7 @@ pub use super::specified::{Angle, BorderStyle, GridLine, Time, UrlOrNone};
 pub use super::specified::url::UrlExtraData;
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
-pub use self::length::MinLength;
+pub use self::length::{MaxLength, MinLength};
 pub use self::position::Position;
 
 pub mod basic_shape;
