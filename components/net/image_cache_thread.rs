@@ -414,6 +414,7 @@ impl ImageCache {
             (FetchResponseMsg::ProcessRequestEOF, _) => return,
             (FetchResponseMsg::ProcessResponse(_response), _) => {}
             (FetchResponseMsg::ProcessResponseChunk(data), _) => {
+                debug!("got some data for {:?}", msg.key);
                 let pending_load = self.pending_loads.get_by_key_mut(&msg.key).unwrap();
                 pending_load.bytes.extend_from_slice(&data);
                 //jmr0 TODO: possibly move to another task?
@@ -430,12 +431,14 @@ impl ImageCache {
                 }
             }
             (FetchResponseMsg::ProcessResponseEOF(result), key) => {
+                debug!("received EOF for {:?}", key);
                 match result {
                     Ok(()) => {
                         let pending_load = self.pending_loads.get_by_key_mut(&msg.key).unwrap();
                         pending_load.result = Some(result);
                         let bytes = pending_load.bytes.mark_complete();
                         let sender = self.decoder_sender.clone();
+                        debug!("async decoding {} ({:?})", pending_load.url, key);
 
                         self.thread_pool.execute(move || {
                             let msg = decode_bytes_sync(key, &*bytes);
@@ -443,6 +446,7 @@ impl ImageCache {
                         });
                     }
                     Err(_) => {
+                        debug!("processing error for {:?}", key);
                         match self.placeholder_image.clone() {
                             Some(placeholder_image) => {
                                 self.complete_load(msg.key, LoadResult::PlaceholderLoaded(
@@ -553,6 +557,7 @@ impl ImageCache {
                                       can_request: CanRequestImages)
                                       -> Result<ImageOrMetadataAvailable, ImageState> {
         if let Some(result) = self.get_completed_image_if_available(&url, placeholder) {
+            debug!("{} is available", url);
             return result;
         }
 
@@ -560,17 +565,27 @@ impl ImageCache {
             let result = self.pending_loads.get_cached(url.clone(), can_request);
             match result {
                 CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
-                    (&Some(Ok(_)), _) =>
-                        decode_bytes_sync(key, &pl.bytes.as_slice()),
-                    (&None, &Some(ref meta)) =>
-                        return Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone())),
-                    (&Some(Err(_)), _) | (&None, &None) =>
-                        return Err(ImageState::Pending(key)),
+                    (&Some(Ok(_)), _) => {
+                        debug!("sync decoding {} ({:?})", url, key);
+                        decode_bytes_sync(key, &pl.bytes.as_slice())
+                    }
+                    (&None, &Some(ref meta)) => {
+                        debug!("metadata available for {} ({:?})", url, key);
+                        return Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))
+                    }
+                    (&Some(Err(_)), _) | (&None, &None) => {
+                        debug!("{} ({:?}) is still pending", url, key);
+                        return Err(ImageState::Pending(key));
+                    }
                 },
-                CacheResult::Miss(Some((key, _pl))) =>
-                    return Err(ImageState::NotRequested(key)),
-                CacheResult::Miss(None) =>
-                    return Err(ImageState::LoadError),
+                CacheResult::Miss(Some((key, _pl))) => {
+                    debug!("should be requesting {} ({:?})", url, key);
+                    return Err(ImageState::NotRequested(key));
+                }
+                CacheResult::Miss(None) => {
+                    debug!("couldn't find an entry for {}", url);
+                    return Err(ImageState::LoadError);
+                }
             }
         };
 
