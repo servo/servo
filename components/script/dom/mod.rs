@@ -258,6 +258,8 @@ pub mod csssupportsrule;
 pub mod cssviewportrule;
 pub mod customevent;
 pub mod dedicatedworkerglobalscope;
+pub mod dissimilaroriginlocation;
+pub mod dissimilaroriginwindow;
 pub mod document;
 pub mod documentfragment;
 pub mod documenttype;

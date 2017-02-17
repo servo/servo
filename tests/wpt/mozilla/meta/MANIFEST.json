@@ -12721,6 +12721,14 @@
      {}
     ]
    ],
+   "mozilla/cross-origin-objects/cross-origin-objects.html": [
+    [
+     "/_mozilla/mozilla/cross-origin-objects/cross-origin-objects.html",
+     {
+      "timeout": "long"
+     }
+    ]
+   ],
    "mozilla/deterministic-raf.html": [
     [
      "/_mozilla/mozilla/deterministic-raf.html",
@@ -25348,6 +25356,10 @@
   ],
   "mozilla/collections.html": [
    "f1029d519aa7017a1a3d18a891a0774b9a39f847",
+   "testharness"
+  ],
+  "mozilla/cross-origin-objects/cross-origin-objects.html": [
+   "5d5a3ba4099dfabddbed1ea98ad8fe1f5c00a3d3",
    "testharness"
   ],
   "mozilla/details_ui_closed.html": [

@@ -1678,7 +1678,7 @@ impl ScriptThread {
             },
             hash_map::Entry::Occupied(entry) => {
                 let browsing_context = entry.get();
-                browsing_context.set_window_proxy(&window);
+                browsing_context.set_currently_active(&*window);
                 window.init_browsing_context(browsing_context);
             },
         }
@@ -1782,7 +1782,9 @@ impl ScriptThread {
             ServoParser::parse_html_document(&document, parse_input, final_url);
         }
 
-        if incomplete.activity != DocumentActivity::FullyActive {
+        if incomplete.activity == DocumentActivity::FullyActive {
+            window.resume();
+        } else {
             window.suspend();
         }
 
