@@ -232,7 +232,7 @@ class MachCommands(CommandBase):
                 test_patterns.append(test)
 
         if not packages:
-            packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit")))
+            packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
 
         packages.discard('stylo')
 
@@ -345,7 +345,7 @@ class MachCommands(CommandBase):
                 test_patterns.append(test)
 
         if not packages:
-            packages = set(os.listdir(path.join(self.context.topdir, "tests", "compiletest")))
+            packages = set(os.listdir(path.join(self.context.topdir, "tests", "compiletest"))) - set(['.DS_Store'])
 
         packages.remove("helper")
 
