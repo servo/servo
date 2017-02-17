@@ -26,7 +26,7 @@ use std::thread;
 use std::u32;
 use style::font_face::{EffectiveSources, Source};
 use style::properties::longhands::font_family::computed_value::{FontFamily, FamilyName};
-use webrender_traits;
+use webrender_traits::{self, NativeFontHandle};
 
 /// A list of font templates that make up a given font family.
 struct FontTemplates {
@@ -348,7 +348,7 @@ impl FontCache {
             font_key = Some(*webrender_fonts.entry(template.identifier.clone()).or_insert_with(|| {
                 match (template.bytes_if_in_memory(), template.native_font()) {
                     (Some(bytes), _) => webrender_api.add_raw_font(bytes),
-                    (None, Some(native_font)) => webrender_api.add_native_font(native_font),
+                    (None, Some(native_font)) => webrender_api.add_native_font(NativeFontHandle(native_font)),
                     (None, None) => webrender_api.add_raw_font(template.bytes().clone()),
                 }
             }));
