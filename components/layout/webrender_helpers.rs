@@ -8,8 +8,8 @@
 //           completely converting layout to directly generate WebRender display lists, for example.
 
 use app_units::Au;
-use euclid::{Point2D, Rect, Size2D};
-use gfx::display_list::{BorderRadii, BoxShadowClipMode, ClippingRegion};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
 use gfx_traits::{FragmentType, ScrollRootId};
 use msg::constellation_msg::PipelineId;
@@ -46,6 +46,22 @@ impl ToBorderStyle for BorderStyle {
         }
     }
 }
+
+trait ToBorderWidths {
+    fn to_border_widths(&self) -> webrender_traits::BorderWidths;
+}
+
+impl ToBorderWidths for SideOffsets2D<Au> {
+    fn to_border_widths(&self) -> webrender_traits::BorderWidths {
+        webrender_traits::BorderWidths {
+            left: self.left.to_f32_px(),
+            top: self.top.to_f32_px(),
+            right: self.right.to_f32_px(),
+            bottom: self.bottom.to_f32_px(),
+        }
+    }
+}
+
 trait ToBoxShadowClipMode {
     fn to_clip_mode(&self) -> webrender_traits::BoxShadowClipMode;
 }
@@ -270,41 +286,57 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::Border(ref item) => {
                 let rect = item.base.bounds.to_rectf();
-                let widths = webrender_traits::BorderWidths {
-                    left: item.border_widths.left.to_f32_px(),
-                    top: item.border_widths.top.to_f32_px(),
-                    right: item.border_widths.right.to_f32_px(),
-                    bottom: item.border_widths.bottom.to_f32_px(),
-                };
-                let left = webrender_traits::BorderSide {
-                    color: item.color.left,
-                    style: item.style.left.to_border_style(),
-                };
-                let top = webrender_traits::BorderSide {
-                    color: item.color.top,
-                    style: item.style.top.to_border_style(),
-                };
-                let right = webrender_traits::BorderSide {
-                    color: item.color.right,
-                    style: item.style.right.to_border_style(),
-                };
-                let bottom = webrender_traits::BorderSide {
-                    color: item.color.bottom,
-                    style: item.style.bottom.to_border_style(),
-                };
-                let radius = item.radius.to_border_radius();
+                let widths = item.border_widths.to_border_widths();
                 let clip = item.base.clip.to_clip_region(builder);
-                let details = webrender_traits::NormalBorder {
-                    left: left,
-                    top: top,
-                    right: right,
-                    bottom: bottom,
-                    radius: radius,
+
+                let details = match item.details {
+                    BorderDetails::Normal(ref border) => {
+                        let left = webrender_traits::BorderSide {
+                            color: border.color.left,
+                            style: border.style.left.to_border_style(),
+                        };
+                        let top = webrender_traits::BorderSide {
+                            color: border.color.top,
+                            style: border.style.top.to_border_style(),
+                        };
+                        let right = webrender_traits::BorderSide {
+                            color: border.color.right,
+                            style: border.style.right.to_border_style(),
+                        };
+                        let bottom = webrender_traits::BorderSide {
+                            color: border.color.bottom,
+                            style: border.style.bottom.to_border_style(),
+                        };
+                        let radius = border.radius.to_border_radius();
+                        webrender_traits::BorderDetails::Normal(webrender_traits::NormalBorder {
+                            left: left,
+                            top: top,
+                            right: right,
+                            bottom: bottom,
+                            radius: radius,
+                        })
+                    }
+                    BorderDetails::Image(ref image) => {
+                        match image.image.key {
+                            None => return,
+                            Some(key) => {
+                                webrender_traits::BorderDetails::Image(webrender_traits::ImageBorder {
+                                    image_key: key,
+                                    patch: webrender_traits::NinePatchDescriptor {
+                                        width: image.image.width,
+                                        height: image.image.height,
+                                        slice: image.slice,
+                                    },
+                                    outset: image.outset,
+                                    repeat_horizontal: image.repeat_horizontal,
+                                    repeat_vertical: image.repeat_vertical,
+                                })
+                            }
+                        }
+                    }
                 };
-                builder.push_border(rect,
-                                    clip,
-                                    widths,
-                                    webrender_traits::BorderDetails::Normal(details));
+
+                builder.push_border(rect, clip, widths, details);
             }
             DisplayItem::Gradient(ref item) => {
                 let rect = item.base.bounds.to_rectf();
