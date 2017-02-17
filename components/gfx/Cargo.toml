@@ -61,4 +61,4 @@ simd = "0.2.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.1.5"
-truetype = "0.24"
+truetype = "0.26"
