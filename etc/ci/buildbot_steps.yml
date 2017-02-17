@@ -12,6 +12,7 @@ mac-rel-wpt2:
   - ./mach build --release
   - ./mach test-wpt --release --processes 8 --total-chunks 2 --this-chunk 2 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log --always-succeed
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
+  - ./mach build-geckolib --release
 
 mac-dev-unit:
   - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
@@ -25,7 +26,6 @@ mac-rel-css:
   - ./mach build --release
   - ./mach test-css --release --processes 4 --log-raw test-css.log --log-errorsummary css-errorsummary.log --always-succeed
   - ./mach filter-intermittents css-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-css-errorsummary.log --use-tracker
-  - ./mach build-geckolib --release
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
