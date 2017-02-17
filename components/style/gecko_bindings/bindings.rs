@@ -650,6 +650,10 @@ extern "C" {
      -> nsChangeHint;
 }
 extern "C" {
+    pub fn Gecko_HintsHandledForDescendants(aHint: nsChangeHint)
+     -> nsChangeHint;
+}
+extern "C" {
     pub fn Gecko_CreateElementSnapshot(element: RawGeckoElementBorrowed)
      -> ServoElementSnapshotOwned;
 }

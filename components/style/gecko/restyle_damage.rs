@@ -9,7 +9,7 @@ use gecko_bindings::structs;
 use gecko_bindings::structs::{nsChangeHint, nsStyleContext};
 use gecko_bindings::sugar::ownership::FFIArcHelpers;
 use properties::ComputedValues;
-use std::ops::{BitOr, BitOrAssign};
+use std::ops::{BitAnd, BitOr, BitOrAssign, Not};
 use std::sync::Arc;
 
 /// The representation of Gecko's restyle damage is just a wrapper over
@@ -56,16 +56,35 @@ impl GeckoRestyleDamage {
         GeckoRestyleDamage(hint)
     }
 
-    /// Get a restyle damage that represents the maximum action to be taken
-    /// (rebuild and reflow).
-    pub fn rebuild_and_reflow() -> Self {
+    /// Returns true if this restyle damage contains all the damage of |other|.
+    pub fn contains(self, other: Self) -> bool {
+        self & other == other
+    }
+
+    /// Gets restyle damage to reconstruct the entire frame, subsuming all
+    /// other damage.
+    pub fn reconstruct() -> Self {
         GeckoRestyleDamage(structs::nsChangeHint_nsChangeHint_ReconstructFrame)
+    }
+
+    /// Assuming |self| is applied to an element, returns the set of damage that
+    /// would be superfluous to apply for descendants.
+    pub fn handled_for_descendants(self) -> Self {
+        let hint = unsafe {
+            bindings::Gecko_HintsHandledForDescendants(self.0)
+        };
+        GeckoRestyleDamage(hint)
+    }
+}
+
+impl Default for GeckoRestyleDamage {
+    fn default() -> Self {
+        Self::empty()
     }
 }
 
 impl BitOr for GeckoRestyleDamage {
     type Output = Self;
-
     fn bitor(self, other: Self) -> Self {
         GeckoRestyleDamage(self.0 | other.0)
     }
@@ -74,5 +93,19 @@ impl BitOr for GeckoRestyleDamage {
 impl BitOrAssign for GeckoRestyleDamage {
     fn bitor_assign(&mut self, other: Self) {
         *self = *self | other;
+    }
+}
+
+impl BitAnd for GeckoRestyleDamage {
+    type Output = Self;
+    fn bitand(self, other: Self) -> Self {
+        GeckoRestyleDamage(nsChangeHint((self.0).0 & (other.0).0))
+    }
+}
+
+impl Not for GeckoRestyleDamage {
+    type Output = Self;
+    fn not(self) -> Self {
+        GeckoRestyleDamage(nsChangeHint(!(self.0).0))
     }
 }

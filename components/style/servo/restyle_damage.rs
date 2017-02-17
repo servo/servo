@@ -67,9 +67,17 @@ impl ServoRestyleDamage {
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and
     /// reflowed.
+    ///
+    /// FIXME(bholley): Do we ever actually need this? Shouldn't RECONSTRUCT_FLOW
+    /// imply everything else?
     pub fn rebuild_and_reflow() -> ServoRestyleDamage {
         REPAINT | REPOSITION | STORE_OVERFLOW | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW |
             RECONSTRUCT_FLOW
+    }
+
+    /// Returns a bitmask indicating that the frame needs to be reconstructed.
+    pub fn reconstruct() -> ServoRestyleDamage {
+        RECONSTRUCT_FLOW
     }
 
     /// Supposing a flow has the given `position` property and this damage,
@@ -111,6 +119,17 @@ impl ServoRestyleDamage {
                 self & (REPAINT | REPOSITION | REFLOW)
             }
         }
+    }
+
+    /// Servo doesn't implement this optimization.
+    pub fn handled_for_descendants(self) -> Self {
+        Self::empty()
+    }
+}
+
+impl Default for ServoRestyleDamage {
+    fn default() -> Self {
+        Self::empty()
     }
 }
 
