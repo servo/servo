@@ -128,6 +128,8 @@ be run in the following manner like any other WPT test:
     ./mach test-wpt tests/wpt/path/to/new/test.html
     ./mach test-wpt tests/wpt/path/to/new/reftest.html
 
+The tests are written using [testharness.js](https://github.com/w3c/testharness.js/). Documentation can be found [here](http://testthewebforward.org/docs/testharness-library.html).
+
 Editing tests
 =============
 
