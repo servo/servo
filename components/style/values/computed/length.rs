@@ -601,3 +601,58 @@ impl ToCss for MinLength {
         }
     }
 }
+
+/// A value suitable for a `max-width` or `max-height` property.
+/// See specified/values/length.rs for more details.
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum MaxLength {
+    LengthOrPercentage(LengthOrPercentage),
+    None,
+    ExtremumLength(ExtremumLength),
+}
+
+impl ToComputedValue for specified::MaxLength {
+    type ComputedValue = MaxLength;
+
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> MaxLength {
+        match *self {
+            specified::MaxLength::LengthOrPercentage(ref lop) => {
+                MaxLength::LengthOrPercentage(lop.to_computed_value(context))
+            }
+            specified::MaxLength::None => {
+                MaxLength::None
+            }
+            specified::MaxLength::ExtremumLength(ref ext) => {
+                MaxLength::ExtremumLength(ext.clone())
+            }
+        }
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &MaxLength) -> Self {
+        match *computed {
+            MaxLength::None =>
+                specified::MaxLength::None,
+            MaxLength::LengthOrPercentage(ref lop) =>
+                specified::MaxLength::LengthOrPercentage(specified::LengthOrPercentage::from_computed_value(&lop)),
+            MaxLength::ExtremumLength(ref ext) =>
+                specified::MaxLength::ExtremumLength(ext.clone()),
+        }
+    }
+}
+
+impl ToCss for MaxLength {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            MaxLength::LengthOrPercentage(lop) =>
+                lop.to_css(dest),
+            MaxLength::None =>
+                dest.write_str("none"),
+            MaxLength::ExtremumLength(ext) =>
+                ext.to_css(dest),
+        }
+    }
+}

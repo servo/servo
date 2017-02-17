@@ -237,13 +237,21 @@ ${helpers.predefined_type("flex-basis",
     % endif
 
     // max-width, max-height, max-block-size, max-inline-size
-    ${helpers.predefined_type("max-%s" % size,
-                              "LengthOrPercentageOrNone",
-                              "computed::LengthOrPercentageOrNone::None",
-                              "parse_non_negative",
-                              needs_context=False,
-                              spec=spec % ("max-%s" % size),
-                              animatable=True, logical = logical)}
+    % if product == "gecko":
+        ${helpers.predefined_type("max-%s" % size,
+                                  "MaxLength",
+                                  "computed::MaxLength::None",
+                                  spec=spec % ("max-%s" % size),
+                                  animatable=True, logical = logical)}
+    % else:
+        ${helpers.predefined_type("max-%s" % size,
+                                  "LengthOrPercentageOrNone",
+                                  "computed::LengthOrPercentageOrNone::None",
+                                  "parse_non_negative",
+                                  needs_context=False,
+                                  spec=spec % ("max-%s" % size),
+                                  animatable=True, logical = logical)}
+    % endif
 % endfor
 
 ${helpers.single_keyword("box-sizing",

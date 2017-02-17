@@ -14,7 +14,7 @@ use std::cmp::max;
 use values::{Auto, Either, ExtremumLength, None_, Normal};
 use values::computed::{Angle, LengthOrPercentageOrNone, Number};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use values::computed::MinLength;
+use values::computed::{MaxLength, MinLength};
 use values::computed::basic_shape::ShapeRadius;
 use values::specified::grid::{TrackBreadth, TrackKeyword};
 
@@ -316,6 +316,25 @@ impl GeckoStyleCoordConvertible for MinLength {
             .or_else(|| ExtremumLength::from_gecko_style_coord(coord).map(MinLength::ExtremumLength))
             .or_else(|| match coord.as_value() {
                 CoordDataValue::Auto => Some(MinLength::Auto),
+                _ => None,
+            })
+    }
+}
+
+impl GeckoStyleCoordConvertible for MaxLength {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        match *self {
+            MaxLength::LengthOrPercentage(ref lop) => lop.to_gecko_style_coord(coord),
+            MaxLength::None => coord.set_value(CoordDataValue::None),
+            MaxLength::ExtremumLength(ref e) => e.to_gecko_style_coord(coord),
+        }
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        LengthOrPercentage::from_gecko_style_coord(coord).map(MaxLength::LengthOrPercentage)
+            .or_else(|| ExtremumLength::from_gecko_style_coord(coord).map(MaxLength::ExtremumLength))
+            .or_else(|| match coord.as_value() {
+                CoordDataValue::None => Some(MaxLength::None),
                 _ => None,
             })
     }
