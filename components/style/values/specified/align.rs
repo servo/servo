@@ -117,10 +117,10 @@ const ALIGN_ALL_SHIFT: u32 = structs::NS_STYLE_ALIGN_ALL_SHIFT;
 pub struct AlignJustifyContent(u16);
 
 impl AlignJustifyContent {
-    /// The initial value 'auto'
+    /// The initial value 'normal'
     #[inline]
-    pub fn auto() -> Self {
-        Self::new(ALIGN_AUTO)
+    pub fn normal() -> Self {
+        Self::new(ALIGN_NORMAL)
     }
 
     /// Construct a value with no fallback.

@@ -88,13 +88,13 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
     // FIXME: Update Servo to support the same Syntax as Gecko.
     ${helpers.single_keyword("justify-content", "stretch flex-start flex-end center space-between space-around",
                              extra_prefixes="webkit",
-                             spec="https://drafts.csswg.org/css-flexbox/#justify-content-property",
+                             spec="https://drafts.csswg.org/css-align/#propdef-justify-content",
                              animatable=False)}
 % else:
     ${helpers.predefined_type(name="justify-content",
                               type="AlignJustifyContent",
-                              initial_value="specified::AlignJustifyContent::auto()",
-                              spec="https://drafts.csswg.org/css-flexbox/#justify-content-property",
+                              initial_value="specified::AlignJustifyContent::normal()",
+                              spec="https://drafts.csswg.org/css-align/#propdef-justify-content",
                               extra_prefixes="webkit",
                               animatable=False)}
 % endif
@@ -113,13 +113,13 @@ ${helpers.single_keyword("align-items", "stretch flex-start flex-end center base
     // FIXME: Update Servo to support the same Syntax as Gecko.
     ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
                              extra_prefixes="webkit",
-                             spec="https://drafts.csswg.org/css-flexbox/#align-content-property",
+                             spec="https://drafts.csswg.org/css-align/#propdef-align-content",
                              animatable=False)}
 % else:
     ${helpers.predefined_type(name="align-content",
                               type="AlignJustifyContent",
-                              initial_value="specified::AlignJustifyContent::auto()",
-                              spec="https://drafts.csswg.org/css-flexbox/#align-content-property",
+                              initial_value="specified::AlignJustifyContent::normal()",
+                              spec="https://drafts.csswg.org/css-align/#propdef-align-content",
                               extra_prefixes="webkit",
                               animatable=False)}
 % endif
