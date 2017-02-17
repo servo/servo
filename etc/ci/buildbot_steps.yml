@@ -14,9 +14,9 @@ mac-rel-wpt2:
   - ./mach filter-intermittents wpt-errorsummary.log --log-intermittents intermittents.log --log-filteredsummary filtered-wpt-errorsummary.log --use-tracker
 
 mac-dev-unit:
-  - ./mach build --dev
-  - ./mach test-unit
-  - ./mach build-cef
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
   - ./mach build-geckolib
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
@@ -46,10 +46,10 @@ mac-rel-intermittent:
 linux-dev:
   - ./mach test-tidy --no-progress --all
   - ./mach test-tidy --no-progress --self-test
-  - ./mach build --dev
-  - ./mach test-compiletest
-  - ./mach test-unit
-  - ./mach build-cef
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --dev
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-compiletest
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach test-unit
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build-cef
   - ./mach build-geckolib
   - ./mach test-stylo
   - bash ./etc/ci/lockfile_changed.sh
@@ -79,24 +79,24 @@ linux-nightly:
   - ./etc/ci/upload_nightly.sh linux
 
 android:
-  - ./mach build --android --dev
-  - ./mach package --android --dev
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --android --dev
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --android --dev
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
   - python ./etc/ci/check_dynamic_symbols.py
 
 android-nightly:
-  - ./mach build --android --release
-  - ./mach package --android --release
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --android --release
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach package --android --release
   - ./etc/ci/upload_nightly.sh android
 
 arm32:
-  - ./mach build --rel --target=arm-unknown-linux-gnueabihf
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --rel --target=arm-unknown-linux-gnueabihf
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
 arm64:
-  - ./mach build --rel --target=aarch64-unknown-linux-gnu
+  - env SERVO_RUSTC_LLVM_ASSERTIONS=1 ./mach build --rel --target=aarch64-unknown-linux-gnu
   - bash ./etc/ci/lockfile_changed.sh
   - bash ./etc/ci/manifest_changed.sh
 
