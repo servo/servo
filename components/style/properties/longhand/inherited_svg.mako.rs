@@ -72,7 +72,6 @@ ${helpers.predefined_type(
     products="gecko",
     animatable=True,
     needs_context=False,
-    boxed=True,
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeWidth")}
 
 ${helpers.single_keyword("stroke-linecap", "butt round square",
@@ -107,7 +106,6 @@ ${helpers.predefined_type(
     "parse_numbers_are_pixels",
     products="gecko",
     animatable=True,
-    boxed=True,
     needs_context=False,
     spec="https://www.w3.org/TR/SVG2/painting.html#StrokeDashing")}
 
@@ -122,20 +120,17 @@ ${helpers.single_keyword("clip-rule", "nonzero evenodd",
 ${helpers.predefined_type("marker-start", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
                           animatable="False",
-                          spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties",
-                          boxed=True)}
+                          spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 ${helpers.predefined_type("marker-mid", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
                           animatable="False",
-                          spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties",
-                          boxed=True)}
+                          spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
                           products="gecko",
                           animatable="False",
-                          spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties",
-                          boxed=True)}
+                          spec="https://www.w3.org/TR/SVG2/painting.html#VertexMarkerProperties")}
 
 <%helpers:longhand name="paint-order"
                    animatable="False"
@@ -171,10 +166,15 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
     /// Higher priority values, i.e. the values specified first,
     /// will be painted first (and may be covered by paintings of lower priority)
     #[derive(PartialEq, Clone, Copy, Debug)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub u8);
 
     pub mod computed_value {
         pub use super::SpecifiedValue as T;
+    }
+
+    pub fn get_initial_value() -> SpecifiedValue {
+      SpecifiedValue(NORMAL)
     }
 
     impl SpecifiedValue {
