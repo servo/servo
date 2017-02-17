@@ -34,7 +34,7 @@
 
 % for side in ALL_SIDES:
     <%helpers:longhand name="border-${side[0]}-width" animatable="True" logical="${side[1]}"
-                       alias=maybe_moz_logical_alias(product, side, "-moz-border-%s-width")
+                       alias="${maybe_moz_logical_alias(product, side, '-moz-border-%s-width')}"
                        spec="${maybe_logical_spec(side, 'width')}">
         use app_units::Au;
         use std::fmt;
