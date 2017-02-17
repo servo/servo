@@ -84,10 +84,14 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         if logical:
             spec = "https://drafts.csswg.org/css-logical-props/#propdef-border-%s" % side
     %>
-    <%helpers:shorthand name="border-${side}" sub_properties="${' '.join(
-        'border-%s-%s' % (side, prop)
-        for prop in ['color', 'style', 'width']
-    )}" alias=maybe_moz_logical_alias(product, side, "-moz-border-%s") spec="${spec}">
+    <%helpers:shorthand
+        name="border-${side}"
+        sub_properties="${' '.join(
+            'border-%s-%s' % (side, prop)
+            for prop in ['color', 'style', 'width']
+        )}"
+        alias="${maybe_moz_logical_alias(product, (side, logical), '-moz-border-%s')}"
+        spec="${spec}">
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let (color, style, width) = try!(super::parse_border(context, input));
