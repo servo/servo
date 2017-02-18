@@ -130,9 +130,6 @@
     pseudo_element!(":-moz-button-content",
                     atom!(":-moz-button-content"),
                     true);
-    pseudo_element!(":-moz-buttonlabel",
-                    atom!(":-moz-buttonlabel"),
-                    true);
     pseudo_element!(":-moz-cell-content",
                     atom!(":-moz-cell-content"),
                     true);

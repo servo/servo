@@ -4836,8 +4836,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozLineFrame: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes13buttonContentE"]
             pub static nsCSSAnonBoxes_buttonContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "_ZN14nsCSSAnonBoxes14mozButtonLabelE"]
-            pub static nsCSSAnonBoxes_mozButtonLabel: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes11cellContentE"]
             pub static nsCSSAnonBoxes_cellContent: *mut nsICSSAnonBoxPseudo;
             #[link_name = "_ZN14nsCSSAnonBoxes12dropDownListE"]
@@ -9753,8 +9751,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozLineFrame: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?buttonContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_buttonContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "?mozButtonLabel@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
-            pub static nsCSSAnonBoxes_mozButtonLabel: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?cellContent@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
             pub static nsCSSAnonBoxes_cellContent: *mut nsICSSAnonBoxPseudo;
             #[link_name = "?dropDownList@nsCSSAnonBoxes@@2PEAVnsICSSAnonBoxPseudo@@EA"]
@@ -14670,8 +14666,6 @@ cfg_if! {
             pub static nsCSSAnonBoxes_mozLineFrame: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?buttonContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_buttonContent: *mut nsICSSAnonBoxPseudo;
-            #[link_name = "\x01?mozButtonLabel@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
-            pub static nsCSSAnonBoxes_mozButtonLabel: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?cellContent@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
             pub static nsCSSAnonBoxes_cellContent: *mut nsICSSAnonBoxPseudo;
             #[link_name = "\x01?dropDownList@nsCSSAnonBoxes@@2PAVnsICSSAnonBoxPseudo@@A"]
@@ -19590,8 +19584,6 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozLineFrame as *mut _) } };
 (":-moz-button-content") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_buttonContent as *mut _) } };
-(":-moz-buttonlabel") =>
-  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_mozButtonLabel as *mut _) } };
 (":-moz-cell-content") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsCSSAnonBoxes_cellContent as *mut _) } };
 (":-moz-dropdown-list") =>
