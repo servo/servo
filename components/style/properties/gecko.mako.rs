@@ -26,6 +26,7 @@ use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleTypeFrom;
 use gecko_bindings::bindings::Gecko_CopyMozBindingFrom;
+use gecko_bindings::bindings::Gecko_Destroy_nsStyleVariables;
 use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendGeneric;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendNamed;
@@ -56,7 +57,7 @@ use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarat
 use std::fmt::{self, Debug};
 use std::mem::{transmute, zeroed};
 use std::ptr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::cmp;
 use values::computed::ToComputedValue;
 use values::{Either, Auto};
@@ -2988,18 +2989,27 @@ ${define_ffi_struct_accessor(style_struct)}
 % endfor
 
 lazy_static! {
-    static ref EMPTY_VARIABLES_STRUCT: nsStyleVariables = {
-        unsafe {
-            let mut variables: nsStyleVariables = unsafe { zeroed() };
-            Gecko_Construct_nsStyleVariables(&mut variables);
-            variables
-        }
-    };
+    static ref EMPTY_VARIABLES_STRUCT: Mutex<Option<nsStyleVariables>> = Mutex::new(None);
 }
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn Servo_GetStyleVariables(_cv: ServoComputedValuesBorrowedOrNull)
                                                  -> *const nsStyleVariables {
-    &*EMPTY_VARIABLES_STRUCT
+    let mut data = EMPTY_VARIABLES_STRUCT.lock().unwrap();
+    if data.is_none() {
+        let mut variables: nsStyleVariables = unsafe { zeroed() };
+        Gecko_Construct_nsStyleVariables(&mut variables);
+        *data = Some(variables);
+    }
+    data.as_mut().unwrap()
+}
+
+pub fn shutdown() {
+    let mut data = EMPTY_VARIABLES_STRUCT.lock().unwrap();
+    if data.is_some() {
+        let variables = data.as_mut().unwrap();
+        unsafe { Gecko_Destroy_nsStyleVariables(variables); }
+    }
+    *data = None;
 }
