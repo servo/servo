@@ -365,6 +365,7 @@ mod bindings {
             "nsStylePadding",
             "nsStylePosition",
             "nsStyleSVG",
+            "nsStyleSVGPaint",
             "nsStyleSVGReset",
             "nsStyleTable",
             "nsStyleTableBorder",
@@ -383,6 +384,7 @@ mod bindings {
             "PropertyValuePair",
             "Runnable",
             "ServoAttrSnapshot",
+            "ServoBundledURI",
             "ServoElementSnapshot",
             "SheetParsingMode",
             "StaticRefPtr",
@@ -506,6 +508,7 @@ mod bindings {
             .whitelisted_function("Servo_.*")
             .whitelisted_function("Gecko_.*");
         let structs_types = [
+            "mozilla::css::URLValue",
             "RawGeckoDocument",
             "RawGeckoElement",
             "RawGeckoKeyframeList",
@@ -523,6 +526,7 @@ mod bindings {
             "FontFamilyList",
             "FontFamilyType",
             "Keyframe",
+            "ServoBundledURI",
             "ServoElementSnapshot",
             "SheetParsingMode",
             "StyleBasicShape",
@@ -550,6 +554,7 @@ mod bindings {
             "nsStyleCoord_CalcValue",
             "nsStyleDisplay",
             "nsStyleEffects",
+            "nsStyleFilter",
             "nsStyleFont",
             "nsStyleGradient",
             "nsStyleGradientStop",
@@ -565,6 +570,7 @@ mod bindings {
             "nsStylePosition",
             "nsStyleQuoteValues",
             "nsStyleSVG",
+            "nsStyleSVGPaint",
             "nsStyleSVGReset",
             "nsStyleTable",
             "nsStyleTableBorder",

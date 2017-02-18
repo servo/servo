@@ -6,6 +6,8 @@
 
 use cssparser::{CssStringWriter, Parser};
 #[cfg(feature = "gecko")]
+use gecko_bindings::structs::ServoBundledURI;
+#[cfg(feature = "gecko")]
 use gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use parser::{Parse, ParserContext};
 #[cfg(feature = "gecko")]
@@ -166,6 +168,24 @@ impl SpecifiedUrl {
             resolved: ServoUrl::parse(url).ok(),
             extra_data: UrlExtraData {}
         }
+    }
+
+    /// Create a bundled URI suitable for sending to Gecko
+    /// to be constructed into a css::URLValue
+    #[cfg(feature = "gecko")]
+    pub fn for_ffi(&self) -> Option<ServoBundledURI> {
+        let extra_data = self.extra_data();
+        let (ptr, len) = match self.as_slice_components() {
+            Ok(value) => value,
+            Err(_) => return None,
+        };
+        Some(ServoBundledURI {
+            mURLString: ptr,
+            mURLStringLength: len as u32,
+            mBaseURI: extra_data.base.get(),
+            mReferrer: extra_data.referrer.get(),
+            mPrincipal: extra_data.principal.get(),
+        })
     }
 }
 

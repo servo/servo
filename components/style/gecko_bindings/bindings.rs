@@ -3,6 +3,7 @@
 pub use nsstring::{nsACString, nsAString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
+use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
@@ -20,6 +21,7 @@ use gecko_bindings::structs::TraversalRootBehavior;
 use gecko_bindings::structs::FontFamilyList;
 use gecko_bindings::structs::FontFamilyType;
 use gecko_bindings::structs::Keyframe;
+use gecko_bindings::structs::ServoBundledURI;
 use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::SheetParsingMode;
 use gecko_bindings::structs::StyleBasicShape;
@@ -69,6 +71,9 @@ unsafe impl Sync for nsStyleDisplay {}
 use gecko_bindings::structs::nsStyleEffects;
 unsafe impl Send for nsStyleEffects {}
 unsafe impl Sync for nsStyleEffects {}
+use gecko_bindings::structs::nsStyleFilter;
+unsafe impl Send for nsStyleFilter {}
+unsafe impl Sync for nsStyleFilter {}
 use gecko_bindings::structs::nsStyleFont;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -114,6 +119,9 @@ unsafe impl Sync for nsStyleQuoteValues {}
 use gecko_bindings::structs::nsStyleSVG;
 unsafe impl Send for nsStyleSVG {}
 unsafe impl Sync for nsStyleSVG {}
+use gecko_bindings::structs::nsStyleSVGPaint;
+unsafe impl Send for nsStyleSVGPaint {}
+unsafe impl Sync for nsStyleSVGPaint {}
 use gecko_bindings::structs::nsStyleSVGReset;
 unsafe impl Send for nsStyleSVGReset {}
 unsafe impl Sync for nsStyleSVGReset {}
@@ -590,11 +598,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetListStyleImage(style_struct: *mut nsStyleList,
-                                   string_bytes: *const u8,
-                                   string_length: u32,
-                                   base_uri: *mut ThreadSafeURIHolder,
-                                   referrer: *mut ThreadSafeURIHolder,
-                                   principal: *mut ThreadSafePrincipalHolder);
+                                   uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_CopyListStyleImageFrom(dest: *mut nsStyleList,
@@ -614,17 +618,6 @@ extern "C" {
 extern "C" {
     pub fn Gecko_CopyCursorArrayFrom(dest: *mut nsStyleUserInterface,
                                      src: *const nsStyleUserInterface);
-}
-extern "C" {
-    pub fn Gecko_SetMozBinding(style_struct: *mut nsStyleDisplay,
-                               string_bytes: *const u8, string_length: u32,
-                               base_uri: *mut ThreadSafeURIHolder,
-                               referrer: *mut ThreadSafeURIHolder,
-                               principal: *mut ThreadSafePrincipalHolder);
-}
-extern "C" {
-    pub fn Gecko_CopyMozBindingFrom(des: *mut nsStyleDisplay,
-                                    src: *const nsStyleDisplay);
 }
 extern "C" {
     pub fn Gecko_GetNodeFlags(node: RawGeckoNodeBorrowed) -> u32;
@@ -708,11 +701,47 @@ extern "C" {
      -> *mut StyleBasicShape;
 }
 extern "C" {
+    pub fn Gecko_StyleClipPath_SetURLValue(clip: *mut StyleClipPath,
+                                           uri: ServoBundledURI);
+}
+extern "C" {
     pub fn Gecko_ResetFilters(effects: *mut nsStyleEffects, new_len: usize);
 }
 extern "C" {
     pub fn Gecko_CopyFiltersFrom(aSrc: *mut nsStyleEffects,
                                  aDest: *mut nsStyleEffects);
+}
+extern "C" {
+    pub fn Gecko_nsStyleFilter_SetURLValue(effects: *mut nsStyleFilter,
+                                           uri: ServoBundledURI);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVGPaint_CopyFrom(dest: *mut nsStyleSVGPaint,
+                                          src: *const nsStyleSVGPaint);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVGPaint_SetURLValue(paint: *mut nsStyleSVGPaint,
+                                             uri: ServoBundledURI);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVGPaint_Reset(paint: *mut nsStyleSVGPaint);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVG_SetDashArrayLength(svg: *mut nsStyleSVG,
+                                               len: u32);
+}
+extern "C" {
+    pub fn Gecko_nsStyleSVG_CopyDashArray(dst: *mut nsStyleSVG,
+                                          src: *const nsStyleSVG);
+}
+extern "C" {
+    pub fn Gecko_NewURLValue(uri: ServoBundledURI) -> *mut URLValue;
+}
+extern "C" {
+    pub fn Gecko_AddRefCSSURLValueArbitraryThread(aPtr: *mut URLValue);
+}
+extern "C" {
+    pub fn Gecko_ReleaseCSSURLValueArbitraryThread(aPtr: *mut URLValue);
 }
 extern "C" {
     pub fn Gecko_FillAllBackgroundLists(layers: *mut nsStyleImageLayers,

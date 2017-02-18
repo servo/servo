@@ -25363,6 +25363,23 @@ pub mod root {
     pub type ThreadSafePrincipalHolder =
         root::nsMainThreadPtrHolder<root::nsIPrincipal>;
     pub type ThreadSafeURIHolder = root::nsMainThreadPtrHolder<root::nsIURI>;
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct ServoBundledURI {
+        pub mURLString: *const u8,
+        pub mURLStringLength: u32,
+        pub mBaseURI: *mut root::ThreadSafeURIHolder,
+        pub mReferrer: *mut root::ThreadSafeURIHolder,
+        pub mPrincipal: *mut root::ThreadSafePrincipalHolder,
+    }
+    #[test]
+    fn bindgen_test_layout_ServoBundledURI() {
+        assert_eq!(::std::mem::size_of::<ServoBundledURI>() , 40usize);
+        assert_eq!(::std::mem::align_of::<ServoBundledURI>() , 8usize);
+    }
+    impl Clone for ServoBundledURI {
+        fn clone(&self) -> Self { *self }
+    }
     pub type nsMediaFeatureValueGetter =
         ::std::option::Option<unsafe extern "C" fn(aPresContext:
                                                        *mut root::nsPresContext,

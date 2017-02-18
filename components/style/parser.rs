@@ -110,6 +110,22 @@ impl<T> Parse for Vec<T> where T: Parse + OneOrMoreCommaSeparated {
     }
 }
 
+/// Parse a non-empty space-separated or comma-separated list of objects parsed by parse_one
+pub fn parse_space_or_comma_separated<F, T>(input: &mut Parser, mut parse_one: F)
+        -> Result<Vec<T>, ()>
+        where F: FnMut(&mut Parser) -> Result<T, ()> {
+    let first = parse_one(input)?;
+    let mut vec = vec![first];
+    loop {
+        let _ = input.try(|i| i.expect_comma());
+        if let Ok(val) = input.try(|i| parse_one(i)) {
+            vec.push(val)
+        } else {
+            break
+        }
+    }
+    Ok(vec)
+}
 impl Parse for UnicodeRange {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         UnicodeRange::parse(input)

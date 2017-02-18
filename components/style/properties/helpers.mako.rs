@@ -66,7 +66,8 @@
     We assume that the default/initial value is an empty vector for these.
     `initial_value` need not be defined for these.
 </%doc>
-<%def name="vector_longhand(name, gecko_only=False, allow_empty=False, delegate_animate=False, **kwargs)">
+<%def name="vector_longhand(name, gecko_only=False, allow_empty=False,
+            delegate_animate=False, space_separated_allowed=False, **kwargs)">
     <%call expr="longhand(name, **kwargs)">
         % if not gecko_only:
             use std::fmt;
@@ -86,6 +87,7 @@
                 use properties::{CSSWideKeyword, DeclaredValue, ShorthandId};
                 use values::computed::{Context, ToComputedValue};
                 use values::{computed, specified};
+                use values::{Auto, Either, None_, Normal};
                 ${caller.body()}
             }
 
@@ -166,16 +168,23 @@
             }
 
             pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+                use parser::parse_space_or_comma_separated;
+
+                <%
+                    parse_func = "Parser::parse_comma_separated"
+                    if space_separated_allowed:
+                        parse_func = "parse_space_or_comma_separated"
+                %>
                 % if allow_empty:
                     if input.try(|input| input.expect_ident_matching("none")).is_ok() {
                         Ok(SpecifiedValue(Vec::new()))
                     } else {
-                        input.parse_comma_separated(|parser| {
+                        ${parse_func}(input, |parser| {
                             single_value::parse(context, parser)
                         }).map(SpecifiedValue)
                     }
                 % else:
-                    input.parse_comma_separated(|parser| {
+                    ${parse_func}(input, |parser| {
                         single_value::parse(context, parser)
                     }).map(SpecifiedValue)
                 % endif

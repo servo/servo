@@ -11,6 +11,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 use app_units::Au;
+use cssparser::Color;
 use custom_properties::ComputedValuesMap;
 use gecko_bindings::bindings;
 % for style_struct in data.style_structs:
@@ -25,7 +26,6 @@ use gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleTypeFrom;
-use gecko_bindings::bindings::Gecko_CopyMozBindingFrom;
 use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendGeneric;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendNamed;
@@ -36,7 +36,6 @@ use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
 use gecko_bindings::bindings::Gecko_SetListStyleImage;
 use gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use gecko_bindings::bindings::Gecko_SetListStyleType;
-use gecko_bindings::bindings::Gecko_SetMozBinding;
 use gecko_bindings::bindings::Gecko_SetNullImageValue;
 use gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use gecko_bindings::bindings::{Gecko_ResetFilters, Gecko_CopyFiltersFrom};
@@ -274,6 +273,19 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
+
+/// Convert a Servo color into an nscolor; with currentColor as 0
+///
+/// Call sites will need to be updated after https://bugzilla.mozilla.org/show_bug.cgi?id=760345
+fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
+    match color {
+        Color::RGBA(rgba) => {
+            convert_rgba_to_nscolor(&rgba)
+        },
+        Color::CurrentColor => 0,
+    }
+}
+
 <%def name="impl_color_setter(ident, gecko_ffi_name, complex_color=True)">
     #[allow(unreachable_code)]
     #[allow(non_snake_case)]
@@ -281,12 +293,7 @@ def set_gecko_property(ffi_name, expr):
         % if complex_color:
             let result = v.into();
         % else:
-            use cssparser::Color;
-            let result = match v {
-                Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba),
-                // FIXME #13547
-                Color::CurrentColor => 0,
-            };
+            let result = color_to_nscolor_zero_currentcolor(v);
         % endif
         ${set_gecko_property(gecko_ffi_name, "result")}
     }
@@ -306,7 +313,6 @@ def set_gecko_property(ffi_name, expr):
         % if complex_color:
             ${get_gecko_property(gecko_ffi_name)}.into()
         % else:
-            use cssparser::Color;
             Color::RGBA(convert_nscolor_to_rgba(${get_gecko_property(gecko_ffi_name)}))
         % endif
     }
@@ -367,6 +373,58 @@ def set_gecko_property(ffi_name, expr):
 % if need_clone:
     <%call expr="impl_color_clone(ident, gecko_ffi_name, complex_color)"></%call>
 % endif
+</%def>
+
+<%def name="impl_svg_paint(ident, gecko_ffi_name, need_clone=False, complex_color=True)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, mut v: longhands::${ident}::computed_value::T) {
+        use values::computed::SVGPaintKind;
+        use self::structs::nsStyleSVGPaintType;
+
+        let ref mut paint = ${get_gecko_property(gecko_ffi_name)};
+        unsafe {
+            bindings::Gecko_nsStyleSVGPaint_Reset(paint);
+        }
+        let fallback = v.fallback.take();
+        match v.kind {
+            SVGPaintKind::None => return,
+            SVGPaintKind::ContextFill => {
+                paint.mType = nsStyleSVGPaintType::eStyleSVGPaintType_ContextFill;
+            }
+            SVGPaintKind::ContextStroke => {
+                paint.mType = nsStyleSVGPaintType::eStyleSVGPaintType_ContextStroke;
+            }
+            SVGPaintKind::PaintServer(url) => {
+                unsafe {
+                    if let Some(ffi) = url.for_ffi() {
+                        bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, ffi);
+                    } else {
+                        return;
+                    }
+                }
+            }
+            SVGPaintKind::Color(color) => {
+                paint.mType = nsStyleSVGPaintType::eStyleSVGPaintType_Color;
+                unsafe {
+                    *paint.mPaint.mColor.as_mut() = color_to_nscolor_zero_currentcolor(color);
+                }
+            }
+        }
+
+        if let Some(fallback) = fallback {
+            paint.mFallbackColor = color_to_nscolor_zero_currentcolor(fallback);
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        unsafe {
+            bindings::Gecko_nsStyleSVGPaint_CopyFrom(
+                &mut ${get_gecko_property(gecko_ffi_name)},
+                & ${get_gecko_property(gecko_ffi_name, "other")}
+            );
+        }
+    }
 </%def>
 
 <%def name="impl_app_units(ident, gecko_ffi_name, need_clone, round_to_pixels=False)">
@@ -452,6 +510,41 @@ def set_gecko_property(ffi_name, expr):
                             .expect("Failed to clone ${ident}");
             T(Size2D::new(width, height))
         }
+    % endif
+</%def>
+
+<%def name="impl_css_url(ident, gecko_ffi_name, need_clone=False)">
+    #[allow(non_snake_case)]
+    pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        use gecko_bindings::sugar::refptr::RefPtr;
+        match v {
+            Either::First(url) => {
+                let refptr = unsafe {
+                    if let Some(ffi) = url.for_ffi() {
+                        let ptr = bindings::Gecko_NewURLValue(ffi);
+                        RefPtr::from_addrefed(ptr)
+                    } else {
+                        self.gecko.${gecko_ffi_name}.clear();
+                        return;
+                    }
+                };
+                self.gecko.${gecko_ffi_name}.set_move(refptr)
+            }
+            Either::Second(_none) => {
+                unsafe {
+                    self.gecko.${gecko_ffi_name}.clear();
+                }
+            }
+        }
+    }
+    #[allow(non_snake_case)]
+    pub fn copy_${ident}_from(&mut self, other: &Self) {
+        unsafe {
+            self.gecko.${gecko_ffi_name}.set(&other.gecko.${gecko_ffi_name});
+        }
+    }
+    % if need_clone:
+        <% raise Exception("Do not know how to handle clone ") %>
     % endif
 </%def>
 
@@ -543,6 +636,8 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "Number": impl_simple,
         "Opacity": impl_simple,
         "CSSColor": impl_color,
+        "SVGPaint": impl_svg_paint,
+        "UrlOrNone": impl_css_url,
     }
 
     def longhand_method(longhand):
@@ -1221,7 +1316,7 @@ fn static_assert() {
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
-                          -moz-binding page-break-before page-break-after
+                          page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
                           perspective-origin transform-origin""" %>
@@ -1315,33 +1410,6 @@ fn static_assert() {
     }
 
     <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
-
-    #[allow(non_snake_case)]
-    pub fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
-        use values::Either;
-        match v {
-            Either::Second(_none) => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
-            Either::First(ref url) => {
-                let extra_data = url.extra_data();
-                let (ptr, len) = match url.as_slice_components() {
-                    Ok(value) => value,
-                    Err(_) => (ptr::null(), 0),
-                };
-                unsafe {
-                    Gecko_SetMozBinding(&mut self.gecko,
-                                        ptr,
-                                        len as u32,
-                                        extra_data.base.get(),
-                                        extra_data.referrer.get(),
-                                        extra_data.principal.get());
-                }
-            }
-        }
-    }
-    #[allow(non_snake_case)]
-    pub fn copy__moz_binding_from(&mut self, other: &Self) {
-        unsafe { Gecko_CopyMozBindingFrom(&mut self.gecko, &other.gecko); }
-    }
 
     // Temp fix for Bugzilla bug 24000.
     // Map 'auto' and 'avoid' to false, and 'always', 'left', and 'right' to true.
@@ -2066,17 +2134,13 @@ fn static_assert() {
                 }
             }
             Either::First(ref url) => {
-                let (ptr, len) = match url.as_slice_components() {
-                    Ok(value) | Err(value) => value
-                };
-                let extra_data = url.extra_data();
                 unsafe {
-                    Gecko_SetListStyleImage(&mut self.gecko,
-                                            ptr,
-                                            len as u32,
-                                            extra_data.base.get(),
-                                            extra_data.referrer.get(),
-                                            extra_data.principal.get());
+                    if let Some(ffi) = url.for_ffi() {
+                        Gecko_SetListStyleImage(&mut self.gecko,
+                                            ffi);
+                    } else {
+                        Gecko_SetListStyleImageNone(&mut self.gecko);
+                    }
                 }
                 // We don't need to record this struct as uncacheable, like when setting
                 // background-image to a url() value, since only properties in reset structs
@@ -2147,7 +2211,6 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Effects"
                   skip_longhands="box-shadow filter">
     pub fn set_box_shadow(&mut self, v: longhands::box_shadow::computed_value::T) {
-        use cssparser::Color;
 
         self.gecko.mBoxShadow.replace_with_new(v.0.len() as u32);
 
@@ -2178,8 +2241,6 @@ fn static_assert() {
     }
 
     pub fn clone_box_shadow(&self) -> longhands::box_shadow::computed_value::T {
-        use cssparser::Color;
-
         let buf = self.gecko.mBoxShadow.iter().map(|shadow| {
             longhands::box_shadow::single_value::computed_value::T {
                 offset_x: Au(shadow.mXOffset),
@@ -2194,7 +2255,6 @@ fn static_assert() {
     }
 
     pub fn set_filter(&mut self, v: longhands::filter::computed_value::T) {
-        use cssparser::Color;
         use properties::longhands::filter::computed_value::Filter::*;
         use gecko_bindings::structs::nsCSSShadowArray;
         use gecko_bindings::structs::nsStyleFilter;
@@ -2279,6 +2339,13 @@ fn static_assert() {
                         Color::CurrentColor => 0,
                     };
                 }
+                Url(ref url) => {
+                    unsafe {
+                        if let Some(ffi) = url.for_ffi() {
+                            bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, ffi);
+                        }
+                    }
+                }
             }
         }
     }
@@ -2316,7 +2383,6 @@ fn static_assert() {
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
 
     pub fn set_text_shadow(&mut self, v: longhands::text_shadow::computed_value::T) {
-        use cssparser::Color;
         self.gecko.mTextShadow.replace_with_new(v.0.len() as u32);
 
         for (servo, gecko_shadow) in v.0.into_iter()
@@ -2344,7 +2410,6 @@ fn static_assert() {
     }
 
     pub fn clone_text_shadow(&self) -> longhands::text_shadow::computed_value::T {
-        use cssparser::Color;
 
         let buf = self.gecko.mTextShadow.iter().map(|shadow| {
             longhands::text_shadow::computed_value::TextShadow {
@@ -2636,7 +2701,13 @@ clip-path
         clip_path.mType = StyleShapeSourceType::None;
 
         match v {
-            ShapeSource::Url(..) => warn!("stylo: clip-path: url() not yet implemented"),
+            ShapeSource::Url(ref url) => {
+                unsafe {
+                    if let Some(ffi) = url.for_ffi() {
+                       bindings::Gecko_StyleClipPath_SetURLValue(clip_path, ffi);
+                    }
+                }
+            }
             ShapeSource::None => {} // don't change the type
             ShapeSource::Box(reference) => {
                 clip_path.mReferenceBox = reference.into();
@@ -2726,32 +2797,51 @@ clip-path
             Gecko_CopyClipPathValueFrom(&mut self.gecko.mClipPath, &other.gecko.mClipPath);
         }
     }
+</%self:impl_trait>
 
-    pub fn clone_clip_path(&self) -> longhands::clip_path::computed_value::T {
-        use gecko_bindings::structs::StyleShapeSourceType;
-        use gecko_bindings::structs::StyleGeometryBox;
-        use values::computed::basic_shape::*;
-        let ref clip_path = self.gecko.mClipPath;
+<%self:impl_trait style_struct_name="InheritedSVG"
+                  skip_longhands="paint-order stroke-dasharray"
+                  skip_additionals="*">
+    pub fn set_paint_order(&mut self, v: longhands::paint_order::computed_value::T) {
+        use self::longhands::paint_order;
 
-        match clip_path.mType {
-            StyleShapeSourceType::None => ShapeSource::None,
-            StyleShapeSourceType::Box => {
-                ShapeSource::Box(clip_path.mReferenceBox.into())
-            }
-            StyleShapeSourceType::URL => {
-                warn!("stylo: clip-path: url() not implemented yet");
-                Default::default()
-            }
-            StyleShapeSourceType::Shape => {
-                let reference = if let StyleGeometryBox::NoBox = clip_path.mReferenceBox {
-                    None
-                } else {
-                    Some(clip_path.mReferenceBox.into())
+        if v.0 == 0 {
+            self.gecko.mPaintOrder = structs::NS_STYLE_PAINT_ORDER_NORMAL as u8;
+        } else {
+            let mut order = 0;
+
+            for pos in 0..3 {
+                let geckoval = match v.bits_at(pos) {
+                    paint_order::FILL => structs::NS_STYLE_PAINT_ORDER_FILL as u8,
+                    paint_order::STROKE => structs::NS_STYLE_PAINT_ORDER_STROKE as u8,
+                    paint_order::MARKERS => structs::NS_STYLE_PAINT_ORDER_MARKERS as u8,
+                    _ => unreachable!(),
                 };
-                let union = clip_path.__bindgen_anon_1;
-                let shape = unsafe { &**union.mBasicShape.as_ref() };
-                ShapeSource::Shape(shape.into(), reference)
+                order |= geckoval << (pos * structs::NS_STYLE_PAINT_ORDER_BITWIDTH as u8);
             }
+
+            self.gecko.mPaintOrder = order;
+        }
+    }
+
+    ${impl_simple_copy('paint_order', 'mPaintOrder')}
+
+    pub fn set_stroke_dasharray(&mut self, v: longhands::stroke_dasharray::computed_value::T) {
+        unsafe {
+            bindings::Gecko_nsStyleSVG_SetDashArrayLength(&mut self.gecko, v.0.len() as u32);
+        }
+
+        for (mut gecko, servo) in self.gecko.mStrokeDasharray.iter_mut().zip(v.0.into_iter()) {
+            match servo {
+                Either::First(lop) => gecko.set(lop),
+                Either::Second(number) => gecko.set_value(CoordDataValue::Factor(number)),
+            }
+        }
+    }
+
+    pub fn copy_stroke_dasharray_from(&mut self, other: &Self) {
+        unsafe {
+            bindings::Gecko_nsStyleSVG_CopyDashArray(&mut self.gecko, &other.gecko);
         }
     }
 </%self:impl_trait>
