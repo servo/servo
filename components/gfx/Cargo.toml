@@ -60,5 +60,5 @@ servo-fontconfig = "0.2.1"
 simd = "0.2.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-dwrote = {git = "https://github.com/servo/dwrote-rs.git", rev = "servo"}
+servo-dwrote = "0.2"
 truetype = "0.26"
