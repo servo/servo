@@ -678,6 +678,8 @@ mod shorthand_serialization {
 
 
 
+
+
     // TODO: Populate Atom Cache for testing so that the animation shorthand can be tested
     /*
     #[test]
@@ -687,6 +689,8 @@ mod shorthand_serialization {
         assert_eq!(serialization, "animation;");
     }
     */
+
+
 
 
 
@@ -1150,8 +1154,8 @@ fn test_border_spacing() {
     use cssparser::Parser;
     use media_queries::CSSErrorReporterTest;
     use style::parser::ParserContext;
-    use style::stylesheets::Origin;
     use style::properties::longhands::border_spacing;
+    use style::stylesheets::Origin;
 
     macro_rules! parse_assert {
         ($value:expr, $is_exhausted:expr) => {
