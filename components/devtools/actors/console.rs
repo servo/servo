@@ -16,9 +16,8 @@ use devtools_traits::EvaluateJSReply::{NullValue, NumberValue, VoidValue};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
-use serde_json::{self, Value};
+use serde_json::{self, Map, Number, Value};
 use std::cell::RefCell;
-use std::collections::BTreeMap;
 use std::net::TcpStream;
 
 trait EncodableConsoleMessage {
@@ -50,7 +49,7 @@ struct StartedListenersReply {
 #[derive(Serialize)]
 struct GetCachedMessagesReply {
     from: String,
-    messages: Vec<BTreeMap<String, Value>>,
+    messages: Vec<Map<String, Value>>,
 }
 
 #[derive(Serialize)]
@@ -98,7 +97,7 @@ impl Actor for ConsoleActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &BTreeMap<String, Value>,
+                      msg: &Map<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getCachedMessages" => {
@@ -182,46 +181,46 @@ impl Actor for ConsoleActor {
                 //TODO: extract conversion into protocol module or some other useful place
                 let result = match try!(port.recv().map_err(|_| ())) {
                     VoidValue => {
-                        let mut m = BTreeMap::new();
-                        m.insert("type".to_owned(), serde_json::to_value("undefined"));
+                        let mut m = Map::new();
+                        m.insert("type".to_owned(), Value::String("undefined".to_owned()));
                         Value::Object(m)
                     }
                     NullValue => {
-                        let mut m = BTreeMap::new();
-                        m.insert("type".to_owned(), serde_json::to_value("null"));
+                        let mut m = Map::new();
+                        m.insert("type".to_owned(), Value::String("null".to_owned()));
                         Value::Object(m)
                     }
                     BooleanValue(val) => Value::Bool(val),
                     NumberValue(val) => {
                         if val.is_nan() {
-                            let mut m = BTreeMap::new();
-                            m.insert("type".to_owned(), serde_json::to_value("NaN"));
+                            let mut m = Map::new();
+                            m.insert("type".to_owned(), Value::String("NaN".to_owned()));
                             Value::Object(m)
                         } else if val.is_infinite() {
-                            let mut m = BTreeMap::new();
+                            let mut m = Map::new();
                             if val < 0. {
-                                m.insert("type".to_owned(), serde_json::to_value("-Infinity"));
+                                m.insert("type".to_owned(), Value::String("-Infinity".to_owned()));
                             } else {
-                                m.insert("type".to_owned(), serde_json::to_value("Infinity"));
+                                m.insert("type".to_owned(), Value::String("Infinity".to_owned()));
                             }
                             Value::Object(m)
                         } else if val == 0. && val.is_sign_negative() {
-                            let mut m = BTreeMap::new();
-                            m.insert("type".to_owned(), serde_json::to_value("-0"));
+                            let mut m = Map::new();
+                            m.insert("type".to_owned(), Value::String("-0".to_owned()));
                             Value::Object(m)
                         } else {
-                            serde_json::to_value(&val)
+                            Value::Number(Number::from_f64(val).unwrap())
                         }
                     }
                     StringValue(s) => Value::String(s),
                     ActorValue { class, uuid } => {
                         //TODO: make initial ActorValue message include these properties?
-                        let mut m = BTreeMap::new();
+                        let mut m = Map::new();
                         let actor = ObjectActor::new(registry, uuid);
 
-                        m.insert("type".to_owned(), serde_json::to_value("object"));
-                        m.insert("class".to_owned(), serde_json::to_value(&class));
-                        m.insert("actor".to_owned(), serde_json::to_value(&actor));
+                        m.insert("type".to_owned(), Value::String("object".to_owned()));
+                        m.insert("class".to_owned(), Value::String(class));
+                        m.insert("actor".to_owned(), Value::String(actor));
                         m.insert("extensible".to_owned(), Value::Bool(true));
                         m.insert("frozen".to_owned(), Value::Bool(false));
                         m.insert("sealed".to_owned(), Value::Bool(false));
@@ -235,9 +234,9 @@ impl Actor for ConsoleActor {
                     input: input,
                     result: result,
                     timestamp: 0,
-                    exception: Value::Object(BTreeMap::new()),
+                    exception: Value::Object(Map::new()),
                     exceptionMessage: "".to_owned(),
-                    helperResult: Value::Object(BTreeMap::new()),
+                    helperResult: Value::Object(Map::new()),
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

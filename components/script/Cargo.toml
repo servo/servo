@@ -18,14 +18,14 @@ debugmozjs = ['js/debugmozjs']
 cmake = "0.1"
 phf_codegen = "0.7.18"
 phf_shared = "0.7.18"
-serde_json = "0.8"
+serde_json = "0.9"
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"
 
 [dependencies]
 angle = {git = "https://github.com/servo/angle", branch = "servo"}
-app_units = "0.3"
+app_units = "0.4"
 audio-video-metadata = "0.1.2"
 atomic_refcell = "0.1"
 bitflags = "0.7"
@@ -34,22 +34,22 @@ byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
 cookie = {version = "0.2.5", features = ["serialize-rustc"]}
-cssparser = {version = "0.9", features = ["heap_size", "serde-serialization"]}
+cssparser = {version = "0.10", features = ["heapsize", "serde"]}
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 domobject_derive = {path = "../domobject_derive"}
 encoding = "0.2"
-euclid = "0.10.1"
+euclid = "0.11"
 fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.6"
 heapsize_derive = "0.1"
-html5ever = {version = "0.12.1", features = ["heap_size", "unstable"]}
-html5ever-atoms = {version = "0.1", features = ["heap_size"]}
+html5ever = {version = "0.13", features = ["heap_size", "unstable"]}
+html5ever-atoms = {version = "0.2", features = ["heap_size"]}
 hyper = "0.9.9"
-hyper_serde = "0.1.4"
+hyper_serde = "0.5"
 image = "0.12"
-ipc-channel = "0.6.3"
+ipc-channel = "0.7"
 js = {git = "https://github.com/servo/rust-mozjs", features = ["promises"]}
 jstraceable_derive = {path = "../jstraceable_derive"}
 libc = "0.2"
@@ -59,7 +59,7 @@ mime_guess = "1.8.0"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
-offscreen_gl_context = "0.5.0"
+offscreen_gl_context = "0.6"
 open = "1.1.1"
 parking_lot = "0.3"
 phf = "0.7.18"
@@ -74,7 +74,7 @@ script_layout_interface = {path = "../script_layout_interface"}
 script_plugins = {path = "../script_plugins"}
 script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
-serde = "0.8"
+serde = "0.9"
 servo_atoms = {path = "../atoms"}
 servo_config = {path = "../config", features = ["servo"] }
 servo_geometry = {path = "../geometry" }
@@ -85,9 +85,9 @@ style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
-uuid = {version = "0.3.1", features = ["v4"]}
+uuid = {version = "0.4", features = ["v4"]}
 websocket = "0.17"
-xml5ever = {version = "0.3.1", features = ["unstable"]}
+xml5ever = {version = "0.4", features = ["unstable"]}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
 

@@ -11,20 +11,20 @@ path = "lib.rs"
 
 [features]
 # servo as opposed to geckolib
-servo = ["serde", "serde_derive", "url/heap_size", "url/serde", "plugins"]
+servo = ["plugins", "serde", "serde_derive", "servo_url/servo"]
 
 [dependencies]
-euclid = "0.10.1"
+euclid = "0.11"
 getopts = "0.2.11"
 lazy_static = "0.2"
 log = "0.3.5"
 num_cpus = "1.1.0"
+plugins = {path = "../plugins", optional = true}
 rustc-serialize = "0.3"
-serde = {version = "0.8", optional = true}
-serde_derive = {version = "0.8", optional = true}
+serde = {version = "0.9", optional = true}
+serde_derive = {version = "0.9", optional = true}
 servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
-plugins = {path = "../plugins", optional = true}
 url = "1.2"
 
 [dev-dependencies]

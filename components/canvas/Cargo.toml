@@ -12,13 +12,13 @@ path = "lib.rs"
 [dependencies]
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 canvas_traits = {path = "../canvas_traits"}
-cssparser = {version = "0.9", features = ["heap_size", "serde-serialization"]}
-euclid = "0.10.1"
+cssparser = {version = "0.10", features = ["heapsize", "serde"]}
+euclid = "0.11"
 gleam = "0.2.8"
-ipc-channel = "0.6.3"
+ipc-channel = "0.7"
 log = "0.3.5"
 num-traits = "0.1.32"
-offscreen_gl_context = "0.5.0"
+offscreen_gl_context = "0.6"
 plugins = {path = "../plugins"}
 servo_config = {path = "../config"}
 

@@ -11,8 +11,7 @@ use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::performance::PerformanceActor;
 use actors::tab::{TabActor, TabActorMsg};
 use protocol::{ActorDescription, JsonPacketStream};
-use serde_json::Value;
-use std::collections::BTreeMap;
+use serde_json::{Map, Value};
 use std::net::TcpStream;
 
 #[derive(Serialize)]
@@ -69,7 +68,7 @@ impl Actor for RootActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &BTreeMap<String, Value>,
+                      _msg: &Map<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "listAddons" => {

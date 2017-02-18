@@ -10,18 +10,18 @@ name = "layout"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.3"
+app_units = "0.4"
 atomic_refcell = "0.1"
 bitflags = "0.7"
 canvas_traits = {path = "../canvas_traits"}
-cssparser = {version = "0.9", features = ["heap_size", "serde-serialization"]}
-euclid = "0.10.1"
+cssparser = {version = "0.10", features = ["heapsize", "serde"]}
+euclid = "0.11"
 fnv = "1.0"
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.0"
-html5ever-atoms = "0.1"
-ipc-channel = "0.6.3"
+html5ever-atoms = "0.2"
+ipc-channel = "0.7"
 libc = "0.2"
 log = "0.3.5"
 msg = {path = "../msg"}
@@ -35,10 +35,10 @@ rayon = "0.6"
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 selectors = { path = "../selectors" }
-serde = "0.8"
-serde_derive = "0.8"
+serde = "0.9"
+serde_derive = "0.9"
 servo_geometry = {path = "../geometry"}
-serde_json = "0.8"
+serde_json = "0.9"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 smallvec = "0.1"
