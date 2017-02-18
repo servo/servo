@@ -2567,16 +2567,16 @@ fn static_assert() {
 
     pub fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
         let mut bits: u8 = 0;
-        if v.underline {
+        if v.contains(longhands::text_decoration_line::UNDERLINE) {
             bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8;
         }
-        if v.overline {
+        if v.contains(longhands::text_decoration_line::OVERLINE) {
             bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8;
         }
-        if v.line_through {
+        if v.contains(longhands::text_decoration_line::LINE_THROUGH) {
             bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8;
         }
-        if v.blink {
+        if v.contains(longhands::text_decoration_line::BLINK) {
             bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_BLINK as u8;
         }
         self.gecko.mTextDecorationLine = bits;

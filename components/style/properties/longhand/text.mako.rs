@@ -114,13 +114,15 @@ ${helpers.single_keyword("unicode-bidi",
     impl ComputedValueAsSpecified for SpecifiedValue {}
     no_viewport_percentage!(SpecifiedValue);
 
-    #[derive(PartialEq, Eq, Copy, Clone, Debug)]
-    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
-    pub struct SpecifiedValue {
-        pub underline: bool,
-        pub overline: bool,
-        pub line_through: bool,
-        pub blink: bool,
+    bitflags! {
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub flags SpecifiedValue: u8 {
+            const NONE = 0,
+            const OVERLINE = 0x01,
+            const UNDERLINE = 0x02,
+            const LINE_THROUGH = 0x04,
+            const BLINK = 0x08,
+        }
     }
 
     impl ToCss for SpecifiedValue {
@@ -128,7 +130,7 @@ ${helpers.single_keyword("unicode-bidi",
             let mut has_any = false;
             macro_rules! write_value {
                 ($line:ident => $css:expr) => {
-                    if self.$line {
+                    if self.contains($line) {
                         if has_any {
                             dest.write_str(" ")?;
                         }
@@ -137,10 +139,10 @@ ${helpers.single_keyword("unicode-bidi",
                     }
                 }
             }
-            write_value!(underline => "underline");
-            write_value!(overline => "overline");
-            write_value!(line_through => "line-through");
-            write_value!(blink => "blink");
+            write_value!(UNDERLINE => "underline");
+            write_value!(OVERLINE => "overline");
+            write_value!(LINE_THROUGH => "line-through");
+            write_value!(BLINK => "blink");
             if !has_any {
                 dest.write_str("none")?;
             }
@@ -151,7 +153,7 @@ ${helpers.single_keyword("unicode-bidi",
         pub type T = super::SpecifiedValue;
         #[allow(non_upper_case_globals)]
         pub const none: T = super::SpecifiedValue {
-            underline: false, overline: false, line_through: false, blink: false
+            bits: 0
         };
     }
     #[inline] pub fn get_initial_value() -> computed_value::T {
@@ -159,9 +161,7 @@ ${helpers.single_keyword("unicode-bidi",
     }
     /// none | [ underline || overline || line-through || blink ]
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        let mut result = SpecifiedValue {
-            underline: false, overline: false, line_through: false, blink: false
-        };
+        let mut result = SpecifiedValue::empty();
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(result)
         }
@@ -170,14 +170,14 @@ ${helpers.single_keyword("unicode-bidi",
         while input.try(|input| {
                 if let Ok(ident) = input.expect_ident() {
                     match_ignore_ascii_case! { ident,
-                        "underline" => if result.underline { return Err(()) }
-                                       else { empty = false; result.underline = true },
-                        "overline" => if result.overline { return Err(()) }
-                                      else { empty = false; result.overline = true },
-                        "line-through" => if result.line_through { return Err(()) }
-                                          else { empty = false; result.line_through = true },
-                        "blink" => if result.blink { return Err(()) }
-                                   else { empty = false; result.blink = true },
+                        "underline" => if result.contains(UNDERLINE) { return Err(()) }
+                                       else { empty = false; result.insert(UNDERLINE) },
+                        "overline" => if result.contains(OVERLINE) { return Err(()) }
+                                      else { empty = false; result.insert(OVERLINE) },
+                        "line-through" => if result.contains(LINE_THROUGH) { return Err(()) }
+                                          else { empty = false; result.insert(LINE_THROUGH) },
+                        "blink" => if result.contains(BLINK) { return Err(()) }
+                                   else { empty = false; result.insert(BLINK) },
                         _ => return Err(())
                     }
                 } else {
