@@ -18,15 +18,10 @@
 #![feature(start, core_intrinsics)]
 
 #[cfg(target_os = "android")]
-#[macro_use]
-extern crate android_glue;
-#[cfg(target_os = "android")]
 extern crate android_injected_glue;
 extern crate backtrace;
 // The window backed by glutin
 extern crate glutin_app as app;
-#[cfg(target_os = "android")]
-extern crate libc;
 #[macro_use]
 extern crate log;
 // The Servo engine
@@ -65,9 +60,10 @@ fn install_crash_handler() {
     use std::thread;
 
     fn handler(_sig: i32) {
-        let name = thread::current().name()
-                                    .map(|n| format!(" for thread \"{}\"", n))
-                                    .unwrap_or("".to_owned());
+        let name = thread::current()
+            .name()
+            .map(|n| format!(" for thread \"{}\"", n))
+            .unwrap_or("".to_owned());
         println!("Stack trace{}\n{:?}", name, Backtrace::new());
         unsafe {
             abort();
@@ -81,8 +77,7 @@ fn install_crash_handler() {
 }
 
 #[cfg(target_os = "android")]
-fn install_crash_handler() {
-}
+fn install_crash_handler() {}
 
 fn main() {
     install_crash_handler();
@@ -106,15 +101,21 @@ fn main() {
         warn!("Panic hook called.");
         let msg = match info.payload().downcast_ref::<&'static str>() {
             Some(s) => *s,
-            None => match info.payload().downcast_ref::<String>() {
-                Some(s) => &**s,
-                None => "Box<Any>",
+            None => {
+                match info.payload().downcast_ref::<String>() {
+                    Some(s) => &**s,
+                    None => "Box<Any>",
+                }
             },
         };
         let current_thread = thread::current();
         let name = current_thread.name().unwrap_or("<unnamed>");
         if let Some(location) = info.location() {
-            println!("{} (thread {}, at {}:{})", msg, name, location.file(), location.line());
+            println!("{} (thread {}, at {}:{})",
+                     msg,
+                     name,
+                     location.file(),
+                     location.line());
         } else {
             println!("{} (thread {})", msg, name);
         }
@@ -128,7 +129,7 @@ fn main() {
     setup_logging();
 
     if let Some(token) = content_process_token {
-        return servo::run_content_process(token)
+        return servo::run_content_process(token);
     }
 
     if opts::get().is_printing_version {
@@ -155,17 +156,16 @@ fn main() {
     loop {
         let should_continue = browser.browser.handle_events(window.wait_events());
         if !should_continue {
-            break
+            break;
         }
-    };
+    }
 
     unregister_glutin_resize_handler(&window);
 
     platform::deinit()
 }
 
-fn register_glutin_resize_handler(window: &Rc<app::window::Window>,
-                                        browser: &mut BrowserWrapper) {
+fn register_glutin_resize_handler(window: &Rc<app::window::Window>, browser: &mut BrowserWrapper) {
     unsafe {
         window.set_nested_event_loop_listener(browser);
     }
@@ -188,7 +188,7 @@ impl app::NestedEventLoopListener for BrowserWrapper {
             _ => false,
         };
         if !self.browser.handle_events(vec![event]) {
-            return false
+            return false;
         }
         if is_resize {
             self.browser.repaint_synchronously()
@@ -199,12 +199,14 @@ impl app::NestedEventLoopListener for BrowserWrapper {
 
 #[cfg(target_os = "android")]
 fn setup_logging() {
-    android::setup_logging();
+    // Piping logs from stdout/stderr to logcat happens in android_injected_glue.
+    ::std::env::set_var("RUST_LOG", "debug");
+
+    unsafe { android_injected_glue::ffi::app_dummy() };
 }
 
 #[cfg(not(target_os = "android"))]
-fn setup_logging() {
-}
+fn setup_logging() {}
 
 #[cfg(target_os = "android")]
 /// Attempt to read parameters from a file since they are not passed to us in Android environments.
@@ -233,11 +235,10 @@ fn args() -> Vec<String> {
             vec
         },
         Err(e) => {
-            debug!("Failed to open params file '{}': {}", PARAMS_FILE, Error::description(&e));
-            vec![
-                "servo".to_owned(),
-                "http://en.wikipedia.org/wiki/Rust".to_owned()
-            ]
+            debug!("Failed to open params file '{}': {}",
+                   PARAMS_FILE,
+                   Error::description(&e));
+            vec!["servo".to_owned(), "http://en.wikipedia.org/wiki/Rust".to_owned()]
         },
     }
 }
@@ -254,61 +255,5 @@ fn args() -> Vec<String> {
 #[inline(never)]
 #[allow(non_snake_case)]
 pub extern "C" fn android_main(app: *mut ()) {
-    android_injected_glue::android_main2(app as *mut _, move |_, _| { main() });
-}
-
-
-#[cfg(target_os = "android")]
-mod android {
-    extern crate android_glue;
-    extern crate android_injected_glue;
-    extern crate libc;
-
-    use self::libc::c_int;
-    use std::borrow::ToOwned;
-
-    pub fn setup_logging() {
-        use self::libc::{STDERR_FILENO, STDOUT_FILENO};
-        //use std::env;
-
-        //env::set_var("RUST_LOG", "servo,gfx,msg,util,layers,js,std,rt,extra");
-        redirect_output(STDERR_FILENO);
-        redirect_output(STDOUT_FILENO);
-
-        unsafe { android_injected_glue::ffi::app_dummy() };
-    }
-
-    struct FilePtr(*mut self::libc::FILE);
-
-    unsafe impl Send for FilePtr {}
-
-    fn redirect_output(file_no: c_int) {
-        use self::libc::{pipe, dup2};
-        use self::libc::fdopen;
-        use self::libc::fgets;
-        use std::ffi::CStr;
-        use std::ffi::CString;
-        use std::str::from_utf8;
-        use std::thread;
-
-        unsafe {
-            let mut pipes: [c_int; 2] = [ 0, 0 ];
-            pipe(pipes.as_mut_ptr());
-            dup2(pipes[1], file_no);
-            let mode = CString::new("r").unwrap();
-            let input_file = FilePtr(fdopen(pipes[0], mode.as_ptr()));
-            thread::Builder::new().name("android-logger".to_owned()).spawn(move || {
-                static READ_SIZE: usize = 1024;
-                let mut read_buffer = vec![0; READ_SIZE];
-                let FilePtr(input_file) = input_file;
-                loop {
-                    fgets(read_buffer.as_mut_ptr(), (read_buffer.len() as i32)-1, input_file);
-                    let c_str = CStr::from_ptr(read_buffer.as_ptr());
-                    let slice = from_utf8(c_str.to_bytes()).unwrap();
-                    android_glue::write_log(slice);
-                }
-            });
-        }
-    }
-
+    android_injected_glue::android_main2(app as *mut _, move |_, _| main());
 }

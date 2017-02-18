@@ -16,10 +16,12 @@ import java.util.zip.ZipFile;
 
 
 public class MainActivity extends android.app.NativeActivity {
-    private static final String LOGTAG="servo_wrapper";
+    private static final String LOGTAG="ServoWrapper";
     static {
         Log.i(LOGTAG, "Loading the NativeActivity");
+        //  libmain.so contains all of Servo native code with the injected glue.
         System.loadLibrary("main");
+        Log.i(LOGTAG, "libmain.so loaded");
     }
 
     private void set_url(String url) {

@@ -2463,7 +2463,6 @@ dependencies = [
 name = "servo"
 version = "0.0.1"
 dependencies = [
- "android_glue 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "android_injected_glue 0.2.1 (git+https://github.com/mmatyas/android-rs-injected-glue)",
  "backtrace 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)",
@@ -2471,7 +2470,6 @@ dependencies = [
  "gfx_tests 0.0.1",
  "glutin_app 0.0.1",
  "layout_tests 0.0.1",
- "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "libservo 0.0.1",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "net_tests 0.0.1",
