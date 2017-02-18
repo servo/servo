@@ -674,20 +674,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dwrote"
-version = "0.2.0"
-source = "git+https://github.com/servo/dwrote-rs.git?rev=servo#a75100ca9884880692d2523128a4eb5f279ec9b9"
-dependencies = [
- "gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 0.9.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_codegen 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "embedding"
 version = "0.0.1"
 dependencies = [
@@ -965,7 +951,6 @@ dependencies = [
  "core-foundation 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "dwrote 0.2.0 (git+https://github.com/servo/dwrote-rs.git?rev=servo)",
  "euclid 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "fontsan 0.3.2 (git+https://github.com/servo/fontsan)",
@@ -985,6 +970,7 @@ dependencies = [
  "range 0.0.1",
  "serde 0.9.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-dwrote 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo_atoms 0.0.1",
  "servo_geometry 0.0.1",
@@ -2492,6 +2478,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "servo-dwrote"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gdi32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "kernel32-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.9.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_codegen 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "servo-egl"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3212,7 +3212,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.17.0"
-source = "git+https://github.com/servo/webrender#b5230b9b84a4a50d84f037f7227187b80d6818d3"
+source = "git+https://github.com/servo/webrender#bcd9ed5e74d657b3c9b6d62996e84c1a3ee7141b"
 dependencies = [
  "app_units 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.0-alpha2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3221,7 +3221,6 @@ dependencies = [
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 4.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "dwrote 0.2.0 (git+https://github.com/servo/dwrote-rs.git?rev=servo)",
  "euclid 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3231,6 +3230,7 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-dwrote 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "thread_profiler 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "threadpool 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3240,12 +3240,11 @@ dependencies = [
 [[package]]
 name = "webrender_traits"
 version = "0.16.0"
-source = "git+https://github.com/servo/webrender#b5230b9b84a4a50d84f037f7227187b80d6818d3"
+source = "git+https://github.com/servo/webrender#bcd9ed5e74d657b3c9b6d62996e84c1a3ee7141b"
 dependencies = [
  "app_units 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "dwrote 0.2.0 (git+https://github.com/servo/dwrote-rs.git?rev=servo)",
  "euclid 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3253,6 +3252,7 @@ dependencies = [
  "offscreen_gl_context 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.9.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 0.9.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-dwrote 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3426,7 +3426,6 @@ dependencies = [
 "checksum device 0.0.1 (git+https://github.com/servo/devices)" = "<none>"
 "checksum dtoa 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "80c8b71fd71146990a9742fc06dcbbde19161a267e0ad4e572c35162f4578c90"
 "checksum dwmapi-sys 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "07c4c7cc7b396419bc0a4d90371d0cee16cb5053b53647d287c0b728000c41fe"
-"checksum dwrote 0.2.0 (git+https://github.com/servo/dwrote-rs.git?rev=servo)" = "<none>"
 "checksum encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)" = "6b0d943856b990d12d3b55b359144ff341533e516d94098b1d3fc1ac666d36ec"
 "checksum encoding-index-japanese 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)" = "04e8b2ff42e9a05335dbf8b5c6f7567e5591d0d916ccef4e0b1710d32a0d0c91"
 "checksum encoding-index-korean 1.20141219.5 (registry+https://github.com/rust-lang/crates.io-index)" = "4dc33fb8e6bcba213fe2f14275f0963fd16f0a02c878e3095ecfdf5bee529d81"
@@ -3562,6 +3561,7 @@ dependencies = [
 "checksum serde_codegen_internals 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c3172bf2940b975c0e4f6ab42a511c0a4407d4f46ccef87a9d3615db5c26fa96"
 "checksum serde_derive 0.9.7 (registry+https://github.com/rust-lang/crates.io-index)" = "6af30425c5161deb200aac4803c62b903eb3be7e889c5823d0e16c4ce0ce989c"
 "checksum serde_json 0.9.6 (registry+https://github.com/rust-lang/crates.io-index)" = "e095e4e94e7382b76f48e93bd845ffddda62df8dfd4c163b1bfa93d40e22e13a"
+"checksum servo-dwrote 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9f013da79c3fb2a9653534b064cd2ca62e10f8b6d19ed8fdc885cb2873412789"
 "checksum servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "21069a884c33fe6ee596975e1f3849ed88c4ec857fbaf11d33672d8ebe051217"
 "checksum servo-fontconfig 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "93f799b649b4a2bf362398910eca35240704c7e765e780349b2bb1070d892262"
 "checksum servo-fontconfig-sys 4.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a0af4a4d7746467921486e5c5420f815cc016a6bf5574210d8e9c00f4afae224"
