@@ -2046,7 +2046,7 @@ impl Document {
         }
     }
 
-    // https://dom.spec.whatwg.org/#dom-document
+    // https://dom.spec.whatwg.org/#dom-document-document
     pub fn Constructor(window: &Window) -> Fallible<Root<Document>> {
         let doc = window.Document();
         let docloader = DocumentLoader::new(&*doc.loader());
