@@ -10,6 +10,7 @@ use IFrameLoadInfoWithData;
 use LayoutControlMsg;
 use LoadData;
 use MozBrowserEvent;
+use PushOrReplaceState;
 use WorkerGlobalScopeInit;
 use WorkerScriptLoadOrigin;
 use canvas_traits::CanvasMsg;
@@ -18,7 +19,7 @@ use euclid::point::Point2D;
 use euclid::size::{Size2D, TypedSize2D};
 use gfx_traits::ScrollRootId;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{FrameId, PipelineId, TraversalDirection};
+use msg::constellation_msg::{FrameId, PipelineId, StateId, TraversalDirection};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::CoreResourceMsg;
 use net_traits::storage_thread::StorageType;
@@ -96,8 +97,8 @@ pub enum ScriptMsg {
     /// Dispatch a mozbrowser event to the parent of this pipeline.
     /// The first PipelineId is for the parent, the second is for the originating pipeline.
     MozBrowserEvent(PipelineId, PipelineId, MozBrowserEvent),
-    /// HTMLIFrameElement Forward or Back traversal.
-    TraverseHistory(Option<PipelineId>, TraversalDirection),
+    /// Traverses the joint session history. This is a synchronous message.
+    TraverseHistory(Option<PipelineId>, TraversalDirection, IpcSender<()>),
     /// Gets the length of the joint session history from the constellation.
     JointSessionHistoryLength(PipelineId, IpcSender<u32>),
     /// Favicon detected
@@ -151,6 +152,10 @@ pub enum ScriptMsg {
     RegisterServiceWorker(ScopeThings, ServoUrl),
     /// Enter or exit fullscreen
     SetFullscreenState(bool),
+    /// Notifies the constellation that a new history state has been pushed or replaced.
+    HistoryStateChanged(PipelineId, StateId, ServoUrl, PushOrReplaceState),
+    /// Notifies the constellation that url's hash has changed.
+    UrlHashChanged(PipelineId, ServoUrl),
     /// Requests that the compositor shut down.
     Exit,
 }

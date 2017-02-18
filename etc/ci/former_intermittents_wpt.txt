@@ -1,2 +1,4 @@
 /_mozilla/mozilla/css/canvas_over_area.html
 /_mozilla/mozilla/css/iframe/hide_layers2.html
+/html/browsers/history/the-history-interface/001.html
+/html/browsers/history/the-history-interface/002.html

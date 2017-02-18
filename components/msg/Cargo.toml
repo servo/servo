@@ -17,6 +17,8 @@ heapsize_derive = "0.1"
 plugins = {path = "../plugins"}
 serde = "0.8"
 serde_derive = "0.8"
+servo_rand = {path = "../rand"}
+uuid = { version = "0.3.1", default-features = false, features = ["serde"] }
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender"

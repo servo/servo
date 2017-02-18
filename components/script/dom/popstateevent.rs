@@ -12,6 +12,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
@@ -63,6 +64,14 @@ impl PopStateEvent {
                               init.parent.bubbles,
                               init.parent.cancelable,
                               init.state.handle()))
+    }
+
+    pub fn dispatch_jsval(target: &EventTarget,
+                          window: &Window,
+                          state: HandleValue) {
+        // TODO(cbrewster): Add popstate to atoms
+        let event = PopStateEvent::new(window, Atom::from("popstate"), true, false, state);
+        event.upcast::<Event>().fire(target);
     }
 }
 
