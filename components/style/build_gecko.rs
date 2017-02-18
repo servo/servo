@@ -285,6 +285,7 @@ mod bindings {
             "mozilla::PropertyStyleAnimationValuePair",
             "mozilla::TraversalRootBehavior",
             "mozilla::StyleShapeRadius",
+            "mozilla::StyleGrid.*",
             ".*ThreadSafe.*Holder",
             "AnonymousContent",
             "AudioContext",
