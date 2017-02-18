@@ -51,10 +51,8 @@ fn property_declaration_block_should_serialize_correctly() {
 
     let css_string = block.to_css_string();
 
-    assert_eq!(
-        css_string,
-        "width: 70px; min-height: 20px; height: 20px !important; display: inline-block; overflow: auto;"
-    );
+    assert_eq!(css_string,
+               "width: 70px; min-height: 20px; height: 20px !important; display: inline-block; overflow: auto;");
 }
 
 mod shorthand_serialization {
@@ -233,12 +231,12 @@ mod shorthand_serialization {
 
             let red = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
+                authored: None,
             });
 
             let blue = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(0, 0, 255, 255)),
-                authored: None
+                authored: None,
             });
 
             properties.push(PropertyDeclaration::BorderTopColor(blue.clone()));
@@ -249,7 +247,8 @@ mod shorthand_serialization {
             let serialization = shorthand_properties_to_string(properties);
 
             // TODO: Make the rgb test show border-color as blue red instead of below tuples
-            assert_eq!(serialization, "border-color: rgb(0, 0, 255) rgb(255, 0, 0);");
+            assert_eq!(serialization,
+                       "border-color: rgb(0, 0, 255) rgb(255, 0, 0);");
         }
 
         #[test]
@@ -283,7 +282,7 @@ mod shorthand_serialization {
             let style = DeclaredValue::Value(BorderStyle::solid);
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
+                authored: None,
             });
 
             properties.push(PropertyDeclaration::BorderTopWidth(width));
@@ -302,7 +301,7 @@ mod shorthand_serialization {
             let style = DeclaredValue::Initial;
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
+                authored: None,
             });
 
             properties.push(PropertyDeclaration::BorderTopWidth(width));
@@ -429,8 +428,7 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let position = DeclaredValue::Value(ListStylePosition::inside);
-            let image = DeclaredValue::Value(Either::First(
-                SpecifiedUrl::new_for_testing("http://servo/test.png")));
+            let image = DeclaredValue::Value(Either::First(SpecifiedUrl::new_for_testing("http://servo/test.png")));
             let style_type = DeclaredValue::Value(ListStyleType::disc);
 
             properties.push(PropertyDeclaration::ListStylePosition(position));
@@ -438,7 +436,8 @@ mod shorthand_serialization {
             properties.push(PropertyDeclaration::ListStyleType(style_type));
 
             let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "list-style: inside url(\"http://servo/test.png\") disc;");
+            assert_eq!(serialization,
+                       "list-style: inside url(\"http://servo/test.png\") disc;");
         }
 
         #[test]
@@ -471,7 +470,7 @@ mod shorthand_serialization {
             let style = DeclaredValue::Value(Either::Second(BorderStyle::solid));
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
+                authored: None,
             });
 
             properties.push(PropertyDeclaration::OutlineWidth(width));
@@ -506,7 +505,7 @@ mod shorthand_serialization {
             let style = DeclaredValue::Initial;
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
+                authored: None,
             });
             properties.push(PropertyDeclaration::OutlineWidth(width));
             properties.push(PropertyDeclaration::OutlineStyle(style));
@@ -524,7 +523,7 @@ mod shorthand_serialization {
             let style = DeclaredValue::Value(Either::First(Auto));
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
+                authored: None,
             });
             properties.push(PropertyDeclaration::OutlineWidth(width));
             properties.push(PropertyDeclaration::OutlineStyle(style));
@@ -562,24 +561,16 @@ mod shorthand_serialization {
         use style::properties::longhands::transition_timing_function;
         use style::values::specified::Time as TimeContainer;
 
-        let property_name = DeclaredValue::Value(
-            PropertyContainer(vec![TransitionProperty::MarginLeft])
-        );
+        let property_name = DeclaredValue::Value(PropertyContainer(vec![TransitionProperty::MarginLeft]));
 
-        let duration = DeclaredValue::Value(
-            DurationContainer(vec![TimeContainer(3f32)])
-        );
+        let duration = DeclaredValue::Value(DurationContainer(vec![TimeContainer(3f32)]));
 
-        let delay = DeclaredValue::Value(
-            DelayContainer(vec![TimeContainer(4f32)])
-        );
+        let delay = DeclaredValue::Value(DelayContainer(vec![TimeContainer(4f32)]));
 
-        let timing_function = DeclaredValue::Value(
-            transition_timing_function::SpecifiedValue(vec![
+        let timing_function = DeclaredValue::Value(transition_timing_function::SpecifiedValue(vec![
                 transition_timing_function::single_value::SpecifiedValue::CubicBezier(
                     Point2D::new(0f32, 5f32), Point2D::new(5f32, 10f32))
-            ])
-        );
+            ]));
 
         let mut properties = Vec::new();
 
@@ -589,7 +580,8 @@ mod shorthand_serialization {
         properties.push(PropertyDeclaration::TransitionTimingFunction(timing_function));
 
         let serialization = shorthand_properties_to_string(properties);
-        assert_eq!(serialization, "transition: margin-left 3s cubic-bezier(0, 5, 5, 10) 4s;");
+        assert_eq!(serialization,
+                   "transition: margin-left 3s cubic-bezier(0, 5, 5, 10) 4s;");
     }
 
     #[test]
@@ -601,9 +593,7 @@ mod shorthand_serialization {
 
         let grow = DeclaredValue::Value(NumberContainer(2f32));
         let shrink = DeclaredValue::Value(NumberContainer(3f32));
-        let basis = DeclaredValue::Value(
-            LengthOrPercentageOrAutoOrContent::Percentage(PercentageContainer(0.5f32))
-        );
+        let basis = DeclaredValue::Value(LengthOrPercentageOrAutoOrContent::Percentage(PercentageContainer(0.5f32)));
 
         properties.push(PropertyDeclaration::FlexGrow(grow));
         properties.push(PropertyDeclaration::FlexShrink(shrink));
@@ -676,6 +666,18 @@ mod shorthand_serialization {
     }
     */
 
+
+
+
+
+
+
+
+
+
+
+
+
     // TODO: Populate Atom Cache for testing so that the animation shorthand can be tested
     /*
     #[test]
@@ -685,6 +687,18 @@ mod shorthand_serialization {
         assert_eq!(serialization, "animation;");
     }
     */
+
+
+
+
+
+
+
+
+
+
+
+
 
     mod background {
         use style::properties::longhands::background_attachment as attachment;
@@ -732,7 +746,7 @@ mod shorthand_serialization {
 
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
+                authored: None,
             });
 
             let position_x = single_vec_value_typedef!(position_x,
@@ -753,7 +767,7 @@ mod shorthand_serialization {
             let attachment = single_vec_keyword_value!(attachment, scroll);
 
             let image = single_vec_value!(image,
-                Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
+                                          Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
 
             let size = single_vec_variant_value!(size,
                 size::single_value::SpecifiedValue::Explicit(
@@ -779,11 +793,9 @@ mod shorthand_serialization {
 
             let serialization = shorthand_properties_to_string(properties);
 
-            assert_eq!(
-                serialization,
-                "background: rgb(255, 0, 0) url(\"http://servo/test.png\") repeat-x \
-                scroll 7px 4px / 70px 50px border-box padding-box;"
-            );
+            assert_eq!(serialization,
+                       "background: rgb(255, 0, 0) url(\"http://servo/test.png\") repeat-x scroll 7px 4px / 70px \
+                        50px border-box padding-box;");
         }
 
         #[test]
@@ -792,7 +804,7 @@ mod shorthand_serialization {
 
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
+                authored: None,
             });
 
             let position_x = single_vec_value_typedef!(position_x,
@@ -813,7 +825,7 @@ mod shorthand_serialization {
             let attachment = single_vec_keyword_value!(attachment, scroll);
 
             let image = single_vec_value!(image,
-                        Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
+                                          Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
 
             let size = single_vec_variant_value!(size,
                 size::single_value::SpecifiedValue::Explicit(
@@ -838,11 +850,9 @@ mod shorthand_serialization {
             properties.push(PropertyDeclaration::BackgroundClip(clip));
 
             let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(
-                serialization,
-                "background: rgb(255, 0, 0) url(\"http://servo/test.png\") repeat-x \
-                scroll 7px 4px / 70px 50px padding-box;"
-            );
+            assert_eq!(serialization,
+                       "background: rgb(255, 0, 0) url(\"http://servo/test.png\") repeat-x scroll 7px 4px / 70px \
+                        50px padding-box;");
         }
 
         #[test]
@@ -851,7 +861,7 @@ mod shorthand_serialization {
 
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
+                authored: None,
             });
 
             let position_x = single_vec_value_typedef!(position_x,
@@ -889,7 +899,8 @@ mod shorthand_serialization {
             properties.push(PropertyDeclaration::BackgroundClip(clip));
 
             let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "background: rgb(255, 0, 0) none repeat-x scroll 0px 0px;");
+            assert_eq!(serialization,
+                       "background: rgb(255, 0, 0) none repeat-x scroll 0px 0px;");
         }
     }
 
@@ -977,11 +988,9 @@ mod shorthand_serialization {
             properties.push(PropertyDeclaration::MaskComposite(composite));
 
             let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(
-                serialization,
-                "mask: url(\"http://servo/test.png\") luminance 7px 4px / 70px 50px \
-                repeat-x padding-box border-box subtract;"
-            );
+            assert_eq!(serialization,
+                       "mask: url(\"http://servo/test.png\") luminance 7px 4px / 70px 50px repeat-x padding-box \
+                        border-box subtract;");
         }
 
         #[test]
@@ -1033,11 +1042,9 @@ mod shorthand_serialization {
             properties.push(PropertyDeclaration::MaskComposite(composite));
 
             let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(
-                serialization,
-                "mask: url(\"http://servo/test.png\") luminance 7px 4px / 70px 50px \
-                repeat-x padding-box subtract;"
-            );
+            assert_eq!(serialization,
+                       "mask: url(\"http://servo/test.png\") luminance 7px 4px / 70px 50px repeat-x padding-box \
+                        subtract;");
         }
     }
 
@@ -1047,16 +1054,15 @@ mod shorthand_serialization {
 
         #[test]
         fn should_serialize_to_empty_string_if_sub_types_not_equal() {
-            let declarations = vec![
-                (PropertyDeclaration::ScrollSnapTypeX(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
-                Importance::Normal),
-                (PropertyDeclaration::ScrollSnapTypeY(DeclaredValue::Value(ScrollSnapTypeXValue::none)),
-                Importance::Normal)
-            ];
+            let declarations =
+                vec![(PropertyDeclaration::ScrollSnapTypeX(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
+                      Importance::Normal),
+                     (PropertyDeclaration::ScrollSnapTypeY(DeclaredValue::Value(ScrollSnapTypeXValue::none)),
+                      Importance::Normal)];
 
             let block = PropertyDeclarationBlock {
                 declarations: declarations,
-                important_count: 0
+                important_count: 0,
             };
 
             let mut s = String::new();
@@ -1070,16 +1076,15 @@ mod shorthand_serialization {
 
         #[test]
         fn should_serialize_to_single_value_if_sub_types_are_equal() {
-            let declarations = vec![
-                (PropertyDeclaration::ScrollSnapTypeX(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
-                Importance::Normal),
-                (PropertyDeclaration::ScrollSnapTypeY(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
-                Importance::Normal)
-            ];
+            let declarations =
+                vec![(PropertyDeclaration::ScrollSnapTypeX(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
+                      Importance::Normal),
+                     (PropertyDeclaration::ScrollSnapTypeY(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
+                      Importance::Normal)];
 
             let block = PropertyDeclarationBlock {
                 declarations: declarations,
-                important_count: 0
+                important_count: 0,
             };
 
             let mut s = String::new();
@@ -1138,4 +1143,27 @@ mod shorthand_serialization {
         }
 
     }
+}
+
+#[test]
+fn test_border_spacing() {
+    use cssparser::Parser;
+    use media_queries::CSSErrorReporterTest;
+    use style::parser::ParserContext;
+    use style::stylesheets::Origin;
+    use style::properties::longhands::border_spacing;
+
+    macro_rules! parse_assert {
+        ($value:expr, $is_exhausted:expr) => {
+            let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
+            let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+            let mut parser = Parser::new($value);
+            let parsed = border_spacing::parse(&context, &mut parser);
+            assert_eq!(parsed.is_ok(), true);
+            assert_eq!(parser.is_exhausted(), $is_exhausted);
+        }
+    }
+    parse_assert!("1px rubbish", false);
+    parse_assert!("1px", true);
+    parse_assert!("1px 2px", true);
 }
