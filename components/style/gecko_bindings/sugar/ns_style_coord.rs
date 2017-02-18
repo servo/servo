@@ -265,6 +265,15 @@ pub trait CoordDataMut : CoordData {
     }
 
     #[inline]
+    /// Moves the unit and value from another `CoordData` type.
+    fn move_from<T: CoordData>(&mut self, other: T) {
+        unsafe {
+            self.reset();
+            self.copy_from_unchecked(&other);
+        }
+    }
+
+    #[inline]
     /// Copies the unit and value from another `CoordData` type without checking
     /// the type of the value (so refcounted values like calc may leak).
     unsafe fn copy_from_unchecked<T: CoordData>(&mut self, other: &T) {
