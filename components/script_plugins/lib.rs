@@ -27,7 +27,6 @@ use syntax::ext::base::*;
 use syntax::feature_gate::AttributeType::Whitelisted;
 use syntax::symbol::Symbol;
 
-mod ban;
 // Public for documentation to show up
 /// Handles the auto-deriving for `#[derive(JSTraceable)]`
 pub mod jstraceable;
@@ -42,7 +41,6 @@ pub fn plugin_registrar(reg: &mut Registry) {
         MultiModifier(box jstraceable::expand_dom_struct));
 
     reg.register_late_lint_pass(box unrooted_must_root::UnrootedPass::new());
-    reg.register_early_lint_pass(box ban::BanPass);
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
     reg.register_attribute("must_root".to_string(), Whitelisted);
 }
