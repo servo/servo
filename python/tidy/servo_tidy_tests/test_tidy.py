@@ -13,6 +13,7 @@ import unittest
 from servo_tidy import tidy
 
 base_path = 'servo_tidy_tests/' if os.path.exists('servo_tidy_tests/') else 'python/tidy/servo_tidy_tests/'
+COMPILE_FAIL_PATH = '../../../tests/compiletest/plugin/compile-fail/'
 
 
 def iterFile(name):
@@ -137,6 +138,15 @@ class CheckTidiness(unittest.TestCase):
         self.assertTrue('feature attribute is not in alphabetical order' in feature_errors.next()[2])
         self.assertTrue('feature attribute is not in alphabetical order' in feature_errors.next()[2])
         self.assertNoMoreErrors(feature_errors)
+
+        ban_errors = tidy.collect_errors_for_files(iterFile(COMPILE_FAIL_PATH + 'ban.rs'), [], [tidy.check_rust], print_text=False)
+        self.assertEqual('Banned type Cell<JSVal> detected. Use MutJS<JSVal> instead', ban_errors.next()[2])
+        self.assertNoMoreErrors(ban_errors)
+
+        ban_errors = tidy.collect_errors_for_files(iterFile(COMPILE_FAIL_PATH + 'ban-domrefcell.rs'), [], [tidy.check_rust], print_text=False)
+        self.assertEqual('Banned type Cell<JS<T>> detected. Use MutJS<JS<T>> instead', ban_errors.next()[2])
+        self.assertEqual('Banned type DOMRefCell<JS<T>> detected. Use MutJS<JS<T>> instead', ban_errors.next()[2])
+        self.assertNoMoreErrors(ban_errors)
 
     def test_spec_link(self):
         tidy.SPEC_BASE_PATH = base_path
