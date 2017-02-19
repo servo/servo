@@ -502,7 +502,7 @@ mod bindings {
             .header(add_include("mozilla/ServoBindings.h"))
             .hide_type("nsACString_internal")
             .hide_type("nsAString_internal")
-            .raw_line("pub use nsstring::{nsACString, nsAString};")
+            .raw_line("pub use nsstring::{nsACString, nsAString, nsString};")
             .raw_line("type nsACString_internal = nsACString;")
             .raw_line("type nsAString_internal = nsAString;")
             .whitelisted_function("Servo_.*")
@@ -584,6 +584,7 @@ mod bindings {
             "nsStyleVisibility",
             "nsStyleXUL",
             "nsTimingFunction",
+            "nscolor",
             "nscoord",
             "nsresult",
             "Loader",

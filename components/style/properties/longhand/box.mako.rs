@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import Keyword, Method, to_rust_ident %>
+<% from data import Keyword, Method, to_rust_ident, to_camel_case%>
 
 <% data.new_style_struct("Box",
                          inherited=False,
@@ -93,6 +93,9 @@
         }
     % endif
 
+    ${helpers.gecko_keyword_conversion(Keyword('display', ' '.join(values),
+                                               gecko_enum_prefix='StyleDisplay'))}
+
 </%helpers:longhand>
 
 ${helpers.single_keyword("-moz-top-layer", "none top",
@@ -146,6 +149,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                                   values="none left right"
                                   // https://drafts.csswg.org/css-logical-props/#float-clear
                                   extra_specified="inline-start inline-end"
+                                  needs_conversion="True"
                                   animatable="False"
                                   need_clone="True"
                                   gecko_enum_prefix="StyleFloat"
@@ -190,6 +194,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                                   values="none left right both"
                                   // https://drafts.csswg.org/css-logical-props/#float-clear
                                   extra_specified="inline-start inline-end"
+                                  needs_conversion="True"
                                   animatable="False"
                                   gecko_enum_prefix="StyleClear"
                                   gecko_ffi_name="mBreakType"
@@ -255,6 +260,8 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                                         "baseline sub super top text-top middle bottom text-bottom",
                                         extra_gecko_values="middle-with-baseline") %>
     <% vertical_align_keywords = vertical_align.keyword.values_for(product) %>
+
+    ${helpers.gecko_keyword_conversion(vertical_align.keyword)}
 
     impl HasViewportPercentage for SpecifiedValue {
         fn has_viewport_percentage(&self) -> bool {

@@ -368,6 +368,13 @@ pub enum Length {
     Calc(Box<CalcLengthOrPercentage>, AllowedNumericType),
 }
 
+impl From<NoCalcLength> for Length {
+    #[inline]
+    fn from(len: NoCalcLength) -> Self {
+        Length::NoCalc(len)
+    }
+}
+
 impl HasViewportPercentage for Length {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
@@ -938,6 +945,20 @@ impl From<Length> for LengthOrPercentage {
     }
 }
 
+impl From<NoCalcLength> for LengthOrPercentage {
+    #[inline]
+    fn from(len: NoCalcLength) -> Self {
+        LengthOrPercentage::Length(len)
+    }
+}
+
+impl From<Percentage> for LengthOrPercentage {
+    #[inline]
+    fn from(pc: Percentage) -> Self {
+        LengthOrPercentage::Percentage(pc)
+    }
+}
+
 impl HasViewportPercentage for LengthOrPercentage {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
@@ -1041,6 +1062,21 @@ pub enum LengthOrPercentageOrAuto {
     Percentage(Percentage),
     Auto,
     Calc(Box<CalcLengthOrPercentage>),
+}
+
+
+impl From<NoCalcLength> for LengthOrPercentageOrAuto {
+    #[inline]
+    fn from(len: NoCalcLength) -> Self {
+        LengthOrPercentageOrAuto::Length(len)
+    }
+}
+
+impl From<Percentage> for LengthOrPercentageOrAuto {
+    #[inline]
+    fn from(pc: Percentage) -> Self {
+        LengthOrPercentageOrAuto::Percentage(pc)
+    }
 }
 
 impl HasViewportPercentage for LengthOrPercentageOrAuto {

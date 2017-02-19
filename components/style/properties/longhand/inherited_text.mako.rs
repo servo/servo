@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-
+<% from data import Keyword %>
 <% data.new_style_struct("InheritedText", inherited=True, gecko_name="Text") %>
 
 <%helpers:longhand name="line-height" animatable="True"
@@ -251,6 +251,7 @@ ${helpers.single_keyword("text-align-last",
             _moz_left("-moz-left") => 7,
             _moz_right("-moz-right") => 8,
             match_parent("match-parent") => 9,
+            char("char") => 10,
             % endif
         }
     }
@@ -260,6 +261,10 @@ ${helpers.single_keyword("text-align-last",
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         computed_value::T::parse(input)
     }
+    ${helpers.gecko_keyword_conversion(Keyword('text-align',
+                                               """left right center justify -moz-left -moz-right
+                                                -moz-center char end match-parent""",
+                                                gecko_strip_moz_prefix=False))}
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable.
@@ -515,6 +520,7 @@ ${helpers.single_keyword("text-align-last",
 <%helpers:single_keyword_computed name="white-space"
                                   values="normal pre nowrap pre-wrap pre-line"
                                   gecko_constant_prefix="NS_STYLE_WHITESPACE"
+                                  needs_conversion="True"
                                   animatable="False"
                                   spec="https://drafts.csswg.org/css-text/#propdef-white-space">
     use values::computed::ComputedValueAsSpecified;

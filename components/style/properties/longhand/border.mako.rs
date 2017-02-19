@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
-<% from data import Method, PHYSICAL_SIDES, ALL_SIDES, maybe_moz_logical_alias %>
+<% from data import Keyword, Method, PHYSICAL_SIDES, ALL_SIDES, maybe_moz_logical_alias %>
 
 <% data.new_style_struct("Border", inherited=False,
                    additional_methods=[Method("border_" + side + "_has_nonzero_width",
@@ -32,6 +32,9 @@
                               animatable=False, logical = side[1])}
 % endfor
 
+${helpers.gecko_keyword_conversion(Keyword('border-style',
+                                   "none solid double dotted dashed hidden groove ridge inset outset"),
+                                   type="::values::specified::BorderStyle")}
 % for side in ALL_SIDES:
     <%helpers:longhand name="border-${side[0]}-width" animatable="True" logical="${side[1]}"
                        alias="${maybe_moz_logical_alias(product, side, '-moz-border-%s-width')}"

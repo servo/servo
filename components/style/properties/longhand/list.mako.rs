@@ -16,15 +16,24 @@ ${helpers.single_keyword("list-style-position", "outside inside", animatable=Fal
 //
 // TODO(bholley): Missing quite a few gecko properties here as well.
 //
+// In gecko, {upper,lower}-{roman,alpha} are implemented as @counter-styles in the
+// UA, however they can also be set from pres attrs. When @counter-style is supported
+// we may need to look into this and handle these differently.
+//
 // [1]: http://dev.w3.org/csswg/css-counter-styles/
 ${helpers.single_keyword("list-style-type", """
-    disc none circle square decimal disclosure-open disclosure-closed
+    disc none circle square decimal disclosure-open disclosure-closed lower-alpha upper-alpha
 """, extra_servo_values="""arabic-indic bengali cambodian cjk-decimal devanagari
                            gujarati gurmukhi kannada khmer lao malayalam mongolian
                            myanmar oriya persian telugu thai tibetan cjk-earthly-branch
                            cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana
-                           katakana-iroha lower-alpha upper-alpha""",
+                           katakana-iroha""",
+    extra_gecko_values="""japanese-informal japanese-formal korean-hangul-formal
+    korean-hanja-formal korean-hanja-informal simp-chinese-informal simp-chinese-formal
+    trad-chinese-informal trad-chinese-formal ethiopic-numeric upper-roman lower-roman
+    """,
     gecko_constant_prefix="NS_STYLE_LIST_STYLE",
+    needs_conversion="True",
     animatable=False,
     spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type")}
 

@@ -12,10 +12,9 @@
                                                 ${'font-variant-position' if product == 'gecko' else ''}
                                                 ${'font-language-override' if product == 'none' else ''}"
                     spec="https://drafts.csswg.org/css-fonts-3/#propdef-font">
-    use parser::Parse;
     use properties::longhands::{font_style, font_variant, font_weight, font_stretch};
-    use properties::longhands::{font_size, line_height, font_family};
-    use properties::longhands::font_family::computed_value::FontFamily;
+    use properties::longhands::{font_size, line_height};
+    use properties::longhands::font_family::SpecifiedValue as FontFamily;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let mut nb_normals = 0;
@@ -71,7 +70,7 @@
         } else {
             None
         };
-        let family = Vec::<FontFamily>::parse(context, input)?;
+        let family = FontFamily::parse(input)?;
         Ok(Longhands {
             font_style: style,
             font_variant: variant,
@@ -79,7 +78,7 @@
             font_stretch: stretch,
             font_size: size,
             line_height: line_height,
-            font_family: Some(font_family::SpecifiedValue(family)),
+            font_family: Some(family),
     % if product == "gecko":
             font_size_adjust: None,
             font_kerning: None,

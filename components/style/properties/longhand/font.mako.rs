@@ -19,7 +19,7 @@
     no_viewport_percentage!(SpecifiedValue);
 
     pub mod computed_value {
-        use cssparser::CssStringWriter;
+        use cssparser::{CssStringWriter, Parser};
         use std::fmt::{self, Write};
         use Atom;
         use style_traits::ToCss;
@@ -73,6 +73,53 @@
                 }
                 FontFamily::FamilyName(FamilyName(input))
             }
+
+            /// Parse a font-family value
+            pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+                if let Ok(value) = input.try(|input| input.expect_string()) {
+                    return Ok(FontFamily::FamilyName(FamilyName(Atom::from(&*value))))
+                }
+                let first_ident = try!(input.expect_ident());
+
+                // FIXME(bholley): The fast thing to do here would be to look up the
+                // string (as lowercase) in the static atoms table. We don't have an
+                // API to do that yet though, so we do the simple thing for now.
+                let mut css_wide_keyword = false;
+                match_ignore_ascii_case! { first_ident,
+                    "serif" => return Ok(FontFamily::Generic(atom!("serif"))),
+                    "sans-serif" => return Ok(FontFamily::Generic(atom!("sans-serif"))),
+                    "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
+                    "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
+                    "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
+
+                    // https://drafts.csswg.org/css-fonts/#propdef-font-family
+                    // "Font family names that happen to be the same as a keyword value
+                    //  (`inherit`, `serif`, `sans-serif`, `monospace`, `fantasy`, and `cursive`)
+                    //  must be quoted to prevent confusion with the keywords with the same names.
+                    //  The keywords ‘initial’ and ‘default’ are reserved for future use
+                    //  and must also be quoted when used as font names.
+                    //  UAs must not consider these keywords as matching the <family-name> type."
+                    "inherit" => css_wide_keyword = true,
+                    "initial" => css_wide_keyword = true,
+                    "unset" => css_wide_keyword = true,
+                    "default" => css_wide_keyword = true,
+                    _ => {}
+                }
+
+                let mut value = first_ident.into_owned();
+                // These keywords are not allowed by themselves.
+                // The only way this value can be valid with with another keyword.
+                if css_wide_keyword {
+                    let ident = input.expect_ident()?;
+                    value.push_str(" ");
+                    value.push_str(&ident);
+                }
+                while let Ok(ident) = input.try(|input| input.expect_ident()) {
+                    value.push_str(" ");
+                    value.push_str(&ident);
+                }
+                Ok(FontFamily::FamilyName(FamilyName(Atom::from(value))))
+            }
         }
 
         impl ToCss for FamilyName {
@@ -119,73 +166,25 @@
     /// <family-name>#
     /// <family-name> = <string> | [ <ident>+ ]
     /// TODO: <generic-family>
-    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        Vec::<FontFamily>::parse(context, input).map(SpecifiedValue)
+    pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        SpecifiedValue::parse(input)
     }
 
-    impl Parse for Vec<FontFamily> {
-        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-            input.parse_comma_separated(|input| FontFamily::parse(context, input))
+    impl SpecifiedValue {
+        pub fn parse(input: &mut Parser) -> Result<Self, ()> {
+            input.parse_comma_separated(|input| FontFamily::parse(input)).map(SpecifiedValue)
         }
     }
 
     /// `FamilyName::parse` is based on `FontFamily::parse` and not the other way around
     /// because we want the former to exclude generic family keywords.
     impl Parse for FamilyName {
-        fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-            match FontFamily::parse(context, input) {
+        fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+            match FontFamily::parse(input) {
                 Ok(FontFamily::FamilyName(name)) => Ok(name),
                 Ok(FontFamily::Generic(_)) |
                 Err(()) => Err(())
             }
-        }
-    }
-
-    impl Parse for FontFamily {
-        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-            if let Ok(value) = input.try(|input| input.expect_string()) {
-                return Ok(FontFamily::FamilyName(FamilyName(Atom::from(&*value))))
-            }
-            let first_ident = try!(input.expect_ident());
-
-            // FIXME(bholley): The fast thing to do here would be to look up the
-            // string (as lowercase) in the static atoms table. We don't have an
-            // API to do that yet though, so we do the simple thing for now.
-            let mut css_wide_keyword = false;
-            match_ignore_ascii_case! { first_ident,
-                "serif" => return Ok(FontFamily::Generic(atom!("serif"))),
-                "sans-serif" => return Ok(FontFamily::Generic(atom!("sans-serif"))),
-                "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
-                "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
-                "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
-
-                // https://drafts.csswg.org/css-fonts/#propdef-font-family
-                // "Font family names that happen to be the same as a keyword value
-                //  (‘inherit’, ‘serif’, ‘sans-serif’, ‘monospace’, ‘fantasy’, and ‘cursive’)
-                //  must be quoted to prevent confusion with the keywords with the same names.
-                //  The keywords ‘initial’ and ‘default’ are reserved for future use
-                //  and must also be quoted when used as font names.
-                //  UAs must not consider these keywords as matching the <family-name> type."
-                "inherit" => css_wide_keyword = true,
-                "initial" => css_wide_keyword = true,
-                "unset" => css_wide_keyword = true,
-                "default" => css_wide_keyword = true,
-                _ => {}
-            }
-
-            let mut value = first_ident.into_owned();
-            // These keywords are not allowed by themselves.
-            // The only way this value can be valid with with another keyword.
-            if css_wide_keyword {
-                let ident = input.expect_ident()?;
-                value.push_str(" ");
-                value.push_str(&ident);
-            }
-            while let Ok(ident) = input.try(|input| input.expect_ident()) {
-                value.push_str(" ");
-                value.push_str(&ident);
-            }
-            Ok(FontFamily::FamilyName(FamilyName(Atom::from(value))))
         }
     }
 </%helpers:longhand>
@@ -760,5 +759,42 @@ ${helpers.single_keyword("font-variant-position",
                 SpecifiedValue::Override(cow.into_owned())
             })
         }
+    }
+</%helpers:longhand>
+
+<%helpers:longhand name="-x-lang" products="gecko" animatable="False" internal="True"
+                   spec="Internal (not web-exposed)"
+                   internal="True">
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+    pub use self::computed_value::T as SpecifiedValue;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        use Atom;
+        use std::fmt;
+        use style_traits::ToCss;
+
+        impl ToCss for T {
+            fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+                Ok(())
+            }
+        }
+
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T(pub Atom);
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(atom!(""))
+    }
+
+    pub fn parse(_context: &ParserContext, _input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        debug_assert!(false, "Should be set directly by presentation attributes only.");
+        Err(())
     }
 </%helpers:longhand>

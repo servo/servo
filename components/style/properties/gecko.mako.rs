@@ -33,6 +33,8 @@ use gecko_bindings::bindings::Gecko_FontFamilyList_Clear;
 use gecko_bindings::bindings::Gecko_SetCursorArrayLength;
 use gecko_bindings::bindings::Gecko_SetCursorImage;
 use gecko_bindings::bindings::Gecko_NewCSSShadowArray;
+use gecko_bindings::bindings::Gecko_nsStyleFont_SetLang;
+use gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
 use gecko_bindings::bindings::Gecko_SetListStyleImage;
 use gecko_bindings::bindings::Gecko_SetListStyleImageNone;
 use gecko_bindings::bindings::Gecko_SetListStyleType;
@@ -53,7 +55,7 @@ use properties::longhands;
 use properties::{DeclaredValue, Importance, LonghandId};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationId};
 use std::fmt::{self, Debug};
-use std::mem::{transmute, zeroed};
+use std::mem::{forget, transmute, zeroed};
 use std::ptr;
 use std::sync::Arc;
 use std::cmp;
@@ -233,8 +235,6 @@ def get_gecko_property(ffi_name, self_param = "self"):
     return "%s.gecko.%s" % (self_param, ffi_name)
 
 def set_gecko_property(ffi_name, expr):
-    if ffi_name == "__LIST_STYLE_TYPE__":
-        return "unsafe { Gecko_SetListStyleType(&mut self.gecko, %s as u32); }" % expr
     if "mBorderColor" in ffi_name:
         ffi_name = ffi_name.replace("mBorderColor",
                                     "*self.gecko.__bindgen_anon_1.mBorderColor.as_mut()")
@@ -1121,7 +1121,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Font"
-    skip_longhands="font-family font-size font-size-adjust font-weight font-synthesis"
+    skip_longhands="font-family font-size font-size-adjust font-weight font-synthesis -x-lang"
     skip_additionals="*">
 
     pub fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
@@ -1230,6 +1230,21 @@ fn static_assert() {
         }
     }
 
+    #[allow(non_snake_case)]
+    pub fn set__x_lang(&mut self, v: longhands::_x_lang::computed_value::T) {
+        let ptr = v.0.as_ptr();
+        forget(v);
+        unsafe {
+            Gecko_nsStyleFont_SetLang(&mut self.gecko, ptr);
+        }
+    }
+
+    #[allow(non_snake_case)]
+    pub fn copy__x_lang_from(&mut self, other: &Self) {
+        unsafe {
+            Gecko_nsStyleFont_CopyLangFrom(&mut self.gecko, &other.gecko);
+        }
+    }
 </%self:impl_trait>
 
 <%def name="impl_copy_animation_value(ident, gecko_ffi_name)">
@@ -2154,8 +2169,32 @@ fn static_assert() {
         unsafe { Gecko_CopyListStyleImageFrom(&mut self.gecko, &other.gecko); }
     }
 
-    ${impl_keyword_setter("list_style_type", "__LIST_STYLE_TYPE__",
-                           data.longhands_by_name["list-style-type"].keyword)}
+    pub fn set_list_style_type(&mut self, v: longhands::list_style_type::computed_value::T) {
+        use properties::longhands::list_style_type::computed_value::T as Keyword;
+        <%
+            keyword = data.longhands_by_name["list-style-type"].keyword
+            # The first four are @counter-styles
+            # The rest have special fallback behavior
+            special = """upper-roman lower-roman upper-alpha lower-alpha
+                         japanese-informal japanese-formal korean-hangul-formal korean-hanja-informal
+                         korean-hanja-formal simp-chinese-informal simp-chinese-formal
+                         trad-chinese-informal trad-chinese-formal""".split()
+        %>
+        let result = match v {
+            % for value in keyword.values_for('gecko'):
+                % if value in special:
+                    // Special keywords are implemented as @counter-styles
+                    // and need to be manually set as strings
+                    Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant("none")},
+                % else:
+                    Keyword::${to_rust_ident(value)} =>
+                        structs::${keyword.gecko_constant(value)},
+                % endif
+            % endfor
+        };
+        unsafe { Gecko_SetListStyleType(&mut self.gecko, result as u32); }
+    }
+
 
     pub fn copy_list_style_type_from(&mut self, other: &Self) {
         unsafe {
@@ -2206,6 +2245,15 @@ fn static_assert() {
 
     ${impl_simple_copy('_moz_image_region', 'mImageRegion')}
 
+</%self:impl_trait>
+
+<%self:impl_trait style_struct_name="Table" skip_longhands="-x-span">
+    #[allow(non_snake_case)]
+    pub fn set__x_span(&mut self, v: longhands::_x_span::computed_value::T) {
+        self.gecko.mSpan = v.0
+    }
+
+    ${impl_simple_copy('_x_span', 'mSpan')}
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Effects"
@@ -2379,7 +2427,7 @@ fn static_assert() {
                                   -webkit-text-stroke-width text-emphasis-position -moz-tab-size">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
-                                                  "-moz-right match-parent") %>
+                                                  "-moz-right match-parent char") %>
     ${impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)}
 
     pub fn set_text_shadow(&mut self, v: longhands::text_shadow::computed_value::T) {
@@ -2578,6 +2626,9 @@ fn static_assert() {
         }
         if v.contains(longhands::text_decoration_line::BLINK) {
             bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_BLINK as u8;
+        }
+        if v.contains(longhands::text_decoration_line::COLOR_OVERRIDE) {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_OVERRIDE_ALL as u8;
         }
         self.gecko.mTextDecorationLine = bits;
     }
