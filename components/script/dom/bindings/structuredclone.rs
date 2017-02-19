@@ -21,9 +21,8 @@ use std::ptr;
 use std::slice;
 
 
-pub enum StructuredCloneTags {
-    DomBlob = 0xffff8001
-}
+type StructuredCloneTag = u32;
+const SC_DOM_BLOB: StructuredCloneTag = 0xffff8001;
 
 
 #[allow(dead_code)]
@@ -33,7 +32,7 @@ unsafe extern "C" fn read_callback(_cx: *mut JSContext,
                                    _data: u32,
                                    _closure: *mut raw::c_void) -> *mut JSObject {
     match tag {
-        tag if tag == StructuredCloneTags::DomBlob as u32 => {
+        SC_DOM_BLOB => {
             ///TODO: implement return readBlob(cx, data)
             return Heap::default().get()
         },
