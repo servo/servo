@@ -19,6 +19,14 @@ use std::ptr;
 use std::slice;
 
 
+const SCTAG_BASE: TransferableOwnership = TransferableOwnership::SCTAG_TMO_USER_MIN;
+
+pub enum StructuredCloneTags {
+    SCTAG_BASE,
+    ScDomBlob,
+}
+
+
 #[allow(dead_code)]
 unsafe extern "C" fn read_callback(_cx: *mut JSContext,
                                    _r: *mut JSStructuredCloneReader,
