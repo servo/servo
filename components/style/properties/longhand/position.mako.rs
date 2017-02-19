@@ -277,21 +277,21 @@ ${helpers.single_keyword("object-fit", "fill contain cover none scale-down",
         let mut value = get_initial_value();
         loop {
             match_ignore_ascii_case! { input.expect_ident()?,
-                "row" => if autoflow { break }
+                "row" => if autoflow { Err(()) }
                          else {
                              autoflow = true;
                              value.autoflow = computed_value::AutoFlow::Row;
                              continue
                          },
-                "column" => if autoflow { break }
+                "column" => if autoflow { Err(()) }
                             else {
                                 autoflow = true;
                                 value.autoflow = computed_value::AutoFlow::Column;
                                 continue
                             },
-                "dense" => if value.dense { break }
+                "dense" => if value.dense { Err(()) }
                            else { value.dense = true; continue },
-                _ => break
+                _ => Err(())
             }
         }
 
