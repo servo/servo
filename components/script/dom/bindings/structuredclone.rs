@@ -5,8 +5,10 @@
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
+use dom::bindings::conversions::get_dom_class;
 use dom::bindings::error::{Error, Fallible};
 use dom::globalscope::GlobalScope;
+use js::glue::UnwrapObject;
 use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue};
 use js::jsapi::{Heap, JSContext};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
@@ -32,7 +34,7 @@ unsafe extern "C" fn read_callback(_cx: *mut JSContext,
                                    _closure: *mut raw::c_void) -> *mut JSObject {
     match tag {
         tag if tag == StructuredCloneTags::DomBlob as u32 => {
-            ///TODO: implement readBlob(cx, data)
+            ///TODO: implement return readBlob(cx, data)
             return Heap::default().get()
         },
         _ => return Heap::default().get(),
@@ -42,9 +44,16 @@ unsafe extern "C" fn read_callback(_cx: *mut JSContext,
 #[allow(dead_code)]
 unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     _w: *mut JSStructuredCloneWriter,
-                                    _obj: HandleObject,
+                                    obj: HandleObject,
                                     _closure: *mut raw::c_void) -> bool {
-    false
+    match (get_dom_class(*obj), UnwrapObject(*obj, 0).is_null()) {
+        (Ok(_), false) => {
+            ///TODO: Check it is indeed a blob
+            ///TODO: implement return WriteBlob(aWriter, blob);
+            return false
+        },
+        _ => return false
+    };
 }
 
 #[allow(dead_code)]
