@@ -50,10 +50,7 @@ use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{HandleId, HandleObject, HandleValue, JSContext, JSObject, JSString};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_IsArrayObject};
-use js::jsapi::{JS_NewFloat32Array, JS_NewFloat64Array, JS_NewInt8Array};
-use js::jsapi::{JS_NewInt16Array, JS_NewInt32Array, JS_NewStringCopyN};
-use js::jsapi::{JS_NewUint8Array, JS_NewUint16Array, JS_NewUint32Array};
-use js::jsapi::{JS_StringHasLatin1Chars, MutableHandleValue, Type};
+use js::jsapi::{JS_NewStringCopyN, JS_StringHasLatin1Chars, MutableHandleValue};
 use js::jsval::{ObjectValue, StringValue};
 use js::rust::{ToString, get_object_class, is_dom_class, is_dom_object, maybe_wrap_value};
 use libc;
@@ -473,99 +470,6 @@ pub fn root_from_handleobject<T>(obj: HandleObject) -> Result<Root<T>, ()>
 impl<T: DomObject> ToJSValConvertible for Root<T> {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         self.reflector().to_jsval(cx, rval);
-    }
-}
-
-/// A JS ArrayBufferView contents can only be viewed as the types marked with this trait
-pub unsafe trait ArrayBufferViewContents: Clone {
-    /// Check if the JS ArrayBufferView type is compatible with the implementor of the
-    /// trait
-    fn is_type_compatible(ty: Type) -> bool;
-
-    /// Creates a typed array
-    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject;
-}
-
-unsafe impl ArrayBufferViewContents for u8 {
-    fn is_type_compatible(ty: Type) -> bool {
-        match ty {
-            Type::Uint8 |
-            Type::Uint8Clamped => true,
-            _ => false,
-        }
-    }
-
-    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
-        JS_NewUint8Array(cx, num)
-    }
-}
-
-unsafe impl ArrayBufferViewContents for i8 {
-    fn is_type_compatible(ty: Type) -> bool {
-        ty as i32 == Type::Int8 as i32
-    }
-
-    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
-        JS_NewInt8Array(cx, num)
-    }
-}
-
-unsafe impl ArrayBufferViewContents for u16 {
-    fn is_type_compatible(ty: Type) -> bool {
-        ty as i32 == Type::Uint16 as i32
-    }
-
-    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
-        JS_NewUint16Array(cx, num)
-    }
-}
-
-unsafe impl ArrayBufferViewContents for i16 {
-    fn is_type_compatible(ty: Type) -> bool {
-        ty as i32 == Type::Int16 as i32
-    }
-
-    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
-        JS_NewInt16Array(cx, num)
-    }
-}
-
-unsafe impl ArrayBufferViewContents for u32 {
-    fn is_type_compatible(ty: Type) -> bool {
-        ty as i32 == Type::Uint32 as i32
-    }
-
-    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
-        JS_NewUint32Array(cx, num)
-    }
-}
-
-unsafe impl ArrayBufferViewContents for i32 {
-    fn is_type_compatible(ty: Type) -> bool {
-        ty as i32 == Type::Int32 as i32
-    }
-
-    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
-        JS_NewInt32Array(cx, num)
-    }
-}
-
-unsafe impl ArrayBufferViewContents for f32 {
-    fn is_type_compatible(ty: Type) -> bool {
-        ty as i32 == Type::Float32 as i32
-    }
-
-    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
-        JS_NewFloat32Array(cx, num)
-    }
-}
-unsafe impl ArrayBufferViewContents for f64 {
-    fn is_type_compatible(ty: Type) -> bool {
-        ty as i32 == Type::Float64 as i32
-    }
-
-    unsafe fn new(cx: *mut JSContext, num: u32) -> *mut JSObject {
-        JS_NewFloat64Array(cx, num)
     }
 }
 
