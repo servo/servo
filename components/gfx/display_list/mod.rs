@@ -182,7 +182,14 @@ impl DisplayList {
             *client_point
         } else {
             let point = *translated_point - stacking_context.bounds.origin;
-            let inv_transform = stacking_context.transform.inverse().unwrap();
+            let inv_transform = match stacking_context.transform.inverse() {
+                Some(transform) => transform,
+                None => {
+                    // If a transform function causes the current transformation matrix of an object
+                    // to be non-invertible, the object and its content do not get displayed.
+                    return;
+                }
+            };
             let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
                                                                          point.y.to_f32_px()));
             Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))
