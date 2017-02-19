@@ -99,21 +99,18 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
                               animatable=False)}
 % endif
 
-// https://drafts.csswg.org/css-flexbox/#propdef-align-items
-// FIXME: This is a workaround for 'normal' value. We don't support the Gecko initial value 'normal' yet.
-${helpers.single_keyword("align-items", "stretch flex-start flex-end center baseline" if product == "servo"
-                         else "normal stretch flex-start flex-end center baseline",
-                         need_clone=True,
-                         extra_prefixes="webkit",
-                         gecko_constant_prefix="NS_STYLE_ALIGN",
-                         spec="https://drafts.csswg.org/css-flexbox/#align-items-property",
-                         animatable=False)}
-
 % if product == "servo":
     // FIXME: Update Servo to support the same Syntax as Gecko.
     ${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around",
                              extra_prefixes="webkit",
                              spec="https://drafts.csswg.org/css-align/#propdef-align-content",
+                             animatable=False)}
+
+    ${helpers.single_keyword("align-items",
+                             "stretch flex-start flex-end center baseline",
+                             need_clone=True,
+                             extra_prefixes="webkit",
+                             spec="https://drafts.csswg.org/css-flexbox/#align-items-property",
                              animatable=False)}
 % else:
     ${helpers.predefined_type(name="align-content",
@@ -121,6 +118,19 @@ ${helpers.single_keyword("align-items", "stretch flex-start flex-end center base
                               initial_value="specified::AlignJustifyContent::normal()",
                               spec="https://drafts.csswg.org/css-align/#propdef-align-content",
                               extra_prefixes="webkit",
+                              animatable=False)}
+
+    ${helpers.predefined_type(name="align-items",
+                              type="AlignItems",
+                              initial_value="specified::AlignItems::normal()",
+                              spec="https://drafts.csswg.org/css-align/#propdef-align-items",
+                              extra_prefixes="webkit",
+                              animatable=False)}
+
+    ${helpers.predefined_type(name="justify-items",
+                              type="JustifyItems",
+                              initial_value="specified::JustifyItems::auto()",
+                              spec="https://drafts.csswg.org/css-align/#propdef-justify-items",
                               animatable=False)}
 % endif
 

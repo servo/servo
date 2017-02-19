@@ -9,6 +9,7 @@
 use cssparser::Parser;
 use gecko_bindings::structs;
 use parser::{Parse, ParserContext};
+use std::ascii::AsciiExt;
 use std::fmt;
 use style_traits::ToCss;
 use values::HasViewportPercentage;
@@ -238,12 +239,103 @@ impl Parse for AlignJustifySelf {
     }
 }
 
+/// Value of the `align-items` property
+///
+/// https://drafts.csswg.org/css-align/#self-alignment
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct AlignItems(pub AlignFlags);
+
+impl AlignItems {
+    /// The initial value 'normal'
+    #[inline]
+    pub fn normal() -> Self {
+        AlignItems(ALIGN_NORMAL)
+    }
+}
+
+no_viewport_percentage!(AlignItems);
+
+impl ToCss for AlignItems {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}
+
+impl Parse for AlignItems {
+    // normal | stretch | <baseline-position> |
+    // [ <overflow-position>? && <self-position> ]
+    fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        // normal | stretch | <baseline-position>
+        if let Ok(value) = input.try(parse_normal_stretch_baseline) {
+            return Ok(AlignItems(value))
+        }
+        // [ <overflow-position>? && <self-position> ]
+        if let Ok(value) = input.try(parse_overflow_self_position) {
+            return Ok(AlignItems(value))
+        }
+        Err(())
+    }
+}
+
+/// Value of the `justify-items` property
+///
+/// https://drafts.csswg.org/css-align/#justify-items-property
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct JustifyItems(pub AlignFlags);
+
+impl JustifyItems {
+    /// The initial value 'auto'
+    #[inline]
+    pub fn auto() -> Self {
+        JustifyItems(ALIGN_AUTO)
+    }
+}
+
+no_viewport_percentage!(JustifyItems);
+
+impl ToCss for JustifyItems {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.0.to_css(dest)
+    }
+}
+
+impl Parse for JustifyItems {
+    // auto | normal | stretch | <baseline-position> |
+    // [ <overflow-position>? && <self-position> ]
+    // [ legacy && [ left | right | center ] ]
+    fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        // auto | normal | stretch | <baseline-position>
+        if let Ok(value) = input.try(parse_auto_normal_stretch_baseline) {
+            return Ok(JustifyItems(value))
+        }
+        // [ <overflow-position>? && <self-position> ]
+        if let Ok(value) = input.try(parse_overflow_self_position) {
+            return Ok(JustifyItems(value))
+        }
+        // [ legacy && [ left | right | center ] ]
+        if let Ok(value) = input.try(parse_legacy) {
+            return Ok(JustifyItems(value))
+        }
+        Err(())
+    }
+}
 
 // auto | normal | stretch | <baseline-position>
 fn parse_auto_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
     match_ignore_ascii_case! { ident,
         "auto" => Ok(ALIGN_AUTO),
+        "normal" => Ok(ALIGN_NORMAL),
+        "stretch" => Ok(ALIGN_STRETCH),
+        "baseline" => Ok(ALIGN_BASELINE),
+        _ => Err(())
+    }
+}
+
+// normal | stretch | <baseline-position>
+fn parse_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
+    let ident = input.expect_ident()?;
+    match_ignore_ascii_case! { ident,
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
         "baseline" => Ok(ALIGN_BASELINE),
@@ -348,5 +440,28 @@ fn parse_self_position(input: &mut Parser) -> Result<AlignFlags, ()> {
         "self-start" => Ok(ALIGN_SELF_START),
         "self-end" => Ok(ALIGN_SELF_END),
         _ => Err(())
+    }
+}
+
+// [ legacy && [ left | right | center ] ]
+fn parse_legacy(input: &mut Parser) -> Result<AlignFlags, ()> {
+    let a = input.expect_ident()?;
+    let b = input.expect_ident()?;
+    if a.eq_ignore_ascii_case("legacy") {
+        match_ignore_ascii_case! { b,
+            "left" => Ok(ALIGN_LEGACY | ALIGN_LEFT),
+            "right" => Ok(ALIGN_LEGACY | ALIGN_RIGHT),
+            "center" => Ok(ALIGN_LEGACY | ALIGN_CENTER),
+            _ => Err(())
+        }
+    } else if b.eq_ignore_ascii_case("legacy") {
+        match_ignore_ascii_case! { a,
+            "left" => Ok(ALIGN_LEGACY | ALIGN_LEFT),
+            "right" => Ok(ALIGN_LEGACY | ALIGN_RIGHT),
+            "center" => Ok(ALIGN_LEGACY | ALIGN_CENTER),
+            _ => Err(())
+        }
+    } else {
+        Err(())
     }
 }

@@ -17,7 +17,7 @@ pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, Gra
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::{Auto, Either, None_};
 #[cfg(feature = "gecko")]
-pub use super::specified::{AlignJustifyContent, AlignJustifySelf};
+pub use super::specified::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
 pub use super::specified::{Angle, BorderStyle, GridLine, Time, UrlOrNone};
 pub use super::specified::url::{SpecifiedUrl, UrlExtraData};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
@@ -122,6 +122,32 @@ impl ToComputedValue for specified::CSSColor {
     }
 }
 
+#[cfg(feature = "gecko")]
+impl ToComputedValue for specified::JustifyItems {
+    type ComputedValue = JustifyItems;
+
+    // https://drafts.csswg.org/css-align/#valdef-justify-items-auto
+    fn to_computed_value(&self, context: &Context) -> JustifyItems {
+        use values::specified::align;
+        // If the inherited value of `justify-items` includes the `legacy` keyword, `auto` computes
+        // to the inherited value.
+        if self.0 == align::ALIGN_AUTO {
+            let inherited = context.inherited_style.get_position().clone_justify_items();
+            if inherited.0.contains(align::ALIGN_LEGACY) {
+                return inherited
+            }
+        }
+        return *self
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &JustifyItems) -> Self {
+        *computed
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl ComputedValueAsSpecified for specified::AlignItems {}
 #[cfg(feature = "gecko")]
 impl ComputedValueAsSpecified for specified::AlignJustifyContent {}
 #[cfg(feature = "gecko")]
