@@ -25,7 +25,6 @@ extern crate syntax;
 use rustc_plugin::Registry;
 use syntax::feature_gate::AttributeType::Whitelisted;
 
-mod ban;
 mod unrooted_must_root;
 /// Utilities for writing plugins
 mod utils;
@@ -33,7 +32,6 @@ mod utils;
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_late_lint_pass(box unrooted_must_root::UnrootedPass::new());
-    reg.register_early_lint_pass(box ban::BanPass);
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);
     reg.register_attribute("must_root".to_string(), Whitelisted);
 }
