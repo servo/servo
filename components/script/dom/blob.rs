@@ -166,6 +166,11 @@ impl Blob {
         }
     }
 
+    /// Get a copy of the type_string
+    pub fn get_type_string(&self) -> Vec<u8> {
+        return self.type_string.as_bytes().to_vec();
+    }
+
     /// Get a FileID representing the Blob content,
     /// used by URL.createObjectURL
     pub fn get_blob_url_id(&self) -> Uuid {
