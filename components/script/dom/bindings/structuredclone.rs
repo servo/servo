@@ -19,21 +19,24 @@ use std::ptr;
 use std::slice;
 
 
-const SCTAG_BASE: TransferableOwnership = TransferableOwnership::SCTAG_TMO_USER_MIN;
-
 pub enum StructuredCloneTags {
-    SCTAG_BASE,
-    ScDomBlob,
+    DomBlob = 0xffff8001
 }
 
 
 #[allow(dead_code)]
 unsafe extern "C" fn read_callback(_cx: *mut JSContext,
                                    _r: *mut JSStructuredCloneReader,
-                                   _tag: u32,
+                                   tag: u32,
                                    _data: u32,
                                    _closure: *mut raw::c_void) -> *mut JSObject {
-    Heap::default().get()
+    match tag {
+        tag if tag == StructuredCloneTags::DomBlob as u32 => {
+            ///TODO: implement readBlob(cx, data)
+            return Heap::default().get()
+        },
+        _ => return Heap::default().get(),
+    };
 }
 
 #[allow(dead_code)]
