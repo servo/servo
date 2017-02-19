@@ -5,35 +5,78 @@
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
+use dom::bindings::conversions::root_from_handleobject;
 use dom::bindings::error::{Error, Fallible};
+use dom::bindings::reflector::DomObject;
+use dom::blob::{Blob, BlobImpl};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue};
 use js::jsapi::{Heap, JSContext};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
 use js::jsapi::{JS_ClearPendingException, JSObject, JS_ReadStructuredClone};
-use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone};
+use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
+use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone, JS_WriteUint32Pair};
 use js::jsapi::{MutableHandleObject, TransferableOwnership};
 use libc::size_t;
+use std::mem;
 use std::os::raw;
 use std::ptr;
 use std::slice;
 
+///TODO: Add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
+///TODO: Determine which value Min and Max should have.
+///NOTE: Current values found at https://dxr.mozilla.org/mozilla-central/source/js/public/StructuredClone.h#323
+#[allow(dead_code)]
+#[repr(u32)]
+enum StructuredCloneTags {
+    ScTagMin = 0xFFFF8000,
+    ScTagDomBlob = 0xFFFF8001,
+    ///NOTE: To support additional types, add new tags here.
+    ScTagMax = 0xFFFFFFFF,
+}
 
 #[allow(dead_code)]
-unsafe extern "C" fn read_callback(_cx: *mut JSContext,
-                                   _r: *mut JSStructuredCloneReader,
-                                   _tag: u32,
-                                   _data: u32,
+unsafe extern "C" fn read_callback(cx: *mut JSContext,
+                                   r: *mut JSStructuredCloneReader,
+                                   tag: u32,
+                                   data: u32,
                                    _closure: *mut raw::c_void) -> *mut JSObject {
-    Heap::default().get()
+    if tag == StructuredCloneTags::ScTagDomBlob as u32 {
+        let mut empty_vec: Vec<u8> = Vec::with_capacity(data as usize);
+        let vec_mut_ptr: *mut raw::c_void = empty_vec.as_mut_ptr() as *mut _ as *mut raw::c_void;
+        mem::forget(empty_vec);
+        if JS_ReadBytes(r, vec_mut_ptr, data as usize) {
+            let blob_bytes: Vec<u8> = Vec::from_raw_parts(vec_mut_ptr as *mut u8, data as usize, data as usize);
+            let js_context = GlobalScope::from_context(cx);
+            /// NOTE: missing the content-type string here.
+            /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
+            let root = Blob::new(&js_context, BlobImpl::new_from_bytes(blob_bytes), "".to_string());
+            return *root.reflector().get_jsobject().ptr
+        }
+    }
+    return Heap::default().get()
 }
 
 #[allow(dead_code)]
 unsafe extern "C" fn write_callback(_cx: *mut JSContext,
-                                    _w: *mut JSStructuredCloneWriter,
-                                    _obj: HandleObject,
+                                    w: *mut JSStructuredCloneWriter,
+                                    obj: HandleObject,
                                     _closure: *mut raw::c_void) -> bool {
-    false
+    if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
+        if let Ok(blob_vec) = blob.get_bytes() {
+            let mut blob_vec_copy = blob_vec.to_vec();
+            blob_vec_copy.shrink_to_fit();
+            let blob_vec_copy_len = blob_vec_copy.len();
+            if JS_WriteUint32Pair(w,
+                                  StructuredCloneTags::ScTagDomBlob as u32,
+                                  blob_vec_copy_len as u32) {
+                let blob_vec_ptr: *const raw::c_void = blob_vec_copy.as_ptr() as *const _ as *const raw::c_void;
+                mem::forget(blob_vec_copy);
+                return JS_WriteBytes(w, blob_vec_ptr, blob_vec_copy_len)
+            }
+        }
+    }
+    return false
 }
 
 #[allow(dead_code)]
@@ -98,7 +141,7 @@ impl StructuredCloneData {
                                     message,
                                     &mut data,
                                     &mut nbytes,
-                                    ptr::null(),
+                                    &STRUCTURED_CLONE_CALLBACKS,
                                     ptr::null_mut(),
                                     HandleValue::undefined())
         };
@@ -126,14 +169,17 @@ impl StructuredCloneData {
     /// Reads a structured clone.
     ///
     /// Panics if `JS_ReadStructuredClone` fails.
-    fn read_clone(global: &GlobalScope, data: *mut u64, nbytes: size_t, rval: MutableHandleValue) {
+    fn read_clone(global: &GlobalScope,
+                  data: *mut u64,
+                  nbytes: size_t,
+                  rval: MutableHandleValue) {
         unsafe {
             assert!(JS_ReadStructuredClone(global.get_cx(),
                                            data,
                                            nbytes,
                                            JS_STRUCTURED_CLONE_VERSION,
                                            rval,
-                                           ptr::null(),
+                                           &STRUCTURED_CLONE_CALLBACKS,
                                            ptr::null_mut()));
         }
     }

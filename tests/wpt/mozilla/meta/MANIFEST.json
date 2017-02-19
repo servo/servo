@@ -19600,6 +19600,12 @@
      {}
     ]
    ],
+   "mozilla/structuredclone.html": [
+    [
+     "/_mozilla/mozilla/structuredclone.html",
+     {}
+    ]
+   ],
    "mozilla/style_no_trailing_space.html": [
     [
      "/_mozilla/mozilla/style_no_trailing_space.html",
@@ -31047,6 +31053,10 @@
   ],
   "mozilla/storage.html": [
    "2141a5a22c5db9217bb2d7535fbb086147258c01",
+   "testharness"
+  ],
+  "mozilla/structuredclone.html": [
+   "d0f2d821d976f6dd53c388b19d3012af033eeb0b",
    "testharness"
   ],
   "mozilla/style_no_trailing_space.html": [
