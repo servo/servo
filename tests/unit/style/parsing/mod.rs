@@ -70,6 +70,7 @@ mod animation;
 mod background;
 mod basic_shape;
 mod border;
+mod column;
 mod font;
 mod image;
 mod inherited_box;
