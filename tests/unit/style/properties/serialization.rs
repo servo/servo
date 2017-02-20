@@ -267,7 +267,7 @@ mod shorthand_serialization {
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "border-style: solid dotted;");
         }
-
+}
 
     mod border_shorthands {
         use super::*;
