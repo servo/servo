@@ -5,7 +5,7 @@
 pub use std::sync::Arc;
 pub use style::computed_values::display::T::inline_block;
 pub use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance, PropertyId};
-pub use style::values::specified::{BorderStyle,BorderWidth, CSSColor, Length, NoCalcLength};
+pub use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, NoCalcLength};
 pub use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 pub use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 pub use style::properties::longhands::outline_style::SpecifiedValue as OutlineStyle;
@@ -104,8 +104,6 @@ mod shorthand_serialization {
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "overflow-x: scroll; overflow-y: auto;");
         }
-
-        
     }
 
     mod four_sides_shorthands {
@@ -1130,7 +1128,8 @@ mod shorthand_serialization {
                         });
 
 
-            let shadow_val = Shadow {offset_x: Length::from_px(1f32), offset_y: Length::from_px(2f32), blur_radius:Length::from_px(3f32), spread_radius:Length::from_px(4f32), color:color, inset:false };
+            let shadow_val = Shadow { offset_x: Length::from_px(1f32), offset_y: Length::from_px(2f32),
+            blur_radius: Length::from_px(3f32), spread_radius: Length::from_px(4f32), color: color, inset: false };
             let shadow_decl = DeclaredValue::Value(BoxShadow(vec![shadow_val]));
             properties.push(PropertyDeclaration:: BoxShadow(shadow_decl));
 
