@@ -438,6 +438,18 @@ impl Time {
             Err(())
         }
     }
+
+    /// Parses a time, but errors on negative values
+    pub fn parse_non_negative(context: &ParserContext, input: &mut Parser) -> Result<Time, ()> {
+        let time = Self::parse(context, input)?;
+
+        // Negative values are invalid
+        if time.0 < 0.0 {
+            Err(())
+        } else {
+            Ok(time)
+        }
+    }
 }
 
 impl ComputedValueAsSpecified for Time {}

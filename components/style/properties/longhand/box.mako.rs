@@ -462,14 +462,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
-        let time = Time::parse(context, input)?;
-
-        // Negative values are invalid
-        if time.0 <= 0.0 {
-            Err(())
-        } else {
-            Ok(time)
-        }
+        Time::parse_non_negative(context, input)
     }
 </%helpers:vector_longhand>
 

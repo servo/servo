@@ -8,6 +8,7 @@ use style::properties::longhands::transition_duration;
 #[test]
 fn test_positive_transition_duration() {
     assert!(parse(transition_duration::parse, "5s").is_ok());
+    assert!(parse(transition_duration::parse, "0s").is_ok());
 }
 
 #[test]
