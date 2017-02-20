@@ -1,3 +1,4 @@
+import json
 import os
 
 import pytest
@@ -13,8 +14,9 @@ default_port = "4444"
 def _session(request):
     host = os.environ.get("WD_HOST", default_host)
     port = int(os.environ.get("WD_PORT", default_port))
+    capabilities = json.loads(os.environ.get("WD_CAPABILITIES", "{}"))
 
-    session = webdriver.Session(host, port)
+    session = webdriver.Session(host, port, desired_capabilities=capabilities)
 
     def destroy():
         if session.session_id is not None:

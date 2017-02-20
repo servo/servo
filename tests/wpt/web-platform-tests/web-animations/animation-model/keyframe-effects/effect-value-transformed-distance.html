@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Tests for calculation of the transformed distance when computing an effect value</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#the-effect-value-of-a-keyframe-animation-effect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/easing-tests.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+'use strict';
+
+// Test that applying easing to keyframes is applied as expected
+
+gEasingTests.forEach(params => {
+  test(function(t) {
+    const target = createDiv(t);
+    const anim   = target.animate([ { width: '0px' },
+                                    // We put the easing on the second keyframe
+                                    // so we can test that it is only applied
+                                    // to the specified keyframe.
+                                    { width: '100px', easing: params.easing },
+                                    { width: '200px' } ],
+                                  { duration: 2000,
+                                    fill: 'forwards' });
+
+    [ 0, 999, 1000, 1100, 1500, 2000 ].forEach(sampleTime => {
+      anim.currentTime = sampleTime;
+
+      const portion = (sampleTime - 1000) / 1000;
+      const expectedWidth = sampleTime < 1000
+                            ? sampleTime / 10 // first segment is linear
+                            : 100 + params.easingFunction(portion) * 100;
+      assert_approx_equals(parseFloat(getComputedStyle(target).width),
+                           expectedWidth,
+                           0.01,
+                           'The width should be approximately ' +
+                           `${expectedWidth} at ${sampleTime}ms`);
+    });
+  }, `A ${params.desc} on a keyframe affects the resulting style`);
+});
+
+// Test that a linear-equivalent cubic-bezier easing applied to a keyframe does
+// not alter (including clamping) the result.
+
+gEasingTests.forEach(params => {
+  const linearEquivalentEasings = [ 'cubic-bezier(0, 0, 0, 0)',
+                                    'cubic-bezier(1, 1, 1, 1)' ];
+  test(function(t) {
+    linearEquivalentEasings.forEach(linearEquivalentEasing => {
+      const timing = { duration: 1000,
+                       fill: 'forwards',
+                       easing: params.easing };
+
+      const linearTarget = createDiv(t);
+      const linearAnim = linearTarget.animate([ { width: '0px' },
+                                                { width: '100px' } ],
+                                              timing);
+
+      const equivalentTarget = createDiv(t);
+      const equivalentAnim =
+        equivalentTarget.animate([ { width: '0px',
+                                     easing: linearEquivalentEasing },
+                                   { width: '100px' } ],
+                                 timing);
+
+      [ 0, 250, 500, 750, 1000 ].forEach(sampleTime => {
+        linearAnim.currentTime = sampleTime;
+        equivalentAnim.currentTime = sampleTime;
+
+        assert_equals(getComputedStyle(linearTarget).width,
+                      getComputedStyle(equivalentTarget).width,
+                      `The 'width' of the animated elements should be equal ` +
+                      `at ${sampleTime}ms`);
+      });
+    });
+  }, 'Linear-equivalent cubic-bezier keyframe easing applied to an effect ' +
+     `with a ${params.desc} does not alter the result`);
+});
+
+// Test that different easing functions correctly handle inputs outside the
+// range [0, 1]. This only occurs when we have an easing specified on the
+// effect that produces a value outside [0, 1] which we then pass to an easing
+// on a keyframe.
+
+function assert_style_left_at(animation, time, easingFunction) {
+  animation.currentTime = time;
+  var portion = time / animation.effect.timing.duration;
+  assert_approx_equals(pxToNum(getComputedStyle(animation.effect.target).left),
+                       easingFunction(portion) * 100,
+                       0.01,
+                       'The left of the animation should be approximately ' +
+                       easingFunction(portion) * 100 + ' at ' + time + 'ms');
+}
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate([ { left: '0px', easing: 'step-start' },
+                              { left: '100px' } ],
+                            { duration: 1000,
+                              fill: 'forwards',
+                              easing: 'cubic-bezier(0, 1.5, 1, 1.5)' });
+
+  // The bezier function produces values greater than 1 (but always less than 2)
+  // in (0.23368794, 1)
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(target).left, '100px');
+  anim.currentTime = 230;
+  assert_equals(getComputedStyle(target).left, '100px');
+  anim.currentTime = 250;
+  assert_equals(getComputedStyle(target).left, '200px');
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(target).left, '100px');
+}, 'step-start easing with input progress greater than 1');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate([ { left: '0px', easing: 'step-end' },
+                              { left: '100px' } ],
+                            { duration: 1000,
+                              fill: 'forwards',
+                              easing: 'cubic-bezier(0, 1.5, 1, 1.5)' });
+
+  // The bezier function produces values greater than 1 (but always less than 2)
+  // in (0.23368794, 1)
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 230;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 250;
+  assert_equals(getComputedStyle(target).left, '100px');
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(target).left, '100px');
+}, 'step-end easing with input progress greater than 1');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate([ { left: '0px', easing: 'step-end' },
+                              { left: '100px' } ],
+                            { duration: 1000,
+                              fill: 'forwards',
+                              easing: 'cubic-bezier(0, 3, 1, 3)' });
+
+  // The bezier function produces values greater than 2 (but always less than 3)
+  // in the range (~0.245, ~0.882)
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(target).left, '200px');
+  anim.currentTime = 900;
+  assert_equals(getComputedStyle(target).left, '100px');
+}, 'step-end easing with input progress greater than 2');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate([ { left: '0px', easing: 'step-start' },
+                              { left: '100px' } ],
+                            { duration: 1000,
+                              fill: 'forwards',
+                              easing: 'cubic-bezier(0, -0.5, 1, -0.5)' });
+
+  // The bezier function produces negative values (but always greater than -1)
+  // in (0, 0.766312060)
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(target).left, '100px');
+  anim.currentTime = 750;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 800;
+  assert_equals(getComputedStyle(target).left, '100px');
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(target).left, '100px');
+}, 'step-start easing with input progress less than 0');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate([ { left: '0px', easing: 'step-start' },
+                              { left: '100px' } ],
+                            { duration: 1000,
+                              fill: 'forwards',
+                              easing: 'cubic-bezier(0, -2, 1, -2)' });
+
+  // The bezier function produces values less than -1 (but always greater than
+  // -2) in the range (~0.118, ~0.755)
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(target).left, '100px');
+  anim.currentTime = 100;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(target).left, '-100px');
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(target).left, '100px');
+}, 'step-start easing with input progress less than -1');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate([ { left: '0px', easing: 'step-end' },
+                              { left: '100px' } ],
+                            { duration: 1000,
+                              fill: 'forwards',
+                              easing: 'cubic-bezier(0, -0.5, 1, -0.5)' });
+
+  // The bezier function produces negative values (but always greater than -1)
+  // in (0, 0.766312060)
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 750;
+  assert_equals(getComputedStyle(target).left, '-100px');
+  anim.currentTime = 800;
+  assert_equals(getComputedStyle(target).left, '0px');
+  anim.currentTime = 1000;
+  assert_equals(getComputedStyle(target).left, '100px');
+}, 'step-end easing with input progress less than 0');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate(
+    // http://cubic-bezier.com/#.5,1,.5,0
+    [ { left: '0px', easing: 'cubic-bezier(0.5, 1, 0.5, 0)' },
+      { left: '100px' } ],
+      { duration: 1000,
+        fill: 'forwards',
+        easing: 'cubic-bezier(0, 1.5, 1, 1.5)' });
+  var keyframeEasing = function(x) {
+    assert_greater_than_equal(x, 0.0,
+      'This function should be called in [0, 1.0] range');
+    assert_less_than_equal(x, 1.0,
+      'This function should be called in [0, 1.0] range');
+    return cubicBezier(0.5, 1, 0.5, 0)(x);
+  }
+  var keyframeEasingExtrapolated = function(x) {
+    assert_greater_than(x, 1.0,
+      'This function should be called in (1.0, infinity) range');
+    // p3x + (p2y - p3y) / (p2x - p3x) * (x - p3x)
+    return 1.0 + (0 - 1) / (0.5 - 1) * (x - 1.0);
+  }
+  var effectEasing = function(x) {
+    return cubicBezier(0, 1.5, 1, 1.5)(x);
+  }
+
+  // The effect-easing produces values greater than 1 in (0.23368794, 1)
+  assert_style_left_at(anim, 0, function(x) {
+    return keyframeEasing(effectEasing(x));
+  });
+  assert_style_left_at(anim, 230, function(x) {
+    return keyframeEasing(effectEasing(x));
+  });
+  assert_style_left_at(anim, 240, function(x) {
+    return keyframeEasingExtrapolated(effectEasing(x));
+  });
+  // Near the extreme point of the effect-easing function
+  assert_style_left_at(anim, 700, function(x) {
+    return keyframeEasingExtrapolated(effectEasing(x));
+  });
+  assert_style_left_at(anim, 990, function(x) {
+    return keyframeEasingExtrapolated(effectEasing(x));
+  });
+  assert_style_left_at(anim, 1000, function(x) {
+    return keyframeEasing(effectEasing(x));
+  });
+}, 'cubic-bezier easing with input progress greater than 1');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate(
+    // http://cubic-bezier.com/#0,1.5,1,1.5
+    [ { left: '0px', easing: 'cubic-bezier(0, 1.5, 1, 1.5)' },
+      { left: '100px' } ],
+      { duration: 1000,
+        fill: 'forwards',
+        easing: 'cubic-bezier(0, 1.5, 1, 1.5)' });
+  var easing = function(x) {
+    assert_greater_than_equal(x, 0.0,
+      'This function should be called in [0, 1.0] range');
+    assert_less_than_equal(x, 1.0,
+      'This function should be called in [0, 1.0] range');
+    return cubicBezier(0, 1.5, 1, 1.5)(x);
+  }
+  var easingExtrapolated = function(x) {
+    assert_greater_than(x, 1.0,
+      'This function should be called in negative range');
+    // For cubic-bezier(0, 1.5, 1, 1.5), the tangent at the
+    // endpoint (x = 1.0) is infinity so we should just return 1.0.
+    return 1.0;
+  }
+
+  // The effect-easing produces values greater than 1 in (0.23368794, 1)
+  assert_style_left_at(anim, 0, function(x) {
+    return easing(easing(x))
+  });
+  assert_style_left_at(anim, 230, function(x) {
+    return easing(easing(x))
+  });
+  assert_style_left_at(anim, 240, function(x) {
+    return easingExtrapolated(easing(x));
+  });
+  // Near the extreme point of the effect-easing function
+  assert_style_left_at(anim, 700, function(x) {
+    return easingExtrapolated(easing(x));
+  });
+  assert_style_left_at(anim, 990, function(x) {
+    return easingExtrapolated(easing(x));
+  });
+  assert_style_left_at(anim, 1000, function(x) {
+    return easing(easing(x))
+  });
+}, 'cubic-bezier easing with input progress greater than 1 and where the ' +
+   'tangent on the upper boundary is infinity');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate(
+    // http://cubic-bezier.com/#.5,1,.5,0
+    [ { left: '0px', easing: 'cubic-bezier(0.5, 1, 0.5, 0)' },
+      { left: '100px' } ],
+      { duration: 1000,
+        fill: 'forwards',
+        easing: 'cubic-bezier(0, -0.5, 1, -0.5)' });
+  var keyframeEasing = function(x) {
+    assert_greater_than_equal(x, 0.0,
+      'This function should be called in [0, 1.0] range');
+    assert_less_than_equal(x, 1.0,
+      'This function should be called in [0, 1.0] range');
+    return cubicBezier(0.5, 1, 0.5, 0)(x);
+  }
+  var keyframeEasingExtrapolated = function(x) {
+    assert_less_than(x, 0.0,
+      'This function should be called in negative range');
+    // p0x + (p1y - p0y) / (p1x - p0x) * (x - p0x)
+    return (1 / 0.5) * x;
+  }
+  var effectEasing = function(x) {
+    return cubicBezier(0, -0.5, 1, -0.5)(x);
+  }
+
+  // The effect-easing produces negative values in (0, 0.766312060)
+  assert_style_left_at(anim, 0, function(x) {
+    return keyframeEasing(effectEasing(x));
+  });
+  assert_style_left_at(anim, 10, function(x) {
+    return keyframeEasingExtrapolated(effectEasing(x));
+  });
+  // Near the extreme point of the effect-easing function
+  assert_style_left_at(anim, 300, function(x) {
+    return keyframeEasingExtrapolated(effectEasing(x));
+  });
+  assert_style_left_at(anim, 750, function(x) {
+    return keyframeEasingExtrapolated(effectEasing(x));
+  });
+  assert_style_left_at(anim, 770, function(x) {
+    return keyframeEasing(effectEasing(x));
+  });
+  assert_style_left_at(anim, 1000, function(x) {
+    return keyframeEasing(effectEasing(x));
+  });
+}, 'cubic-bezier easing with input progress less than 0');
+
+test(function(t) {
+  var target = createDiv(t);
+  target.style.position = 'absolute';
+  var anim = target.animate(
+    // http://cubic-bezier.com/#0,-0.5,1,-0.5
+    [ { left: '0px', easing: 'cubic-bezier(0, -0.5, 1, -0.5)' },
+      { left: '100px' } ],
+      { duration: 1000,
+        fill: 'forwards',
+        easing: 'cubic-bezier(0, -0.5, 1, -0.5)' });
+  var easing = function(x) {
+    assert_greater_than_equal(x, 0.0,
+      'This function should be called in [0, 1.0] range');
+    assert_less_than_equal(x, 1.0,
+      'This function should be called in [0, 1.0] range');
+    return cubicBezier(0, -0.5, 1, -0.5)(x);
+  }
+  var easingExtrapolated = function(x) {
+    assert_less_than(x, 0.0,
+      'This function should be called in negative range');
+    // For cubic-bezier(0, -0.5, 1, -0.5), the tangent at the
+    // endpoint (x = 0.0) is infinity so we should just return 0.0.
+    return 0.0;
+  }
+
+  // The effect-easing produces negative values in (0, 0.766312060)
+  assert_style_left_at(anim, 0, function(x) {
+    return easing(easing(x))
+  });
+  assert_style_left_at(anim, 10, function(x) {
+    return easingExtrapolated(easing(x));
+  });
+  // Near the extreme point of the effect-easing function
+  assert_style_left_at(anim, 300, function(x) {
+    return easingExtrapolated(easing(x));
+  });
+  assert_style_left_at(anim, 750, function(x) {
+    return easingExtrapolated(easing(x));
+  });
+  assert_style_left_at(anim, 770, function(x) {
+    return easing(easing(x))
+  });
+  assert_style_left_at(anim, 1000, function(x) {
+    return easing(easing(x))
+  });
+}, 'cubic-bezier easing with input progress less than 0 and where the ' +
+   'tangent on the lower boundary is infinity');
+
+</script>
+</body>

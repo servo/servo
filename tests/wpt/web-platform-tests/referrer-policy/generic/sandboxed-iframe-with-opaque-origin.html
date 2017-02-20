@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Referrer Policy: Sandboxed iframes with opaque origins don't send referrers</title>
+    <link rel="author" title="Jochen Eisinger" href="mailto:jochen@chromium.org">
+    <link rel="help" href="https://www.w3.org/TR/referrer-policy/#determine-requests-referrer">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <!-- Common global functions for referrer-policy tests. -->
+    <script src="/referrer-policy/generic/common.js"></script>
+  </head>
+  <body>
+    <h1>Referrer Policy: A document with an opaque origin doesn't send referrers</h1>
+    <script>
+      function testSandboxedIframe(description, sandboxAttributes, expectedReferrer) {
+        var test = async_test(description);
+        window.addEventListener("message", test.step_func((msg) => {
+          if (msg.data.description === description) {
+            assert_equals(msg.data.referrer, expectedReferrer);
+            test.done();
+          }
+        }));
+
+        var iframe = document.createElement("iframe");
+        iframe.sandbox = sandboxAttributes;
+        iframe.srcdoc = `
+            <meta name = "referrer" content = "always">
+            <script src = "/referrer-policy/generic/common.js"></` + `script>
+            <script>
+              var urlPath = "/referrer-policy/generic/subresource/xhr.py";
+              var url = "${location.protocol}//www1.${location.hostname}:${location.port}" + urlPath;
+              queryXhr(url, (msg) => {
+                  parent.postMessage({referrer: msg.referrer, description: "${description}"}, "*")});
+            </` + "script>";
+        document.body.appendChild(iframe);
+      }
+
+      testSandboxedIframe("Sandboxed iframe with opaque origin doesn't send referrers.", "allow-scripts", undefined);
+      testSandboxedIframe("Sandboxed iframe with tuple origin sends referrers.", "allow-same-origin allow-scripts", document.location.href);
+    </script>
+
+    <div id="log"></div>
+  </body>
+</html>

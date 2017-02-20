@@ -57,9 +57,18 @@ test(function() {
       input.type = type;
       assert_equals(input.type, type, "the given input type is not supported");
 
-      assert_throws("INVALID_STATE_ERR", function() { input.select(); });
+      var selectionStartBefore = input.selectionStart;
+      var selectionEndBefore = input.selectionEnd;
+      var selectionDirectionBefore = input.selectionDirection;
 
-    }, "input type " + type + " should not support the select() method");
+      // Does not throw; see https://github.com/whatwg/html/issues/2275
+      input.select();
+
+      assert_equals(input.selectionStart, selectionStartBefore, "selectionStart must not change");
+      assert_equals(input.selectionEnd, selectionEndBefore, "selectionEnd must not change");
+      assert_equals(input.selectionDirection, selectionDirectionBefore, "selectionDirection must not change");
+
+    }, "input type " + type + " should do nothing when the select() method is called (but, not throw)");
   });
 });
 

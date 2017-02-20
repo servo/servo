@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+    <title>html-script-module-crossOrigin</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <h1>html-script-module-crossOrigin</h1>
+    <iframe id="root-NoCORS" src="crossorigin-root-different.sub.html"></iframe>
+    <iframe id="root-WithCORS" src="crossorigin-root-same.sub.html"></iframe>
+    <iframe id="root-BlockedMissingHeader" src="crossorigin-root-missingheader.sub.html"></iframe>
+    <iframe id="root-BlockedWrongHeader" src="crossorigin-root-wrongheader.sub.html"></iframe>
+    <iframe id="import-NoCORS" src="crossorigin-import-different.sub.html"></iframe>
+    <iframe id="import-WithCORS" src="crossorigin-import-same.sub.html"></iframe>
+    <iframe id="import-BlockedMissingHeader" src="crossorigin-import-missingheader.sub.html"></iframe>
+    <iframe id="import-BlockedWrongHeader" src="crossorigin-import-wrongheader.sub.html"></iframe>
+    <script>
+
+        var tests = [
+                { "obj": async_test("Root module, Error in CORS-different-origin script"), "id": "root-NoCORS", "expected": "running,0-0" },
+                { "obj": async_test("Root module, Error in CORS-same-origin script"), "id": "root-WithCORS", "expected": "running,8-1" },
+                { "obj": async_test("Root module, Blocked script download, missing CORS ACAO header"), "id": "root-BlockedMissingHeader", "expected": "error" },
+                { "obj": async_test("Root module, Blocked script download, mismatched CORS ACAO header"), "id": "root-BlockedWrongHeader", "expected": "error" },
+                { "obj": async_test("Imported module, Error in CORS-different-origin script"), "id": "import-NoCORS", "expected": "running,0-0" },
+                { "obj": async_test("Imported module, Error in CORS-same-origin script"), "id": "import-WithCORS", "expected": "running,8-1" },
+                { "obj": async_test("Imported module, Blocked script download, missing CORS ACAO header"), "id": "import-BlockedMissingHeader", "expected": "error" },
+                { "obj": async_test("Imported module, Blocked script download, mismatched CORS ACAO header"), "id": "import-BlockedWrongHeader", "expected": "error" },
+            ];
+
+        window.addEventListener("load", function () {
+            tests.forEach(function (test) {
+                var target = document.getElementById(test.id);
+                test.obj.step(function () {
+                    assert_equals(target.contentDocument._log, test.expected, "Unexpected _log value");
+                });
+                test.obj.done();
+            });
+        });
+
+    </script>
+</body>
+</html>

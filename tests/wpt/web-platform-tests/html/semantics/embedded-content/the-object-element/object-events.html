@@ -23,7 +23,7 @@ async_test(function(t) {
 
   obj.data = "file:\\http://nonexistent.html";
   document.body.appendChild(obj);
-}, "error event");
+}, "error event (using 'file:' protocol)");
 
 async_test(function(t) {
   var obj = document.createElement("object");
@@ -37,7 +37,7 @@ async_test(function(t) {
 
   obj.data = "http://test:test";
   document.body.appendChild(obj);
-}, "error event");
+}, "error event (using 'http:' protocol)");
 
 
 async_test(function(t) {

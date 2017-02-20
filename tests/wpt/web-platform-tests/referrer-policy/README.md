@@ -214,7 +214,7 @@ A single test expansion pattern, be it a requirement or a suppressed pattern, ge
 
 * Expand each field's pattern (single, any of, or all) to list of allowed values (defined by the ```test_expansion_schema```)
 
-* Permute - Recursively enumerate all **selections** accross all fields
+* Permute - Recursively enumerate all **selections** across all fields
 
 Be aware that if there is more than one pattern expanding into a same selection (which also shares the same ```name``` field), the pattern appearing later in the spec JSON will overwrite a previously generated selection. To make sure this is not undetected when generating, set the value of the ```expansion``` field to ```default``` for an expansion appearing earlier and ```override``` for the one appearing later.
 

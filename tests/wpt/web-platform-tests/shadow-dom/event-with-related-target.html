@@ -189,7 +189,7 @@
                 assert_array_equals(log.relatedTargets,
                     ['B', 'B', 'B', 'B', 'B'], 'The related targets must be correct.');
 
-            }, 'Firing an event at B1a with relatedNode at A1a with ' + mode + ' mode shadow trees');
+            }, 'Firing an event at A1a with relatedNode at B1a with ' + mode + ' mode shadow trees');
         }
 
         testEventAtA1aWithB1a('open');
@@ -218,7 +218,7 @@
                 assert_array_equals(log.relatedTargets,
                     ['A1', 'A1', 'A1', 'A1', 'A1', 'A1', 'A1', 'A1', 'A1'], 'The related targets must be correct.');
 
-            }, 'Firing an event at B1a with relatedNode at A1a with ' + mode + ' mode shadow trees');
+            }, 'Firing an event at B1a with relatedNode at A1a (detached) with ' + mode + ' mode shadow trees');
         }
 
         testEventAtB1aWithDetachedA1a('open');
@@ -245,7 +245,7 @@
                 assert_array_equals(log.eventPath,      ['A1a', 'A1-SR', 'A1'], 'The event path must be correct.');
                 assert_array_equals(log.relatedTargets, ['B',   'B',     'B' ], 'The related targets must be correct.');
 
-            }, 'Firing an event at B1a with relatedNode at A1a with ' + mode + ' mode shadow trees');
+            }, 'Firing an event at A1a with relatedNode at B1a (detached) with ' + mode + ' mode shadow trees');
         }
 
         testEventAtA1aWithDetachedB1a('open');

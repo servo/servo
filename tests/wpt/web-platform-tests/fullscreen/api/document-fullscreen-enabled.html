@@ -3,23 +3,15 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id="log"></div>
-<iframe src="blank.html"></iframe>
-<iframe allowfullscreen src="blank.html"></iframe>
+<iframe></iframe>
+<iframe allowfullscreen></iframe>
 <script>
-async_test(function(t)
+test(function()
 {
     assert_true(document.fullscreenEnabled, "top-level document");
 
     var iframes = document.getElementsByTagName("iframe");
-
-    var loaded = 0;
-    iframes[0].onload = t.step_func(function() {
-        assert_false(iframes[0].contentDocument.fullscreenEnabled, "iframe without allowfullscreen");
-        if (++loaded == 2) t.done();
-    });
-    iframes[1].onload = t.step_func(function() {
-        assert_true(iframes[1].contentDocument.fullscreenEnabled, "iframe with allowfullscreen");
-        if (++loaded == 2) t.done();
-    });
+    assert_false(iframes[0].contentDocument.fullscreenEnabled, "iframe without allowfullscreen");
+    assert_true(iframes[1].contentDocument.fullscreenEnabled, "iframe with allowfullscreen");
 });
 </script>

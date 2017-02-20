@@ -91,7 +91,6 @@ var createElementNS_tests = [
   ["http://example.com/", "a.b:c", null],
   ["http://example.com/", "a-b:c", null],
   ["http://example.com/", "xml", null],
-  ["http://example.com/", "xmlns", "NAMESPACE_ERR"],
   ["http://example.com/", "XMLNS", null],
   ["http://example.com/", "xmlfoo", null],
   ["http://example.com/", "xml:foo", "NAMESPACE_ERR"],

@@ -14,7 +14,7 @@
     <script>
     var tests = [
       {
-        name: 'RequestCache "default" mode with an If-Modified-Since header is treated similarly to "no-store"',
+        name: 'RequestCache "default" mode with an If-Modified-Since header (following a request without additional headers) is treated similarly to "no-store"',
         state: "stale",
         request_cache: ["default", "default"],
         request_headers: [{}, {"If-Modified-Since": now.toGMTString()}],
@@ -22,7 +22,7 @@
         expected_no_cache_headers: [false, true],
       },
       {
-        name: 'RequestCache "default" mode with an If-Modified-Since header is treated similarly to "no-store"',
+        name: 'RequestCache "default" mode with an If-Modified-Since header (following a request without additional headers) is treated similarly to "no-store"',
         state: "fresh",
         request_cache: ["default", "default"],
         request_headers: [{}, {"If-Modified-Since": now.toGMTString()}],
@@ -46,7 +46,7 @@
         expected_no_cache_headers: [true, false],
       },
       {
-        name: 'RequestCache "default" mode with an If-None-Match header is treated similarly to "no-store"',
+        name: 'RequestCache "default" mode with an If-None-Match header (following a request without additional headers) is treated similarly to "no-store"',
         state: "stale",
         request_cache: ["default", "default"],
         request_headers: [{}, {"If-None-Match": '"foo"'}],
@@ -54,7 +54,7 @@
         expected_no_cache_headers: [false, true],
       },
       {
-        name: 'RequestCache "default" mode with an If-None-Match header is treated similarly to "no-store"',
+        name: 'RequestCache "default" mode with an If-None-Match header (following a request without additional headers) is treated similarly to "no-store"',
         state: "fresh",
         request_cache: ["default", "default"],
         request_headers: [{}, {"If-None-Match": '"foo"'}],
@@ -78,7 +78,7 @@
         expected_no_cache_headers: [true, false],
       },
       {
-        name: 'RequestCache "default" mode with an If-Unmodified-Since header is treated similarly to "no-store"',
+        name: 'RequestCache "default" mode with an If-Unmodified-Since header (following a request without additional headers) is treated similarly to "no-store"',
         state: "stale",
         request_cache: ["default", "default"],
         request_headers: [{}, {"If-Unmodified-Since": now.toGMTString()}],
@@ -86,7 +86,7 @@
         expected_no_cache_headers: [false, true],
       },
       {
-        name: 'RequestCache "default" mode with an If-Unmodified-Since header is treated similarly to "no-store"',
+        name: 'RequestCache "default" mode with an If-Unmodified-Since header (following a request without additional headers) is treated similarly to "no-store"',
         state: "fresh",
         request_cache: ["default", "default"],
         request_headers: [{}, {"If-Unmodified-Since": now.toGMTString()}],
@@ -110,7 +110,7 @@
         expected_no_cache_headers: [true, false],
       },
       {
-        name: 'RequestCache "default" mode with an If-Match header is treated similarly to "no-store"',
+        name: 'RequestCache "default" mode with an If-Match header (following a request without additional headers) is treated similarly to "no-store"',
         state: "stale",
         request_cache: ["default", "default"],
         request_headers: [{}, {"If-Match": '"foo"'}],
@@ -118,7 +118,7 @@
         expected_no_cache_headers: [false, true],
       },
       {
-        name: 'RequestCache "default" mode with an If-Match header is treated similarly to "no-store"',
+        name: 'RequestCache "default" mode with an If-Match header (following a request without additional headers) is treated similarly to "no-store"',
         state: "fresh",
         request_cache: ["default", "default"],
         request_headers: [{}, {"If-Match": '"foo"'}],
@@ -142,7 +142,7 @@
         expected_no_cache_headers: [true, false],
       },
       {
-        name: 'RequestCache "default" mode with an If-Range header is treated similarly to "no-store"',
+        name: 'RequestCache "default" mode with an If-Range header (following a request without additional headers) is treated similarly to "no-store"',
         state: "stale",
         request_cache: ["default", "default"],
         request_headers: [{}, {"If-Range": '"foo"'}],
@@ -150,7 +150,7 @@
         expected_no_cache_headers: [false, true],
       },
       {
-        name: 'RequestCache "default" mode with an If-Range header is treated similarly to "no-store"',
+        name: 'RequestCache "default" mode with an If-Range header (following a request without additional headers) is treated similarly to "no-store"',
         state: "fresh",
         request_cache: ["default", "default"],
         request_headers: [{}, {"If-Range": '"foo"'}],

@@ -24,7 +24,7 @@
                     db.createObjectStore(store_name, { keyPath: keypath })
                 }, "createObjectStore with keyPath");
 
-            store = db.createObjectStore(store_name);
+            var store = db.createObjectStore(store_name);
             assert_throws('SyntaxError', function() {
                     store.createIndex('index', keypath);
                 }, "createIndex with keyPath");

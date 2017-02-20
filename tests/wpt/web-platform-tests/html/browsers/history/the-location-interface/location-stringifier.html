@@ -8,4 +8,17 @@
 <div id=log></div>
 <script>
 test_stringifier_attribute(location, "href", true);
+
+test(function() {
+  const prop1 = Object.getOwnPropertyDescriptor(location, "toString"),
+        prop2 = Object.getOwnPropertyDescriptor(location, "href")
+
+  assert_true(prop1.enumerable)
+  assert_false(prop1.writable)
+  assert_false(prop1.configurable)
+
+  assert_true(prop2.enumerable)
+  assert_false(prop2.configurable)
+  assert_equals(typeof prop2.get, "function")
+})
 </script>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animatable.getAnimations tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animatable-getanimations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<script>
+'use strict';
+
+test(function(t) {
+  var div = createDiv(t);
+  assert_array_equals(div.getAnimations(), []);
+}, 'Test getAnimations on element with no animations');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animationA = div.animate(null, 100 * MS_PER_SEC);
+  var animationB = div.animate(null, 100 * MS_PER_SEC);
+  assert_array_equals(div.getAnimations(), [animationA, animationB]);
+}, 'Test getAnimations on element with two animations');
+
+test(function(t) {
+  var divA = createDiv(t);
+  var divB = createDiv(t);
+  var animationA = divA.animate(null, 100 * MS_PER_SEC);
+  var animationB = divB.animate(null, 100 * MS_PER_SEC);
+  assert_array_equals(divA.getAnimations(), [animationA], 'divA');
+  assert_array_equals(divB.getAnimations(), [animationB], 'divB');
+}, 'Test getAnimations on separate elements with separate animations');
+
+test(function(t) {
+  var divParent = createDiv(t);
+  var divChild = createDiv(t);
+  divParent.appendChild(divChild);
+  var animationParent = divParent.animate(null, 100 * MS_PER_SEC);
+  var animationChild = divChild.animate(null, 100 * MS_PER_SEC);
+  assert_array_equals(divParent.getAnimations(), [animationParent], 'divParent');
+  assert_array_equals(divChild.getAnimations(), [animationChild], 'divChild');
+}, 'Test getAnimations on parent and child elements with separate animations');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate(null, 100 * MS_PER_SEC);
+  animation.finish();
+  assert_array_equals(div.getAnimations(), []);
+}, 'Test getAnimations on element with finished fill none animation');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    fill: 'forwards',
+  });
+  animation.finish();
+  assert_array_equals(div.getAnimations(), [animation]);
+}, 'Test getAnimations on element with finished fill forwards animation');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate(null, {
+    duration: 100 * MS_PER_SEC,
+    delay: 100 * MS_PER_SEC,
+  });
+  assert_array_equals(div.getAnimations(), [animation]);
+}, 'Test getAnimations on element with delayed animation');
+
+</script>
+</body>

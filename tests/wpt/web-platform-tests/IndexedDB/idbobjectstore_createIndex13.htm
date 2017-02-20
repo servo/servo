@@ -19,7 +19,7 @@
 
     open_rq.onsuccess = function (event) {
         var txn = db.transaction("store", "readwrite");
-        ostore = txn.objectStore("store");
+        var ostore = txn.objectStore("store");
         t.step(function(){
             assert_throws("InvalidStateError", function(){
                 ostore.createIndex("index", "indexedProperty");

@@ -40,6 +40,14 @@
     test(function() {
         assert_false('createFor' in URL);
     }, 'createFor method should not be supported');
+
+    test(function() {
+        var b = new Blob();
+        assert_false('close' in b, 'close in b');
+        assert_false('close' in Blob.prototype, 'close in Blob.prototype');
+        assert_false('isClosed' in b, 'isClosed in b');
+        assert_false('isClosed' in Blob.prototype, 'isClosed in Blob.prototype');
+    }, 'Blob.close() should not be supported');
   </script>
  </body>
 </html>

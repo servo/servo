@@ -44,7 +44,8 @@ for (var property in gCSSProperties) {
                           ' should have testInterpolation property');
       assert_equals(typeof typeObject.testInterpolation, 'function',
                     'testInterpolation method should be a function');
-    }, animationTypeString + ' has testInterpolation function');
+    }, property + ' (type: ' + animationTypeString +
+       ') has testInterpolation function');
 
     if (typeObject.testInterpolation &&
         typeof typeObject.testInterpolation === 'function') {

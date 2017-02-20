@@ -2673,20 +2673,31 @@ policies and contribution forms [3].
     var tests = new Tests();
 
     var error_handler = function(e) {
+        if (tests.tests.length === 0 && !tests.allow_uncaught_exception) {
+            tests.set_file_is_test();
+        }
+
+        var stack;
+        if (e.error && e.error.stack) {
+            stack = e.error.stack;
+        } else {
+            stack = e.filename + ":" + e.lineno + ":" + e.colno;
+        }
+
         if (tests.file_is_test) {
             var test = tests.tests[0];
             if (test.phase >= test.phases.HAS_RESULT) {
                 return;
             }
-            test.set_status(test.FAIL, e.message, e.stack);
+            test.set_status(test.FAIL, e.message, stack);
             test.phase = test.phases.HAS_RESULT;
             test.done();
-            done();
         } else if (!tests.allow_uncaught_exception) {
             tests.status.status = tests.status.ERROR;
             tests.status.message = e.message;
-            tests.status.stack = e.stack;
+            tests.status.stack = stack;
         }
+        done();
     };
 
     addEventListener("error", error_handler, false);

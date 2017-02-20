@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Submitting a form data set that contains unpaired surrogates must convert to Unicode scalar values</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#constructing-form-data-set">
+<link rel="help" href="https://github.com/whatwg/html/issues/1490">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<iframe id="testframe" src="form-data-set-usv-form.html"></iframe>
+
+<script>
+"use strict";
+
+async_test(t => {
+  window.onload = t.step_func(() => {
+    const iframe = document.querySelector("#testframe");
+    const form = iframe.contentWindow.document.querySelector("form");
+
+    iframe.onload = t.step_func_done(() => {
+      const result = iframe.contentWindow.document.body.textContent;
+
+      assert_equals(result,
+        "69 6e 70 75 74 31 ef bf bd 3d 69 6e 70 75 74 31 ef bf bd " + // input1\uFFFD=input1\uFFFD
+        "0d 0a "                                                    + // \r\n
+        "69 6e 70 75 74 32 ef bf bd 3d 69 6e 70 75 74 32 ef bf bd " + // input2\uFFFD=input2\uFFFD
+        "0d 0a "                                                    + // \r\n
+        "69 6e 70 75 74 33 ef bf bd 3d 69 6e 70 75 74 33 ef bf bd " + // input3\uFFFD=input3\uFFFD
+        "0d 0a "                                                    + // \r\n
+        "69 6e 70 75 74 34 ef bf bd 3d 69 6e 70 75 74 34 ef bf bd " + // input4\uFFFD=input4\uFFFD
+        "0d 0a"                                                       // \r\n
+      );
+
+      // ef bf bd is the UTF-8 encoding of U+FFFD
+    });
+
+    form.submit();
+  });
+});
+</script>

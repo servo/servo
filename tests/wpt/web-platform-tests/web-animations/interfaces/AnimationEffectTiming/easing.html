@@ -5,11 +5,16 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
-<script src="../../resources/effect-easing-tests.js"></script>
+<script src="../../resources/easing-tests.js"></script>
 <body>
 <div id="log"></div>
 <script>
 'use strict';
+
+test(function(t) {
+  var anim = createDiv(t).animate(null);
+  assert_equals(anim.effect.timing.easing, 'linear');
+}, 'Test default value');
 
 function assert_progress(animation, currentTime, easingFunction) {
   animation.currentTime = currentTime;
@@ -21,7 +26,7 @@ function assert_progress(animation, currentTime, easingFunction) {
                        easingFunction(portion) + ' at ' + currentTime + 'ms');
 }
 
-gEffectEasingTests.forEach(function(options) {
+gEasingTests.forEach(function(options) {
   test(function(t) {
     var target = createDiv(t);
     var anim = target.animate([ { opacity: 0 }, { opacity: 1 } ],
@@ -40,15 +45,15 @@ gEffectEasingTests.forEach(function(options) {
   }, options.desc);
 });
 
-gInvalidEasingTests.forEach(function(options) {
+gInvalidEasings.forEach(function(invalidEasing) {
   test(function(t) {
     var div = createDiv(t);
     var anim = div.animate({ opacity: [ 0, 1 ] }, 100 * MS_PER_SEC);
     assert_throws({ name: 'TypeError' },
                   function() {
-                    anim.effect.timing.easing = options.easing;
+                    anim.effect.timing.easing = invalidEasing;
                   });
-  }, 'Invalid effect easing value test: \'' + options.easing + '\'');
+  }, 'Invalid effect easing value test: \'' + invalidEasing + '\'');
 });
 
 test(function(t) {

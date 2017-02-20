@@ -958,3 +958,22 @@ function setSelectionBackwards(endpoints) {
         selection.extend(endpoints[0], endpoints[1]);
     }
 }
+
+/**
+ * Verify that the specified func doesn't change the selection.
+ * This function should be used in testharness tests.
+ */
+function assertSelectionNoChange(func) {
+    var originalCount = getSelection().rangeCount;
+    var originalRange = originalCount == 0 ? null : selection.getRangeAt(0);
+
+    func();
+
+    assert_equals(selection.rangeCount, originalCount,
+        "The operation should not add Range");
+    if (originalCount < 1)
+        return;
+    assert_equals(selection.getRangeAt(0), originalRange,
+         "The operation should not replace a registered Range");
+}
+

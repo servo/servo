@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Media Session IDL tests</title>
+<link rel="help" href="https://wicg.github.io/mediasession/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+</head>
+<body>
+<h1>Media Session IDL tests</h1>
+
+<pre id='untested_idl' style='display:none'>
+[PrimaryGlobal]
+interface Window {
+};
+
+interface Navigator {
+};
+</pre>
+
+<pre id='idl'>
+[Exposed=Window]
+partial interface Navigator {
+  [SameObject] readonly attribute MediaSession mediaSession;
+};
+
+enum MediaSessionPlaybackState {
+  "none",
+  "paused",
+  "playing"
+};
+
+enum MediaSessionAction {
+  "play",
+  "pause",
+  "seekbackward",
+  "seekforward",
+  "previoustrack",
+  "nexttrack",
+};
+
+callback MediaSessionActionHandler = void();
+
+[Exposed=Window]
+interface MediaSession {
+  attribute MediaMetadata? metadata;
+
+  attribute MediaSessionPlaybackState playbackState;
+
+  void setActionHandler(MediaSessionAction action, MediaSessionActionHandler? handler);
+};
+
+[Constructor(optional MediaMetadataInit init), Exposed=Window]
+interface MediaMetadata {
+  attribute DOMString title;
+  attribute DOMString artist;
+  attribute DOMString album;
+  attribute FrozenArray<MediaImage> artwork;
+};
+
+dictionary MediaMetadataInit {
+  DOMString title = "";
+  DOMString artist = "";
+  DOMString album = "";
+  sequence<MediaImage> artwork = [];
+};
+
+dictionary MediaImage {
+  required USVString src;
+  DOMString sizes = "";
+  DOMString type = "";
+};
+</pre>
+<script>
+var idl_array = new IdlArray();
+idl_array.add_untested_idls(document.getElementById("untested_idl").textContent);
+idl_array.add_idls(document.getElementById("idl").textContent);
+idl_array.add_objects({
+  MediaMetadata: [new MediaMetadata()],
+  Navigator: ["navigator"]
+});
+idl_array.test();
+</script>
+<div id="log"></div>
+</body>
+</html>

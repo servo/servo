@@ -14,7 +14,7 @@ window.auxClick1Happened = false;
 window.auxClick2Happened = false;
 
 test(() => {
-  for (const location of [window, HTMLElement.prototype, SVGElement.prototype, Document.prototype]) {
+  for (var location of [window, HTMLElement.prototype, SVGElement.prototype, Document.prototype]) {
     assert_true(location.hasOwnProperty("onauxclick"),
       `${location.constructor.name} has an own property named "onauxclick"`);
   }
@@ -24,7 +24,7 @@ test(() => {
   const htmlElement = document.createElement("span");
   const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
-  for (const location of [window, htmlElement, svgElement, document]) {
+  for (var location of [window, htmlElement, svgElement, document]) {
     assert_equals(location.onauxclick, null,
       `The default value of the property is null for a ${location.constructor.name} instance`);
   }

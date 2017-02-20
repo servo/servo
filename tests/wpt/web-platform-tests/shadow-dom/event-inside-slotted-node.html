@@ -240,8 +240,8 @@
                 assert_array_equals(log[10], [shadow.upperShadow, shadow.lowerShadow.host], 'EventPath[10] must be the upper shadow root');
                 assert_array_equals(log[11], [shadow.upperShadow.host, shadow.lowerShadow.host], 'EventPath[11] must be the host');
 
-            }, 'Firing an event on a node with two ancestors with a detached ' + outerUpperMode + ' and ' + outerLowerMode
-                + ' shadow trees with an inner ' + innerMode + ' shadow tree');
+            }, 'Firing an event on a node within a ' + innerMode + ' shadow tree that is itself a ' + outerLowerMode
+                + ' shadow tree (the latter being the descendent of a host for a separate ' + outerUpperMode + ' shadow tree)');
         }
 
         testEventInsideNestedShadowsUnderAnotherShadow('open', 'open', 'open');

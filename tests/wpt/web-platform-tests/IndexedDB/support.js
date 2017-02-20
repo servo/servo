@@ -82,7 +82,7 @@ function createdb_for_multiple_tests(dbname, version) {
         })
     }
 
-    // add a .setTest method to the DB object
+    // add a .setTest method to the IDBOpenDBRequest object
     Object.defineProperty(rq_open, 'setTest', {
         enumerable: false,
         value: function(t) {
@@ -101,7 +101,7 @@ function createdb_for_multiple_tests(dbname, version) {
 }
 
 function assert_key_equals(actual, expected, description) {
-    assert_equals(indexedDB.cmp(actual, expected), 0, description);
+  assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
 function indexeddb_test(upgrade_func, open_func, description, options) {

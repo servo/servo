@@ -12,7 +12,12 @@ body { margin:0 }
 </style>
 <script src="/common/reftest-wait.js"></script>
 <script>
+    var i = 0;
     function updateCue() {
+        i++;
+        if (i !== 2) {
+            return;
+        }
         var t = document.getElementById('track');
         var c = t.track.cues[0];
         c.line = 0;
@@ -23,15 +28,15 @@ body { margin:0 }
         v.onplaying = function() {
             this.onplaying = null;
             this.pause();
-            takeScreenshot();
+            takeScreenshotDelayed(1000);
         };
         v.play();
     }
 </script>
-<video id="video" width="1280" height="720" autoplay onplaying="this.onplaying = null; this.pause(); updateCue();">
+<video id="video" width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); updateCue();">
     <source src="/media/white.webm" type="video/webm">
     <source src="/media/white.mp4" type="video/mp4">
-    <track id="track" src="support/test.vtt">
+    <track id="track" src="support/test.vtt" onload="updateCue();">
     <script>
     document.getElementsByTagName('track')[0].track.mode = 'showing';
     </script>

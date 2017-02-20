@@ -1,4 +1,4 @@
-importScripts('get-host-info.sub.js');
+importScripts('/common/get-host-info.sub.js');
 
 var worker_text = 'postMessage("worker loading intercepted by service worker"); ';
 

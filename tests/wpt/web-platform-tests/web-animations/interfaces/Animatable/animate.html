@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
+<script src="../../resources/easing-tests.js"></script>
 <script src="../../resources/keyframe-utils.js"></script>
 <body>
 <div id="log"></div>
@@ -94,6 +95,15 @@ gInvalidKeyframesTests.forEach(function(subtest) {
       div.animate(subtest.input, 2000);
     });
   }, 'Element.animate() does not accept ' + subtest.desc);
+});
+
+gInvalidEasings.forEach(invalidEasing => {
+  test(function(t) {
+    var div = createDiv(t);
+    assert_throws(new TypeError, () => {
+      div.animate({ easing: invalidEasing }, 2000);
+    });
+  }, `Element.animate() does not accept invalid easing: '${invalidEasing}'`);
 });
 
 test(function(t) {

@@ -61,5 +61,17 @@ test(function(t) {
                      'Animation has a unresolved start time');
 }, 'The current time is calculated from the timeline time, start time and ' +
    'playback rate');
+
+promise_test(function(t) {
+  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  animation.playbackRate = 0;
+
+  return animation.ready.then(function() {
+    return waitForAnimationFrames(1);
+  }).then(function() {
+    assert_times_equal(animation.currentTime, 0);
+  });
+}, 'The current time does not progress if playback rate is 0');
+
 </script>
 </body>

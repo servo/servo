@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script>
+    var t = async_test('Makes sure link preload preloaded resources are delaying onload after discovery');
+</script>
+<link rel=preload href="resources/dummy.js?pipe=trickle(d5)" as=script>
+<link rel=preload href="resources/square.png?pipe=trickle(d5)" as=image>
+<body>
+<script>
+    window.addEventListener("load", t.step_func(function() {
+        verifyPreloadAndRTSupport();
+        verifyNumberOfDownloads("resources/dummy.js?pipe=trickle(d5)", 1);
+        verifyNumberOfDownloads("resources/square.png?pipe=trickle(d5)", 1);
+        t.done();
+    }));
+    var script = document.createElement("script");
+    script.src = "resources/dummy.js?pipe=trickle(d5)";
+    document.body.appendChild(script);
+    var img = new Image();
+    img.src = "resources/square.png?pipe=trickle(d5)";
+</script>

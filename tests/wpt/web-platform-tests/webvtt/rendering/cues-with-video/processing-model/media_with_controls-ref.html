@@ -5,9 +5,10 @@
 .video {
     display: inline-block;
     position: absolute;
-    width: 1280px;
-    height: 720px;
-    outline: solid
+    width: 320px;
+    height: 180px;
+    outline: solid;
+    font-size: 9px;
 }
 .cue {
     position: absolute;
@@ -15,18 +16,17 @@
     left: 0;
     right: 0;
     text-align: center;
-    padding-bottom: 36px
+    padding-bottom: 9px;
 }
 .cue > span {
     font-family: Ahem, sans-serif;
     background: rgba(0,0,0,0.8);
     color: green;
-    font-size: 36px
 }
 </style>
 <script src="/common/reftest-wait.js"></script>
 <div class="video"><span class="cue"><span>This is a test subtitle</span></span></div>
-<video width="1280" height="720" autoplay controls onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+<video width="320" height="180" autoplay controls onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
     <source src="/media/white.webm" type="video/webm">
     <source src="/media/white.mp4" type="video/mp4">
     <track>

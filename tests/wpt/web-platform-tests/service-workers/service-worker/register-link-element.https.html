@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script src="resources/registration-tests.js"></script>
+<body>
+<script>
+
+function registerUsingLink(script, options) {
+  var scope = options.scope;
+  var link = document.createElement('link');
+  link.setAttribute('rel', 'serviceworker');
+  link.setAttribute('href', script);
+  link.setAttribute('scope', scope);
+  document.getElementsByTagName('head')[0].appendChild(link);
+  return new Promise(function(resolve, reject) {
+        link.onload = resolve;
+        link.onerror = reject;
+      })
+    .then(() => navigator.serviceWorker.getRegistration(scope));
+}
+
+registration_tests(registerUsingLink, false);
+
+</script>

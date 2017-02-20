@@ -59,13 +59,15 @@ test(function(t) {
   assert_throws(new TypeError, function() {
     createDiv(t).animate(null, { spacing: 'paced(.margin)' });
   });
-}, 'Test throwing TypeError if using a non-ident started string');
+}, 'Test throwing TypeError if using a non-ident started string with ' +
+   'a period');
 
 test(function(t) {
   assert_throws(new TypeError, function() {
     createDiv(t).animate(null, { spacing: 'paced(1margin)' });
   });
-}, 'Test throwing TypeError if using a non-ident started string');
+}, 'Test throwing TypeError if using a non-ident started string with ' +
+   'a number');
 
 test(function(t) {
   assert_throws(new TypeError, function() {

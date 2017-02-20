@@ -44,7 +44,8 @@ for (var property in gCSSProperties) {
                           ' should have testAddition property');
       assert_equals(typeof typeObject.testAddition, 'function',
                     'testAddition method should be a function');
-    }, animationTypeString + ' has testAddition function');
+    }, property + ' (type: ' + animationTypeString +
+       ') has testAddition function');
 
     if (typeObject.testAddition &&
         typeof typeObject.testAddition === 'function') {

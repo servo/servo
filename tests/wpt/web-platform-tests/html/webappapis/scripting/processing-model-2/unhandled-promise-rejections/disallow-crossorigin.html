@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cors/support.js?pipe=sub"></script>
+<link rel="help" href="https://html.spec.whatwg.org/#unhandled-promise-rejections">
+<link rel="help" href="https://html.spec.whatwg.org/#muted-errors">
+
+<body>
+<script>
+'use strict';
+
+(function() {
+  var resolveLoaded;
+  var loadedPromise = new Promise(function(resolve) { resolveLoaded = resolve; });
+
+  async_test(function(t) {
+    addEventListener('unhandledrejection', t.unreached_func('unhandledrejection event should never be triggered'));
+    addEventListener('rejectionhandled', t.unreached_func('rejectionhandled event should never be triggered'));
+
+    loadedPromise.then(t.step_func(function() {
+      t.step_timeout(function() {
+        t.done();
+      }, 1000);
+    }));
+  }, 'Promise rejection event should be muted for cross-origin non-CORS script');
+
+  var scriptEl = document.createElement('script');
+  scriptEl.src = CROSSDOMAIN + 'support/promise-access-control.py?allow=false';
+  scriptEl.onload = resolveLoaded;
+  document.body.appendChild(scriptEl);
+}());
+</script>
+</body>

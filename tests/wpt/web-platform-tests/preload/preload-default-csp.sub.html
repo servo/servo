@@ -2,6 +2,7 @@
 <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'; default-src 'none'">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
 <script>
     var t = async_test('Makes sure that preload requests respect CSP');
 </script>
@@ -17,19 +18,16 @@
 <body>
 <script src="resources/dummy.js?pipe=trickle(d5)"></script>
 <script>
-    var assertRequestTerminated = function(url) {
-        var entries = performance.getEntriesByName(new URL(url, location.href).href);
-        assert_equals(entries.length, 0);
-    };
     window.onload = t.step_func(function() {
-        assertRequestTerminated("{{host}}:{{ports[http][1]}}/preload/resources/dummy.js");
-        assertRequestTerminated("resources/dummy.css");
-        assertRequestTerminated("resources/square.png");
-        assertRequestTerminated("/fonts/CanvasTest.ttf");
-        assertRequestTerminated("/media/white.mp4");
-        assertRequestTerminated("/media/sound_5.oga");
-        assertRequestTerminated("/media/foo.vtt");
-        assertRequestTerminated("resources/dummy.xml");
+        verifyPreloadAndRTSupport();
+        verifyNumberOfDownloads("{{host}}:{{ports[http][1]}}/preload/resources/dummy.js", 0);
+        verifyNumberOfDownloads("resources/dummy.css", 0);
+        verifyNumberOfDownloads("resources/square.png", 0);
+        verifyNumberOfDownloads("/fonts/CanvasTest.ttf", 0);
+        verifyNumberOfDownloads("/media/white.mp4", 0);
+        verifyNumberOfDownloads("/media/sound_5.oga", 0);
+        verifyNumberOfDownloads("/media/foo.vtt", 0);
+        verifyNumberOfDownloads("resources/dummy.xml", 0);
         t.done();
     });
 </script>

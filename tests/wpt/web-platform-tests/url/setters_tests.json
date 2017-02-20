@@ -264,6 +264,22 @@
                 "href": "http://%c3%89t%C3%A9@example.net/",
                 "username": "%c3%89t%C3%A9"
             }
+        },
+        {
+            "href": "sc:///",
+            "new_value": "x",
+            "expected": {
+                "href": "sc:///",
+                "username": ""
+            }
+        },
+        {
+            "href": "file://test/",
+            "new_value": "test",
+            "expected": {
+                "href": "file://test/",
+                "username": ""
+            }
         }
     ],
     "password": [
@@ -342,6 +358,22 @@
             "expected": {
                 "href": "http://:%c3%89t%C3%A9@example.net/",
                 "password": "%c3%89t%C3%A9"
+            }
+        },
+        {
+            "href": "sc:///",
+            "new_value": "x",
+            "expected": {
+                "href": "sc:///",
+                "password": ""
+            }
+        },
+        {
+            "href": "file://test/",
+            "new_value": "test",
+            "expected": {
+                "href": "file://test/",
+                "password": ""
             }
         }
     ],
@@ -426,6 +458,25 @@
                 "href": "sc://x/",
                 "host": "x",
                 "hostname": "x"
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "ß",
+            "expected": {
+                "href": "sc://%C3%9F/",
+                "host": "%C3%9F",
+                "hostname": "%C3%9F"
+            }
+        },
+        {
+            "comment": "IDNA Nontransitional_Processing",
+            "href": "https://x/",
+            "new_value": "ß",
+            "expected": {
+                "href": "https://xn--zca/",
+                "host": "xn--zca",
+                "hostname": "xn--zca"
             }
         },
         {
@@ -759,6 +810,56 @@
                 "host": "example.net",
                 "hostname": "example.net"
             }
+        },
+        {
+            "href": "file://y/",
+            "new_value": "x:123",
+            "expected": {
+                "href": "file://y/",
+                "host": "y",
+                "hostname": "y",
+                "port": ""
+            }
+        },
+        {
+            "href": "file://y/",
+            "new_value": "loc%41lhost",
+            "expected": {
+                "href": "file:///",
+                "host": "",
+                "hostname": "",
+                "port": ""
+            }
+        },
+        {
+            "href": "file://hi/x",
+            "new_value": "",
+            "expected": {
+                "href": "file:///x",
+                "host": "",
+                "hostname": "",
+                "port": ""
+            }
+        },
+        {
+            "href": "sc://test@test/",
+            "new_value": "",
+            "expected": {
+                "href": "sc://test@test/",
+                "host": "test",
+                "hostname": "test",
+                "username": "test"
+            }
+        },
+        {
+            "href": "sc://test:12/",
+            "new_value": "",
+            "expected": {
+                "href": "sc://test:12/",
+                "host": "test:12",
+                "hostname": "test",
+                "port": "12"
+            }
         }
     ],
     "hostname": [
@@ -1043,6 +1144,56 @@
                 "host": "example.net",
                 "hostname": "example.net"
             }
+        },
+        {
+            "href": "file://y/",
+            "new_value": "x:123",
+            "expected": {
+                "href": "file://y/",
+                "host": "y",
+                "hostname": "y",
+                "port": ""
+            }
+        },
+        {
+            "href": "file://y/",
+            "new_value": "loc%41lhost",
+            "expected": {
+                "href": "file:///",
+                "host": "",
+                "hostname": "",
+                "port": ""
+            }
+        },
+        {
+            "href": "file://hi/x",
+            "new_value": "",
+            "expected": {
+                "href": "file:///x",
+                "host": "",
+                "hostname": "",
+                "port": ""
+            }
+        },
+        {
+            "href": "sc://test@test/",
+            "new_value": "",
+            "expected": {
+                "href": "sc://test@test/",
+                "host": "test",
+                "hostname": "test",
+                "username": "test"
+            }
+        },
+        {
+            "href": "sc://test:12/",
+            "new_value": "",
+            "expected": {
+                "href": "sc://test:12/",
+                "host": "test:12",
+                "hostname": "test",
+                "port": "12"
+            }
         }
     ],
     "port": [
@@ -1197,6 +1348,46 @@
                 "host": "example.net:8080",
                 "hostname": "example.net",
                 "port": "8080"
+            }
+        },
+        {
+            "href": "file://test/",
+            "new_value": "12",
+            "expected": {
+                "href": "file://test/",
+                "port": ""
+            }
+        },
+        {
+            "href": "file://localhost/",
+            "new_value": "12",
+            "expected": {
+                "href": "file:///",
+                "port": ""
+            }
+        },
+        {
+            "href": "non-base:value",
+            "new_value": "12",
+            "expected": {
+                "href": "non-base:value",
+                "port": ""
+            }
+        },
+        {
+            "href": "sc:///",
+            "new_value": "12",
+            "expected": {
+                "href": "sc:///",
+                "port": ""
+            }
+        },
+        {
+            "href": "sc://x/",
+            "new_value": "12",
+            "expected": {
+                "href": "sc://x:12/",
+                "port": "12"
             }
         }
     ],

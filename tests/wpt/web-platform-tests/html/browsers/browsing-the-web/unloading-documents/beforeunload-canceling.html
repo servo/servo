@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>beforeunload return value cancelation behavior</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#the-event-handler-processing-algorithm">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+
+async_test(t => {
+  let onbeforeunloadHappened = false;
+  window.onbeforeunload = t.step_func(() => {
+    onbeforeunloadHappened = true;
+    return "cancel me";
+  });
+
+  const listener = t.step_func(e => {
+    assert_true(onbeforeunloadHappened, "CustomEvent must be able to trigger the event handler");
+    assert_false(e.defaultPrevented, "The event must not have been canceled");
+    window.onbeforeunload = null;
+    t.done();
+  });
+
+  window.addEventListener("beforeunload", listener);
+
+  window.dispatchEvent(new CustomEvent("beforeunload"));
+}, "Returning a string must not cancel the event: CustomEvent, non-cancelable");
+
+async_test(t => {
+  let onbeforeunloadHappened = false;
+  window.onbeforeunload = t.step_func(() => {
+    onbeforeunloadHappened = true;
+    return "cancel me";
+  });
+
+  const listener = t.step_func(e => {
+    assert_true(onbeforeunloadHappened, "CustomEvent must be able to trigger the event handler");
+    assert_false(e.defaultPrevented, "The event must not have been canceled");
+    window.onbeforeunload = null;
+    t.done();
+  });
+
+  window.addEventListener("beforeunload", listener);
+
+  window.dispatchEvent(new CustomEvent("beforeunload", { cancelable: true }));
+}, "Returning a string must not cancel the event: CustomEvent, cancelable");
+
+const testCases = [
+  {
+    valueToReturn: null,
+    expectCancelation: false,
+    expectedReturnValue: ""
+  },
+  {
+    valueToReturn: undefined,
+    expectCancelation: false,
+    expectedReturnValue: ""
+  },
+  {
+    valueToReturn: "",
+    expectCancelation: true,
+    expectedReturnValue: ""
+  },
+  {
+    valueToReturn: false,
+    expectCancelation: true,
+    expectedReturnValue: "false"
+  },
+  {
+    valueToReturn: true,
+    expectCancelation: true,
+    expectedReturnValue: "true"
+  },
+  {
+    valueToReturn: 0,
+    expectCancelation: true,
+    expectedReturnValue: "0"
+  },
+  {
+    valueToReturn: null,
+    expectCancelation: false,
+    setReturnValue: "foo",
+    expectedReturnValue: "foo"
+  },
+  {
+    valueToReturn: undefined,
+    expectCancelation: false,
+    setReturnValue: "foo",
+    expectedReturnValue: "foo"
+  },
+  {
+    valueToReturn: "",
+    expectCancelation: true,
+    setReturnValue: "foo",
+    expectedReturnValue: "foo"
+  },
+  {
+    valueToReturn: false,
+    expectCancelation: true,
+    setReturnValue: "foo",
+    expectedReturnValue: "foo"
+  },
+  {
+    valueToReturn: true,
+    expectCancelation: true,
+    setReturnValue: "foo",
+    expectedReturnValue: "foo"
+  },
+  {
+    valueToReturn: 0,
+    expectCancelation: true,
+    setReturnValue: "foo",
+    expectedReturnValue: "foo"
+  }
+];
+
+var testCaseIndex = 0;
+function runNextTest() {
+  const testCase = testCases[testCaseIndex];
+
+  const labelAboutReturnValue = testCase.setReturnValue === undefined ? "" :
+    `; setting returnValue to ${testCase.setReturnValue}`;
+
+  async_test(t => {
+    const iframe = document.createElement("iframe");
+    iframe.onload = t.step_func(() => {
+      iframe.contentWindow.runTest(t, testCase);
+      if (++testCaseIndex < testCases.length)
+        runNextTest();
+    });
+
+    iframe.src = "beforeunload-canceling-1.html";
+    document.body.appendChild(iframe);
+  }, `Returning ${testCase.valueToReturn} with a real iframe unloading${labelAboutReturnValue}`);
+}
+
+runNextTest();
+</script>

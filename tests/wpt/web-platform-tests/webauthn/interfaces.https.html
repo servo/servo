@@ -5,55 +5,14 @@
 <link rel="help" href="https://w3c.github.io/webauthn/#iface-credential">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src=helpers.js></script>
 <!-- for testing WebIDL -->
 <script src=/resources/WebIDLParser.js></script>
 <script src=/resources/idlharness.js></script>
 <body></body>
 <script>
-// IIFE for namespace cleanliness
-(function() {
+standardSetup(function() {
     "use strict";
-
-
-    //************* BEGIN DELETE AFTER 1/1/2017 *************** //
-    // XXX for development mode only!!
-    // debug() for debugging purposes... we can drop this later if it is considered ugly
-    // note that debug is currently an empty function (i.e. - prints no output)
-    // and debug only prints output if the polyfill is loaded
-    var debug = function() {};
-    // if the WebAuthn API doesn't exist load a polyfill for testing
-    // note that the polyfill only gets loaded if navigator.authentication doesn't exist
-    // AND if the polyfill script is found at the right path (i.e. - the polyfill is opt-in)
-    function ensureInterface() {
-        return new Promise(function(resolve, reject) {
-            if (typeof navigator.authentication !== "object") {
-                debug = console.log;
-
-                // dynamic loading of polyfill script by creating new <script> tag and seeing the src=
-                var scriptElem = document.createElement("script");
-                if (typeof scriptElem !== "object") {
-                    debug("ensureInterface: Error creating script element while attempting loading polyfill");
-                    return reject(new Error("ensureInterface: Error creating script element while loading polyfill"));
-                }
-                scriptElem.type = "application/javascript";
-                scriptElem.onload = function() {
-                    debug("!!! XXX - LOADING POLYFILL FOR WEBAUTHN TESTING - XXX !!!");
-                    return resolve();
-                };
-                scriptElem.onerror = function() {
-                    return reject(new Error("navigator.authentication does not exist"));
-                };
-                scriptElem.src = "/webauthn/webauthn-polyfill/webauthn-polyfill.js";
-                if (document.body) {
-                    document.body.appendChild(scriptElem);
-                } else {
-                    debug("ensureInterface: DOM has no body");
-                    return reject(new Error("ensureInterface: DOM has no body"));
-                }
-            }
-        });
-    }
-    //************* END DELETE AFTER 1/1/2017 *************** //
 
     // loads an IDL file from the webserver
     function fetchIdl(idlUrl) {
@@ -92,13 +51,10 @@
 
     // test harness function
     window.promise_test(function() {
-        return ensureInterface() // ensure we have navigator.authentication ...
-            .then(function() { // ... then load the IDL file ...
-                return fetchIdl("interfaces.idl");
-            })
-            .then(function(idls) { // ... then run the tests.
-                return runIdlTests(idls);
+        return fetchIdl("interfaces.idl") // load the IDL file ...
+            .then(function(idls) {
+                return runIdlTests(idls); // ... then run the tests.
             });
     }, "Validate WebAuthn IDL");
-}());
+});
 </script>

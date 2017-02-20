@@ -1,0 +1,177 @@
+---
+# Only the main Sass file needs front matter (the dashes are enough)
+---
+@charset "utf-8";
+
+// Namespaces
+@namespace svg "http://www.w3.org/2000/svg";
+
+// Our variables
+$base-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+$base-font-size:   16px;
+$base-font-weight: 400;
+$small-font-size:  $base-font-size * 0.875;
+$base-line-height: 1.5;
+
+$spacing-unit:     30px;
+
+$text-color:       #111;
+$background-color: #fdfdfd;
+$brand-color:      #2a7ae2;
+
+$grey-color:       #828282;
+$grey-color-light: lighten($grey-color, 40%);
+$grey-color-dark:  darken($grey-color, 25%);
+
+// Width of the content area
+$content-width:    800px;
+
+$on-palm:          600px;
+$on-laptop:        800px;
+
+// Minima also includes a mixin for defining media queries.
+// Use media queries like this:
+// @include media-query($on-palm) {
+//     .wrapper {
+//         padding-right: $spacing-unit / 2;
+//         padding-left: $spacing-unit / 2;
+//     }
+// }
+
+// Import partials from the `minima` theme.
+@import "minima";
+
+// Our custom styles
+
+// Home page blocks
+nav.home {
+    ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    li {
+        display: block;
+        width: 50%;
+        float: left;
+        box-sizing: border-box;
+        margin-bottom: $spacing-unit / 2;
+    }
+
+    li:nth-child(2n+1) {
+        clear: both;
+        padding-right: $spacing-unit / 2;
+    }
+
+    li:nth-child(2n) {
+        padding-left: $spacing-unit / 2;
+    }
+
+    li h2 {
+        font-size: 20px;
+        text-align: center;
+    }
+
+    li p {
+        font-size: $small-font-size;
+    }
+
+    div {
+        text-align: center;
+    }
+
+    svg {
+        width: auto;
+        height: $spacing-unit * 2;
+    }
+
+    svg|*[fill] {
+        fill: currentColor;
+    }
+}
+
+
+// TTWF include iframes
+iframe.ttwf {
+    border: 1px solid grey;
+    width: 100%;
+    max-width: 990px;
+    height: 75vh;
+    margin: 0 auto;
+    display: block;
+    box-sizing: border-box;
+}
+
+
+// Site nav (class name is to avoid conflict with minima defined .site-nav)
+.wpt-site-nav {
+    float: right;
+    line-height: normal;
+    position: absolute;
+    top: 9px;
+    right: $spacing-unit / 2;
+    background-color: $background-color;
+    border: 1px solid $grey-color-light;
+    border-radius: 5px;
+    text-align: right;
+    max-height: calc(100vh - 38px);
+    overflow: auto;
+
+    ul {
+        list-style: none;
+        margin: 0;
+    }
+
+    ul ul {
+        padding-right: $spacing-unit / 4;
+        border-right: ($spacing-unit / 4 * 3) solid $grey-color-light;
+        font-size: 14px;
+    }
+
+    .page-link {
+        color: $text-color;
+        line-height: $base-line-height;
+        display: block;
+        padding: 5px 10px;
+        margin-left: 20px;
+    }
+
+    .menu-icon {
+        display: block;
+        float: right;
+        width: 36px;
+        height: 26px;
+        line-height: 0;
+        padding-top: 10px;
+        text-align: center;
+
+        > svg path {
+            fill: $grey-color-dark;
+        }
+    }
+
+    .trigger {
+        clear: both;
+        display: none;
+        padding-bottom: 5px;
+    }
+
+    &:hover .trigger,
+    &:focus .trigger {
+        display: block;
+    }
+
+    /* duplicated from above to avoid breaking UAs that don't support it */
+    &:focus-within .trigger {
+        display: block;
+    }
+
+    .trigger[aria-hidden="true"] {
+        display: none !important;
+    }
+
+    .trigger[aria-hidden="false"] {
+        display: block !important;
+    }
+}

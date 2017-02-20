@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<script src="foreign-fetch-helper-script.js"></script>
+<script>
+self.onmessage = e => {
+    if (e.data.worker == 'dedicated') {
+      let worker = new Worker('foreign-fetch-helper-script.js');
+      worker.postMessage(e.data, e.ports);
+    } else if (e.data.worker == 'shared') {
+      let worker = new SharedWorker('foreign-fetch-helper-script.js');
+      worker.port.postMessage(e.data, e.ports);
+    } else {
+      handle_message(e);
+    }
+  };
+if (self.opener) self.opener.postMessage('ready', '*');
+</script>

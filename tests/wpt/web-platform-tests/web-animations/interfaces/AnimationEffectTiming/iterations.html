@@ -11,6 +11,11 @@
 'use strict';
 
 test(function(t) {
+  var anim = createDiv(t).animate(null);
+  assert_equals(anim.effect.timing.iterations, 1);
+}, 'Test default value');
+
+test(function(t) {
   var div = createDiv(t);
   var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
   anim.effect.timing.iterations = 2;

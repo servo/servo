@@ -12,6 +12,7 @@
     var t = async_test("Delete an existing database");
 
     t.step(function() {
+        var db;
         var openrq = indexedDB.open('db', 3);
 
         openrq.onupgradeneeded = function(e) {
@@ -44,8 +45,8 @@
         deleterq.onupgradeneeded = fail(t, "delete.upgradeneeded");
     }
 
-    async_test("Delete a nonexistant database").step(function(e) {
-        var deleterq = indexedDB.deleteDatabase('nonexistant');
+    async_test("Delete a nonexistent database").step(function(e) {
+        var deleterq = indexedDB.deleteDatabase('nonexistent');
 
         deleterq.onsuccess = this.step_func(function(e) { this.done(); });
 

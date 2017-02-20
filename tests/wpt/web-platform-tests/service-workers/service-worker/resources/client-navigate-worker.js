@@ -1,6 +1,6 @@
 importScripts("worker-testharness.js");
 importScripts("test-helpers.sub.js");
-importScripts("get-host-info.sub.js")
+importScripts("/common/get-host-info.sub.js")
 importScripts("testharness-helpers.js")
 
 self.onfetch = function(e) {

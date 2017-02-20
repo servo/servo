@@ -4,7 +4,12 @@ import random
 import shutil
 import subprocess
 import tempfile
-from datetime import datetime
+from datetime import datetime, timedelta
+
+# Amount of time beyond the present to consider certificates "expired." This
+# allows certificates to be proactively re-generated in the "buffer" period
+# prior to their exact expiration time.
+CERT_EXPIRY_BUFFER = dict(hours=6)
 
 class OpenSSL(object):
     def __init__(self, logger, binary, base_path, conf_path, hosts, duration,
@@ -305,8 +310,11 @@ class OpenSSLEnvironment(object):
                                    "-in", cert_path).split("=", 1)[1].strip()
             # Not sure if this works in other locales
             end_date = datetime.strptime(end_date_str, "%b %d %H:%M:%S %Y %Z")
-            # Should have some buffer here e.g. 1 hr
-            if end_date < datetime.now():
+            time_buffer = timedelta(**CERT_EXPIRY_BUFFER)
+            # Because `strptime` does not account for time zone offsets, it is
+            # always in terms of UTC, so the current time should be calculated
+            # accordingly.
+            if end_date < datetime.utcnow() + time_buffer:
                 return False
 
         #TODO: check the key actually signed the cert.

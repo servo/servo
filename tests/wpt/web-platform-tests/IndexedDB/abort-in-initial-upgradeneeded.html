@@ -12,7 +12,7 @@ var db, open_rq = createdb(async_test(), undefined, 2);
 open_rq.onupgradeneeded = function(e) {
     db = e.target.result;
     assert_equals(db.version, 2);
-    transaction = e.target.transaction;
+    var transaction = e.target.transaction;
     transaction.oncomplete = fail(this, "unexpected transaction.complete");
     transaction.onabort = function(e) {
         assert_equals(e.target.db.version, 0);

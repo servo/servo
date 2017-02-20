@@ -1,4 +1,4 @@
-importScripts('../resources/get-host-info.sub.js');
+importScripts('/common/get-host-info.sub.js');
 importScripts('test-helpers.sub.js');
 
 var port = undefined;

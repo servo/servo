@@ -139,7 +139,7 @@ function testMutatingSlotName(options)
         slotElement.removeAttribute('name');
         assert_array_equals(slotElement.assignedNodes(options), [child], 'assignedNodes must be empty when there are no matching elements for the slot name');
 
-    }, 'assignedNodes must update when a default slot is introduced dynamically by a slot rename');
+    }, 'assignedNodes(' + (options ? JSON.stringify(options) : '') + ') must update when a default slot is introduced dynamically by a slot rename');
 }
 
 testMutatingSlotName(null);
@@ -193,7 +193,7 @@ function testInsertingAndRemovingSlots(options)
         assert_array_equals(secondSlotElement.assignedNodes(options), [],
             'assignedNodes on formerly-first but now second unnamed slot element must return an empty array');
 
-    }, 'assignedNodes must update when slot elements are inserted or removed');
+    }, 'assignedNodes(' + (options ? JSON.stringify(options) : '') + ') must update when slot elements are inserted or removed');
 }
 
 testInsertingAndRemovingSlots(null);

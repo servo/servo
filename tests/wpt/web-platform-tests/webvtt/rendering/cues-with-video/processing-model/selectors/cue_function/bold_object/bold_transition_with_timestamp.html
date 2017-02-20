@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <title>WebVTT rendering, bold object transition with timestamp, ::cue(b:past) selector</title>
 <link rel="match" href="bold_transition_with_timestamp-ref.html">
 <style>
@@ -14,7 +14,7 @@ body { margin:0 }
 }
 </style>
 <script src="/common/reftest-wait.js"></script>
-<video width="1280" height="720" autoplay onplaying="this.onplaying = null; takeScreenshotDelayed(200);">
+<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); this.currentTime = 0.2; takeScreenshotDelayed(1000);">
     <source src="/media/white.webm" type="video/webm">
     <source src="/media/white.mp4" type="video/mp4">
     <track src="../../../support/bold_with_timestamp.vtt">

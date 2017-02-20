@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsers.html#navigating-across-documents">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+
+<iframe id="i" src="navigation-unload-same-origin-fragment-1.html"></iframe>
+
+<!-- a timeout indicates that setting i.contentWindow.location.hash (a second navigation) aborted the first navigation,
+    and so it stayed on a.html and finishedLoading was never called -->
+
+<script>
+var test = async_test('Tests that a fragment navigation in the unload handler will not block the initial navigation');
+window.onload = test.step_func(function() {
+    var i = document.querySelector('#i');
+
+    i.contentWindow.onunload = test.step_func(function() {
+        i.contentWindow.location.hash = '#fragment';
+    });
+
+    window.finishedLoading = test.step_func_done(function () {
+        assert_equals(i.contentWindow.location.pathname.split('/').pop(), 'navigation-unload-same-origin-fragment-2.html');
+        assert_equals(i.contentWindow.location.hash, '');
+    });
+
+    i.contentWindow.location.href = 'navigation-unload-same-origin-fragment-2.html';
+});
+</script>

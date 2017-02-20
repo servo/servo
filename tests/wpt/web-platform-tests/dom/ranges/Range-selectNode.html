@@ -73,24 +73,24 @@ function testTree(root, marker) {
         // This is being modified during the tests, so let's not test it.
         return;
     }
-    tests.push([marker + root.nodeName.toLowerCase() + " node, current doc's range, type " + root.nodeType, range, root]);
-    tests.push([marker + root.nodeName.toLowerCase() + " node, foreign doc's range, type " + root.nodeType, foreignRange, root]);
-    tests.push([marker + root.nodeName.toLowerCase() + " node, XML doc's range, type " + root.nodeType, xmlRange, root]);
-    tests.push([marker + root.nodeName.toLowerCase() + " node, detached range, type " + root.nodeType, detachedRange, root]);
+    tests.push([marker + ": " + root.nodeName.toLowerCase() + " node, current doc's range, type " + root.nodeType, range, root]);
+    tests.push([marker + ": " + root.nodeName.toLowerCase() + " node, foreign doc's range, type " + root.nodeType, foreignRange, root]);
+    tests.push([marker + ": " + root.nodeName.toLowerCase() + " node, XML doc's range, type " + root.nodeType, xmlRange, root]);
+    tests.push([marker + ": " + root.nodeName.toLowerCase() + " node, detached range, type " + root.nodeType, detachedRange, root]);
     for (var i = 0; i < root.childNodes.length; i++) {
-        testTree(root.childNodes[i], "**" + marker);
+        testTree(root.childNodes[i], marker + "[" + i + "]");
     }
 }
-testTree(document, " current doc: ");
-testTree(foreignDoc, " foreign doc: ");
-testTree(detachedDiv, " detached div in current doc: ");
+testTree(document, "current doc");
+testTree(foreignDoc, "foreign doc");
+testTree(detachedDiv, "detached div in current doc");
 
-var otherTests = [xmlDoc, xmlElement, detachedTextNode, foreignTextNode,
-xmlTextNode, processingInstruction, comment, foreignComment, xmlComment,
-docfrag, foreignDocfrag, xmlDocfrag];
+var otherTests = ["xmlDoc", "xmlElement", "detachedTextNode",
+"foreignTextNode", "xmlTextNode", "processingInstruction", "comment",
+"foreignComment", "xmlComment", "docfrag", "foreignDocfrag", "xmlDocfrag"];
 
 for (var i = 0; i < otherTests.length; i++) {
-    testTree(otherTests[i], " ");
+    testTree(window[otherTests[i]], otherTests[i]);
 }
 
 generate_tests(testSelectNode, tests);
