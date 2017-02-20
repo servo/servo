@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::error::{Fallible, Error};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use euclid::size::Size2D;
@@ -60,9 +61,10 @@ impl ImageData {
         // checking jsobject type and verifying (height * width * 4 == jsobject.byte_len())
         if let Some(jsobject) = opt_jsobject {
             let cx = global.get_cx();
-            typedarray!(in(cx) let array_res: Uint8ClampedArray = jsobject);
-            let mut array = try!(array_res
+            let array_res = Uint8ClampedArray::from(cx, jsobject);
+            let array = try!(array_res
                 .map_err(|_| Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned())));
+            let mut array = RootedTraceableBox::new(array);
 
             let byte_len = array.as_slice().len() as u32;
             if byte_len % 4 != 0 {
@@ -131,8 +133,8 @@ impl ImageData {
             assert!(!self.data.get().is_null());
             let cx = Runtime::get();
             assert!(!cx.is_null());
-            typedarray!(in(cx) let array: Uint8ClampedArray = self.data.get());
-            let vec = array.unwrap().as_slice().to_vec();
+            let mut array = RootedTraceableBox::new(Uint8ClampedArray::from(cx, self.data.get()));
+            let vec = array.as_mut().unwrap().as_slice().to_vec();
             vec
         }
     }

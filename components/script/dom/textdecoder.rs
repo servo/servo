@@ -8,11 +8,13 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
+use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use js::jsapi::{JSContext, JSObject};
+use js::typedarray::ArrayBufferView;
 use std::borrow::ToOwned;
 
 #[dom_struct]
@@ -78,16 +80,16 @@ impl TextDecoderMethods for TextDecoder {
 
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textdecoder-decode
-    unsafe fn Decode(&self, _cx: *mut JSContext, input: Option<*mut JSObject>)
+    unsafe fn Decode(&self, cx: *mut JSContext, input: Option<*mut JSObject>)
               -> Fallible<USVString> {
         let input = match input {
             Some(input) => input,
             None => return Ok(USVString("".to_owned())),
         };
 
-        typedarray!(in(_cx) let data_res: ArrayBufferView = input);
-        let mut data = match data_res {
-            Ok(data) => data,
+        let mut data_res = RootedTraceableBox::new(ArrayBufferView::from(cx, input));
+        let mut data = match *data_res {
+            Ok(ref mut data) => data,
             Err(_)   => {
                 return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView".to_owned()));
             }

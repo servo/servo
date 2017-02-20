@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::VRStageParametersBinding::VRStageParameter
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
@@ -54,8 +55,8 @@ impl VRStageParameters {
     pub fn update(&self, parameters: &WebVRStageParameters) {
         unsafe {
             let cx = self.global().get_cx();
-            typedarray!(in(cx) let array: Float32Array = self.transform.get());
-            if let Ok(mut array) = array {
+            let mut array = RootedTraceableBox::new(Float32Array::from(cx, self.transform.get()));
+            if let Ok(ref mut array) = *array {
                 array.update(&parameters.sitting_to_standing_transform);
             }
         }
