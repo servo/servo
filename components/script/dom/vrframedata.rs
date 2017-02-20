@@ -9,6 +9,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
+use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom::vrpose::VRPose;
 use dom::window::Window;
@@ -81,20 +82,20 @@ impl VRFrameData {
     pub fn update(&self, data: &WebVRFrameData) {
         unsafe {
             let cx = self.global().get_cx();
-            typedarray!(in(cx) let left_proj_array: Float32Array = self.left_proj.get());
-            if let Ok(mut array) = left_proj_array {
+            let mut left_proj_array = RootedTraceableBox::new(Float32Array::from(cx, self.left_proj.get()));
+            if let Ok(ref mut array) = *left_proj_array {
                 array.update(&data.left_projection_matrix);
             }
-            typedarray!(in(cx) let left_view_array: Float32Array = self.left_view.get());
-            if let Ok(mut array) = left_view_array {
+            let mut left_view_array = RootedTraceableBox::new(Float32Array::from(cx, self.left_view.get()));
+            if let Ok(ref mut array) = *left_view_array {
                 array.update(&data.left_view_matrix);
             }
-            typedarray!(in(cx) let right_proj_array: Float32Array = self.right_proj.get());
-            if let Ok(mut array) = right_proj_array {
+            let mut right_proj_array = RootedTraceableBox::new(Float32Array::from(cx, self.right_proj.get()));
+            if let Ok(ref mut array) = *right_proj_array {
                 array.update(&data.right_projection_matrix);
             }
-            typedarray!(in(cx) let right_view_array: Float32Array = self.right_view.get());
-            if let Ok(mut array) = right_view_array {
+            let mut right_view_array = RootedTraceableBox::new(Float32Array::from(cx, self.right_view.get()));
+            if let Ok(ref mut array) = *right_view_array {
                 array.update(&data.right_view_matrix);
             }
         }

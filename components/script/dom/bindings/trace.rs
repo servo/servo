@@ -58,6 +58,7 @@ use js::glue::{CallObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, TraceKind};
 use js::jsval::JSVal;
 use js::rust::Runtime;
+use js::typedarray::{TypedArray, TypedArrayElement};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use net_traits::{Metadata, NetworkError, ReferrerPolicy, ResourceThreads};
 use net_traits::filemanager_thread::RelativePos;
@@ -150,6 +151,12 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
         CallObjectTracer(tracer,
                          obj.ptr.get() as *mut _,
                          GCTraceKindToAscii(TraceKind::Object));
+    }
+}
+
+unsafe impl<T: TypedArrayElement> JSTraceable for TypedArray<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        (*self).trace(trc)
     }
 }
 

@@ -15,6 +15,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableJS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
+use dom::bindings::trace::RootedTraceableBox;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -38,9 +39,9 @@ use dom_struct::dom_struct;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ConversionBehavior;
-use js::jsapi::{JSContext, JSObject, Type, Rooted};
+use js::jsapi::{JSContext, JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
-use js::typedarray::{TypedArray, TypedArrayElement, Float32, Int32};
+use js::typedarray::{TypedArray, TypedArrayElement, Float32, Int32, Uint8Array, Uint16Array, ArrayBufferView};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::ImageResponse;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
@@ -512,8 +513,8 @@ impl WebGLRenderingContext {
         // if it is UNSIGNED_SHORT_5_6_5, UNSIGNED_SHORT_4_4_4_4,
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
-        typedarray!(in(cx) let typedarray_u8: Uint8Array = data);
-        typedarray!(in(cx) let typedarray_u16: Uint16Array = data);
+        let typedarray_u8 = RootedTraceableBox::new(Uint8Array::from(cx, data));
+        let typedarray_u16 = RootedTraceableBox::new(Uint16Array::from(cx, data));
         let received_size = if data.is_null() {
             element_size
         } else {
@@ -779,15 +780,12 @@ unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
                                             sequence_or_abv: *mut JSObject,
                                             config: <T::Element as FromJSValConvertible>::Config)
                                             -> Result<Vec<T::Element>, Error>
-    where T: TypedArrayElement,
+    where T: TypedArrayElement + 'static,
           T::Element: FromJSValConvertible + Clone,
           <T::Element as FromJSValConvertible>::Config: Clone,
 {
-    // TODO(servo/rust-mozjs#330): replace this with a macro that supports generic types.
-    let mut typed_array_root = Rooted::new_unrooted();
-    let typed_array: Option<TypedArray<T>> =
-          TypedArray::from(cx, &mut typed_array_root, sequence_or_abv).ok();
-    if let Some(mut typed_array) = typed_array {
+    let mut typed_array = RootedTraceableBox::new(TypedArray::<T>::from(cx, sequence_or_abv).ok());
+    if let Some(ref mut typed_array) = *typed_array {
         return Ok(typed_array.as_slice().to_vec());
     }
     assert!(!sequence_or_abv.is_null());
@@ -807,9 +805,9 @@ unsafe fn typed_array_or_sequence_to_vec<T>(cx: *mut JSContext,
 unsafe fn fallible_array_buffer_view_to_vec(cx: *mut JSContext, abv: *mut JSObject) -> Result<Vec<u8>, Error>
 {
     assert!(!abv.is_null());
-    typedarray!(in(cx) let array_buffer_view: ArrayBufferView = abv);
-    match array_buffer_view {
-        Ok(mut v) => Ok(v.as_slice().to_vec()),
+    let mut array_buffer_view = RootedTraceableBox::new(ArrayBufferView::from(cx, abv));
+    match *array_buffer_view {
+        Ok(ref mut v) => Ok(v.as_slice().to_vec()),
         Err(_) => Err(Error::Type("Not an ArrayBufferView".to_owned())),
     }
 }
@@ -1194,9 +1192,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
-        let data_vec = match array_buffer {
-            Ok(mut data) => data.as_slice().to_vec(),
+        let mut array_buffer = RootedTraceableBox::new(ArrayBufferView::from(cx, data));
+        let data_vec = match *array_buffer {
+            Ok(ref mut data) => data.as_slice().to_vec(),
             Err(_) => try!(fallible_array_buffer_view_to_vec(cx, data)),
         };
 
@@ -1262,9 +1260,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        typedarray!(in(cx) let array_buffer: ArrayBuffer = data);
-        let data_vec = match array_buffer {
-            Ok(mut data) => data.as_slice().to_vec(),
+        let mut array_buffer = RootedTraceableBox::new(ArrayBufferView::from(cx, data));
+        let data_vec = match *array_buffer {
+            Ok(ref mut data) => data.as_slice().to_vec(),
             Err(_) => try!(fallible_array_buffer_view_to_vec(cx, data)),
         };
 
@@ -2080,7 +2078,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(self.webgl_error(InvalidValue));
         }
 
-        typedarray!(in(cx) let mut pixels_data: ArrayBufferView = pixels);
+        let mut pixels_data = RootedTraceableBox::new(ArrayBufferView::from(cx, pixels));
         let (array_type, mut data) = match { pixels_data.as_mut() } {
             Ok(data) => (data.get_array_type(), data.as_mut_slice()),
             Err(_) => return Err(Error::Type("Not an ArrayBufferView".to_owned())),

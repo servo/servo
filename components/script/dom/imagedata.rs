@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::trace::RootedTraceableBox;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use euclid::size::Size2D;
@@ -60,8 +61,8 @@ impl ImageData {
             assert!(!self.data.get().is_null());
             let cx = Runtime::get();
             assert!(!cx.is_null());
-            typedarray!(in(cx) let array: Uint8ClampedArray = self.data.get());
-            let vec = array.unwrap().as_slice().to_vec();
+            let mut array = RootedTraceableBox::new(Uint8ClampedArray::from(cx, self.data.get()));
+            let vec = array.as_mut().unwrap().as_slice().to_vec();
             vec
         }
     }
