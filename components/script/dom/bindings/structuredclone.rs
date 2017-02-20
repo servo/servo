@@ -5,6 +5,7 @@
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
+use dom::bindings::codegen::PrototypeList;
 use dom::bindings::conversions::get_dom_class;
 use dom::bindings::error::{Error, Fallible};
 use dom::globalscope::GlobalScope;
@@ -45,11 +46,16 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     _w: *mut JSStructuredCloneWriter,
                                     obj: HandleObject,
                                     _closure: *mut raw::c_void) -> bool {
-    match (get_dom_class(*obj), UnwrapObject(*obj, 0).is_null()) {
-        (Ok(_), false) => {
-            ///TODO: Check it is indeed a blob
-            ///TODO: implement return WriteBlob(aWriter, blob);
-            return false
+    let js_object = UnwrapObject(*obj, 0);
+    match (get_dom_class(*obj), js_object.is_null()) {
+        (Ok(dom_class), false) => {
+            match dom_class.interface_chain.get(0) {
+                Some(&PrototypeList::ID::Blob) => {
+                    ///TODO: implement return WriteBlob(aWriter, blob);
+                    return false
+                },
+                _ => return false,
+            }
         },
         _ => return false
     };
