@@ -736,6 +736,11 @@ mod shorthand_serialization {
                 authored: None
             });
 
+            let color = DeclaredValue::Value(Box::new(CSSColor {
+            parsed: ComputedColor::RGBA(RGBA { red: 1f32, green: 0f32, blue: 0f32, alpha: 1f32 }),
+            authored: None
+            }));
+
             let position_x = single_vec_value_typedef!(position_x,
                 HorizontalPosition {
                     keyword: None,
@@ -767,10 +772,7 @@ mod shorthand_serialization {
 
             let origin = single_vec_keyword_value!(origin, border_box);
             let clip = single_vec_keyword_value!(clip, padding_box);
-            let color = DeclaredValue::Value(Box::new(CSSColor {
-            parsed: ComputedColor::RGBA(RGBA { red: 1f32, green: 0f32, blue: 0f32, alpha: 1f32 }),
-            authored: None
-            }));
+
             properties.push(PropertyDeclaration::BackgroundColor(color));
             properties.push(PropertyDeclaration::BackgroundPositionX(position_x));
             properties.push(PropertyDeclaration::BackgroundPositionY(position_y));
@@ -1247,7 +1249,7 @@ mod shorthand_serialization {
                         });
 
 
-            let shadow_val = (Shadow {offset_x: Length::from_px(1f32), offset_y: Length::from_px(2f32), blur_radius:Length::from_px(3f32), spread_radius:Length::from_px(4f32), color:color, inset:false });
+            let shadow_val = Shadow {offset_x: Length::from_px(1f32), offset_y: Length::from_px(2f32), blur_radius:Length::from_px(3f32), spread_radius:Length::from_px(4f32), color:color, inset:false };
             let shadow_decl = DeclaredValue::Value(BoxShadow(vec![shadow_val]));
             properties.push(PropertyDeclaration:: BoxShadow(shadow_decl));
 
