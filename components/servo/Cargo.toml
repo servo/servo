@@ -47,8 +47,10 @@ script = {path = "../script"}
 script_layout_interface = {path = "../script_layout_interface"}
 script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
+servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo"]}
+style_traits = {path = "../style_traits", features = ["servo"]}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
 webdriver_server = {path = "../webdriver_server", optional = true}

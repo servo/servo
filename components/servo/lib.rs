@@ -45,8 +45,11 @@ pub extern crate script;
 pub extern crate script_traits;
 pub extern crate script_layout_interface;
 pub extern crate servo_config;
+pub extern crate servo_geometry;
 pub extern crate servo_url;
 pub extern crate style;
+pub extern crate style_traits;
+pub extern crate webrender_traits;
 pub extern crate webvr;
 pub extern crate webvr_traits;
 
@@ -54,7 +57,6 @@ pub extern crate webvr_traits;
 extern crate webdriver_server;
 
 extern crate webrender;
-extern crate webrender_traits;
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
