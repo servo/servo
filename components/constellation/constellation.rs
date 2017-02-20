@@ -78,8 +78,8 @@ use event_loop::EventLoop;
 use frame::{Frame, FrameChange, FrameState, FrameTreeIterator, FullFrameTreeIterator};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
-use ipc_channel::Error;
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::{Error as IpcError};
+use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use layout_traits::LayoutThreadFactory;
 use log::{Log, LogLevel, LogLevelFilter, LogMetadata, LogRecord};
@@ -103,6 +103,7 @@ use script_traits::{LogEntry, ServiceWorkerMsg, webdriver_msg};
 use script_traits::{MozBrowserErrorType, MozBrowserEvent, WebDriverCommandMsg, WindowSizeData};
 use script_traits::{SWManagerMsg, ScopeThings, WindowSizeType};
 use script_traits::WebVREventMsg;
+use serde::{Deserialize, Serialize};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::{Rng, SeedableRng, ServoRng, random};
@@ -145,7 +146,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the constellation to receive messages from script threads.
     /// This is the constellation's view of `script_sender`.
-    script_receiver: Receiver<FromScriptMsg>,
+    script_receiver: Receiver<Result<FromScriptMsg, IpcError>>,
 
     /// An IPC channel for layout threads to send messages to the constellation.
     /// This is the layout threads' view of `layout_receiver`.
@@ -153,7 +154,7 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel for the constellation to receive messages from layout threads.
     /// This is the constellation's view of `layout_sender`.
-    layout_receiver: Receiver<FromLayoutMsg>,
+    layout_receiver: Receiver<Result<FromLayoutMsg, IpcError>>,
 
     /// A channel for the constellation to receive messages from the compositor thread.
     compositor_receiver: Receiver<FromCompositorMsg>,
@@ -206,7 +207,7 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel for the constellation to receive messages from the
     /// Service Worker Manager thread. This is the constellation's view of
     /// `swmanager_sender`.
-    swmanager_receiver: Receiver<SWManagerMsg>,
+    swmanager_receiver: Receiver<Result<SWManagerMsg, IpcError>>,
 
     /// A channel for the constellation to send messages to the
     /// time profiler thread.
@@ -468,6 +469,20 @@ fn log_entry(record: &LogRecord) -> Option<LogEntry> {
 /// The number of warnings to include in each crash report.
 const WARNINGS_BUFFER_SIZE: usize = 32;
 
+/// Route an ipc receiver to an mpsc receiver, preserving any errors.
+/// This is the same as `route_ipc_receiver_to_new_mpsc_receiver`,
+/// but does not panic on deserializtion errors.
+fn route_ipc_receiver_to_new_mpsc_receiver_preserving_errors<T>(ipc_receiver: IpcReceiver<T>)
+    -> Receiver<Result<T, IpcError>>
+    where T: Deserialize + Serialize + Send + 'static
+{
+        let (mpsc_sender, mpsc_receiver) = channel();
+        ROUTER.add_route(ipc_receiver.to_opaque(), Box::new(move |message| {
+            drop(mpsc_sender.send(message.to::<T>()))
+        }));
+        mpsc_receiver
+}
+
 impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
@@ -482,12 +497,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         thread::Builder::new().name("Constellation".to_owned()).spawn(move || {
             let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
-            let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
+            let script_receiver = route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_script_receiver);
 
             let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
-            let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
+            let layout_receiver = route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_layout_receiver);
 
-            let swmanager_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(swmanager_receiver);
+            let swmanager_receiver = route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(swmanager_receiver);
 
             PipelineNamespace::install(PipelineNamespaceId(0));
 
@@ -776,13 +791,24 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let receiver_from_swmanager = &self.swmanager_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
-                    Request::Script(msg.expect("Unexpected script channel panic in constellation")),
+                    msg.expect("Unexpected script channel panic in constellation").map(Request::Script),
                 msg = receiver_from_compositor.recv() =>
-                    Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")),
+                    Ok(Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation"))),
                 msg = receiver_from_layout.recv() =>
-                    Request::Layout(msg.expect("Unexpected layout channel panic in constellation")),
+                    msg.expect("Unexpected layout channel panic in constellation").map(Request::Layout),
                 msg = receiver_from_swmanager.recv() =>
-                    Request::FromSWManager(msg.expect("Unexpected panic channel panic in constellation"))
+                    msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager)
+            }
+        };
+
+        let request = match request {
+            Ok(request) => request,
+            Err(err) => {
+                // Treat deserialization error the same as receiving a panic message
+                debug!("Deserialization failed ({:?}).", err);
+                let reason = format!("Deserialization failed ({})", err);
+                let root_frame_id = self.root_frame_id;
+                return self.handle_panic(root_frame_id, reason, None);
             }
         };
 
@@ -1228,7 +1254,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.pipelines.remove(&pipeline_id);
     }
 
-    fn handle_send_error(&mut self, pipeline_id: PipelineId, err: Error) {
+    fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IpcError) {
         // Treat send error the same as receiving a panic message
         debug!("Pipeline {:?} send error ({}).", pipeline_id, err);
         let top_level_frame_id = self.get_top_level_frame_for_pipeline(pipeline_id);
