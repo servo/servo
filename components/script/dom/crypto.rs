@@ -59,6 +59,7 @@ impl CryptoMethods for Crypto {
             return Err(Error::TypeMismatch);
         }
 
+
         if data.len() > 65536 {
             return Err(Error::QuotaExceeded);
         }
