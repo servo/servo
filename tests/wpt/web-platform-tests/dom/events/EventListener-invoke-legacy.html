@@ -43,7 +43,7 @@ function runLegacyEventTest(type, legacyType, ctor, setup) {
         assert_unreached("listener of " + legacyType + " should not be invoked again");
         return;
       }
-      elem.dispatchEvent(new ctor(type));
+      elem.dispatchEvent(new window[ctor](type));
       t.done();
     }));
     setup(elem);
@@ -65,8 +65,8 @@ function setupAnimation(elem) {
   elem.style.animation = 'test 30ms 2';
 }
 
-runLegacyEventTest('transitionend', 'webkitTransitionEnd', TransitionEvent, setupTransition);
-runLegacyEventTest('animationend', 'webkitAnimationEnd', AnimationEvent, setupAnimation);
-runLegacyEventTest('animationiteration', 'webkitAnimationIteration', AnimationEvent, setupAnimation);
-runLegacyEventTest('animationstart', 'webkitAnimationStart', AnimationEvent, setupAnimation);
+runLegacyEventTest('transitionend', 'webkitTransitionEnd', "TransitionEvent", setupTransition);
+runLegacyEventTest('animationend', 'webkitAnimationEnd', "AnimationEvent", setupAnimation);
+runLegacyEventTest('animationiteration', 'webkitAnimationIteration', "AnimationEvent", setupAnimation);
+runLegacyEventTest('animationstart', 'webkitAnimationStart', "AnimationEvent", setupAnimation);
 </script>
