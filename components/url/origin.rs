@@ -7,6 +7,7 @@ use servo_rand::Rng;
 use std::cell::RefCell;
 use std::rc::Rc;
 use url::{Host, Origin};
+use url_serde;
 use uuid::Uuid;
 
 /// The origin of an URL
@@ -17,7 +18,11 @@ pub enum ImmutableOrigin {
     Opaque(OpaqueOrigin),
 
     /// Consists of the URL's scheme, host and port
-    Tuple(String, Host<String>, u16)
+    Tuple(
+        String,
+        #[serde(deserialize_with = "url_serde::deserialize", serialize_with = "url_serde::serialize")] Host,
+        u16,
+    )
 }
 
 impl ImmutableOrigin {

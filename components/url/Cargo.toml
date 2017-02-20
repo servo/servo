@@ -18,7 +18,7 @@ heapsize_derive = {version = "0.1", optional = true}
 serde = {version = "0.9", optional = true}
 serde_derive = {version = "0.9", optional = true}
 url = "1.2"
-url_serde = {version = "0.1", optional = true}
+url_serde = {version = "0.1.3", optional = true}
 servo_rand = {path = "../rand"}
 uuid = {version = "0.4.0", features = ["serde"]}
 
