@@ -26,6 +26,7 @@ use gecko_bindings::bindings::Gecko_CopyFontFamilyFrom;
 use gecko_bindings::bindings::Gecko_CopyImageValueFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleImageFrom;
 use gecko_bindings::bindings::Gecko_CopyListStyleTypeFrom;
+use gecko_bindings::bindings::Gecko_Destroy_nsStyleVariables;
 use gecko_bindings::bindings::Gecko_EnsureImageLayersLength;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendGeneric;
 use gecko_bindings::bindings::Gecko_FontFamilyList_AppendNamed;
@@ -3147,19 +3148,25 @@ ${impl_style_struct(style_struct)}
 ${define_ffi_struct_accessor(style_struct)}
 % endfor
 
-lazy_static! {
-    static ref EMPTY_VARIABLES_STRUCT: nsStyleVariables = {
-        unsafe {
-            let mut variables: nsStyleVariables = unsafe { zeroed() };
-            Gecko_Construct_nsStyleVariables(&mut variables);
-            variables
-        }
-    };
-}
+// This is only accessed from the Gecko main thread.
+static mut EMPTY_VARIABLES_STRUCT: Option<nsStyleVariables> = None;
 
 #[no_mangle]
 #[allow(non_snake_case)]
 pub unsafe extern "C" fn Servo_GetStyleVariables(_cv: ServoComputedValuesBorrowedOrNull)
                                                  -> *const nsStyleVariables {
-    &*EMPTY_VARIABLES_STRUCT
+    EMPTY_VARIABLES_STRUCT.as_ref().unwrap()
+}
+
+pub fn initialize() {
+    unsafe {
+        EMPTY_VARIABLES_STRUCT = Some(zeroed());
+        Gecko_Construct_nsStyleVariables(EMPTY_VARIABLES_STRUCT.as_mut().unwrap());
+    }
+}
+
+pub fn shutdown() {
+    unsafe {
+        EMPTY_VARIABLES_STRUCT.take().as_mut().map(|v| Gecko_Destroy_nsStyleVariables(v));
+    }
 }
