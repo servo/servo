@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Clicking on an &lt;area> element with a download attribute must not throw an exception</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-area-element:activation-behaviour">
+<link rel="help" href="https://github.com/whatwg/html/issues/2116">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<img src="/images/threecolors.png" usemap="#x" id="img" width="300" height="300">
+<map name="x">
+  <area id="blob-url" download="foo.html" coords="0,0,300,300">
+</map>
+
+<script>
+"use strict";
+
+const string = "test";
+const blob = new Blob([string], { type: "text/html" });
+
+const link = document.querySelector("#blob-url");
+link.href = URL.createObjectURL(blob);
+
+link.click();
+
+done();
+</script>

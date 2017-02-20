@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/preload/resources/preload_helper.js"></script>
+<script>
+    var t = async_test('Makes sure that Link headers preload resources and block window.onload after resource discovery');
+</script>
+<body>
+<style>
+    #background {
+        width: 200px;
+        height: 200px;
+        background-image: url(resources/square.png?background);
+    }
+</style>
+<link rel="stylesheet" href="resources/dummy.css">
+<script src="resources/dummy.js"></script>
+<div id="background"></div>
+<script>
+    document.write('<img src="resources/square.png">');
+    window.addEventListener("load", t.step_func(function() {
+        verifyPreloadAndRTSupport();
+        var entries = performance.getEntriesByType("resource");
+        var found_background_first = false;
+        for (var i = 0; i < entries.length; ++i) {
+            var entry = entries[i];
+            if (entry.name.indexOf("square") != -1) {
+                if (entry.name.indexOf("background") != -1)
+                    found_background_first = true;
+                break;
+            }
+        }
+        assert_true(found_background_first);
+        verifyNumberOfDownloads("resources/square.png", 1);
+        verifyNumberOfDownloads("resources/square.png?background", 1);
+        verifyNumberOfDownloads("resources/dummy.js", 1);
+        verifyNumberOfDownloads("resources/dummy.css", 1);
+        t.done();
+    }));
+</script>

@@ -5,6 +5,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
+<script src="../../resources/easing-tests.js"></script>
 <script src="../../resources/keyframe-utils.js"></script>
 <body>
 <div id="log"></div>
@@ -66,7 +67,25 @@ test(function(t) {
                   "resulting easing for '" + easing + "'");
   });
 }, "easing values are parsed correctly when passed to the " +
-   "KeyframeEffectReadOnly constructor in KeyframeTimingOptions");
+   "KeyframeEffectReadOnly constructor in KeyframeEffectOptions");
+
+test(function(t) {
+  gInvalidEasings.forEach(invalidEasing => {
+    assert_throws(new TypeError, () => {
+      new KeyframeEffectReadOnly(target, { easing: invalidEasing });
+    }, `TypeError is thrown for easing '${invalidEasing}'`);
+  });
+}, 'invalid easing values are correctly rejected when passed to the ' +
+   'KeyframeEffectReadOnly constructor in regular keyframes');
+
+test(function(t) {
+  gInvalidEasings.forEach(invalidEasing => {
+    assert_throws(new TypeError, () => {
+      new KeyframeEffectReadOnly(target, null, { easing: invalidEasing });
+    }, `TypeError is thrown for easing '${invalidEasing}'`);
+  });
+}, 'invalid easing values are correctly rejected when passed to the ' +
+   'KeyframeEffectReadOnly constructor in KeyframeEffectOptions');
 
 test(function(t) {
   var getKeyframe = function(composite) {

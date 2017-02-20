@@ -1,0 +1,80 @@
+<!doctype html>
+<title>XPath tests</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/WebIDLParser.js'></script>
+<script src='/resources/idlharness.js'></script>
+<script type='text/plain'>
+[Constructor] interface XPathEvaluator {
+  [NewObject] XPathExpression createExpression(DOMString expression,
+                                               optional XPathNSResolver? resolver);
+  Node createNSResolver(Node nodeResolver);
+  XPathResult evaluate(DOMString expression, Node contextNode,
+                       optional XPathNSResolver? resolver,
+                       optional unsigned short type,
+                       optional object? result);
+};
+
+interface XPathExpression {
+  XPathResult evaluate(Node contextNode,
+                       optional unsigned short type,
+                       optional object? result);
+};
+
+callback interface XPathNSResolver {
+  DOMString? lookupNamespaceURI(DOMString? prefix);
+};
+
+interface XPathResult {
+  const unsigned short ANY_TYPE = 0;
+  const unsigned short NUMBER_TYPE = 1;
+  const unsigned short STRING_TYPE = 2;
+  const unsigned short BOOLEAN_TYPE = 3;
+  const unsigned short UNORDERED_NODE_ITERATOR_TYPE = 4;
+  const unsigned short ORDERED_NODE_ITERATOR_TYPE = 5;
+  const unsigned short UNORDERED_NODE_SNAPSHOT_TYPE = 6;
+  const unsigned short ORDERED_NODE_SNAPSHOT_TYPE = 7;
+  const unsigned short ANY_UNORDERED_NODE_TYPE = 8;
+  const unsigned short FIRST_ORDERED_NODE_TYPE = 9;
+  readonly attribute unsigned short resultType;
+  readonly attribute double numberValue;
+  readonly attribute DOMString stringValue;
+  readonly attribute boolean booleanValue;
+  readonly attribute Node? singleNodeValue;
+  readonly attribute boolean invalidIteratorState;
+  readonly attribute unsigned long snapshotLength;
+  Node? iterateNext();
+  Node? snapshotItem(unsigned long index);
+};
+</script>
+<script type='text/plain' class='untested'>
+interface Document {};
+Document implements XPathEvaluator;
+</script>
+<script>
+"use strict";
+var evaluator = document;
+var resolver = function() {};
+var resolver2 = document.createNSResolver(document.documentElement);
+var expression = document.createExpression("//*", resolver);
+var result = document.evaluate("//*", document.documentElement, resolver, 0, null);
+
+var idlArray;
+setup(function() {
+  idlArray = new IdlArray();
+  [].forEach.call(document.querySelectorAll("script[type=text\\/plain]"), function(node) {
+    if (node.className == "untested") {
+      idlArray.add_untested_idls(node.textContent);
+    } else {
+      idlArray.add_idls(node.textContent);
+    }
+  });
+  idlArray.add_objects({
+    Document: ["document"],
+    XPathExpression: ["expression"],
+    XPathResolver: ["resolver", "resolver2"],
+    XPathResult: ["result"]
+  });
+});
+idlArray.test();
+</script>

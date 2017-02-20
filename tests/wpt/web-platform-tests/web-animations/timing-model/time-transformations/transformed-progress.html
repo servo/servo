@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Tests for the transformed progress</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#calculating-the-transformed-progress">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/easing-tests.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+'use strict';
+
+gEasingTests.forEach(params => {
+  test(function(t) {
+    const target = createDiv(t);
+    const anim   = target.animate(null, { duration: 1000,
+                                          fill: 'forwards',
+                                          easing: params.easing });
+
+    [ 0, 250, 500, 750, 1000 ].forEach(sampleTime => {
+      anim.currentTime = sampleTime;
+      const portion = sampleTime / anim.effect.getComputedTiming().duration;
+      const expectedProgress = params.easingFunction(portion);
+      assert_approx_equals(anim.effect.getComputedTiming().progress,
+                           expectedProgress,
+                           0.01,
+                           'The progress should be approximately ' +
+                           expectedProgress + ` at ${sampleTime}ms`);
+    });
+  }, 'Transformed progress for ' + params.desc);
+});
+
+// Additional tests for various boundary conditions of step timing functions
+
+var gStepTimingFunctionTests = [
+  {
+    description: 'Test bounds point of step-start easing',
+    effect:     {
+                  delay: 1000,
+                  duration: 1000,
+                  fill: 'both',
+                  easing: 'steps(2, start)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 0 },
+                  { currentTime: 999,  progress: 0 },
+                  { currentTime: 1000, progress: 0.5 },
+                  { currentTime: 1499, progress: 0.5 },
+                  { currentTime: 1500, progress: 1 },
+                  { currentTime: 2000, progress: 1 }
+                ]
+  },
+  {
+    description: 'Test bounds point of step-start easing with reverse direction',
+    effect:     {
+                  delay: 1000,
+                  duration: 1000,
+                  fill: 'both',
+                  direction: 'reverse',
+                  easing: 'steps(2, start)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 1 },
+                  { currentTime: 1001, progress: 1 },
+                  { currentTime: 1500, progress: 1 },
+                  { currentTime: 1501, progress: 0.5 },
+                  { currentTime: 2000, progress: 0 },
+                  { currentTime: 2500, progress: 0 }
+                ]
+  },
+  {
+    description: 'Test bounds point of step-start easing ' +
+                 'with iterationStart not at a transition point',
+    effect:     {
+                  delay: 1000,
+                  duration: 1000,
+                  fill: 'both',
+                  iterationStart: 0.25,
+                  easing: 'steps(2, start)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 0.5 },
+                  { currentTime: 999,  progress: 0.5 },
+                  { currentTime: 1000, progress: 0.5 },
+                  { currentTime: 1249, progress: 0.5 },
+                  { currentTime: 1250, progress: 1 },
+                  { currentTime: 1749, progress: 1 },
+                  { currentTime: 1750, progress: 0.5 },
+                  { currentTime: 2000, progress: 0.5 },
+                  { currentTime: 2500, progress: 0.5 },
+                ]
+  },
+  {
+    description: 'Test bounds point of step-start easing ' +
+                 'with iterationStart and delay',
+    effect:     {
+                  delay: 1000,
+                  duration: 1000,
+                  fill: 'both',
+                  iterationStart: 0.5,
+                  easing: 'steps(2, start)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 0.5 },
+                  { currentTime: 999,  progress: 0.5 },
+                  { currentTime: 1000, progress: 1 },
+                  { currentTime: 1499, progress: 1 },
+                  { currentTime: 1500, progress: 0.5 },
+                  { currentTime: 2000, progress: 1 }
+                ]
+  },
+  {
+    description: 'Test bounds point of step-start easing ' +
+                 'with iterationStart and reverse direction',
+    effect:     {
+                  delay: 1000,
+                  duration: 1000,
+                  fill: 'both',
+                  iterationStart: 0.5,
+                  direction: 'reverse',
+                  easing: 'steps(2, start)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 1 },
+                  { currentTime: 1000, progress: 1 },
+                  { currentTime: 1001, progress: 0.5 },
+                  { currentTime: 1499, progress: 0.5 },
+                  { currentTime: 1500, progress: 1 },
+                  { currentTime: 1999, progress: 1 },
+                  { currentTime: 2000, progress: 0.5 },
+                  { currentTime: 2500, progress: 0.5 }
+                ]
+  },
+  {
+    description: 'Test bounds point of step(4, start) easing ' +
+                 'with iterationStart 0.75 and delay',
+    effect:     {
+                  duration: 1000,
+                  fill: 'both',
+                  delay: 1000,
+                  iterationStart: 0.75,
+                  easing: 'steps(4, start)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 0.75 },
+                  { currentTime: 999,  progress: 0.75 },
+                  { currentTime: 1000, progress: 1 },
+                  { currentTime: 2000, progress: 1 },
+                  { currentTime: 2500, progress: 1 }
+                ]
+  },
+  {
+    description: 'Test bounds point of step-start easing ' +
+                 'with alternate direction',
+    effect:     {
+                  duration: 1000,
+                  fill: 'both',
+                  delay: 1000,
+                  iterations: 2,
+                  iterationStart: 1.5,
+                  direction: 'alternate',
+                  easing: 'steps(2, start)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 1 },
+                  { currentTime: 1000, progress: 1 },
+                  { currentTime: 1001, progress: 0.5 },
+                  { currentTime: 2999, progress: 1 },
+                  { currentTime: 3000, progress: 0.5 },
+                  { currentTime: 3500, progress: 0.5 }
+                ]
+  },
+  {
+    description: 'Test bounds point of step-start easing ' +
+                 'with alternate-reverse direction',
+    effect:     {
+                  duration: 1000,
+                  fill: 'both',
+                  delay: 1000,
+                  iterations: 2,
+                  iterationStart: 0.5,
+                  direction: 'alternate-reverse',
+                  easing: 'steps(2, start)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 1 },
+                  { currentTime: 1000, progress: 1 },
+                  { currentTime: 1001, progress: 0.5 },
+                  { currentTime: 2999, progress: 1 },
+                  { currentTime: 3000, progress: 0.5 },
+                  { currentTime: 3500, progress: 0.5 }
+                ]
+  },
+  {
+    description: 'Test bounds point of step-end easing',
+    effect:     {
+                  delay: 1000,
+                  duration: 1000,
+                  fill: 'both',
+                  easing: 'steps(2, end)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 0 },
+                  { currentTime: 999,  progress: 0 },
+                  { currentTime: 1000, progress: 0 },
+                  { currentTime: 1499, progress: 0 },
+                  { currentTime: 1500, progress: 0.5 },
+                  { currentTime: 2000, progress: 1 }
+                ]
+  },
+  {
+    description: 'Test bounds point of step-end easing ' +
+                 'with iterationStart and delay',
+    effect:     {
+                  duration: 1000,
+                  fill: 'both',
+                  delay: 1000,
+                  iterationStart: 0.5,
+                  easing: 'steps(2, end)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 0 },
+                  { currentTime: 999,  progress: 0 },
+                  { currentTime: 1000, progress: 0.5 },
+                  { currentTime: 1499, progress: 0.5 },
+                  { currentTime: 1500, progress: 0 },
+                  { currentTime: 1999, progress: 0 },
+                  { currentTime: 2000, progress: 0.5 },
+                  { currentTime: 2500, progress: 0.5 }
+                ]
+  },
+  {
+    description: 'Test bounds point of step-end easing ' +
+                 'with iterationStart not at a transition point',
+    effect:     {
+                  delay: 1000,
+                  duration: 1000,
+                  fill: 'both',
+                  iterationStart: 0.75,
+                  easing: 'steps(2, end)'
+                },
+    conditions: [
+                  { currentTime: 0,    progress: 0.5 },
+                  { currentTime: 999,  progress: 0.5 },
+                  { currentTime: 1000, progress: 0.5 },
+                  { currentTime: 1249, progress: 0.5 },
+                  { currentTime: 1250, progress: 0 },
+                  { currentTime: 1749, progress: 0 },
+                  { currentTime: 1750, progress: 0.5 },
+                  { currentTime: 2000, progress: 0.5 },
+                  { currentTime: 2500, progress: 0.5 },
+                ]
+  }
+];
+
+gStepTimingFunctionTests.forEach(function(options) {
+  test(function(t) {
+    var target = createDiv(t);
+    var animation = target.animate(null, options.effect);
+    options.conditions.forEach(function(condition) {
+      animation.currentTime = condition.currentTime;
+      assert_equals(animation.effect.getComputedTiming().progress,
+                    condition.progress,
+                    'Progress at ' + animation.currentTime + 'ms');
+    });
+  }, options.description);
+});
+
+</script>
+</body>

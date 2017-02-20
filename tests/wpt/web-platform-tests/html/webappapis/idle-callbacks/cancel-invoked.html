@@ -23,4 +23,10 @@
       t.done();
     }, 2000);
   }, "A cancelled callback is never invoked");
+
+  async_test(function (t) {
+    var handle = requestIdleCallback(t.step_func_done(function () {
+      cancelIdleCallback(handle);
+    }));
+  }, "Cancelling the currently executing idle callback should be allowed");
 </script>

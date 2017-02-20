@@ -1,0 +1,93 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<iframe></iframe>
+<iframe id="blob-test"></iframe> <!-- will get blob: URI -->
+<iframe src="javascript:'javascript'"></iframe>
+<iframe srcdoc="srcdoc"></iframe>
+<!-- Use the non-default HTTP port so we can make sure it gets included in
+     self.origin -->
+<iframe src="http://{{domains[www1]}}:{{ports[http][1]}}{{location[path]}}/../resources/self-origin-subframe.html"></iframe>
+<!-- Using the punycode version on purpose, we expect to get back the IDNA
+     version in self.origin -->
+<iframe src="http://xn--lve-6lad.{{domains[]}}:{{ports[http][1]}}{{location[path]}}/../resources/self-origin-subframe.html"></iframe>
+<iframe src="resources/self-origin-subframe.html" sandbox="allow-scripts"></iframe>
+<script type="application/javascript">
+test(function() {
+  var blob = new Blob(['blob']);
+  var url = URL.createObjectURL(blob);
+  document.getElementById("blob-test").src = url;
+}, "Assigning blob url");
+
+/* Each message test is a four things: window to send message to, message to
+   send, expected response, async test to use. */
+var messageTests = [
+  [ frames[4], "getOrigin", "http://{{domains[www1]}}:{{ports[http][1]}}",
+    async_test("Should have the right origin for cross-origin subframe") ],
+  [ frames[4], "setDomainAndGetOrigin", "http://{{domains[www1]}}:{{ports[http][1]}}",
+    async_test("Should have the right origin for cross-origin subframe after setting document.domain") ],
+  [ frames[5], "getOrigin", "http://élève.{{domains[]}}:{{ports[http][1]}}",
+    async_test("Should have the right origin for IDN subframe") ],
+  [ frames[5], "setDomainAndGetOrigin", "http://élève.{{domains[]}}:{{ports[http][1]}}",
+    async_test("Should have the right origin for IDN subframe after setting document.domain") ],
+  [ frames[6], "getOrigin", "null",
+    async_test("Should have the right origin for sandboxed iframe") ],
+];
+
+var curTest = 0;
+function nextMessageTest() {
+  if (curTest == messageTests.length) {
+    return;
+  }
+
+  var testData = messageTests[curTest];
+  testData[0].postMessage(testData[1], "*");
+}
+
+window.onmessage = function(e) {
+  var testData = messageTests[curTest++];
+  testData[3].step_func(function() {
+    assert_equals(e.data, testData[2])
+  });
+  testData[3].done();
+  nextMessageTest();
+}
+
+addEventListener("load", nextMessageTest);
+
+test(function() {
+  assert_equals(self.origin, "http://{{location[host]}}");
+}, "We should have the right origin for our page");
+
+var t1 = async_test("about:blank subframe origins");
+addEventListener("load", t1.step_func_done(function() {
+  assert_equals(frames[0].location.origin, "null",
+                "Should have the right location origin for about:blank iframe");
+  assert_equals(frames[0].origin, "http://{{location[host]}}",
+                "Should have the right origin for about:blank iframe");
+}));
+
+var t2 = async_test("blob: subframe origins");
+addEventListener("load", t2.step_func_done(function() {
+  assert_equals(frames[1].location.origin, "http://{{location[host]}}",
+                "Should have the right location origin for blob: iframe");
+  assert_equals(frames[1].origin, "http://{{location[host]}}",
+                "Should have the right origin for blob: iframe");
+}));
+
+var t3 = async_test("javascript: subframe origins");
+addEventListener("load", t3.step_func_done(function() {
+  assert_equals(frames[2].origin, "http://{{location[host]}}",
+                "Should have the right origin for javascript: iframe");
+}));
+
+var t4 = async_test("srcdoc subframe origins");
+addEventListener("load", t4.step_func_done(function() {
+  assert_equals(frames[3].location.origin, "null",
+                "Should have the right location origin for srcdoc iframe");
+  assert_equals(frames[3].origin, "http://{{location[host]}}",
+                "Should have the right origin for srcdoc iframe");
+}));
+</script>

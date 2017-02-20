@@ -50,10 +50,10 @@
                 t.step_func(function (entryList) {
                     var instance1 = performance.getEntries()[0];
                     var instance2 = performance.getEntriesByType("navigation")[0];
-                    var instance3 = performance.getEntriesByName("document")[0];
+                    var instance3 = performance.getEntriesByName("http://web-platform.test:8001/navigation-timing/nav2_test_instance_accessors.html")[0];
 
                     assert_equals(performance.getEntriesByType("navigation").length, 1, "Expected there is only one navigation timing instance.");
-                    assert_equals(performance.getEntriesByName("document").length, 1, "Expected there is only one navigation timing instance.");
+                    assert_equals(performance.getEntriesByName("http://web-platform.test:8001/navigation-timing/nav2_test_instance_accessors.html").length, 1, "Expected there is only one navigation timing instance.");
 
                     for (var i = 0; i < navTiming2Attributes.length; i++) {
                         assert_equals(instance1[navTiming2Attributes[i]], instance2[navTiming2Attributes[i]]);

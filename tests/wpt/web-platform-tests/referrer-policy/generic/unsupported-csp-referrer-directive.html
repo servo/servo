@@ -22,7 +22,7 @@
       queryImage(url, test.step_func(function(message) {
         assert_equals(message.referrer, document.location.href);
         test.done();
-      }));
+      }), null, 'always', test);
     </script>
 
     <div id="log"></div>

@@ -56,6 +56,15 @@ function testExtend(endpoints, target) {
     var node = target[0];
     var offset = target[1];
 
+    // "If node's root is not the document associated with the context object,
+    // abort these steps."
+    if (!document.contains(node)) {
+        assertSelectionNoChange(function() {
+            selection.extend(node, offset);
+        });
+        return;
+    }
+
     // "If the context object's range is null, throw an InvalidStateError
     // exception and abort these steps."
     if (getSelection().rangeCount == 0) {

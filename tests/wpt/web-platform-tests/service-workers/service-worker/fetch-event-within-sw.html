@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+const worker = 'resources/fetch-event-within-sw-worker.js';
+
+function reset() {
+  for (const iframe of [...document.querySelectorAll('.test-iframe')]) {
+    iframe.remove();
+  }
+  return navigator.serviceWorker.getRegistrations().then(registrations => {
+    return Promise.all(registrations.map(r => r.unregister()));
+  }).then(() => caches.keys()).then(cacheKeys => {
+    return Promise.all(cacheKeys.map(c => caches.delete(c)));
+  });
+}
+
+add_completion_callback(reset);
+
+function regReady(reg) {
+  return new Promise((resolve, reject) => {
+    if (reg.active) {
+      resolve();
+      return;
+    }
+    const nextWorker = reg.waiting || reg.installing;
+
+    nextWorker.addEventListener('statechange', () => {
+      if (nextWorker.state == 'redundant') {
+        reject(Error(`Service worker failed to install`));
+        return;
+      }
+      if (nextWorker.state == 'activated') {
+        resolve();
+      }
+    });
+  });
+}
+
+function registerSwAndOpenFrame() {
+  return reset().then(() => navigator.serviceWorker.register(worker, { scope: 'resources/' }))
+    .then(reg => regReady(reg))
+    .then(() => with_iframe('resources/simple.html'));
+}
+
+promise_test(() => {
+  return registerSwAndOpenFrame().then(iframe => {
+    return Promise.all([
+      iframe.contentWindow.fetch('dummy.txt').then(r => r.text()),
+      iframe.contentWindow.caches.open('test')
+        .then(cache =>
+          cache.add('dummy.txt').then(() => cache.match('dummy.txt'))
+        ).then(response => {
+          if (!response) return 'cache match failed';
+          return response.text();
+        })
+    ])
+  }).then(([fetchText, cacheText]) => {
+    assert_equals(fetchText, 'intercepted', 'fetch intercepted');
+    assert_equals(cacheText, 'intercepted', 'cache.add intercepted');
+  });
+}, 'Service worker intercepts requests from window');
+
+promise_test(() => {
+  return registerSwAndOpenFrame().then(iframe => {
+    return Promise.all([
+      iframe.contentWindow.fetch('dummy.txt-inner-fetch').then(r => r.text()),
+      iframe.contentWindow.fetch('dummy.txt-inner-cache').then(r => r.text())
+    ])
+  }).then(([fetchText, cacheText]) => {
+    assert_equals(fetchText, 'Hello world\n', 'fetch within SW not intercepted');
+    assert_equals(cacheText, 'Hello world\n', 'cache.add within SW not intercepted');
+  });
+}, `Service worker does not intercept fetch/cache requests within service worker`);
+</script>
+</body>

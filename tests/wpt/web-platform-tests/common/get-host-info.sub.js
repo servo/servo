@@ -5,6 +5,7 @@ function get_host_info() {
   var HTTPS_PORT = '{{ports[https][0]}}';
   var ORIGINAL_HOST = '{{host}}';
   var REMOTE_HOST = (ORIGINAL_HOST === 'localhost') ? '127.0.0.1' : ('www1.' + ORIGINAL_HOST);
+  var OTHER_HOST = '{{domains[www2]}}';
 
   return {
     HTTP_PORT: HTTP_PORT,
@@ -21,6 +22,8 @@ function get_host_info() {
     HTTP_REMOTE_ORIGIN_WITH_DIFFERENT_PORT: 'http://' + REMOTE_HOST + ':' + HTTP_PORT2,
     HTTPS_REMOTE_ORIGIN: 'https://' + REMOTE_HOST + ':' + HTTPS_PORT,
     HTTPS_REMOTE_ORIGIN_WITH_CREDS: 'https://foo:bar@' + REMOTE_HOST + ':' + HTTPS_PORT,
+    UNAUTHENTICATED_ORIGIN: 'http://' + OTHER_HOST + ':' + HTTP_PORT,
+    AUTHENTICATED_ORIGIN: 'https://' + OTHER_HOST + ':' + HTTPS_PORT
   };
 }
 

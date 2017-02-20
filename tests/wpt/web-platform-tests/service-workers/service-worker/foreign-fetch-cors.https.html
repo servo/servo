@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<title>Service Worker: Foreign Fetch CORS functionality</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script src="resources/foreign-fetch-helpers.js"></script>
+<body>
+<script>
+var host_info = get_host_info();
+var origin = new URL(self.location).origin;
+var wrong_origin = 'https://example.com/';
+var test_header = 'X-ServiceWorker-ServerHeader';
+
+function url_to_fetch(scope) {
+  return host_info.HTTPS_REMOTE_ORIGIN + new URL('resources/', location).pathname + scope;
+}
+
+function worker_for_response(response) {
+  return 'foreign-fetch-cors-worker.js?' +
+      encodeURIComponent(JSON.stringify(response));
+}
+
+function scope_for_params(params) {
+  return 'simple.txt?' + encodeURIComponent(JSON.stringify(params));
+}
+
+// Method used for tests that expect to result in an opaque response.
+function verify_opaque_fetch(url, t) {
+  return promise_rejects(t, new TypeError(), fetch(url))
+    .then(() => fetch(url, {mode: 'no-cors'}))
+    .then(response => assert_equals(response.type, 'opaque'))
+    .then(() => new Promise(resolve => {
+        var request = new XMLHttpRequest();
+        request.open('GET', url);
+        request.onreadystatechange = () => {
+          if (request.readyState == 4) resolve(request);
+        };
+        request.send();
+      }))
+    .then(xhr => {
+        assert_equals(xhr.status, 0);
+        assert_equals(xhr.responseText, '');
+      });
+}
+
+// Verify that fetching an url results in a network error.
+function verify_network_error(url, t) {
+  return promise_rejects(t, new TypeError(), fetch(url))
+    .then(() => promise_rejects(t, new TypeError(),
+                                fetch(url, {mode: 'no-cors'})))
+    .then(() => new Promise(resolve => {
+        var request = new XMLHttpRequest();
+        request.open('GET', url);
+        request.onreadystatechange = () => {
+          if (request.readyState == 4) resolve(request);
+        };
+        request.send();
+      }))
+    .then(xhr => {
+        assert_equals(xhr.status, 0);
+        assert_equals(xhr.responseText, '');
+      });
+}
+
+// Verifies that fetching the URL returns a cors response, with a specific value
+// for a test_header on the response. Also verifies that round-tripping this
+// response through the cache doesn't cause issues.
+function verify_cors_fetch_with_header_value(url, header_value) {
+  var response;
+  var cache;
+  return fetch(url)
+    .then(r => {
+        response = r.clone();
+        assert_equals(r.type, 'cors');
+        assert_equals(r.headers.get(test_header), header_value, 'From fetch');
+        return r.text();
+      })
+    .then(response_text => {
+        assert_true(response_text.startsWith('report('),
+            'Correct content via fetch');
+        return self.caches.open(url);
+      })
+    .then(c => {
+        cache = c;
+        return cache.put(url, response);
+      })
+    .then(() => cache.match(url))
+    .then(r => {
+        assert_equals(r.type, 'cors');
+        assert_equals(r.headers.get(test_header), header_value, 'From cache');
+        return r.text();
+      })
+    .then(response_text => {
+        assert_true(response_text.startsWith('report('),
+            'Correct content via cache');
+        return self.caches.delete(url);
+      })
+    .then(() => new Promise(resolve => {
+        var request = new XMLHttpRequest();
+        request.open('GET', url);
+        request.onreadystatechange = () => {
+          if (request.readyState == 4) resolve(request);
+        };
+        request.send();
+      }))
+    .then(xhr => {
+        assert_true(xhr.responseText.startsWith('report('),
+            'Correct content via xhr');
+        assert_equals(xhr.getResponseHeader(test_header), header_value);
+        var headers = xhr.getAllResponseHeaders().toLowerCase();
+        if (header_value) {
+          assert_true(headers.includes(test_header.toLowerCase() + ': ' +
+                                       header_value.toLowerCase()));
+        } else {
+          assert_false(headers.includes(test_header.toLowerCase()));
+        }
+      });
+}
+
+verify_cors_fetch_with_header =
+    url => verify_cors_fetch_with_header_value(url, 'SetInTheServer');
+verify_cors_fetch_without_header =
+    url => verify_cors_fetch_with_header_value(url, null);
+
+var tests = [
+  {
+    description: 'Same origin fetch without CORS headers, not exposed',
+    params: {
+      cross_origin: false,
+      with_aceheaders: false,
+      with_acaorigin: false
+    },
+    response: {},
+    expectation: verify_opaque_fetch
+  },
+  {
+    description: 'Same origin fetch without CORS headers, only origin exposed',
+    params: {
+      cross_origin: false,
+      with_aceheaders: false,
+      with_acaorigin: false
+    },
+    response: {origin: origin},
+    expectation: verify_cors_fetch_without_header
+  },
+  {
+    description:
+        'Same origin fetch without CORS headers, headers and origin exposed',
+    params: {
+      cross_origin: false,
+      with_aceheaders: false,
+      with_acaorigin: false
+    },
+    response: {origin: origin, headers: [test_header]},
+    expectation: verify_cors_fetch_with_header
+  },
+  {
+    description:
+        'Same origin fetch without CORS headers, exposed to wrong origin',
+    params: {
+      cross_origin: false,
+      with_aceheaders: false,
+      with_acaorigin: false
+    },
+    response: {origin: wrong_origin, headers: [test_header]},
+    expectation: verify_network_error
+  },
+  {
+    description: 'Same origin fetch with CORS headers, not exposed',
+    params: {
+      cross_origin: false,
+      with_aceheaders: true,
+      with_acaorigin: true
+    },
+    response: {},
+    expectation: verify_opaque_fetch
+  },
+  {
+    description: 'Same origin fetch with CORS headers, only origin exposed',
+    params: {
+      cross_origin: false,
+      with_aceheaders: true,
+      with_acaorigin: true
+    },
+    response: {origin: origin},
+    expectation: verify_cors_fetch_without_header
+  },
+  {
+    description:
+        'Same origin fetch with CORS headers, headers and origin exposed',
+    params: {
+      cross_origin: false,
+      with_aceheaders: true,
+      with_acaorigin: true
+    },
+    response: {origin: origin, headers: [test_header]},
+    expectation: verify_cors_fetch_with_header
+  },
+  {
+    description: 'Same origin fetch with CORS headers, exposed to wrong origin',
+    params: {
+      cross_origin: false,
+      with_aceheaders: true,
+      with_acaorigin: true
+    },
+    response: {origin: wrong_origin, headers: [test_header]},
+    expectation: verify_network_error
+  },
+  {
+    description: 'Cross origin fetch without CORS headers, not exposed',
+    params: {
+      cross_origin: true,
+      with_aceheaders: false,
+      with_acaorigin: false
+    },
+    response: {},
+    expectation: verify_opaque_fetch
+  },
+  {
+    description: 'Cross origin fetch with ACEHeaders header, not exposed',
+    params: {
+      cross_origin: true,
+      with_aceheaders: true,
+      with_acaorigin: true
+    },
+    response: {},
+    expectation: verify_opaque_fetch
+  },
+  {
+    description:
+        'Cross origin fetch with ACEHeaders header, only origin exposed',
+    params: {
+      cross_origin: true,
+      with_aceheaders: true,
+      with_acaorigin: true
+    },
+    response: {origin: origin},
+    expectation: verify_cors_fetch_without_header
+  },
+  {
+    description:
+        'Cross origin fetch with ACEHeaders header, headers and origin exposed',
+    params: {
+      cross_origin: true,
+      with_aceheaders: true,
+      with_acaorigin: true
+    },
+    response: {origin: origin, headers: [test_header]},
+    expectation: verify_cors_fetch_with_header
+  },
+  {
+    description:
+        'Cross origin fetch with ACEHeaders header, exposed to wrong origin',
+    params: {
+      cross_origin: true,
+      with_aceheaders: true,
+      with_acaorigin: true
+    },
+    response: {origin: wrong_origin, headers: [test_header]},
+    expectation: verify_network_error
+  },
+  {
+    description: 'Cross origin fetch without ACEHeaders header, not exposed',
+    params: {
+      cross_origin: true,
+      with_aceheaders: false,
+      with_acaorigin: true
+    },
+    response: {},
+    expectation: verify_opaque_fetch
+  },
+  {
+    description:
+        'Cross origin fetch without ACEHeaders header, only origin exposed',
+    params: {
+      cross_origin: true,
+      with_aceheaders: false,
+      with_acaorigin: true
+    },
+    response: {origin: origin},
+    expectation: verify_cors_fetch_without_header
+  },
+  {
+    description: 'Cross origin fetch without ACEHeaders header, ' +
+                 'headers and origin exposed',
+    params: {
+      cross_origin: true,
+      with_aceheaders: false,
+      with_acaorigin: true
+    },
+    response: {origin: origin, headers: [test_header]},
+    expectation: verify_cors_fetch_without_header
+  }
+];
+
+for (var i = 0; i < tests.length; ++i) (data => {
+  promise_test(t => {
+      var scope = scope_for_params(data.params);
+      var worker = worker_for_response(data.response);
+      return install_cross_origin_worker(t, worker, scope)
+        .then(() => data.expectation(url_to_fetch(scope), t));
+    }, data.description);
+})(tests[i]);
+</script>
+</body>

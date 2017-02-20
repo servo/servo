@@ -644,8 +644,10 @@ Runner.prototype = {
         return this.manifest[this.mTestCount];
     },
 
-    open_test_window: function() {
-        this.test_window = window.open("about:blank", 800, 600);
+    ensure_test_window: function() {
+        if (!this.test_window || this.test_window.location === null) {
+          this.test_window = window.open("about:blank", 800, 600);
+        }
     },
 
     manifest_loaded: function() {
@@ -666,6 +668,7 @@ Runner.prototype = {
         this.manifest_iterator = new ManifestIterator(this.manifest, this.path, this.test_types, this.use_regex);
         this.num_tests = null;
 
+        this.ensure_test_window();
         if (this.manifest.data === null) {
             this.wait_for_manifest();
         } else {
@@ -682,7 +685,6 @@ Runner.prototype = {
 
     do_start: function() {
         if (this.manifest_iterator.count() > 0) {
-            this.open_test_window();
             this.start_callbacks.forEach(function(callback) {
                 callback();
             });
@@ -727,6 +729,7 @@ Runner.prototype = {
         this.done_flag = true;
         if (this.test_window) {
             this.test_window.close();
+            this.test_window = undefined;
         }
         this.done_callbacks.forEach(function(callback) {
             callback();
@@ -758,9 +761,7 @@ Runner.prototype = {
     },
 
     load: function(path) {
-        if (this.test_window.location === null) {
-            this.open_test_window();
-        }
+        this.ensure_test_window();
         this.test_window.location.href = this.server + path;
     },
 

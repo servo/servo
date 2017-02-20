@@ -41,8 +41,8 @@ var miscElements = {
   summary: {},
   menu: {
     // Conforming
-    //TODO: check that missing value default is popup if parent's type is popup
-    type: {type: "enum", keywords:["popup", "toolbar"], defaultVal: "toolbar"},
+    //TODO: check that missing value default is context if parent's type is context
+    type: {type: "enum", keywords:["context", "toolbar"], defaultVal: "toolbar"},
     label: "string",
 
     // Obsolete

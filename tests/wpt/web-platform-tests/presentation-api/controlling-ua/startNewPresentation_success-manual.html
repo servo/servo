@@ -47,7 +47,7 @@
 
             var request = new PresentationRequest(presentationUrls);
             var eventWatcher = new EventWatcher(t, request, 'connectionavailable');
-            var waitConnectionavailable = eventWatcher.wait_for('connectionavailable').then(count).then(function(evt) { connection = connection || evt.connection; });
+            var waitConnectionavailable = eventWatcher.wait_for('connectionavailable').then(count).then(function(evt) { connection = connection || evt.connection; return evt; });
             var waitConnect;
 
             t.add_cleanup(function() {

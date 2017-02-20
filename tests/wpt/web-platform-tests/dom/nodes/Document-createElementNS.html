@@ -16,9 +16,7 @@ var tests = createElementNS_tests.concat([
    *   the expected exception, or null if none
    */
   ["", "", "INVALID_CHARACTER_ERR"],
-  [null, null, null],
   [null, "", "INVALID_CHARACTER_ERR"],
-  [undefined, null, null],
   [undefined, "", "INVALID_CHARACTER_ERR"],
   ["http://example.com/", null, null],
   ["http://example.com/", "", "INVALID_CHARACTER_ERR"],

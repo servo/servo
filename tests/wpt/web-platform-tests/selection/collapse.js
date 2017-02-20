@@ -22,6 +22,13 @@ function testCollapse(range, point) {
         return;
     }
 
+    if (!document.contains(point[0])) {
+        assertSelectionNoChange(function() {
+            selection.collapse(point[0], point[1]);
+        });
+        return;
+    }
+
     selection.collapse(point[0], point[1]);
 
     assert_equals(selection.rangeCount, 1,

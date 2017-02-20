@@ -12,6 +12,11 @@
 'use strict';
 
 test(function(t) {
+  var anim = createDiv(t).animate(null);
+  assert_equals(anim.effect.timing.iterationStart, 0);
+}, 'Test default value');
+
+test(function(t) {
   var div = createDiv(t);
   var anim = div.animate({ opacity: [ 0, 1 ] },
                          { iterationStart: 0.2,
@@ -56,17 +61,16 @@ test(function(t) {
 
 test(function(t) {
   var div = createDiv(t);
-  var anim = div.animate({ opacity: [ 0, 1 ] }, 100);
-  assert_throws({ name: 'TypeError' },
-                function() {
-                  anim.effect.timing.iterationStart = -1;
-                });
-  assert_throws({ name: 'TypeError' },
-                function() {
-                  div.animate({ opacity: [ 0, 1 ] },
-                              { iterationStart: -1 });
-                });
-}, 'Test invalid iterationStart value');
+  var anim = div.animate(null);
+  for (let invalid of [-1, NaN, Infinity]) {
+    assert_throws({ name: 'TypeError' }, function() {
+      anim.effect.timing.iterationStart = invalid;
+    }, 'setting ' + invalid);
+    assert_throws({ name: 'TypeError' }, function() {
+      div.animate({}, { iterationStart: invalid });
+    }, 'animate() with ' + invalid);
+  }
+}, 'Using invalid values should throw TypeError');
 
 </script>
 </body>

@@ -19,28 +19,35 @@
       assert_equals(readerNoRead.result, null);
     }, "Aborting before read");
 
-    async_test(function() {
-      var blob = new Blob(["TEST THE ABORT METHOD"]);
-      var readerAbort = new FileReader();
+    promise_test(t => {
+        var blob = new Blob(["TEST THE ABORT METHOD"]);
+        var readerAbort = new FileReader();
 
-      readerAbort.onabort = this.step_func(function(evt) {
-        assert_equals(readerAbort.readyState, readerAbort.DONE);
-      });
+        var eventWatcher = new EventWatcher(t, readerAbort,
+            ['abort', 'loadstart', 'loadend', 'error', 'load']);
 
-      readerAbort.onloadstart = this.step_func(function(evt) {
-        assert_equals(readerAbort.readyState, readerAbort.LOADING);
-        readerAbort.abort();
-      });
+        // EventWatcher doesn't let us inspect the state after the abort event,
+        // so add an extra event handler for that.
+        readerAbort.addEventListener('abort', t.step_func(e => {
+              assert_equals(readerAbort.readyState, readerAbort.DONE);
+          }));
 
-      readerAbort.onloadend = this.step_func(function(evt) {
-        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=24401
-        assert_equals(readerAbort.result, null);
-        assert_equals(readerAbort.readyState, readerAbort.DONE);
-        this.done();
-      });
-
-      readerAbort.readAsText(blob);
-    }, "Aborting after read");
+        readerAbort.readAsText(blob);
+        return eventWatcher.wait_for('loadstart')
+          .then(() => {
+              assert_equals(readerAbort.readyState, readerAbort.LOADING);
+              // 'abort' and 'loadend' events are dispatched synchronously, so
+              // call wait_for before calling abort.
+              var nextEvent = eventWatcher.wait_for(['abort', 'loadend']);
+              readerAbort.abort();
+              return nextEvent;
+            })
+          .then(() => {
+              // https://www.w3.org/Bugs/Public/show_bug.cgi?id=24401
+              assert_equals(readerAbort.result, null);
+              assert_equals(readerAbort.readyState, readerAbort.DONE);
+            });
+      }, "Aborting after read");
     </script>
   </body>
 </html>

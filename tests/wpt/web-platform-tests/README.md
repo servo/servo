@@ -1,7 +1,7 @@
-The Web Platform Tests Project [![IRC chat](https://goo.gl/6nCIks)](http://irc.w3.org/?channels=testing)
+The web-platform-tests Project [![IRC chat](https://goo.gl/6nCIks)](http://irc.w3.org/?channels=testing)
 ==============================
 
-The Web Platform Tests Project is a W3C-coordinated attempt to build a
+The web-platform-tests Project is a W3C-coordinated attempt to build a
 cross-browser testsuite for the Web-platform stack.  However, for mainly
 historic reasons, the CSS WG testsuite is in a separate repository,
 [csswg-test](https://github.com/w3c/csswg-test). Writing tests in a way
@@ -114,7 +114,7 @@ Test Runner
 ===========
 
 There is a test runner that is designed to provide a
-convenient way to run the web-platform tests in-browser. It will run
+convenient way to run the web-platform-tests in-browser. It will run
 testharness.js tests automatically but requires manual work for
 reftests and manual tests.
 

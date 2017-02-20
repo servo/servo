@@ -1,5 +1,6 @@
 <!doctype html>
 <title>Selection.selectAllChildren tests</title>
+<meta name="timeout" content="long">
 <div id=log></div>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -29,6 +30,16 @@ for (var i = 0; i < testRanges.length; i++) {
             }
 
             selection.selectAllChildren(node);
+            if (!document.contains(node)) {
+                if (originalRange) {
+                    assert_equals(getSelection().getRangeAt(0), originalRange,
+                        "selectAllChildren must do nothing");
+                } else {
+                    assert_equals(getSelection().rangeCount, 0,
+                        "selectAllChildren must do nothing");
+                }
+                return;
+            }
             // This implicitly tests that the selection is forwards, by using
             // anchorOffset/focusOffset instead of getRangeAt.
             assert_equals(selection.rangeCount, 1,

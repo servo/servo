@@ -21,21 +21,7 @@
      t.done();
  }, "mouseover listener returning false doesn't cancel event");
 
- async_test(function(t) {
-     var ev = new Event('beforeunload', {cancelable: true});
-     window.onbeforeunload = t.step_func(function() {return null});
-     window.dispatchEvent(ev);
-     assert_equals(ev.defaultPrevented, true);
-     t.done();
- }, "beforeunload listener returning null cancels event");
-
- async_test(function(t) {
-     var ev = new Event('beforeunload', {cancelable: true});
-     window.onbeforeunload = t.step_func(function() {return true});
-     window.dispatchEvent(ev);
-     assert_equals(ev.defaultPrevented, false);
-     t.done();
- }, "beforeunload listener returning non-null doesn't cancel event");
+ // beforeunload is tested in html/browsers/browsing-the-web/unloading-documents/beforeunload-canceling.html
 
  async_test(function(t) {
      var ev = new Event("click", {cancelable: true});

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>Test that setting MediaSession event handler should notify the service</title>
+<script src=/resources/testharness.js></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+test(function(t) {
+  window.navigator.mediaSession.setActionHandler("play", null);
+  window.navigator.mediaSession.setActionHandler("pause", null);
+  window.navigator.mediaSession.setActionHandler("previoustrack", null);
+  window.navigator.mediaSession.setActionHandler("nexttrack", null);
+  window.navigator.mediaSession.setActionHandler("seekbackward", null);
+  window.navigator.mediaSession.setActionHandler("seekforward", null);
+}, "Test that setActionHandler() can be executed for supported actions");
+
+test(function(t) {
+  assert_throws(
+      new TypeError("Failed to execute 'setActionHandler' on 'MediaSession':" +
+                    "The provided value 'invalid' is not a valid enum value" +
+                    "of type MediaSessionAction."),
+      _ => { window.navigator.mediaSession.setActionHandler("invalid", null); });
+}, "Test that setActionHandler() throws exception for unsupported actions");
+
+</script>

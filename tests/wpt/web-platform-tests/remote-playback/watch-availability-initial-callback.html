@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<title>Test that the callback is called once watchAvailability() resolves.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<script>
+async_test(t => {
+  var v = document.createElement('video');
+  v.src = getVideoURI('movie_5');
+
+  var promiseResolved = false;
+
+  function callback(available) {
+    assert_true(promiseResolved);
+  }
+
+  v.remote.watchAvailability(t.step_func_done(callback)).then(
+    t.step_func(() => { promiseResolved = true; }), t.unreached_func());
+}, 'Test that the callback is called once watchAvailability() resolves.');
+</script>
+</html>

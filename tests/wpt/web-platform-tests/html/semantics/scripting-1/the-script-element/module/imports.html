@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>html-script-module-imports</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <h1>html-script-module-imports</h1>
+
+    <script type="module">
+
+        import { A } from "./imports-a.js";
+
+        test(function () {
+            assert_equals(A.from, "imports-a.js", "Unexpected A");
+        }, "Import a simple module");
+
+    </script>
+    <script type="module">
+
+        import { B as B_RENAMED } from "./imports-b.js";
+
+        test(function () {
+            assert_equals(B_RENAMED.from, "imports-b.js", "Unexpected B_RENAMED");
+
+            try
+            {
+                B;
+                assert_unreached("Unexpectedly defined B");
+            }
+            catch (ex)
+            {}
+        }, "Import a simple module, renamed");
+
+    </script>
+    <script type="module">
+
+        import { INC_A } from "./imports-inc-a.js";
+        import { INC_B } from "./imports-inc-b.js";
+        import { INC_AB_A, INC_AB_B } from "./imports-inc-ab.js";
+
+        test(function () {
+            assert_equals(INC_A.from, "imports-a.js", "Unexpected INC_A");
+            assert_equals(INC_B.from, "imports-b.js", "Unexpected INC_A");
+            assert_equals(INC_AB_A.from, "imports-a.js", "Unexpected INC_A");
+            assert_equals(INC_AB_B.from, "imports-b.js", "Unexpected INC_A");
+            assert_equals(INC_A, INC_AB_A, "INC_A and INC_AB_A should be the same");
+            assert_equals(INC_B, INC_AB_B, "INC_B and INC_AB_B should be the same");
+        }, "Import the same module multiple times");
+
+    </script>
+
+    <script>
+        var test_importSelf = async_test("Import a module that tries to import itself");
+    </script>
+    <script type="module" src="imports-self.js" onerror="test_importSelf.done();"></script>
+
+    <script>
+        var test_importCycle = async_test("Import a module with a cyclical module dependency");
+    </script>
+    <script type="module" src="imports-cycle.js" onerror="test_importCycle.done();"></script>
+</body>
+</html>

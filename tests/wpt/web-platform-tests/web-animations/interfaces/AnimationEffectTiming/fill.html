@@ -10,6 +10,11 @@
 <script>
 'use strict';
 
+test(function(t) {
+  var anim = createDiv(t).animate(null);
+  assert_equals(anim.effect.timing.fill, 'auto');
+}, 'Test default value');
+
 ["none", "forwards", "backwards", "both", ].forEach(function(fill){
   test(function(t) {
     var div = createDiv(t);

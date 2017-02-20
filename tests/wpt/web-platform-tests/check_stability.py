@@ -10,11 +10,10 @@ import sys
 import tarfile
 import zipfile
 from abc import ABCMeta, abstractmethod
-from cStringIO import StringIO
+from cStringIO import StringIO as CStringIO
 from collections import defaultdict
 from ConfigParser import RawConfigParser
-from io import BytesIO
-from tools.manifest import manifest
+from io import BytesIO, StringIO
 
 import requests
 
@@ -24,14 +23,14 @@ LogHandler = None
 LogLevelFilter = None
 StreamHandler = None
 TbplFormatter = None
+manifest = None
 reader = None
 wptcommandline = None
 wptrunner = None
 wpt_root = None
 wptrunner_root = None
 
-logger = logging.getLogger(os.path.splitext(__file__)[0])
-
+logger = None
 
 def do_delayed_imports():
     """Import and set up modules only needed if execution gets to this point."""
@@ -39,12 +38,14 @@ def do_delayed_imports():
     global LogLevelFilter
     global StreamHandler
     global TbplFormatter
+    global manifest
     global reader
     global wptcommandline
     global wptrunner
     from mozlog import reader
     from mozlog.formatters import TbplFormatter
     from mozlog.handlers import BaseHandler, LogLevelFilter, StreamHandler
+    from tools.manifest import manifest
     from wptrunner import wptcommandline, wptrunner
     setup_log_handler()
     setup_action_filter()
@@ -57,8 +58,6 @@ def setup_logging():
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
-
-setup_logging()
 
 
 def setup_action_filter():
@@ -105,6 +104,50 @@ class TravisFold(object):
     def __exit__(self, type, value, traceback):
         """Emit fold end syntax."""
         print("travis_fold:end:%s" % self.name, file=sys.stderr)
+
+
+class FilteredIO(object):
+    """Wrap a file object, invoking the provided callback for every call to
+    `write` and only proceeding with the operation when that callback returns
+    True."""
+    def __init__(self, original, on_write):
+        self.original = original
+        self.on_write = on_write
+
+    def __getattr__(self, name):
+        return getattr(self.original, name)
+
+    def disable(self):
+        self.write = lambda msg: None
+
+    def write(self, msg):
+        encoded = msg.encode("utf8", "backslashreplace").decode("utf8")
+        if self.on_write(self.original, encoded) is True:
+            self.original.write(encoded)
+
+
+def replace_streams(capacity, warning_msg):
+    # Value must be boxed to support modification from inner function scope
+    count = [0]
+    capacity -= 2 + len(warning_msg)
+    stderr = sys.stderr
+
+    def on_write(handle, msg):
+        length = len(msg)
+        count[0] += length
+
+        if count[0] > capacity:
+            sys.stdout.disable()
+            sys.stderr.disable()
+            handle.write(msg[0:capacity - count[0]])
+            handle.flush()
+            stderr.write("\n%s\n" % warning_msg)
+            return False
+
+        return True
+
+    sys.stdout = FilteredIO(sys.stdout, on_write)
+    sys.stderr = FilteredIO(sys.stderr, on_write)
 
 
 class Browser(object):
@@ -275,7 +318,7 @@ def seekable(fileobj):
     try:
         fileobj.seek(fileobj.tell())
     except Exception:
-        return StringIO(fileobj.read())
+        return CStringIO(fileobj.read())
     else:
         return fileobj
 
@@ -522,7 +565,6 @@ def table(headings, data, log):
         log("|%s|" % "|".join(" %s" % row[i].ljust(max_widths[i] - 1) for i in cols))
     log("")
 
-
 def write_inconsistent(inconsistent, iterations):
     """Output inconsistent tests to logger.error."""
     logger.error("## Unstable results ##\n")
@@ -533,17 +575,23 @@ def write_inconsistent(inconsistent, iterations):
 
 def write_results(results, iterations, comment_pr):
     """Output all test results to logger.info."""
+    pr_number = None
+    if comment_pr:
+        try:
+            pr_number = int(comment_pr)
+        except ValueError:
+            pass
     logger.info("## All results ##\n")
+    if pr_number:
+        logger.info("<details>\n")
+        logger.info("<summary>%i %s ran</summary>\n\n" % (len(results),
+                                                          "tests" if len(results) > 1
+                                                          else "test"))
+
     for test, test_results in results.iteritems():
         baseurl = "http://w3c-test.org/submissions"
         if "https" in os.path.splitext(test)[0].split(".")[1:]:
             baseurl = "https://w3c-test.org/submissions"
-        pr_number = None
-        if comment_pr:
-            try:
-                pr_number = int(comment_pr)
-            except ValueError:
-                pass
         if pr_number:
             logger.info("<details>\n")
             logger.info('<summary><a href="%s/%s%s">%s</a></summary>\n\n' %
@@ -558,6 +606,9 @@ def write_results(results, iterations, comment_pr):
         table(["Subtest", "Results"], strings, logger.info)
         if pr_number:
             logger.info("</details>\n")
+
+    if pr_number:
+        logger.info("</details>\n")
 
 
 def get_parser():
@@ -582,6 +633,10 @@ def get_parser():
                         # This is a workaround to get what should be the same value
                         default=os.environ.get("TRAVIS_REPO_SLUG").split('/')[0],
                         help="Travis user name")
+    parser.add_argument("--output-bytes",
+                        action="store",
+                        type=int,
+                        help="Maximum number of bytes to write to standard output/error")
     parser.add_argument("product",
                         action="store",
                         help="Product to run against (`browser-name` or 'browser-name:channel')")
@@ -592,10 +647,18 @@ def main():
     """Perform check_stability functionality and return exit code."""
     global wpt_root
     global wptrunner_root
+    global logger
 
     retcode = 0
     parser = get_parser()
     args = parser.parse_args()
+
+    if args.output_bytes is not None:
+        replace_streams(args.output_bytes,
+                        "Log reached capacity (%s bytes); output disabled." % args.output_bytes)
+
+    logger = logging.getLogger(os.path.splitext(__file__)[0])
+    setup_logging()
 
     wpt_root = os.path.abspath(os.curdir)
     wptrunner_root = os.path.normpath(os.path.join(wpt_root, "..", "wptrunner"))

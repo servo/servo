@@ -1,0 +1,135 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>IndexedDB: </title>
+<meta name="help" href="https://w3c.github.io/IndexedDB/#dom-idbobjectstore-put">
+<meta name="help" href="https://w3c.github.io/IndexedDB/#dom-idbcursor-update">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support.js"></script>
+<script>
+
+function ProbeObject() {
+  this.id_count = 0;
+  this.invalid_id_count = 0;
+  this.prop_count = 0;
+  Object.defineProperties(this, {
+    id: {
+      enumerable: true,
+      get() {
+        ++this.id_count;
+        return 1000 + this.id_count;
+      },
+    },
+    invalid_id: {
+      enumerable: true,
+      get() {
+        ++this.invalid_id_count;
+        return {};
+      },
+    },
+    prop: {
+      enumerable: true,
+      get() {
+        ++this.prop_count;
+        return 2000 + this.prop_count;
+      },
+    },
+  });
+}
+
+indexeddb_test(
+  (t, db) => {
+    db.createObjectStore('store', {keyPath: 'id', autoIncrement: true});
+  },
+  (t, db) => {
+    const tx = db.transaction('store', 'readwrite');
+    const store = tx.objectStore('store');
+    const obj = new ProbeObject();
+    store.put(obj);
+    assert_equals(
+        obj.id_count, 1,
+        'put() operation should access primary key property once');
+    assert_equals(
+        obj.prop_count, 1,
+        'put() operation should access other properties once');
+    t.done();
+  }, 'Key generator and key path validity check operates on a clone');
+
+indexeddb_test(
+  (t, db) => {
+    db.createObjectStore('store', {keyPath: 'invalid_id', autoIncrement: true});
+  },
+  (t, db) => {
+    const tx = db.transaction('store', 'readwrite');
+    const store = tx.objectStore('store');
+    const obj = new ProbeObject();
+    assert_throws('DataError', () => { store.put(obj); },
+                  'put() should throw if primary key cannot be injected');
+    assert_equals(
+        obj.invalid_id_count, 1,
+        'put() operation should access primary key property once');
+    assert_equals(
+        obj.prop_count, 1,
+        'put() operation should access other properties once');
+    t.done();
+  }, 'Failing key path validity check operates on a clone');
+
+indexeddb_test(
+  (t, db) => {
+    const store = db.createObjectStore('store');
+    store.createIndex('index', 'prop');
+  },
+  (t, db) => {
+    const tx = db.transaction('store', 'readwrite');
+    const store = tx.objectStore('store');
+    const obj = new ProbeObject();
+    store.put(obj, 'key');
+    assert_equals(
+        obj.prop_count, 1, 'put() should access index key property once');
+    assert_equals(
+        obj.id_count, 1,
+        'put() operation should access other properties once');
+    t.done();
+  }, 'Index key path evaluations operate on a clone');
+
+indexeddb_test(
+  (t, db) => {
+    const store = db.createObjectStore('store', {keyPath: 'id'});
+    store.createIndex('index', 'prop');
+  },
+  (t, db) => {
+    const tx = db.transaction('store', 'readwrite');
+    const store = tx.objectStore('store');
+    const obj = new ProbeObject();
+    store.put(obj);
+    assert_equals(
+        obj.id_count, 1, 'put() should access primary key property once');
+    assert_equals(
+        obj.prop_count, 1, 'put() should access index key property once');
+    t.done();
+  }, 'Store and index key path evaluations operate on the same clone');
+
+indexeddb_test(
+  (t, db) => {
+    const store = db.createObjectStore('store', {keyPath: 'id'});
+    store.createIndex('index', 'prop');
+  },
+  (t, db) => {
+    const tx = db.transaction('store', 'readwrite');
+    const store = tx.objectStore('store');
+    store.put(new ProbeObject());
+
+    store.openCursor().onsuccess = t.step_func((event) => {
+      const cursor = event.target.result;
+
+      const obj = new ProbeObject();
+      cursor.update(obj);
+      assert_equals(
+          obj.id_count, 1, 'put() should access primary key property once');
+      assert_equals(
+          obj.prop_count, 1, 'put() should access index key property once');
+
+      t.done();
+    });
+  }, 'Cursor update checks and keypath evaluations operate on a clone');
+</script>

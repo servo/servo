@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>MediaCapabilities.query()</title>
+<script src=/resources/testharness.js></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.query());
+}, "Test that query rejects if it doesn't get a configuration");
+
+promise_test(t => {
+  return promise_rejects(t, new TypeError(), navigator.mediaCapabilities.query({}));
+}, "Test that query rejects if the MediaConfiguration isn't valid");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.query({
+    type: 'file',
+    video: {
+      type: 'video/webm',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+    },
+    audio: {
+      type: 'audio/webm',
+    },
+  }).then(ability => {
+    assert_idl_attribute(ability, 'supported');
+    assert_idl_attribute(ability, 'smooth');
+    assert_idl_attribute(ability, 'powerEfficient');
+  });
+}, "Test that query returns a valid MediaDecodingAbility objects");
+
+</script>

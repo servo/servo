@@ -27,10 +27,12 @@ typedef OnErrorEventHandlerNonNull? OnErrorEventHandler;
 interface WorkerGlobalScope : EventTarget {
   readonly attribute WorkerGlobalScope self;
   readonly attribute WorkerLocation location;
+  readonly attribute WorkerNavigator navigator;
 
-  void close();
+  void importScripts(DOMString... urls);
+
   attribute OnErrorEventHandler onerror;
-  attribute EventHandler onlanguagechange;
+
   attribute EventHandler onoffline;
   attribute EventHandler ononline;
 };
@@ -38,14 +40,10 @@ interface WorkerGlobalScope : EventTarget {
 [Global=(Worker,DedicatedWorker),Exposed=DedicatedWorker]
 /*sealed*/ interface DedicatedWorkerGlobalScope : WorkerGlobalScope {
   void postMessage(any message, optional sequence<Transferable> transfer);
+  void close();
   attribute EventHandler onmessage;
 };
 
-//[Exposed=Worker]
-partial interface WorkerGlobalScope { // not obsolete
-  void importScripts(DOMString... urls);
-  readonly attribute WorkerNavigator navigator;
-};
 WorkerGlobalScope implements WindowTimers;
 WorkerGlobalScope implements WindowBase64;
 

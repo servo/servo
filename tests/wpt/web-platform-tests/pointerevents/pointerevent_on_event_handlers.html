@@ -33,7 +33,7 @@
             test(function() {
               const htmlElement = document.createElement("span");
               const svgElement = document.createElementNS("http://www.w3.org/2000/svg", "g");
-              for (const location of [window, htmlElement, svgElement, document]) {
+              for (var location of [window, htmlElement, svgElement, document]) {
                 assert_equals(location[on_event], null,
                   `The default value of the property is null for a ${location.constructor.name} instance`);
               }

@@ -126,15 +126,6 @@ test(function () {
 }, 'toggle on DOMTokenList must enqueue an attributeChanged reaction when removing a value from an attribute');
 
 test(function () {
-    var element = define_new_custom_element(['lang']);
-    var instance = document.createElement(element.name);
-    instance.setAttribute('class', 'hello world');
-    assert_array_equals(element.takeLog().types(), ['constructed']);
-    instance.classList.toggle('world');
-    assert_array_equals(element.takeLog().types(), []);
-}, 'remove on DOMTokenList must not enqueue an attributeChanged reaction when removing a value from an unobserved attribute');
-
-test(function () {
     var element = define_new_custom_element(['class']);
     var instance = document.createElement(element.name);
     instance.setAttribute('class', 'hello');

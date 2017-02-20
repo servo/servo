@@ -36,7 +36,7 @@
 </form>
 
 <script>
-function testLabelsAttr(formElementId, labelElementId, hasLabels) {
+function testLabelsAttr(formElementId, labelElementId) {
   var elem = document.getElementById(formElementId);
   if (labelElementId) {
     assert_equals(elem.labels.length, 1);
@@ -91,8 +91,24 @@ test(function() {
 }, "Check if the hidden input element is not a labelable element.");
 
 test(function() {
-  testLabelsAttr("testHidden", null);
-}, "Check if the hidden input element can access 'labels'");
+  var hiddenInput = document.getElementById("testHidden");
+  assert_equals(hiddenInput.labels, null, "input[type=hidden] must have null .labels");
+
+  this.add_cleanup(function () {
+    hiddenInput.type = "hidden";
+  });
+
+  hiddenInput.type = "text";
+  testLabelsAttr("testHidden", "lbl5");
+  var labels = hiddenInput.labels;
+
+  hiddenInput.type = "hidden";
+  assert_equals(labels.length, 0, "Retained .labels NodeList should be empty after input type changed to hidden");
+
+  hiddenInput.type = "checkbox";
+  assert_true(labels === hiddenInput.labels, ".labels property must return the [SameObject] after input type is toggled back from 'hidden'");
+  assert_equals(hiddenInput.labels.length, 1, ".labels NodeList should contain the input after the input type is changed from 'hidden' to 'checkbox'");
+}, "Check if the hidden input element has null 'labels'");
 
 test(function() {
   assert_equals(document.getElementById("lbl6").control.id, "testRadio", "An input  element in radio state should be labelable.");

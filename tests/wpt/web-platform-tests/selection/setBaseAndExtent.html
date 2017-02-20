@@ -10,7 +10,12 @@
 for (var i = 0; i < testRanges.length; i++) {
     test(function() {
         var data = eval(testRanges[i]);
+        selection.removeAllRanges();
         selection.setBaseAndExtent(data[0], data[1], data[2], data[3]);
+        if (!document.contains(data[0]) || !document.contains(data[2])) {
+            assert_equals(selection.rangeCount, 0);
+            return;
+        }
         assert_equals(selection.rangeCount, 1,
                       "selection.rangeCount must equal 1");
         assert_equals(selection.anchorNode, data[0],
@@ -25,7 +30,12 @@ for (var i = 0; i < testRanges.length; i++) {
 
     test(function() {
         var data = eval(testRanges[i]);
+        selection.removeAllRanges();
         selection.setBaseAndExtent(data[2], data[3], data[0], data[1]);
+        if (!document.contains(data[0]) || !document.contains(data[2])) {
+            assert_equals(selection.rangeCount, 0);
+            return;
+        }
         assert_equals(selection.rangeCount, 1,
                       "selection.rangeCount must equal 1");
         assert_equals(selection.anchorNode, data[2],

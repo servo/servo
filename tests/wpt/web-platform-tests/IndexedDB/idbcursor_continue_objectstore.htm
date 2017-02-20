@@ -25,7 +25,7 @@
         var store = db.transaction("test")
                       .objectStore("test");
 
-        cursor_rq = store.openCursor();
+        var cursor_rq = store.openCursor();
         cursor_rq.onsuccess = t.step_func(function(e) {
             var cursor = e.target.result;
             if (!cursor) {

@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title></title>
+    <script src=/resources/testharness.js></script>
+    <script src=/resources/testharnessreport.js></script>
+    <script>
+      var loadedCount = 0;
+      var nestingTest = async_test("Test <object> nesting inside <object>");
+      onload = nestingTest.step_func_done(function() {
+        assert_equals(loadedCount, 12, "Should have loaded all should-load elements");
+      });
+    </script>
+    <style>
+      object { display: none }
+    </style>
+  </head>
+  <body>
+    <object data="../resources/should-load.html" style="width: 100px; height: 100px">
+      <object type="text/html" data="../resources/should-not-load.html"
+              test-description="<object> inside <object>"></object>
+    </object>
+    <object style="width: 100px; height: 100px" data="data:application/x-does-not-exist,test">
+      <object type="text/html" data="../resources/should-load.html"></object>
+    </object>
+    <object style="width: 100px; height: 100px" data="data:application/x-does-not-exist,test">
+      <div></div>
+      <object type="text/html" data="../resources/should-load.html"></object>
+    </object>
+    <object style="width: 100px; height: 100px" data="data:application/x-does-not-exist,test">
+      <div>
+        <object type="text/html" data="../resources/should-load.html"></object>
+      </div>
+    </object>
+    <object style="width: 100px; height: 100px" data="data:application/x-does-not-exist,test">
+      <object type="text/html" data="../resources/should-load.html"></object>
+      <object type="text/html" data="../resources/should-load.html"></object>
+      <object data="../resources/should-load.html">
+        <object type="text/html" data="../resources/should-not-load.html"
+                test-description="<object> inside loaded <object> inside non-loaded <object>"></object>
+      </object>
+      <object data="data:application/x-does-not-exist,test">
+        <object type="text/html" data="../resources/should-load.html"></object>
+      </object>
+    </object>
+    <div>
+      <object data="../resources/should-load.html" style="width: 100px; height: 100px"></object>
+      <object type="text/html" data="../resources/should-load.html"></object>
+    </div>
+    <div>
+      <object type="text/html" data="../resources/should-load.html"></object>
+      <object data="../resources/should-load.html" style="width: 100px; height: 100px"></object>
+    </div>
+  </body>
+</html>

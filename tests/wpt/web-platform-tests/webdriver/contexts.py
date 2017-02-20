@@ -2,10 +2,26 @@ import json
 import pytest
 import webdriver
 
+def window_size_supported(session):
+    try:
+        session.window.size = ("a", "b")
+    except webdriver.UnsupportedOperationException:
+        return False
+    except webdriver.InvalidArgumentException:
+        return True
 
-@pytest.mark.xfail(raises=webdriver.UnsupportedOperationException)
+def window_position_supported(session):
+    try:
+        session.window.position = ("a", "b")
+    except webdriver.UnsupportedOperationException:
+        return False
+    except webdriver.InvalidArgumentException:
+        return True
+
 def test_window_size_types(http, session):
-    session.start()
+    if not window_size_supported(session):
+        pytest.skip()
+
     with http.get("/session/%s/window/size" % session.session_id) as resp:
         assert resp.status == 200
         body = json.load(resp)
@@ -20,8 +36,10 @@ def test_window_size_types(http, session):
     assert isinstance(size[1], int)
 
 
-@pytest.mark.xfail(raises=webdriver.UnsupportedOperationException)
 def test_window_resize(session):
+    if not window_size_supported(session):
+        pytest.skip()
+
     # setting the window size by webdriver is synchronous
     # so we should see the results immediately
 
@@ -58,9 +76,10 @@ def test_window_resize_by_script(session):
     assert size2 == {"width": 200, "height": 100}
 """
 
-@pytest.mark.xfail(raises=webdriver.UnsupportedOperationException)
 def test_window_position_types(http, session):
-    session.start()
+    if not window_position_supported(session):
+        pytest.skip()
+
     with http.get("/session/%s/window/position" % session.session_id) as resp:
         assert resp.status == 200
         body = json.load(resp)
@@ -69,7 +88,7 @@ def test_window_position_types(http, session):
     assert isinstance(body["x"], int)
     assert isinstance(body["y"], int)
 
-    size = session.window.position
-    assert isinstance(size, tuple)
-    assert isinstance(size[0], int)
-    assert isinstance(size[1], int)
+    pos = session.window.position
+    assert isinstance(pos, tuple)
+    assert isinstance(pos[0], int)
+    assert isinstance(pos[1], int)

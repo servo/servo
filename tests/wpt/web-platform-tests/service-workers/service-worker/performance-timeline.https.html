@@ -21,16 +21,10 @@ promise_test(t => {
     .then(_ => with_iframe(scope))
     .then(f => {
       frame = f;
-      return Promise.all([
-        // This will get effectively an empty service worker FetchEvent
-        // handler.  It should have no additional delay.  Note that the
-        // text() call is necessary to complete the response and have the
-        // timings show up in the performance entries.
-        frame.contentWindow.fetch(url).then(r => r && r.text()),
-        // This will cause the service worker to spin for two seconds
-        // in its FetchEvent handler.
-        frame.contentWindow.fetch(slowURL).then(r => r && r.text())
-      ]);
+      return frame.contentWindow.fetch(url).then(r => r && r.text());
+    })
+    .then(_ => {
+      return frame.contentWindow.fetch(slowURL).then(r => r && r.text());
     })
     .then(_ => {
       function elapsed(u) {
@@ -42,7 +36,7 @@ promise_test(t => {
       // Verify the request slowed by the service worker is indeed measured
       // to be slower.  Note, we compare to smaller delay instead of the exact
       // delay amount to avoid making the test racy under automation.
-      assert_true(slowURLTime >= urlTime + 1500,
+      assert_greater_than(slowURLTime, urlTime + 1000,
                   'Slow service worker request should measure increased delay.');
       frame.remove();
       return service_worker_unregister_and_done(t, scope);
