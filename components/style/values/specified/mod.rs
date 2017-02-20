@@ -555,10 +555,10 @@ impl ToCss for Opacity {
 #[allow(missing_docs)]
 pub type UrlOrNone = Either<SpecifiedUrl, None_>;
 
-#[allow(missing_docs)]
+/// The specified value of a grid `<track-breadth>`
 pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;
 
-#[allow(missing_docs)]
+/// The specified value of a grid `<track-size>`
 pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
 
 #[derive(Debug, Clone, PartialEq)]

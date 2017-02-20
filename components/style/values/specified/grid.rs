@@ -14,11 +14,18 @@ use values::specified::LengthOrPercentage;
 
 #[derive(PartialEq, Clone, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A `<grid-line>` type.
+///
 /// https://drafts.csswg.org/css-grid/#typedef-grid-row-start-grid-line
 #[allow(missing_docs)]
 pub struct GridLine {
+    /// Flag to check whether it's a `span` keyword.
     pub is_span: bool,
+    /// A custom identifier for named lines.
+    ///
+    /// https://drafts.csswg.org/css-grid/#grid-placement-slot
     pub ident: Option<String>,
+    /// Denotes the nth grid line from grid item's placement.
     pub integer: Option<i32>,
 }
 
@@ -105,13 +112,18 @@ define_css_keyword_enum!{ TrackKeyword:
     "min-content" => MinContent
 }
 
-#[allow(missing_docs)]
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A track breadth for explicit grid track sizing. It's generic solely to
+/// avoid re-implementing it for the computed type.
+///
 /// https://drafts.csswg.org/css-grid/#typedef-track-breadth
 pub enum TrackBreadth<L> {
+    /// The generic type is almost always a non-negative `<length-percentage>`
     Breadth(L),
+    /// A flex fraction specified in `fr` units.
     Flex(CSSFloat),
+    /// One of the track-sizing keywords (`auto`, `min-content`, `max-content`)
     Keyword(TrackKeyword),
 }
 
@@ -182,13 +194,23 @@ impl<L: ToComputedValue> ToComputedValue for TrackBreadth<L> {
     }
 }
 
-#[allow(missing_docs)]
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+/// A `<track-size>` type for explicit grid track sizing. Like `<track-breadth>`, this is
+/// generic only to avoid code bloat. It only takes `<length-percentage>`
+///
 /// https://drafts.csswg.org/css-grid/#typedef-track-size
 pub enum TrackSize<L> {
+    /// A flexible `<track-breadth>`
     Breadth(TrackBreadth<L>),
+    /// A `minmax` function for a range over an inflexible `<track-breadth>`
+    /// and a flexible `<track-breadth>`
+    ///
+    /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-minmax
     MinMax(TrackBreadth<L>, TrackBreadth<L>),
+    /// A `fit-content` function.
+    ///
+    /// https://drafts.csswg.org/css-grid/#valdef-grid-template-columns-fit-content
     FitContent(L),
 }
 

@@ -327,10 +327,10 @@ impl ToCss for ClipRect {
 /// rect(...) | auto
 pub type ClipRectOrAuto = Either<ClipRect, Auto>;
 
-#[allow(missing_docs)]
+/// The computed value of a grid `<track-breadth>`
 pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;
 
-#[allow(missing_docs)]
+/// The computed value of a grid `<track-size>`
 pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
 
 impl ClipRectOrAuto {
