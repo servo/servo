@@ -10,7 +10,7 @@ name = "canvas"
 path = "lib.rs"
 
 [dependencies]
-azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
+azure = {git = "https://github.com/servo/rust-azure"}
 canvas_traits = {path = "../canvas_traits"}
 cssparser = {version = "0.10", features = ["heapsize", "serde"]}
 euclid = "0.11"

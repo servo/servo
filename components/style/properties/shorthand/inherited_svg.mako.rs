@@ -10,12 +10,13 @@
     use values::specified::UrlOrNone;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+        use parser::Parse;
         let url = UrlOrNone::parse(context, input)?;
 
         Ok(Longhands {
-            marker_start: url.clone(),
-            marker_mid: url.clone(),
-            marker_end: url,
+            marker_start: Some(url.clone()),
+            marker_mid: Some(url.clone()),
+            marker_end: Some(url),
         })
     }
 

@@ -13269,6 +13269,12 @@
      {}
     ]
    ],
+   "mozilla/mql_borrow.html": [
+    [
+     "/_mozilla/mozilla/mql_borrow.html",
+     {}
+    ]
+   ],
    "mozilla/navigator.html": [
     [
      "/_mozilla/mozilla/navigator.html",
@@ -13326,6 +13332,12 @@
    "mozilla/node_replaceChild.html": [
     [
      "/_mozilla/mozilla/node_replaceChild.html",
+     {}
+    ]
+   ],
+   "mozilla/non-invertible-transform.html": [
+    [
+     "/_mozilla/mozilla/non-invertible-transform.html",
      {}
     ]
    ],
@@ -25854,6 +25866,10 @@
    "5513229f79ab37de67eb4d60ea9dd23cd31d133f",
    "support"
   ],
+  "mozilla/mql_borrow.html": [
+   "f8f9adebe09f9473a52e5ec4f075540b10b32d7e",
+   "testharness"
+  ],
   "mozilla/navigator.html": [
    "939f453fecfb28a36cb93057382b56439b00b136",
    "testharness"
@@ -25896,6 +25912,10 @@
   ],
   "mozilla/node_replaceChild.html": [
    "fe965e58fdcb78d08384a9fde74c982e34768745",
+   "testharness"
+  ],
+  "mozilla/non-invertible-transform.html": [
+   "6fa68fe08c9dd5d594e838da51617951193fee19",
    "testharness"
   ],
   "mozilla/out-of-order-stylesheet-loads-and-imports.html": [
