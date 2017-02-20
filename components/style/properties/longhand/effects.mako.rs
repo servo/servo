@@ -28,13 +28,13 @@ ${helpers.predefined_type("opacity",
             if self.inset {
                 try!(dest.write_str("inset "));
             }
-            try!(self.blur_radius.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.spread_radius.to_css(dest));
-            try!(dest.write_str(" "));
             try!(self.offset_x.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.offset_y.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.blur_radius.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.spread_radius.to_css(dest));
 
             if let Some(ref color) = self.color {
                 try!(dest.write_str(" "));
@@ -58,13 +58,13 @@ ${helpers.predefined_type("opacity",
             if self.inset {
                 try!(dest.write_str("inset "));
             }
-            try!(self.blur_radius.to_css(dest));
-            try!(dest.write_str(" "));
-            try!(self.spread_radius.to_css(dest));
-            try!(dest.write_str(" "));
             try!(self.offset_x.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.offset_y.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.blur_radius.to_css(dest));
+            try!(dest.write_str(" "));
+            try!(self.spread_radius.to_css(dest));
             try!(dest.write_str(" "));
             try!(self.color.to_css(dest));
             Ok(())
@@ -487,6 +487,23 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
     } else {
         Err(())
     }
+}
+
+#[test]
+fn box_shadow_should_serialize_correctly() {
+    let mut properties = Vec::new();
+
+    let px_1 = DeclaredValue::Value(LengthOrPercentage::Length(NoCalcLength::from_px(1f32)));
+    let px_2 = DeclaredValue::Value(LengthOrPercentage::Length(NoCalcLength::from_px(2f32)));
+    let px_3 = DeclaredValue::Value(LengthOrPercentage::Length(NoCalcLength::from_px(3f32)));
+    let px_4 = DeclaredValue::Value(LengthOrPercentage::Length(NoCalcLength::from_px(4f32)));
+    properties.push(PropertyDeclaration::hShadow(px_1));
+    properties.push(PropertyDeclaration::vShadow(px_2));
+    properties.push(PropertyDeclaration::blur(px_3));
+    properties.push(PropertyDeclaration::spread(px_4));
+
+    let serialization = shorthand_properties_to_string(properties);
+    assert_eq!(serialization, "1px 2px 3px 4px");
 }
 
 ${helpers.single_keyword("mix-blend-mode",
