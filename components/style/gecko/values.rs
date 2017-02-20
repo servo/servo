@@ -11,7 +11,7 @@ use cssparser::RGBA;
 use gecko_bindings::structs::{nsStyleCoord, StyleGridTrackBreadth, StyleShapeRadius};
 use gecko_bindings::sugar::ns_style_coord::{CoordData, CoordDataMut, CoordDataValue};
 use std::cmp::max;
-use values::{Auto, Either, None_};
+use values::{Auto, Either, None_, Normal};
 use values::computed::{Angle, LengthOrPercentageOrNone, Number};
 use values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use values::computed::basic_shape::ShapeRadius;
@@ -251,6 +251,20 @@ impl GeckoStyleCoordConvertible for None_ {
     fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
         if let CoordDataValue::None = coord.as_value() {
             Some(None_)
+        } else {
+            None
+        }
+    }
+}
+
+impl GeckoStyleCoordConvertible for Normal {
+    fn to_gecko_style_coord<T: CoordDataMut>(&self, coord: &mut T) {
+        coord.set_value(CoordDataValue::Normal)
+    }
+
+    fn from_gecko_style_coord<T: CoordData>(coord: &T) -> Option<Self> {
+        if let CoordDataValue::Normal = coord.as_value() {
+            Some(Normal)
         } else {
             None
         }

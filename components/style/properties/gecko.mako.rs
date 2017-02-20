@@ -628,6 +628,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
         "length::LengthOrAuto": impl_style_coord,
+        "length::LengthOrNormal": impl_style_coord,
         "Length": impl_absolute_length,
         "Position": impl_position,
         "LengthOrPercentage": impl_style_coord,
@@ -3041,7 +3042,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
-                  skip_longhands="column-count column-gap column-rule-width">
+                  skip_longhands="column-count column-rule-width">
 
     #[allow(unused_unsafe)]
     pub fn set_column_count(&mut self, v: longhands::column_count::computed_value::T) {
@@ -3056,17 +3057,6 @@ clip-path
     }
 
     ${impl_simple_copy('column_count', 'mColumnCount')}
-
-    pub fn set_column_gap(&mut self, v: longhands::column_gap::computed_value::T) {
-        use values::Either;
-
-        match v {
-            Either::First(len) => self.gecko.mColumnGap.set(len),
-            Either::Second(_normal) => self.gecko.mColumnGap.set_value(CoordDataValue::Normal),
-        }
-    }
-
-    <%call expr="impl_coord_copy('column_gap', 'mColumnGap')"></%call>
 
     <% impl_app_units("column_rule_width", "mColumnRuleWidth", need_clone=True,
                       round_to_pixels=True) %>

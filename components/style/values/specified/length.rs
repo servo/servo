@@ -496,10 +496,24 @@ impl Parse for Length {
     }
 }
 
-impl<T> Either<Length, T> {
+impl Either<Length, Normal> {
     #[inline]
     #[allow(missing_docs)]
-    pub fn parse_non_negative_length(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    pub fn parse_non_negative_length(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if input.try(|input| Normal::parse(context, input)).is_ok() {
+            return Ok(Either::Second(Normal));
+        }
+        Length::parse_internal(input, AllowedNumericType::NonNegative).map(Either::First)
+    }
+}
+
+impl Either<Length, Auto> {
+    #[inline]
+    #[allow(missing_docs)]
+    pub fn parse_non_negative_length(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        if input.try(|input| Auto::parse(context, input)).is_ok() {
+            return Ok(Either::Second(Auto));
+        }
         Length::parse_internal(input, AllowedNumericType::NonNegative).map(Either::First)
     }
 }
