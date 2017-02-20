@@ -10,6 +10,7 @@ use app_units::Au;
 use cssparser::{self, Parser, Token};
 use euclid::size::Size2D;
 use parser::{ParserContext, Parse};
+use self::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 use self::url::SpecifiedUrl;
 use std::ascii::AsciiExt;
 use std::f32::consts::PI;
@@ -22,7 +23,7 @@ use super::computed::Shadow as ComputedShadow;
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
-pub use self::grid::GridLine;
+pub use self::grid::{GridLine, TrackKeyword};
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use self::image::{SizeKeyword, VerticalDirection};
@@ -553,6 +554,12 @@ impl ToCss for Opacity {
 
 #[allow(missing_docs)]
 pub type UrlOrNone = Either<SpecifiedUrl, None_>;
+
+/// The specified value of a grid `<track-breadth>`
+pub type TrackBreadth = GenericTrackBreadth<LengthOrPercentage>;
+
+/// The specified value of a grid `<track-size>`
+pub type TrackSize = GenericTrackSize<LengthOrPercentage>;
 
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]

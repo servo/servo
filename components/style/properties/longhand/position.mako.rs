@@ -255,28 +255,31 @@ ${helpers.predefined_type("object-position",
                           spec="https://drafts.csswg.org/css-images-3/#the-object-position",
                           animatable=True)}
 
-<% grid_longhands = ["grid-row-start", "grid-row-end", "grid-column-start", "grid-column-end"] %>
+% for kind in ["row", "column"]:
+    ${helpers.predefined_type("grid-%s-gap" % kind,
+                              "LengthOrPercentage",
+                              "computed::LengthOrPercentage::Length(Au(0))",
+                              spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-gap" % kind,
+                              animatable=True,
+                              products="gecko")}
 
-% for longhand in grid_longhands:
-    ${helpers.predefined_type("%s" % longhand,
-                              "GridLine",
+    % for range in ["start", "end"]:
+        ${helpers.predefined_type("grid-%s-%s" % (kind, range),
+                                  "GridLine",
+                                  "Default::default()",
+                                  animatable=False,
+                                  spec="https://drafts.csswg.org/css-grid/#propdef-grid-%s-%s" % (kind, range),
+                                  products="gecko",
+                                  boxed=True)}
+    % endfor
+
+    // NOTE: According to the spec, this should handle multiple values of `<track-size>`,
+    // but gecko supports only a single value
+    ${helpers.predefined_type("grid-auto-%ss" % kind,
+                              "TrackSize",
                               "Default::default()",
                               animatable=False,
-                              spec="https://drafts.csswg.org/css-grid/#propdef-%s" % longhand,
+                              spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-%ss" % kind,
                               products="gecko",
                               boxed=True)}
 % endfor
-
-${helpers.predefined_type("grid-row-gap",
-                          "LengthOrPercentage",
-                          "computed::LengthOrPercentage::Length(Au(0))",
-                          spec="https://drafts.csswg.org/css-grid/#propdef-grid-row-gap",
-                          animatable=True,
-                          products="gecko")}
-
-${helpers.predefined_type("grid-column-gap",
-                          "LengthOrPercentage",
-                          "computed::LengthOrPercentage::Length(Au(0))",
-                          spec="https://drafts.csswg.org/css-grid/#propdef-grid-column-gap",
-                          animatable=True,
-                          products="gecko")}
