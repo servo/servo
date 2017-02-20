@@ -10,9 +10,5 @@
 #![crate_name = "task_info"]
 #![crate_type = "rlib"]
 
-#![feature(libc)]
-
-extern crate libc;
-
 pub mod task_basic_info;
 

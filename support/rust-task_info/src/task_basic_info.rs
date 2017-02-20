@@ -10,7 +10,10 @@
 //! Interface to the measurements in the task_basic_info struct, gathered by
 //! invoking `task_info()` with the `TASK_BASIC_INFO` flavor.
 
-use libc::{c_int, size_t};
+use std::os::raw::c_int;
+
+#[allow(non_camel_case_types)]
+type size_t = usize;
 
 /// Obtains task_basic_info::virtual_size.
 pub fn virtual_size() -> Option<usize> {
