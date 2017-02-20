@@ -7,15 +7,30 @@
 <% data.new_style_struct("Column", inherited=False) %>
 
 // FIXME: This prop should be animatable.
-${helpers.predefined_type("column-width",
-                          "length::LengthOrAuto",
-                          "Either::Second(Auto)",
-                          parse_method="parse_non_negative_length",
-                          extra_prefixes="moz",
-                          animatable=False,
-                          experimental=True,
-                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-width")}
+<%helpers:longhand name="column-width" experimental="True" animatable="False" extra_prefixes="moz"
+                   spec="https://drafts.csswg.org/css-multicol/#propdef-column-width">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
 
+    pub mod computed_value {
+        pub use values::computed::length::LengthOrAuto as T;
+    }
+
+    pub use values::specified::length::LengthOrAuto as SpecifiedValue;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        Either::Second(Auto)
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+            return Ok(Either::Second(Auto));
+        }
+        specified::length::LengthOrAuto::parse_non_negative_length(context, input)
+    }
+</%helpers:longhand>
 
 // FIXME: This prop should be animatable.
 <%helpers:longhand name="column-count" experimental="True" animatable="False" extra_prefixes="moz"
@@ -99,14 +114,30 @@ ${helpers.predefined_type("column-width",
 </%helpers:longhand>
 
 // FIXME: This prop should be animatable.
-${helpers.predefined_type("column-gap",
-                          "length::LengthOrNormal",
-                          "Either::Second(Normal)",
-                          parse_method='parse_non_negative_length',
-                          extra_prefixes="moz",
-                          experimental=True,
-                          animatable=False,
-                          spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
+<%helpers:longhand name="column-gap" experimental="True" animatable="False" extra_prefixes="moz"
+                   spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+
+    pub mod computed_value {
+        pub use values::computed::length::LengthOrNormal as T;
+    }
+
+    pub use values::specified::length::LengthOrNormal as SpecifiedValue;
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        Either::Second(Normal)
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("normal")).is_ok() {
+            return Ok(Either::Second(Normal));
+        }
+        specified::length::LengthOrNormal::parse_non_negative_length(context, input)
+    }
+</%helpers:longhand>
 
 ${helpers.single_keyword("column-fill", "auto balance", extra_prefixes="moz",
                          products="gecko", animatable=False,
