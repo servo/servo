@@ -967,14 +967,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             handleInvalidEnumValueCode = "return true;"
 
         template = (
-            "match find_enum_string_index(cx, ${val}, %(values)s) {\n"
+            "match find_enum_value(cx, ${val}, %(pairs)s) {\n"
             "    Err(_) => { %(exceptionCode)s },\n"
             "    Ok((None, search)) => { %(handleInvalidEnumValueCode)s },\n"
-            "    Ok((Some(index), _)) => {\n"
-            "        //XXXjdm need some range checks up in here.\n"
-            "        mem::transmute(index)\n"
-            "    },\n"
-            "}" % {"values": enum + "Values::strings",
+            "    Ok((Some(&value), _)) => value,\n"
+            "}" % {"pairs": enum + "Values::pairs",
                    "exceptionCode": exceptionCode,
                    "handleInvalidEnumValueCode": handleInvalidEnumValueCode})
 
@@ -3978,39 +3975,41 @@ class CGEnum(CGThing):
     def __init__(self, enum):
         CGThing.__init__(self)
 
+        ident = enum.identifier.name
         decl = """\
 #[repr(usize)]
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf, Debug)]
 pub enum %s {
     %s
 }
-""" % (enum.identifier.name, ",\n    ".join(map(getEnumValueName, enum.values())))
+""" % (ident, ",\n    ".join(map(getEnumValueName, enum.values())))
+
+        pairs = ",\n    ".join(['("%s", super::%s::%s)' % (val, ident, getEnumValueName(val)) for val in enum.values()])
 
         inner = """\
 use dom::bindings::conversions::ToJSValConvertible;
 use js::jsapi::{JSContext, MutableHandleValue};
 use js::jsval::JSVal;
 
-pub const strings: &'static [&'static str] = &[
+pub const pairs: &'static [(&'static str, super::%s)] = &[
     %s,
 ];
 
 impl super::%s {
     pub fn as_str(&self) -> &'static str {
-        strings[*self as usize]
+        pairs[*self as usize].0
     }
 }
 
 impl ToJSValConvertible for super::%s {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
-        strings[*self as usize].to_jsval(cx, rval);
+        pairs[*self as usize].0.to_jsval(cx, rval);
     }
 }
-""" % (",\n    ".join(['"%s"' % val for val in enum.values()]), enum.identifier.name, enum.identifier.name)
-
+    """ % (ident, pairs, ident, ident)
         self.cgRoot = CGList([
             CGGeneric(decl),
-            CGNamespace.build([enum.identifier.name + "Values"],
+            CGNamespace.build([ident + "Values"],
                               CGIndenter(CGGeneric(inner)), public=True),
         ])
 
@@ -5573,7 +5572,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'dom::bindings::utils::ProtoOrIfaceArray',
         'dom::bindings::utils::enumerate_global',
         'dom::bindings::utils::finalize_global',
-        'dom::bindings::utils::find_enum_string_index',
+        'dom::bindings::utils::find_enum_value',
         'dom::bindings::utils::generic_getter',
         'dom::bindings::utils::generic_lenient_getter',
         'dom::bindings::utils::generic_lenient_setter',
