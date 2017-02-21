@@ -63,7 +63,6 @@ offscreen_gl_context = "0.6"
 open = "1.1.1"
 parking_lot = "0.3"
 phf = "0.7.18"
-plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 ref_filter_map = "1.0.1"

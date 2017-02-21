@@ -14,7 +14,6 @@ bitflags = "0.7"
 cssparser = {version = "0.10", features = ["heapsize", "serde"]}
 heapsize = "0.3.0"
 heapsize_derive = "0.1"
-plugins = {path = "../plugins"}
 serde = "0.9"
 serde_derive = "0.9"
 

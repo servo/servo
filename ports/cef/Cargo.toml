@@ -28,7 +28,6 @@ libservo = {path = "../../components/servo"}
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 msg = {path = "../../components/msg"}
 net_traits = {path = "../../components/net_traits"}
-plugins = {path = "../../components/plugins"}
 script_traits = {path = "../../components/script_traits"}
 servo_config = {path = "../../components/config"}
 servo_geometry = {path = "../../components/geometry"}

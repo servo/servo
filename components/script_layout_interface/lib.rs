@@ -9,8 +9,6 @@
 #![deny(unsafe_code)]
 #![feature(box_syntax)]
 #![feature(nonzero)]
-#![feature(plugin)]
-#![plugin(plugins)]
 
 extern crate app_units;
 extern crate atomic_refcell;

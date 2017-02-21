@@ -12,7 +12,6 @@ path = "lib.rs"
 [dependencies]
 heapsize = "0.3.0"
 heapsize_derive = "0.1"
-plugins = {path = "../plugins"}
 range = {path = "../range"}
 serde = "0.9"
 serde_derive = "0.9"

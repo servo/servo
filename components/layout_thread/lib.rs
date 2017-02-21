@@ -7,9 +7,6 @@
 
 #![feature(box_syntax)]
 #![feature(mpsc_select)]
-#![feature(plugin)]
-
-#![plugin(plugins)]
 
 extern crate app_units;
 extern crate euclid;

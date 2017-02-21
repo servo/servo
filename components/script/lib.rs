@@ -22,7 +22,6 @@
 
 #![doc = "The script crate contains all matters DOM."]
 
-#![plugin(plugins)]
 #![plugin(script_plugins)]
 
 extern crate angle;
