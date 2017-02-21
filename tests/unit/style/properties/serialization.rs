@@ -1256,5 +1256,6 @@ mod shorthand_serialization {
              let serialization = shorthand_properties_to_string(properties);
              assert_eq!(serialization, "box-shadow: 1px 2px 3px 4px rgb(255, 0, 0);");
         }
-   }
+    }
+
 }
