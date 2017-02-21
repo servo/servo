@@ -36,7 +36,7 @@ mod bindings {
     use std::collections::HashSet;
     use std::env;
     use std::fs::File;
-    use std::io::{Read, Write};
+    use std::io::{BufRead, BufReader, Read, Write};
     use std::path::{Path, PathBuf};
     use std::sync::Mutex;
     use std::time::SystemTime;
@@ -230,6 +230,16 @@ mod bindings {
                 .into_owned().into();
         }
         File::create(&out_file).unwrap().write_all(&result.into_bytes()).expect("Unable to write output");
+    }
+
+    fn get_arc_types() -> Vec<String> {
+        let list_file = File::open(DISTDIR_PATH.join("include/mozilla/ServoArcTypeList.h"))
+            .expect("Unable to open ServoArcTypeList.h");
+        let re = Regex::new(r#"^SERVO_ARC_TYPE\(\w+,\s*(\w+)\)"#).unwrap();
+        BufReader::new(list_file).lines()
+            .map(|line| line.expect("Fail to read ServoArcTypeList.h"))
+            .filter_map(|line| re.captures(&line).map(|caps| caps.get(1).unwrap().as_str().to_string()))
+            .collect()
     }
 
     pub fn generate_structs(build_type: BuildType) {
@@ -600,15 +610,6 @@ mod bindings {
         let array_types = [
             ArrayType { cpp_type: "uintptr_t", rust_type: "usize" },
         ];
-        let servo_nullable_arc_types = [
-            "ServoComputedValues",
-            "ServoCssRules",
-            "RawServoStyleSheet",
-            "RawServoDeclarationBlock",
-            "RawServoStyleRule",
-            "RawServoImportRule",
-            "RawServoAnimationValue",
-        ];
         struct ServoOwnedType {
             name: &'static str,
             opaque: bool,
@@ -646,7 +647,7 @@ mod bindings {
                 .raw_line(format!("pub type nsTArrayBorrowed_{}<'a> = &'a mut ::gecko_bindings::structs::nsTArray<{}>;",
                                   cpp_type, rust_type))
         }
-        for &ty in servo_nullable_arc_types.iter() {
+        for ty in get_arc_types().iter() {
             builder = builder
                 .hide_type(format!("{}Strong", ty))
                 .raw_line(format!("pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;", ty))
