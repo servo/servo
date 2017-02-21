@@ -11,7 +11,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{JSContext, JSObject};
-use js::jsapi::{JS_GetArrayBufferViewType, Type};
+use js::jsapi::Type;
 use servo_rand::{ServoRng, Rng};
 
 unsafe_no_jsmanaged_fields!(ServoRng);
@@ -46,15 +46,15 @@ impl CryptoMethods for Crypto {
                        -> Fallible<NonZero<*mut JSObject>> {
         assert!(!input.is_null());
         typedarray!(in(_cx) let mut array_buffer_view: ArrayBufferView = input);
-        let mut data = match array_buffer_view.as_mut() {
-            Ok(x) => x.as_mut_slice(),
+        let (array_type, mut data) = match array_buffer_view.as_mut() {
+            Ok(x) => (x.get_array_type(), x.as_mut_slice()),
             Err(_) => {
                 return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView"
                                        .to_owned()));
             }
         };
 
-        if !is_integer_buffer(input) {
+        if !is_integer_buffer(array_type) {
             return Err(Error::TypeMismatch);
         }
 
@@ -68,9 +68,8 @@ impl CryptoMethods for Crypto {
     }
 }
 
-#[allow(unsafe_code)]
-fn is_integer_buffer(input: *mut JSObject) -> bool {
-    match unsafe { JS_GetArrayBufferViewType(input) } {
+fn is_integer_buffer(array_type: Type) -> bool {
+    match array_type {
         Type::Uint8 |
         Type::Uint8Clamped |
         Type::Int8 |
