@@ -49,6 +49,7 @@ fn test_linear_gradient() {
         is_root_element: true,
         viewport_size: container,
         inherited_style: initial_style,
+        layout_parent_style: initial_style,
         style: initial_style.clone(),
         font_metrics_provider: None,
     };

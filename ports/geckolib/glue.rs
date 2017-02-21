@@ -645,7 +645,10 @@ fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
         PseudoElementCascadeType::Lazy => {
             let d = doc_data.borrow_mut();
             let base = styles.primary.values();
-            d.stylist.lazily_compute_pseudo_element_style(&element, &pseudo, base, &d.default_computed_values())
+            d.stylist.lazily_compute_pseudo_element_style(&element,
+                                                          &pseudo,
+                                                          base,
+                                                          &d.default_computed_values())
                      .map(|s| s.values().clone())
         },
     }
@@ -1348,6 +1351,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
         // FIXME (bug 1303229): Use the actual viewport size here
         viewport_size: Size2D::new(Au(0), Au(0)),
         inherited_style: parent_style.unwrap_or(&init),
+        layout_parent_style: parent_style.unwrap_or(&init),
         style: (**style).clone(),
         font_metrics_provider: None,
     };

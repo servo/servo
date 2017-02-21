@@ -43,6 +43,12 @@ pub struct Context<'a> {
     /// The style we're inheriting from.
     pub inherited_style: &'a ComputedValues,
 
+    /// The style of the layout parent node. This will almost always be
+    /// `inherited_style`, except when `display: contents` is at play, in which
+    /// case it's the style of the last ancestor with a `display` value that
+    /// isn't `contents`.
+    pub layout_parent_style: &'a ComputedValues,
+
     /// Values access through this need to be in the properties "computed
     /// early": color, text-decoration, font-size, display, position, float,
     /// border-*-style, outline-style, font-family, writing-mode...
