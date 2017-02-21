@@ -232,6 +232,24 @@ mod bindings {
         File::create(&out_file).unwrap().write_all(&result.into_bytes()).expect("Unable to write output");
     }
 
+    fn get_arc_types() -> Vec<String> {
+        // Read the file
+        let mut list_file = File::open(DISTDIR_PATH.join("include/mozilla/ServoArcTypeList.h"))
+            .expect("Unable to open ServoArcTypeList.h");
+        let mut content = String::new();
+        list_file.read_to_string(&mut content).expect("Fail to read ServoArcTypeList.h");
+        // Remove comments
+        let block_comment_re = Regex::new(r#"(?s)/\*.*?\*/"#).unwrap();
+        let content = block_comment_re.replace_all(&content, "");
+        // Extract the list
+        let re = Regex::new(r#"^SERVO_ARC_TYPE\(\w+,\s*(\w+)\)$"#).unwrap();
+        content.lines().map(|line| line.trim()).filter(|line| !line.is_empty())
+            .map(|line| re.captures(&line)
+                 .expect(&format!("Unrecognized line in ServoArcTypeList.h: '{}'", line))
+                 .get(1).unwrap().as_str().to_string())
+            .collect()
+    }
+
     pub fn generate_structs(build_type: BuildType) {
         let mut builder = Builder::get_initial_builder(build_type)
             .enable_cxx_namespaces()
@@ -600,15 +618,6 @@ mod bindings {
         let array_types = [
             ArrayType { cpp_type: "uintptr_t", rust_type: "usize" },
         ];
-        let servo_nullable_arc_types = [
-            "ServoComputedValues",
-            "ServoCssRules",
-            "RawServoStyleSheet",
-            "RawServoDeclarationBlock",
-            "RawServoStyleRule",
-            "RawServoImportRule",
-            "RawServoAnimationValue",
-        ];
         struct ServoOwnedType {
             name: &'static str,
             opaque: bool,
@@ -646,7 +655,7 @@ mod bindings {
                 .raw_line(format!("pub type nsTArrayBorrowed_{}<'a> = &'a mut ::gecko_bindings::structs::nsTArray<{}>;",
                                   cpp_type, rust_type))
         }
-        for &ty in servo_nullable_arc_types.iter() {
+        for ty in get_arc_types().iter() {
             builder = builder
                 .hide_type(format!("{}Strong", ty))
                 .raw_line(format!("pub type {0}Strong = ::gecko_bindings::sugar::ownership::Strong<{0}>;", ty))
