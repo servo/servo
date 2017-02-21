@@ -1138,7 +1138,4 @@ mod shorthand_serialization {
              assert_eq!(serialization, "box-shadow: 1px 2px 3px 4px rgb(255, 0, 0);");
         }
     }
-
-
-    }
 }
