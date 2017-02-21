@@ -26,7 +26,7 @@ use gecko_bindings::structs::ServoElementSnapshot;
 use gecko_bindings::structs::SheetParsingMode;
 use gecko_bindings::structs::StyleBasicShape;
 use gecko_bindings::structs::StyleBasicShapeType;
-use gecko_bindings::structs::StyleClipPath;
+use gecko_bindings::structs::StyleShapeSource;
 use gecko_bindings::structs::nsCSSKeyword;
 use gecko_bindings::structs::nsCSSPropertyID;
 use gecko_bindings::structs::nsCSSShadowArray;
@@ -691,18 +691,18 @@ extern "C" {
                                         calc: nsStyleCoord_CalcValue);
 }
 extern "C" {
-    pub fn Gecko_CopyClipPathValueFrom(dst: *mut StyleClipPath,
-                                       src: *const StyleClipPath);
+    pub fn Gecko_CopyClipPathValueFrom(dst: *mut StyleShapeSource,
+                                       src: *const StyleShapeSource);
 }
 extern "C" {
-    pub fn Gecko_DestroyClipPath(clip: *mut StyleClipPath);
+    pub fn Gecko_DestroyClipPath(clip: *mut StyleShapeSource);
 }
 extern "C" {
     pub fn Gecko_NewBasicShape(type_: StyleBasicShapeType)
      -> *mut StyleBasicShape;
 }
 extern "C" {
-    pub fn Gecko_StyleClipPath_SetURLValue(clip: *mut StyleClipPath,
+    pub fn Gecko_StyleClipPath_SetURLValue(clip: *mut StyleShapeSource,
                                            uri: ServoBundledURI);
 }
 extern "C" {
@@ -1345,7 +1345,8 @@ extern "C" {
                                           buffer: *mut nsAString_internal);
 }
 extern "C" {
-    pub fn Servo_AnimationValue_GetOpacity(value: RawServoAnimationValueBorrowed)
+    pub fn Servo_AnimationValue_GetOpacity(value:
+                                               RawServoAnimationValueBorrowed)
      -> f32;
 }
 extern "C" {
@@ -1571,7 +1572,8 @@ extern "C" {
 extern "C" {
     pub fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                  set: RawServoStyleSetBorrowed,
-                                 root_behavior: TraversalRootBehavior) -> bool;
+                                 root_behavior: TraversalRootBehavior)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed);

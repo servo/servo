@@ -2792,7 +2792,7 @@ clip-path
         use gecko_bindings::bindings::{Gecko_NewBasicShape, Gecko_DestroyClipPath};
         use gecko_bindings::structs::StyleGeometryBox;
         use gecko_bindings::structs::{StyleBasicShape, StyleBasicShapeType, StyleShapeSourceType};
-        use gecko_bindings::structs::{StyleClipPath, StyleFillRule};
+        use gecko_bindings::structs::{StyleFillRule, StyleShapeSource};
         use gecko::conversions::basic_shape::set_corners_from_radius;
         use gecko::values::GeckoStyleCoordConvertible;
         use values::computed::basic_shape::*;
@@ -2820,7 +2820,7 @@ clip-path
                                                    .unwrap_or(StyleGeometryBox::NoBox);
                 clip_path.mType = StyleShapeSourceType::Shape;
 
-                fn init_shape(clip_path: &mut StyleClipPath, ty: StyleBasicShapeType) -> &mut StyleBasicShape {
+                fn init_shape(clip_path: &mut StyleShapeSource, ty: StyleBasicShapeType) -> &mut StyleBasicShape {
                     unsafe {
                         // We have to be very careful to avoid a copy here!
                         let ref mut union = clip_path.__bindgen_anon_1;
