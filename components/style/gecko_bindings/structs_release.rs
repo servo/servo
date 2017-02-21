@@ -5559,15 +5559,6 @@ pub mod root {
         pub enum StyleHyphens { None = 0, Manual = 1, Auto = 2, }
         #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-        pub enum StyleShapeOutsideShapeBox {
-            NoBox = 0,
-            Content = 1,
-            Padding = 2,
-            Border = 3,
-            Margin = 4,
-        }
-        #[repr(u8)]
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
         pub enum StyleShapeRadius { ClosestSide = 0, FarthestSide = 1, }
         #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -6826,23 +6817,66 @@ pub mod root {
         }
         #[repr(C)]
         #[derive(Debug)]
-        pub struct StyleShapeSource<ReferenceBox> {
-            pub __bindgen_anon_1: root::mozilla::StyleShapeSource__bindgen_ty_1<ReferenceBox>,
+        pub struct StyleShapeSource {
+            pub __bindgen_anon_1: root::mozilla::StyleShapeSource__bindgen_ty_1,
             pub mType: root::mozilla::StyleShapeSourceType,
-            pub mReferenceBox: ReferenceBox,
+            pub mReferenceBox: root::mozilla::StyleGeometryBox,
         }
         #[repr(C)]
-        #[derive(Debug, Copy, Clone)]
-        pub struct StyleShapeSource__bindgen_ty_1<ReferenceBox> {
+        #[derive(Debug, Copy)]
+        pub struct StyleShapeSource__bindgen_ty_1 {
             pub mBasicShape: root::__BindgenUnionField<*mut root::mozilla::StyleBasicShape>,
             pub mURL: root::__BindgenUnionField<*mut root::mozilla::css::URLValue>,
             pub bindgen_union_field: u64,
-            pub _phantom_0: ::std::marker::PhantomData<ReferenceBox>,
         }
-        pub type StyleClipPath =
-            root::mozilla::StyleShapeSource<root::mozilla::StyleGeometryBox>;
-        pub type StyleShapeOutside =
-            root::mozilla::StyleShapeSource<root::mozilla::StyleShapeOutsideShapeBox>;
+        #[test]
+        fn bindgen_test_layout_StyleShapeSource__bindgen_ty_1() {
+            assert_eq!(::std::mem::size_of::<StyleShapeSource__bindgen_ty_1>()
+                       , 8usize , concat ! (
+                       "Size of: " , stringify ! (
+                       StyleShapeSource__bindgen_ty_1 ) ));
+            assert_eq! (::std::mem::align_of::<StyleShapeSource__bindgen_ty_1>()
+                        , 8usize , concat ! (
+                        "Alignment of " , stringify ! (
+                        StyleShapeSource__bindgen_ty_1 ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const StyleShapeSource__bindgen_ty_1 )
+                        ) . mBasicShape as * const _ as usize } , 0usize ,
+                        concat ! (
+                        "Alignment of field: " , stringify ! (
+                        StyleShapeSource__bindgen_ty_1 ) , "::" , stringify !
+                        ( mBasicShape ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const StyleShapeSource__bindgen_ty_1 )
+                        ) . mURL as * const _ as usize } , 0usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        StyleShapeSource__bindgen_ty_1 ) , "::" , stringify !
+                        ( mURL ) ));
+        }
+        impl Clone for StyleShapeSource__bindgen_ty_1 {
+            fn clone(&self) -> Self { *self }
+        }
+        #[test]
+        fn bindgen_test_layout_StyleShapeSource() {
+            assert_eq!(::std::mem::size_of::<StyleShapeSource>() , 16usize ,
+                       concat ! (
+                       "Size of: " , stringify ! ( StyleShapeSource ) ));
+            assert_eq! (::std::mem::align_of::<StyleShapeSource>() , 8usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( StyleShapeSource ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const StyleShapeSource ) ) . mType as *
+                        const _ as usize } , 8usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        StyleShapeSource ) , "::" , stringify ! ( mType ) ));
+            assert_eq! (unsafe {
+                        & ( * ( 0 as * const StyleShapeSource ) ) .
+                        mReferenceBox as * const _ as usize } , 9usize ,
+                        concat ! (
+                        "Alignment of field: " , stringify ! (
+                        StyleShapeSource ) , "::" , stringify ! (
+                        mReferenceBox ) ));
+        }
         /**
  * A property-value pair specified on a keyframe.
  */
@@ -20683,7 +20717,7 @@ pub mod root {
         pub mAnimationFillModeCount: u32,
         pub mAnimationPlayStateCount: u32,
         pub mAnimationIterationCountCount: u32,
-        pub mShapeOutside: root::mozilla::StyleShapeOutside,
+        pub mShapeOutside: root::mozilla::StyleShapeSource,
     }
     #[test]
     fn bindgen_test_layout_nsStyleDisplay() {
@@ -24359,7 +24393,7 @@ pub mod root {
     #[derive(Debug)]
     pub struct nsStyleSVGReset {
         pub mMask: root::nsStyleImageLayers,
-        pub mClipPath: root::mozilla::StyleClipPath,
+        pub mClipPath: root::mozilla::StyleShapeSource,
         pub mStopColor: root::nscolor,
         pub mFloodColor: root::nscolor,
         pub mLightingColor: root::nscolor,
@@ -26419,32 +26453,6 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_98() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::StyleShapeSource<root::mozilla::StyleGeometryBox>>()
-                   , 16usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::mozilla::StyleShapeSource<root::mozilla::StyleGeometryBox>
-                   ) ));
-        assert_eq!(::std::mem::align_of::<root::mozilla::StyleShapeSource<root::mozilla::StyleGeometryBox>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::mozilla::StyleShapeSource<root::mozilla::StyleGeometryBox>
-                   ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_99() {
-        assert_eq!(::std::mem::size_of::<root::mozilla::StyleShapeSource<root::mozilla::StyleShapeOutsideShapeBox>>()
-                   , 16usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::mozilla::StyleShapeSource<root::mozilla::StyleShapeOutsideShapeBox>
-                   ) ));
-        assert_eq!(::std::mem::align_of::<root::mozilla::StyleShapeSource<root::mozilla::StyleShapeOutsideShapeBox>>()
-                   , 8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::mozilla::StyleShapeSource<root::mozilla::StyleShapeOutsideShapeBox>
-                   ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_100() {
         assert_eq!(::std::mem::size_of::<[u64; 18usize]>() , 144usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -26455,7 +26463,7 @@ pub mod root {
                    [u64; 18usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_101() {
+    fn __bindgen_test_layout_template_99() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26468,7 +26476,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_102() {
+    fn __bindgen_test_layout_template_100() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26479,7 +26487,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::DOMRect> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_103() {
+    fn __bindgen_test_layout_template_101() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -26488,7 +26496,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_104() {
+    fn __bindgen_test_layout_template_102() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::css::DocumentRule>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
