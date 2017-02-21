@@ -7,18 +7,21 @@
 
 use dom::bindings::conversions::root_from_handleobject;
 use dom::bindings::error::{Error, Fallible};
-use dom::blob::Blob;
+use dom::bindings::js::Root;
+use dom::blob::{Blob, BlobImpl};
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue};
 use js::jsapi::{Heap, JSContext};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
 use js::jsapi::{JS_ClearPendingException, JSObject, JS_ReadStructuredClone};
-use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone};
+use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone, JS_WriteUint32Pair};
 use js::jsapi::{MutableHandleObject, TransferableOwnership};
 use libc::size_t;
+use std::mem::transmute;
 use std::os::raw;
 use std::ptr;
 use std::slice;
+use std::sync::{Once, ONCE_INIT};
 
 ///TODO: move const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs
 const SCTAG_BASE: u32 = 0xFFFF8000;
@@ -28,15 +31,20 @@ enum StructuredCloneTags {
     ScTagDomBlob,
 }
 
+struct StructuredCloneHolder {
+    pub blobs: Vec<Root<Blob>>
+}
+
 #[allow(dead_code)]
 unsafe extern "C" fn read_callback(_cx: *mut JSContext,
-                                   _r: *mut JSStructuredCloneReader,
+                                   r: *mut JSStructuredCloneReader,
                                    tag: u32,
-                                   _data: u32,
-                                   _closure: *mut raw::c_void) -> *mut JSObject {
+                                   data: u32,
+                                   closure: *mut raw::c_void) -> *mut JSObject {
     match tag {
         tag if tag == StructuredCloneTags::ScTagDomBlob as u32 => {
             ///TODO: implement return readBlob(cx, data)
+            let sc_holder: &mut StructuredCloneHolder = &mut *(closure as *mut StructuredCloneHolder);
             return Heap::default().get()
         },
         _ => return Heap::default().get(),
@@ -45,12 +53,16 @@ unsafe extern "C" fn read_callback(_cx: *mut JSContext,
 
 #[allow(dead_code)]
 unsafe extern "C" fn write_callback(_cx: *mut JSContext,
-                                    _w: *mut JSStructuredCloneWriter,
+                                    w: *mut JSStructuredCloneWriter,
                                     obj: HandleObject,
-                                    _closure: *mut raw::c_void) -> bool {
+                                    closure: *mut raw::c_void) -> bool {
     if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
-        ///TODO: implement return WriteBlob(aWriter, blob);
-        return false
+        let sc_holder: &mut StructuredCloneHolder = &mut *(closure as *mut StructuredCloneHolder);
+        if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
+                              sc_holder.blobs.len() as u32) {
+            sc_holder.blobs.push(blob);
+            return true
+        }
     }
     return false
 }
