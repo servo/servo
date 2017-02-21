@@ -1345,7 +1345,8 @@ extern "C" {
                                           buffer: *mut nsAString_internal);
 }
 extern "C" {
-    pub fn Servo_AnimationValue_GetOpacity(value: RawServoAnimationValueBorrowed)
+    pub fn Servo_AnimationValue_GetOpacity(value:
+                                               RawServoAnimationValueBorrowed)
      -> f32;
 }
 extern "C" {
@@ -1571,7 +1572,8 @@ extern "C" {
 extern "C" {
     pub fn Servo_TraverseSubtree(root: RawGeckoElementBorrowed,
                                  set: RawServoStyleSetBorrowed,
-                                 root_behavior: TraversalRootBehavior) -> bool;
+                                 root_behavior: TraversalRootBehavior)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed);
