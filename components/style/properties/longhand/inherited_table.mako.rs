@@ -114,14 +114,10 @@ ${helpers.single_keyword("caption-side", "top bottom",
             Err(()) => (),
             Ok(length) => {
                 first = Some(length);
-                match specified::Length::parse_non_negative(input) {
-                    Err(()) => (),
-                    Ok(length) => second = Some(length),
+                if let Ok(len) = input.try(|input| specified::Length::parse_non_negative(input)) {
+                    second = Some(len);
                 }
             }
-        }
-        if input.next().is_ok() {
-            return Err(())
         }
         match (first, second) {
             (None, None) => Err(()),
