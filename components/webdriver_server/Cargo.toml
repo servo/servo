@@ -18,7 +18,6 @@ ipc-channel = "0.7"
 log = "0.3.5"
 msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
-plugins = {path = "../plugins"}
 regex = "0.2"
 rustc-serialize = "0.3.4"
 script_traits = {path = "../script_traits"}

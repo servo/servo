@@ -5,9 +5,6 @@
 #![crate_name = "webdriver_server"]
 #![crate_type = "rlib"]
 
-#![feature(plugin)]
-#![plugin(plugins)]
-
 #![deny(unsafe_code)]
 
 extern crate cookie as cookie_rs;

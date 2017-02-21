@@ -28,7 +28,6 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 ordered-float = "0.4"
 parking_lot = "0.3.3"
-plugins = {path = "../plugins"}
 profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 rayon = "0.6"
