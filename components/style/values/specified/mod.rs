@@ -618,7 +618,6 @@ impl Shadow {
     // disable_spread_and_inset is for filter: drop-shadow(...)
     #[allow(missing_docs)]
     pub fn parse(context:  &ParserContext, input: &mut Parser, disable_spread_and_inset: bool) -> Result<Shadow, ()> {
-        //let length_count = if disable_spread_and_inset { 3 } else { 4 };
         let mut lengths = [Length::zero(), Length::zero(), Length::zero(), Length::zero()];
         let mut lengths_parsed = false;
         let mut color = None;
@@ -634,17 +633,15 @@ impl Shadow {
             if !lengths_parsed {
                 if let Ok(value) = input.try(|i| Length::parse(context, i)) {
                     lengths[0] = value;
-
                     lengths[1] = try!(Length::parse(context, input));
-
                     if let Ok(value) = input.try(|i| Length::parse_non_negative(i)) {
                         lengths[2] = value;
-
-                        if let Ok(value) = input.try(|i| Length::parse(context, i)) {
-                            lengths[3] = value;
+                        if !disable_spread_and_inset {
+                            if let Ok(value) = input.try(|i| Length::parse(context, i)) {
+                                lengths[3] = value;
+                            }
                         }
                     }
-
                     lengths_parsed = true;
                     continue
                 }
