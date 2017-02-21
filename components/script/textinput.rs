@@ -4,11 +4,14 @@
 
 //! Common handling of keyboard input and state management for text input controls
 
+extern crate unicode_segmentation;
+
 use clipboard_provider::ClipboardProvider;
 use dom::bindings::str::DOMString;
 use dom::keyboardevent::KeyboardEvent;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
+use self::unicode_segmentation::UnicodeSegmentation;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::default::Default;
@@ -468,6 +471,86 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_begin = None;
     }
 
+    pub fn adjust_horizontal_by_word(&mut self, direction: Direction, select: Selection) {
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
+        let shift_increment: isize =  {
+            let input: &str;
+            match direction {
+                Direction::Backward => {
+                    let remaining = self.edit_point.index;
+                    let current_line = self.edit_point.line;
+                    let mut newline_adjustment = 0;
+                    if remaining == 0 && current_line > 0 {
+                        input = &self
+                            .lines[current_line-1];
+                        newline_adjustment = 1;
+                    } else {
+                        input = &self
+                            .lines[current_line]
+                            [..remaining];
+                    }
+
+                    match input
+                        .unicode_words()
+                        .last() {
+                            None => 0,
+                            Some(i) => {
+                                - (input.len() as isize + newline_adjustment as isize
+                                - input.rfind(i).expect("no words to the left on this line") as isize)
+                            },
+                       }
+                }
+                Direction::Forward => {
+                    let remaining = self.current_line_length() - self.edit_point.index;
+                    let current_line = self.edit_point.line;
+                    let mut newline_adjustment = 0;
+                    if remaining == 0 && self.lines.len() > self.edit_point.line + 1 {
+                        input = &self
+                            .lines[current_line + 1];
+                        newline_adjustment = 1;
+                    } else {
+                        input = &self
+                            .lines[current_line]
+                            [self.edit_point.index..];
+                    }
+
+                    match input
+                        .unicode_words()
+                        .next() {
+                            None => 0,
+                            Some(i) => {
+                                input.find(i).expect("no words to the right on this line") as isize
+                                + i.len() as isize + newline_adjustment as isize
+                            },
+                        }
+                }
+            }
+        };
+
+        self.adjust_horizontal(shift_increment, select);
+    }
+
+    pub fn adjust_horizontal_to_end(&mut self, direction: Direction, select: Selection) {
+        if self.adjust_selection_for_horizontal_change(direction, select) {
+            return
+        }
+        let shift: isize = {
+            let current_line = &self.lines[self.edit_point.line];
+            match direction {
+                Direction::Backward => {
+                    - (current_line[..self.edit_point.index].len() as isize)
+                }
+                Direction::Forward => {
+                    current_line[self.edit_point.index..].len() as isize
+                }
+            }
+
+        };
+        self.perform_horizontal_adjustment(shift, select);
+    }
+
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
     pub fn handle_keydown(&mut self, event: &KeyboardEvent) -> KeyReaction {
         if let Some(key) = event.get_key() {
@@ -483,21 +566,37 @@ impl<T: ClipboardProvider> TextInput<T> {
                               mods: KeyModifiers) -> KeyReaction {
         let maybe_select = if mods.contains(SHIFT) { Selection::Selected } else { Selection::NotSelected };
         match (printable, key) {
+            (_, Key::B) if mods.contains(CONTROL | ALT) => {
+                self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            }
+            (_, Key::F) if mods.contains(CONTROL | ALT) => {
+                self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            }
+            (_, Key::A) if mods.contains(CONTROL | ALT) => {
+                self.adjust_horizontal_to_end(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            }
+            (_, Key::E) if mods.contains(CONTROL | ALT) => {
+                self.adjust_horizontal_to_end(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            }
             (Some('a'), _) if is_control_key(mods) => {
                 self.select_all();
                 KeyReaction::RedrawSelection
-            },
+            }
             (Some('c'), _) if is_control_key(mods) => {
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_clipboard_contents(text);
                 }
                 KeyReaction::DispatchInput
-            },
+            }
             (Some('v'), _) if is_control_key(mods) => {
                 let contents = self.clipboard_provider.clipboard_contents();
                 self.insert_string(contents);
                 KeyReaction::DispatchInput
-            },
+            }
             (Some(c), _) => {
                 self.insert_char(c);
                 KeyReaction::DispatchInput
@@ -509,6 +608,24 @@ impl<T: ClipboardProvider> TextInput<T> {
             (None, Key::Backspace) => {
                 self.delete_char(Direction::Backward);
                 KeyReaction::DispatchInput
+            }
+            #[cfg(target_os = "macos")]
+            (None, Key::Left) if mods.contains(SUPER) => {
+                self.adjust_horizontal_to_end(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            }
+            #[cfg(target_os = "macos")]
+            (None, Key::Right) if mods.contains(SUPER) => {
+                self.adjust_horizontal_to_end(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
+            }
+            (None, Key::Left) if mods.contains(ALT) => {
+                self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
+                KeyReaction::RedrawSelection
+            }
+            (None, Key::Right) if mods.contains(ALT) => {
+                self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
+                KeyReaction::RedrawSelection
             }
             (None, Key::Left) => {
                 self.adjust_horizontal_by_one(Direction::Backward, maybe_select);
