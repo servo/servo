@@ -12,6 +12,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webgl_validations::types::{TexImageTarget, TexFormat, TexDataType};
 use dom::webglobject::WebGLObject;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use std::cell::Cell;
 use std::cmp;

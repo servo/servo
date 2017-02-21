@@ -11,6 +11,7 @@ use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::node::Node;
+use dom_struct::dom_struct;
 
 // https://dom.spec.whatwg.org/#documenttype
 /// The `DOCTYPE` tag.

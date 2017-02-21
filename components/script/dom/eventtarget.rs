@@ -26,6 +26,7 @@ use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use dom::node::document_from_node;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use fnv::FnvHasher;
 use heapsize::HeapSizeOf;
 use js::jsapi::{CompileFunction, JS_GetFunctionObject, JSAutoCompartment};

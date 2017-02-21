@@ -15,6 +15,7 @@ use dom::event::Event;
 use dom::globalscope::GlobalScope;
 use dom::vrdisplay::VRDisplay;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use servo_atoms::Atom;
 use webvr_traits::{WebVRDisplayEvent, WebVRDisplayEventReason};
 

@@ -19,6 +19,7 @@ use dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use dom::eventtarget::EventTarget;
 use dom::window::Window;
 use dom::workerglobalscope::WorkerGlobalScope;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSender;
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use js::glue::{IsWrapper, UnwrapObject};

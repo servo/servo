@@ -10,6 +10,7 @@ use dom::bindings::str::DOMString;
 use dom::navigatorinfo;
 use dom::permissions::Permissions;
 use dom::workerglobalscope::WorkerGlobalScope;
+use dom_struct::dom_struct;
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]

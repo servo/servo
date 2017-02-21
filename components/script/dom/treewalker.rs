@@ -14,6 +14,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::node::Node;
+use dom_struct::dom_struct;
 use std::rc::Rc;
 
 // https://dom.spec.whatwg.org/#interface-treewalker

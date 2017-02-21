@@ -14,6 +14,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use servo_config::prefs::PREFS;
 use std::cell::Cell;
 use std::default::Default;

@@ -11,6 +11,7 @@ use dom::bindings::str::DOMString;
 use dom::cssrule::CSSRule;
 use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::cssstylesheet::CSSStyleSheet;
+use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::stylesheets::CssRules as StyleCssRules;

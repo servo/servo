@@ -10,6 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use encoding::EncoderTrap;
 use encoding::Encoding;
 use encoding::all::UTF_8;

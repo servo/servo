@@ -9,6 +9,7 @@ use dom::cssgroupingrule::CSSGroupingRule;
 use dom::cssmediarule::CSSMediaRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::csssupportsrule::CSSSupportsRule;
+use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::stylesheets::CssRules as StyleCssRules;

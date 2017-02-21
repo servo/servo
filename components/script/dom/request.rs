@@ -25,6 +25,7 @@ use dom::globalscope::GlobalScope;
 use dom::headers::{Guard, Headers};
 use dom::promise::Promise;
 use dom::xmlhttprequest::Extractable;
+use dom_struct::dom_struct;
 use hyper::method::Method as HttpMethod;
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::request::{Origin, Window};

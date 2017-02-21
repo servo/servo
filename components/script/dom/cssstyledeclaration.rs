@@ -13,6 +13,7 @@ use dom::cssrule::CSSRule;
 use dom::element::Element;
 use dom::node::{Node, window_from_node};
 use dom::window::Window;
+use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use servo_url::ServoUrl;
 use std::ascii::AsciiExt;

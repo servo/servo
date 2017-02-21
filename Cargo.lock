@@ -630,6 +630,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "dom_struct"
+version = "0.0.1"
+dependencies = [
+ "quote 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "domobject_derive"
 version = "0.0.1"
 dependencies = [
@@ -2204,6 +2211,7 @@ dependencies = [
  "cssparser 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "deny_public_fields 0.0.1",
  "devtools_traits 0.0.1",
+ "dom_struct 0.0.1",
  "domobject_derive 0.0.1",
  "encoding 0.2.33 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",

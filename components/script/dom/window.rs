@@ -48,6 +48,7 @@ use dom::promise::Promise;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use dom::testrunner::TestRunner;
+use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
 use gfx_traits::ScrollRootId;

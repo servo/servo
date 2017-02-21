@@ -15,7 +15,7 @@
 
 
 #![deny(unsafe_code)]
-#![feature(box_syntax, plugin, plugin_registrar, quote, rustc_private, slice_patterns)]
+#![feature(box_syntax, plugin, plugin_registrar, rustc_private, slice_patterns)]
 
 #[macro_use]
 extern crate rustc;
@@ -23,24 +23,15 @@ extern crate rustc_plugin;
 extern crate syntax;
 
 use rustc_plugin::Registry;
-use syntax::ext::base::*;
 use syntax::feature_gate::AttributeType::Whitelisted;
-use syntax::symbol::Symbol;
 
 mod ban;
-// Public for documentation to show up
-/// Handles the auto-deriving for `#[derive(JSTraceable)]`
-pub mod jstraceable;
 mod unrooted_must_root;
 /// Utilities for writing plugins
 mod utils;
 
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
-    reg.register_syntax_extension(
-        Symbol::intern("dom_struct"),
-        MultiModifier(box jstraceable::expand_dom_struct));
-
     reg.register_late_lint_pass(box unrooted_must_root::UnrootedPass::new());
     reg.register_early_lint_pass(box ban::BanPass);
     reg.register_attribute("allow_unrooted_interior".to_string(), Whitelisted);

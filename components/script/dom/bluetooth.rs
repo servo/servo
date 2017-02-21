@@ -30,6 +30,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::permissions::{get_descriptor_permission_state, PermissionAlgorithm};
 use dom::promise::Promise;
+use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ConversionResult;

@@ -10,6 +10,7 @@ use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::nodelist::NodeList;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 
 #[dom_struct]

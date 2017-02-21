@@ -19,6 +19,7 @@ use dom::globalscope::GlobalScope;
 use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use script_thread::Runnable;
 use servo_atoms::Atom;
 use std::cell::Cell;

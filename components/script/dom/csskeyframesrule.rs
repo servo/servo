@@ -15,6 +15,7 @@ use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use servo_atoms::Atom;
 use std::sync::Arc;

@@ -72,6 +72,7 @@ use dom::text::Text;
 use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::ReflowReason;
+use dom_struct::dom_struct;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;

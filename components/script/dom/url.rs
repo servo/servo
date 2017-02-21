@@ -13,6 +13,7 @@ use dom::blob::Blob;
 use dom::globalscope::GlobalScope;
 use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
+use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use net_traits::{CoreResourceMsg, IpcSend};
 use net_traits::blob_url_store::{get_blob_origin, parse_blob_url};

@@ -18,6 +18,7 @@ use dom::htmlanchorelement::follow_hyperlink;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use euclid::point::Point2D;
 use html5ever_atoms::LocalName;
 use net_traits::ReferrerPolicy;

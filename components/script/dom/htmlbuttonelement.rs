@@ -23,6 +23,7 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::{ValidityState, ValidationFlags};
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use std::cell::Cell;
 use style::element_state::*;

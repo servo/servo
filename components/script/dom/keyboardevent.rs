@@ -14,6 +14,7 @@ use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use msg::constellation_msg;
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::borrow::Cow;

@@ -15,6 +15,7 @@ use dom::pluginarray::PluginArray;
 use dom::serviceworkercontainer::ServiceWorkerContainer;
 use dom::vr::VR;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use script_traits::WebVREventMsg;
 
 #[dom_struct]

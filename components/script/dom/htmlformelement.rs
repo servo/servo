@@ -37,6 +37,7 @@ use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::validitystate::ValidationFlags;
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;

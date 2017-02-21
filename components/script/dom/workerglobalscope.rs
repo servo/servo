@@ -23,6 +23,7 @@ use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
+use dom_struct::dom_struct;
 use fetch;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSAutoCompartment, JSContext, JSRuntime};

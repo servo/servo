@@ -22,6 +22,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
+use dom_struct::dom_struct;
 use hyper;
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};

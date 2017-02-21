@@ -15,6 +15,7 @@ use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::messageevent::MessageEvent;
+use dom_struct::dom_struct;
 use encoding::Encoding;
 use encoding::all::UTF_8;
 use euclid::length::Length;

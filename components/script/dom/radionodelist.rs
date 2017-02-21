@@ -14,6 +14,7 @@ use dom::htmlinputelement::HTMLInputElement;
 use dom::node::Node;
 use dom::nodelist::{NodeList, NodeListType};
 use dom::window::Window;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct RadioNodeList {

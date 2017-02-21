@@ -19,6 +19,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::progressevent::ProgressEvent;
+use dom_struct::dom_struct;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};

@@ -30,6 +30,7 @@ use dom::vrframedata::VRFrameData;
 use dom::vrpose::VRPose;
 use dom::vrstageparameters::VRStageParameters;
 use dom::webglrenderingcontext::WebGLRenderingContext;
+use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use ipc_channel::ipc::{IpcSender, IpcReceiver};
 use js::jsapi::JSContext;

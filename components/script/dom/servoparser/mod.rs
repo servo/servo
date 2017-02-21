@@ -22,6 +22,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use dom::node::{Node, NodeSiblingIterator};
 use dom::text::Text;
+use dom_struct::dom_struct;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
 use html5ever::tokenizer::buffer_queue::BufferQueue;

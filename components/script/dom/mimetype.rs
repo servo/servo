@@ -7,6 +7,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
 use dom::plugin::Plugin;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct MimeType {

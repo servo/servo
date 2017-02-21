@@ -9,6 +9,7 @@ use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use webvr_traits::WebVRFieldOfView;
 
 #[dom_struct]
