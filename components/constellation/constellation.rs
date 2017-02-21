@@ -108,7 +108,7 @@ use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::{Rng, SeedableRng, ServoRng, random};
 use servo_remutex::ReentrantMutex;
-use servo_url::ServoUrl;
+use servo_url::{Host, ServoUrl};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, VecDeque};
 use std::iter::once;
@@ -229,13 +229,13 @@ pub struct Constellation<Message, LTF, STF> {
     /// event loop for each registered domain name (aka eTLD+1) in
     /// each top-level frame. We store the event loops in a map
     /// indexed by top-level frame id (as a `FrameId`) and registered
-    /// domain name (as a `String`) to event loops. This double
+    /// domain name (as a `Host`) to event loops. This double
     /// indirection ensures that separate tabs do not share event
     /// loops, even if the same domain is loaded in each.
     /// It is important that scripts with the same eTLD+1
     /// share an event loop, since they can use `document.domain`
     /// to become same-origin, at which point they can share DOM objects.
-    event_loops: HashMap<FrameId, HashMap<String, Weak<EventLoop>>>,
+    event_loops: HashMap<FrameId, HashMap<Host, Weak<EventLoop>>>,
 
     /// The set of all the pipelines in the browser.
     /// (See the `pipeline` module for more details.)
@@ -608,10 +608,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 None => (None, None),
                 Some(host) => {
                     let event_loop = self.event_loops.get(&top_level_frame_id)
-                        .and_then(|map| map.get(host))
+                        .and_then(|map| map.get(&host))
                         .and_then(|weak| weak.upgrade());
                     match event_loop {
-                        None => (None, Some(String::from(host))),
+                        None => (None, Some(host)),
                         Some(event_loop) => (Some(event_loop.clone()), None),
                     }
                 },
