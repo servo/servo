@@ -232,17 +232,6 @@ impl AnimatedProperty {
     }
 }
 
-
-% if product == "gecko":
-    use gecko_bindings::structs::RawServoAnimationValue;
-    use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
-
-    unsafe impl HasFFI for AnimationValue {
-        type FFIType = RawServoAnimationValue;
-    }
-    unsafe impl HasArcFFI for AnimationValue {}
-% endif
-
 /// An enum to represent a single computed value belonging to an animated
 /// property in order to be interpolated with another one. When interpolating,
 /// both values need to belong to the same property.
