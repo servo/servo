@@ -93,27 +93,42 @@ use stylesheet_loader::StylesheetLoader;
  * depend on but good enough for our purposes.
  */
 
-lazy_static! {
-    /// The number of layout threads, computed statically.
-    static ref NUM_THREADS: usize = {
-        match env::var("STYLO_THREADS").map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS")) {
+struct GlobalStyleData {
+    // How many threads parallel styling can use.
+    pub num_threads: usize,
+
+    // The parallel styling thread pool.
+    pub style_thread_pool: Option<rayon::ThreadPool>,
+}
+
+impl GlobalStyleData {
+    pub fn new() -> Self {
+        let stylo_threads = env::var("STYLO_THREADS")
+            .map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS value"));
+        let num_threads = match stylo_threads {
             Ok(num) => num,
             _ => cmp::max(num_cpus::get() * 3 / 4, 1),
+        };
+
+        let pool = if num_threads <= 1 {
+            None
+        } else {
+            let configuration =
+                rayon::Configuration::new().set_num_threads(num_threads);
+            let pool = rayon::ThreadPool::new(configuration).ok();
+            pool
+        };
+
+        GlobalStyleData {
+            num_threads: num_threads,
+            style_thread_pool: pool,
         }
-    };
+    }
 }
 
 lazy_static! {
-    static ref STYLE_THREAD_POOL: Option<rayon::ThreadPool> = {
-        let num_threads = *NUM_THREADS;
-        if num_threads <= 1 {
-            return None;
-        }
-
-        let configuration =
-            rayon::Configuration::new().set_num_threads(num_threads);
-        let pool = rayon::ThreadPool::new(configuration).ok();
-        pool
+    static ref GLOBAL_STYLE_DATA: GlobalStyleData = {
+        GlobalStyleData::new()
     };
 }
 
@@ -186,7 +201,9 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
     let shared_style_context = create_shared_context(&per_doc_data);
-    let traversal_driver = if STYLE_THREAD_POOL.is_none() {
+    let ref global_style_data = *GLOBAL_STYLE_DATA;
+
+    let traversal_driver = if global_style_data.style_thread_pool.is_none() {
         TraversalDriver::Sequential
     } else {
         TraversalDriver::Parallel
@@ -196,7 +213,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     let known_depth = None;
     if traversal_driver.is_parallel() {
         parallel::traverse_dom(&traversal, element, known_depth, token,
-                               STYLE_THREAD_POOL.as_ref().unwrap());
+                               global_style_data.style_thread_pool.as_ref().unwrap());
     } else {
         sequential::traverse_dom(&traversal, element, token);
     }
@@ -372,7 +389,7 @@ pub extern "C" fn Servo_AnimationValue_Release(anim: RawServoAnimationValueBorro
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
-    *NUM_THREADS as u32
+    GLOBAL_STYLE_DATA.num_threads as u32
 }
 
 #[no_mangle]
