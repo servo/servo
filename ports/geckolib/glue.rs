@@ -8,11 +8,13 @@ use cssparser::Parser;
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use euclid::Size2D;
+use num_cpus;
 use parking_lot::RwLock;
 use rayon;
 use selectors::Element;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
+use std::cmp;
 use std::env;
 use std::fmt::Write;
 use std::mem;
@@ -24,7 +26,7 @@ use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInf
 use style::data::{ElementData, ElementStyles, RestyleData};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
-use style::gecko::data::{NUM_THREADS, PerDocumentStyleData, PerDocumentStyleDataImpl};
+use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
 use style::gecko::traversal::RecalcStyleOnly;
@@ -90,6 +92,16 @@ use stylesheet_loader::StylesheetLoader;
  * crate. If there's a mismatch, LLVM will assert and abort, which is a rather awful thing to
  * depend on but good enough for our purposes.
  */
+
+lazy_static! {
+    /// The number of layout threads, computed statically.
+    static ref NUM_THREADS: usize = {
+        match env::var("STYLO_THREADS").map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS")) {
+            Ok(num) => num,
+            _ => cmp::max(num_cpus::get() * 3 / 4, 1),
+        }
+    };
+}
 
 lazy_static! {
     static ref STYLE_THREAD_POOL: Option<rayon::ThreadPool> = {

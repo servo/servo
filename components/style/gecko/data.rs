@@ -11,12 +11,9 @@ use gecko_bindings::bindings::RawServoStyleSet;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use media_queries::Device;
-use num_cpus;
 use parking_lot::RwLock;
 use properties::ComputedValues;
-use std::cmp;
 use std::collections::HashMap;
-use std::env;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use stylesheets::Stylesheet;
@@ -52,16 +49,6 @@ pub struct PerDocumentStyleDataImpl {
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
 /// and unexpected races while trying to mutate it.
 pub struct PerDocumentStyleData(AtomicRefCell<PerDocumentStyleDataImpl>);
-
-lazy_static! {
-    /// The number of layout threads, computed statically.
-    pub static ref NUM_THREADS: usize = {
-        match env::var("STYLO_THREADS").map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS")) {
-            Ok(num) => num,
-            _ => cmp::max(num_cpus::get() * 3 / 4, 1),
-        }
-    };
-}
 
 impl PerDocumentStyleData {
     /// Create a dummy `PerDocumentStyleData`.
