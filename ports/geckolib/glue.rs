@@ -332,17 +332,6 @@ pub extern "C" fn Servo_AnimationValues_Populate(anim: RawGeckoAnimationValueLis
     }
 }
 
-
-#[no_mangle]
-pub extern "C" fn Servo_AnimationValue_AddRef(anim: RawServoAnimationValueBorrowed) -> () {
-    unsafe { AnimationValue::addref(anim) };
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_AnimationValue_Release(anim: RawServoAnimationValueBorrowed) -> () {
-    unsafe { AnimationValue::release(anim) };
-}
-
 #[no_mangle]
 pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
     *NUM_THREADS as u32
@@ -531,16 +520,6 @@ pub extern "C" fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed) -
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSheet_AddRef(sheet: RawServoStyleSheetBorrowed) -> () {
-    unsafe { Stylesheet::addref(sheet) };
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_StyleSheet_Release(sheet: RawServoStyleSheetBorrowed) -> () {
-    unsafe { Stylesheet::release(sheet) };
-}
-
-#[no_mangle]
 pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
                                            result: nsTArrayBorrowed_uintptr_t) -> () {
     let rules = RwLock::<CssRules>::as_arc(&rules).read();
@@ -589,26 +568,6 @@ pub extern "C" fn Servo_CssRules_DeleteRule(rules: ServoCssRulesBorrowed, index:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_CssRules_AddRef(rules: ServoCssRulesBorrowed) -> () {
-    unsafe { RwLock::<CssRules>::addref(rules) };
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_CssRules_Release(rules: ServoCssRulesBorrowed) -> () {
-    unsafe { RwLock::<CssRules>::release(rules) };
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_StyleRule_AddRef(rule: RawServoStyleRuleBorrowed) -> () {
-    unsafe { RwLock::<StyleRule>::addref(rule) };
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_StyleRule_Release(rule: RawServoStyleRuleBorrowed) -> () {
-    unsafe { RwLock::<StyleRule>::release(rule) };
-}
-
-#[no_mangle]
 pub extern "C" fn Servo_StyleRule_Debug(rule: RawServoStyleRuleBorrowed, result: *mut nsACString) -> () {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
     let result = unsafe { result.as_mut().unwrap() };
@@ -639,16 +598,6 @@ pub extern "C" fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed, re
 pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) -> () {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
     rule.read().selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_ImportRule_AddRef(rule: RawServoImportRuleBorrowed) -> () {
-    unsafe { RwLock::<ImportRule>::addref(rule) };
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_ImportRule_Release(rule: RawServoImportRuleBorrowed) -> () {
-    unsafe { RwLock::<ImportRule>::release(rule) };
 }
 
 #[no_mangle]
@@ -727,16 +676,6 @@ pub extern "C" fn Servo_ComputedValues_Inherit(
     style.into_strong()
 }
 
-#[no_mangle]
-pub extern "C" fn Servo_ComputedValues_AddRef(ptr: ServoComputedValuesBorrowed) {
-    unsafe { ComputedValues::addref(ptr) };
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_ComputedValues_Release(ptr: ServoComputedValuesBorrowed) {
-    unsafe { ComputedValues::release(ptr) };
-}
-
 /// See the comment in `Device` to see why it's ok to pass an owned reference to
 /// the pres context (hint: the context outlives the StyleSet, that holds the
 /// device alive).
@@ -812,16 +751,6 @@ pub extern "C" fn Servo_DeclarationBlock_Clone(declarations: RawServoDeclaration
                                                -> RawServoDeclarationBlockStrong {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     Arc::new(RwLock::new(declarations.read().clone())).into_strong()
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_AddRef(declarations: RawServoDeclarationBlockBorrowed) {
-    unsafe { RwLock::<PropertyDeclarationBlock>::addref(declarations) };
-}
-
-#[no_mangle]
-pub extern "C" fn Servo_DeclarationBlock_Release(declarations: RawServoDeclarationBlockBorrowed) {
-    unsafe { RwLock::<PropertyDeclarationBlock>::release(declarations) };
 }
 
 #[no_mangle]
