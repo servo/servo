@@ -44,6 +44,11 @@
             NoOpenQuote,
             /// `no-close-quote`.
             NoCloseQuote,
+
+            % if product == "gecko":
+                /// `-moz-alt-content`
+                MozAltContent,
+            % endif
         }
 
         impl ToCss for ContentItem {
@@ -72,6 +77,10 @@
                     ContentItem::CloseQuote => dest.write_str("close-quote"),
                     ContentItem::NoOpenQuote => dest.write_str("no-open-quote"),
                     ContentItem::NoCloseQuote => dest.write_str("no-close-quote"),
+
+                    % if product == "gecko":
+                        ContentItem::MozAltContent => dest.write_str("-moz-alt-content"),
+                    % endif
                 }
             }
         }
@@ -159,6 +168,11 @@
                         "close-quote" => content.push(ContentItem::CloseQuote),
                         "no-open-quote" => content.push(ContentItem::NoOpenQuote),
                         "no-close-quote" => content.push(ContentItem::NoCloseQuote),
+
+                        % if product == "gecko":
+                            "-moz-alt-content" => content.push(ContentItem::MozAltContent),
+                        % endif
+
                         _ => return Err(())
                     }
                 }

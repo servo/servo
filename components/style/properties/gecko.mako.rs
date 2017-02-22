@@ -3120,6 +3120,8 @@ clip-path
                             => self.gecko.mContents[i].mType = eStyleContentType_NoOpenQuote,
                         ContentItem::NoCloseQuote
                             => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
+                        ContentItem::MozAltContent
+                            => self.gecko.mContents[i].mType = eStyleContentType_AltContent,
                         ContentItem::Counter(..) |
                         ContentItem::Counters(..)
                             => self.gecko.mContents[i].mType = eStyleContentType_Uninitialized,
