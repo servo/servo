@@ -11,46 +11,11 @@
 use app_units::Au;
 use gecko::values::convert_rgba_to_nscolor;
 use gecko_bindings::bindings::{Gecko_CreateGradient, Gecko_SetGradientImageValue, Gecko_SetUrlImageValue};
-use gecko_bindings::bindings::{RawServoStyleSheet, RawServoStyleRule, RawServoImportRule};
-use gecko_bindings::bindings::{ServoComputedValues, ServoCssRules};
 use gecko_bindings::structs::{nsStyleCoord_CalcValue, nsStyleImage};
-use gecko_bindings::structs::RawServoDeclarationBlock;
 use gecko_bindings::structs::nsresult;
 use gecko_bindings::sugar::ns_style_coord::{CoordDataValue, CoordDataMut};
-use gecko_bindings::sugar::ownership::{HasArcFFI, HasFFI};
-use parking_lot::RwLock;
-use properties::{ComputedValues, PropertyDeclarationBlock};
-use stylesheets::{CssRules, RulesMutateError, Stylesheet, StyleRule, ImportRule};
+use stylesheets::RulesMutateError;
 use values::computed::{CalcLengthOrPercentage, Gradient, Image, LengthOrPercentage, LengthOrPercentageOrAuto};
-
-unsafe impl HasFFI for Stylesheet {
-    type FFIType = RawServoStyleSheet;
-}
-unsafe impl HasArcFFI for Stylesheet {}
-unsafe impl HasFFI for ComputedValues {
-    type FFIType = ServoComputedValues;
-}
-unsafe impl HasArcFFI for ComputedValues {}
-
-unsafe impl HasFFI for RwLock<PropertyDeclarationBlock> {
-    type FFIType = RawServoDeclarationBlock;
-}
-unsafe impl HasArcFFI for RwLock<PropertyDeclarationBlock> {}
-
-unsafe impl HasFFI for RwLock<CssRules> {
-    type FFIType = ServoCssRules;
-}
-unsafe impl HasArcFFI for RwLock<CssRules> {}
-
-unsafe impl HasFFI for RwLock<StyleRule> {
-    type FFIType = RawServoStyleRule;
-}
-unsafe impl HasArcFFI for RwLock<StyleRule> {}
-
-unsafe impl HasFFI for RwLock<ImportRule> {
-    type FFIType = RawServoImportRule;
-}
-unsafe impl HasArcFFI for RwLock<ImportRule> {}
 
 impl From<CalcLengthOrPercentage> for nsStyleCoord_CalcValue {
     fn from(other: CalcLengthOrPercentage) -> nsStyleCoord_CalcValue {

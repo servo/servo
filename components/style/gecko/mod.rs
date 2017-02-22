@@ -4,6 +4,7 @@
 
 //! Gecko-specific style-system bits.
 
+pub mod arc_types;
 pub mod conversions;
 pub mod data;
 pub mod media_queries;
