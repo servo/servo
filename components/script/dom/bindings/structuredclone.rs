@@ -8,7 +8,8 @@
 use dom::bindings::conversions::root_from_handleobject;
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::Root;
-use dom::blob::{Blob, BlobImpl};
+use dom::bindings::reflector::DomObject;
+use dom::blob::Blob;
 use dom::globalscope::GlobalScope;
 use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue};
 use js::jsapi::{Heap, JSContext};
@@ -17,11 +18,9 @@ use js::jsapi::{JS_ClearPendingException, JSObject, JS_ReadStructuredClone};
 use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone, JS_WriteUint32Pair};
 use js::jsapi::{MutableHandleObject, TransferableOwnership};
 use libc::size_t;
-use std::mem::transmute;
 use std::os::raw;
 use std::ptr;
 use std::slice;
-use std::sync::{Once, ONCE_INIT};
 
 ///TODO: move const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs
 const SCTAG_BASE: u32 = 0xFFFF8000;
@@ -37,18 +36,17 @@ struct StructuredCloneHolder {
 
 #[allow(dead_code)]
 unsafe extern "C" fn read_callback(_cx: *mut JSContext,
-                                   r: *mut JSStructuredCloneReader,
+                                   _r: *mut JSStructuredCloneReader,
                                    tag: u32,
                                    data: u32,
                                    closure: *mut raw::c_void) -> *mut JSObject {
-    match tag {
-        tag if tag == StructuredCloneTags::ScTagDomBlob as u32 => {
-            ///TODO: implement return readBlob(cx, data)
-            let sc_holder: &mut StructuredCloneHolder = &mut *(closure as *mut StructuredCloneHolder);
-            return Heap::default().get()
-        },
-        _ => return Heap::default().get(),
-    };
+    if tag == StructuredCloneTags::ScTagDomBlob as u32 {
+        let sc_holder: &mut StructuredCloneHolder = &mut *(closure as *mut StructuredCloneHolder);
+        let index = data as usize;
+        let root = &sc_holder.blobs[index];
+        return *root.reflector().get_jsobject().ptr
+    }
+    return Heap::default().get()
 }
 
 #[allow(dead_code)]
