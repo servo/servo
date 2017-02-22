@@ -1435,6 +1435,9 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                                                       timing_function: *const nsTimingFunction,
                                                       style: ServoComputedValuesBorrowed,
                                                       keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
+    use style::gecko_bindings::structs::Keyframe;
+    use style::properties::property_bit_field::PropertyBitField;
+
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
     let style_timing_function = unsafe { timing_function.as_ref().unwrap() };
@@ -1455,16 +1458,25 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                                               &timing_function)
           };
 
+          fn add_computed_property_value(keyframe: *mut Keyframe,
+                                         index: usize,
+                                         style: &ComputedValues,
+                                         property: &TransitionProperty) {
+              let block = style.to_declaration_block(property.clone().into());
+              unsafe {
+                  (*keyframe).mPropertyValues.set_len((index + 1) as u32);
+                  (*keyframe).mPropertyValues[index].mProperty = property.clone().into();
+                  // FIXME. Do not set computed values once we handles missing keyframes
+                  // with additive composition.
+                  (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
+                      Arc::new(RwLock::new(block)));
+              }
+          }
+
           match step.value {
               KeyframesStepValue::ComputedValues => {
                   for (index, property) in animation.properties_changed.iter().enumerate() {
-                      let block = style.to_declaration_block(property.clone().into());
-                      unsafe {
-                          (*keyframe).mPropertyValues.set_len((index + 1) as u32);
-                          (*keyframe).mPropertyValues[index].mProperty = property.clone().into();
-                          (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
-                              Arc::new(RwLock::new(block)));
-                      }
+                      add_computed_property_value(keyframe, index, style, property);
                   }
               },
               KeyframesStepValue::Declarations { ref block } => {
@@ -1476,16 +1488,33 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                            .filter(|&&(ref declaration, _)| {
                                declaration.is_animatable()
                            });
+
+                  let mut seen = PropertyBitField::new();
+
                   for (index, &(ref declaration, _)) in animatable.enumerate() {
                       unsafe {
+                          let property = TransitionProperty::from_declaration(declaration).unwrap();
                           (*keyframe).mPropertyValues.set_len((index + 1) as u32);
-                          (*keyframe).mPropertyValues[index].mProperty =
-                              TransitionProperty::from_declaration(declaration).unwrap().into();
+                          (*keyframe).mPropertyValues[index].mProperty = property.into();
                           (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
                               Arc::new(RwLock::new(
                                   PropertyDeclarationBlock { declarations: vec![ (declaration.clone(),
                                                                                   Importance::Normal) ],
                                                              important_count: 0 })));
+                          if step.start_percentage.0 == 0. ||
+                             step.start_percentage.0 == 1. {
+                              seen.set_transition_property_bit(&property);
+                          }
+                      }
+                  }
+
+                  // Append missing property values in the initial or the finial keyframes.
+                  if step.start_percentage.0 == 0. ||
+                     step.start_percentage.0 == 1. {
+                      for (index, property) in animation.properties_changed.iter().enumerate() {
+                          if !seen.has_transition_property_bit(&property) {
+                              add_computed_property_value(keyframe, index, style, property);
+                          }
                       }
                   }
               },
