@@ -621,6 +621,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 !self.get_state().contains(pseudo_class.state_flag())
             }
 
+            NonTSPseudoClass::MozTableBorderNonzero |
             NonTSPseudoClass::MozBrowserFrame => unsafe {
                 Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
             }

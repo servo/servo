@@ -46,4 +46,8 @@ pseudo_class_list! {
     ("read-only", ReadOnly, _, IN_READ_WRITE_STATE, _),
 
     ("-moz-browser-frame", MozBrowserFrame, mozBrowserFrame, _, PSEUDO_CLASS_INTERNAL),
+
+    // FIXME(SimonSapin): bz says that this pseudo-class is currently enabled for all stylesheets,
+    // but we could try to restrict it to user-agent stylesheets by adding PSEUDO_CLASS_INTERNAL here.
+    ("-moz-table-border-nonzero", MozTableBorderNonzero, mozTableBorderNonzero, _, _),
 }
