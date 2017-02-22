@@ -15,6 +15,7 @@ use properties::{PropertyDeclarationId, LonghandId, DeclaredValue};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
+use properties::property_bit_field::PropertyBitField;
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
@@ -244,21 +245,23 @@ pub struct KeyframesAnimation {
     pub properties_changed: Vec<TransitionProperty>,
 }
 
-/// Get all the animated properties in a keyframes animation. Note that it's not
-/// defined what happens when a property is not on a keyframe, so we only peek
-/// the props of the first one.
-///
-/// In practice, browsers seem to try to do their best job at it, so we might
-/// want to go through all the actual keyframes and deduplicate properties.
-fn get_animated_properties(keyframe: &Keyframe) -> Vec<TransitionProperty> {
+/// Get all the animated properties in a keyframes animation.
+fn get_animated_properties(keyframes: &[Arc<RwLock<Keyframe>>]) -> Vec<TransitionProperty> {
     let mut ret = vec![];
+    let mut seen = PropertyBitField::new();
     // NB: declarations are already deduplicated, so we don't have to check for
     // it here.
-    for &(ref declaration, importance) in keyframe.block.read().declarations.iter() {
-        assert!(!importance.important());
+    for keyframe in keyframes {
+        let keyframe = keyframe.read();
+        for &(ref declaration, importance) in keyframe.block.read().declarations.iter() {
+            assert!(!importance.important());
 
-        if let Some(property) = TransitionProperty::from_declaration(declaration) {
-            ret.push(property);
+            if let Some(property) = TransitionProperty::from_declaration(declaration) {
+                if !seen.has_transition_property_bit(&property) {
+                    ret.push(property);
+                    seen.set_transition_property_bit(&property);
+                }
+            }
         }
     }
 
@@ -284,7 +287,7 @@ impl KeyframesAnimation {
             return result;
         }
 
-        result.properties_changed = get_animated_properties(&keyframes[0].read());
+        result.properties_changed = get_animated_properties(keyframes);
         if result.properties_changed.is_empty() {
             return result;
         }

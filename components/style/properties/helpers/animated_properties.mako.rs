@@ -43,7 +43,7 @@ use values::specified::Angle as SpecifiedAngle;
 /// property.
 // NB: This needs to be here because it needs all the longhands generated
 // beforehand.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum TransitionProperty {
     /// All, any animatable property changing should generate a transition.
