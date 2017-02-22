@@ -27,6 +27,10 @@ extern crate openssl;
 extern crate openssl_verify;
 extern crate profile_traits;
 extern crate rustc_serialize;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json;
 extern crate servo_config;
 extern crate servo_url;
 extern crate threadpool;

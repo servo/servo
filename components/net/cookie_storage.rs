@@ -16,7 +16,7 @@ use time::Tm;
 
 extern crate time;
 
-#[derive(Clone, Debug, RustcDecodable, RustcEncodable)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CookieStorage {
     version: u32,
     cookies_map: HashMap<String, Vec<Cookie>>,
@@ -192,7 +192,7 @@ fn reg_host<'a>(url: &'a str) -> String {
 
 fn is_cookie_expired(cookie: &Cookie) -> bool {
     match cookie.expiry_time {
-        Some(t) => t.to_timespec() <= time::get_time(),
+        Some(ref t) => t.to_timespec() <= time::get_time(),
         None => false,
     }
 }

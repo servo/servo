@@ -4,7 +4,7 @@
 
 use net_traits::IncludeSubdomains;
 use net_traits::pub_domains::reg_suffix;
-use rustc_serialize::json::decode;
+use serde_json;
 use servo_config::resource_files::read_resource_file;
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -12,7 +12,7 @@ use std::str::from_utf8;
 use time;
 use url::Url;
 
-#[derive(RustcDecodable, RustcEncodable, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct HstsEntry {
     pub host: String,
     pub include_subdomains: bool,
@@ -53,7 +53,7 @@ impl HstsEntry {
     }
 }
 
-#[derive(RustcDecodable, RustcEncodable, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct HstsList {
     pub entries_map: HashMap<String, Vec<HstsEntry>>,
 }
@@ -65,14 +65,14 @@ impl HstsList {
 
     /// Create an `HstsList` from the bytes of a JSON preload file.
     pub fn from_preload(preload_content: &[u8]) -> Option<HstsList> {
-        #[derive(RustcDecodable)]
+        #[derive(Deserialize)]
         struct HstsEntries {
             entries: Vec<HstsEntry>,
         }
 
         let hsts_entries: Option<HstsEntries> = from_utf8(&preload_content)
             .ok()
-            .and_then(|c| decode(c).ok());
+            .and_then(|c| serde_json::from_str(c).ok());
 
         hsts_entries.map_or(None, |hsts_entries| {
             let mut hsts_list: HstsList = HstsList::new();
