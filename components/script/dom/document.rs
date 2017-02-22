@@ -105,7 +105,6 @@ use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
-use origin::Origin;
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, Runnable};
@@ -116,7 +115,7 @@ use script_traits::{TouchEventType, TouchId};
 use script_traits::UntrustedNodeAddress;
 use servo_atoms::Atom;
 use servo_config::prefs::PREFS;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, Ref, RefMut};
@@ -136,6 +135,7 @@ use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use task_source::TaskSource;
 use time;
+use url::Host;
 use url::percent_encoding::percent_decode;
 
 pub enum TouchEventResult {
@@ -277,7 +277,7 @@ pub struct Document {
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
     /// The document's origin.
-    origin: Origin,
+    origin: MutableOrigin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
     referrer_policy: Cell<Option<ReferrerPolicy>>,
     /// https://html.spec.whatwg.org/multipage/#dom-document-referrer
@@ -424,7 +424,7 @@ impl Document {
         }
     }
 
-    pub fn origin(&self) -> &Origin {
+    pub fn origin(&self) -> &MutableOrigin {
         &self.origin
     }
 
@@ -1949,7 +1949,7 @@ impl Document {
     pub fn new_inherited(window: &Window,
                          has_browsing_context: HasBrowsingContext,
                          url: Option<ServoUrl>,
-                         origin: Origin,
+                         origin: MutableOrigin,
                          is_html_document: IsHTMLDocument,
                          content_type: Option<DOMString>,
                          last_modified: Option<String>,
@@ -2053,7 +2053,7 @@ impl Document {
         Ok(Document::new(window,
                          HasBrowsingContext::No,
                          None,
-                         doc.origin().alias(),
+                         doc.origin().clone(),
                          IsHTMLDocument::NonHTMLDocument,
                          None,
                          None,
@@ -2067,7 +2067,7 @@ impl Document {
     pub fn new(window: &Window,
                has_browsing_context: HasBrowsingContext,
                url: Option<ServoUrl>,
-               origin: Origin,
+               origin: MutableOrigin,
                doctype: IsHTMLDocument,
                content_type: Option<DOMString>,
                last_modified: Option<String>,
@@ -2154,7 +2154,7 @@ impl Document {
                                         HasBrowsingContext::No,
                                         None,
                                         // https://github.com/whatwg/html/issues/2109
-                                        Origin::opaque_identifier(),
+                                        MutableOrigin::new(ImmutableOrigin::new_opaque()),
                                         doctype,
                                         None,
                                         None,
@@ -2411,16 +2411,17 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(&self) -> DOMString {
         // Step 1.
-        if self.browsing_context().is_none() {
+        if !self.has_browsing_context {
             return DOMString::new();
         }
 
-        if let Some(host) = self.origin.host() {
-            // Step 4.
-            DOMString::from(host.to_string())
-        } else {
+        // Step 2.
+        match self.origin.effective_domain() {
             // Step 3.
-            DOMString::new()
+            None => DOMString::new(),
+            // Step 4.
+            Some(Host::Domain(domain)) => DOMString::from(domain),
+            Some(host) => DOMString::from(host.to_string()),
         }
     }
 
@@ -3077,7 +3078,7 @@ impl DocumentMethods for Document {
             return Ok(DOMString::new());
         }
 
-        if !self.origin.is_scheme_host_port_tuple() {
+        if !self.origin.is_tuple() {
             return Err(Error::Security);
         }
 
@@ -3097,7 +3098,7 @@ impl DocumentMethods for Document {
             return Ok(());
         }
 
-        if !self.origin.is_scheme_host_port_tuple() {
+        if !self.origin.is_tuple() {
             return Err(Error::Security);
         }
 

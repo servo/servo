@@ -1225,7 +1225,7 @@ impl XMLHttpRequest {
         Document::new(win,
                       HasBrowsingContext::No,
                       parsed_url,
-                      doc.origin().alias(),
+                      doc.origin().clone(),
                       is_html_document,
                       content_type,
                       None,

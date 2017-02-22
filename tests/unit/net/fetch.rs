@@ -34,7 +34,7 @@ use net_traits::ReferrerPolicy;
 use net_traits::request::{Origin, RedirectMode, Referrer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use servo_config::resource_files::resources_dir_path;
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::fs::File;
 use std::io::Read;
 use std::rc::Rc;
@@ -43,7 +43,6 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use time::{self, Duration};
 use unicase::UniCase;
-use url::Origin as UrlOrigin;
 
 // TODO write a struct that impls Handler for storing test values
 
@@ -223,7 +222,7 @@ fn test_cors_preflight_fetch() {
 
     let target_url = url.clone().join("a.html").unwrap();
 
-    let origin = Origin::Origin(UrlOrigin::new_opaque());
+    let origin = Origin::Origin(ImmutableOrigin::new_opaque());
     let mut request = Request::new(url.clone(), Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::ReferrerUrl(target_url);
     *request.referrer_policy.get_mut() = Some(ReferrerPolicy::Origin);
@@ -260,7 +259,7 @@ fn test_cors_preflight_cache_fetch() {
     };
     let (mut server, url) = make_server(handler);
 
-    let origin = Origin::Origin(UrlOrigin::new_opaque());
+    let origin = Origin::Origin(ImmutableOrigin::new_opaque());
     let mut request = Request::new(url.clone(), Some(origin.clone()), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     request.use_cors_preflight = true;
@@ -309,7 +308,7 @@ fn test_cors_preflight_fetch_network_error() {
     };
     let (mut server, url) = make_server(handler);
 
-    let origin = Origin::Origin(UrlOrigin::new_opaque());
+    let origin = Origin::Origin(ImmutableOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false, None);
     *request.method.borrow_mut() = Method::Extension("CHICKEN".to_owned());
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
@@ -378,7 +377,7 @@ fn test_fetch_response_is_cors_filtered() {
     let (mut server, url) = make_server(handler);
 
     // an origin mis-match will stop it from defaulting to a basic filtered response
-    let origin = Origin::Origin(UrlOrigin::new_opaque());
+    let origin = Origin::Origin(ImmutableOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     request.mode = RequestMode::CorsMode;
@@ -410,7 +409,7 @@ fn test_fetch_response_is_opaque_filtered() {
     let (mut server, url) = make_server(handler);
 
     // an origin mis-match will fall through to an Opaque filtered response
-    let origin = Origin::Origin(UrlOrigin::new_opaque());
+    let origin = Origin::Origin(ImmutableOrigin::new_opaque());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
     let fetch_response = fetch(request, None);
@@ -800,7 +799,7 @@ fn test_opaque_filtered_fetch_async_returns_complete_response() {
     let (mut server, url) = make_server(handler);
 
     // an origin mis-match will fall through to an Opaque filtered response
-    let origin = Origin::Origin(UrlOrigin::new_opaque());
+    let origin = Origin::Origin(ImmutableOrigin::new_opaque());
     let request = Request::new(url, Some(origin), false, None);
     *request.referrer.borrow_mut() = Referrer::NoReferrer;
 
