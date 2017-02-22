@@ -30,6 +30,9 @@ openssl = "0.7.6"
 openssl-verify = "0.1"
 profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3"
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 threadpool = "1.0"

@@ -6,6 +6,7 @@
 //! http://tools.ietf.org/html/rfc6265
 
 use cookie_rs;
+use hyper_serde::{self, Serde};
 use net_traits::CookieSource;
 use net_traits::pub_domains::is_pub_domain;
 use servo_url::ServoUrl;
@@ -16,14 +17,20 @@ use time::{Tm, now, at, Duration};
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
 /// which cookie-rs and hyper's header parsing do not support.
-#[derive(Clone, Debug, RustcDecodable, RustcEncodable)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Cookie {
+    #[serde(deserialize_with = "hyper_serde::deserialize",
+            serialize_with = "hyper_serde::serialize")]
     pub cookie: cookie_rs::Cookie,
     pub host_only: bool,
     pub persistent: bool,
+    #[serde(deserialize_with = "hyper_serde::deserialize",
+            serialize_with = "hyper_serde::serialize")]
     pub creation_time: Tm,
+    #[serde(deserialize_with = "hyper_serde::deserialize",
+            serialize_with = "hyper_serde::serialize")]
     pub last_access: Tm,
-    pub expiry_time: Option<Tm>,
+    pub expiry_time: Option<Serde<Tm>>,
 }
 
 impl Cookie {
@@ -85,7 +92,7 @@ impl Cookie {
             persistent: persistent,
             creation_time: now(),
             last_access: now(),
-            expiry_time: expiry_time,
+            expiry_time: expiry_time.map(Serde),
         })
     }
 

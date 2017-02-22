@@ -23,8 +23,8 @@ use net_traits::{ResourceThreads, WebSocketCommunicate, WebSocketConnectData};
 use net_traits::request::{Request, RequestInit};
 use net_traits::storage_thread::StorageThreadMsg;
 use profile_traits::time::ProfilerChan;
-use rustc_serialize::{Decodable, Encodable};
-use rustc_serialize::json;
+use serde::{Deserialize, Serialize};
+use serde_json;
 use servo_url::ServoUrl;
 use std::borrow::{Cow, ToOwned};
 use std::collections::HashMap;
@@ -211,7 +211,7 @@ impl ResourceChannelManager {
 }
 
 pub fn read_json_from_file<T>(data: &mut T, config_dir: &Path, filename: &str)
-    where T: Decodable
+    where T: Deserialize
 {
     let path = config_dir.join(filename);
     let display = path.display();
@@ -233,17 +233,17 @@ pub fn read_json_from_file<T>(data: &mut T, config_dir: &Path, filename: &str)
         Ok(_) => println!("successfully read from {}", display),
     }
 
-    match json::decode(&string_buffer) {
+    match serde_json::from_str(&string_buffer) {
         Ok(decoded_buffer) => *data = decoded_buffer,
         Err(why) => warn!("Could not decode buffer{}", why),
     }
 }
 
 pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
-    where T: Encodable
+    where T: Serialize
 {
     let json_encoded: String;
-    match json::encode(&data) {
+    match serde_json::to_string_pretty(&data) {
         Ok(d) => json_encoded = d,
         Err(_) => return,
     }
@@ -266,7 +266,7 @@ pub fn write_json_to_file<T>(data: &T, config_dir: &Path, filename: &str)
     }
 }
 
-#[derive(RustcDecodable, RustcEncodable, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct AuthCacheEntry {
     pub user_name: String,
     pub password: String,
@@ -281,7 +281,7 @@ impl AuthCache {
     }
 }
 
-#[derive(RustcDecodable, RustcEncodable, Clone)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct AuthCache {
     pub version: u32,
     pub entries: HashMap<String, AuthCacheEntry>,
