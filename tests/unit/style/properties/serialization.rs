@@ -1192,27 +1192,25 @@ mod shorthand_serialization {
 
         #[test]
         fn serialize_multiple_animations_unequal_property_lists() {
-            // Currently the implementation cycles values if the lists are
-            // uneven. This is incorrect, in that we should serialize only
-            // when the lists have the same length (both here and for background
-            // and transition. See https://github.com/servo/servo/issues/15398 )
-            let block = property_declaration_block("\
-                animation-name: bounce, roll, flip, jump;\
-                animation-duration: 1s, 0.2s;\
-                animation-timing-function: ease-in, linear;\
-                animation-delay: 0s, 1s, 0.5s;\
-                animation-direction: normal;\
-                animation-fill-mode: forwards, backwards;\
-                animation-iteration-count: infinite, 2;\
-                animation-play-state: paused, running;");
+            // When the lengths of property values are different, the shorthand serialization
+            // should not be used. Previously the implementation cycled values if the lists were
+            // uneven. This is incorrect, in that we should serialize to a shorthand only when the
+            // lists have the same length (both here and for background and transition. See
+            // https://github.com/servo/servo/issues/15398 )
+            let block_text = "\
+                animation-name: bounce, roll, flip, jump; \
+                animation-duration: 1s, 0.2s; \
+                animation-timing-function: ease-in, linear; \
+                animation-delay: 0s, 1s, 0.5s; \
+                animation-direction: normal; \
+                animation-fill-mode: forwards, backwards; \
+                animation-iteration-count: infinite, 2; \
+                animation-play-state: paused, running;";
+            let block = property_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 
-            assert_eq!(serialization, "animation: \
-                1s ease-in 0s normal forwards infinite paused bounce, \
-                0.2s linear 1s normal backwards 2 running roll, \
-                1s ease-in 0.5s normal forwards infinite paused flip, \
-                0.2s linear 0s normal backwards 2 running jump;")
+            assert_eq!(serialization, block_text);
         }
 
         #[test]
