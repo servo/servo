@@ -29,11 +29,11 @@ pub type UnsafeNode = (usize, usize);
 /// One CSS "px" in the coordinate system of the "initial viewport":
 /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
 ///
-/// `ViewportPx` is equal to `ScreenPx` times a "page zoom" factor controlled by the user.  This is
+/// `ViewportPx` is equal to `DeviceIndependentPixel` times a "page zoom" factor controlled by the user.  This is
 /// the desktop-style "full page" zoom that enlarges content but then reflows the layout viewport
 /// so it still exactly fits the visible area.
 ///
-/// At the default zoom level of 100%, one `PagePx` is equal to one `ScreenPx`.  However, if the
+/// At the default zoom level of 100%, one `PagePx` is equal to one `DeviceIndependentPixel`.  However, if the
 /// document is zoomed in or out then this scale may be larger or smaller.
 #[derive(Clone, Copy, Debug)]
 pub enum ViewportPx {}
@@ -50,7 +50,7 @@ pub enum PagePx {}
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
 //
 // DevicePixel
-//   / hidpi_ratio => ScreenPx
+//   / hidpi_ratio => DeviceIndependentPixel
 //     / desktop_zoom => ViewportPx
 //       / pinch_zoom => PagePx
 
