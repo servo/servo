@@ -344,23 +344,21 @@ impl ToCss for PropertyDeclarationBlock {
 
                     // Substep 5 - Let value be the result of invoking serialize a CSS
                     // value of current longhands.
-                    let mut value = String::from("");
+                    let mut value = String::new();
                     match shorthand.get_shorthand_appendable_value(current_longhands.iter().cloned()) {
                         None => continue,
                         Some(appendable_value) => {
-                            // Also demo test of overflow with important - I think it'll not
-                            // be correct.
                             try!(append_declaration_value(&mut value, appendable_value));
                         }
                     }
 
                     // Substep 6
-                    if value == "" {
+                    if value.is_empty() {
                         continue
                     }
 
                     // Substeps 7 and 8
-                    try!(append_serialization::<W, Cloned<slice::Iter< &PropertyDeclaration>>, _>(
+                    try!(append_serialization::<W, Cloned<slice::Iter< _>>, _>(
                              dest, &shorthand, AppendableValue::Css(&value), importance,
                              &mut is_first_serialization));
 
@@ -417,7 +415,8 @@ pub enum AppendableValue<'a, I>
     /// FIXME: This needs more docs, where are the shorthands expanded? We print
     /// the property name before-hand, don't we?
     DeclarationsForShorthand(ShorthandId, I),
-    /// A raw CSS string, coming for example from a property with CSS variables.
+    /// A raw CSS string, coming for example from a property with CSS variables,
+    /// or when storing a serialized shorthand value before appending directly.
     Css(&'a str)
 }
 
@@ -444,7 +443,6 @@ pub fn append_declaration_value<'a, W, I>(dest: &mut W,
           I: Iterator<Item=&'a PropertyDeclaration>,
 {
     match appendable_value {
-        // Should be able to use this enum to pass the already serialized css?
         AppendableValue::Css(css) => {
             try!(write!(dest, "{}", css))
         },
@@ -485,8 +483,10 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
                 // for normal parsed values, add a space between key: and value
                 try!(write!(dest, " "));
             }
-         },
-         &AppendableValue::DeclarationsForShorthand(..) => try!(write!(dest, " "))
+        },
+        // Currently append_serialization is only called with a Css or
+        // a Declaration AppendableValue.
+        &AppendableValue::DeclarationsForShorthand(..) => unreachable!()
     }
 
     try!(append_declaration_value(dest, appendable_value));

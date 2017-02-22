@@ -549,7 +549,7 @@ impl ShorthandId {
         }
     }
 
-    /// Find an return an appendable value for the given declarations.
+    /// Finds and returns an appendable value for the given declarations.
     ///
     /// Returns the optional appendable value.
     pub fn get_shorthand_appendable_value<'a, I>(self,
