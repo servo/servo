@@ -26,7 +26,7 @@ use gleam::gl;
 use msg::constellation_msg::{Key, KeyModifiers};
 use net_traits::net_error_list::NetError;
 use script_traits::DevicePixel;
-use servo_geometry::ScreenPx;
+use servo_geometry::DeviceIndependentPixel;
 use std::cell::RefCell;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_void};
@@ -206,7 +206,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn size(&self) -> TypedSize2D<f32, ScreenPx> {
+    fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {
         let browser = self.cef_browser.borrow();
         match *browser {
             None => TypedSize2D::new(400.0, 300.0),
@@ -250,7 +250,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel> {
+    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
         if cfg!(target_os="macos") {
             let browser = self.cef_browser.borrow();
             match *browser {

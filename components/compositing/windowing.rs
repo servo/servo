@@ -12,7 +12,7 @@ use euclid::size::TypedSize2D;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use net_traits::net_error_list::NetError;
 use script_traits::{DevicePixel, MouseButton, TouchEventType, TouchId, TouchpadPressurePhase};
-use servo_geometry::ScreenPx;
+use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::fmt::{Debug, Error, Formatter};
 use style_traits::cursor::Cursor;
@@ -109,7 +109,7 @@ pub trait WindowMethods {
     /// Returns the size of the window in hardware pixels.
     fn framebuffer_size(&self) -> TypedSize2D<u32, DevicePixel>;
     /// Returns the size of the window in density-independent "px" units.
-    fn size(&self) -> TypedSize2D<f32, ScreenPx>;
+    fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel>;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
 
@@ -137,8 +137,8 @@ pub trait WindowMethods {
     /// Called when the <head> tag has finished parsing
     fn head_parsed(&self);
 
-    /// Returns the scale factor of the system (device pixels / screen pixels).
-    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel>;
+    /// Returns the scale factor of the system (device pixels / device independent pixels).
+    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>;
 
     /// Creates a channel to the compositor. The dummy parameter is needed because we don't have
     /// UFCS in Rust yet.

@@ -28,7 +28,7 @@ use script_traits::{DevicePixel, TouchEventType, TouchpadPressurePhase};
 use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_config::resource_files;
-use servo_geometry::ScreenPx;
+use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::cell::{Cell, RefCell};
 #[cfg(any(target_os = "linux", target_os = "macos"))]
@@ -193,12 +193,12 @@ pub struct Window {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn window_creation_scale_factor() -> ScaleFactor<f32, ScreenPx, DevicePixel> {
+fn window_creation_scale_factor() -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
     ScaleFactor::new(1.0)
 }
 
 #[cfg(target_os = "windows")]
-fn window_creation_scale_factor() -> ScaleFactor<f32, ScreenPx, DevicePixel> {
+fn window_creation_scale_factor() -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
         ScaleFactor::new(ppi as f32 / 96.0)
@@ -207,7 +207,7 @@ fn window_creation_scale_factor() -> ScaleFactor<f32, ScreenPx, DevicePixel> {
 
 impl Window {
     pub fn new(is_foreground: bool,
-               window_size: TypedSize2D<u32, ScreenPx>,
+               window_size: TypedSize2D<u32, DeviceIndependentPixel>,
                parent: Option<glutin::WindowID>) -> Rc<Window> {
         let win_size: TypedSize2D<u32, DevicePixel> =
             (window_size.to_f32() * window_creation_scale_factor())
@@ -797,7 +797,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn size(&self) -> TypedSize2D<f32, ScreenPx> {
+    fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {
         match self.kind {
             WindowKind::Window(ref window) => {
                 // TODO(ajeffrey): can this fail?
@@ -881,7 +881,7 @@ impl WindowMethods for Window {
     }
 
     #[cfg(not(target_os = "windows"))]
-    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel> {
+    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
         match self.kind {
             WindowKind::Window(ref window) => {
                 ScaleFactor::new(window.hidpi_factor())
@@ -893,7 +893,7 @@ impl WindowMethods for Window {
     }
 
     #[cfg(target_os = "windows")]
-    fn scale_factor(&self) -> ScaleFactor<f32, ScreenPx, DevicePixel> {
+    fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel> {
         let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
         let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
         ScaleFactor::new(ppi as f32 / 96.0)
