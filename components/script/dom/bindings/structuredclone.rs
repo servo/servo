@@ -23,6 +23,7 @@ use std::ptr;
 use std::slice;
 
 ///TODO: move const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs
+///TODO: determine which value SCTAG_BASE should have
 const SCTAG_BASE: u32 = 0xFFFF8000;
 #[repr(u32)]
 enum StructuredCloneTags {
@@ -40,9 +41,9 @@ unsafe extern "C" fn read_callback(_cx: *mut JSContext,
                                    tag: u32,
                                    data: u32,
                                    closure: *mut raw::c_void) -> *mut JSObject {
+    let sc_holder: &mut StructuredCloneHolder = &mut *(closure as *mut StructuredCloneHolder);
+    let index = data as usize;
     if tag == StructuredCloneTags::ScTagDomBlob as u32 {
-        let sc_holder: &mut StructuredCloneHolder = &mut *(closure as *mut StructuredCloneHolder);
-        let index = data as usize;
         let root = &sc_holder.blobs[index];
         return *root.reflector().get_jsobject().ptr
     }
@@ -54,8 +55,8 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     w: *mut JSStructuredCloneWriter,
                                     obj: HandleObject,
                                     closure: *mut raw::c_void) -> bool {
+    let sc_holder: &mut StructuredCloneHolder = &mut *(closure as *mut StructuredCloneHolder);
     if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
-        let sc_holder: &mut StructuredCloneHolder = &mut *(closure as *mut StructuredCloneHolder);
         if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
                               sc_holder.blobs.len() as u32) {
             sc_holder.blobs.push(blob);
