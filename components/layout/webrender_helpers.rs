@@ -270,35 +270,41 @@ impl WebRenderDisplayItemConverter for DisplayItem {
             }
             DisplayItem::Border(ref item) => {
                 let rect = item.base.bounds.to_rectf();
+                let widths = webrender_traits::BorderWidths {
+                    left: item.border_widths.left.to_f32_px(),
+                    top: item.border_widths.top.to_f32_px(),
+                    right: item.border_widths.right.to_f32_px(),
+                    bottom: item.border_widths.bottom.to_f32_px(),
+                };
                 let left = webrender_traits::BorderSide {
-                    width: item.border_widths.left.to_f32_px(),
                     color: item.color.left,
                     style: item.style.left.to_border_style(),
                 };
                 let top = webrender_traits::BorderSide {
-                    width: item.border_widths.top.to_f32_px(),
                     color: item.color.top,
                     style: item.style.top.to_border_style(),
                 };
                 let right = webrender_traits::BorderSide {
-                    width: item.border_widths.right.to_f32_px(),
                     color: item.color.right,
                     style: item.style.right.to_border_style(),
                 };
                 let bottom = webrender_traits::BorderSide {
-                    width: item.border_widths.bottom.to_f32_px(),
                     color: item.color.bottom,
                     style: item.style.bottom.to_border_style(),
                 };
                 let radius = item.radius.to_border_radius();
                 let clip = item.base.clip.to_clip_region(builder);
+                let details = webrender_traits::NormalBorder {
+                    left: left,
+                    top: top,
+                    right: right,
+                    bottom: bottom,
+                    radius: radius,
+                };
                 builder.push_border(rect,
                                     clip,
-                                    left,
-                                    top,
-                                    right,
-                                    bottom,
-                                    radius);
+                                    widths,
+                                    webrender_traits::BorderDetails::Normal(details));
             }
             DisplayItem::Gradient(ref item) => {
                 let rect = item.base.bounds.to_rectf();
