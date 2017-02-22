@@ -576,29 +576,29 @@ mod shorthand_serialization {
         assert_eq!(serialization, "flex-flow: row wrap;");
     }
 
-    // TODO: Populate Atom Cache for testing so that the font shorthand can be tested
-    /*
     mod font {
-        use super::*;
-        use style::properties::longhands::font_family::computed_value::T as FamilyContainer;
+        use servo_atoms::Atom;
+        use style::properties::longhands::font_family::SpecifiedValue as FamilyContainer;
         use style::properties::longhands::font_family::computed_value::FontFamily;
-        use style::properties::longhands::font_style::computed_value::T as FontStyle;
-        use style::properties::longhands::font_variant::computed_value::T as FontVariant;
-        use style::properties::longhands::font_weight::SpecifiedValue as FontWeight;
+        use style::properties::longhands::font_kerning::SpecifiedValue as FontKerning;
+        use style::properties::longhands::font_language_override::SpecifiedValue as FontLanguageOverride;
         use style::properties::longhands::font_size::SpecifiedValue as FontSizeContainer;
-        use style::properties::longhands::font_stretch::computed_value::T as FontStretch;
+        use style::properties::longhands::font_stretch::SpecifiedValue as FontStretch;
+        use style::properties::longhands::font_style::SpecifiedValue as FontStyle;
+        use style::properties::longhands::font_variant::SpecifiedValue as FontVariant;
+        use style::properties::longhands::font_weight::SpecifiedValue as FontWeight;
         use style::properties::longhands::line_height::SpecifiedValue as LineHeight;
+        use super::*;
 
+        // Currently will fail unless product == "gecko" or "none".
+        // TODO: Remove ignore when we can test with those products set.
         #[test]
-        fn font_should_serialize_all_available_properties() {
-            let mut properties = Vec::new();
-
-
+        #[ignore]
+        fn should_serialize_to_empty_if_there_are_nondefault_subproperties() {
+            // Font shorthand properties
             let font_family = DeclaredValue::Value(
-                FamilyContainer(vec![FontFamily::Generic(atom!("serif"))])
+                FamilyContainer(vec![FontFamily::Generic(Atom::from("serif"))])
             );
-
-
             let font_style = DeclaredValue::Value(FontStyle::italic);
             let font_variant = DeclaredValue::Value(FontVariant::normal);
             let font_weight = DeclaredValue::Value(FontWeight::Bolder);
@@ -608,6 +608,40 @@ mod shorthand_serialization {
             let font_stretch = DeclaredValue::Value(FontStretch::expanded);
             let line_height = DeclaredValue::Value(LineHeight::Number(3f32));
 
+            // Properties not part of the font shorthand
+            let font_kerning = DeclaredValue::Value(FontKerning::none);
+            let language_override = DeclaredValue::Value(FontLanguageOverride::Normal);
+
+            let mut properties = Vec::new();
+            properties.push(PropertyDeclaration::FontFamily(font_family));
+            properties.push(PropertyDeclaration::FontStyle(font_style));
+            properties.push(PropertyDeclaration::FontVariant(font_variant));
+            properties.push(PropertyDeclaration::FontWeight(font_weight));
+            properties.push(PropertyDeclaration::FontSize(font_size));
+            properties.push(PropertyDeclaration::FontStretch(font_stretch));
+            properties.push(PropertyDeclaration::LineHeight(line_height));
+            properties.push(PropertyDeclaration::FontLanguageOverride(language_override));
+            properties.push(PropertyDeclaration::FontKerning(font_kerning));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(serialization, "font-language-override: normal; font-kerning: none;");
+        }
+
+        #[test]
+        fn font_should_serialize_all_available_properties() {
+            let font_family = DeclaredValue::Value(
+                FamilyContainer(vec![FontFamily::Generic(Atom::from("serif"))])
+            );
+            let font_style = DeclaredValue::Value(FontStyle::italic);
+            let font_variant = DeclaredValue::Value(FontVariant::normal);
+            let font_weight = DeclaredValue::Value(FontWeight::Bolder);
+            let font_size = DeclaredValue::Value(FontSizeContainer(
+                LengthOrPercentage::Length(NoCalcLength::from_px(4f32)))
+            );
+            let font_stretch = DeclaredValue::Value(FontStretch::expanded);
+            let line_height = DeclaredValue::Value(LineHeight::Number(3f32));
+
+            let mut properties = Vec::new();
             properties.push(PropertyDeclaration::FontFamily(font_family));
             properties.push(PropertyDeclaration::FontStyle(font_style));
             properties.push(PropertyDeclaration::FontVariant(font_variant));
@@ -617,10 +651,9 @@ mod shorthand_serialization {
             properties.push(PropertyDeclaration::LineHeight(line_height));
 
             let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "font:;");
+            assert_eq!(serialization, "font: italic normal bolder expanded 4px/3 serif;");
         }
     }
-    */
 
     mod background {
         use super::*;
