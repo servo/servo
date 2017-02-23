@@ -105,6 +105,7 @@ mod selectors;
 mod supports;
 mod text;
 mod text_overflow;
+mod transition_duration;
 mod transition_property;
 mod transition_timing_function;
 mod ui;
