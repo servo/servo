@@ -10,7 +10,7 @@ use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, RuleListParser};
 use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
 use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
-use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, DeclaredValue};
 use properties::LonghandIdSet;
 use properties::PropertyDeclarationParseResult;
@@ -364,7 +364,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
                    -> Result<Self::QualifiedRule, ()> {
         let parser = KeyframeDeclarationParser {
             context: self.context,
-            declarations: vec![],
+            declaration_block: PropertyDeclarationBlock::empty(),
         };
         let mut iter = DeclarationListParser::new(input, parser);
         while let Some(declaration) = iter.next() {
@@ -381,17 +381,14 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         }
         Ok(Arc::new(RwLock::new(Keyframe {
             selector: prelude,
-            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: iter.parser.declarations,
-                important_count: 0,
-            })),
+            block: Arc::new(RwLock::new(iter.parser.declaration_block)),
         })))
     }
 }
 
 struct KeyframeDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    declarations: Vec<(PropertyDeclaration, Importance)>
+    declaration_block: PropertyDeclarationBlock,
 }
 
 /// Default methods reject all at rules.
@@ -401,22 +398,22 @@ impl<'a, 'b> AtRuleParser for KeyframeDeclarationParser<'a, 'b> {
 }
 
 impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
-    /// We parse rules directly into the declarations object
+    /// We parse rules directly into the PropertyDeclarationBlock
     type Declaration = ();
 
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
         let id = try!(PropertyId::parse(name.into()));
-        let old_len = self.declarations.len();
-        match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, true) {
+        let old_len = self.declaration_block.len();
+        match PropertyDeclaration::parse(id, self.context, input, &mut self.declaration_block, true) {
             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
             _ => {
-                self.declarations.truncate(old_len);
+                self.declaration_block.truncate(old_len);
                 return Err(());
             }
         }
         // In case there is still unparsed text in the declaration, we should roll back.
         if !input.is_exhausted() {
-            self.declarations.truncate(old_len);
+            self.declaration_block.truncate(old_len);
             Err(())
         } else {
             Ok(())

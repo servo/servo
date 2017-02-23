@@ -58,10 +58,50 @@ pub struct PropertyDeclarationBlock {
     pub declarations: Vec<(PropertyDeclaration, Importance)>,
 
     /// The number of entries in `self.declaration` with `Importance::Important`
-    pub important_count: u32,
+    pub important_count: usize,
 }
 
 impl PropertyDeclarationBlock {
+    /// Constructor
+    pub fn empty() -> Self {
+        PropertyDeclarationBlock {
+            declarations: Vec::new(),
+            important_count: 0,
+        }
+    }
+
+    /// Number of declarations
+    pub fn len(&self) -> usize {
+        self.declarations.len()
+    }
+
+    /// Vec::truncate
+    pub fn truncate(&mut self, new_len: usize) {
+        debug_assert!(!self.declarations[new_len..].iter().any(|&(_, i)| i.important()));
+        self.declarations.truncate(new_len)
+    }
+
+    /// Set the importance of declarations from `start_index` to the end of the vector
+    pub fn set_to_important_from(&mut self, start_index: usize) {
+        let to_be_changed = &mut self.declarations[start_index..];
+        self.important_count += to_be_changed.len();
+        for &mut (_, ref mut importance) in to_be_changed {
+            debug_assert!(!importance.important());
+            *importance = Importance::Important
+        }
+     }
+
+    /// Vec::extend
+    pub fn extend(&mut self, other: PropertyDeclarationBlock) {
+        self.declarations.extend(other.declarations);
+        self.important_count += other.important_count
+    }
+
+    /// Push a declaration that is not !important
+    pub fn push_normal(&mut self, declaration: PropertyDeclaration) {
+        self.declarations.push((declaration, Importance::Normal))
+    }
+
     /// Returns wheather this block contains any declaration with `!important`.
     ///
     /// This is based on the `important_count` counter,
@@ -552,10 +592,10 @@ pub fn parse_one_declaration(id: PropertyId,
                              base_url: &ServoUrl,
                              error_reporter: StdBox<ParseErrorReporter + Send>,
                              extra_data: ParserContextExtraData)
-                             -> Result<Vec<(PropertyDeclaration, Importance)>, ()> {
+                             -> Result<PropertyDeclarationBlock, ()> {
     let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     Parser::new(input).parse_entirely(|parser| {
-        let mut results = vec![];
+        let mut results = PropertyDeclarationBlock::empty();
         match PropertyDeclaration::parse(id, &context, parser, &mut results, false) {
             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
             _ => Err(())
@@ -566,51 +606,45 @@ pub fn parse_one_declaration(id: PropertyId,
 /// A struct to parse property declarations.
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    declarations: Vec<(PropertyDeclaration, Importance)>
+    declaration_block: PropertyDeclarationBlock,
 }
 
 
 /// Default methods reject all at rules.
 impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
     type Prelude = ();
-    type AtRule = (u32, Importance);
+    type AtRule = ();
 }
 
 
 impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
-    /// Declarations are pushed to the internal vector. This will only
-    /// let you know if the decl was !important and how many longhands
-    /// it expanded to
-    type Declaration = (u32, Importance);
+    /// Declarations are pushed to the internal vector.
+    type Declaration = ();
 
-    fn parse_value(&mut self, name: &str, input: &mut Parser)
-                   -> Result<(u32, Importance), ()> {
+    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
         let id = try!(PropertyId::parse(name.into()));
-        let old_len = self.declarations.len();
+        let old_len = self.declaration_block.declarations.len();
         let parse_result = input.parse_until_before(Delimiter::Bang, |input| {
-            match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, false) {
+            match PropertyDeclaration::parse(id, self.context, input, &mut self.declaration_block, false) {
                 PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(()),
                 _ => Err(())
             }
         });
-        if let Err(_) = parse_result {
+        if let Err(()) = parse_result {
             // rollback
-            self.declarations.truncate(old_len);
+            self.declaration_block.declarations.truncate(old_len);
             return Err(())
         }
-        let importance = match input.try(parse_important) {
-            Ok(()) => Importance::Important,
-            Err(()) => Importance::Normal,
-        };
+        let is_important = input.try(parse_important).is_ok();
         // In case there is still unparsed text in the declaration, we should roll back.
         if !input.is_exhausted() {
-            self.declarations.truncate(old_len);
+            self.declaration_block.declarations.truncate(old_len);
             return Err(())
         }
-        for decl in &mut self.declarations[old_len..] {
-            decl.1 = importance
+        if is_important {
+            self.declaration_block.set_to_important_from(old_len)
         }
-        Ok(((self.declarations.len() - old_len) as u32, importance))
+        Ok(())
     }
 }
 
@@ -620,31 +654,19 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 pub fn parse_property_declaration_list(context: &ParserContext,
                                        input: &mut Parser)
                                        -> PropertyDeclarationBlock {
-    let mut important_count = 0;
     let parser = PropertyDeclarationParser {
         context: context,
-        declarations: vec![],
+        declaration_block: PropertyDeclarationBlock::empty(),
     };
     let mut iter = DeclarationListParser::new(input, parser);
-    while let Some(declaration) = iter.next() {
-        match declaration {
-            Ok((count, importance)) => {
-                if importance.important() {
-                    important_count += count;
-                }
-            }
-            Err(range) => {
-                let pos = range.start;
-                let message = format!("Unsupported property declaration: '{}'",
-                                      iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message, &context);
-            }
+    while let Some(result) = iter.next() {
+        if let Err(range) = result {
+            let pos = range.start;
+            let message = format!("Unsupported property declaration: '{}'",
+                                  iter.input.slice(range));
+            log_css_error(iter.input, pos, &*message, &context);
         }
     }
-    let mut block = PropertyDeclarationBlock {
-        declarations: iter.parser.declarations,
-        important_count: important_count,
-    };
-    block.deduplicate();
-    block
+    iter.parser.declaration_block.deduplicate();
+    iter.parser.declaration_block
 }

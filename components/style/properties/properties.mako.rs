@@ -958,7 +958,7 @@ impl PropertyDeclaration {
     /// to Importance::Normal. Parsing Importance values is the job of PropertyDeclarationParser,
     /// we only set them here so that we don't have to reallocate
     pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser,
-                 result_list: &mut Vec<(PropertyDeclaration, Importance)>,
+                 result_list: &mut PropertyDeclarationBlock,
                  in_keyframe_block: bool)
                  -> PropertyDeclarationParseResult {
         match id {
@@ -972,8 +972,7 @@ impl PropertyDeclaration {
                         Err(()) => return PropertyDeclarationParseResult::InvalidValue,
                     }
                 };
-                result_list.push((PropertyDeclaration::Custom(name, value),
-                                  Importance::Normal));
+                result_list.push_normal(PropertyDeclaration::Custom(name, value));
                 return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
             }
             PropertyId::Longhand(id) => match id {
@@ -995,8 +994,7 @@ impl PropertyDeclaration {
 
                         match longhands::${property.ident}::parse_declared(context, input) {
                             Ok(value) => {
-                                result_list.push((PropertyDeclaration::${property.camel_case}(value),
-                                                  Importance::Normal));
+                                result_list.push_normal(PropertyDeclaration::${property.camel_case}(value));
                                 PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                             },
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
@@ -1026,24 +1024,25 @@ impl PropertyDeclaration {
                     match input.try(|i| CSSWideKeyword::parse(context, i)) {
                         Ok(CSSWideKeyword::InheritKeyword) => {
                             % for sub_property in shorthand.sub_properties:
-                                result_list.push((
+                                result_list.push_normal(
                                     PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Inherit), Importance::Normal));
+                                        DeclaredValue::Inherit));
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
                         Ok(CSSWideKeyword::InitialKeyword) => {
                             % for sub_property in shorthand.sub_properties:
-                                result_list.push((
+                                result_list.push_normal(
                                     PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Initial), Importance::Normal));
+                                        DeclaredValue::Initial));
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
                         Ok(CSSWideKeyword::UnsetKeyword) => {
                             % for sub_property in shorthand.sub_properties:
-                                result_list.push((PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Unset), Importance::Normal));
+                                result_list.push_normal(
+                                    PropertyDeclaration::${sub_property.camel_case}(
+                                        DeclaredValue::Unset));
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
