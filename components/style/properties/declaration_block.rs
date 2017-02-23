@@ -58,7 +58,16 @@ pub struct PropertyDeclarationBlock {
     pub declarations: Vec<(PropertyDeclaration, Importance)>,
 
     /// The number of entries in `self.declaration` with `Importance::Important`
-    pub important_count: usize,
+    important_count: usize,
+}
+
+impl From<Vec<(PropertyDeclaration, Importance)>> for PropertyDeclarationBlock {
+    fn from(vec: Vec<(PropertyDeclaration, Importance)>) -> Self {
+        PropertyDeclarationBlock {
+            important_count: vec.iter().filter(|&&(_, i)| i.important()).count(),
+            declarations: vec,
+        }
+    }
 }
 
 impl PropertyDeclarationBlock {
@@ -106,7 +115,6 @@ impl PropertyDeclarationBlock {
     ///
     /// This is based on the `important_count` counter,
     /// which should be maintained whenever `declarations` is changed.
-    // FIXME: make fields private and maintain it here in methods?
     pub fn any_important(&self) -> bool {
         self.important_count > 0
     }
@@ -115,7 +123,6 @@ impl PropertyDeclarationBlock {
     ///
     /// This is based on the `important_count` counter,
     /// which should be maintained whenever `declarations` is changed.
-    // FIXME: make fields private and maintain it here in methods?
     pub fn any_normal(&self) -> bool {
         self.declarations.len() > self.important_count as usize
     }
@@ -207,33 +214,6 @@ impl PropertyDeclarationBlock {
                 // Step 3
                 self.get(longhand_or_custom).map_or(Importance::Normal, |&(_, importance)| importance)
             }
-        }
-    }
-
-    /// Adds or overrides the declaration for a given property in this block,
-    /// without taking into account any kind of priority.
-    pub fn set_parsed_declaration(&mut self,
-                                  declaration: PropertyDeclaration,
-                                  importance: Importance) {
-        for slot in &mut *self.declarations {
-            if slot.0.id() == declaration.id() {
-                match (slot.1, importance) {
-                    (Importance::Normal, Importance::Important) => {
-                        self.important_count += 1;
-                    }
-                    (Importance::Important, Importance::Normal) => {
-                        self.important_count -= 1;
-                    }
-                    _ => {}
-                }
-                *slot = (declaration, importance);
-                return
-            }
-        }
-
-        self.declarations.push((declaration, importance));
-        if importance.important() {
-            self.important_count += 1;
         }
     }
 

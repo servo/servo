@@ -18,7 +18,7 @@ fn property_declaration_block_should_serialize_correctly() {
     use style::properties::longhands::overflow_x::SpecifiedValue as OverflowXValue;
     use style::properties::longhands::overflow_y::SpecifiedValue as OverflowYContainer;
 
-    let declarations = vec![
+    let block = PropertyDeclarationBlock::from(vec![
         (PropertyDeclaration::Width(
             DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)))),
          Importance::Normal),
@@ -42,12 +42,7 @@ fn property_declaration_block_should_serialize_correctly() {
         (PropertyDeclaration::OverflowY(
             DeclaredValue::Value(OverflowYContainer(OverflowXValue::auto))),
          Importance::Normal),
-    ];
-
-    let block = PropertyDeclarationBlock {
-        declarations: declarations,
-        important_count: 0,
-    };
+    ]);
 
     let css_string = block.to_css_string();
 
@@ -61,10 +56,8 @@ mod shorthand_serialization {
     pub use super::*;
 
     pub fn shorthand_properties_to_string(properties: Vec<PropertyDeclaration>) -> String {
-        let block = PropertyDeclarationBlock {
-            declarations: properties.into_iter().map(|d| (d, Importance::Normal)).collect(),
-            important_count: 0,
-        };
+        let block = PropertyDeclarationBlock::from(
+            properties.into_iter().map(|d| (d, Importance::Normal)).collect::<Vec<_>>());
 
         block.to_css_string()
     }
@@ -1047,17 +1040,12 @@ mod shorthand_serialization {
 
         #[test]
         fn should_serialize_to_empty_string_if_sub_types_not_equal() {
-            let declarations = vec![
+            let block = PropertyDeclarationBlock::from(vec![
                 (PropertyDeclaration::ScrollSnapTypeX(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
                 Importance::Normal),
                 (PropertyDeclaration::ScrollSnapTypeY(DeclaredValue::Value(ScrollSnapTypeXValue::none)),
                 Importance::Normal)
-            ];
-
-            let block = PropertyDeclarationBlock {
-                declarations: declarations,
-                important_count: 0
-            };
+            ]);
 
             let mut s = String::new();
 
@@ -1070,17 +1058,12 @@ mod shorthand_serialization {
 
         #[test]
         fn should_serialize_to_single_value_if_sub_types_are_equal() {
-            let declarations = vec![
+            let block = PropertyDeclarationBlock::from(vec![
                 (PropertyDeclaration::ScrollSnapTypeX(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
                 Importance::Normal),
                 (PropertyDeclaration::ScrollSnapTypeY(DeclaredValue::Value(ScrollSnapTypeXValue::mandatory)),
                 Importance::Normal)
-            ];
-
-            let block = PropertyDeclarationBlock {
-                declarations: declarations,
-                important_count: 0
-            };
+            ]);
 
             let mut s = String::new();
 
