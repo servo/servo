@@ -40,21 +40,16 @@ impl Importance {
     }
 }
 
-impl Default for Importance {
-    #[inline]
-    fn default() -> Self {
-        Importance::Normal
-    }
-}
-
 /// Overridden declarations are skipped.
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PropertyDeclarationBlock {
     /// The group of declarations, along with their importance.
-    ///
-    /// Only deduplicated declarations appear here.
     declarations: Vec<(PropertyDeclaration, Importance)>,
+
+    /// Whether `declarations` is known not to contain duplicate declarations
+    /// (more than one for the same property)
+    is_deduplicated: bool,
 
     /// The number of entries in `self.declaration` with `Importance::Important`
     important_count: usize,
@@ -64,6 +59,7 @@ impl From<Vec<(PropertyDeclaration, Importance)>> for PropertyDeclarationBlock {
     fn from(vec: Vec<(PropertyDeclaration, Importance)>) -> Self {
         PropertyDeclarationBlock {
             important_count: vec.iter().filter(|&&(_, i)| i.important()).count(),
+            is_deduplicated: vec.is_empty(),
             declarations: vec,
         }
     }
@@ -75,6 +71,7 @@ impl PropertyDeclarationBlock {
         PropertyDeclarationBlock {
             declarations: Vec::new(),
             important_count: 0,
+            is_deduplicated: true,
         }
     }
 
@@ -102,12 +99,14 @@ impl PropertyDeclarationBlock {
     /// Vec::extend
     pub fn extend(&mut self, other: PropertyDeclarationBlock) {
         self.declarations.extend(other.declarations);
-        self.important_count += other.important_count
+        self.important_count += other.important_count;
+        self.is_deduplicated = false;
     }
 
     /// Push a declaration that is not !important
     pub fn push_normal(&mut self, declaration: PropertyDeclaration) {
-        self.declarations.push((declaration, Importance::Normal))
+        self.declarations.push((declaration, Importance::Normal));
+        self.is_deduplicated = false;
     }
 
     /// Iterator the declarations as-is. There may be more than one for a given property.
@@ -135,7 +134,8 @@ impl PropertyDeclarationBlock {
     ///
     /// NOTE: This is linear time.
     pub fn get(&self, property: PropertyDeclarationId) -> Option< &(PropertyDeclaration, Importance)> {
-        self.declarations.iter().find(|&&(ref decl, _)| decl.id() == property)
+        // Use reverse order: in case of duplication, the later declaration wins
+        self.declarations.iter().rev().find(|&&(ref decl, _)| decl.id() == property)
     }
 
     /// Find the value of the given property in this block and serialize it
@@ -301,6 +301,9 @@ impl PropertyDeclarationBlock {
 
     /// Only keep the "winning" declaration for any given property, by importance then source order.
     pub fn deduplicate(&mut self) {
+        if self.is_deduplicated {
+            return
+        }
         let mut deduplicated = Vec::with_capacity(self.declarations.len());
         let mut seen_normal = PropertyDeclarationIdSet::new();
         let mut seen_important = PropertyDeclarationIdSet::new();
@@ -330,14 +333,26 @@ impl PropertyDeclarationBlock {
         }
         deduplicated.reverse();
         self.declarations = deduplicated;
+        self.is_deduplicated = true;
     }
-}
 
-impl ToCss for PropertyDeclarationBlock {
-    // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
+    /// https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
+    ///
+    /// This is an inherent method rather than a ToCss impl so that we can take &mut
+    /// which is necessary for deduplication.
+    pub fn to_css_string(&mut self) -> String {
+        let mut s = String::new();
+        self.to_css(&mut s).unwrap();
+        s
+    }
+
+    /// https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
+    ///
+    /// This is an inherent method rather than a ToCss impl so that we can take &mut
+    /// which is necessary for deduplication.
+    pub fn to_css<W>(&mut self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.deduplicate();
+
         let mut is_first_serialization = true; // trailing serializations should have a prepended space
 
         // Step 1 -> dest = result list
@@ -651,6 +666,5 @@ pub fn parse_property_declaration_list(context: &ParserContext,
             log_css_error(iter.input, pos, &*message, &context);
         }
     }
-    iter.parser.declaration_block.deduplicate();
     iter.parser.declaration_block
 }
