@@ -81,7 +81,6 @@ ${helpers.predefined_type("clip",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
                           animatable=False,
-                          products="servo",
                           boxed="True",
                           spec="https://drafts.fxtf.org/css-masking/#clip-property")}
 
