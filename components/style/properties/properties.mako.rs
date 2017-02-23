@@ -178,47 +178,49 @@ pub mod animated_properties {
     <%include file="/helpers/animated_properties.mako.rs" />
 }
 
-
-// TODO(SimonSapin): Convert this to a syntax extension rather than a Mako template.
-// Maybe submit for inclusion in libstd?
 #[allow(missing_docs)]
 pub mod property_bit_field {
     use logical_geometry::WritingMode;
     use properties::animated_properties::TransitionProperty;
+    use properties::LonghandId;
 
-    /// A bitfield for all longhand properties, in order to quickly test whether
-    /// we've seen one of them.
+    /// A set of longhand properties
     pub struct PropertyBitField {
         storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
     }
 
     impl PropertyBitField {
-        /// Create a new `PropertyBitField`, with all the bits set to zero.
+        /// Create an empty set
         #[inline]
         pub fn new() -> PropertyBitField {
             PropertyBitField { storage: [0; (${len(data.longhands)} - 1 + 32) / 32] }
         }
 
+        /// Return whether the given property is in the set
         #[inline]
-        fn get(&self, bit: usize) -> bool {
+        pub fn contains(&self, id: LonghandId) -> bool {
+            let bit = id as usize;
             (self.storage[bit / 32] & (1 << (bit % 32))) != 0
         }
 
+        /// Add the given property to the set
         #[inline]
-        fn set(&mut self, bit: usize) {
-            self.storage[bit / 32] |= 1 << (bit % 32)
+        pub fn insert(&mut self, id: LonghandId) {
+            let bit = id as usize;
+            self.storage[bit / 32] |= 1 << (bit % 32);
         }
-        % for i, property in enumerate(data.longhands):
+
+        % for property in data.longhands:
             % if not property.derived_from:
                 #[allow(non_snake_case, missing_docs)]
                 #[inline]
                 pub fn get_${property.ident}(&self) -> bool {
-                    self.get(${i})
+                    self.contains(LonghandId::${property.camel_case})
                 }
                 #[allow(non_snake_case, missing_docs)]
                 #[inline]
                 pub fn set_${property.ident}(&mut self) {
-                    self.set(${i})
+                    self.insert(LonghandId::${property.camel_case})
                 }
             % endif
             % if property.logical:
@@ -245,9 +247,9 @@ pub mod property_bit_field {
         /// This function will panic if TransitionProperty::All is given.
         pub fn set_transition_property_bit(&mut self, property: &TransitionProperty) {
             match *property {
-                % for i, prop in enumerate(data.longhands):
+                % for prop in data.longhands:
                     % if prop.animatable:
-                        TransitionProperty::${prop.camel_case} => self.set(${i}),
+                        TransitionProperty::${prop.camel_case} => self.insert(LonghandId::${prop.camel_case}),
                     % endif
                 % endfor
                 TransitionProperty::All => unreachable!("Tried to set TransitionProperty::All in a PropertyBitfield"),
@@ -258,12 +260,50 @@ pub mod property_bit_field {
         /// This function will panic if TransitionProperty::All is given.
         pub fn has_transition_property_bit(&self, property: &TransitionProperty) -> bool {
             match *property {
-                % for i, prop in enumerate(data.longhands):
+                % for prop in data.longhands:
                     % if prop.animatable:
-                        TransitionProperty::${prop.camel_case} => self.get(${i}),
+                        TransitionProperty::${prop.camel_case} => self.contains(LonghandId::${prop.camel_case}),
                     % endif
                 % endfor
                 TransitionProperty::All => unreachable!("Tried to get TransitionProperty::All in a PropertyBitfield"),
+            }
+        }
+    }
+}
+
+/// A specialized set of PropertyDeclarationId
+pub struct PropertyDeclarationIdSet {
+    longhands: PropertyBitField,
+
+    // FIXME: Use a HashSet instead? This Vec is usually small, so linear scan might be ok.
+    custom: Vec<::custom_properties::Name>,
+}
+
+impl PropertyDeclarationIdSet {
+    /// Empty set
+    pub fn new() -> Self {
+        PropertyDeclarationIdSet {
+            longhands: PropertyBitField::new(),
+            custom: Vec::new(),
+        }
+    }
+
+    /// Returns whether the given ID is in the set
+    pub fn contains(&mut self, id: PropertyDeclarationId) -> bool {
+        match id {
+            PropertyDeclarationId::Longhand(id) => self.longhands.contains(id),
+            PropertyDeclarationId::Custom(name) => self.custom.contains(name),
+        }
+    }
+
+    /// Insert the given ID in the set
+    pub fn insert(&mut self, id: PropertyDeclarationId) {
+        match id {
+            PropertyDeclarationId::Longhand(id) => self.longhands.insert(id),
+            PropertyDeclarationId::Custom(name) => {
+                if !self.custom.contains(name) {
+                    self.custom.push(name.clone())
+                }
             }
         }
     }
@@ -373,71 +413,34 @@ pub mod property_bit_field {
 /// The input and output are in source order
 fn deduplicate_property_declarations(block: &mut PropertyDeclarationBlock) {
     let mut deduplicated = Vec::with_capacity(block.declarations.len());
-    let mut seen_normal = PropertyBitField::new();
-    let mut seen_important = PropertyBitField::new();
-    let mut seen_custom_normal = Vec::new();
-    let mut seen_custom_important = Vec::new();
+    let mut seen_normal = PropertyDeclarationIdSet::new();
+    let mut seen_important = PropertyDeclarationIdSet::new();
 
     for (declaration, importance) in block.declarations.drain(..).rev() {
-        match declaration {
-            % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}(..) => {
-                    % if not property.derived_from:
-                        if importance.important() {
-                            if seen_important.get_${property.ident}() {
-                                block.important_count -= 1;
-                                continue
-                            }
-                            if seen_normal.get_${property.ident}() {
-                                remove_one(&mut deduplicated, |d| {
-                                    matches!(d, &(PropertyDeclaration::${property.camel_case}(..), _))
-                                });
-                            }
-                            seen_important.set_${property.ident}()
-                        } else {
-                            if seen_normal.get_${property.ident}() ||
-                               seen_important.get_${property.ident}() {
-                                continue
-                            }
-                            seen_normal.set_${property.ident}()
-                        }
-                    % else:
-                        unreachable!();
-                    % endif
-                },
-            % endfor
-            PropertyDeclaration::Custom(ref name, _) => {
-                if importance.important() {
-                    if seen_custom_important.contains(name) {
-                        block.important_count -= 1;
-                        continue
-                    }
-                    if seen_custom_normal.contains(name) {
-                        remove_one(&mut deduplicated, |d| {
-                            matches!(d, &(PropertyDeclaration::Custom(ref n, _), _) if n == name)
-                        });
-                    }
-                    seen_custom_important.push(name.clone())
-                } else {
-                    if seen_custom_normal.contains(name) ||
-                       seen_custom_important.contains(name) {
-                        continue
-                    }
-                    seen_custom_normal.push(name.clone())
-                }
+        if importance.important() {
+            let id = declaration.id();
+            if seen_important.contains(id) {
+                block.important_count -= 1;
+                continue
             }
+            if seen_normal.contains(id) {
+                let previous_len = deduplicated.len();
+                deduplicated.retain(|&(ref d, _)| PropertyDeclaration::id(d) != id);
+                debug_assert_eq!(deduplicated.len(), previous_len - 1);
+            }
+            seen_important.insert(id);
+        } else {
+            let id = declaration.id();
+            if seen_normal.contains(id) ||
+               seen_important.contains(id) {
+                continue
+            }
+            seen_normal.insert(id)
         }
         deduplicated.push((declaration, importance))
     }
     deduplicated.reverse();
     block.declarations = deduplicated;
-}
-
-#[inline]
-fn remove_one<T, F: FnMut(&T) -> bool>(v: &mut Vec<T>, mut remove_this: F) {
-    let previous_len = v.len();
-    v.retain(|x| !remove_this(x));
-    debug_assert_eq!(v.len(), previous_len - 1);
 }
 
 /// An enum to represent a CSS Wide keyword.
@@ -653,7 +656,7 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
 
 /// An identifier for a given property declaration, which can be either a
 /// longhand or a custom property.
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Copy)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum PropertyDeclarationId<'a> {
     /// A longhand.
