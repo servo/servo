@@ -218,7 +218,7 @@ impl CSSStyleDeclaration {
 
         let mut string = String::new();
 
-        self.owner.with_block(|ref pdb| {
+        self.owner.with_block(|pdb| {
             pdb.property_value_to_css(&id, &mut string).unwrap();
         });
 
@@ -281,7 +281,7 @@ impl CSSStyleDeclaration {
 impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
-        self.owner.with_block(|ref pdb| {
+        self.owner.with_block(|pdb| {
             pdb.declarations.len() as u32
         })
     }
@@ -311,7 +311,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             return DOMString::new()
         };
 
-        self.owner.with_block(|ref pdb| {
+        self.owner.with_block(|pdb| {
             if pdb.property_priority(&id).important() {
                 DOMString::from("important")
             } else {
@@ -406,7 +406,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
-        self.owner.with_block(|ref pdb| {
+        self.owner.with_block(|pdb| {
             pdb.declarations.get(index as usize).map(|entry| {
                 let (ref declaration, importance) = *entry;
                 let mut css = declaration.to_css_string();
@@ -420,7 +420,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
     fn CssText(&self) -> DOMString {
-        self.owner.with_block(|ref pdb| {
+        self.owner.with_block(|pdb| {
             DOMString::from(pdb.to_css_string())
         })
     }
