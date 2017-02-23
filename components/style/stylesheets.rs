@@ -535,7 +535,7 @@ impl ToCss for StyleRule {
         let declaration_block = self.block.read();
         try!(declaration_block.to_css(dest));
         // Step 4
-        if declaration_block.declarations.len() > 0 {
+        if declaration_block.len() > 0 {
             try!(write!(dest, " "));
         }
         // Step 5

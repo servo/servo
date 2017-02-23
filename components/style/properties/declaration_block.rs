@@ -54,8 +54,7 @@ pub struct PropertyDeclarationBlock {
     /// The group of declarations, along with their importance.
     ///
     /// Only deduplicated declarations appear here.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
-    pub declarations: Vec<(PropertyDeclaration, Importance)>,
+    declarations: Vec<(PropertyDeclaration, Importance)>,
 
     /// The number of entries in `self.declaration` with `Importance::Important`
     important_count: usize,
@@ -109,6 +108,11 @@ impl PropertyDeclarationBlock {
     /// Push a declaration that is not !important
     pub fn push_normal(&mut self, declaration: PropertyDeclaration) {
         self.declarations.push((declaration, Importance::Normal))
+    }
+
+    /// Iterator the declarations as-is. There may be more than one for a given property.
+    pub fn as_potentially_duplicated(&self) -> &[(PropertyDeclaration, Importance)] {
+        &self.declarations
     }
 
     /// Returns wheather this block contains any declaration with `!important`.
