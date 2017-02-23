@@ -27,10 +27,7 @@ fn test_no_property_in_keyframe() {
     let keyframes = vec![
         Arc::new(RwLock::new(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(1.)]),
-            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: vec![],
-                important_count: 0,
-            }))
+            block: Arc::new(RwLock::new(PropertyDeclarationBlock::empty()))
         })),
     ];
     let animation = KeyframesAnimation::from_keyframes(&keyframes);
@@ -45,28 +42,22 @@ fn test_no_property_in_keyframe() {
 #[test]
 fn test_missing_property_in_initial_keyframe() {
     let declarations_on_initial_keyframe =
-        Arc::new(RwLock::new(PropertyDeclarationBlock {
-            declarations: vec![
-                (PropertyDeclaration::Width(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-            ],
-            important_count: 0,
-        }));
+        Arc::new(RwLock::new(PropertyDeclarationBlock::from(vec![
+            (PropertyDeclaration::Width(
+                DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+             Importance::Normal),
+        ])));
 
     let declarations_on_final_keyframe =
-        Arc::new(RwLock::new(PropertyDeclarationBlock {
-            declarations: vec![
-                (PropertyDeclaration::Width(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
+        Arc::new(RwLock::new(PropertyDeclarationBlock::from(vec![
+            (PropertyDeclaration::Width(
+                DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+             Importance::Normal),
 
-                (PropertyDeclaration::Height(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-            ],
-            important_count: 0,
-        }));
+            (PropertyDeclaration::Height(
+                DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+             Importance::Normal),
+        ])));
 
     let keyframes = vec![
         Arc::new(RwLock::new(Keyframe {
@@ -102,28 +93,22 @@ fn test_missing_property_in_initial_keyframe() {
 #[test]
 fn test_missing_property_in_final_keyframe() {
     let declarations_on_initial_keyframe =
-        Arc::new(RwLock::new(PropertyDeclarationBlock {
-            declarations: vec![
-                (PropertyDeclaration::Width(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
+        Arc::new(RwLock::new(PropertyDeclarationBlock::from(vec![
+            (PropertyDeclaration::Width(
+                DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+             Importance::Normal),
 
-                (PropertyDeclaration::Height(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-            ],
-            important_count: 0,
-        }));
+            (PropertyDeclaration::Height(
+                DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+             Importance::Normal),
+        ])));
 
     let declarations_on_final_keyframe =
-        Arc::new(RwLock::new(PropertyDeclarationBlock {
-            declarations: vec![
-                (PropertyDeclaration::Height(
-                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
-            ],
-            important_count: 0,
-        }));
+        Arc::new(RwLock::new(PropertyDeclarationBlock::from(vec![
+            (PropertyDeclaration::Height(
+                DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+             Importance::Normal),
+        ])));
 
     let keyframes = vec![
         Arc::new(RwLock::new(Keyframe {
@@ -159,26 +144,20 @@ fn test_missing_property_in_final_keyframe() {
 #[test]
 fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
     let declarations =
-        Arc::new(RwLock::new(PropertyDeclarationBlock {
-            declarations: vec![
-                (PropertyDeclaration::Width(
-                        DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                 Importance::Normal),
+        Arc::new(RwLock::new(PropertyDeclarationBlock::from(vec![
+            (PropertyDeclaration::Width(
+                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+             Importance::Normal),
 
-                (PropertyDeclaration::Height(
-                        DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
-                Importance::Normal),
-            ],
-            important_count: 0,
-        }));
+            (PropertyDeclaration::Height(
+                    DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(20f32)))),
+            Importance::Normal),
+        ])));
 
     let keyframes = vec![
         Arc::new(RwLock::new(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(0.)]),
-            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: vec![],
-                important_count: 0,
-            }))
+            block: Arc::new(RwLock::new(PropertyDeclarationBlock::empty()))
         })),
         Arc::new(RwLock::new(Keyframe {
             selector: KeyframeSelector::new_for_unit_testing(vec![KeyframePercentage::new(0.5)]),
@@ -191,11 +170,8 @@ fn test_missing_keyframe_in_both_of_initial_and_final_keyframe() {
             KeyframesStep {
                 start_percentage: KeyframePercentage(0.),
                 value: KeyframesStepValue::Declarations {
-                    block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                        // XXX: Should we use ComputedValues in this case?
-                        declarations: vec![],
-                        important_count: 0,
-                    }))
+                    // XXX: Should we use ComputedValues in this case?
+                    block: Arc::new(RwLock::new(PropertyDeclarationBlock::empty()))
                 },
                 declared_timing_function: false,
             },

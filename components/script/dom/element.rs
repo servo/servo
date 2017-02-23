@@ -100,8 +100,8 @@ use style::context::{QuirksMode, ReflowGoal};
 use style::element_state::*;
 use style::matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use style::parser::ParserContextExtraData;
-use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
+use style::properties::DeclaredValue;
 use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
 use style::rule_tree::CascadeLevel;
@@ -382,11 +382,10 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     {
         #[inline]
         fn from_declaration(declaration: PropertyDeclaration) -> ApplicableDeclarationBlock {
+            let mut block = PropertyDeclarationBlock::empty();
+            block.push_normal(declaration);
             ApplicableDeclarationBlock::from_declarations(
-                Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![(declaration, Importance::Normal)],
-                    important_count: 0,
-                })),
+                Arc::new(RwLock::new(block)),
                 CascadeLevel::PresHints)
         }
 
