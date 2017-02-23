@@ -249,29 +249,30 @@ impl CSSStyleDeclaration {
 
             // Step 6
             let window = self.owner.window();
-            let declarations =
+            let result =
                 parse_one_declaration(id, &value, &self.owner.base_url(),
                                       window.css_error_reporter(),
                                       ParserContextExtraData::default());
 
             // Step 7
-            let declarations = match declarations {
-                Ok(declarations) => declarations,
+            let mut new_block = match result {
+                Ok(new_block) => new_block,
                 Err(_) => {
                     *changed = false;
                     return Ok(());
                 }
             };
 
+            if importance.important() {
+                new_block.set_to_important_from(0)
+            }
+
             // Step 8
             // Step 9
             // We could try to be better I guess?
-            *changed = !declarations.is_empty();
-            for declaration in declarations {
-                // TODO(emilio): We could check it changed
-                pdb.set_parsed_declaration(declaration.0, importance);
-            }
-
+            *changed = new_block.len() > 0;
+            // TODO(emilio): We could check it changed
+            pdb.extend(new_block);
             Ok(())
         })
     }

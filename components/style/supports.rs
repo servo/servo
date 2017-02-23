@@ -7,6 +7,7 @@
 use cssparser::{parse_important, Parser, Token};
 use parser::ParserContext;
 use properties::{PropertyDeclaration, PropertyId};
+use properties::declaration_block::PropertyDeclarationBlock;
 use std::fmt;
 use style_traits::ToCss;
 
@@ -212,9 +213,9 @@ impl Declaration {
             return false
         };
         let mut input = Parser::new(&self.val);
-        let mut list = Vec::new();
+        let mut block = PropertyDeclarationBlock::empty();
         let res = PropertyDeclaration::parse(id, cx, &mut input,
-                                             &mut list, /* in_keyframe */ false);
+                                             &mut block, /* in_keyframe */ false);
         let _ = input.try(parse_important);
         if !input.is_exhausted() {
             return false;
