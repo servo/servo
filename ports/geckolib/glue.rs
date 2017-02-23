@@ -819,7 +819,7 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: Ra
 }
 
 fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId,
-                value: *mut nsACString, is_important: bool) -> bool {
+                value: *const nsACString, is_important: bool) -> bool {
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
     // FIXME Needs real URL and ParserContextExtraData.
     let base_url = &*DUMMY_BASE_URL;
@@ -840,14 +840,14 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDeclarationBlockBorrowed,
-                                                     property: *const nsACString, value: *mut nsACString,
+                                                     property: *const nsACString, value: *const nsACString,
                                                      is_important: bool) -> bool {
     set_property(declarations, get_property_id_from_property!(property, false), value, is_important)
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetPropertyById(declarations: RawServoDeclarationBlockBorrowed,
-                                                         property: nsCSSPropertyID, value: *mut nsACString,
+                                                         property: nsCSSPropertyID, value: *const nsACString,
                                                          is_important: bool) -> bool {
     set_property(declarations, get_property_id_from_nscsspropertyid!(property, false), value, is_important)
 }
