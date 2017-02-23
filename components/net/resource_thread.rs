@@ -325,7 +325,8 @@ impl CoreResourceManager {
             cookie_jar: group.cookie_jar.clone(),
             auth_cache: group.auth_cache.clone(),
             blocked_content: BLOCKED_CONTENT_RULES.clone(),
-            connector_pool: group.connector.clone(),
+            // FIXME(#15694): use group.connector.clone() instead.
+            connector_pool: create_http_connector("certs"),
         };
         let ua = self.user_agent.clone();
         let dc = self.devtools_chan.clone();
