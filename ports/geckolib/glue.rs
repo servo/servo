@@ -14,7 +14,6 @@ use servo_url::ServoUrl;
 use std::borrow::Cow;
 use std::env;
 use std::fmt::Write;
-use std::mem;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
@@ -362,12 +361,10 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
         SheetParsingMode::eUserSheetFeatures => Origin::User,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
     };
-    let sheet = Arc::new(Stylesheet::from_str(
+    Arc::new(Stylesheet::from_str(
         "", url, origin, Default::default(), None,
-        Box::new(StdoutErrorReporter), extra_data));
-    unsafe {
-        mem::transmute(sheet)
-    }
+        Box::new(StdoutErrorReporter), extra_data)
+    ).into_strong()
 }
 
 #[no_mangle]
@@ -407,12 +404,10 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
         Some(ref s) => Some(s),
     };
 
-    let sheet = Arc::new(Stylesheet::from_str(
+    Arc::new(Stylesheet::from_str(
         input, url, origin, Default::default(), loader,
-        Box::new(StdoutErrorReporter), extra_data));
-    unsafe {
-        mem::transmute(sheet)
-    }
+        Box::new(StdoutErrorReporter), extra_data)
+    ).into_strong()
 }
 
 #[no_mangle]
@@ -1331,7 +1326,7 @@ pub extern "C" fn Servo_ImportRule_GetSheet(import_rule:
                                             RawServoImportRuleBorrowed)
                                             -> RawServoStyleSheetStrong {
     let import_rule = RwLock::<ImportRule>::as_arc(&import_rule);
-    unsafe { mem::transmute(import_rule.read().stylesheet.clone()) }
+    import_rule.read().stylesheet.clone().into_strong()
 }
 
 #[no_mangle]
