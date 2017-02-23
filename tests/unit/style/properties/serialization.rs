@@ -18,7 +18,7 @@ fn property_declaration_block_should_serialize_correctly() {
     use style::properties::longhands::overflow_x::SpecifiedValue as OverflowXValue;
     use style::properties::longhands::overflow_y::SpecifiedValue as OverflowYContainer;
 
-    let block = PropertyDeclarationBlock::from(vec![
+    let mut block = PropertyDeclarationBlock::from(vec![
         (PropertyDeclaration::Width(
             DeclaredValue::Value(LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)))),
          Importance::Normal),
@@ -56,7 +56,7 @@ mod shorthand_serialization {
     pub use super::*;
 
     pub fn shorthand_properties_to_string(properties: Vec<PropertyDeclaration>) -> String {
-        let block = PropertyDeclarationBlock::from(
+        let mut block = PropertyDeclarationBlock::from(
             properties.into_iter().map(|d| (d, Importance::Normal)).collect::<Vec<_>>());
 
         block.to_css_string()
@@ -1139,7 +1139,7 @@ mod shorthand_serialization {
 
         #[test]
         fn serialize_single_animation() {
-            let block = property_declaration_block("\
+            let mut block = property_declaration_block("\
                 animation-name: bounce;\
                 animation-duration: 1s;\
                 animation-timing-function: ease-in;\
@@ -1156,7 +1156,7 @@ mod shorthand_serialization {
 
         #[test]
         fn serialize_multiple_animations() {
-            let block = property_declaration_block("\
+            let mut block = property_declaration_block("\
                 animation-name: bounce, roll;\
                 animation-duration: 1s, 0.2s;\
                 animation-timing-function: ease-in, linear;\
@@ -1189,7 +1189,7 @@ mod shorthand_serialization {
                 animation-fill-mode: forwards, backwards; \
                 animation-iteration-count: infinite, 2; \
                 animation-play-state: paused, running;";
-            let block = property_declaration_block(block_text);
+            let mut block = property_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 
@@ -1205,7 +1205,7 @@ mod shorthand_serialization {
                               animation-fill-mode: forwards, backwards; \
                               animation-iteration-count: infinite, 2; \
                               animation-play-state: paused, running;";
-            let block = property_declaration_block(block_text);
+            let mut block = property_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 

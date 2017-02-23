@@ -746,7 +746,7 @@ pub extern "C" fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorro
 pub extern "C" fn Servo_DeclarationBlock_GetCssText(declarations: RawServoDeclarationBlockBorrowed,
                                                     result: *mut nsAString) {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    declarations.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+    declarations.write().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
@@ -766,14 +766,18 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_Count(declarations: RawServoDeclarationBlockBorrowed) -> u32 {
      let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-     declarations.read().declarations.len() as u32
+     let mut guard = declarations.write();
+     guard.deduplicate();
+     guard.len() as u32
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDeclarationBlockBorrowed,
                                                         index: u32, result: *mut nsAString) -> bool {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    if let Some(&(ref decl, _)) = declarations.read().declarations.get(index as usize) {
+    let mut guard = declarations.write();
+    guard.deduplicate();
+    if let Some(&(ref decl, _)) = guard.as_potentially_duplicated().get(index as usize) {
         let result = unsafe { result.as_mut().unwrap() };
         decl.id().to_css(result).unwrap();
         true
@@ -923,7 +927,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(declarations:
     let prop = match_wrap_declared! { long,
         XLang => Lang(Atom::from(value)),
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push_normal(prop);
 }
 
 #[no_mangle]
@@ -960,7 +964,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
         BorderBottomStyle => BorderStyle::from_gecko_keyword(value),
         BorderLeftStyle => BorderStyle::from_gecko_keyword(value),
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push_normal(prop);
 }
 
 #[no_mangle]
@@ -975,7 +979,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetIntValue(declarations: RawServoDecla
     let prop = match_wrap_declared! { long,
         XSpan => Span(value),
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push_normal(prop);
 }
 
 #[no_mangle]
@@ -1014,7 +1018,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
             }
         ),
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push_normal(prop);
 }
 
 #[no_mangle]
@@ -1037,7 +1041,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(declarations:
         MarginBottom => pc.into(),
         MarginLeft => pc.into(),
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push_normal(prop);
 }
 
 #[no_mangle]
@@ -1059,7 +1063,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
         MarginBottom => auto,
         MarginLeft => auto,
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push_normal(prop);
 }
 
 #[no_mangle]
@@ -1080,7 +1084,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(declarations:
         BorderBottomColor => cc,
         BorderLeftColor => cc,
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push_normal(prop);
 }
 
 #[no_mangle]
@@ -1106,7 +1110,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
         Color => CSSRGBA { parsed: rgba, authored: None },
         BackgroundColor => color,
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push_normal(prop);
 }
 
 #[no_mangle]
@@ -1123,7 +1127,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
     if let Ok(family) = FontFamily::parse(&mut parser) {
         if parser.is_exhausted() {
             let decl = PropertyDeclaration::FontFamily(DeclaredValue::Value(family));
-            declarations.write().declarations.push((decl, Default::default()));
+            declarations.write().push_normal(decl);
         }
     }
 }
@@ -1138,7 +1142,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(declarat
     let mut decoration = text_decoration_line::computed_value::none;
     decoration |= text_decoration_line::COLOR_OVERRIDE;
     let decl = PropertyDeclaration::TextDecorationLine(DeclaredValue::Value(decoration));
-    declarations.write().declarations.push((decl, Default::default()));
+    declarations.write().push_normal(decl);
 }
 
 #[no_mangle]
@@ -1354,10 +1358,14 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                                            .filter(|&property| !property.mServoDeclarationBlock.mRawPtr.is_null());
         for property in iter {
             let declarations = unsafe { &*property.mServoDeclarationBlock.mRawPtr.clone() };
-            let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-            let guard = declarations.read();
+            let block = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
 
-            let anim_iter = guard.declarations
+            // FIXME: https://github.com/servo/servo/issues/15558#issuecomment-282216242
+            // Conservatively we deduplicate here, but it might not be needed.
+            // If not, replace .write() with .read() and remove the deduplicate() line.
+            let mut guard = block.write();
+            guard.deduplicate();
+            let anim_iter = guard.as_potentially_duplicated()
                             .iter()
                             .filter_map(|&(ref decl, imp)| {
                                 if imp == Importance::Normal {
@@ -1461,10 +1469,15 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                   }
               },
               KeyframesStepValue::Declarations { ref block } => {
-                  let guard = block.read();
                   // Filter out non-animatable properties.
+
+                  // FIXME: https://github.com/servo/servo/issues/15558#issuecomment-282216242
+                  // Conservatively we deduplicate here, but it might not be needed.
+                  // If not, replace .write() with .read() and remove the deduplicate() line.
+                  let mut guard = block.write();
+                  guard.deduplicate();
                   let animatable =
-                      guard.declarations
+                      guard.as_potentially_duplicated()
                            .iter()
                            .filter(|&&(ref declaration, _)| {
                                declaration.is_animatable()

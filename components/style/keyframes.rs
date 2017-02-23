@@ -117,7 +117,7 @@ impl ToCss for Keyframe {
             try!(percentage.to_css(dest));
         }
         try!(dest.write_str(" { "));
-        try!(self.block.read().to_css(dest));
+        try!(self.block.write().to_css(dest));
         try!(dest.write_str(" }"));
         Ok(())
     }

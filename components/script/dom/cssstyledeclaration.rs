@@ -82,7 +82,7 @@ impl CSSStyleOwner {
                     //
                     // [1]: https://github.com/whatwg/html/issues/2306
                     if let Some(pdb) = attr {
-                        let serialization = pdb.read().to_css_string();
+                        let serialization = pdb.write().to_css_string();
                         el.set_attribute(&local_name!("style"),
                                          AttrValue::Declaration(serialization,
                                                                 pdb));
@@ -119,6 +119,29 @@ impl CSSStyleOwner {
             }
             CSSStyleOwner::CSSRule(_, ref pdb) => {
                 f(&pdb.read())
+            }
+        }
+    }
+
+    fn with_mut_block<F, R>(&self, f: F) -> R
+        where F: FnOnce(&mut PropertyDeclarationBlock) -> R,
+    {
+        match *self {
+            CSSStyleOwner::Element(ref el) => {
+                match *el.style_attribute().borrow_mut() {
+                    Some(ref pdb) => f(&mut pdb.write()),
+                    None => {
+                        let mut pdb = PropertyDeclarationBlock::empty();
+                        let result = f(&mut pdb);
+                        // with_mut_block is only used in cases where mutablility
+                        // is only required for deduplication.
+                        assert!(pdb.len() == 0);
+                        result
+                    }
+                }
+            }
+            CSSStyleOwner::CSSRule(_, ref pdb) => {
+                f(&mut pdb.write())
             }
         }
     }
@@ -275,7 +298,8 @@ impl CSSStyleDeclaration {
 impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
-        self.owner.with_block(|pdb| {
+        self.owner.with_mut_block(|pdb| {
+            pdb.deduplicate();
             pdb.len() as u32
         })
     }
@@ -400,7 +424,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
-        self.owner.with_block(|pdb| {
+        self.owner.with_mut_block(|pdb| {
+            pdb.deduplicate();
             pdb.as_potentially_duplicated().get(index as usize).map(|entry| {
                 let (ref declaration, importance) = *entry;
                 let mut css = declaration.to_css_string();
@@ -414,7 +439,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
     fn CssText(&self) -> DOMString {
-        self.owner.with_block(|pdb| {
+        self.owner.with_mut_block(|pdb| {
             DOMString::from(pdb.to_css_string())
         })
     }
