@@ -7,6 +7,7 @@ use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
+use gecko_bindings::structs::RawGeckoComputedKeyframeValuesList;
 use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawGeckoAnimationValueList;
 use gecko_bindings::structs::RawServoAnimationValue;
@@ -242,6 +243,10 @@ pub type RawGeckoKeyframeListBorrowed<'a> = &'a RawGeckoKeyframeList;
 pub type RawGeckoKeyframeListBorrowedOrNull<'a> = Option<&'a RawGeckoKeyframeList>;
 pub type RawGeckoKeyframeListBorrowedMut<'a> = &'a mut RawGeckoKeyframeList;
 pub type RawGeckoKeyframeListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoKeyframeList>;
+pub type RawGeckoComputedKeyframeValuesListBorrowed<'a> = &'a RawGeckoComputedKeyframeValuesList;
+pub type RawGeckoComputedKeyframeValuesListBorrowedOrNull<'a> = Option<&'a RawGeckoComputedKeyframeValuesList>;
+pub type RawGeckoComputedKeyframeValuesListBorrowedMut<'a> = &'a mut RawGeckoComputedKeyframeValuesList;
+pub type RawGeckoComputedKeyframeValuesListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoComputedKeyframeValuesList>;
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
@@ -1334,6 +1339,17 @@ extern "C" {
                                referrer: *mut ThreadSafeURIHolder,
                                principal: *mut ThreadSafePrincipalHolder)
      -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
+    pub fn Servo_GetComputedKeyframeValues(keyframes:
+                                               RawGeckoKeyframeListBorrowed,
+                                           style: ServoComputedValuesBorrowed,
+                                           parent_style:
+                                               ServoComputedValuesBorrowedOrNull,
+                                           pres_context:
+                                               RawGeckoPresContextBorrowed,
+                                           result:
+                                               RawGeckoComputedKeyframeValuesListBorrowedMut);
 }
 extern "C" {
     pub fn Servo_AnimationValues_Populate(arg1:
