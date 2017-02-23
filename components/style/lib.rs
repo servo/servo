@@ -61,7 +61,6 @@ extern crate matches;
 #[cfg(feature = "gecko")] extern crate nsstring_vendor as nsstring;
 extern crate num_integer;
 extern crate num_traits;
-#[cfg(feature = "gecko")] extern crate num_cpus;
 extern crate ordered_float;
 extern crate owning_ref;
 extern crate parking_lot;

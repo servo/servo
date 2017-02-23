@@ -13,7 +13,7 @@ path = "lib.rs"
 doctest = false
 
 [features]
-gecko = ["nsstring_vendor", "num_cpus", "rayon/unstable"]
+gecko = ["nsstring_vendor", "rayon/unstable"]
 use_bindgen = ["bindgen", "regex"]
 servo = ["serde/unstable", "serde", "serde_derive", "heapsize_derive",
          "style_traits/servo", "servo_atoms", "html5ever-atoms",
@@ -56,10 +56,6 @@ style_traits = {path = "../style_traits"}
 servo_url = {path = "../url"}
 time = "0.1"
 unicode-segmentation = "1.0"
-
-[dependencies.num_cpus]
-optional = true
-version = "1.0"
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = "0.2"
