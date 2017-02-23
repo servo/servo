@@ -182,6 +182,21 @@ pub trait DomTraversal<E: TElement> : Sync {
         match node.as_element() {
             None => Self::text_node_needs_traversal(node),
             Some(el) => {
+                // If the element is native-anonymous and an ancestor frame will
+                // be reconstructed, the child and all its descendants will be
+                // destroyed. In that case, we don't need to traverse the subtree.
+                if el.is_native_anonymous() {
+                    if let Some(parent) = el.parent_element() {
+                        let parent_data = parent.borrow_data().unwrap();
+                        if let Some(r) = parent_data.get_restyle() {
+                            if (r.damage | r.damage_handled()).contains(RestyleDamage::reconstruct()) {
+                                debug!("Element {:?} is in doomed NAC subtree - culling traversal", el);
+                                return false;
+                            }
+                        }
+                    }
+                }
+
                 // In case of animation-only traversal we need to traverse
                 // the element if the element has animation only dirty
                 // descendants bit, animation-only restyle hint or recascade.
