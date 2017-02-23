@@ -142,7 +142,7 @@ fn main() {
     // Our wrapper around `Browser` that also implements some
     // callbacks required by the glutin window implementation.
     let mut browser = BrowserWrapper {
-        browser: Browser::new(window.clone()),
+        browser: Browser::new(window.clone(), opts::get().url.clone().unwrap()),
     };
 
     browser.browser.setup_logging();
