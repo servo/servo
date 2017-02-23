@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Parser;
-use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use media_queries::CSSErrorReporterTest;
 use servo_config::prefs::{PREFS, PrefValue};
@@ -16,6 +15,7 @@ use style::values::specified::LengthOrPercentageOrAuto::{self, Auto};
 use style::values::specified::NoCalcLength::{self, ViewportPercentage};
 use style::values::specified::ViewportPercentageLength::Vw;
 use style::viewport::*;
+use style_traits::PinchZoomFactor;
 use style_traits::viewport::*;
 
 macro_rules! stylesheet {
@@ -295,7 +295,7 @@ fn constrain_viewport() {
                Some(ViewportConstraints {
                    size: initial_viewport,
 
-                   initial_zoom: ScaleFactor::new(1.),
+                   initial_zoom: PinchZoomFactor::new(1.),
                    min_zoom: None,
                    max_zoom: None,
 
@@ -307,7 +307,7 @@ fn constrain_viewport() {
                Some(ViewportConstraints {
                    size: initial_viewport,
 
-                   initial_zoom: ScaleFactor::new(1.),
+                   initial_zoom: PinchZoomFactor::new(1.),
                    min_zoom: None,
                    max_zoom: None,
 
@@ -322,7 +322,7 @@ fn constrain_viewport() {
                Some(ViewportConstraints {
                    size: initial_viewport,
 
-                   initial_zoom: ScaleFactor::new(1.),
+                   initial_zoom: PinchZoomFactor::new(1.),
                    min_zoom: None,
                    max_zoom: None,
 
@@ -336,7 +336,7 @@ fn constrain_viewport() {
                Some(ViewportConstraints {
                    size: TypedSize2D::new(320., 240.),
 
-                   initial_zoom: ScaleFactor::new(1.),
+                   initial_zoom: PinchZoomFactor::new(1.),
                    min_zoom: None,
                    max_zoom: None,
 

@@ -57,7 +57,7 @@ use style::servo::restyle_damage::REPAINT;
 use style::values::{RGBA, computed};
 use style::values::computed::{AngleOrCorner, Gradient, GradientKind, LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::specified::{HorizontalDirection, VerticalDirection};
-use style_traits::PagePx;
+use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use table_cell::CollapsedBordersForCell;
 use webrender_traits::{ColorF, GradientStop, ScrollPolicy};
@@ -110,7 +110,7 @@ pub struct DisplayListBuildState<'a> {
 
     /// Vector containing iframe sizes, used to inform the constellation about
     /// new iframe sizes
-    pub iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, PagePx>)>,
+    pub iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, CSSPixel>)>,
 }
 
 impl<'a> DisplayListBuildState<'a> {

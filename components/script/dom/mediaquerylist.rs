@@ -18,12 +18,11 @@ use dom::document::Document;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::mediaquerylistevent::MediaQueryListEvent;
-use euclid::scale_factor::ScaleFactor;
 use js::jsapi::JSTracer;
 use std::cell::Cell;
 use std::rc::Rc;
 use style::media_queries::{Device, MediaList, MediaType};
-use style_traits::{PagePx, ToCss, ViewportPx};
+use style_traits::ToCss;
 
 pub enum MediaQueryListMatchState {
     Same(bool),
@@ -75,12 +74,8 @@ impl MediaQueryList {
 
     pub fn evaluate(&self) -> bool {
         if let Some(window_size) = self.document.window().window_size() {
-            let viewport_size = window_size.visible_viewport;
-            // TODO: support real ViewportPx, including zoom level
-            // This information seems not to be tracked currently, so we assume
-            // ViewportPx == PagePx
-            let page_to_viewport: ScaleFactor<f32, PagePx, ViewportPx> = ScaleFactor::new(1.0);
-            let device = Device::new(MediaType::Screen, viewport_size * page_to_viewport);
+            let viewport_size = window_size.initial_viewport;
+            let device = Device::new(MediaType::Screen, viewport_size);
             self.media_query_list.evaluate(&device)
         } else {
             false
