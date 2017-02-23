@@ -73,7 +73,7 @@ use microtask::{MicrotaskQueue, Microtask};
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
-use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
+use net_traits::image_cache_thread::{PendingImageResponse, ImageCacheThread};
 use net_traits::request::{CredentialsMode, Destination, RequestInit};
 use net_traits::storage_thread::StorageType;
 use network_listener::NetworkListener;
@@ -119,6 +119,8 @@ use time::Tm;
 use url::Position;
 use webdriver_handlers;
 use webvr_traits::WebVRMsg;
+
+pub type ImageCacheMsg = (PipelineId, PendingImageResponse);
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = Cell::new(None));
@@ -230,7 +232,7 @@ enum MixedMessage {
     FromConstellation(ConstellationControlMsg),
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
-    FromImageCache(ImageCacheResult),
+    FromImageCache((PipelineId, PendingImageResponse)),
     FromScheduler(TimerEvent)
 }
 
@@ -444,10 +446,10 @@ pub struct ScriptThread {
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
     /// The port on which we receive messages from the image cache
-    image_cache_port: Receiver<ImageCacheResult>,
+    image_cache_port: Receiver<ImageCacheMsg>,
 
     /// The channel on which the image cache can send messages to ourself.
-    image_cache_channel: ImageCacheChan,
+    image_cache_channel: Sender<ImageCacheMsg>,
 
     /// For providing contact with the time profiler.
     time_profiler_chan: time::ProfilerChan,
@@ -646,17 +648,14 @@ impl ScriptThread {
         let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
         let devtools_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_devtools_receiver);
 
-        // Ask the router to proxy IPC messages from the image cache thread to us.
-        let (ipc_image_cache_channel, ipc_image_cache_port) = ipc::channel().unwrap();
-        let image_cache_port =
-            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_port);
-
         let (timer_event_chan, timer_event_port) = channel();
 
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(state.control_port);
 
         let boxed_script_sender = MainThreadScriptChan(chan.clone()).clone();
+
+        let (image_cache_channel, image_cache_port) = channel();
 
         ScriptThread {
             documents: DOMRefCell::new(Documents::new()),
@@ -666,7 +665,7 @@ impl ScriptThread {
             job_queue_map: Rc::new(JobQueue::new()),
 
             image_cache_thread: state.image_cache_thread,
-            image_cache_channel: ImageCacheChan(ipc_image_cache_channel),
+            image_cache_channel: image_cache_channel,
             image_cache_port: image_cache_port,
 
             resource_threads: state.resource_threads,
@@ -1111,8 +1110,11 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_image_cache(&self, msg: ImageCacheResult) {
-        msg.responder.unwrap().respond(msg.image_response);
+    fn handle_msg_from_image_cache(&self, (id, response): (PipelineId, PendingImageResponse)) {
+        let window = self.documents.borrow().find_window(id);
+        if let Some(ref window) = window {
+            window.pending_image_notification(response);
+        }
     }
 
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {

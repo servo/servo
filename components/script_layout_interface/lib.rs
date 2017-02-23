@@ -43,6 +43,9 @@ use canvas_traits::CanvasMsg;
 use core::nonzero::NonZero;
 use ipc_channel::ipc::IpcSender;
 use libc::c_void;
+use net_traits::image_cache_thread::PendingImageId;
+use script_traits::UntrustedNodeAddress;
+use servo_url::ServoUrl;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
 
@@ -136,4 +139,19 @@ unsafe impl Send for TrustedNodeAddress {}
 pub fn is_image_data(uri: &str) -> bool {
     static TYPES: &'static [&'static str] = &["data:image/png", "data:image/gif", "data:image/jpeg"];
     TYPES.iter().any(|&type_| uri.starts_with(type_))
+}
+
+/// Whether the pending image needs to be fetched or is waiting on an existing fetch.
+pub enum PendingImageState {
+    Unrequested(ServoUrl),
+    PendingResponse,
+}
+
+/// The data associated with an image that is not yet present in the image cache.
+/// Used by the script thread to hold on to DOM elements that need to be repainted
+/// when an image fetch is complete.
+pub struct PendingImage {
+    pub state: PendingImageState,
+    pub node: UntrustedNodeAddress,
+    pub id: PendingImageId,
 }

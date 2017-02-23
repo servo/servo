@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use FetchResponseMsg;
 use image::base::{Image, ImageMetadata};
 use ipc_channel::ipc::{self, IpcSender};
 use servo_url::ServoUrl;
@@ -13,27 +14,45 @@ use std::sync::Arc;
 /// and/or repaint.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ImageResponder {
-    sender: IpcSender<ImageResponse>,
+    id: PendingImageId,
+    sender: IpcSender<PendingImageResponse>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct PendingImageResponse {
+    pub response: ImageResponse,
+    pub id: PendingImageId,
 }
 
 impl ImageResponder {
-    pub fn new(sender: IpcSender<ImageResponse>) -> ImageResponder {
+    pub fn new(sender: IpcSender<PendingImageResponse>, id: PendingImageId) -> ImageResponder {
         ImageResponder {
             sender: sender,
+            id: id,
         }
     }
 
     pub fn respond(&self, response: ImageResponse) {
-        self.sender.send(response).unwrap()
+        // This send can fail if thread waiting for this notification has panicked.
+        // That's not a case that's worth warning about.
+        // TODO(#15501): are there cases in which we should perform cleanup?
+        let _ = self.sender.send(PendingImageResponse {
+            response: response,
+            id: self.id,
+        });
     }
 }
+
+/// The unique id for an image that has previously been requested.
+#[derive(Copy, Clone, PartialEq, Eq, Deserialize, Serialize, HeapSizeOf, Hash, Debug)]
+pub struct PendingImageId(pub u64);
 
 /// The current state of an image in the cache.
 #[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
 pub enum ImageState {
-    Pending,
+    Pending(PendingImageId),
     LoadError,
-    NotRequested,
+    NotRequested(PendingImageId),
 }
 
 /// The returned image.
@@ -56,45 +75,22 @@ pub enum ImageOrMetadataAvailable {
     MetadataAvailable(ImageMetadata),
 }
 
-/// Channel used by the image cache to send results.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct ImageCacheChan(pub IpcSender<ImageCacheResult>);
-
-/// The result of an image cache command that is returned to the
-/// caller.
-#[derive(Deserialize, Serialize)]
-pub struct ImageCacheResult {
-    pub responder: Option<ImageResponder>,
-    pub image_response: ImageResponse,
-}
-
 /// Commands that the image cache understands.
 #[derive(Deserialize, Serialize)]
 pub enum ImageCacheCommand {
-    /// Request an image asynchronously from the cache. Supply a channel
-    /// to receive the result, and optionally an image responder
-    /// that is passed to the result channel.
-    RequestImage(ServoUrl, ImageCacheChan, Option<ImageResponder>),
-
-    /// Requests an image and a "metadata-ready" notification message asynchronously from the
-    /// cache. The cache will make an effort to send metadata before the image is completely
-    /// loaded. Supply a channel to receive the results, and optionally an image responder
-    /// that is passed to the result channel.
-    RequestImageAndMetadata(ServoUrl, ImageCacheChan, Option<ImageResponder>),
-
-    /// Synchronously check the state of an image in the cache.
-    /// TODO(gw): Profile this on some real world sites and see
-    /// if it's worth caching the results of this locally in each
-    /// layout / paint thread.
-    GetImageIfAvailable(ServoUrl, UsePlaceholder, IpcSender<Result<Arc<Image>, ImageState>>),
-
     /// Synchronously check the state of an image in the cache. If the image is in a loading
     /// state and but its metadata has been made available, it will be sent as a response.
-    GetImageOrMetadataIfAvailable(ServoUrl, UsePlaceholder, IpcSender<Result<ImageOrMetadataAvailable, ImageState>>),
+    GetImageOrMetadataIfAvailable(ServoUrl,
+                                  UsePlaceholder,
+                                  CanRequestImages,
+                                  IpcSender<Result<ImageOrMetadataAvailable, ImageState>>),
+
+    /// Add a new listener for the given pending image.
+    AddListener(PendingImageId, ImageResponder),
 
     /// Instruct the cache to store this data as a newly-complete network request and continue
     /// decoding the result into pixel data
-    StoreDecodeImage(ServoUrl, Vec<u8>),
+    StoreDecodeImage(PendingImageId, FetchResponseMsg),
 
     /// Clients must wait for a response before shutting down the ResourceThread
     Exit(IpcSender<()>),
@@ -102,6 +98,15 @@ pub enum ImageCacheCommand {
 
 #[derive(Copy, Clone, PartialEq, Hash, Eq, Deserialize, Serialize)]
 pub enum UsePlaceholder {
+    No,
+    Yes,
+}
+
+/// Whether a consumer is in a position to request images or not. This can occur when
+/// animations are being processed by the layout thread while the script thread is executing
+/// in parallel.
+#[derive(Copy, Clone, PartialEq, Deserialize, Serialize)]
+pub enum CanRequestImages {
     No,
     Yes,
 }
@@ -122,52 +127,41 @@ impl ImageCacheThread {
         }
     }
 
-    /// Asynchronously request an image. See ImageCacheCommand::RequestImage.
-    pub fn request_image(&self, url: ServoUrl, result_chan: ImageCacheChan, responder: Option<ImageResponder>) {
-        let msg = ImageCacheCommand::RequestImage(url, result_chan, responder);
-        let _ = self.chan.send(msg);
-    }
-
-    /// Asynchronously request an image and metadata.
-    /// See ImageCacheCommand::RequestImageAndMetadata
-    pub fn request_image_and_metadata(&self,
-                                      url: ServoUrl,
-                                      result_chan: ImageCacheChan,
-                                      responder: Option<ImageResponder>) {
-        let msg = ImageCacheCommand::RequestImageAndMetadata(url, result_chan, responder);
-        let _ = self.chan.send(msg);
-    }
-
-    /// Get the current state of an image. See ImageCacheCommand::GetImageIfAvailable.
-    pub fn find_image(&self, url: ServoUrl, use_placeholder: UsePlaceholder) -> Result<Arc<Image>, ImageState> {
-        let (sender, receiver) = ipc::channel().unwrap();
-        let msg = ImageCacheCommand::GetImageIfAvailable(url, use_placeholder, sender);
-        let _ = self.chan.send(msg);
-        try!(receiver.recv().map_err(|_| ImageState::LoadError))
-    }
-
     /// Get the current state of an image, returning its metadata if available.
     /// See ImageCacheCommand::GetImageOrMetadataIfAvailable.
     ///
     /// FIXME: We shouldn't do IPC for data uris!
     pub fn find_image_or_metadata(&self,
                                   url: ServoUrl,
-                                  use_placeholder: UsePlaceholder)
+                                  use_placeholder: UsePlaceholder,
+                                  can_request: CanRequestImages)
                                   -> Result<ImageOrMetadataAvailable, ImageState> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let msg = ImageCacheCommand::GetImageOrMetadataIfAvailable(url, use_placeholder, sender);
+        let msg = ImageCacheCommand::GetImageOrMetadataIfAvailable(url,
+                                                                   use_placeholder,
+                                                                   can_request,
+                                                                   sender);
         let _ = self.chan.send(msg);
         try!(receiver.recv().map_err(|_| ImageState::LoadError))
     }
 
-    /// Decode the given image bytes and cache the result for the given URL.
-    pub fn store_complete_image_bytes(&self, url: ServoUrl, image_data: Vec<u8>) {
-        let msg = ImageCacheCommand::StoreDecodeImage(url, image_data);
-        let _ = self.chan.send(msg);
+    /// Add a new listener for the given pending image id. If the image is already present,
+    /// the responder will still receive the expected response.
+    pub fn add_listener(&self, id: PendingImageId, responder: ImageResponder) {
+        let msg = ImageCacheCommand::AddListener(id, responder);
+        self.chan.send(msg).expect("Image cache thread is not available");
+    }
+
+    /// Inform the image cache about a response for a pending request.
+    pub fn notify_pending_response(&self, id: PendingImageId, data: FetchResponseMsg) {
+        let msg = ImageCacheCommand::StoreDecodeImage(id, data);
+        self.chan.send(msg).expect("Image cache thread is not available");
     }
 
     /// Shutdown the image cache thread.
     pub fn exit(&self) {
+        // If the image cache is not available when we're trying to shut it down,
+        // that is not worth warning about.
         let (response_chan, response_port) = ipc::channel().unwrap();
         let _ = self.chan.send(ImageCacheCommand::Exit(response_chan));
         let _ = response_port.recv();

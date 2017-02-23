@@ -281,8 +281,7 @@ fn create_constellation(user_agent: Cow<'static, str>,
                              devtools_chan.clone(),
                              time_profiler_chan.clone(),
                              config_dir);
-    let image_cache_thread = new_image_cache_thread(public_resource_threads.sender(),
-                                                    webrender_api_sender.create_api());
+    let image_cache_thread = new_image_cache_thread(webrender_api_sender.create_api());
     let font_cache_thread = FontCacheThread::new(public_resource_threads.sender(),
                                                  Some(webrender_api_sender.create_api()));
 

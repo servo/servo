@@ -683,7 +683,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                index: usize) {
         let background = style.get_background();
         let webrender_image = state.layout_context
-                                   .get_webrender_image_for_url(image_url.clone(),
+                                   .get_webrender_image_for_url(self.node,
+                                                                image_url.clone(),
                                                                 UsePlaceholder::No);
 
         if let Some(webrender_image) = webrender_image {

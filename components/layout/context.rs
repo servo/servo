@@ -5,22 +5,22 @@
 //! Data needed by the layout thread.
 
 use fnv::FnvHasher;
-use gfx::display_list::WebRenderImageInfo;
+use gfx::display_list::{WebRenderImageInfo, OpaqueNode};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use heapsize::HeapSizeOf;
-use ipc_channel::ipc;
-use net_traits::image::base::Image;
-use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
+use net_traits::image_cache_thread::{ImageCacheThread, ImageState, CanRequestImages};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
+use opaque_node::OpaqueNodeMethods;
 use parking_lot::RwLock;
-use servo_config::opts;
+use script_layout_interface::{PendingImage, PendingImageState};
 use servo_url::ServoUrl;
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use style::context::{SharedStyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
 
@@ -82,9 +82,6 @@ pub struct LayoutContext {
     /// The shared image cache thread.
     pub image_cache_thread: Mutex<ImageCacheThread>,
 
-    /// A channel for the image cache to send responses to.
-    pub image_cache_sender: Mutex<ImageCacheChan>,
-
     /// Interface to the font cache thread.
     pub font_cache_thread: Mutex<FontCacheThread>,
 
@@ -92,6 +89,20 @@ pub struct LayoutContext {
     pub webrender_image_cache: Arc<RwLock<HashMap<(ServoUrl, UsePlaceholder),
                                                   WebRenderImageInfo,
                                                   BuildHasherDefault<FnvHasher>>>>,
+
+    /// A list of in-progress image loads to be shared with the script thread.
+    /// A None value means that this layout was not initiated by the script thread.
+    pub pending_images: Option<Mutex<Vec<PendingImage>>>
+}
+
+impl Drop for LayoutContext {
+    fn drop(&mut self) {
+        if !thread::panicking() {
+            if let Some(ref pending_images) = self.pending_images {
+                assert!(pending_images.lock().unwrap().is_empty());
+            }
+        }
+    }
 }
 
 impl LayoutContext {
@@ -100,71 +111,60 @@ impl LayoutContext {
         &self.style_context
     }
 
-    fn get_or_request_image_synchronously(&self, url: ServoUrl, use_placeholder: UsePlaceholder)
-                                          -> Option<Arc<Image>> {
-        debug_assert!(opts::get().output_file.is_some() || opts::get().exit_after_load);
+    pub fn get_or_request_image_or_meta(&self,
+                                        node: OpaqueNode,
+                                        url: ServoUrl,
+                                        use_placeholder: UsePlaceholder)
+                                        -> Option<ImageOrMetadataAvailable> {
+        //XXXjdm For cases where we do not request an image, we still need to
+        //       ensure the node gets another script-initiated reflow or it
+        //       won't be requested at all.
+        let can_request = if self.pending_images.is_some() {
+            CanRequestImages::Yes
+        } else {
+            CanRequestImages::No
+        };
 
-        // See if the image is already available
-        let result = self.image_cache_thread.lock().unwrap()
-                                            .find_image(url.clone(), use_placeholder);
-
-        match result {
-            Ok(image) => return Some(image),
-            Err(ImageState::LoadError) => {
-                // Image failed to load, so just return nothing
-                return None
-            }
-            Err(_) => {}
-        }
-
-        // If we are emitting an output file, then we need to block on
-        // image load or we risk emitting an output file missing the image.
-        let (sync_tx, sync_rx) = ipc::channel().unwrap();
-        self.image_cache_thread.lock().unwrap().request_image(url, ImageCacheChan(sync_tx), None);
-        loop {
-            match sync_rx.recv() {
-                Err(_) => return None,
-                Ok(response) => {
-                    match response.image_response {
-                        ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
-                            return Some(image)
-                        }
-                        ImageResponse::None | ImageResponse::MetadataLoaded(_) => {}
-                    }
-                }
-            }
-        }
-    }
-
-    pub fn get_or_request_image_or_meta(&self, url: ServoUrl, use_placeholder: UsePlaceholder)
-                                -> Option<ImageOrMetadataAvailable> {
-        // If we are emitting an output file, load the image synchronously.
-        if opts::get().output_file.is_some() || opts::get().exit_after_load {
-            return self.get_or_request_image_synchronously(url, use_placeholder)
-                       .map(|img| ImageOrMetadataAvailable::ImageAvailable(img));
-        }
         // See if the image is already available
         let result = self.image_cache_thread.lock().unwrap()
                                             .find_image_or_metadata(url.clone(),
-                                                                    use_placeholder);
+                                                                    use_placeholder,
+                                                                    can_request);
         match result {
             Ok(image_or_metadata) => Some(image_or_metadata),
             // Image failed to load, so just return nothing
             Err(ImageState::LoadError) => None,
-            // Not yet requested, async mode - request image or metadata from the cache
-            Err(ImageState::NotRequested) => {
-                let sender = self.image_cache_sender.lock().unwrap().clone();
-                self.image_cache_thread.lock().unwrap()
-                                       .request_image_and_metadata(url, sender, None);
+            // Not yet requested - request image or metadata from the cache
+            Err(ImageState::NotRequested(id)) => {
+                let image = PendingImage {
+                    state: PendingImageState::Unrequested(url),
+                    node: node.to_untrusted_node_address(),
+                    id: id,
+                };
+                self.pending_images.as_ref().unwrap().lock().unwrap().push(image);
                 None
             }
             // Image has been requested, is still pending. Return no image for this paint loop.
             // When the image loads it will trigger a reflow and/or repaint.
-            Err(ImageState::Pending) => None,
+            Err(ImageState::Pending(id)) => {
+                //XXXjdm if self.pending_images is not available, we should make sure that
+                //       this node gets marked dirty again so it gets a script-initiated
+                //       reflow that deals with this properly.
+                if let Some(ref pending_images) = self.pending_images {
+                    let image = PendingImage {
+                        state: PendingImageState::PendingResponse,
+                        node: node.to_untrusted_node_address(),
+                        id: id,
+                    };
+                    pending_images.lock().unwrap().push(image);
+                }
+                None
+            }
         }
     }
 
     pub fn get_webrender_image_for_url(&self,
+                                       node: OpaqueNode,
                                        url: ServoUrl,
                                        use_placeholder: UsePlaceholder)
                                        -> Option<WebRenderImageInfo> {
@@ -174,7 +174,7 @@ impl LayoutContext {
             return Some((*existing_webrender_image).clone())
         }
 
-        match self.get_or_request_image_or_meta(url.clone(), use_placeholder) {
+        match self.get_or_request_image_or_meta(node, url.clone(), use_placeholder) {
             Some(ImageOrMetadataAvailable::ImageAvailable(image)) => {
                 let image_info = WebRenderImageInfo::from_image(&*image);
                 if image_info.key.is_none() {

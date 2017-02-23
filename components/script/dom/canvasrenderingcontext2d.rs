@@ -429,7 +429,9 @@ impl CanvasRenderingContext2D {
 
         let img = match self.request_image_from_cache(url) {
             ImageResponse::Loaded(img) => img,
-            ImageResponse::PlaceholderLoaded(_) | ImageResponse::None | ImageResponse::MetadataLoaded(_) => {
+            ImageResponse::PlaceholderLoaded(_) |
+            ImageResponse::None |
+            ImageResponse::MetadataLoaded(_) => {
                 return None;
             }
         };

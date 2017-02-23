@@ -75,7 +75,7 @@ use layout::wrapper::LayoutNodeLayoutData;
 use layout::wrapper::drop_style_and_layout_data;
 use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, PipelineId};
-use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
+use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::image_cache_thread::UsePlaceholder;
 use parking_lot::RwLock;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -98,6 +98,7 @@ use servo_url::ServoUrl;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
+use std::mem as std_mem;
 use std::ops::{Deref, DerefMut};
 use std::process;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -136,12 +137,6 @@ pub struct LayoutThread {
 
     /// The port on which we receive messages from the constellation.
     pipeline_port: Receiver<LayoutControlMsg>,
-
-    /// The port on which we receive messages from the image cache
-    image_cache_receiver: Receiver<ImageCacheResult>,
-
-    /// The channel on which the image cache can send messages to ourself.
-    image_cache_sender: ImageCacheChan,
 
     /// The port on which we receive messages from the font cache thread.
     font_cache_receiver: Receiver<()>,
@@ -404,11 +399,6 @@ impl LayoutThread {
         // Proxy IPC messages from the pipeline to the layout thread.
         let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(pipeline_port);
 
-        // Ask the router to proxy IPC messages from the image cache thread to the layout thread.
-        let (ipc_image_cache_sender, ipc_image_cache_receiver) = ipc::channel().unwrap();
-        let image_cache_receiver =
-            ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_image_cache_receiver);
-
         // Ask the router to proxy IPC messages from the font cache thread to the layout thread.
         let (ipc_font_cache_sender, ipc_font_cache_receiver) = ipc::channel().unwrap();
         let font_cache_receiver =
@@ -437,8 +427,6 @@ impl LayoutThread {
             image_cache_thread: image_cache_thread,
             font_cache_thread: font_cache_thread,
             first_reflow: true,
-            image_cache_receiver: image_cache_receiver,
-            image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
             font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
             parallel_traversal: parallel_traversal,
@@ -470,6 +458,7 @@ impl LayoutThread {
                     margin_style_response: MarginStyleResponse::empty(),
                     stacking_context_scroll_offsets: HashMap::new(),
                     text_index_response: TextIndexResponse(None),
+                    pending_images: vec![],
                 })),
             error_reporter: CSSErrorReporter {
                 pipelineid: id,
@@ -506,7 +495,8 @@ impl LayoutThread {
     fn build_layout_context(&self,
                             rw_data: &LayoutThreadData,
                             screen_size_changed: bool,
-                            goal: ReflowGoal)
+                            goal: ReflowGoal,
+                            request_images: bool)
                             -> LayoutContext {
         let thread_local_style_context_creation_data =
             ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
@@ -530,9 +520,9 @@ impl LayoutThread {
                 default_computed_values: Arc::new(ComputedValues::initial_values().clone()),
             },
             image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
-            image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
+            pending_images: if request_images { Some(Mutex::new(vec![])) } else { None },
         }
     }
 
@@ -541,14 +531,12 @@ impl LayoutThread {
         enum Request {
             FromPipeline(LayoutControlMsg),
             FromScript(Msg),
-            FromImageCache,
             FromFontCache,
         }
 
         let request = {
             let port_from_script = &self.port;
             let port_from_pipeline = &self.pipeline_port;
-            let port_from_image_cache = &self.image_cache_receiver;
             let port_from_font_cache = &self.font_cache_receiver;
             select! {
                 msg = port_from_pipeline.recv() => {
@@ -556,10 +544,6 @@ impl LayoutThread {
                 },
                 msg = port_from_script.recv() => {
                     Request::FromScript(msg.unwrap())
-                },
-                msg = port_from_image_cache.recv() => {
-                    msg.unwrap();
-                    Request::FromImageCache
                 },
                 msg = port_from_font_cache.recv() => {
                     msg.unwrap();
@@ -590,9 +574,6 @@ impl LayoutThread {
             Request::FromScript(msg) => {
                 self.handle_request_helper(msg, possibly_locked_rw_data)
             },
-            Request::FromImageCache => {
-                self.repaint(possibly_locked_rw_data)
-            },
             Request::FromFontCache => {
                 let _rw_data = possibly_locked_rw_data.lock();
                 self.outstanding_web_fonts.fetch_sub(1, Ordering::SeqCst);
@@ -601,37 +582,6 @@ impl LayoutThread {
                 true
             },
         }
-    }
-
-    /// Repaint the scene, without performing style matching. This is typically
-    /// used when an image arrives asynchronously and triggers a relayout and
-    /// repaint.
-    /// TODO: In the future we could detect if the image size hasn't changed
-    /// since last time and avoid performing a complete layout pass.
-    fn repaint<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) -> bool {
-        let mut rw_data = possibly_locked_rw_data.lock();
-
-        if let Some(mut root_flow) = self.root_flow.clone() {
-            let flow = flow::mut_base(FlowRef::deref_mut(&mut root_flow));
-            flow.restyle_damage.insert(REPAINT);
-        }
-
-        let reflow_info = Reflow {
-            goal: ReflowGoal::ForDisplay,
-            page_clip_rect: max_rect(),
-        };
-        let mut layout_context = self.build_layout_context(&*rw_data,
-                                                           false,
-                                                           reflow_info.goal);
-
-        self.perform_post_style_recalc_layout_passes(&reflow_info,
-                                                     None,
-                                                     None,
-                                                     &mut *rw_data,
-                                                     &mut layout_context);
-
-
-        true
     }
 
     /// Receives and dispatches messages from other threads.
@@ -1166,7 +1116,8 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(&*rw_data,
                                                            viewport_size_changed,
-                                                           data.reflow_info.goal);
+                                                           data.reflow_info.goal,
+                                                           true);
 
         // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
         let traversal_driver = if self.parallel_flag && self.parallel_traversal.is_some() {
@@ -1247,6 +1198,12 @@ impl LayoutThread {
                                      query_type: &ReflowQueryType,
                                      rw_data: &mut LayoutThreadData,
                                      context: &mut LayoutContext) {
+        let pending_images = match context.pending_images {
+            Some(ref pending) => std_mem::replace(&mut *pending.lock().unwrap(), vec![]),
+            None => vec![],
+        };
+        rw_data.pending_images = pending_images;
+
         let mut root_flow = match self.root_flow.clone() {
             Some(root_flow) => root_flow,
             None => return,
@@ -1367,7 +1324,8 @@ impl LayoutThread {
 
         let mut layout_context = self.build_layout_context(&*rw_data,
                                                            false,
-                                                           reflow_info.goal);
+                                                           reflow_info.goal,
+                                                           false);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
@@ -1387,6 +1345,8 @@ impl LayoutThread {
                                                      None,
                                                      &mut *rw_data,
                                                      &mut layout_context);
+
+        assert!(layout_context.pending_images.is_none());
     }
 
     fn reflow_with_newly_loaded_web_font<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
@@ -1400,7 +1360,8 @@ impl LayoutThread {
 
         let mut layout_context = self.build_layout_context(&*rw_data,
                                                            false,
-                                                           reflow_info.goal);
+                                                           reflow_info.goal,
+                                                           false);
 
         // No need to do a style recalc here.
         if self.root_flow.is_none() {
