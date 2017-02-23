@@ -167,11 +167,6 @@ use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
-pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
-pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
-pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
-enum ServoComputedValuesVoid { }
-pub struct ServoComputedValues(ServoComputedValuesVoid);
 pub type ServoCssRulesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoCssRules>;
 pub type ServoCssRulesBorrowed<'a> = &'a ServoCssRules;
 pub type ServoCssRulesBorrowedOrNull<'a> = Option<&'a ServoCssRules>;
@@ -182,6 +177,11 @@ pub type RawServoStyleSheetBorrowed<'a> = &'a RawServoStyleSheet;
 pub type RawServoStyleSheetBorrowedOrNull<'a> = Option<&'a RawServoStyleSheet>;
 enum RawServoStyleSheetVoid { }
 pub struct RawServoStyleSheet(RawServoStyleSheetVoid);
+pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
+pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
+pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
+enum ServoComputedValuesVoid { }
+pub struct ServoComputedValues(ServoComputedValuesVoid);
 pub type RawServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoDeclarationBlock>;
 pub type RawServoDeclarationBlockBorrowed<'a> = &'a RawServoDeclarationBlock;
 pub type RawServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlock>;
@@ -1374,6 +1374,13 @@ extern "C" {
                                                  RawServoAnimationValueBorrowed,
                                              list:
                                                  *mut RefPtr<nsCSSValueSharedList>);
+}
+extern "C" {
+    pub fn Servo_AnimationValue_DeepEqual(arg1:
+                                              RawServoAnimationValueBorrowed,
+                                          arg2:
+                                              RawServoAnimationValueBorrowed)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString_internal)
