@@ -86,7 +86,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-float-edge)",
                          animatable=False)}
 
-<%helpers:longhand name="border-image-source" products="gecko" animatable="False" boxed="True"
+<%helpers:longhand name="border-image-source" animatable="False" boxed="True"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-source">
     use std::fmt;
     use style_traits::ToCss;
@@ -162,7 +162,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="border-image-outset" products="gecko" animatable="False"
+<%helpers:longhand name="border-image-outset" animatable="False"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-outset">
     use std::fmt;
     use style_traits::ToCss;
@@ -278,7 +278,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="border-image-repeat" products="gecko" animatable="False"
+<%helpers:longhand name="border-image-repeat" animatable="False"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-repeat">
     use std::fmt;
     use style_traits::ToCss;
@@ -356,7 +356,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="border-image-width" products="gecko" animatable="False"
+<%helpers:longhand name="border-image-width" animatable="False"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-width">
     use std::fmt;
     use style_traits::ToCss;
@@ -556,7 +556,7 @@ ${helpers.single_keyword("-moz-float-edge", "content-box margin-box",
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="border-image-slice" products="gecko" animatable="False"
+<%helpers:longhand name="border-image-slice" animatable="False"
                    spec="https://drafts.csswg.org/css-backgrounds/#border-image-slice">
     use std::fmt;
     use style_traits::ToCss;
