@@ -12,6 +12,19 @@ pub use style::properties::longhands::outline_style::SpecifiedValue as OutlineSt
 pub use style::values::{RGBA, Auto};
 pub use style::values::specified::url::{UrlExtraData, SpecifiedUrl};
 pub use style_traits::ToCss;
+pub use cssparser::Parser;
+pub use media_queries::CSSErrorReporterTest;
+pub use servo_url::ServoUrl;
+pub use style::parser::ParserContext;
+pub use style::properties::{parse_property_declaration_list};
+pub use style::stylesheets::Origin;
+
+pub fn property_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
+    let url = ServoUrl::parse("http://localhost").unwrap();
+    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let mut parser = Parser::new(css_properties);
+    parse_property_declaration_list(&context, &mut parser)
+}
 
 #[test]
 fn property_declaration_block_should_serialize_correctly() {
@@ -1140,19 +1153,6 @@ mod shorthand_serialization {
 
     mod animation {
         pub use super::*;
-        use cssparser::Parser;
-        use media_queries::CSSErrorReporterTest;
-        use servo_url::ServoUrl;
-        use style::parser::ParserContext;
-        use style::properties::{parse_property_declaration_list, PropertyDeclarationBlock};
-        use style::stylesheets::Origin;
-
-        fn property_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
-            let url = ServoUrl::parse("http://localhost").unwrap();
-            let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
-            let mut parser = Parser::new(css_properties);
-            parse_property_declaration_list(&context, &mut parser)
-        }
 
         #[test]
         fn serialize_single_animation() {
@@ -1235,22 +1235,18 @@ mod shorthand_serialization {
         pub use super::*;
         pub use style::properties::longhands::box_shadow::SpecifiedValue as BoxShadow;
         pub use style::values::specified::Shadow;
+
         #[test]
         fn box_shadow_should_serialize_correctly() {
             let mut properties = Vec::new();
-            let color = Some(CSSColor {
-                        parsed: ComputedColor::RGBA(RGBA { red: 1, green: 0, blue: 0, alpha: 1 }),
-                        authored: None
-                        });
             let shadow_val = Shadow { offset_x: Length::from_px(1f32), offset_y: Length::from_px(2f32),
-            blur_radius: Length::from_px(3f32), spread_radius: Length::from_px(4f32), color: color, inset: false };
+            blur_radius: Length::from_px(3f32), spread_radius: Length::from_px(4f32), color: None, inset: false };
 
             let shadow_decl = DeclaredValue::Value(BoxShadow(vec![shadow_val]));
             properties.push(PropertyDeclaration:: BoxShadow(shadow_decl));
-
-
-             let serialization = shorthand_properties_to_string(properties);
-             assert_eq!(serialization, "box-shadow: 1px 2px 3px 4px rgba(1, 0, 0, 0.004);");
+            let shadow_css = "box-shadow: 1px 2px 3px 4px;";
+            let shadow  =  property_declaration_block(shadow_css);
+            assert_eq!(shadow.to_css_string(), shadow_css);
         }
     }
 }
