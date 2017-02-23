@@ -7,7 +7,6 @@
 
 use dom::bindings::conversions::root_from_handleobject;
 use dom::bindings::error::{Error, Fallible};
-use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
 use dom::blob::{Blob, BlobImpl};
 use dom::globalscope::GlobalScope;
@@ -39,14 +38,20 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    closure: *mut raw::c_void) -> *mut JSObject {
     let sc_data: &mut StructuredCloneData = &mut *(closure as *mut StructuredCloneData);
     if tag == StructuredCloneTags::ScTagDomBlob as u32 {
-        let sc_data_vec = sc_data.move_to_arraybuffer();
-        let sc_data_vec_ptr = sc_data_vec.as_mut_ptr() as u32;
-        if sc_data_vec_ptr == data {
-            let blob_impl = BlobImpl::new_from_bytes(sc_data.move_to_arraybuffer());
-            let js_context = GlobalScope::from_context(cx);
-            let root = Blob::new(&js_context, blob_impl, "".to_string());
-            return *root.reflector().get_jsobject().ptr
-        }
+        let data_len = match *sc_data {
+            StructuredCloneData::Vector(ref vec_msg) => {
+                vec_msg.len()
+            },
+            StructuredCloneData::Struct(_, len) => {
+                len
+            }
+        };
+        let vec_data = slice::from_raw_parts(data as *mut u8, data_len as usize).to_vec();
+        let js_context = GlobalScope::from_context(cx);
+        /// NOTE: missing the content-type string here.
+        /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
+        let root = Blob::new(&js_context, BlobImpl::new_from_bytes(vec_data), "".to_string());
+        return *root.reflector().get_jsobject().ptr
     }
     return Heap::default().get()
 }
@@ -57,16 +62,20 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     obj: HandleObject,
                                     closure: *mut raw::c_void) -> bool {
     let sc_data: &mut StructuredCloneData = &mut *(closure as *mut StructuredCloneData);
-    if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
-        let data = match *sc_data {
-            StructuredCloneData::Vector(mut vec_msg) => {
-                vec_msg.as_mut_ptr() as *mut u32
+    if let Ok(_) = root_from_handleobject::<Blob>(obj) {
+        match *sc_data {
+            StructuredCloneData::Vector(ref vec_msg) => {
+                if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
+                                      vec_msg.as_ptr() as u32) {
+                    return true
+                }
             },
-            StructuredCloneData::Struct(data, _) => data as *mut u32,
-        };
-        if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
-                              data as u32) {
-            return true
+            StructuredCloneData::Struct(data, _) => {
+                if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
+                                      data as u32) {
+                    return true
+                }
+            }
         }
     }
     return false
@@ -129,6 +138,7 @@ impl StructuredCloneData {
     pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData> {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
+        /// NOTE: will (data, nbytes) be updated after call to JS_WriteStructuredClone?
         let mut sc_data = StructuredCloneData::Struct(data, nbytes);
         let sc_data_ptr:  *mut raw::c_void = &mut sc_data as *mut _ as *mut raw::c_void;
         let result = unsafe {
