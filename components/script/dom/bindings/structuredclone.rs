@@ -38,12 +38,15 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    data: u32,
                                    closure: *mut raw::c_void) -> *mut JSObject {
     let sc_data: &mut StructuredCloneData = &mut *(closure as *mut StructuredCloneData);
-    let index = data as usize;
     if tag == StructuredCloneTags::ScTagDomBlob as u32 {
-        let blob_impl = BlobImpl::new_from_bytes(sc_data.move_to_arraybuffer());
-        let js_context = GlobalScope::from_context(cx);
-        let root = Blob::new(&js_context, blob_impl, "".to_string());
-        return *root.reflector().get_jsobject().ptr
+        let sc_data_vec = sc_data.move_to_arraybuffer();
+        let sc_data_vec_ptr = sc_data_vec.as_mut_ptr() as u32;
+        if sc_data_vec_ptr == data {
+            let blob_impl = BlobImpl::new_from_bytes(sc_data.move_to_arraybuffer());
+            let js_context = GlobalScope::from_context(cx);
+            let root = Blob::new(&js_context, blob_impl, "".to_string());
+            return *root.reflector().get_jsobject().ptr
+        }
     }
     return Heap::default().get()
 }
@@ -55,8 +58,14 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     closure: *mut raw::c_void) -> bool {
     let sc_data: &mut StructuredCloneData = &mut *(closure as *mut StructuredCloneData);
     if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
+        let data = match *sc_data {
+            StructuredCloneData::Vector(mut vec_msg) => {
+                vec_msg.as_mut_ptr() as *mut u32
+            },
+            StructuredCloneData::Struct(data, _) => data as *mut u32,
+        };
         if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
-                              StructuredCloneTags::ScTagDomBlob as u32) {
+                              data as u32) {
             return true
         }
     }
