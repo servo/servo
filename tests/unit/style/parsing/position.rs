@@ -48,6 +48,11 @@ fn test_position() {
     assert_roundtrip_with_context!(Position::parse, "center right 10px", "right 10px center");
     assert_roundtrip_with_context!(Position::parse, "center bottom 10px", "center bottom 10px");
 
+    // Invalid 3 value positions
+    assert!(parse(Position::parse, "20px 30px 20px").is_err());
+    assert!(parse(Position::parse, "top 30px 20px").is_err());
+    assert!(parse(Position::parse, "50% bottom 20%").is_err());
+
     // Only horizontal and vertical keywords can have positions
     assert!(parse(Position::parse, "center 10px left 15px").is_err());
     assert!(parse(Position::parse, "center 10px 15px").is_err());
