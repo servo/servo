@@ -180,7 +180,6 @@ pub mod animated_properties {
 
 #[allow(missing_docs)]
 pub mod property_bit_field {
-    use logical_geometry::WritingMode;
     use properties::animated_properties::TransitionProperty;
     use properties::LonghandId;
 
@@ -221,24 +220,6 @@ pub mod property_bit_field {
                 #[inline]
                 pub fn set_${property.ident}(&mut self) {
                     self.insert(LonghandId::${property.camel_case})
-                }
-            % endif
-            % if property.logical:
-                #[allow(non_snake_case, missing_docs)]
-                pub fn get_physical_${property.ident}(&self, wm: WritingMode) -> bool {
-                    <%helpers:logical_setter_helper name="${property.name}">
-                        <%def name="inner(physical_ident)">
-                            self.get_${physical_ident}()
-                        </%def>
-                    </%helpers:logical_setter_helper>
-                }
-                #[allow(non_snake_case, missing_docs)]
-                pub fn set_physical_${property.ident}(&mut self, wm: WritingMode) {
-                    <%helpers:logical_setter_helper name="${property.name}">
-                        <%def name="inner(physical_ident)">
-                            self.set_${physical_ident}()
-                        </%def>
-                    </%helpers:logical_setter_helper>
                 }
             % endif
         % endfor
@@ -448,6 +429,25 @@ impl LonghandId {
             % for property in data.longhands:
                 LonghandId::${property.camel_case} => "${property.name}",
             % endfor
+        }
+    }
+
+    /// If this is a logical property, return the corresponding physical one in the given writing mode.
+    /// Otherwise, return unchanged.
+    pub fn to_physical(&self, wm: WritingMode) -> Self {
+        match *self {
+            % for property in data.longhands:
+                % if property.logical:
+                    LonghandId::${property.camel_case} => {
+                        <%helpers:logical_setter_helper name="${property.name}">
+                            <%def name="inner(physical_ident)">
+                                LonghandId::${to_camel_case(physical_ident)}
+                            </%def>
+                        </%helpers:logical_setter_helper>
+                    }
+                % endif
+            % endfor
+            _ => *self
         }
     }
 }
@@ -1697,7 +1697,6 @@ pub type CascadePropertyFn =
                      inherited_style: &ComputedValues,
                      default_style: &Arc<ComputedValues>,
                      context: &mut computed::Context,
-                     seen: &mut PropertyBitField,
                      cacheable: &mut bool,
                      cascade_info: &mut Option<<&mut CascadeInfo>,
                      error_reporter: &mut StdBox<ParseErrorReporter + Send>);
@@ -1907,19 +1906,25 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                 continue
             }
 
+            <% maybe_to_physical = ".to_physical(writing_mode)" if category_to_cascade_now != "early" else "" %>
+            let physical_longhand_id = longhand_id ${maybe_to_physical};
+            if seen.contains(physical_longhand_id) {
+                continue
+            }
+            seen.insert(physical_longhand_id);
+
             let discriminant = longhand_id as usize;
             (CASCADE_PROPERTY[discriminant])(declaration,
                                              inherited_style,
                                              default_style,
                                              &mut context,
-                                             &mut seen,
                                              &mut cacheable,
                                              &mut cascade_info,
                                              &mut error_reporter);
         }
         % if category_to_cascade_now == "early":
-            let mode = get_writing_mode(context.style.get_inheritedbox());
-            context.style.set_writing_mode(mode);
+            let writing_mode = get_writing_mode(context.style.get_inheritedbox());
+            context.style.set_writing_mode(writing_mode);
         % endif
     % endfor
 
