@@ -407,42 +407,6 @@ impl PropertyDeclarationIdSet {
     % endif
 % endfor
 
-/// Given a property declaration block, only keep the "winning" declaration for
-/// any given property, by importance then source order.
-///
-/// The input and output are in source order
-fn deduplicate_property_declarations(block: &mut PropertyDeclarationBlock) {
-    let mut deduplicated = Vec::with_capacity(block.declarations.len());
-    let mut seen_normal = PropertyDeclarationIdSet::new();
-    let mut seen_important = PropertyDeclarationIdSet::new();
-
-    for (declaration, importance) in block.declarations.drain(..).rev() {
-        if importance.important() {
-            let id = declaration.id();
-            if seen_important.contains(id) {
-                block.important_count -= 1;
-                continue
-            }
-            if seen_normal.contains(id) {
-                let previous_len = deduplicated.len();
-                deduplicated.retain(|&(ref d, _)| PropertyDeclaration::id(d) != id);
-                debug_assert_eq!(deduplicated.len(), previous_len - 1);
-            }
-            seen_important.insert(id);
-        } else {
-            let id = declaration.id();
-            if seen_normal.contains(id) ||
-               seen_important.contains(id) {
-                continue
-            }
-            seen_normal.insert(id)
-        }
-        deduplicated.push((declaration, importance))
-    }
-    deduplicated.reverse();
-    block.declarations = deduplicated;
-}
-
 /// An enum to represent a CSS Wide keyword.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum CSSWideKeyword {
