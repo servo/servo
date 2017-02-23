@@ -1352,16 +1352,6 @@ extern "C" {
                                                RawGeckoComputedKeyframeValuesListBorrowedMut);
 }
 extern "C" {
-    pub fn Servo_AnimationValues_Populate(arg1:
-                                              RawGeckoAnimationValueListBorrowedMut,
-                                          arg2:
-                                              RawServoDeclarationBlockBorrowed,
-                                          arg3: ServoComputedValuesBorrowed,
-                                          arg4:
-                                              ServoComputedValuesBorrowedOrNull,
-                                          arg5: RawGeckoPresContextBorrowed);
-}
-extern "C" {
     pub fn Servo_AnimationValues_Interpolate(from:
                                                  RawServoAnimationValueBorrowed,
                                              to:
