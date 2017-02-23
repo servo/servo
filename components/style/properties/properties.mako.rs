@@ -1729,7 +1729,8 @@ pub fn cascade(viewport_size: Size2D<Au>,
     }).collect::<Vec<_>>();
     let iter_declarations = || {
         lock_guards.iter().flat_map(|&(ref source, source_importance)| {
-            source.declarations.iter()
+            source.as_potentially_duplicated()
+            .iter()
             // Yield declarations later in source order (with more precedence) first.
             .rev()
             .filter_map(move |&(ref declaration, declaration_importance)| {
