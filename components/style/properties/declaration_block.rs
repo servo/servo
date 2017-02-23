@@ -274,6 +274,39 @@ impl PropertyDeclarationBlock {
             }
         }
     }
+
+    /// Only keep the "winning" declaration for any given property, by importance then source order.
+    pub fn deduplicate(&mut self) {
+        let mut deduplicated = Vec::with_capacity(self.declarations.len());
+        let mut seen_normal = PropertyDeclarationIdSet::new();
+        let mut seen_important = PropertyDeclarationIdSet::new();
+
+        for (declaration, importance) in self.declarations.drain(..).rev() {
+            if importance.important() {
+                let id = declaration.id();
+                if seen_important.contains(id) {
+                    self.important_count -= 1;
+                    continue
+                }
+                if seen_normal.contains(id) {
+                    let previous_len = deduplicated.len();
+                    deduplicated.retain(|&(ref d, _)| PropertyDeclaration::id(d) != id);
+                    debug_assert_eq!(deduplicated.len(), previous_len - 1);
+                }
+                seen_important.insert(id);
+            } else {
+                let id = declaration.id();
+                if seen_normal.contains(id) ||
+                   seen_important.contains(id) {
+                    continue
+                }
+                seen_normal.insert(id)
+            }
+            deduplicated.push((declaration, importance))
+        }
+        deduplicated.reverse();
+        self.declarations = deduplicated;
+    }
 }
 
 impl ToCss for PropertyDeclarationBlock {
@@ -612,6 +645,6 @@ pub fn parse_property_declaration_list(context: &ParserContext,
         declarations: iter.parser.declarations,
         important_count: important_count,
     };
-    super::deduplicate_property_declarations(&mut block);
+    block.deduplicate();
     block
 }
