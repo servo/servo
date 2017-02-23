@@ -1231,4 +1231,26 @@ mod shorthand_serialization {
             assert_eq!(serialization, block_text);
         }
     }
+      mod effects {
+        pub use super::*;
+        pub use style::properties::longhands::box_shadow::SpecifiedValue as BoxShadow;
+        pub use style::values::specified::Shadow;
+        #[test]
+        fn box_shadow_should_serialize_correctly() {
+            let mut properties = Vec::new();
+            let color = Some(CSSColor {
+                        parsed: ComputedColor::RGBA(RGBA { red: 1, green: 0, blue: 0, alpha: 1 }),
+                        authored: None
+                        });
+            let shadow_val = Shadow { offset_x: Length::from_px(1f32), offset_y: Length::from_px(2f32),
+            blur_radius: Length::from_px(3f32), spread_radius: Length::from_px(4f32), color: color, inset: false };
+
+            let shadow_decl = DeclaredValue::Value(BoxShadow(vec![shadow_val]));
+            properties.push(PropertyDeclaration:: BoxShadow(shadow_decl));
+
+
+             let serialization = shorthand_properties_to_string(properties);
+             assert_eq!(serialization, "box-shadow: 1px 2px 3px 4px rgba(1, 0, 0, 0.004);");
+        }
+    }
 }
