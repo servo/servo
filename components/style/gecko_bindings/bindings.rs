@@ -841,6 +841,26 @@ extern "C" {
                                       len: i32);
 }
 extern "C" {
+    pub fn Gecko_CSSValue_SetString(css_value: nsCSSValueBorrowedMut,
+                                    string: nsString);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetArray(css_value: nsCSSValueBorrowedMut,
+                                   len: i32);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetURL(css_value: nsCSSValueBorrowedMut,
+                                 uri: ServoBundledURI);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetLocal(css_value: nsCSSValueBorrowedMut,
+                                   family: nsString);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetInteger(css_value: nsCSSValueBorrowedMut,
+                                     integer: i32);
+}
+extern "C" {
     pub fn Gecko_CSSValue_Drop(css_value: nsCSSValueBorrowedMut);
 }
 extern "C" {
