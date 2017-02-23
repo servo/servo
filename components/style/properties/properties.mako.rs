@@ -1682,7 +1682,6 @@ pub type CascadePropertyFn =
                      inherited_style: &ComputedValues,
                      default_style: &Arc<ComputedValues>,
                      context: &mut computed::Context,
-                     seen: &mut PropertyBitField,
                      cacheable: &mut bool,
                      cascade_info: &mut Option<<&mut CascadeInfo>,
                      error_reporter: &mut StdBox<ParseErrorReporter + Send>);
@@ -1888,19 +1887,25 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                 continue
             }
 
+            <% maybe_wm = "writing_mode" if property.logical else "" %>
+            <% maybe_physical = "_physical" if property.logical else "" %>
+            if seen.get${maybe_physical}_${property.ident}(${maybe_wm}) {
+                continue
+            }
+            seen.set${maybe_physical}_${property.ident}(${maybe_wm});
+
             let discriminant = longhand_id as usize;
             (CASCADE_PROPERTY[discriminant])(declaration,
                                              inherited_style,
                                              default_style,
                                              &mut context,
-                                             &mut seen,
                                              &mut cacheable,
                                              &mut cascade_info,
                                              &mut error_reporter);
         }
         % if category_to_cascade_now == "early":
-            let mode = get_writing_mode(context.style.get_inheritedbox());
-            context.style.set_writing_mode(mode);
+            let writing_mode = get_writing_mode(context.style.get_inheritedbox());
+            context.style.set_writing_mode(writing_mode);
         % endif
     % endfor
 

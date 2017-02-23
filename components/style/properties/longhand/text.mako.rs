@@ -204,7 +204,6 @@ ${helpers.single_keyword("unicode-bidi",
         fn cascade_property_custom(_declaration: &PropertyDeclaration,
                                    _inherited_style: &ComputedValues,
                                    context: &mut computed::Context,
-                                   _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
                                    _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
                 longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
