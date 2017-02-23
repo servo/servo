@@ -108,7 +108,7 @@ macro_rules! __define_css_keyword_enum__add_optional_traits {
 macro_rules! __define_css_keyword_enum__actual {
     ($name: ident [ $( $derived_trait: ident),* ] [ $( $css: expr => $variant: ident ),+ ]) => {
         #[allow(non_camel_case_types, missing_docs)]
-        #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug $(, $derived_trait )* )]
+        #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq $(, $derived_trait )* )]
         pub enum $name {
             $( $variant ),+
         }

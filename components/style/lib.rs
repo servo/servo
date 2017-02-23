@@ -67,7 +67,6 @@ extern crate parking_lot;
 extern crate pdqsort;
 extern crate phf;
 extern crate rayon;
-extern crate rustc_serialize;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
