@@ -2308,7 +2308,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Effects"
-                  skip_longhands="box-shadow filter">
+                  skip_longhands="box-shadow clip filter">
     pub fn set_box_shadow(&mut self, v: longhands::box_shadow::computed_value::T) {
 
         self.gecko.mBoxShadow.replace_with_new(v.0.len() as u32);
@@ -2351,6 +2351,48 @@ fn static_assert() {
             }
         }).collect();
         longhands::box_shadow::computed_value::T(buf)
+    }
+
+    pub fn set_clip(&mut self, v: longhands::clip::computed_value::T) {
+        use gecko_bindings::structs::NS_STYLE_CLIP_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_RECT;
+        use gecko_bindings::structs::NS_STYLE_CLIP_RIGHT_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_BOTTOM_AUTO;
+        use values::Either;
+
+        match v {
+            Either::First(rect) => {
+                self.gecko.mClipFlags = NS_STYLE_CLIP_RECT as u8;
+                self.gecko.mClip.x = rect.left.0;
+                self.gecko.mClip.y = rect.top.0;
+
+                if let Some(bottom) = rect.bottom {
+                    self.gecko.mClip.height = bottom.0 - self.gecko.mClip.y;
+                } else {
+                    self.gecko.mClip.height = 1 << 30; // NS_MAXSIZE
+                    self.gecko.mClipFlags |= NS_STYLE_CLIP_BOTTOM_AUTO as u8;
+                }
+
+                if let Some(right) = rect.right {
+                    self.gecko.mClip.width = right.0 - self.gecko.mClip.x;
+                } else {
+                    self.gecko.mClip.width = 1 << 30; // NS_MAXSIZE
+                    self.gecko.mClipFlags |= NS_STYLE_CLIP_RIGHT_AUTO as u8;
+                }
+            },
+            Either::Second(_auto) => {
+                self.gecko.mClipFlags = NS_STYLE_CLIP_AUTO as u8;
+                self.gecko.mClip.x = 0;
+                self.gecko.mClip.y = 0;
+                self.gecko.mClip.width = 0;
+                self.gecko.mClip.height = 0;
+            }
+        }
+    }
+
+    pub fn copy_clip_from(&mut self, other: &Self) {
+        self.gecko.mClip = other.gecko.mClip;
+        self.gecko.mClipFlags = other.gecko.mClipFlags;
     }
 
     pub fn set_filter(&mut self, v: longhands::filter::computed_value::T) {
