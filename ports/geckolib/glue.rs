@@ -71,6 +71,7 @@ use style::properties::{ComputedValues, Importance, PropertyDeclaration};
 use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock, PropertyId};
 use style::properties::animated_properties::{AnimationValue, Interpolate, TransitionProperty};
 use style::properties::parse_one_declaration;
+use style::properties::property_bit_field::PropertyBitField;
 use style::restyle_hints::{self, RestyleHint};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
@@ -714,7 +715,8 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 
     let mut results = vec![];
     match PropertyDeclaration::parse(id, &context, &mut Parser::new(value),
-                                     &mut results, false) {
+                                     &mut results, &mut PropertyBitField::new(),
+                                     &mut false, false) {
         PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {},
         _ => return RawServoDeclarationBlockStrong::null(),
     }

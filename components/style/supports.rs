@@ -7,6 +7,7 @@
 use cssparser::{parse_important, Parser, Token};
 use parser::ParserContext;
 use properties::{PropertyDeclaration, PropertyId};
+use properties::property_bit_field::PropertyBitField;
 use std::fmt;
 use style_traits::ToCss;
 
@@ -213,8 +214,11 @@ impl Declaration {
         };
         let mut input = Parser::new(&self.val);
         let mut list = Vec::new();
+        let mut properties_seen = PropertyBitField::new();
+        let mut possibly_duplicated = false;
         let res = PropertyDeclaration::parse(id, cx, &mut input,
-                                             &mut list, /* in_keyframe */ false);
+                                             &mut list, &mut properties_seen, &mut possibly_duplicated,
+                                             /* in_keyframe */ false);
         let _ = input.try(parse_important);
         if !input.is_exhausted() {
             return false;
