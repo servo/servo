@@ -30,6 +30,7 @@ pub use self::image::{SizeKeyword, VerticalDirection};
 pub use self::length::{FontRelativeLength, ViewportPercentageLength, CharacterWidth, Length, CalcLengthOrPercentage};
 pub use self::length::{Percentage, LengthOrNone, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrNone, LengthOrPercentageOrAutoOrContent, NoCalcLength, CalcUnit};
+pub use self::length::{MaxLength, MinLength};
 pub use self::position::{HorizontalPosition, Position, VerticalPosition};
 
 #[cfg(feature = "gecko")]

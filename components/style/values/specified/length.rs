@@ -18,6 +18,7 @@ use style_traits::ToCss;
 use style_traits::values::specified::AllowedNumericType;
 use super::{Angle, Number, SimplifiedValueNode, SimplifiedSumNode, Time};
 use values::{Auto, CSSFloat, Either, FONT_MEDIUM_PX, HasViewportPercentage, None_, Normal};
+use values::ExtremumLength;
 use values::computed::Context;
 
 pub use super::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
@@ -1302,5 +1303,99 @@ impl LengthOrNumber {
         } else {
             Length::parse_non_negative(input).map(Either::First)
         }
+    }
+}
+
+/// A value suitable for a `min-width` or `min-height` property.
+/// Unlike `max-width` or `max-height` properties, a MinLength can be
+/// `auto`, and cannot be `none`.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum MinLength {
+    LengthOrPercentage(LengthOrPercentage),
+    Auto,
+    ExtremumLength(ExtremumLength),
+}
+
+impl HasViewportPercentage for MinLength {
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            MinLength::LengthOrPercentage(ref lop) => lop.has_viewport_percentage(),
+            _ => false
+        }
+    }
+}
+
+impl ToCss for MinLength {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            MinLength::LengthOrPercentage(ref lop) =>
+                lop.to_css(dest),
+            MinLength::Auto =>
+                dest.write_str("auto"),
+            MinLength::ExtremumLength(ref ext) =>
+                ext.to_css(dest),
+        }
+    }
+}
+
+impl Parse for MinLength {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        input.try(ExtremumLength::parse).map(MinLength::ExtremumLength)
+            .or_else(|()| input.try(LengthOrPercentage::parse_non_negative).map(MinLength::LengthOrPercentage))
+            .or_else(|()| {
+                match_ignore_ascii_case! { try!(input.expect_ident()),
+                    "auto" =>
+                        Ok(MinLength::Auto),
+                    _ => Err(())
+                }
+            })
+    }
+}
+
+/// A value suitable for a `max-width` or `max-height` property.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[allow(missing_docs)]
+pub enum MaxLength {
+    LengthOrPercentage(LengthOrPercentage),
+    None,
+    ExtremumLength(ExtremumLength),
+}
+
+impl HasViewportPercentage for MaxLength {
+    fn has_viewport_percentage(&self) -> bool {
+        match *self {
+            MaxLength::LengthOrPercentage(ref lop) => lop.has_viewport_percentage(),
+            _ => false
+        }
+    }
+}
+
+impl ToCss for MaxLength {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            MaxLength::LengthOrPercentage(ref lop) =>
+                lop.to_css(dest),
+            MaxLength::None =>
+                dest.write_str("none"),
+            MaxLength::ExtremumLength(ref ext) =>
+                ext.to_css(dest),
+        }
+    }
+}
+
+impl Parse for MaxLength {
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+        input.try(ExtremumLength::parse).map(MaxLength::ExtremumLength)
+            .or_else(|()| input.try(LengthOrPercentage::parse_non_negative).map(MaxLength::LengthOrPercentage))
+            .or_else(|()| {
+                match_ignore_ascii_case! { try!(input.expect_ident()),
+                    "none" =>
+                        Ok(MaxLength::None),
+                    _ => Err(())
+                }
+            })
     }
 }

@@ -218,23 +218,40 @@ ${helpers.predefined_type("flex-basis",
                               spec=spec % size,
                               animatable=True, logical = logical)}
 
-    // min-width, min-height, min-block-size, min-inline-size
-    ${helpers.predefined_type("min-%s" % size,
-                              "LengthOrPercentage",
-                              "computed::LengthOrPercentage::Length(Au(0))",
-                              "parse_non_negative",
-                              needs_context=False,
-                              spec=spec % ("min-%s" % size),
-                              animatable=True, logical = logical)}
+    % if product == "gecko":
+        // min-width, min-height, min-block-size, min-inline-size
+        ${helpers.predefined_type("min-%s" % size,
+                                  "MinLength",
+                                  "computed::MinLength::LengthOrPercentage(" +
+                                  "computed::LengthOrPercentage::Length(Au(0)))",
+                                  spec=spec % ("min-%s" % size),
+                                  animatable=True, logical = logical)}
+    % else:
+        ${helpers.predefined_type("min-%s" % size,
+                                  "LengthOrPercentage",
+                                  "computed::LengthOrPercentage::Length(Au(0))",
+                                  "parse_non_negative",
+                                  needs_context=False,
+                                  spec=spec % ("min-%s" % size),
+                                  animatable=True, logical = logical)}
+    % endif
 
     // max-width, max-height, max-block-size, max-inline-size
-    ${helpers.predefined_type("max-%s" % size,
-                              "LengthOrPercentageOrNone",
-                              "computed::LengthOrPercentageOrNone::None",
-                              "parse_non_negative",
-                              needs_context=False,
-                              spec=spec % ("max-%s" % size),
-                              animatable=True, logical = logical)}
+    % if product == "gecko":
+        ${helpers.predefined_type("max-%s" % size,
+                                  "MaxLength",
+                                  "computed::MaxLength::None",
+                                  spec=spec % ("max-%s" % size),
+                                  animatable=True, logical = logical)}
+    % else:
+        ${helpers.predefined_type("max-%s" % size,
+                                  "LengthOrPercentageOrNone",
+                                  "computed::LengthOrPercentageOrNone::None",
+                                  "parse_non_negative",
+                                  needs_context=False,
+                                  spec=spec % ("max-%s" % size),
+                                  animatable=True, logical = logical)}
+    % endif
 % endfor
 
 ${helpers.single_keyword("box-sizing",
