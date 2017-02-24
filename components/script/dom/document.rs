@@ -2710,8 +2710,7 @@ impl DocumentMethods for Document {
             "progressevent" =>
                 Ok(Root::upcast(ProgressEvent::new_uninitialized(self.window.upcast()))),
             "storageevent" => {
-                let USVString(url) = self.URL();
-                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))
+                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, "".into())))
             },
             "touchevent" =>
                 Ok(Root::upcast(
