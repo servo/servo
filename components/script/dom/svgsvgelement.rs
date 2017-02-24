@@ -12,6 +12,7 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::node::Node;
 use dom::svggraphicselement::SVGGraphicsElement;
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use script_layout_interface::SVGSVGData;
 use style::attr::AttrValue;

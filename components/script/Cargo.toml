@@ -37,6 +37,7 @@ cookie = "0.2.5"
 cssparser = {version = "0.10", features = ["heapsize", "serde"]}
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
+dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}
 encoding = "0.2"
 euclid = "0.11"

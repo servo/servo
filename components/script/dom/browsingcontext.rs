@@ -15,6 +15,7 @@ use dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use dom::element::Element;
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};

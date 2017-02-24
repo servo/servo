@@ -10,6 +10,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
 use dom::urlhelper::UrlHelper;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use servo_url::ServoUrl;
 
 #[dom_struct]

@@ -8,6 +8,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::file::File;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use std::slice::Iter;
 
 // https://w3c.github.io/FileAPI/#dfn-filelist

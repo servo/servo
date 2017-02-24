@@ -14,6 +14,7 @@ use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use servo_atoms::Atom;

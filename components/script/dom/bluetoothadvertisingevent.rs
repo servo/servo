@@ -14,6 +14,7 @@ use dom::bluetoothdevice::BluetoothDevice;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use servo_atoms::Atom;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothadvertisingevent

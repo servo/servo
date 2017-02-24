@@ -19,6 +19,7 @@ use dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::servoparser::ServoParser;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use script_traits::DocumentActivity;
 
 #[dom_struct]

@@ -18,6 +18,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, Node, UnbindContext, document_from_node, window_from_node};
 use dom::stylesheet::StyleSheet as DOMStyleSheet;
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use net_traits::ReferrerPolicy;
 use script_layout_interface::message::Msg;

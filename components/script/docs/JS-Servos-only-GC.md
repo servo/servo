@@ -138,6 +138,8 @@ Let's look at [Servo's implementation][document-rs] of the DOM's
 [document-mdn]: https://developer.mozilla.org/en-US/docs/Web/API/document
 
 ```rust
+use dom_struct::dom_struct;
+
 #[dom_struct]
 pub struct Document {
     node: Node,

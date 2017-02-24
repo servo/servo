@@ -18,6 +18,7 @@ use dom::document::Document;
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::mediaquerylistevent::MediaQueryListEvent;
+use dom_struct::dom_struct;
 use js::jsapi::JSTracer;
 use std::cell::Cell;
 use std::rc::Rc;

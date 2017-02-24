@@ -13,6 +13,7 @@ use dom::cssrule::SpecificCSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::medialist::MediaList;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::media_queries::parse_media_query_list;

@@ -87,6 +87,7 @@ use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
+use dom_struct::dom_struct;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;

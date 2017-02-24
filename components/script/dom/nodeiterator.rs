@@ -13,6 +13,7 @@ use dom::bindings::js::{JS, MutJS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::node::Node;
+use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::rc::Rc;
 

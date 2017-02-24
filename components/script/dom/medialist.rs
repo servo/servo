@@ -10,6 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::media_queries::{MediaQuery, parse_media_query_list};

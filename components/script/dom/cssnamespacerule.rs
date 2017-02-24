@@ -10,6 +10,7 @@ use dom::bindings::str::DOMString;
 use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::stylesheets::NamespaceRule;

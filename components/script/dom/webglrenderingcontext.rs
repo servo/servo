@@ -34,6 +34,7 @@ use dom::webglshader::WebGLShader;
 use dom::webgltexture::{TexParameterValue, WebGLTexture};
 use dom::webgluniformlocation::WebGLUniformLocation;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
 use js::conversions::ConversionBehavior;

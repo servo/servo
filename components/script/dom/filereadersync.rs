@@ -8,6 +8,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct FileReaderSync {

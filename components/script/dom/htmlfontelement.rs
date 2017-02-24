@@ -13,6 +13,7 @@ use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use servo_atoms::Atom;
 use style::attr::AttrValue;

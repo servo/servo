@@ -13,6 +13,7 @@ use dom::cssrulelist::{CSSRuleList, RulesSource};
 use dom::element::Element;
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::sync::Arc;
 use style::stylesheets::Stylesheet as StyleStyleSheet;

@@ -10,6 +10,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use js::jsapi::{JSContext, JSObject};
 use js::jsapi::Type;
 use servo_rand::{ServoRng, Rng};

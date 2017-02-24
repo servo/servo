@@ -11,6 +11,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use msg::constellation_msg::TraversalDirection;
 use script_traits::ScriptMsg as ConstellationMsg;

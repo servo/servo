@@ -10,6 +10,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::fmt::{self, Display, Formatter};
 

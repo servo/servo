@@ -13,6 +13,7 @@ use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storage::Storage;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use servo_atoms::Atom;
 
 #[dom_struct]

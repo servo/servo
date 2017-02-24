@@ -10,6 +10,7 @@ use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
 use dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use js::jsapi::{JSContext, HandleValue};
 use js::jsval::{JSVal, UndefinedValue};

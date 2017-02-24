@@ -9,6 +9,7 @@ use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::performancetiming::PerformanceTiming;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use time;
 
 pub type DOMHighResTimeStamp = Finite<f64>;

@@ -6,12 +6,12 @@
 #![feature(conservative_impl_trait)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
-#![feature(field_init_shorthand)]
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 #![feature(on_unimplemented)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
+#![feature(proc_macro)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 #![feature(try_from)]
@@ -41,6 +41,7 @@ extern crate cssparser;
 #[macro_use]
 extern crate deny_public_fields;
 extern crate devtools_traits;
+extern crate dom_struct;
 #[macro_use]
 extern crate domobject_derive;
 extern crate encoding;

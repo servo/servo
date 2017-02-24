@@ -11,6 +11,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
 use ipc_channel::ipc;

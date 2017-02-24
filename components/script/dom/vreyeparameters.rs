@@ -10,6 +10,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
 use dom::vrfieldofview::VRFieldOfView;
+use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::typedarray::{Float32Array, CreateWith};
 use std::default::Default;

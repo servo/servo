@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 use euclid::size::Size2D;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::rust::Runtime;

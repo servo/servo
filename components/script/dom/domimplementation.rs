@@ -23,6 +23,7 @@ use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::Node;
 use dom::text::Text;
 use dom::xmldocument::XMLDocument;
+use dom_struct::dom_struct;
 use script_traits::DocumentActivity;
 
 // https://dom.spec.whatwg.org/#domimplementation

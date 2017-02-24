@@ -24,6 +24,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::webglrenderingcontext::{LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext};
+use dom_struct::dom_struct;
 use euclid::size::Size2D;
 use html5ever_atoms::LocalName;
 use image::ColorType;

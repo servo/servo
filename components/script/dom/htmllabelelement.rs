@@ -16,6 +16,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{document_from_node, Node};
 use dom::virtualmethods::VirtualMethods;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 use style::attr::AttrValue;
 

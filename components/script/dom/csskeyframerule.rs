@@ -11,6 +11,7 @@ use dom::cssrule::{CSSRule, SpecificCSSRule};
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::keyframes::Keyframe;

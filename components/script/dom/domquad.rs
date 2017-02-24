@@ -11,6 +11,7 @@ use dom::bindings::reflector::{DomObject, Reflector, reflect_dom_object};
 use dom::dompoint::DOMPoint;
 use dom::domrect::DOMRect;
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 
 // https://drafts.fxtf.org/geometry/#DOMQuad
 #[dom_struct]
