@@ -316,6 +316,16 @@ pub extern "C" fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValu
     }
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_AnimationValue_DeepEqual(this: RawServoAnimationValueBorrowed,
+                                                 other: RawServoAnimationValueBorrowed)
+     -> bool
+{
+    let this_value = AnimationValue::as_arc(&this);
+    let other_value = AnimationValue::as_arc(&other);
+    this_value == other_value
+}
+
 /// Takes a ServoAnimationValues and populates it with the animation values corresponding
 /// to a given property declaration block
 #[no_mangle]
