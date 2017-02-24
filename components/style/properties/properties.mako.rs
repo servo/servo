@@ -13,7 +13,7 @@
 use std::borrow::Cow;
 use std::boxed::Box as StdBox;
 use std::collections::HashSet;
-use std::fmt::{self, Write};
+use std::fmt;
 use std::sync::Arc;
 
 use app_units::Au;
@@ -549,59 +549,10 @@ impl ShorthandId {
         }
     }
 
-    /// Overflow does not behave like a normal shorthand. When overflow-x and
-    /// overflow-y are not of equal values, they no longer use the shared
-    /// property name "overflow".
+    /// Finds and returns an appendable value for the given declarations.
     ///
-    /// We use this function as a special-case for that.
-    pub fn overflow_longhands_to_css<'a, W, I>(&self,
-                                               declarations: I,
-                                               dest: &mut W)
-                                               -> fmt::Result
-        where W: fmt::Write,
-              I: Iterator<Item=&'a PropertyDeclaration>,
-    {
-        match *self {
-            ShorthandId::Overflow => {
-                match shorthands::overflow::LonghandsToSerialize::from_iter(declarations) {
-                    Ok(longhands) => longhands.to_css_declared_with_name(dest),
-                    Err(_) => Err(fmt::Error)
-                }
-            },
-            _ => Err(fmt::Error)
-        }
-    }
-
-    /// Serializes the possible shorthand name with value to input buffer given
-    /// a list of longhand declarations.
-    ///
-    /// On success, returns true if the shorthand value is written, or false if
-    /// no shorthand value is present.
-    pub fn serialize_shorthand_to_buffer<'a, W, I>(self,
-                                                   dest: &mut W,
-                                                   declarations: I,
-                                                   is_first_serialization: &mut bool,
-                                                   importance: Importance)
-                                                   -> Result<bool, fmt::Error>
-        where W: Write,
-              I: IntoIterator<Item=&'a PropertyDeclaration>,
-              I::IntoIter: Clone,
-    {
-        match self.get_shorthand_appendable_value(declarations) {
-            None => Ok(false),
-            Some(appendable_value) => {
-                append_serialization(
-                    dest,
-                    &self,
-                    appendable_value,
-                    importance,
-                    is_first_serialization
-                ).and_then(|_| Ok(true))
-            }
-        }
-    }
-
-    fn get_shorthand_appendable_value<'a, I>(self,
+    /// Returns the optional appendable value.
+    pub fn get_shorthand_appendable_value<'a, I>(self,
                                              declarations: I)
                                              -> Option<AppendableValue<'a, I::IntoIter>>
         where I: IntoIterator<Item=&'a PropertyDeclaration>,
