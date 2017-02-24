@@ -7,6 +7,7 @@ use gecko_bindings::structs::mozilla::css::URLValue;
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
+use gecko_bindings::structs::RawGeckoComputedKeyframeValuesList;
 use gecko_bindings::structs::RawGeckoNode;
 use gecko_bindings::structs::RawGeckoAnimationValueList;
 use gecko_bindings::structs::RawServoAnimationValue;
@@ -167,11 +168,6 @@ use gecko_bindings::structs::ServoStyleSheet;
 use gecko_bindings::structs::EffectCompositor_CascadeLevel;
 use gecko_bindings::structs::RawServoAnimationValueBorrowedListBorrowed;
 pub type nsTArrayBorrowed_uintptr_t<'a> = &'a mut ::gecko_bindings::structs::nsTArray<usize>;
-pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
-pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
-pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
-enum ServoComputedValuesVoid { }
-pub struct ServoComputedValues(ServoComputedValuesVoid);
 pub type ServoCssRulesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoCssRules>;
 pub type ServoCssRulesBorrowed<'a> = &'a ServoCssRules;
 pub type ServoCssRulesBorrowedOrNull<'a> = Option<&'a ServoCssRules>;
@@ -182,6 +178,11 @@ pub type RawServoStyleSheetBorrowed<'a> = &'a RawServoStyleSheet;
 pub type RawServoStyleSheetBorrowedOrNull<'a> = Option<&'a RawServoStyleSheet>;
 enum RawServoStyleSheetVoid { }
 pub struct RawServoStyleSheet(RawServoStyleSheetVoid);
+pub type ServoComputedValuesStrong = ::gecko_bindings::sugar::ownership::Strong<ServoComputedValues>;
+pub type ServoComputedValuesBorrowed<'a> = &'a ServoComputedValues;
+pub type ServoComputedValuesBorrowedOrNull<'a> = Option<&'a ServoComputedValues>;
+enum ServoComputedValuesVoid { }
+pub struct ServoComputedValues(ServoComputedValuesVoid);
 pub type RawServoDeclarationBlockStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoDeclarationBlock>;
 pub type RawServoDeclarationBlockBorrowed<'a> = &'a RawServoDeclarationBlock;
 pub type RawServoDeclarationBlockBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlock>;
@@ -242,6 +243,10 @@ pub type RawGeckoKeyframeListBorrowed<'a> = &'a RawGeckoKeyframeList;
 pub type RawGeckoKeyframeListBorrowedOrNull<'a> = Option<&'a RawGeckoKeyframeList>;
 pub type RawGeckoKeyframeListBorrowedMut<'a> = &'a mut RawGeckoKeyframeList;
 pub type RawGeckoKeyframeListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoKeyframeList>;
+pub type RawGeckoComputedKeyframeValuesListBorrowed<'a> = &'a RawGeckoComputedKeyframeValuesList;
+pub type RawGeckoComputedKeyframeValuesListBorrowedOrNull<'a> = Option<&'a RawGeckoComputedKeyframeValuesList>;
+pub type RawGeckoComputedKeyframeValuesListBorrowedMut<'a> = &'a mut RawGeckoComputedKeyframeValuesList;
+pub type RawGeckoComputedKeyframeValuesListBorrowedMutOrNull<'a> = Option<&'a mut RawGeckoComputedKeyframeValuesList>;
 
 extern "C" {
     pub fn Gecko_EnsureTArrayCapacity(aArray: *mut ::std::os::raw::c_void,
@@ -1336,14 +1341,15 @@ extern "C" {
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
-    pub fn Servo_AnimationValues_Populate(arg1:
-                                              RawGeckoAnimationValueListBorrowedMut,
-                                          arg2:
-                                              RawServoDeclarationBlockBorrowed,
-                                          arg3: ServoComputedValuesBorrowed,
-                                          arg4:
-                                              ServoComputedValuesBorrowedOrNull,
-                                          arg5: RawGeckoPresContextBorrowed);
+    pub fn Servo_GetComputedKeyframeValues(keyframes:
+                                               RawGeckoKeyframeListBorrowed,
+                                           style: ServoComputedValuesBorrowed,
+                                           parent_style:
+                                               ServoComputedValuesBorrowedOrNull,
+                                           pres_context:
+                                               RawGeckoPresContextBorrowed,
+                                           result:
+                                               RawGeckoComputedKeyframeValuesListBorrowedMut);
 }
 extern "C" {
     pub fn Servo_AnimationValues_Interpolate(from:
@@ -1374,6 +1380,13 @@ extern "C" {
                                                  RawServoAnimationValueBorrowed,
                                              list:
                                                  *mut RefPtr<nsCSSValueSharedList>);
+}
+extern "C" {
+    pub fn Servo_AnimationValue_DeepEqual(arg1:
+                                              RawServoAnimationValueBorrowed,
+                                          arg2:
+                                              RawServoAnimationValueBorrowed)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_ParseStyleAttribute(data: *const nsACString_internal)

@@ -32,6 +32,7 @@ use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::DUMMY_BASE_URL;
 use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
+use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoStyleRuleBorrowed, RawServoStyleRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
@@ -40,9 +41,8 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
-use style::gecko_bindings::bindings::RawGeckoAnimationValueListBorrowedMut;
+use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
-use style::gecko_bindings::bindings::RawGeckoKeyframeListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
@@ -324,65 +324,6 @@ pub extern "C" fn Servo_AnimationValue_DeepEqual(this: RawServoAnimationValueBor
     let this_value = AnimationValue::as_arc(&this);
     let other_value = AnimationValue::as_arc(&other);
     this_value == other_value
-}
-
-/// Takes a ServoAnimationValues and populates it with the animation values corresponding
-/// to a given property declaration block
-#[no_mangle]
-pub extern "C" fn Servo_AnimationValues_Populate(anim: RawGeckoAnimationValueListBorrowedMut,
-                                                 declarations: RawServoDeclarationBlockBorrowed,
-                                                 style: ServoComputedValuesBorrowed,
-                                                 parent_style: ServoComputedValuesBorrowedOrNull,
-                                                 pres_context: RawGeckoPresContextBorrowed)
-{
-    use style::properties::declaration_block::Importance;
-    use style::values::computed::Context;
-
-    let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
-    // FIXME this might not be efficient since Populate
-    // is called multiple times. We should precalculate the Context
-    // and share it across Populate calls
-    let style = ComputedValues::as_arc(&style);
-    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let guard = declarations.read();
-
-    let init = ComputedValues::default_values(pres_context);
-
-    let context = Context {
-        is_root_element: false,
-        // FIXME (bug 1303229): Use the actual viewport size here
-        viewport_size: Size2D::new(Au(0), Au(0)),
-        inherited_style: parent_style.unwrap_or(&init),
-        style: (**style).clone(),
-        font_metrics_provider: None,
-    };
-
-    let mut iter = guard.declarations
-                    .iter()
-                    .filter_map(|&(ref decl, imp)| {
-                        if imp == Importance::Normal {
-                            AnimationValue::from_declaration(decl, &context, &init)
-                        } else {
-                            None
-                        }
-                    });
-
-    let mut geckoiter = anim.iter_mut();
-    {
-        // we reborrow to scope the consumed mutable borrow
-        // we need to be able to ensure geckoiter is empty later on
-        // and thus can't directly use `geckoiter`
-        let local_geckoiter = &mut geckoiter;
-        for (gecko, servo) in local_geckoiter.zip(&mut iter) {
-            gecko.mValue.mServo.set_arc_leaky(Arc::new(servo));
-        }
-    }
-
-    // we should have gone through both iterators
-    if iter.next().is_some() || geckoiter.next().is_some() {
-        warn!("stylo: Mismatched sizes of Gecko and Servo \
-               array during animation value construction");
-    }
 }
 
 #[no_mangle]
@@ -1385,6 +1326,76 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
                   |styles| result = Some(finish(styles)));
 
     result.unwrap().into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeListBorrowed,
+                                                  style: ServoComputedValuesBorrowed,
+                                                  parent_style: ServoComputedValuesBorrowedOrNull,
+                                                  pres_context: RawGeckoPresContextBorrowed,
+                                                  computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut)
+{
+    use style::properties::declaration_block::Importance;
+    use style::properties::property_bit_field::PropertyBitField;
+    use style::values::computed::Context;
+
+    let style = ComputedValues::as_arc(&style);
+    let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
+    let init = ComputedValues::default_values(pres_context);
+
+    let context = Context {
+        is_root_element: false,
+        // FIXME (bug 1303229): Use the actual viewport size here
+        viewport_size: Size2D::new(Au(0), Au(0)),
+        inherited_style: parent_style.unwrap_or(&init),
+        style: (**style).clone(),
+        font_metrics_provider: None,
+    };
+
+    for (index, keyframe) in keyframes.iter().enumerate() {
+        let ref mut animation_values = computed_keyframes[index];
+
+        let mut seen = PropertyBitField::new();
+
+        // mServoDeclarationBlock is null in the case where we have an invalid css property.
+        let iter = keyframe.mPropertyValues.iter()
+                                           .filter(|&property| !property.mServoDeclarationBlock.mRawPtr.is_null());
+        for property in iter {
+            let declarations = unsafe { &*property.mServoDeclarationBlock.mRawPtr.clone() };
+            let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+            let guard = declarations.read();
+
+            let anim_iter = guard.declarations
+                            .iter()
+                            .filter_map(|&(ref decl, imp)| {
+                                if imp == Importance::Normal {
+                                    let property = TransitionProperty::from_declaration(decl);
+                                    let animation = AnimationValue::from_declaration(decl, &context, &init);
+                                    debug_assert!(property.is_none() == animation.is_none(),
+                                                  "The failure condition of TransitionProperty::from_declaration \
+                                                   and AnimationValue::from_declaration should be the same");
+                                    // Skip the property if either ::from_declaration fails.
+                                    if property.is_none() || animation.is_none() {
+                                        None
+                                    } else {
+                                        Some((property.unwrap(), animation.unwrap()))
+                                    }
+                                } else {
+                                    None
+                                }
+                            });
+
+            for (i, anim) in anim_iter.enumerate() {
+                if !seen.has_transition_property_bit(&anim.0) {
+                    // This is safe since we immediately write to the uninitialized values.
+                    unsafe { animation_values.set_len((i + 1) as u32) };
+                    seen.set_transition_property_bit(&anim.0);
+                    animation_values[i].mProperty = anim.0.into();
+                    animation_values[i].mValue.mServo.set_arc_leaky(Arc::new(anim.1));
+                }
+            }
+        }
+    }
 }
 
 
