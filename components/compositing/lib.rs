@@ -30,7 +30,7 @@ use euclid::size::TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg};
-use style_traits::PagePx;
+use style_traits::CSSPixel;
 
 mod compositor;
 pub mod compositor_thread;
@@ -40,7 +40,7 @@ pub mod windowing;
 
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
-    pub size: Option<TypedSize2D<f32, PagePx>>,
+    pub size: Option<TypedSize2D<f32, CSSPixel>>,
     pub children: Vec<SendableFrameTree>,
 }
 

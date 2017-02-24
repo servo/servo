@@ -67,7 +67,7 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::mpsc::{Receiver, Sender};
-use style_traits::{PagePx, UnsafeNode, ViewportPx};
+use style_traits::{CSSPixel, UnsafeNode};
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webvr_traits::{WebVRDisplayEvent, WebVRMsg};
 
@@ -663,13 +663,10 @@ pub enum DevicePixel {}
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
-    pub initial_viewport: TypedSize2D<f32, ViewportPx>,
-
-    /// The "viewing area" in page px. See `PagePx` documentation for details.
-    pub visible_viewport: TypedSize2D<f32, PagePx>,
+    pub initial_viewport: TypedSize2D<f32, CSSPixel>,
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
-    pub device_pixel_ratio: ScaleFactor<f32, ViewportPx, DevicePixel>,
+    pub device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
 }
 
 /// The type of window size change.

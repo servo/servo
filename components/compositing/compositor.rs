@@ -34,7 +34,7 @@ use std::fs::File;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
-use style_traits::{PagePx, ViewportPx};
+use style_traits::{CSSPixel, PinchZoomFactor};
 use style_traits::viewport::ViewportConstraints;
 use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
@@ -147,15 +147,14 @@ pub struct IOCompositor<Window: WindowMethods> {
     viewport: Option<(TypedPoint2D<u32, DevicePixel>, TypedSize2D<u32, DevicePixel>)>,
 
     /// "Mobile-style" zoom that does not reflow the page.
-    viewport_zoom: ScaleFactor<f32, PagePx, ViewportPx>,
+    viewport_zoom: PinchZoomFactor,
 
     /// Viewport zoom constraints provided by @viewport.
-    min_viewport_zoom: Option<ScaleFactor<f32, PagePx, ViewportPx>>,
-    max_viewport_zoom: Option<ScaleFactor<f32, PagePx, ViewportPx>>,
+    min_viewport_zoom: Option<PinchZoomFactor>,
+    max_viewport_zoom: Option<PinchZoomFactor>,
 
     /// "Desktop-style" zoom that resizes the viewport to fit the window.
-    /// See `ViewportPx` docs in util/geom.rs for details.
-    page_zoom: ScaleFactor<f32, ViewportPx, DeviceIndependentPixel>,
+    page_zoom: ScaleFactor<f32, CSSPixel, DeviceIndependentPixel>,
 
     /// The device pixel ratio for this window.
     scale_factor: ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>,
@@ -402,7 +401,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             composite_target: composite_target,
             shutdown_state: ShutdownState::NotShuttingDown,
             page_zoom: ScaleFactor::new(1.0),
-            viewport_zoom: ScaleFactor::new(1.0),
+            viewport_zoom: PinchZoomFactor::new(1.0),
             min_viewport_zoom: None,
             max_viewport_zoom: None,
             zoom_action: false,
@@ -758,11 +757,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn send_window_size(&self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.hidpi_factor();
         let initial_viewport = self.window_size.to_f32() / dppx;
-        let visible_viewport = initial_viewport / self.viewport_zoom;
         let msg = ConstellationMsg::WindowSize(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
-            visible_viewport: visible_viewport,
         }, size_type);
 
         if let Err(e) = self.constellation_chan.send(msg) {
@@ -1282,8 +1279,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
 
         if is_root {
-            // TODO: actual viewport size
-
             self.viewport_zoom = constraints.initial_zoom;
             self.min_viewport_zoom = constraints.min_zoom;
             self.max_viewport_zoom = constraints.max_zoom;
@@ -1301,8 +1296,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn device_pixels_per_page_px(&self) -> ScaleFactor<f32, PagePx, DevicePixel> {
-        self.viewport_zoom * self.page_zoom * self.hidpi_factor()
+    fn device_pixels_per_page_px(&self) -> ScaleFactor<f32, CSSPixel, DevicePixel> {
+        self.page_zoom * self.hidpi_factor()
     }
 
     fn update_zoom_transform(&mut self) {
@@ -1710,7 +1705,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     pub fn pinch_zoom_level(&self) -> f32 {
-        self.viewport_zoom.get() as f32
+        // TODO(gw): Access via WR.
+        1.0
     }
 
     pub fn title_for_main_frame(&self) {

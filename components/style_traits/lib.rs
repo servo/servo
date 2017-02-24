@@ -26,33 +26,41 @@ extern crate rustc_serialize;
 /// Must be transmutable to and from `TNode`.
 pub type UnsafeNode = (usize, usize);
 
+/// Represents a mobile style pinch zoom factor.
+/// TODO(gw): Once WR supports pinch zoom, use a type directly from webrender_traits.
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize, HeapSizeOf))]
+pub struct PinchZoomFactor(f32);
+
+impl PinchZoomFactor {
+    /// Construct a new pinch zoom factor.
+    pub fn new(scale: f32) -> PinchZoomFactor {
+        PinchZoomFactor(scale)
+    }
+
+    /// Get the pinch zoom factor as an untyped float.
+    pub fn get(&self) -> f32 {
+        self.0
+    }
+}
+
 /// One CSS "px" in the coordinate system of the "initial viewport":
 /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
 ///
-/// `ViewportPx` is equal to `DeviceIndependentPixel` times a "page zoom" factor controlled by the user.  This is
+/// `CSSPixel` is equal to `DeviceIndependentPixel` times a "page zoom" factor controlled by the user.  This is
 /// the desktop-style "full page" zoom that enlarges content but then reflows the layout viewport
 /// so it still exactly fits the visible area.
 ///
-/// At the default zoom level of 100%, one `PagePx` is equal to one `DeviceIndependentPixel`.  However, if the
+/// At the default zoom level of 100%, one `CSSPixel` is equal to one `DeviceIndependentPixel`.  However, if the
 /// document is zoomed in or out then this scale may be larger or smaller.
 #[derive(Clone, Copy, Debug)]
-pub enum ViewportPx {}
-
-/// One CSS "px" in the root coordinate system for the content document.
-///
-/// `PagePx` is equal to `ViewportPx` multiplied by a "viewport zoom" factor controlled by the user.
-/// This is the mobile-style "pinch zoom" that enlarges content without reflowing it.  When the
-/// viewport zoom is not equal to 1.0, then the layout viewport is no longer the same physical size
-/// as the viewable area.
-#[derive(Clone, Copy, Debug)]
-pub enum PagePx {}
+pub enum CSSPixel {}
 
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
 //
 // DevicePixel
 //   / hidpi_ratio => DeviceIndependentPixel
-//     / desktop_zoom => ViewportPx
-//       / pinch_zoom => PagePx
+//     / desktop_zoom => CSSPixel
 
 pub mod cursor;
 #[macro_use]

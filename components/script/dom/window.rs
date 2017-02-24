@@ -774,7 +774,7 @@ impl WindowMethods for Window {
     //TODO Include Scrollbar
     fn InnerHeight(&self) -> i32 {
         self.window_size.get()
-                        .and_then(|e| e.visible_viewport.height.to_i32())
+                        .and_then(|e| e.initial_viewport.height.to_i32())
                         .unwrap_or(0)
     }
 
@@ -782,7 +782,7 @@ impl WindowMethods for Window {
     //TODO Include Scrollbar
     fn InnerWidth(&self) -> i32 {
         self.window_size.get()
-                        .and_then(|e| e.visible_viewport.width.to_i32())
+                        .and_then(|e| e.initial_viewport.width.to_i32())
                         .unwrap_or(0)
     }
 

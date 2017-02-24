@@ -12,7 +12,6 @@
 use app_units::Au;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, parse_important};
 use cssparser::ToCss as ParserToCss;
-use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use media_queries::Device;
 use parser::{ParserContext, log_css_error};
@@ -21,7 +20,7 @@ use std::borrow::Cow;
 use std::fmt;
 use std::iter::Enumerate;
 use std::str::Chars;
-use style_traits::ToCss;
+use style_traits::{PinchZoomFactor, ToCss};
 use style_traits::viewport::{Orientation, UserZoom, ViewportConstraints, Zoom};
 use stylesheets::{Stylesheet, Origin};
 use values::computed::{Context, ToComputedValue};
@@ -796,9 +795,9 @@ impl MaybeNew for ViewportConstraints {
             size: TypedSize2D::new(width.to_f32_px(), height.to_f32_px()),
 
             // TODO: compute a zoom factor for 'auto' as suggested by DEVICE-ADAPT § 10.
-            initial_zoom: ScaleFactor::new(initial_zoom.unwrap_or(1.)),
-            min_zoom: min_zoom.map(ScaleFactor::new),
-            max_zoom: max_zoom.map(ScaleFactor::new),
+            initial_zoom: PinchZoomFactor::new(initial_zoom.unwrap_or(1.)),
+            min_zoom: min_zoom.map(PinchZoomFactor::new),
+            max_zoom: max_zoom.map(PinchZoomFactor::new),
 
             user_zoom: user_zoom,
             orientation: orientation

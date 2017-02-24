@@ -35,7 +35,7 @@ use std::ffi::OsStr;
 use std::process;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
-use style_traits::{PagePx, ViewportPx};
+use style_traits::CSSPixel;
 use webrender_traits;
 use webvr_traits::WebVRMsg;
 
@@ -76,7 +76,7 @@ pub struct Pipeline {
 
     /// The size of the frame.
     /// TODO: move this field to `Frame`.
-    pub size: Option<TypedSize2D<f32, PagePx>>,
+    pub size: Option<TypedSize2D<f32, CSSPixel>>,
 
     /// Whether this pipeline is currently running animations. Pipelines that are running
     /// animations cause composites to be continually scheduled.
@@ -149,10 +149,10 @@ pub struct InitialPipelineState {
     pub mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// Information about the initial window size.
-    pub window_size: Option<TypedSize2D<f32, PagePx>>,
+    pub window_size: Option<TypedSize2D<f32, CSSPixel>>,
 
     /// Information about the device pixel ratio.
-    pub device_pixel_ratio: ScaleFactor<f32, ViewportPx, DevicePixel>,
+    pub device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
 
     /// The event loop to run in, if applicable.
     pub event_loop: Option<Rc<EventLoop>>,
@@ -193,8 +193,7 @@ impl Pipeline {
         let device_pixel_ratio = state.device_pixel_ratio;
         let window_size = state.window_size.map(|size| {
             WindowSizeData {
-                visible_viewport: size,
-                initial_viewport: size * ScaleFactor::new(1.0),
+                initial_viewport: size,
                 device_pixel_ratio: device_pixel_ratio,
             }
         });
@@ -307,7 +306,7 @@ impl Pipeline {
                compositor_proxy: Box<CompositorProxy + 'static + Send>,
                is_private: bool,
                url: ServoUrl,
-               size: Option<TypedSize2D<f32, PagePx>>,
+               size: Option<TypedSize2D<f32, CSSPixel>>,
                visible: bool)
                -> Pipeline {
         let pipeline = Pipeline {
