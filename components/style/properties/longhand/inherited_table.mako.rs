@@ -31,7 +31,7 @@ ${helpers.single_keyword("caption-side", "top bottom",
         use app_units::Au;
         use properties::animated_properties::Interpolate;
 
-        #[derive(Clone, Copy, Debug, PartialEq, RustcEncodable)]
+        #[derive(Clone, Copy, Debug, PartialEq)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct T {
             pub horizontal: Au,

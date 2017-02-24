@@ -39,7 +39,7 @@
     }
 
     #[allow(non_camel_case_types)]
-    #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
     pub enum SpecifiedValue {
         % for value in values:

@@ -19,7 +19,6 @@ extern crate cssparser;
 extern crate euclid;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;
-extern crate rustc_serialize;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 
 /// Opaque type stored in type-unsafe work queues for parallel layout.
