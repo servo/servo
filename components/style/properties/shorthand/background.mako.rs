@@ -13,6 +13,8 @@
     use properties::longhands::{background_color, background_position_x, background_position_y, background_repeat};
     use properties::longhands::{background_attachment, background_image, background_size, background_origin};
     use properties::longhands::background_clip;
+    use properties::longhands::background_clip::single_value::computed_value::T as Clip;
+    use properties::longhands::background_origin::single_value::computed_value::T as Origin;
     use values::specified::position::Position;
     use parser::Parse;
 
@@ -134,27 +136,32 @@
                     _ => None,
                 }
             }
-            use std::cmp;
-            let mut len = 0;
-            % for name in "image position_x position_y repeat size attachment origin clip".split():
-                len = cmp::max(len, extract_value(self.background_${name}).map(|i| i.0.len())
-                                                                          .unwrap_or(0));
-            % endfor
 
+            let len = extract_value(self.background_image).map(|i| i.0.len()).unwrap_or(0);
             // There should be at least one declared value
             if len == 0 {
                 return dest.write_str("")
             }
 
+            // If a value list length is differs then we don't do a shorthand serialization.
+            // The exceptions to this is color which appears once only and is serialized
+            // with the last item.
+            % for name in "image position_x position_y size repeat origin clip attachment".split():
+                if len != extract_value(self.background_${name}).map(|i| i.0.len()).unwrap_or(0) {
+                    return dest.write_str("")
+                }
+            % endfor
+
             let mut first = true;
             for i in 0..len {
                 % for name in "image position_x position_y repeat size attachment origin clip".split():
                     let ${name} = if let DeclaredValue::Value(ref arr) = *self.background_${name} {
-                        arr.0.get(i % arr.0.len())
+                        &arr.0[i]
                     } else {
-                        None
+                        unreachable!()
                     };
                 % endfor
+
                 let color = if i == len - 1 {
                     Some(self.background_color)
                 } else {
@@ -178,74 +185,32 @@
                     None => ()
                 };
 
+                % for name in "image repeat attachment position_x position_y".split():
+                    try!(${name}.to_css(dest));
+                    try!(write!(dest, " "));
+                % endfor
 
-                if let Some(image) = image {
-                    try!(image.to_css(dest));
-                } else {
-                    try!(write!(dest, "none"));
-                }
-
+                try!(write!(dest, "/ "));
+                try!(size.to_css(dest));
                 try!(write!(dest, " "));
-
-                if let Some(repeat) = repeat {
-                    try!(repeat.to_css(dest));
-                } else {
-                    try!(write!(dest, "repeat"));
-                }
-
-                try!(write!(dest, " "));
-
-                if let Some(attachment) = attachment {
-                    try!(attachment.to_css(dest));
-                } else {
-                    try!(write!(dest, "scroll"));
-                }
-
-                try!(write!(dest, " "));
-
-                try!(position_x.unwrap_or(&background_position_x::single_value
-                                                                ::get_initial_position_value())
-                             .to_css(dest));
-
-                try!(write!(dest, " "));
-
-                try!(position_y.unwrap_or(&background_position_y::single_value
-                                                                ::get_initial_position_value())
-                             .to_css(dest));
-
-                if let Some(size) = size {
-                    try!(write!(dest, " / "));
-                    try!(size.to_css(dest));
-                }
 
                 match (origin, clip) {
-                    (Some(origin), Some(clip)) => {
-                        use properties::longhands::background_origin::single_value::computed_value::T as Origin;
-                        use properties::longhands::background_clip::single_value::computed_value::T as Clip;
-
-                        try!(write!(dest, " "));
-
-                        match (origin, clip) {
-                            (&Origin::padding_box, &Clip::padding_box) => {
-                                try!(origin.to_css(dest));
-                            },
-                            (&Origin::border_box, &Clip::border_box) => {
-                                try!(origin.to_css(dest));
-                            },
-                            (&Origin::content_box, &Clip::content_box) => {
-                                try!(origin.to_css(dest));
-                            },
-                            _ => {
-                                try!(origin.to_css(dest));
-                                try!(write!(dest, " "));
-                                try!(clip.to_css(dest));
-                            }
-                        }
+                    (&Origin::padding_box, &Clip::padding_box) => {
+                        try!(origin.to_css(dest));
                     },
-                    _ => {}
+                    (&Origin::border_box, &Clip::border_box) => {
+                        try!(origin.to_css(dest));
+                    },
+                    (&Origin::content_box, &Clip::content_box) => {
+                        try!(origin.to_css(dest));
+                    },
+                    _ => {
+                        try!(origin.to_css(dest));
+                        try!(write!(dest, " "));
+                        try!(clip.to_css(dest));
+                    }
                 };
             }
-
 
             Ok(())
         }
