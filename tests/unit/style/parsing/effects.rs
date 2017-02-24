@@ -8,6 +8,7 @@ use servo_url::ServoUrl;
 use style::parser::ParserContext;
 use style::stylesheets::Origin;
 use style_traits::ToCss;
+use style::properties::longhands;
 
 #[test]
 fn test_clip() {
@@ -33,3 +34,23 @@ fn test_clip() {
                                    "rect(auto, auto, auto, auto)");
 }
 
+#[test]
+fn test_longhands_parse_origin() {
+    let url = ServoUrl::parse("http://localhost").unwrap();
+    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+
+    let mut parser = Parser::new("1px 2px rubbish");
+    let parsed = longhands::parse_origin(&context, &mut parser);
+    assert_eq!(parsed.is_ok(), true);
+    assert_eq!(parser.is_exhausted(), false);
+
+    let mut parser = Parser::new("1px 2px");
+    let parsed = longhands::parse_origin(&context, &mut parser);
+    assert_eq!(parsed.is_ok(), true);
+    assert_eq!(parser.is_exhausted(), true);
+
+    let mut parser = Parser::new("1px");
+    let parsed = longhands::parse_origin(&context, &mut parser);
+    assert_eq!(parsed.is_ok(), true);
+    assert_eq!(parser.is_exhausted(), true);
+}
