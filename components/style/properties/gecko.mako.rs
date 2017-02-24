@@ -2286,8 +2286,8 @@ fn static_assert() {
                 self.gecko.mImageRegion.height = 0;
             }
             Either::First(rect) => {
-                self.gecko.mImageRegion.x = rect.left.0;
-                self.gecko.mImageRegion.y = rect.top.0;
+                self.gecko.mImageRegion.x = rect.left.unwrap_or(Au(0)).0;
+                self.gecko.mImageRegion.y = rect.top.unwrap_or(Au(0)).0;
                 self.gecko.mImageRegion.height = rect.bottom.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.y;
                 self.gecko.mImageRegion.width = rect.right.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.x;
             }
@@ -2356,6 +2356,8 @@ fn static_assert() {
     pub fn set_clip(&mut self, v: longhands::clip::computed_value::T) {
         use gecko_bindings::structs::NS_STYLE_CLIP_AUTO;
         use gecko_bindings::structs::NS_STYLE_CLIP_RECT;
+        use gecko_bindings::structs::NS_STYLE_CLIP_LEFT_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_TOP_AUTO;
         use gecko_bindings::structs::NS_STYLE_CLIP_RIGHT_AUTO;
         use gecko_bindings::structs::NS_STYLE_CLIP_BOTTOM_AUTO;
         use values::Either;
@@ -2363,8 +2365,19 @@ fn static_assert() {
         match v {
             Either::First(rect) => {
                 self.gecko.mClipFlags = NS_STYLE_CLIP_RECT as u8;
-                self.gecko.mClip.x = rect.left.0;
-                self.gecko.mClip.y = rect.top.0;
+                if let Some(left) = rect.left {
+                    self.gecko.mClip.x = left.0;
+                } else {
+                    self.gecko.mClip.x = 0;
+                    self.gecko.mClipFlags |= NS_STYLE_CLIP_LEFT_AUTO as u8;
+                }
+
+                if let Some(top) = rect.top {
+                    self.gecko.mClip.y = top.0;
+                } else {
+                    self.gecko.mClip.y = 0;
+                    self.gecko.mClipFlags |= NS_STYLE_CLIP_TOP_AUTO as u8;
+                }
 
                 if let Some(bottom) = rect.bottom {
                     self.gecko.mClip.height = bottom.0 - self.gecko.mClip.y;

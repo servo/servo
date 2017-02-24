@@ -1259,8 +1259,10 @@ impl FragmentDisplayListBuilding for Fragment {
         };
 
         // FIXME(pcwalton, #2795): Get the real container size.
-        let clip_origin = Point2D::new(stacking_relative_border_box.origin.x + style_clip_rect.left,
-                                       stacking_relative_border_box.origin.y + style_clip_rect.top);
+        let clip_origin = Point2D::new(stacking_relative_border_box.origin.x +
+                                           style_clip_rect.left.unwrap_or(Au(0)),
+                                       stacking_relative_border_box.origin.y +
+                                           style_clip_rect.top.unwrap_or(Au(0)));
         let right = style_clip_rect.right.unwrap_or(stacking_relative_border_box.size.width);
         let bottom = style_clip_rect.bottom.unwrap_or(stacking_relative_border_box.size.height);
         let clip_size = Size2D::new(right - clip_origin.x, bottom - clip_origin.y);
