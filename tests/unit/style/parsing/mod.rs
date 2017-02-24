@@ -82,6 +82,7 @@ mod background;
 mod basic_shape;
 mod border;
 mod column;
+mod effects;
 mod font;
 mod image;
 mod inherited_box;

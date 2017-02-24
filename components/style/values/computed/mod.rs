@@ -294,17 +294,22 @@ pub type LoPOrNumber = Either<LengthOrPercentage, Number>;
 #[allow(missing_docs)]
 /// A computed cliprect for clip and image-region
 pub struct ClipRect {
-    pub top: Au,
+    pub top: Option<Au>,
     pub right: Option<Au>,
     pub bottom: Option<Au>,
-    pub left: Au,
+    pub left: Option<Au>,
 }
 
 impl ToCss for ClipRect {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(dest.write_str("rect("));
-        try!(self.top.to_css(dest));
-        try!(dest.write_str(", "));
+        if let Some(top) = self.top {
+            try!(top.to_css(dest));
+            try!(dest.write_str(", "));
+        } else {
+            try!(dest.write_str("auto, "));
+        }
+
         if let Some(right) = self.right {
             try!(right.to_css(dest));
             try!(dest.write_str(", "));
@@ -319,7 +324,11 @@ impl ToCss for ClipRect {
             try!(dest.write_str("auto, "));
         }
 
-        try!(self.left.to_css(dest));
+        if let Some(left) = self.left {
+            try!(left.to_css(dest));
+        } else {
+            try!(dest.write_str("auto"));
+        }
         dest.write_str(")")
     }
 }

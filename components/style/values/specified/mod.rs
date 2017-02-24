@@ -849,10 +849,10 @@ impl LoPOrNumber {
 
 impl HasViewportPercentage for ClipRect {
     fn has_viewport_percentage(&self) -> bool {
-        self.top.has_viewport_percentage() ||
+        self.top.as_ref().map_or(false, |x| x.has_viewport_percentage()) ||
         self.right.as_ref().map_or(false, |x| x.has_viewport_percentage()) ||
         self.bottom.as_ref().map_or(false, |x| x.has_viewport_percentage()) ||
-        self.left.has_viewport_percentage()
+        self.left.as_ref().map_or(false, |x| x.has_viewport_percentage())
     }
 }
 
@@ -860,14 +860,14 @@ impl HasViewportPercentage for ClipRect {
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 /// rect(<top>, <left>, <bottom>, <right>) used by clip and image-region
 pub struct ClipRect {
-    /// <top> (<length> | <auto>). Auto maps to 0
-    pub top: Length,
+    /// <top> (<length> | <auto>)
+    pub top: Option<Length>,
     /// <right> (<length> | <auto>)
     pub right: Option<Length>,
     /// <bottom> (<length> | <auto>)
     pub bottom: Option<Length>,
-    /// <left> (<length> | <auto>). Auto maps to 0
-    pub left: Length,
+    /// <left> (<length> | <auto>)
+    pub left: Option<Length>,
 }
 
 
@@ -875,8 +875,12 @@ impl ToCss for ClipRect {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(dest.write_str("rect("));
 
-        try!(self.top.to_css(dest));
-        try!(dest.write_str(", "));
+        if let Some(ref top) = self.top {
+            try!(top.to_css(dest));
+            try!(dest.write_str(", "));
+        } else {
+            try!(dest.write_str("auto, "));
+        }
 
         if let Some(ref right) = self.right {
             try!(right.to_css(dest));
@@ -892,7 +896,11 @@ impl ToCss for ClipRect {
             try!(dest.write_str("auto, "));
         }
 
-        try!(self.left.to_css(dest));
+        if let Some(ref left) = self.left {
+            try!(left.to_css(dest));
+        } else {
+            try!(dest.write_str("auto"));
+        }
 
         try!(dest.write_str(")"));
         Ok(())
@@ -905,20 +913,20 @@ impl ToComputedValue for ClipRect {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> super::computed::ClipRect {
         super::computed::ClipRect {
-            top: self.top.to_computed_value(context),
+            top: self.top.as_ref().map(|top| top.to_computed_value(context)),
             right: self.right.as_ref().map(|right| right.to_computed_value(context)),
             bottom: self.bottom.as_ref().map(|bottom| bottom.to_computed_value(context)),
-            left: self.left.to_computed_value(context),
+            left: self.left.as_ref().map(|left| left.to_computed_value(context)),
         }
     }
 
     #[inline]
     fn from_computed_value(computed: &super::computed::ClipRect) -> Self {
         ClipRect {
-            top: ToComputedValue::from_computed_value(&computed.top),
+            top: computed.top.map(|top| ToComputedValue::from_computed_value(&top)),
             right: computed.right.map(|right| ToComputedValue::from_computed_value(&right)),
             bottom: computed.bottom.map(|bottom| ToComputedValue::from_computed_value(&bottom)),
-            left: ToComputedValue::from_computed_value(&computed.left),
+            left: computed.left.map(|left| ToComputedValue::from_computed_value(&left)),
         }
     }
 }
@@ -939,7 +947,6 @@ impl Parse for ClipRect {
             return Err(())
         }
 
-        // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
         input.parse_nested_block(|input| {
             let top = try!(parse_argument(context, input));
             let right;
@@ -958,10 +965,10 @@ impl Parse for ClipRect {
                 left = try!(parse_argument(context, input));
             }
             Ok(ClipRect {
-                top: top.unwrap_or(Length::zero()),
+                top: top,
                 right: right,
                 bottom: bottom,
-                left: left.unwrap_or(Length::zero()),
+                left: left,
             })
         })
     }
