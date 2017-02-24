@@ -10,7 +10,7 @@ name = "webdriver_server"
 path = "lib.rs"
 
 [dependencies]
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+cookie = "0.2.5"
 euclid = "0.11"
 hyper = "0.9.9"
 image = "0.12"

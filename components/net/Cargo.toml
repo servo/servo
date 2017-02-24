@@ -12,7 +12,7 @@ path = "lib.rs"
 [dependencies]
 brotli = "1.0.6"
 content-blocker = "0.2.3"
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+cookie = "0.2.5"
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
 hyper = "0.9.9"
@@ -38,7 +38,7 @@ servo_url = {path = "../url"}
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
-url = {version = "1.2", features = ["heap_size", "rustc-serialize"]}
+url = {version = "1.2", features = ["heap_size"]}
 uuid = {version = "0.4", features = ["v4"]}
 websocket = "0.17"
 

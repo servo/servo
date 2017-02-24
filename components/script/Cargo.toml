@@ -33,7 +33,7 @@ bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+cookie = "0.2.5"
 cssparser = {version = "0.10", features = ["heapsize", "serde"]}
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}

@@ -13,7 +13,7 @@ path = "lib.rs"
 app_units = "0.4"
 bluetooth_traits = {path = "../bluetooth_traits"}
 canvas_traits = {path = "../canvas_traits"}
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+cookie = "0.2.5"
 devtools_traits = {path = "../devtools_traits"}
 euclid = "0.11"
 gfx_traits = {path = "../gfx_traits"}
