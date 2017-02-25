@@ -594,37 +594,43 @@ mod shorthand_serialization {
         // TODO: Remove ignore when we can test with those products set.
         #[test]
         #[ignore]
-        fn should_serialize_to_empty_if_there_are_nondefault_subproperties() {
-            // Font shorthand properties
-            let font_family = DeclaredValue::Value(
-                FamilyContainer(vec![FontFamily::Generic(Atom::from("serif"))])
-            );
-            let font_style = DeclaredValue::Value(FontStyle::italic);
-            let font_variant = DeclaredValue::Value(FontVariant::normal);
-            let font_weight = DeclaredValue::Value(FontWeight::Bolder);
-            let font_size = DeclaredValue::Value(FontSizeContainer(
-                LengthOrPercentage::Length(NoCalcLength::from_px(4f32)))
-            );
-            let font_stretch = DeclaredValue::Value(FontStretch::expanded);
-            let line_height = DeclaredValue::Value(LineHeight::Number(3f32));
+        fn font_should_serialize_to_empty_if_there_are_nondefault_subproperties() {
+            let declarations = vec![
+                (PropertyDeclaration::FontStyle(DeclaredValue::Value(FontStyle::italic)),
+                    Importance::Normal),
+                (PropertyDeclaration::FontFamily(DeclaredValue::Value(
+                    FamilyContainer(vec![FontFamily::Generic(Atom::from("serif"))])
+                )), Importance::Normal),
+                (PropertyDeclaration::FontStyle(DeclaredValue::Value(FontStyle::italic)),
+                    Importance::Normal),
+                (PropertyDeclaration::FontVariant(DeclaredValue::Value(FontVariant::normal)),
+                    Importance::Normal),
+                (PropertyDeclaration::FontSize(DeclaredValue::Value(FontSizeContainer(
+                    LengthOrPercentage::Length(NoCalcLength::from_px(4f32)))
+                )), Importance::Normal),
+                (PropertyDeclaration::FontStretch(DeclaredValue::Value(FontStretch::expanded)),
+                    Importance::Normal),
+                (PropertyDeclaration::LineHeight(DeclaredValue::Value(LineHeight::Number(3f32))),
+                    Importance::Normal),
+                (PropertyDeclaration::FontWeight(DeclaredValue::Value(FontWeight::Bolder)),
+                    Importance::Normal),
+                (PropertyDeclaration::FontKerning(DeclaredValue::Value(FontKerning::none)),
+                    Importance::Normal),
+                (PropertyDeclaration::FontLanguageOverride(DeclaredValue::Value(FontLanguageOverride::Normal)),
+                    Importance::Normal),
+            ];
 
-            // Properties not part of the font shorthand
-            let font_kerning = DeclaredValue::Value(FontKerning::none);
-            let language_override = DeclaredValue::Value(FontLanguageOverride::Normal);
+            let block = PropertyDeclarationBlock {
+                declarations: declarations,
+                important_count: 0
+            };
 
-            let mut properties = Vec::new();
-            properties.push(PropertyDeclaration::FontFamily(font_family));
-            properties.push(PropertyDeclaration::FontStyle(font_style));
-            properties.push(PropertyDeclaration::FontVariant(font_variant));
-            properties.push(PropertyDeclaration::FontWeight(font_weight));
-            properties.push(PropertyDeclaration::FontSize(font_size));
-            properties.push(PropertyDeclaration::FontStretch(font_stretch));
-            properties.push(PropertyDeclaration::LineHeight(line_height));
-            properties.push(PropertyDeclaration::FontLanguageOverride(language_override));
-            properties.push(PropertyDeclaration::FontKerning(font_kerning));
+            let mut s = String::new();
+            let id = PropertyId::parse("font".into()).unwrap();
+            let x = block.property_value_to_css(&id, &mut s);
 
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "font-language-override: normal; font-kerning: none;");
+            assert_eq!(x.is_ok(), true);
+            assert_eq!(s, "");
         }
 
         #[test]
