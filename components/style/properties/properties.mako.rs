@@ -1960,10 +1960,14 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         % endif
         computed_values::display::T::flex |
         computed_values::display::T::inline_flex);
-    let (blockify_root, blockify_item) = match flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
-        false => (is_root_element, is_item),
-        true => (false, false),
-    };
+
+    let (blockify_root, blockify_item) =
+        if flags.contains(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP) {
+            (false, false)
+        } else {
+            (is_root_element, is_item)
+        };
+
     if positioned || floated || blockify_root || blockify_item {
         use computed_values::display::T;
 
@@ -2018,6 +2022,15 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
             }
             _ => {}
         }
+    }
+
+    // CSS 2.1 section 9.7:
+    //
+    //    If 'position' has the value 'absolute' or 'fixed', [...] the computed
+    //    value of 'float' is 'none'.
+    //
+    if positioned && floated {
+        style.mutate_box().set_float(longhands::float::computed_value::T::none);
     }
 
     // This implements an out-of-date spec. The new spec moves the handling of
