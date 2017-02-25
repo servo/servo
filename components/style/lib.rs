@@ -42,8 +42,8 @@ extern crate atomic_refcell;
 #[macro_use]
 extern crate bitflags;
 #[cfg(feature = "gecko")] #[macro_use] #[no_link] extern crate cfg_if;
-#[macro_use]
-extern crate cssparser;
+#[macro_use] extern crate cssparser;
+#[macro_use] extern crate cssparser_macros;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
