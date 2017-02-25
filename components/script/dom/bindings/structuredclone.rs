@@ -72,15 +72,20 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
     let sc_data: &mut StructuredCloneData = &mut *(closure as *mut StructuredCloneData);
     if let Ok(_) = root_from_handleobject::<Blob>(obj) {
         match *sc_data {
-            StructuredCloneData::Vector(ref vec_msg) => {
+            StructuredCloneData::Vector(ref vec) => {
+                let s = String::from_utf8(vec.to_owned()).unwrap();
+                let u32bytes = u32::from_str_radix(&s, 16).unwrap();
                 if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
-                                      vec_msg.as_ptr() as u32) {
+                                      u32bytes) {
                     return true
                 }
             },
-            StructuredCloneData::Struct(data, _) => {
+            StructuredCloneData::Struct(data, nbytes) => {
+                let vec = slice::from_raw_parts(data as *mut u8, nbytes).to_vec();
+                let s = String::from_utf8(vec).unwrap();
+                let u32bytes = u32::from_str_radix(&s, 16).unwrap();
                 if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
-                                      data as u32) {
+                                      u32bytes) {
                     return true
                 }
             }
