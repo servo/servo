@@ -11036,6 +11036,12 @@
      {}
     ]
    ],
+   "css/float-abspos.html": [
+    [
+     "/_mozilla/css/float-abspos.html",
+     {}
+    ]
+   ],
    "css/float_relative_to_position.html": [
     [
      "/_mozilla/css/float_relative_to_position.html",
@@ -20894,6 +20900,10 @@
   "css/flex_row_direction_ref.html": [
    "2712a0a76b5eeb4d0f2b4a45277d04791a8ff206",
    "support"
+  ],
+  "css/float-abspos.html": [
+   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
+   "testharness"
   ],
   "css/float_clearance_a.html": [
    "372652bf4c345098f864cfc52ad0fb274308b22c",
