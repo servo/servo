@@ -38,15 +38,23 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    closure: *mut raw::c_void) -> *mut JSObject {
     let sc_data: &mut StructuredCloneData = &mut *(closure as *mut StructuredCloneData);
     if tag == StructuredCloneTags::ScTagDomBlob as u32 {
-        let data_len = match *sc_data {
-            StructuredCloneData::Vector(ref vec_msg) => {
-                vec_msg.len()
+        let vec_data = match *sc_data {
+            StructuredCloneData::Vector(ref vec) => {
+                let vec_data = slice::from_raw_parts(data as *mut u8, vec.len() as usize).to_vec();
+                if *vec != vec_data {
+                    return Heap::default().get()
+                }
+                vec_data
             },
-            StructuredCloneData::Struct(_, len) => {
-                len
+            StructuredCloneData::Struct(data, len) => {
+                let vec_data = slice::from_raw_parts(data as *mut u8, len as usize).to_vec();
+                let vec = slice::from_raw_parts(data as *mut u8, len as usize).to_vec();
+                if vec != vec_data {
+                    return Heap::default().get()
+                }
+                vec_data
             }
         };
-        let vec_data = slice::from_raw_parts(data as *mut u8, data_len as usize).to_vec();
         let js_context = GlobalScope::from_context(cx);
         /// NOTE: missing the content-type string here.
         /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
