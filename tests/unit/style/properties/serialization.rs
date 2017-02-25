@@ -17,7 +17,7 @@ use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, Len
 use style::values::specified::url::SpecifiedUrl;
 use style_traits::ToCss;
 
-fn property_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
+fn parse_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
     let mut parser = Parser::new(css_properties);
@@ -564,46 +564,6 @@ mod shorthand_serialization {
     }
 
     #[test]
-    fn transition_should_serialize_all_available_properties() {
-        use euclid::point::Point2D;
-        use style::properties::animated_properties::TransitionProperty;
-        use style::properties::longhands::transition_delay::SpecifiedValue as DelayContainer;
-        use style::properties::longhands::transition_duration::SpecifiedValue as DurationContainer;
-        use style::properties::longhands::transition_property::SpecifiedValue as PropertyContainer;
-        use style::properties::longhands::transition_timing_function;
-        use style::values::specified::Time as TimeContainer;
-
-        let property_name = DeclaredValue::Value(
-            PropertyContainer(vec![TransitionProperty::MarginLeft])
-        );
-
-        let duration = DeclaredValue::Value(
-            DurationContainer(vec![TimeContainer(3f32)])
-        );
-
-        let delay = DeclaredValue::Value(
-            DelayContainer(vec![TimeContainer(4f32)])
-        );
-
-        let timing_function = DeclaredValue::Value(
-            transition_timing_function::SpecifiedValue(vec![
-                transition_timing_function::single_value::SpecifiedValue::CubicBezier(
-                    Point2D::new(0f32, 5f32), Point2D::new(5f32, 10f32))
-            ])
-        );
-
-        let mut properties = Vec::new();
-
-        properties.push(PropertyDeclaration::TransitionProperty(property_name));
-        properties.push(PropertyDeclaration::TransitionDelay(delay));
-        properties.push(PropertyDeclaration::TransitionDuration(duration));
-        properties.push(PropertyDeclaration::TransitionTimingFunction(timing_function));
-
-        let serialization = shorthand_properties_to_string(properties);
-        assert_eq!(serialization, "transition: margin-left 3s cubic-bezier(0, 5, 5, 10) 4s;");
-    }
-
-    #[test]
     fn flex_should_serialize_all_available_properties() {
         use style::values::specified::Number as NumberContainer;
         use style::values::specified::Percentage as PercentageContainer;
@@ -687,16 +647,6 @@ mod shorthand_serialization {
     }
     */
 
-    // TODO: Populate Atom Cache for testing so that the animation shorthand can be tested
-    /*
-    #[test]
-    fn animation_should_serialize_all_available_properties() {
-        let mut properties = Vec::new();
-
-        assert_eq!(serialization, "animation;");
-    }
-    */
-
     mod background {
         use super::*;
 
@@ -712,7 +662,7 @@ mod shorthand_serialization {
                 background-position-y: 4px; \
                 background-origin: border-box; \
                 background-clip: padding-box;";
-            let block = property_declaration_block(block_text);
+            let block = parse_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 
@@ -735,7 +685,7 @@ mod shorthand_serialization {
                 background-position-y: 4px; \
                 background-origin: padding-box; \
                 background-clip: padding-box;";
-            let block = property_declaration_block(block_text);
+            let block = parse_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 
@@ -758,7 +708,7 @@ mod shorthand_serialization {
                 background-position-y: 4px, 40px; \
                 background-origin: border-box, padding-box; \
                 background-clip: padding-box, padding-box;";
-            let block = property_declaration_block(block_text);
+            let block = parse_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 
@@ -788,7 +738,7 @@ mod shorthand_serialization {
                 background-position: 7px 4px; \
                 background-origin: border-box; \
                 background-clip: padding-box, padding-box;";
-            let block = property_declaration_block(block_text);
+            let block = parse_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 
@@ -1046,7 +996,7 @@ mod shorthand_serialization {
 
         #[test]
         fn serialize_single_animation() {
-            let block = property_declaration_block("\
+            let block = parse_declaration_block("\
                 animation-name: bounce;\
                 animation-duration: 1s;\
                 animation-timing-function: ease-in;\
@@ -1063,7 +1013,7 @@ mod shorthand_serialization {
 
         #[test]
         fn serialize_multiple_animations() {
-            let block = property_declaration_block("\
+            let block = parse_declaration_block("\
                 animation-name: bounce, roll;\
                 animation-duration: 1s, 0.2s;\
                 animation-timing-function: ease-in, linear;\
@@ -1096,7 +1046,7 @@ mod shorthand_serialization {
                 animation-fill-mode: forwards, backwards; \
                 animation-iteration-count: infinite, 2; \
                 animation-play-state: paused, running;";
-            let block = property_declaration_block(block_text);
+            let block = parse_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 
@@ -1112,7 +1062,58 @@ mod shorthand_serialization {
                               animation-fill-mode: forwards, backwards; \
                               animation-iteration-count: infinite, 2; \
                               animation-play-state: paused, running;";
-            let block = property_declaration_block(block_text);
+            let block = parse_declaration_block(block_text);
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, block_text);
+        }
+    }
+
+    mod transition {
+        pub use super::*;
+
+        #[test]
+        fn transition_should_serialize_all_available_properties() {
+            let block_text = "transition-property: margin-left; \
+                              transition-duration: 3s; \
+                              transition-delay: 4s; \
+                              transition-timing-function: cubic-bezier(0.2, 5, 0.5, 2);";
+            let block = parse_declaration_block(block_text);
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "transition: margin-left 3s cubic-bezier(0.2, 5, 0.5, 2) 4s;");
+        }
+
+        #[test]
+        fn serialize_multiple_transitions() {
+            let block_text = "transition-property: margin-left, width; \
+                              transition-duration: 3s, 2s; \
+                              transition-delay: 4s, 5s; \
+                              transition-timing-function: cubic-bezier(0.2, 5, 0.5, 2), ease;";
+            let block = parse_declaration_block(block_text);
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "transition: \
+                margin-left 3s cubic-bezier(0.2, 5, 0.5, 2) 4s, \
+                width 2s ease 5s;");
+        }
+
+        #[test]
+        fn serialize_multiple_transitions_unequal_property_lists() {
+            // When the lengths of property values are different, the shorthand serialization
+            // should not be used. Previously the implementation cycled values if the lists were
+            // uneven. This is incorrect, in that we should serialize to a shorthand only when the
+            // lists have the same length (this affects background, transition and animation).
+            // https://github.com/servo/servo/issues/15398 )
+            // The duration below has 1 extra value.
+            let block_text = "transition-property: margin-left, width; \
+                              transition-duration: 3s, 2s, 4s; \
+                              transition-delay: 4s, 5s; \
+                              transition-timing-function: cubic-bezier(0.2, 5, 0.5, 2), ease;";
+            let block = parse_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 

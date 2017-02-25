@@ -133,16 +133,51 @@ macro_rules! try_parse_one {
 
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.transition_property.to_css(dest));
-            try!(write!(dest, " "));
+            fn extract_value<T>(x: &DeclaredValue<T>) -> Option< &T> {
+                match *x {
+                    DeclaredValue::Value(ref val) => Some(val),
+                    _ => None,
+                }
+            }
 
-            try!(self.transition_duration.to_css(dest));
-            try!(write!(dest, " "));
+            let len = extract_value(self.transition_property).map(|i| i.0.len()).unwrap_or(0);
+            // There should be at least one declared value
+            if len == 0 {
+                return dest.write_str("")
+            }
 
-            try!(self.transition_timing_function.to_css(dest));
-            try!(write!(dest, " "));
+            // If any value list length is differs then we don't do a shorthand serialization
+            // either.
+            % for name in "property duration delay timing_function".split():
+                if len != extract_value(self.transition_${name}).map(|i| i.0.len()).unwrap_or(0) {
+                    return dest.write_str("")
+                }
+            % endfor
 
-            self.transition_delay.to_css(dest)
+            let mut first = true;
+            for i in 0..len {
+                % for name in "property duration delay timing_function".split():
+                    let ${name} = if let DeclaredValue::Value(ref arr) = *self.transition_${name} {
+                        &arr.0[i]
+                    } else {
+                        unreachable!()
+                    };
+                % endfor
+
+                if first {
+                    first = false;
+                } else {
+                    try!(write!(dest, ", "));
+                }
+
+                try!(property.to_css(dest));
+
+                % for name in "duration timing_function delay".split():
+                    try!(write!(dest, " "));
+                    try!(${name}.to_css(dest));
+                % endfor
+            }
+            Ok(())
         }
     }
 </%helpers:shorthand>
