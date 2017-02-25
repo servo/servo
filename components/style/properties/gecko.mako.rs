@@ -130,6 +130,11 @@ impl ComputedValues {
         })
     }
 
+    #[inline]
+    pub fn is_display_contents(&self) -> bool {
+        self.get_box().clone_display() == longhands::display::computed_value::T::contents
+    }
+
     % for style_struct in data.style_structs:
     #[inline]
     pub fn clone_${style_struct.name_lower}(&self) -> Arc<style_structs::${style_struct.name}> {

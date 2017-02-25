@@ -1424,6 +1424,11 @@ impl ComputedValues {
     /// Servo for obvious reasons.
     pub fn has_moz_binding(&self) -> bool { false }
 
+    /// Returns whether this style's display value is equal to contents.
+    ///
+    /// Since this isn't supported in Servo, this is always false for Servo.
+    pub fn is_display_contents(&self) -> bool { false }
+
     /// Get the root font size.
     fn root_font_size(&self) -> Au { self.root_font_size }
 
@@ -1761,14 +1766,16 @@ bitflags! {
 pub fn cascade(viewport_size: Size2D<Au>,
                rule_node: &StrongRuleNode,
                parent_style: Option<<&ComputedValues>,
+               layout_parent_style: Option<<&ComputedValues>,
                default_style: &Arc<ComputedValues>,
                cascade_info: Option<<&mut CascadeInfo>,
                error_reporter: StdBox<ParseErrorReporter + Send>,
                flags: CascadeFlags)
                -> ComputedValues {
-    let (is_root_element, inherited_style) = match parent_style {
-        Some(parent_style) => (false, parent_style),
-        None => (true, &**default_style),
+    debug_assert_eq!(parent_style.is_some(), layout_parent_style.is_some());
+    let (is_root_element, inherited_style, layout_parent_style) = match parent_style {
+        Some(parent_style) => (false, parent_style, layout_parent_style.unwrap()),
+        None => (true, &**default_style, &**default_style),
     };
     // Hold locks until after the apply_declarations() call returns.
     // Use filter_map because the root node has no style source.
@@ -1793,6 +1800,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                        is_root_element,
                        iter_declarations,
                        inherited_style,
+                       layout_parent_style,
                        default_style,
                        cascade_info,
                        error_reporter,
@@ -1806,6 +1814,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                                     is_root_element: bool,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
+                                    layout_parent_style: &ComputedValues,
                                     default_style: &Arc<ComputedValues>,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
                                     mut error_reporter: StdBox<ParseErrorReporter + Send>,
@@ -1861,6 +1870,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         is_root_element: is_root_element,
         viewport_size: viewport_size,
         inherited_style: inherited_style,
+        layout_parent_style: layout_parent_style,
         style: starting_style,
         font_metrics_provider: font_metrics_provider,
     };
@@ -1943,10 +1953,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         longhands::position::SpecifiedValue::absolute |
         longhands::position::SpecifiedValue::fixed);
     let floated = style.get_box().clone_float() != longhands::float::computed_value::T::none;
-    // FIXME(heycam): We should look past any display:contents ancestors to
-    // determine if we are a flex or grid item, but we don't have access to
-    // grandparent or higher style here.
-    let is_item = matches!(context.inherited_style.get_box().clone_display(),
+    let is_item = matches!(context.layout_parent_style.get_box().clone_display(),
         % if product == "gecko":
         computed_values::display::T::grid |
         computed_values::display::T::inline_grid |
@@ -2023,7 +2030,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         use computed_values::align_items::T as align_items;
         if style.get_position().clone_align_self() == computed_values::align_self::T::auto && !positioned {
             let self_align =
-                match context.inherited_style.get_position().clone_align_items() {
+                match context.layout_parent_style.get_position().clone_align_items() {
                     align_items::stretch => align_self::stretch,
                     align_items::baseline => align_self::baseline,
                     align_items::flex_start => align_self::flex_start,

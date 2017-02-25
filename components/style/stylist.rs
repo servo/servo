@@ -313,9 +313,24 @@ impl Stylist {
             flags.insert(INHERIT_ALL)
         }
 
+        // NOTE(emilio): We skip calculating the proper layout parent style
+        // here.
+        //
+        // It'd be fine to assert that this isn't called with a parent style
+        // where display contents is in effect, but in practice this is hard to
+        // do for stuff like :-moz-fieldset-content with a
+        // <fieldset style="display: contents">. That is, the computed value of
+        // display for the fieldset is "contents", even though it's not the used
+        // value, so we don't need to adjust in a different way anyway.
+        //
+        // In practice, I don't think any anonymous content can be a direct
+        // descendant of a display: contents element where display: contents is
+        // the actual used value, and the computed value of it would need
+        // blockification.
         let computed =
             properties::cascade(self.device.au_viewport_size(),
                                 &rule_node,
+                                parent.map(|p| &**p),
                                 parent.map(|p| &**p),
                                 default,
                                 None,
@@ -389,9 +404,14 @@ impl Stylist {
             self.rule_tree.insert_ordered_rules(
                 declarations.into_iter().map(|a| (a.source, a.level)));
 
+        // Read the comment on `precomputed_values_for_pseudo` to see why it's
+        // difficult to assert that display: contents nodes never arrive here
+        // (tl;dr: It doesn't apply for replaced elements and such, but the
+        // computed value is still "contents").
         let computed =
             properties::cascade(self.device.au_viewport_size(),
                                 &rule_node,
+                                Some(&**parent),
                                 Some(&**parent),
                                 default,
                                 None,

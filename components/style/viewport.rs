@@ -689,6 +689,7 @@ impl MaybeNew for ViewportConstraints {
             is_root_element: false,
             viewport_size: initial_viewport,
             inherited_style: device.default_values(),
+            layout_parent_style: device.default_values(),
             style: device.default_values().clone(),
             font_metrics_provider: None, // TODO: Should have!
         };
