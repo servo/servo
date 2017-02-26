@@ -15,7 +15,7 @@ use properties::{PropertyDeclarationId, LonghandId, DeclaredValue};
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
-use properties::property_bit_field::PropertyBitField;
+use properties::PropertyBitField;
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;

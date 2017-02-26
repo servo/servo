@@ -29,6 +29,7 @@ use font_metrics::FontMetricsProvider;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
 use parser::{Parse, ParserContext, ParserContextExtraData};
+use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
 use servo_url::ServoUrl;
 use style_traits::ToCss;
@@ -39,7 +40,6 @@ use cascade_info::CascadeInfo;
 use rule_tree::StrongRuleNode;
 #[cfg(feature = "servo")] use values::specified::BorderStyle;
 
-use self::property_bit_field::PropertyBitField;
 pub use self::declaration_block::*;
 
 #[cfg(feature = "gecko")]
@@ -178,61 +178,55 @@ pub mod animated_properties {
     <%include file="/helpers/animated_properties.mako.rs" />
 }
 
-#[allow(missing_docs)]
-pub mod property_bit_field {
-    use properties::animated_properties::TransitionProperty;
-    use properties::LonghandId;
+/// A set of longhand properties
+pub struct PropertyBitField {
+    storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
+}
 
-    /// A set of longhand properties
-    pub struct PropertyBitField {
-        storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
+impl PropertyBitField {
+    /// Create an empty set
+    #[inline]
+    pub fn new() -> PropertyBitField {
+        PropertyBitField { storage: [0; (${len(data.longhands)} - 1 + 32) / 32] }
     }
 
-    impl PropertyBitField {
-        /// Create an empty set
-        #[inline]
-        pub fn new() -> PropertyBitField {
-            PropertyBitField { storage: [0; (${len(data.longhands)} - 1 + 32) / 32] }
-        }
+    /// Return whether the given property is in the set
+    #[inline]
+    pub fn contains(&self, id: LonghandId) -> bool {
+        let bit = id as usize;
+        (self.storage[bit / 32] & (1 << (bit % 32))) != 0
+    }
 
-        /// Return whether the given property is in the set
-        #[inline]
-        pub fn contains(&self, id: LonghandId) -> bool {
-            let bit = id as usize;
-            (self.storage[bit / 32] & (1 << (bit % 32))) != 0
-        }
+    /// Add the given property to the set
+    #[inline]
+    pub fn insert(&mut self, id: LonghandId) {
+        let bit = id as usize;
+        self.storage[bit / 32] |= 1 << (bit % 32);
+    }
 
-        /// Add the given property to the set
-        #[inline]
-        pub fn insert(&mut self, id: LonghandId) {
-            let bit = id as usize;
-            self.storage[bit / 32] |= 1 << (bit % 32);
+    /// Set the corresponding bit of TransitionProperty.
+    /// This function will panic if TransitionProperty::All is given.
+    pub fn set_transition_property_bit(&mut self, property: &TransitionProperty) {
+        match *property {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    TransitionProperty::${prop.camel_case} => self.insert(LonghandId::${prop.camel_case}),
+                % endif
+            % endfor
+            TransitionProperty::All => unreachable!("Tried to set TransitionProperty::All in a PropertyBitfield"),
         }
+    }
 
-        /// Set the corresponding bit of TransitionProperty.
-        /// This function will panic if TransitionProperty::All is given.
-        pub fn set_transition_property_bit(&mut self, property: &TransitionProperty) {
-            match *property {
-                % for prop in data.longhands:
-                    % if prop.animatable:
-                        TransitionProperty::${prop.camel_case} => self.insert(LonghandId::${prop.camel_case}),
-                    % endif
-                % endfor
-                TransitionProperty::All => unreachable!("Tried to set TransitionProperty::All in a PropertyBitfield"),
-            }
-        }
-
-        /// Return true if the corresponding bit of TransitionProperty is set.
-        /// This function will panic if TransitionProperty::All is given.
-        pub fn has_transition_property_bit(&self, property: &TransitionProperty) -> bool {
-            match *property {
-                % for prop in data.longhands:
-                    % if prop.animatable:
-                        TransitionProperty::${prop.camel_case} => self.contains(LonghandId::${prop.camel_case}),
-                    % endif
-                % endfor
-                TransitionProperty::All => unreachable!("Tried to get TransitionProperty::All in a PropertyBitfield"),
-            }
+    /// Return true if the corresponding bit of TransitionProperty is set.
+    /// This function will panic if TransitionProperty::All is given.
+    pub fn has_transition_property_bit(&self, property: &TransitionProperty) -> bool {
+        match *property {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    TransitionProperty::${prop.camel_case} => self.contains(LonghandId::${prop.camel_case}),
+                % endif
+            % endfor
+            TransitionProperty::All => unreachable!("Tried to get TransitionProperty::All in a PropertyBitfield"),
         }
     }
 }

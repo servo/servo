@@ -230,7 +230,7 @@
         use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
         use properties::longhands;
-        use properties::property_bit_field::PropertyBitField;
+        use properties::PropertyBitField;
         use properties::{ComputedValues, PropertyDeclaration};
         use properties::style_structs;
         use std::boxed::Box as StdBox;
