@@ -209,21 +209,6 @@ pub mod property_bit_field {
             self.storage[bit / 32] |= 1 << (bit % 32);
         }
 
-        % for property in data.longhands:
-            % if not property.derived_from:
-                #[allow(non_snake_case, missing_docs)]
-                #[inline]
-                pub fn get_${property.ident}(&self) -> bool {
-                    self.contains(LonghandId::${property.camel_case})
-                }
-                #[allow(non_snake_case, missing_docs)]
-                #[inline]
-                pub fn set_${property.ident}(&mut self) {
-                    self.insert(LonghandId::${property.camel_case})
-                }
-            % endif
-        % endfor
-
         /// Set the corresponding bit of TransitionProperty.
         /// This function will panic if TransitionProperty::All is given.
         pub fn set_transition_property_bit(&mut self, property: &TransitionProperty) {
@@ -2065,8 +2050,10 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         style.set_root_font_size(s);
     }
 
-    if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
-       seen.get_font_family() {
+    if seen.contains(LonghandId::FontStyle) ||
+       seen.contains(LonghandId::FontWeight) ||
+       seen.contains(LonghandId::FontStretch) ||
+       seen.contains(LonghandId::FontFamily) {
         style.mutate_font().compute_font_hash();
     }
 
