@@ -9,6 +9,7 @@ use style::parser::ParserContext;
 use style::stylesheets::Origin;
 use style_traits::ToCss;
 use style::properties::longhands;
+use style::properties::longhands::{perspective_origin, transform_origin};
 
 #[test]
 fn test_clip() {
@@ -39,18 +40,27 @@ fn test_longhands_parse_origin() {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
 
-    let mut parser = Parser::new("1px 2px rubbish");
+    let mut parser = Parser::new("1px some-rubbish");
     let parsed = longhands::parse_origin(&context, &mut parser);
-    assert_eq!(parsed.is_ok(), true);
+    assert!(parsed.is_ok());
     assert_eq!(parser.is_exhausted(), false);
 
     let mut parser = Parser::new("1px 2px");
     let parsed = longhands::parse_origin(&context, &mut parser);
-    assert_eq!(parsed.is_ok(), true);
+    assert!(parsed.is_ok());
     assert_eq!(parser.is_exhausted(), true);
 
     let mut parser = Parser::new("1px");
     let parsed = longhands::parse_origin(&context, &mut parser);
-    assert_eq!(parsed.is_ok(), true);
+    assert!(parsed.is_ok());
     assert_eq!(parser.is_exhausted(), true);
+}
+
+#[test]
+fn test_effects_parser_exhaustion() {
+    assert_parser_exhausted!(perspective_origin, "1px 1px", true);
+    assert_parser_exhausted!(transform_origin, "1px 1px", true);
+
+    assert_parser_exhausted!(perspective_origin, "1px some-rubbish", false);
+    assert_parser_exhausted!(transform_origin, "1px some-rubbish", false);
 }
