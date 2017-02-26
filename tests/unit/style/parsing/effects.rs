@@ -6,10 +6,9 @@ use cssparser::Parser;
 use media_queries::CSSErrorReporterTest;
 use servo_url::ServoUrl;
 use style::parser::ParserContext;
+use style::properties::longhands::{self, perspective_origin, transform_origin};
 use style::stylesheets::Origin;
 use style_traits::ToCss;
-use style::properties::longhands;
-use style::properties::longhands::{perspective_origin, transform_origin};
 
 #[test]
 fn test_clip() {
