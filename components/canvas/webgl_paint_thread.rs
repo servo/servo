@@ -101,7 +101,7 @@ fn create_readback_painter(size: Size2D<i32>,
     -> Result<(WebGLPaintThread, GLLimits), String> {
     let context = try!(GLContextWrapper::new(size, attrs));
     let limits = context.get_limits();
-    let image_key = webrender_api.alloc_image();
+    let image_key = webrender_api.generate_image_key();
     let painter = WebGLPaintThread {
         size: size,
         data: WebGLPaintTaskData::Readback(context, webrender_api, image_key)
@@ -241,6 +241,7 @@ impl WebGLPaintThread {
                                                height: height as u32,
                                                stride: None,
                                                format: webrender_traits::ImageFormat::RGBA8,
+                                               offset: 0,
                                                is_opaque: false,
                                            },
                                            pixels.clone());
