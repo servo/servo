@@ -179,15 +179,15 @@ pub mod animated_properties {
 }
 
 /// A set of longhand properties
-pub struct PropertyBitField {
+pub struct LonghandIdSet {
     storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
 }
 
-impl PropertyBitField {
+impl LonghandIdSet {
     /// Create an empty set
     #[inline]
-    pub fn new() -> PropertyBitField {
-        PropertyBitField { storage: [0; (${len(data.longhands)} - 1 + 32) / 32] }
+    pub fn new() -> LonghandIdSet {
+        LonghandIdSet { storage: [0; (${len(data.longhands)} - 1 + 32) / 32] }
     }
 
     /// Return whether the given property is in the set
@@ -233,7 +233,7 @@ impl PropertyBitField {
 
 /// A specialized set of PropertyDeclarationId
 pub struct PropertyDeclarationIdSet {
-    longhands: PropertyBitField,
+    longhands: LonghandIdSet,
 
     // FIXME: Use a HashSet instead? This Vec is usually small, so linear scan might be ok.
     custom: Vec<::custom_properties::Name>,
@@ -243,7 +243,7 @@ impl PropertyDeclarationIdSet {
     /// Empty set
     pub fn new() -> Self {
         PropertyDeclarationIdSet {
-            longhands: PropertyBitField::new(),
+            longhands: LonghandIdSet::new(),
             custom: Vec::new(),
         }
     }
@@ -1835,7 +1835,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
     // NB: The cacheable boolean is not used right now, but will be once we
     // start caching computed values in the rule nodes.
     let mut cacheable = true;
-    let mut seen = PropertyBitField::new();
+    let mut seen = LonghandIdSet::new();
 
     // Declaration blocks are stored in increasing precedence order, we want
     // them in decreasing order here.
