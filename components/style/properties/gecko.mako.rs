@@ -1247,9 +1247,6 @@ fn static_assert() {
         unsafe { transmute(self.gecko.mFont.weight) }
     }
 
-    // This is used for PartialEq, which we don't implement for gecko style structs.
-    pub fn compute_font_hash(&mut self) {}
-
     pub fn set_font_synthesis(&mut self, v: longhands::font_synthesis::computed_value::T) {
         use gecko_bindings::structs::{NS_FONT_SYNTHESIS_WEIGHT, NS_FONT_SYNTHESIS_STYLE};
 

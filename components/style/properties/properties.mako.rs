@@ -2044,12 +2044,14 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         style.set_root_font_size(s);
     }
 
-    if seen.contains(LonghandId::FontStyle) ||
-       seen.contains(LonghandId::FontWeight) ||
-       seen.contains(LonghandId::FontStretch) ||
-       seen.contains(LonghandId::FontFamily) {
-        style.mutate_font().compute_font_hash();
-    }
+    % if product == "servo":
+        if seen.contains(LonghandId::FontStyle) ||
+           seen.contains(LonghandId::FontWeight) ||
+           seen.contains(LonghandId::FontStretch) ||
+           seen.contains(LonghandId::FontFamily) {
+            style.mutate_font().compute_font_hash();
+        }
+    % endif
 
     style
 }
