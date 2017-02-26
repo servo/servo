@@ -9,10 +9,13 @@ extern crate js;
 
 use js::jsval::JSVal;
 use std::cell::Cell;
+use std::cell::UnsafeCell;
 
 struct Foo {
-    bar: Cell<JSVal>
+    bar: Cell<JSVal>,
     //~^ ERROR Banned type Cell<JSVal> detected. Use MutJS<JSVal> instead
+    foo: UnsafeCell<JSVal>
+    //~^ NOT AN ERROR
 }
 
 fn main() {}
