@@ -1344,13 +1344,7 @@ impl Parse for MinLength {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         input.try(ExtremumLength::parse).map(MinLength::ExtremumLength)
             .or_else(|()| input.try(LengthOrPercentage::parse_non_negative).map(MinLength::LengthOrPercentage))
-            .or_else(|()| {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
-                    "auto" =>
-                        Ok(MinLength::Auto),
-                    _ => Err(())
-                }
-            })
+            .or_else(|()| input.expect_ident_matching("auto").map(|()| MinLength::Auto))
     }
 }
 
@@ -1391,7 +1385,7 @@ impl Parse for MaxLength {
         input.try(ExtremumLength::parse).map(MaxLength::ExtremumLength)
             .or_else(|()| input.try(LengthOrPercentage::parse_non_negative).map(MaxLength::LengthOrPercentage))
             .or_else(|()| {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
+                match_ignore_ascii_case! { &try!(input.expect_ident()),
                     "none" =>
                         Ok(MaxLength::None),
                     _ => Err(())

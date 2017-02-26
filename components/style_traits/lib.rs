@@ -14,8 +14,8 @@
 #![cfg_attr(feature = "servo", feature(plugin))]
 
 extern crate app_units;
-#[macro_use]
-extern crate cssparser;
+#[macro_use] extern crate cssparser;
+#[macro_use] extern crate cssparser_macros;
 extern crate euclid;
 #[cfg(feature = "servo")] extern crate heapsize;
 #[cfg(feature = "servo")] #[macro_use] extern crate heapsize_derive;

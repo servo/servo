@@ -26,7 +26,8 @@ app_units = "0.4"
 atomic_refcell = "0.1"
 bitflags = "0.7"
 cfg-if = "0.1.0"
-cssparser = "0.10"
+cssparser = "0.11"
+cssparser-macros = "0.1.0"
 encoding = "0.2"
 euclid = "0.11"
 fnv = "1.0"
@@ -62,6 +63,5 @@ kernel32-sys = "0.2"
 [build-dependencies]
 lazy_static = "0.2"
 bindgen = { version = "0.22", optional = true }
-phf_codegen = "0.7.20"
 regex = {version = "0.2", optional = true}
 walkdir = "1.0"

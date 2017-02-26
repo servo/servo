@@ -595,17 +595,17 @@ impl Parse for PositionComponent {
             .or_else(|()| {
                 match try!(input.next()) {
                     Token::Ident(value) => {
-                        match_ignore_ascii_case! { value,
-                                                   "center" => Ok(PositionComponent::Keyword(Keyword::Center)),
-                                                   "left" => Ok(PositionComponent::Keyword(Keyword::Left)),
-                                                   "right" => Ok(PositionComponent::Keyword(Keyword::Right)),
-                                                   "top" => Ok(PositionComponent::Keyword(Keyword::Top)),
-                                                   "bottom" => Ok(PositionComponent::Keyword(Keyword::Bottom)),
-                                                   "x-start" => Ok(PositionComponent::Keyword(Keyword::XStart)),
-                                                   "x-end" => Ok(PositionComponent::Keyword(Keyword::XEnd)),
-                                                   "y-start" => Ok(PositionComponent::Keyword(Keyword::YStart)),
-                                                   "y-end" => Ok(PositionComponent::Keyword(Keyword::YEnd)),
-                                                   _ => Err(())
+                        match_ignore_ascii_case! { &value,
+                            "center" => Ok(PositionComponent::Keyword(Keyword::Center)),
+                            "left" => Ok(PositionComponent::Keyword(Keyword::Left)),
+                            "right" => Ok(PositionComponent::Keyword(Keyword::Right)),
+                            "top" => Ok(PositionComponent::Keyword(Keyword::Top)),
+                            "bottom" => Ok(PositionComponent::Keyword(Keyword::Bottom)),
+                            "x-start" => Ok(PositionComponent::Keyword(Keyword::XStart)),
+                            "x-end" => Ok(PositionComponent::Keyword(Keyword::XEnd)),
+                            "y-start" => Ok(PositionComponent::Keyword(Keyword::YStart)),
+                            "y-end" => Ok(PositionComponent::Keyword(Keyword::YEnd)),
+                            _ => Err(())
                         }
                     },
                     _ => Err(())

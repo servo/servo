@@ -69,7 +69,7 @@ impl TransitionProperty {
 
     /// Parse a transition-property value.
     pub fn parse(input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { try!(input.expect_ident()),
+        match_ignore_ascii_case! { &try!(input.expect_ident()),
             "all" => Ok(TransitionProperty::All),
             % for prop in data.longhands:
                 % if prop.animatable:
