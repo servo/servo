@@ -934,7 +934,7 @@ impl LayoutThread {
                 Some(get_root_flow_background_color(layout_root)),
                 webrender_traits::Epoch(epoch_number),
                 viewport_size,
-                builder,
+                builder.finalize(),
                 true);
             self.webrender_api.generate_frame(None);
         });

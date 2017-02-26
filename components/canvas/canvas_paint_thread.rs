@@ -106,7 +106,7 @@ impl<'a> CanvasPaintThread<'a> {
         let draw_target = CanvasPaintThread::create(size);
         let path_builder = draw_target.create_path_builder();
         let webrender_api = webrender_api_sender.create_api();
-        let webrender_image_key = webrender_api.alloc_image();
+        let webrender_image_key = webrender_api.generate_image_key();
         CanvasPaintThread {
             drawtarget: draw_target,
             path_builder: path_builder,
@@ -564,6 +564,7 @@ impl<'a> CanvasPaintThread<'a> {
                                                 height: size.height as u32,
                                                 stride: None,
                                                 format: webrender_traits::ImageFormat::RGBA8,
+                                                offset: 0,
                                                 is_opaque: false,
                                             },
                                             element.into());
