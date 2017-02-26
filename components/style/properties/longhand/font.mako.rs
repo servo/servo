@@ -6,8 +6,7 @@
 <% from data import Method %>
 
 <% data.new_style_struct("Font",
-                         inherited=True,
-                         additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
+                         inherited=True) %>
 <%helpers:longhand name="font-family" animatable="False" need_index="True"
                    spec="https://drafts.csswg.org/css-fonts/#propdef-font-family">
     use self::computed_value::{FontFamily, FamilyName};

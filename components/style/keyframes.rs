@@ -12,10 +12,10 @@ use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, DeclaredValue};
+use properties::LonghandIdSet;
 use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
-use properties::property_bit_field::PropertyBitField;
 use std::fmt;
 use std::sync::Arc;
 use style_traits::ToCss;
@@ -248,7 +248,7 @@ pub struct KeyframesAnimation {
 /// Get all the animated properties in a keyframes animation.
 fn get_animated_properties(keyframes: &[Arc<RwLock<Keyframe>>]) -> Vec<TransitionProperty> {
     let mut ret = vec![];
-    let mut seen = PropertyBitField::new();
+    let mut seen = LonghandIdSet::new();
     // NB: declarations are already deduplicated, so we don't have to check for
     // it here.
     for keyframe in keyframes {

@@ -1338,8 +1338,8 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                                                   pres_context: RawGeckoPresContextBorrowed,
                                                   computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut)
 {
+    use style::properties::LonghandIdSet;
     use style::properties::declaration_block::Importance;
-    use style::properties::property_bit_field::PropertyBitField;
     use style::values::computed::Context;
 
     let style = ComputedValues::as_arc(&style);
@@ -1359,7 +1359,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     for (index, keyframe) in keyframes.iter().enumerate() {
         let ref mut animation_values = computed_keyframes[index];
 
-        let mut seen = PropertyBitField::new();
+        let mut seen = LonghandIdSet::new();
 
         // mServoDeclarationBlock is null in the case where we have an invalid css property.
         let iter = keyframe.mPropertyValues.iter()
@@ -1429,7 +1429,7 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                                                       style: ServoComputedValuesBorrowed,
                                                       keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
     use style::gecko_bindings::structs::Keyframe;
-    use style::properties::property_bit_field::PropertyBitField;
+    use style::properties::LonghandIdSet;
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
@@ -1482,7 +1482,7 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                                declaration.is_animatable()
                            });
 
-                  let mut seen = PropertyBitField::new();
+                  let mut seen = LonghandIdSet::new();
 
                   for (index, &(ref declaration, _)) in animatable.enumerate() {
                       unsafe {

@@ -230,7 +230,7 @@
         use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
         use properties::longhands;
-        use properties::property_bit_field::PropertyBitField;
+        use properties::LonghandIdSet;
         use properties::{ComputedValues, PropertyDeclaration};
         use properties::style_structs;
         use std::boxed::Box as StdBox;
@@ -245,7 +245,6 @@
                                 inherited_style: &ComputedValues,
                                 default_style: &Arc<ComputedValues>,
                                 context: &mut computed::Context,
-                                seen: &mut PropertyBitField,
                                 cacheable: &mut bool,
                                 cascade_info: &mut Option<<&mut CascadeInfo>,
                                 error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
@@ -256,16 +255,7 @@
                 _ => panic!("entered the wrong cascade_property() implementation"),
             };
 
-            % if property.logical:
-                let wm = context.style.writing_mode;
-            % endif
-            <% maybe_wm = "wm" if property.logical else "" %>
-            <% maybe_physical = "_physical" if property.logical else "" %>
             % if not property.derived_from:
-                if seen.get${maybe_physical}_${property.ident}(${maybe_wm}) {
-                    return
-                }
-                seen.set${maybe_physical}_${property.ident}(${maybe_wm});
                 {
                     let custom_props = context.style().custom_properties();
                     ::properties::substitute_variables_${property.ident}(
@@ -275,6 +265,9 @@
                             cascade_info.on_cascade_property(&declaration,
                                                              &value);
                         }
+                        % if property.logical:
+                            let wm = context.style.writing_mode;
+                        % endif
                         <% maybe_wm = ", wm" if property.logical else "" %>
                         match *value {
                             DeclaredValue::Value(ref specified_value) => {
@@ -321,7 +314,6 @@
                     cascade_property_custom(declaration,
                                             inherited_style,
                                             context,
-                                            seen,
                                             cacheable,
                                             error_reporter);
                 % endif
