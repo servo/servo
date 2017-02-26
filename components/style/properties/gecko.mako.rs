@@ -159,10 +159,6 @@ impl ComputedValues {
         !self.get_box().gecko.mBinding.mRawPtr.is_null()
     }
 
-    pub fn root_font_size(&self) -> Au { self.root_font_size }
-    pub fn set_root_font_size(&mut self, s: Au) { self.root_font_size = s; }
-    pub fn set_writing_mode(&mut self, mode: WritingMode) { self.writing_mode = mode; }
-
     // FIXME(bholley): Implement this properly.
     #[inline]
     pub fn is_multicol(&self) -> bool { false }

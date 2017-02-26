@@ -1384,14 +1384,6 @@ impl ComputedValues {
     /// Since this isn't supported in Servo, this is always false for Servo.
     pub fn is_display_contents(&self) -> bool { false }
 
-    /// Get the root font size.
-    fn root_font_size(&self) -> Au { self.root_font_size }
-
-    /// Set the root font size.
-    fn set_root_font_size(&mut self, size: Au) { self.root_font_size = size }
-    /// Set the writing mode for this style.
-    pub fn set_writing_mode(&mut self, mode: WritingMode) { self.writing_mode = mode; }
-
     /// Whether the current style is multicolumn.
     #[inline]
     pub fn is_multicol(&self) -> bool {
@@ -1800,7 +1792,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         ComputedValues::new(custom_properties,
                             flags.contains(SHAREABLE),
                             WritingMode::empty(),
-                            inherited_style.root_font_size(),
+                            inherited_style.root_font_size,
                             % for style_struct in data.active_style_structs():
                                 % if style_struct.inherited:
                                     inherited_style.clone_${style_struct.name_lower}(),
@@ -1813,7 +1805,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         ComputedValues::new(custom_properties,
                             flags.contains(SHAREABLE),
                             WritingMode::empty(),
-                            inherited_style.root_font_size(),
+                            inherited_style.root_font_size,
                             % for style_struct in data.active_style_structs():
                                 inherited_style.clone_${style_struct.name_lower}(),
                             % endfor
@@ -1903,7 +1895,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         }
         % if category_to_cascade_now == "early":
             let writing_mode = get_writing_mode(context.style.get_inheritedbox());
-            context.style.set_writing_mode(writing_mode);
+            context.style.writing_mode = writing_mode;
         % endif
     % endfor
 
@@ -2041,7 +2033,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
 
     if is_root_element {
         let s = style.get_font().clone_font_size();
-        style.set_root_font_size(s);
+        style.root_font_size = s;
     }
 
     % if product == "servo":
