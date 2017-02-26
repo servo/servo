@@ -42,6 +42,7 @@ fn property_declaration_block_should_serialize_correctly() {
         (PropertyDeclaration::OverflowY(
             DeclaredValue::Value(OverflowYContainer(OverflowXValue::auto))),
          Importance::Normal),
+
     ];
 
     let block = PropertyDeclarationBlock {
@@ -266,8 +267,7 @@ mod shorthand_serialization {
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "border-style: solid dotted;");
         }
-    }
-
+}
 
     mod border_shorthands {
         use super::*;
@@ -729,11 +729,15 @@ mod shorthand_serialization {
         #[test]
         fn background_should_serialize_all_available_properties_when_specified() {
             let mut properties = Vec::new();
-
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
                 authored: None
             });
+
+            let color = DeclaredValue::Value(Box::new(CSSColor {
+            parsed: ComputedColor::RGBA(RGBA { red: 1f32, green: 0f32, blue: 0f32, alpha: 1f32 }),
+            authored: None
+            }));
 
             let position_x = single_vec_value_typedef!(position_x,
                 HorizontalPosition {
@@ -1114,7 +1118,6 @@ mod shorthand_serialization {
             assert_eq!(s, "none");
         }
     }
-
     mod quotes {
         pub use super::*;
 
@@ -1228,5 +1231,29 @@ mod shorthand_serialization {
 
             assert_eq!(serialization, block_text);
         }
+
+    mod effects {
+        pub use super::*;
+        pub use style::properties::longhands::box_shadow::SpecifiedValue as BoxShadow;
+        pub use style::values::specified::Shadow;
+        #[test]
+        fn box_shadow_should_serialize_correctly() {
+            let mut properties = Vec::new();
+            let color = Some(CSSColor {
+                        parsed: ComputedColor::RGBA(RGBA { red: 1f32, green: 0f32, blue: 0f32, alpha: 1f32 }),
+                        authored: None
+                        });
+
+
+            let shadow_val = Shadow { offset_x: Length::from_px(1f32), offset_y: Length::from_px(2f32),
+            blur_radius: Length::from_px(3f32), spread_radius: Length::from_px(4f32), color: color, inset: false };
+            let shadow_decl = DeclaredValue::Value(BoxShadow(vec![shadow_val]));
+            properties.push(PropertyDeclaration:: BoxShadow(shadow_decl));
+
+
+             let serialization = shorthand_properties_to_string(properties);
+             assert_eq!(serialization, "box-shadow: 1px 2px 3px 4px rgb(255, 0, 0);");
+        }
     }
+
 }
