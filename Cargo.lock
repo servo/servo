@@ -586,7 +586,7 @@ name = "deny_public_fields"
 version = "0.0.1"
 dependencies = [
  "syn 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "synstructure 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synstructure 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1097,7 +1097,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "quote 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "synstructure 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synstructure 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1298,7 +1298,7 @@ version = "0.0.1"
 dependencies = [
  "quote 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "synstructure 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "synstructure 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2851,7 +2851,7 @@ dependencies = [
 
 [[package]]
 name = "synstructure"
-version = "0.4.1"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "quote 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3559,7 +3559,7 @@ dependencies = [
 "checksum syn 0.10.8 (registry+https://github.com/rust-lang/crates.io-index)" = "58fd09df59565db3399efbba34ba8a2fec1307511ebd245d0061ff9d42691673"
 "checksum syn 0.11.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0e28da8d02d75d1e58b89258e0741128f0b0d8a8309fb5c627be0fbd37a76c67"
 "checksum synom 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8fece1853fb872b0acdc3ff88f37c474018e125ef81cd4cb8c0ca515746b62ed"
-"checksum synstructure 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a811f8e51453cada27c033be6b5fdac6e4e63981983702eb85b4c897a25ecc6c"
+"checksum synstructure 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e13808dc5a739d5ff1cff4a2361afdf4ec52d42221c7ddc1d8c438f5a53746a7"
 "checksum syntex 0.54.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bb3f52553a966675982404dc34028291b347e0c9a9c0b0b34f2da6be8a0443f8"
 "checksum syntex_errors 0.54.0 (registry+https://github.com/rust-lang/crates.io-index)" = "dee2f6e49c075f71332bb775219d5982bee6732d26227fa1ae1b53cdb12f5cc5"
 "checksum syntex_pos 0.54.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8df3921c7945dfb9ffc53aa35adb2cf4313b5ab5f079c3619b3d4eb82a0efc2b"
