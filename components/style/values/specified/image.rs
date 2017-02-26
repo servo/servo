@@ -103,7 +103,7 @@ impl Gradient {
     /// Parses a gradient from the given arguments.
     pub fn parse_function(context: &ParserContext, input: &mut Parser) -> Result<Gradient, ()> {
         let mut repeating = false;
-        let (gradient_kind, stops) = match_ignore_ascii_case! { try!(input.expect_function()),
+        let (gradient_kind, stops) = match_ignore_ascii_case! { &try!(input.expect_function()),
             "linear-gradient" => {
                 try!(input.parse_nested_block(|input| {
                         let kind = try!(GradientKind::parse_linear(context, input));

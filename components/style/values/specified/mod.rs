@@ -297,7 +297,7 @@ impl Angle {
 #[allow(missing_docs)]
 pub fn parse_border_radius(context: &ParserContext, input: &mut Parser) -> Result<BorderRadiusSize, ()> {
     input.try(|i| BorderRadiusSize::parse(context, i)).or_else(|_| {
-        match_ignore_ascii_case! { try!(input.expect_ident()),
+        match_ignore_ascii_case! { &try!(input.expect_ident()),
             "thin" => Ok(BorderRadiusSize::circle(
                              LengthOrPercentage::Length(NoCalcLength::from_px(1.)))),
             "medium" => Ok(BorderRadiusSize::circle(
@@ -312,7 +312,7 @@ pub fn parse_border_radius(context: &ParserContext, input: &mut Parser) -> Resul
 #[allow(missing_docs)]
 pub fn parse_border_width(input: &mut Parser) -> Result<Length, ()> {
     input.try(Length::parse_non_negative).or_else(|()| {
-        match_ignore_ascii_case! { try!(input.expect_ident()),
+        match_ignore_ascii_case! { &try!(input.expect_ident()),
             "thin" => Ok(Length::from_px(1.)),
             "medium" => Ok(Length::from_px(3.)),
             "thick" => Ok(Length::from_px(5.)),
@@ -335,7 +335,7 @@ impl Parse for BorderWidth {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<BorderWidth, ()> {
         match input.try(Length::parse_non_negative) {
             Ok(length) => Ok(BorderWidth::Width(length)),
-            Err(_) => match_ignore_ascii_case! { try!(input.expect_ident()),
+            Err(_) => match_ignore_ascii_case! { &try!(input.expect_ident()),
                "thin" => Ok(BorderWidth::Thin),
                "medium" => Ok(BorderWidth::Medium),
                "thick" => Ok(BorderWidth::Thick),
@@ -714,7 +714,7 @@ pub enum SVGPaintKind {
 
 impl SVGPaintKind {
     fn parse_ident(input: &mut Parser) -> Result<Self, ()> {
-        Ok(match_ignore_ascii_case! { input.expect_ident()?,
+        Ok(match_ignore_ascii_case! { &input.expect_ident()?,
             "none" => SVGPaintKind::None,
             "context-fill" => SVGPaintKind::ContextFill,
             "context-stroke" => SVGPaintKind::ContextStroke,

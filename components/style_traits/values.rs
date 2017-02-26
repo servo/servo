@@ -116,7 +116,8 @@ macro_rules! __define_css_keyword_enum__actual {
         impl $name {
             /// Parse this property from a CSS input stream.
             pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
+                let ident = input.expect_ident()?;
+                match_ignore_ascii_case! { &ident,
                                            $( $css => Ok($name::$variant), )+
                                            _ => Err(())
                 }

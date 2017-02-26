@@ -165,7 +165,7 @@ impl Resolution {
             _ => return Err(()),
         };
 
-        Ok(match_ignore_ascii_case! { unit,
+        Ok(match_ignore_ascii_case! { &unit,
             "dpi" => Resolution::Dpi(value),
             "dppx" => Resolution::Dppx(value),
             "dpcm" => Resolution::Dpcm(value),

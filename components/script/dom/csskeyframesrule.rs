@@ -115,7 +115,7 @@ impl CSSKeyframesRuleMethods for CSSKeyframesRule {
         // https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` will
         // throw a Syntax Error.
-        match_ignore_ascii_case! { value,
+        match_ignore_ascii_case! { &value,
             "initial" => return Err(Error::Syntax),
             "inherit" => return Err(Error::Syntax),
             "unset" => return Err(Error::Syntax),

@@ -196,7 +196,7 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
             loop {
 
                 let result = input.try(|i| {
-                    match_ignore_ascii_case! { i.expect_ident()?,
+                    match_ignore_ascii_case! { &i.expect_ident()?,
                         "fill" => Ok(FILL),
                         "stroke" => Ok(STROKE),
                         "markers" => Ok(MARKERS),

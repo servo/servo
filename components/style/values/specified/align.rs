@@ -323,7 +323,7 @@ impl Parse for JustifyItems {
 // auto | normal | stretch | <baseline-position>
 fn parse_auto_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
-    match_ignore_ascii_case! { ident,
+    match_ignore_ascii_case! { &ident,
         "auto" => Ok(ALIGN_AUTO),
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
@@ -335,7 +335,7 @@ fn parse_auto_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, 
 // normal | stretch | <baseline-position>
 fn parse_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
-    match_ignore_ascii_case! { ident,
+    match_ignore_ascii_case! { &ident,
         "normal" => Ok(ALIGN_NORMAL),
         "stretch" => Ok(ALIGN_STRETCH),
         "baseline" => Ok(ALIGN_BASELINE),
@@ -346,7 +346,7 @@ fn parse_normal_stretch_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
 // normal | <baseline-position>
 fn parse_normal_or_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
-    match_ignore_ascii_case! { ident,
+    match_ignore_ascii_case! { &ident,
         "normal" => Ok(ALIGN_NORMAL),
         "baseline" => Ok(ALIGN_BASELINE),
         _ => Err(())
@@ -356,7 +356,7 @@ fn parse_normal_or_baseline(input: &mut Parser) -> Result<AlignFlags, ()> {
 // <content-distribution>
 fn parse_content_distribution(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
-    match_ignore_ascii_case! { ident,
+    match_ignore_ascii_case! { &ident,
       "stretch" => Ok(ALIGN_STRETCH),
       "space_between" => Ok(ALIGN_SPACE_BETWEEN),
       "space_around" => Ok(ALIGN_SPACE_AROUND),
@@ -386,7 +386,7 @@ fn parse_overflow_content_position(input: &mut Parser) -> Result<AlignFlags, ()>
 // <content-position>
 fn parse_content_position(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
-    match_ignore_ascii_case! { ident,
+    match_ignore_ascii_case! { &ident,
         "start" => Ok(ALIGN_START),
         "end" => Ok(ALIGN_END),
         "flex-start" => Ok(ALIGN_FLEX_START),
@@ -401,7 +401,7 @@ fn parse_content_position(input: &mut Parser) -> Result<AlignFlags, ()> {
 // <overflow-position>
 fn parse_overflow_position(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
-    match_ignore_ascii_case! { ident,
+    match_ignore_ascii_case! { &ident,
         "safe" => Ok(ALIGN_SAFE),
         "unsafe" => Ok(ALIGN_UNSAFE),
         _ => Err(())
@@ -429,7 +429,7 @@ fn parse_overflow_self_position(input: &mut Parser) -> Result<AlignFlags, ()> {
 // <self-position>
 fn parse_self_position(input: &mut Parser) -> Result<AlignFlags, ()> {
     let ident = input.expect_ident()?;
-    match_ignore_ascii_case! { ident,
+    match_ignore_ascii_case! { &ident,
         "start" => Ok(ALIGN_START),
         "end" => Ok(ALIGN_END),
         "flex-start" => Ok(ALIGN_FLEX_START),
@@ -448,14 +448,14 @@ fn parse_legacy(input: &mut Parser) -> Result<AlignFlags, ()> {
     let a = input.expect_ident()?;
     let b = input.expect_ident()?;
     if a.eq_ignore_ascii_case("legacy") {
-        match_ignore_ascii_case! { b,
+        match_ignore_ascii_case! { &b,
             "left" => Ok(ALIGN_LEGACY | ALIGN_LEFT),
             "right" => Ok(ALIGN_LEGACY | ALIGN_RIGHT),
             "center" => Ok(ALIGN_LEGACY | ALIGN_CENTER),
             _ => Err(())
         }
     } else if b.eq_ignore_ascii_case("legacy") {
-        match_ignore_ascii_case! { a,
+        match_ignore_ascii_case! { &a,
             "left" => Ok(ALIGN_LEGACY | ALIGN_LEFT),
             "right" => Ok(ALIGN_LEGACY | ALIGN_RIGHT),
             "center" => Ok(ALIGN_LEGACY | ALIGN_CENTER),

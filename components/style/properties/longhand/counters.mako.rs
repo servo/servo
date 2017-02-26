@@ -140,7 +140,7 @@
                     content.push(ContentItem::String(value.into_owned()))
                 }
                 Ok(Token::Function(name)) => {
-                    content.push(try!(match_ignore_ascii_case! { name,
+                    content.push(try!(match_ignore_ascii_case! { &name,
                         "counter" => input.parse_nested_block(|input| {
                             let name = try!(input.expect_ident()).into_owned();
                             let style = input.try(|input| {
@@ -163,7 +163,7 @@
                     }));
                 }
                 Ok(Token::Ident(ident)) => {
-                    match_ignore_ascii_case! { ident,
+                    match_ignore_ascii_case! { &ident,
                         "open-quote" => content.push(ContentItem::OpenQuote),
                         "close-quote" => content.push(ContentItem::CloseQuote),
                         "no-open-quote" => content.push(ContentItem::NoOpenQuote),

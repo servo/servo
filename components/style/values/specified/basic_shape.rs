@@ -141,7 +141,7 @@ pub enum BasicShape {
 
 impl Parse for BasicShape {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<BasicShape, ()> {
-        match_ignore_ascii_case! { try!(input.expect_function()),
+        match_ignore_ascii_case! { &try!(input.expect_function()),
             "inset" => {
                 Ok(BasicShape::Inset(
                    try!(input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i)))))
@@ -237,7 +237,7 @@ impl InsetRect {
 
 impl Parse for InsetRect {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { try!(input.expect_function()),
+        match_ignore_ascii_case! { &try!(input.expect_function()),
            "inset" => {
                input.parse_nested_block(|i| InsetRect::parse_function_arguments(context, i))
            },
@@ -413,7 +413,7 @@ impl Circle {
 
 impl Parse for Circle {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { try!(input.expect_function()),
+        match_ignore_ascii_case! { &try!(input.expect_function()),
            "circle" => {
                input.parse_nested_block(|i| Circle::parse_function_arguments(context, i))
            },
@@ -497,7 +497,7 @@ impl Ellipse {
 
 impl Parse for Ellipse {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { try!(input.expect_function()),
+        match_ignore_ascii_case! { &try!(input.expect_function()),
            "ellipse" => {
                input.parse_nested_block(|i| Ellipse::parse_function_arguments(context, i))
            },
@@ -575,7 +575,7 @@ impl Polygon {
 
 impl Parse for Polygon {
     fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { try!(input.expect_function()),
+        match_ignore_ascii_case! { &try!(input.expect_function()),
            "polygon" => {
                input.parse_nested_block(|i| Polygon::parse_function_arguments(context, i))
            },
@@ -664,7 +664,7 @@ impl Default for ShapeRadius {
 impl Parse for ShapeRadius {
     fn parse(_: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         input.try(|i| LengthOrPercentage::parse_non_negative(i)).map(ShapeRadius::Length).or_else(|_| {
-            match_ignore_ascii_case! { try!(input.expect_ident()),
+            match_ignore_ascii_case! { &try!(input.expect_ident()),
                 "closest-side" => Ok(ShapeRadius::ClosestSide),
                 "farthest-side" => Ok(ShapeRadius::FarthestSide),
                 _ => Err(())
@@ -832,7 +832,7 @@ impl ComputedValueAsSpecified for FillRule {}
 
 impl Parse for FillRule {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<FillRule, ()> {
-        match_ignore_ascii_case! { try!(input.expect_ident()),
+        match_ignore_ascii_case! { &try!(input.expect_ident()),
             "nonzero" => Ok(FillRule::NonZero),
             "evenodd" => Ok(FillRule::EvenOdd),
             _ => Err(())
@@ -871,7 +871,7 @@ impl Parse for GeometryBox {
         if let Ok(shape_box) = input.try(|i| ShapeBox::parse(context, i)) {
             Ok(GeometryBox::ShapeBox(shape_box))
         } else {
-            match_ignore_ascii_case! { try!(input.expect_ident()),
+            match_ignore_ascii_case! { &try!(input.expect_ident()),
                 "fill-box" => Ok(GeometryBox::Fill),
                 "stroke-box" => Ok(GeometryBox::Stroke),
                 "view-box" => Ok(GeometryBox::View),
@@ -908,7 +908,7 @@ pub enum ShapeBox {
 
 impl Parse for ShapeBox {
     fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
-        match_ignore_ascii_case! { try!(input.expect_ident()),
+        match_ignore_ascii_case! { &try!(input.expect_ident()),
             "margin-box" => Ok(ShapeBox::Margin),
             "border-box" => Ok(ShapeBox::Border),
             "padding-box" => Ok(ShapeBox::Padding),

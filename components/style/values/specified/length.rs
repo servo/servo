@@ -1385,7 +1385,7 @@ impl Parse for MaxLength {
         input.try(ExtremumLength::parse).map(MaxLength::ExtremumLength)
             .or_else(|()| input.try(LengthOrPercentage::parse_non_negative).map(MaxLength::LengthOrPercentage))
             .or_else(|()| {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
+                match_ignore_ascii_case! { &try!(input.expect_ident()),
                     "none" =>
                         Ok(MaxLength::None),
                     _ => Err(())
