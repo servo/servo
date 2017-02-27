@@ -46,7 +46,7 @@ fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
 heapsize = "0.3.6"
 heapsize_derive = "0.1"
-html5ever = {version = "0.13", features = ["heap_size", "unstable"]}
+html5ever = {git = "https://github.com/canaltinova/html5ever", branch = "form-owner-test", features = ["heap_size", "unstable"]}
 html5ever-atoms = {version = "0.2", features = ["heap_size"]}
 hyper = "0.9.9"
 hyper_serde = "0.5"

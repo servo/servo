@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLegendElementBinding::HTMLLegendElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
@@ -21,6 +21,7 @@ use html5ever_atoms::LocalName;
 #[dom_struct]
 pub struct HTMLLegendElement {
     htmlelement: HTMLElement,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 impl HTMLLegendElement {
@@ -28,7 +29,10 @@ impl HTMLLegendElement {
                      prefix: Option<DOMString>,
                      document: &Document)
                      -> HTMLLegendElement {
-        HTMLLegendElement { htmlelement: HTMLElement::new_inherited(local_name, prefix, document) }
+        HTMLLegendElement {
+            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            form_owner: Default::default(),
+        }
     }
 
     #[allow(unrooted_must_root)]
@@ -83,4 +87,16 @@ impl HTMLLegendElementMethods for HTMLLegendElement {
     }
 }
 
-impl FormControl for HTMLLegendElement {}
+impl FormControl for HTMLLegendElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}

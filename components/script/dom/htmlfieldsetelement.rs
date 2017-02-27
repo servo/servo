@@ -6,7 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
-use dom::bindings::js::Root;
+use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
@@ -19,11 +19,13 @@ use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
+use std::default::Default;
 use style::element_state::*;
 
 #[dom_struct]
 pub struct HTMLFieldSetElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
+    form_owner: MutNullableJS<HTMLFormElement>,
 }
 
 impl HTMLFieldSetElement {
@@ -33,7 +35,8 @@ impl HTMLFieldSetElement {
         HTMLFieldSetElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
-                                                      local_name, prefix, document)
+                                                      local_name, prefix, document),
+            form_owner: Default::default(),
         }
     }
 
@@ -148,9 +151,24 @@ impl VirtualMethods for HTMLFieldSetElement {
                     }
                 }
             },
+            &local_name!("form") => {
+                self.form_attribute_mutated(mutation);
+            },
             _ => {},
         }
     }
 }
 
-impl FormControl for HTMLFieldSetElement {}
+impl FormControl for HTMLFieldSetElement {
+    fn form_owner(&self) -> Option<Root<HTMLFormElement>> {
+        self.form_owner.get()
+    }
+
+    fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
+        self.form_owner.set(form);
+    }
+
+    fn to_element<'a>(&'a self) -> &'a Element {
+        self.upcast::<Element>()
+    }
+}
