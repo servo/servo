@@ -1413,10 +1413,26 @@ fn static_assert() {
         self.gecko.mDisplay = result;
         self.gecko.mOriginalDisplay = result;
     }
+
+    /// Set the display value from the style adjustment code. This is pretty
+    /// much like set_display, but without touching the mOriginalDisplay field,
+    /// which we want to keep.
+    pub fn set_adjusted_display(&mut self, v: longhands::display::computed_value::T) {
+        use properties::longhands::display::computed_value::T as Keyword;
+        let result = match v {
+            % for value in display_keyword.values_for('gecko'):
+                Keyword::${to_rust_ident(value)} =>
+                    structs::${display_keyword.gecko_constant(value)},
+            % endfor
+        };
+        self.gecko.mDisplay = result;
+    }
+
     pub fn copy_display_from(&mut self, other: &Self) {
         self.gecko.mDisplay = other.gecko.mDisplay;
-        self.gecko.mOriginalDisplay = other.gecko.mOriginalDisplay;
+        self.gecko.mOriginalDisplay = other.gecko.mDisplay;
     }
+
     <%call expr="impl_keyword_clone('display', 'mDisplay', display_keyword)"></%call>
 
     // overflow-y is implemented as a newtype of overflow-x, so we need special handling.

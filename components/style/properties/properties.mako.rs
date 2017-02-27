@@ -1949,13 +1949,15 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
         };
         if let Some(computed_display) = computed_display {
             let box_ = style.mutate_box();
-            box_.set_display(computed_display);
             % if product == "servo":
+                box_.set_display(computed_display);
                 box_.set__servo_display_for_hypothetical_box(if blockify_root || blockify_item {
                     computed_display
                 } else {
                     specified_display
                 });
+            % else:
+                box_.set_adjusted_display(computed_display);
             % endif
         }
     }
