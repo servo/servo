@@ -1,0 +1,88 @@
+diff --git a/components/script_layout_interface/reporter.rs b/components/script_layout_interface/reporter.rs
+index 4561f2d..6f22fa7 100644
+--- a/components/script_layout_interface/reporter.rs
++++ b/components/script_layout_interface/reporter.rs
+@@ -9,6 +9,8 @@ use msg::constellation_msg::PipelineId;
+ use script_traits::ConstellationControlMsg;
+ use std::sync::{Mutex, Arc};
+ use style::error_reporting::ParseErrorReporter;
++use servo_url::ServoUrl;
++
+ 
+ #[derive(HeapSizeOf)]
+ pub struct CSSErrorReporter {
+@@ -21,7 +23,7 @@ pub struct CSSErrorReporter {
+ }
+ 
+ impl ParseErrorReporter for CSSErrorReporter {
+-     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
++     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str, servo_url : Option<&ServoUrl>) {
+          let location = input.source_location(position);
+          if log_enabled!(log::LogLevel::Info) {
+              info!("{}:{} {}", location.line, location.column, message)
+diff --git a/components/style/error_reporting.rs b/components/style/error_reporting.rs
+index 3a802bd..8ca4a5b 100644
+--- a/components/style/error_reporting.rs
++++ b/components/style/error_reporting.rs
+@@ -7,6 +7,7 @@
+ #![deny(missing_docs)]
+ 
+ use cssparser::{Parser, SourcePosition};
++use servo_url::ServoUrl;
+ use log;
+ 
+ /// A generic trait for an error reporter.
+@@ -15,7 +16,7 @@ pub trait ParseErrorReporter {
+     ///
+     /// Returns the current input being parsed, the source position it was
+     /// reported from, and a message.
+-    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str);
++    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str, servo_url : Option<&ServoUrl>);
+     /// Clone this error reporter.
+     ///
+     /// TODO(emilio): I'm pretty sure all the box shenanigans can go away.
+@@ -27,10 +28,14 @@ pub trait ParseErrorReporter {
+ /// TODO(emilio): The name of this reporter is a lie, and should be renamed!
+ pub struct StdoutErrorReporter;
+ impl ParseErrorReporter for StdoutErrorReporter {
+-    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
++    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str, servo_url : Option<&ServoUrl>) {
+          if log_enabled!(log::LogLevel::Info) {
+              let location = input.source_location(position);
+-             info!("{}:{} {}", location.line, location.column, message)
++             match  servo_url {
++                 Some(url) => info!("\n------>ServoUrl:\t{}\n{}:{} {}", url.as_str(),location.line, location.column, message),
++                 None => info!("{}:{} {}", location.line, location.column, message)
++             }
++
+          }
+     }
+ 
+diff --git a/components/style/parser.rs b/components/style/parser.rs
+index 4145650..956c971 100644
+--- a/components/style/parser.rs
++++ b/components/style/parser.rs
+@@ -90,7 +90,8 @@ impl<'a> ParserContext<'a> {
+ /// Set a `RUST_LOG=style::errors` environment variable
+ /// to log CSS parse errors to stderr.
+ pub fn log_css_error(input: &mut Parser, position: SourcePosition, message: &str, parsercontext: &ParserContext) {
+-    parsercontext.error_reporter.report_error(input, position, message);
++    let servo_url = Some(parsercontext.base_url);
++    parsercontext.error_reporter.report_error(input, position, message,servo_url);
+ }
+ 
+ // XXXManishearth Replace all specified value parse impls with impls of this
+diff --git a/components/style/stylesheets.rs b/components/style/stylesheets.rs
+index be88e22..5c99b83 100644
+--- a/components/style/stylesheets.rs
++++ b/components/style/stylesheets.rs
+@@ -252,7 +252,8 @@ impl ParseErrorReporter for MemoryHoleReporter {
+     fn report_error(&self,
+             _: &mut Parser,
+             _: SourcePosition,
+-            _: &str) {
++            _: &str,
++        _: Option<&ServoUrl>) {
+         // do nothing
+     }
+     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
