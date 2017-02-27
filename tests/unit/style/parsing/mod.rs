@@ -81,6 +81,7 @@ mod animation;
 mod background;
 mod basic_shape;
 mod border;
+mod box_shadow;
 mod column;
 mod effects;
 mod font;
