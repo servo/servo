@@ -4,14 +4,12 @@
 
 //! Common handling of keyboard input and state management for text input controls
 
-extern crate unicode_segmentation;
-
 use clipboard_provider::ClipboardProvider;
 use dom::bindings::str::DOMString;
 use dom::keyboardevent::KeyboardEvent;
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
-use self::unicode_segmentation::UnicodeSegmentation;
+use unicode_segmentation::UnicodeSegmentation;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::default::Default;
@@ -492,15 +490,20 @@ impl<T: ClipboardProvider> TextInput<T> {
                             [..remaining];
                     }
 
-                    match input
-                        .unicode_words()
-                        .last() {
-                            None => 0,
-                            Some(i) => {
-                                - (input.len() as isize + newline_adjustment as isize
-                                - input.rfind(i).expect("no words to the left on this line") as isize)
-                            },
-                       }
+                    let mut iter = input.split_word_bounds().rev();
+                    let mut shift_temp: isize = 0;
+                    loop {
+                        match iter.next() {
+                            None => break,
+                            Some(x) => {
+                                shift_temp += - (x.len() as isize);
+                                if x.chars().any(|x| x.is_alphabetic() || x.is_numeric()) {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    shift_temp - newline_adjustment
                 }
                 Direction::Forward => {
                     let remaining = self.current_line_length() - self.edit_point.index;
@@ -516,15 +519,20 @@ impl<T: ClipboardProvider> TextInput<T> {
                             [self.edit_point.index..];
                     }
 
-                    match input
-                        .unicode_words()
-                        .next() {
-                            None => 0,
-                            Some(i) => {
-                                input.find(i).expect("no words to the right on this line") as isize
-                                + i.len() as isize + newline_adjustment as isize
-                            },
+                    let mut iter = input.split_word_bounds();
+                    let mut shift_temp: isize = 0;
+                    loop {
+                        match iter.next() {
+                            None => break,
+                            Some(x) => {
+                                shift_temp += x.len() as isize;
+                                if x.chars().any(|x| x.is_alphabetic() || x.is_numeric()) {
+                                    break;
+                                }
+                            }
                         }
+                    }
+                    shift_temp + newline_adjustment
                 }
             }
         };
@@ -541,12 +549,11 @@ impl<T: ClipboardProvider> TextInput<T> {
             match direction {
                 Direction::Backward => {
                     - (current_line[..self.edit_point.index].len() as isize)
-                }
+                },
                 Direction::Forward => {
                     current_line[self.edit_point.index..].len() as isize
                 }
             }
-
         };
         self.perform_horizontal_adjustment(shift, select);
     }
@@ -569,98 +576,98 @@ impl<T: ClipboardProvider> TextInput<T> {
             (_, Key::B) if mods.contains(CONTROL | ALT) => {
                 self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (_, Key::F) if mods.contains(CONTROL | ALT) => {
                 self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (_, Key::A) if mods.contains(CONTROL | ALT) => {
                 self.adjust_horizontal_to_end(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (_, Key::E) if mods.contains(CONTROL | ALT) => {
                 self.adjust_horizontal_to_end(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (Some('a'), _) if is_control_key(mods) => {
                 self.select_all();
                 KeyReaction::RedrawSelection
-            }
+            },
             (Some('c'), _) if is_control_key(mods) => {
                 if let Some(text) = self.get_selection_text() {
                     self.clipboard_provider.set_clipboard_contents(text);
                 }
                 KeyReaction::DispatchInput
-            }
+            },
             (Some('v'), _) if is_control_key(mods) => {
                 let contents = self.clipboard_provider.clipboard_contents();
                 self.insert_string(contents);
                 KeyReaction::DispatchInput
-            }
+            },
             (Some(c), _) => {
                 self.insert_char(c);
                 KeyReaction::DispatchInput
-            }
+            },
             (None, Key::Delete) => {
                 self.delete_char(Direction::Forward);
                 KeyReaction::DispatchInput
-            }
+            },
             (None, Key::Backspace) => {
                 self.delete_char(Direction::Backward);
                 KeyReaction::DispatchInput
-            }
+            },
             #[cfg(target_os = "macos")]
             (None, Key::Left) if mods.contains(SUPER) => {
                 self.adjust_horizontal_to_end(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             #[cfg(target_os = "macos")]
             (None, Key::Right) if mods.contains(SUPER) => {
                 self.adjust_horizontal_to_end(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::Left) if mods.contains(ALT) => {
                 self.adjust_horizontal_by_word(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::Right) if mods.contains(ALT) => {
                 self.adjust_horizontal_by_word(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::Left) => {
                 self.adjust_horizontal_by_one(Direction::Backward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::Right) => {
                 self.adjust_horizontal_by_one(Direction::Forward, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::Up) => {
                 self.adjust_vertical(-1, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::Down) => {
                 self.adjust_vertical(1, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::Enter) | (None, Key::KpEnter) => self.handle_return(),
             (None, Key::Home) => {
                 self.edit_point.index = 0;
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::End) => {
                 self.edit_point.index = self.current_line_length();
                 self.assert_ok_selection();
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::PageUp) => {
                 self.adjust_vertical(-28, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             (None, Key::PageDown) => {
                 self.adjust_vertical(28, maybe_select);
                 KeyReaction::RedrawSelection
-            }
+            },
             _ => KeyReaction::Nothing,
         }
     }

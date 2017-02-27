@@ -7,7 +7,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
+use msg::constellation_msg::{ALT, CONTROL, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
 #[cfg(not(target_os = "macos"))]
 use msg::constellation_msg::CONTROL;
