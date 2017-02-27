@@ -4,38 +4,7 @@
 
 use rustc::hir::def_id::DefId;
 use rustc::lint::{LateContext, LintContext};
-use syntax::ast;
 use syntax::codemap::{ExpnFormat, Span};
-use syntax::ptr::P;
-
-/// Matches a type with a provided string, and returns its type parameters if successful
-pub fn match_ty_unwrap<'a>(ty: &'a ast::Ty, segments: &[&str]) -> Option<&'a [P<ast::Ty>]> {
-    match ty.node {
-        ast::TyKind::Path(_, ast::Path { segments: ref seg, .. }) => {
-            // So hir::Path isn't the full path, just the tokens that were provided.
-            // I could muck around with the maps and find the full path
-            // however the more efficient way is to simply reverse the iterators and zip them
-            // which will compare them in reverse until one of them runs out of segments
-            if seg.iter().rev().zip(segments.iter().rev()).all(|(a, b)| &*a.identifier.name.as_str() == *b) {
-                match seg.last() {
-                    Some(&ast::PathSegment { parameters: Some(ref params), .. }) => {
-                        match **params {
-                            ast::PathParameters::AngleBracketed(ref a) => Some(&a.types),
-
-                            // `Foo(A,B) -> C`
-                            ast::PathParameters::Parenthesized(_) => None,
-                        }
-                    }
-                    Some(&ast::PathSegment { parameters: None, .. }) => Some(&[]),
-                    None => None,
-                }
-            } else {
-                None
-            }
-        },
-        _ => None
-    }
-}
 
 /// check if a DefId's path matches the given absolute type path
 /// usage e.g. with
