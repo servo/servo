@@ -1933,6 +1933,53 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     }
 }
 
+// https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
+fn is_a_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, original_host: Host) -> bool {
+    // Step 1
+    if host_suffix_string.is_empty() {
+        return false;
+    }
+
+    // Step 2-3.
+    let host = match Host::parse(host_suffix_string) {
+        Ok(host) => host,
+        Err(_) => return false,
+    };
+
+    // Step 4.
+    if host != original_host {
+        // Step 4.1
+        let host = match host {
+            Host::Domain(ref host) => host,
+            _ => return false,
+        };
+        let original_host = match original_host {
+            Host::Domain(ref original_host) => original_host,
+            _ => return false,
+        };
+
+        // Step 4.2
+        let (prefix, suffix) = match original_host.len().checked_sub(host.len()) {
+            Some(index) => original_host.split_at(index),
+            None => return false,
+        };
+        if !prefix.ends_with(".") {
+            return false;
+        }
+        if suffix != host {
+            return false;
+        }
+
+        // Step 4.3
+        if is_pub_domain(host) {
+            return false;
+        }
+    }
+
+    // Step 5
+    return true;
+}
+
 /// https://url.spec.whatwg.org/#network-scheme
 fn url_has_network_scheme(url: &ServoUrl) -> bool {
     match url.scheme() {
@@ -2438,55 +2485,24 @@ impl DocumentMethods for Document {
         // flag set has its sandboxed document.domain browsing context
         // flag set, then throw a "SecurityError" DOMException."
 
-        // Step 3.
-        if value.is_empty() {
-            return Err(Error::Security);
-        }
-
-        // Step 4-5.
-        let host = match Host::parse(&*value) {
-            Ok(host) => host,
-            Err(_) => return Err(Error::Security),
-        };
-
-        // Step 6.
+        // Step 3-4.
         let effective_domain = match self.origin.effective_domain() {
             Some(effective_domain) => effective_domain,
             None => return Err(Error::Security),
         };
 
-        // Step 7.
-        if host != effective_domain {
-            // Step 7.1
-            let host = match host {
-                Host::Domain(ref host) => host,
-                _ => return Err(Error::Security),
-            };
-            let effective_domain = match effective_domain {
-                Host::Domain(ref effective_domain) => effective_domain,
-                _ => return Err(Error::Security),
-            };
-
-            // Step 7.2
-            let (prefix, suffix) = match effective_domain.len().checked_sub(host.len()) {
-                Some(index) => effective_domain.split_at(index),
-                None => return Err(Error::Security),
-            };
-            if !prefix.ends_with(".") {
-                return Err(Error::Security);
-            }
-            if suffix != host {
-                return Err(Error::Security);
-            }
-
-            // Step 7.3
-            if is_pub_domain(&*host) {
-                return Err(Error::Security);
-            }
+        // Step 5
+        if !is_a_registrable_domain_suffix_of_or_is_equal_to(&*value, effective_domain) {
+            return Err(Error::Security);
         }
 
-        // Step 8.
-        self.origin.set_domain(host);
+        // Step 6
+        // Slightly annoying to have to parse twice.
+        match Host::parse(&*value) {
+            Ok(host) => self.origin.set_domain(host),
+            Err(_) => return Err(Error::Security),
+        };
+
         Ok(())
     }
 
