@@ -40,13 +40,17 @@ pub fn parse_name(s: &str) -> Result<&str, ()> {
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct SpecifiedValue {
-    css: String,
+    /// The value in CSS syntax
+    pub css: String,
 
-    first_token_type: TokenSerializationType,
-    last_token_type: TokenSerializationType,
+    /// The type of token on the left, to see if concatenation is safe or needs a /**/ comment
+    pub first_token_type: TokenSerializationType,
 
-    /// Custom property names in var() functions.
-    references: HashSet<Name>,
+    /// The type of token on the right, to see if concatenation is safe or needs a /**/ comment
+    pub last_token_type: TokenSerializationType,
+
+    /// Custom property names referenced in var() functions in this value.
+    pub references: HashSet<Name>,
 }
 
 impl ::values::HasViewportPercentage for SpecifiedValue {

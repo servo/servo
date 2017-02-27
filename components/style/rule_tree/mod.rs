@@ -99,7 +99,7 @@ impl StyleSource {
             let _ = write!(writer, "{:?}", rule.read().selectors);
         }
 
-        let _ = write!(writer, "  -> {:?}", self.read().declarations);
+        let _ = write!(writer, "  -> {:?}", self.read().as_potentially_duplicated());
     }
 
     /// Read the style source guard, and obtain thus read access to the

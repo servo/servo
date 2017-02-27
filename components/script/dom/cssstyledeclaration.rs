@@ -62,15 +62,12 @@ impl CSSStyleOwner {
                     let result = f(&mut pdb, &mut changed);
                     result
                 } else {
-                    let mut pdb = PropertyDeclarationBlock {
-                        important_count: 0,
-                        declarations: vec![],
-                    };
+                    let mut pdb = PropertyDeclarationBlock::empty();
                     let result = f(&mut pdb, &mut changed);
 
                     // Here `changed` is somewhat silly, because we know the
                     // exact conditions under it changes.
-                    changed = !pdb.declarations.is_empty();
+                    changed = pdb.len() > 0;
                     if changed {
                         attr = Some(Arc::new(RwLock::new(pdb)));
                     }
@@ -86,7 +83,7 @@ impl CSSStyleOwner {
                     //
                     // [1]: https://github.com/whatwg/html/issues/2306
                     if let Some(pdb) = attr {
-                        let serialization = pdb.read().to_css_string();
+                        let serialization = pdb.write().to_css_string();
                         el.set_attribute(&local_name!("style"),
                                          AttrValue::Declaration(serialization,
                                                                 pdb));
@@ -116,16 +113,36 @@ impl CSSStyleOwner {
                 match *el.style_attribute().borrow() {
                     Some(ref pdb) => f(&pdb.read()),
                     None => {
-                        let pdb = PropertyDeclarationBlock {
-                            important_count: 0,
-                            declarations: vec![],
-                        };
+                        let pdb = PropertyDeclarationBlock::empty();
                         f(&pdb)
                     }
                 }
             }
             CSSStyleOwner::CSSRule(_, ref pdb) => {
                 f(&pdb.read())
+            }
+        }
+    }
+
+    fn with_mut_block<F, R>(&self, f: F) -> R
+        where F: FnOnce(&mut PropertyDeclarationBlock) -> R,
+    {
+        match *self {
+            CSSStyleOwner::Element(ref el) => {
+                match *el.style_attribute().borrow_mut() {
+                    Some(ref pdb) => f(&mut pdb.write()),
+                    None => {
+                        let mut pdb = PropertyDeclarationBlock::empty();
+                        let result = f(&mut pdb);
+                        // with_mut_block is only used in cases where mutablility
+                        // is only required for deduplication.
+                        assert!(pdb.len() == 0);
+                        result
+                    }
+                }
+            }
+            CSSStyleOwner::CSSRule(_, ref pdb) => {
+                f(&mut pdb.write())
             }
         }
     }
@@ -250,29 +267,30 @@ impl CSSStyleDeclaration {
 
             // Step 6
             let window = self.owner.window();
-            let declarations =
+            let result =
                 parse_one_declaration(id, &value, &self.owner.base_url(),
                                       window.css_error_reporter(),
                                       ParserContextExtraData::default());
 
             // Step 7
-            let declarations = match declarations {
-                Ok(declarations) => declarations,
+            let mut new_block = match result {
+                Ok(new_block) => new_block,
                 Err(_) => {
                     *changed = false;
                     return Ok(());
                 }
             };
 
+            if importance.important() {
+                new_block.set_to_important_from(0)
+            }
+
             // Step 8
             // Step 9
             // We could try to be better I guess?
-            *changed = !declarations.is_empty();
-            for declaration in declarations {
-                // TODO(emilio): We could check it changed
-                pdb.set_parsed_declaration(declaration.0, importance);
-            }
-
+            *changed = new_block.len() > 0;
+            // TODO(emilio): We could check it changed
+            pdb.extend(new_block);
             Ok(())
         })
     }
@@ -281,8 +299,9 @@ impl CSSStyleDeclaration {
 impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
-        self.owner.with_block(|pdb| {
-            pdb.declarations.len() as u32
+        self.owner.with_mut_block(|pdb| {
+            pdb.deduplicate();
+            pdb.len() as u32
         })
     }
 
@@ -406,8 +425,9 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
-        self.owner.with_block(|pdb| {
-            pdb.declarations.get(index as usize).map(|entry| {
+        self.owner.with_mut_block(|pdb| {
+            pdb.deduplicate();
+            pdb.as_potentially_duplicated().get(index as usize).map(|entry| {
                 let (ref declaration, importance) = *entry;
                 let mut css = declaration.to_css_string();
                 if importance.important() {
@@ -420,7 +440,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
     // https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext
     fn CssText(&self) -> DOMString {
-        self.owner.with_block(|pdb| {
+        self.owner.with_mut_block(|pdb| {
             DOMString::from(pdb.to_css_string())
         })
     }

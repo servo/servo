@@ -490,7 +490,7 @@
         use parser::ParserContext;
         use properties::{DeclaredValue, PropertyDeclaration, UnparsedValue};
         use properties::{ShorthandId, longhands};
-        use properties::declaration_block::Importance;
+        use properties::declaration_block::PropertyDeclarationBlock;
         use std::fmt;
         use style_traits::ToCss;
         use super::{SerializeFlags, ALL_INHERIT, ALL_INITIAL, ALL_UNSET};
@@ -599,7 +599,7 @@
         /// `declarations` vector.
         pub fn parse(context: &ParserContext,
                      input: &mut Parser,
-                     declarations: &mut Vec<(PropertyDeclaration, Importance)>)
+                     declarations: &mut PropertyDeclarationBlock)
                      -> Result<(), ()> {
             input.look_for_var_functions();
             let start = input.position();
@@ -610,7 +610,7 @@
             let var = input.seen_var_functions();
             if let Ok(value) = value {
                 % for sub_property in shorthand.sub_properties:
-                    declarations.push((PropertyDeclaration::${sub_property.camel_case}(
+                    declarations.push_normal(PropertyDeclaration::${sub_property.camel_case}(
                         match value.${sub_property.ident} {
                             % if sub_property.boxed:
                                 Some(value) => DeclaredValue::Value(Box::new(value)),
@@ -619,7 +619,7 @@
                             % endif
                             None => DeclaredValue::Initial,
                         }
-                    ), Importance::Normal));
+                    ));
                 % endfor
                 Ok(())
             } else if var {
@@ -627,14 +627,14 @@
                 let (first_token_type, css) = try!(
                     ::custom_properties::parse_non_custom_with_var(input));
                 % for sub_property in shorthand.sub_properties:
-                    declarations.push((PropertyDeclaration::${sub_property.camel_case}(
+                    declarations.push_normal(PropertyDeclaration::${sub_property.camel_case}(
                         DeclaredValue::WithVariables(Box::new(UnparsedValue {
                             css: css.clone().into_owned(),
                             first_token_type: first_token_type,
                             base_url: context.base_url.clone(),
                             from_shorthand: Some(ShorthandId::${shorthand.camel_case}),
                         }))
-                    ), Importance::Normal));
+                    ));
                 % endfor
                 Ok(())
             } else {

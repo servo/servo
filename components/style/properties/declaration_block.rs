@@ -40,33 +40,84 @@ impl Importance {
     }
 }
 
-impl Default for Importance {
-    #[inline]
-    fn default() -> Self {
-        Importance::Normal
-    }
-}
-
 /// Overridden declarations are skipped.
 #[derive(Debug, PartialEq, Clone)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PropertyDeclarationBlock {
     /// The group of declarations, along with their importance.
-    ///
-    /// Only deduplicated declarations appear here.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
-    pub declarations: Vec<(PropertyDeclaration, Importance)>,
+    declarations: Vec<(PropertyDeclaration, Importance)>,
+
+    /// Whether `declarations` is known not to contain duplicate declarations
+    /// (more than one for the same property)
+    is_deduplicated: bool,
 
     /// The number of entries in `self.declaration` with `Importance::Important`
-    pub important_count: u32,
+    important_count: usize,
+}
+
+impl From<Vec<(PropertyDeclaration, Importance)>> for PropertyDeclarationBlock {
+    fn from(vec: Vec<(PropertyDeclaration, Importance)>) -> Self {
+        PropertyDeclarationBlock {
+            important_count: vec.iter().filter(|&&(_, i)| i.important()).count(),
+            is_deduplicated: vec.is_empty(),
+            declarations: vec,
+        }
+    }
 }
 
 impl PropertyDeclarationBlock {
+    /// Constructor
+    pub fn empty() -> Self {
+        PropertyDeclarationBlock {
+            declarations: Vec::new(),
+            important_count: 0,
+            is_deduplicated: true,
+        }
+    }
+
+    /// Number of declarations
+    pub fn len(&self) -> usize {
+        self.declarations.len()
+    }
+
+    /// Vec::truncate
+    pub fn truncate(&mut self, new_len: usize) {
+        debug_assert!(!self.declarations[new_len..].iter().any(|&(_, i)| i.important()));
+        self.declarations.truncate(new_len)
+    }
+
+    /// Set the importance of declarations from `start_index` to the end of the vector
+    pub fn set_to_important_from(&mut self, start_index: usize) {
+        let to_be_changed = &mut self.declarations[start_index..];
+        self.important_count += to_be_changed.len();
+        for &mut (_, ref mut importance) in to_be_changed {
+            debug_assert!(!importance.important());
+            *importance = Importance::Important
+        }
+     }
+
+    /// Vec::extend
+    pub fn extend(&mut self, other: PropertyDeclarationBlock) {
+        self.declarations.extend(other.declarations);
+        self.important_count += other.important_count;
+        self.is_deduplicated = false;
+    }
+
+    /// Push a declaration that is not !important
+    pub fn push_normal(&mut self, declaration: PropertyDeclaration) {
+        self.declarations.push((declaration, Importance::Normal));
+        self.is_deduplicated = false;
+    }
+
+    /// Iterator the declarations as-is. There may be more than one for a given property.
+    pub fn as_potentially_duplicated(&self) -> &[(PropertyDeclaration, Importance)] {
+        &self.declarations
+    }
+
     /// Returns wheather this block contains any declaration with `!important`.
     ///
     /// This is based on the `important_count` counter,
     /// which should be maintained whenever `declarations` is changed.
-    // FIXME: make fields private and maintain it here in methods?
     pub fn any_important(&self) -> bool {
         self.important_count > 0
     }
@@ -75,7 +126,6 @@ impl PropertyDeclarationBlock {
     ///
     /// This is based on the `important_count` counter,
     /// which should be maintained whenever `declarations` is changed.
-    // FIXME: make fields private and maintain it here in methods?
     pub fn any_normal(&self) -> bool {
         self.declarations.len() > self.important_count as usize
     }
@@ -84,7 +134,8 @@ impl PropertyDeclarationBlock {
     ///
     /// NOTE: This is linear time.
     pub fn get(&self, property: PropertyDeclarationId) -> Option< &(PropertyDeclaration, Importance)> {
-        self.declarations.iter().find(|&&(ref decl, _)| decl.id() == property)
+        // Use reverse order: in case of duplication, the later declaration wins
+        self.declarations.iter().rev().find(|&&(ref decl, _)| decl.id() == property)
     }
 
     /// Find the value of the given property in this block and serialize it
@@ -170,33 +221,6 @@ impl PropertyDeclarationBlock {
         }
     }
 
-    /// Adds or overrides the declaration for a given property in this block,
-    /// without taking into account any kind of priority.
-    pub fn set_parsed_declaration(&mut self,
-                                  declaration: PropertyDeclaration,
-                                  importance: Importance) {
-        for slot in &mut *self.declarations {
-            if slot.0.id() == declaration.id() {
-                match (slot.1, importance) {
-                    (Importance::Normal, Importance::Important) => {
-                        self.important_count += 1;
-                    }
-                    (Importance::Important, Importance::Normal) => {
-                        self.important_count -= 1;
-                    }
-                    _ => {}
-                }
-                *slot = (declaration, importance);
-                return
-            }
-        }
-
-        self.declarations.push((declaration, importance));
-        if importance.important() {
-            self.important_count += 1;
-        }
-    }
-
     /// Set the declaration importance for a given property, if found.
     ///
     /// Returns whether any declaration was updated.
@@ -277,6 +301,9 @@ impl PropertyDeclarationBlock {
 
     /// Only keep the "winning" declaration for any given property, by importance then source order.
     pub fn deduplicate(&mut self) {
+        if self.is_deduplicated {
+            return
+        }
         let mut deduplicated = Vec::with_capacity(self.declarations.len());
         let mut seen_normal = PropertyDeclarationIdSet::new();
         let mut seen_important = PropertyDeclarationIdSet::new();
@@ -306,14 +333,26 @@ impl PropertyDeclarationBlock {
         }
         deduplicated.reverse();
         self.declarations = deduplicated;
+        self.is_deduplicated = true;
     }
-}
 
-impl ToCss for PropertyDeclarationBlock {
-    // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-        where W: fmt::Write,
-    {
+    /// https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
+    ///
+    /// This is an inherent method rather than a ToCss impl so that we can take &mut
+    /// which is necessary for deduplication.
+    pub fn to_css_string(&mut self) -> String {
+        let mut s = String::new();
+        self.to_css(&mut s).unwrap();
+        s
+    }
+
+    /// https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
+    ///
+    /// This is an inherent method rather than a ToCss impl so that we can take &mut
+    /// which is necessary for deduplication.
+    pub fn to_css<W>(&mut self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        self.deduplicate();
+
         let mut is_first_serialization = true; // trailing serializations should have a prepended space
 
         // Step 1 -> dest = result list
@@ -552,10 +591,10 @@ pub fn parse_one_declaration(id: PropertyId,
                              base_url: &ServoUrl,
                              error_reporter: StdBox<ParseErrorReporter + Send>,
                              extra_data: ParserContextExtraData)
-                             -> Result<Vec<(PropertyDeclaration, Importance)>, ()> {
+                             -> Result<PropertyDeclarationBlock, ()> {
     let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     Parser::new(input).parse_entirely(|parser| {
-        let mut results = vec![];
+        let mut results = PropertyDeclarationBlock::empty();
         match PropertyDeclaration::parse(id, &context, parser, &mut results, false) {
             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
             _ => Err(())
@@ -566,51 +605,45 @@ pub fn parse_one_declaration(id: PropertyId,
 /// A struct to parse property declarations.
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    declarations: Vec<(PropertyDeclaration, Importance)>
+    declaration_block: PropertyDeclarationBlock,
 }
 
 
 /// Default methods reject all at rules.
 impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
     type Prelude = ();
-    type AtRule = (u32, Importance);
+    type AtRule = ();
 }
 
 
 impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
-    /// Declarations are pushed to the internal vector. This will only
-    /// let you know if the decl was !important and how many longhands
-    /// it expanded to
-    type Declaration = (u32, Importance);
+    /// Declarations are pushed to the internal vector.
+    type Declaration = ();
 
-    fn parse_value(&mut self, name: &str, input: &mut Parser)
-                   -> Result<(u32, Importance), ()> {
+    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
         let id = try!(PropertyId::parse(name.into()));
-        let old_len = self.declarations.len();
+        let old_len = self.declaration_block.declarations.len();
         let parse_result = input.parse_until_before(Delimiter::Bang, |input| {
-            match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, false) {
+            match PropertyDeclaration::parse(id, self.context, input, &mut self.declaration_block, false) {
                 PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(()),
                 _ => Err(())
             }
         });
-        if let Err(_) = parse_result {
+        if let Err(()) = parse_result {
             // rollback
-            self.declarations.truncate(old_len);
+            self.declaration_block.declarations.truncate(old_len);
             return Err(())
         }
-        let importance = match input.try(parse_important) {
-            Ok(()) => Importance::Important,
-            Err(()) => Importance::Normal,
-        };
+        let is_important = input.try(parse_important).is_ok();
         // In case there is still unparsed text in the declaration, we should roll back.
         if !input.is_exhausted() {
-            self.declarations.truncate(old_len);
+            self.declaration_block.declarations.truncate(old_len);
             return Err(())
         }
-        for decl in &mut self.declarations[old_len..] {
-            decl.1 = importance
+        if is_important {
+            self.declaration_block.set_to_important_from(old_len)
         }
-        Ok(((self.declarations.len() - old_len) as u32, importance))
+        Ok(())
     }
 }
 
@@ -620,31 +653,18 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 pub fn parse_property_declaration_list(context: &ParserContext,
                                        input: &mut Parser)
                                        -> PropertyDeclarationBlock {
-    let mut important_count = 0;
     let parser = PropertyDeclarationParser {
         context: context,
-        declarations: vec![],
+        declaration_block: PropertyDeclarationBlock::empty(),
     };
     let mut iter = DeclarationListParser::new(input, parser);
-    while let Some(declaration) = iter.next() {
-        match declaration {
-            Ok((count, importance)) => {
-                if importance.important() {
-                    important_count += count;
-                }
-            }
-            Err(range) => {
-                let pos = range.start;
-                let message = format!("Unsupported property declaration: '{}'",
-                                      iter.input.slice(range));
-                log_css_error(iter.input, pos, &*message, &context);
-            }
+    while let Some(result) = iter.next() {
+        if let Err(range) = result {
+            let pos = range.start;
+            let message = format!("Unsupported property declaration: '{}'",
+                                  iter.input.slice(range));
+            log_css_error(iter.input, pos, &*message, &context);
         }
     }
-    let mut block = PropertyDeclarationBlock {
-        declarations: iter.parser.declarations,
-        important_count: important_count,
-    };
-    block.deduplicate();
-    block
+    iter.parser.declaration_block
 }

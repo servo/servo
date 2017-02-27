@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::{self, Parser as CssParser, SourcePosition};
+use cssparser::{self, Parser as CssParser, SourcePosition, Token};
 use html5ever_atoms::{Namespace as NsAtom};
 use media_queries::CSSErrorReporterTest;
 use parking_lot::RwLock;
@@ -10,9 +10,11 @@ use selectors::parser::*;
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::borrow::ToOwned;
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
+use style::custom_properties;
 use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
@@ -22,6 +24,7 @@ use style::properties::longhands::animation_play_state;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
+use style_traits::ToCss;
 
 #[test]
 fn test_parse_stylesheet() {
@@ -97,16 +100,35 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (1 << 10) + (1 << 0),
                     },
                 ]),
-                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![
-                        (PropertyDeclaration::Display(DeclaredValue::Value(
-                            longhands::display::SpecifiedValue::none)),
-                         Importance::Important),
-                        (PropertyDeclaration::Custom(Atom::from("a"), DeclaredValue::Inherit),
-                         Importance::Important),
-                    ],
-                    important_count: 2,
-                })),
+                block: Arc::new(RwLock::new(PropertyDeclarationBlock::from(vec![
+                    (PropertyDeclaration::Display(DeclaredValue::Value(
+                        longhands::display::SpecifiedValue::block)),
+                     Importance::Important),
+                    (PropertyDeclaration::Display(DeclaredValue::Value(
+                        longhands::display::SpecifiedValue::none)),
+                     Importance::Important),
+                    (PropertyDeclaration::Display(DeclaredValue::Value(
+                        longhands::display::SpecifiedValue::inline)),
+                     Importance::Normal),
+                    (PropertyDeclaration::Custom(Atom::from("a"), DeclaredValue::Value(
+                        Box::new(custom_properties::SpecifiedValue {
+                            css: String::from(" b "),
+                            first_token_type: Token::WhiteSpace(" ").serialization_type(),
+                            last_token_type: Token::Ident("b".into()).serialization_type(),
+                            references: HashSet::new(),
+                        }))),
+                     Importance::Important),
+                    (PropertyDeclaration::Custom(Atom::from("a"), DeclaredValue::Inherit),
+                     Importance::Important),
+                    (PropertyDeclaration::Custom(Atom::from("a"), DeclaredValue::Value(
+                        Box::new(custom_properties::SpecifiedValue {
+                            css: String::from(" c"),
+                            first_token_type: Token::WhiteSpace(" ").serialization_type(),
+                            last_token_type: Token::WhiteSpace(" ").serialization_type(),
+                            references: HashSet::new(),
+                        }))),
+                     Importance::Normal),
+                ]))),
             }))),
             CssRule::Style(Arc::new(RwLock::new(StyleRule {
                 selectors: SelectorList(vec![
@@ -145,14 +167,14 @@ fn test_parse_stylesheet() {
                         specificity: (0 << 20) + (0 << 10) + (1 << 0),
                     },
                 ]),
-                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![
-                        (PropertyDeclaration::Display(DeclaredValue::Value(
-                            longhands::display::SpecifiedValue::block)),
-                         Importance::Normal),
-                    ],
-                    important_count: 0,
-                })),
+                block: Arc::new(RwLock::new(PropertyDeclarationBlock::from(vec![
+                    (PropertyDeclaration::Display(DeclaredValue::Value(
+                        longhands::display::SpecifiedValue::none)),
+                     Importance::Normal),
+                    (PropertyDeclaration::Display(DeclaredValue::Value(
+                        longhands::display::SpecifiedValue::block)),
+                     Importance::Normal),
+                ]))),
             }))),
             CssRule::Style(Arc::new(RwLock::new(StyleRule {
                 selectors: SelectorList(vec![
@@ -180,58 +202,55 @@ fn test_parse_stylesheet() {
                         specificity: (1 << 20) + (1 << 10) + (0 << 0),
                     },
                 ]),
-                block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![
-                        (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
-                            longhands::background_color::SpecifiedValue {
-                                authored: Some("blue".to_owned().into_boxed_str()),
-                                parsed: cssparser::Color::RGBA(cssparser::RGBA::new(0, 0, 255, 255)),
-                            }
-                         )),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundPositionX(DeclaredValue::Value(
-                            longhands::background_position_x::SpecifiedValue(
-                            vec![longhands::background_position_x::single_value
-                                                       ::get_initial_position_value()]))),
-                        Importance::Normal),
-                        (PropertyDeclaration::BackgroundPositionY(DeclaredValue::Value(
-                            longhands::background_position_y::SpecifiedValue(
-                            vec![longhands::background_position_y::single_value
-                                                       ::get_initial_position_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundRepeat(DeclaredValue::Value(
-                            longhands::background_repeat::SpecifiedValue(
-                            vec![longhands::background_repeat::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundAttachment(DeclaredValue::Value(
-                            longhands::background_attachment::SpecifiedValue(
-                            vec![longhands::background_attachment::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundImage(DeclaredValue::Value(
-                            longhands::background_image::SpecifiedValue(
-                            vec![longhands::background_image::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundSize(DeclaredValue::Value(
-                            longhands::background_size::SpecifiedValue(
-                            vec![longhands::background_size::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundOrigin(DeclaredValue::Value(
-                            longhands::background_origin::SpecifiedValue(
-                            vec![longhands::background_origin::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                        (PropertyDeclaration::BackgroundClip(DeclaredValue::Value(
-                            longhands::background_clip::SpecifiedValue(
-                            vec![longhands::background_clip::single_value
-                                                       ::get_initial_specified_value()]))),
-                         Importance::Normal),
-                    ],
-                    important_count: 0,
-                })),
+                block: Arc::new(RwLock::new(PropertyDeclarationBlock::from(vec![
+                    (PropertyDeclaration::BackgroundColor(DeclaredValue::Value(
+                        longhands::background_color::SpecifiedValue {
+                            authored: Some("blue".to_owned().into_boxed_str()),
+                            parsed: cssparser::Color::RGBA(cssparser::RGBA::new(0, 0, 255, 255)),
+                        }
+                     )),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundPositionX(DeclaredValue::Value(
+                        longhands::background_position_x::SpecifiedValue(
+                        vec![longhands::background_position_x::single_value
+                                                   ::get_initial_position_value()]))),
+                    Importance::Normal),
+                    (PropertyDeclaration::BackgroundPositionY(DeclaredValue::Value(
+                        longhands::background_position_y::SpecifiedValue(
+                        vec![longhands::background_position_y::single_value
+                                                   ::get_initial_position_value()]))),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundRepeat(DeclaredValue::Value(
+                        longhands::background_repeat::SpecifiedValue(
+                        vec![longhands::background_repeat::single_value
+                                                   ::get_initial_specified_value()]))),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundAttachment(DeclaredValue::Value(
+                        longhands::background_attachment::SpecifiedValue(
+                        vec![longhands::background_attachment::single_value
+                                                   ::get_initial_specified_value()]))),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundImage(DeclaredValue::Value(
+                        longhands::background_image::SpecifiedValue(
+                        vec![longhands::background_image::single_value
+                                                   ::get_initial_specified_value()]))),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundSize(DeclaredValue::Value(
+                        longhands::background_size::SpecifiedValue(
+                        vec![longhands::background_size::single_value
+                                                   ::get_initial_specified_value()]))),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundOrigin(DeclaredValue::Value(
+                        longhands::background_origin::SpecifiedValue(
+                        vec![longhands::background_origin::single_value
+                                                   ::get_initial_specified_value()]))),
+                     Importance::Normal),
+                    (PropertyDeclaration::BackgroundClip(DeclaredValue::Value(
+                        longhands::background_clip::SpecifiedValue(
+                        vec![longhands::background_clip::single_value
+                                                   ::get_initial_specified_value()]))),
+                     Importance::Normal),
+                ]))),
             }))),
             CssRule::Keyframes(Arc::new(RwLock::new(KeyframesRule {
                 name: "foo".into(),
@@ -239,30 +258,24 @@ fn test_parse_stylesheet() {
                     Arc::new(RwLock::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(0.)]),
-                        block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                            declarations: vec![
-                                (PropertyDeclaration::Width(DeclaredValue::Value(
-                                    LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
-                                 Importance::Normal),
-                            ],
-                            important_count: 0,
-                        }))
+                        block: Arc::new(RwLock::new(PropertyDeclarationBlock::from(vec![
+                            (PropertyDeclaration::Width(DeclaredValue::Value(
+                                LengthOrPercentageOrAuto::Percentage(Percentage(0.)))),
+                             Importance::Normal),
+                        ])))
                     })),
                     Arc::new(RwLock::new(Keyframe {
                         selector: KeyframeSelector::new_for_unit_testing(
                                       vec![KeyframePercentage::new(1.)]),
-                        block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                            declarations: vec![
-                                (PropertyDeclaration::Width(DeclaredValue::Value(
-                                    LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
-                                 Importance::Normal),
-                                (PropertyDeclaration::AnimationPlayState(DeclaredValue::Value(
-                                    animation_play_state::SpecifiedValue(
-                                        vec![animation_play_state::SingleSpecifiedValue::running]))),
-                                 Importance::Normal),
-                            ],
-                            important_count: 0,
-                        })),
+                        block: Arc::new(RwLock::new(PropertyDeclarationBlock::from(vec![
+                            (PropertyDeclaration::Width(DeclaredValue::Value(
+                                LengthOrPercentageOrAuto::Percentage(Percentage(1.)))),
+                             Importance::Normal),
+                            (PropertyDeclaration::AnimationPlayState(DeclaredValue::Value(
+                                animation_play_state::SpecifiedValue(
+                                    vec![animation_play_state::SingleSpecifiedValue::running]))),
+                             Importance::Normal),
+                        ]))),
                     })),
                 ]
             })))
@@ -271,6 +284,18 @@ fn test_parse_stylesheet() {
     };
 
     assert_eq!(format!("{:#?}", stylesheet), format!("{:#?}", expected));
+
+    let stylesheet = stylesheet.rules.read().0.iter().map(ToCss::to_css_string).collect::<Vec<_>>();
+    let expected = expected.rules.read().0.iter().map(ToCss::to_css_string).collect::<Vec<_>>();
+
+    assert_eq!(stylesheet, expected);
+    assert_eq!(stylesheet, &[
+        "@namespace url(\"http://www.w3.org/1999/xhtml\");",
+        "input[type = \"hidden\" i] { display: none !important; --a:inherit !important; }",
+        "html, body { display: block; }",
+        "#d1 > .ok { background: blue none repeat scroll 0% 0% / auto auto padding-box border-box; }",
+        "@keyframes foo { 0% { width: 0%; } 100% { width: 100%; animation-play-state: running; } }"
+    ]);
 }
 
 struct CSSError {

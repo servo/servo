@@ -11,7 +11,7 @@ use context::SharedStyleContext;
 use dom::{OpaqueNode, UnsafeNode};
 use euclid::point::Point2D;
 use keyframes::{KeyframesStep, KeyframesStepValue};
-use properties::{self, CascadeFlags, ComputedValues, Importance};
+use properties::{self, CascadeFlags, ComputedValues};
 use properties::animated_properties::{AnimatedProperty, TransitionProperty};
 use properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use properties::longhands::animation_iteration_count::single_value::computed_value::T as AnimationIterationCount;
@@ -418,11 +418,10 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             let guard = declarations.read();
 
             // No !important in keyframes.
-            debug_assert!(guard.declarations.iter()
-                            .all(|&(_, importance)| importance == Importance::Normal));
+            debug_assert!(!guard.any_important());
 
             let iter = || {
-                guard.declarations.iter().rev().map(|&(ref decl, _importance)| decl)
+                guard.as_potentially_duplicated().iter().rev().map(|&(ref decl, _importance)| decl)
             };
 
             let computed =
