@@ -7,6 +7,7 @@ use ipc_channel::ipc::IpcSender;
 use log;
 use msg::constellation_msg::PipelineId;
 use script_traits::ConstellationControlMsg;
+use servo_url::ServoUrl;
 use std::sync::{Mutex, Arc};
 use style::error_reporting::ParseErrorReporter;
 
@@ -21,11 +22,13 @@ pub struct CSSErrorReporter {
 }
 
 impl ParseErrorReporter for CSSErrorReporter {
-     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
-         let location = input.source_location(position);
-         if log_enabled!(log::LogLevel::Info) {
-             info!("{}:{} {}", location.line, location.column, message)
-         }
+     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
+        url: &ServoUrl) {
+        let location = input.source_location(position);
+        if log_enabled!(log::LogLevel::Info) {
+             info!("Url:\t{}\n{}:{} {}", url.as_str(), location.line, location.column, message)
+        }
+
          //TODO: report a real filename
          let _ = self.script_chan.lock().unwrap().send(
              ConstellationControlMsg::ReportCSSError(self.pipelineid,
