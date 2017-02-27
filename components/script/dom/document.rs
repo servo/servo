@@ -3413,10 +3413,10 @@ impl DocumentMethods for Document {
 
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
-        // This check should probably be same-origin-domain
+        // This check is same-origin not same-origin-domain.
         // https://github.com/whatwg/html/issues/2282
         // https://github.com/whatwg/html/pull/2288
-        if !self.origin.same_origin_domain(&entry_responsible_document.origin) {
+        if !self.origin.same_origin(&entry_responsible_document.origin) {
             // Step 4.
             return Err(Error::Security);
         }
