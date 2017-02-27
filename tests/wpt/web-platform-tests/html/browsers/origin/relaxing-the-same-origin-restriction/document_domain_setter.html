@@ -20,6 +20,7 @@
       iframe.src = iframe_url;
       test(function() {
         assert_throws("SecurityError", function() { document.domain = SUFFIX_HOST; });
+        assert_throws("SecurityError", function() { document.domain = "." + SUFFIX_HOST; });
         assert_throws("SecurityError", function() { document.domain = PREFIX_HOST; });
         assert_throws("SecurityError", function() { document.domain = "example.com"; });
       }, "failed setting of document.domain");
@@ -28,6 +29,7 @@
           // Before setting document.domain, the iframe is not
           // same-origin-domain, so security checks fail.
           assert_equals(iframe.contentDocument, null);
+          assert_equals(iframe.contentWindow.frameElement, null);
           assert_throws("SecurityError", function() { iframe.contentWindow.location.origin; });
           assert_throws("SecurityError", function() { iframe.contentWindow.location.href; });
           assert_throws("SecurityError", function() { iframe.contentWindow.location.protocol; });
@@ -43,6 +45,7 @@
           // After setting document.domain, the iframe is
           // same-origin-domain, so security checks pass.
           assert_equals(iframe.contentDocument.domain, document.domain);
+          assert_equals(iframe.contentWindow.frameElement, iframe)
           assert_equals(iframe.contentWindow.origin, window.origin);
           assert_equals(iframe.contentWindow.location.href, iframe_url.href);
           assert_equals(iframe.contentWindow.location.protocol, iframe_url.protocol);
