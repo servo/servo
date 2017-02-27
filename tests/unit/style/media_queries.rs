@@ -18,8 +18,10 @@ use style_traits::ToCss;
 pub struct CSSErrorReporterTest;
 
 impl ParseErrorReporter for CSSErrorReporterTest {
-     fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str) {
-     }
+    fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str,
+        _url: &ServoUrl) {
+    }
+
      fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
         Box::new(CSSErrorReporterTest)
      }

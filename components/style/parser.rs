@@ -90,7 +90,8 @@ impl<'a> ParserContext<'a> {
 /// Set a `RUST_LOG=style::errors` environment variable
 /// to log CSS parse errors to stderr.
 pub fn log_css_error(input: &mut Parser, position: SourcePosition, message: &str, parsercontext: &ParserContext) {
-    parsercontext.error_reporter.report_error(input, position, message);
+    let servo_url = parsercontext.base_url;
+    parsercontext.error_reporter.report_error(input, position, message, servo_url);
 }
 
 // XXXManishearth Replace all specified value parse impls with impls of this

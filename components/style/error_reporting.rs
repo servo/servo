@@ -8,6 +8,7 @@
 
 use cssparser::{Parser, SourcePosition};
 use log;
+use servo_url::ServoUrl;
 
 /// A generic trait for an error reporter.
 pub trait ParseErrorReporter {
@@ -15,7 +16,7 @@ pub trait ParseErrorReporter {
     ///
     /// Returns the current input being parsed, the source position it was
     /// reported from, and a message.
-    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str);
+    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str, url: &ServoUrl);
     /// Clone this error reporter.
     ///
     /// TODO(emilio): I'm pretty sure all the box shenanigans can go away.
@@ -27,11 +28,12 @@ pub trait ParseErrorReporter {
 /// TODO(emilio): The name of this reporter is a lie, and should be renamed!
 pub struct StdoutErrorReporter;
 impl ParseErrorReporter for StdoutErrorReporter {
-    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str) {
-         if log_enabled!(log::LogLevel::Info) {
-             let location = input.source_location(position);
-             info!("{}:{} {}", location.line, location.column, message)
-         }
+    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
+        url: &ServoUrl) {
+        if log_enabled!(log::LogLevel::Info) {
+            let location = input.source_location(position);
+            info!("Url:\t{}\n{}:{} {}", url.as_str(), location.line, location.column, message)
+        }
     }
 
     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
