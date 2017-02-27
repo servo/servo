@@ -1331,7 +1331,7 @@ impl ScriptThread {
 
     /// Handles activity change message
     fn handle_set_document_activity_msg(&self, id: PipelineId, activity: DocumentActivity) {
-        debug!("Setting activity of {} to be {:?}.", id, activity);
+        debug!("Setting activity of {} to be {:?} in {:?}.", id, activity, thread::current().name());
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             document.set_activity(activity);
