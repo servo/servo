@@ -2,16 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-pub use std::sync::Arc;
-pub use style::computed_values::display::T::inline_block;
-pub use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance, PropertyId};
-pub use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, NoCalcLength};
-pub use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
-pub use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
-pub use style::properties::longhands::outline_style::SpecifiedValue as OutlineStyle;
-pub use style::values::{RGBA, Auto};
-pub use style::values::specified::url::{UrlExtraData, SpecifiedUrl};
-pub use style_traits::ToCss;
+use cssparser::Parser;
+use media_queries::CSSErrorReporterTest;
+use servo_url::ServoUrl;
+use style::computed_values::display::T::inline_block;
+use style::parser::ParserContext;
+use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance, PropertyId};
+use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
+use style::properties::parse_property_declaration_list;
+use style::stylesheets::Origin;
+use style::values::{RGBA, Auto};
+use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, NoCalcLength};
+use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
+use style::values::specified::url::SpecifiedUrl;
+use style_traits::ToCss;
+
+fn parse_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
+    let url = ServoUrl::parse("http://localhost").unwrap();
+    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let mut parser = Parser::new(css_properties);
+    parse_property_declaration_list(&context, &mut parser)
+}
 
 #[test]
 fn property_declaration_block_should_serialize_correctly() {
@@ -553,46 +564,6 @@ mod shorthand_serialization {
     }
 
     #[test]
-    fn transition_should_serialize_all_available_properties() {
-        use euclid::point::Point2D;
-        use style::properties::animated_properties::TransitionProperty;
-        use style::properties::longhands::transition_delay::SpecifiedValue as DelayContainer;
-        use style::properties::longhands::transition_duration::SpecifiedValue as DurationContainer;
-        use style::properties::longhands::transition_property::SpecifiedValue as PropertyContainer;
-        use style::properties::longhands::transition_timing_function;
-        use style::values::specified::Time as TimeContainer;
-
-        let property_name = DeclaredValue::Value(
-            PropertyContainer(vec![TransitionProperty::MarginLeft])
-        );
-
-        let duration = DeclaredValue::Value(
-            DurationContainer(vec![TimeContainer(3f32)])
-        );
-
-        let delay = DeclaredValue::Value(
-            DelayContainer(vec![TimeContainer(4f32)])
-        );
-
-        let timing_function = DeclaredValue::Value(
-            transition_timing_function::SpecifiedValue(vec![
-                transition_timing_function::single_value::SpecifiedValue::CubicBezier(
-                    Point2D::new(0f32, 5f32), Point2D::new(5f32, 10f32))
-            ])
-        );
-
-        let mut properties = Vec::new();
-
-        properties.push(PropertyDeclaration::TransitionProperty(property_name));
-        properties.push(PropertyDeclaration::TransitionDelay(delay));
-        properties.push(PropertyDeclaration::TransitionDuration(duration));
-        properties.push(PropertyDeclaration::TransitionTimingFunction(timing_function));
-
-        let serialization = shorthand_properties_to_string(properties);
-        assert_eq!(serialization, "transition: margin-left 3s cubic-bezier(0, 5, 5, 10) 4s;");
-    }
-
-    #[test]
     fn flex_should_serialize_all_available_properties() {
         use style::values::specified::Number as NumberContainer;
         use style::values::specified::Percentage as PercentageContainer;
@@ -676,108 +647,24 @@ mod shorthand_serialization {
     }
     */
 
-    // TODO: Populate Atom Cache for testing so that the animation shorthand can be tested
-    /*
-    #[test]
-    fn animation_should_serialize_all_available_properties() {
-        let mut properties = Vec::new();
-
-        assert_eq!(serialization, "animation;");
-    }
-    */
-
     mod background {
-        use style::properties::longhands::background_attachment as attachment;
-        use style::properties::longhands::background_clip as clip;
-        use style::properties::longhands::background_image as image;
-        use style::properties::longhands::background_origin as origin;
-        use style::properties::longhands::background_position_x as position_x;
-        use style::properties::longhands::background_position_y as position_y;
-        use style::properties::longhands::background_repeat as repeat;
-        use style::properties::longhands::background_size as size;
-        use style::values::specified::Image;
-        use style::values::specified::position::{HorizontalPosition, VerticalPosition};
         use super::*;
-        macro_rules! single_vec_value_typedef {
-            ($name:ident, $path:expr) => {
-                DeclaredValue::Value($name::SpecifiedValue(
-                    vec![$path]
-                ))
-            };
-        }
-        macro_rules! single_vec_value {
-            ($name:ident, $path:expr) => {
-                DeclaredValue::Value($name::SpecifiedValue(
-                    vec![$name::single_value::SpecifiedValue($path)]
-                ))
-            };
-        }
-        macro_rules! single_vec_keyword_value {
-            ($name:ident, $kw:ident) => {
-                DeclaredValue::Value($name::SpecifiedValue(
-                    vec![$name::single_value::SpecifiedValue::$kw]
-                ))
-            };
-        }
-        macro_rules! single_vec_variant_value {
-            ($name:ident, $variant:expr) => {
-                DeclaredValue::Value($name::SpecifiedValue(
-                        vec![$variant]
-                ))
-            };
-        }
+
         #[test]
         fn background_should_serialize_all_available_properties_when_specified() {
-            let mut properties = Vec::new();
+            let block_text = "\
+                background-color: rgb(255, 0, 0); \
+                background-image: url(\"http://servo/test.png\"); \
+                background-repeat: repeat-x; \
+                background-attachment: scroll; \
+                background-size: 70px 50px; \
+                background-position-x: 7px; \
+                background-position-y: 4px; \
+                background-origin: border-box; \
+                background-clip: padding-box;";
+            let block = parse_declaration_block(block_text);
 
-            let color = DeclaredValue::Value(CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
-            });
-
-            let position_x = single_vec_value_typedef!(position_x,
-                HorizontalPosition {
-                    keyword: None,
-                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
-                }
-            );
-
-            let position_y = single_vec_value_typedef!(position_y,
-                VerticalPosition {
-                    keyword: None,
-                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
-                }
-            );
-
-            let repeat = single_vec_keyword_value!(repeat, repeat_x);
-            let attachment = single_vec_keyword_value!(attachment, scroll);
-
-            let image = single_vec_value!(image,
-                Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
-
-            let size = single_vec_variant_value!(size,
-                size::single_value::SpecifiedValue::Explicit(
-                    size::single_value::ExplicitSize {
-                        width: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)),
-                        height: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(50f32))
-                    }
-                )
-            );
-
-            let origin = single_vec_keyword_value!(origin, border_box);
-            let clip = single_vec_keyword_value!(clip, padding_box);
-
-            properties.push(PropertyDeclaration::BackgroundColor(color));
-            properties.push(PropertyDeclaration::BackgroundPositionX(position_x));
-            properties.push(PropertyDeclaration::BackgroundPositionY(position_y));
-            properties.push(PropertyDeclaration::BackgroundRepeat(repeat));
-            properties.push(PropertyDeclaration::BackgroundAttachment(attachment));
-            properties.push(PropertyDeclaration::BackgroundImage(image));
-            properties.push(PropertyDeclaration::BackgroundSize(size));
-            properties.push(PropertyDeclaration::BackgroundOrigin(origin));
-            properties.push(PropertyDeclaration::BackgroundClip(clip));
-
-            let serialization = shorthand_properties_to_string(properties);
+            let serialization = block.to_css_string();
 
             assert_eq!(
                 serialization,
@@ -788,56 +675,20 @@ mod shorthand_serialization {
 
         #[test]
         fn background_should_combine_origin_and_clip_properties_when_equal() {
-            let mut properties = Vec::new();
+            let block_text = "\
+                background-color: rgb(255, 0, 0); \
+                background-image: url(\"http://servo/test.png\"); \
+                background-repeat: repeat-x; \
+                background-attachment: scroll; \
+                background-size: 70px 50px; \
+                background-position-x: 7px; \
+                background-position-y: 4px; \
+                background-origin: padding-box; \
+                background-clip: padding-box;";
+            let block = parse_declaration_block(block_text);
 
-            let color = DeclaredValue::Value(CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
-            });
+            let serialization = block.to_css_string();
 
-            let position_x = single_vec_value_typedef!(position_x,
-                HorizontalPosition {
-                    keyword: None,
-                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(7f32))),
-                }
-            );
-
-            let position_y = single_vec_value_typedef!(position_y,
-                VerticalPosition {
-                    keyword: None,
-                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(4f32))),
-                }
-            );
-
-            let repeat = single_vec_keyword_value!(repeat, repeat_x);
-            let attachment = single_vec_keyword_value!(attachment, scroll);
-
-            let image = single_vec_value!(image,
-                        Some(Image::Url(SpecifiedUrl::new_for_testing("http://servo/test.png"))));
-
-            let size = single_vec_variant_value!(size,
-                size::single_value::SpecifiedValue::Explicit(
-                    size::single_value::ExplicitSize {
-                        width: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(70f32)),
-                        height: LengthOrPercentageOrAuto::Length(NoCalcLength::from_px(50f32))
-                    }
-                )
-            );
-
-            let origin = single_vec_keyword_value!(origin, padding_box);
-            let clip = single_vec_keyword_value!(clip, padding_box);
-
-            properties.push(PropertyDeclaration::BackgroundColor(color));
-            properties.push(PropertyDeclaration::BackgroundPositionX(position_x));
-            properties.push(PropertyDeclaration::BackgroundPositionY(position_y));
-            properties.push(PropertyDeclaration::BackgroundRepeat(repeat));
-            properties.push(PropertyDeclaration::BackgroundAttachment(attachment));
-            properties.push(PropertyDeclaration::BackgroundImage(image));
-            properties.push(PropertyDeclaration::BackgroundSize(size));
-            properties.push(PropertyDeclaration::BackgroundOrigin(origin));
-            properties.push(PropertyDeclaration::BackgroundClip(clip));
-
-            let serialization = shorthand_properties_to_string(properties);
             assert_eq!(
                 serialization,
                 "background: rgb(255, 0, 0) url(\"http://servo/test.png\") repeat-x \
@@ -846,50 +697,52 @@ mod shorthand_serialization {
         }
 
         #[test]
-        fn background_should_always_print_color_and_url_and_repeat_and_attachment_and_position() {
-            let mut properties = Vec::new();
+        fn serialize_multiple_backgrounds() {
+            let block_text = "\
+                background-color: rgb(0, 0, 255); \
+                background-image: url(\"http://servo/test.png\"), none; \
+                background-repeat: repeat-x, repeat-y; \
+                background-attachment: scroll, scroll; \
+                background-size: 70px 50px, 20px 30px; \
+                background-position-x: 7px, 70px; \
+                background-position-y: 4px, 40px; \
+                background-origin: border-box, padding-box; \
+                background-clip: padding-box, padding-box;";
+            let block = parse_declaration_block(block_text);
 
-            let color = DeclaredValue::Value(CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
-            });
+            let serialization = block.to_css_string();
 
-            let position_x = single_vec_value_typedef!(position_x,
-                HorizontalPosition {
-                    keyword: None,
-                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(0f32))),
-                }
+            assert_eq!(
+                serialization, "background: \
+                url(\"http://servo/test.png\") repeat-x scroll 7px 4px / 70px 50px border-box padding-box, \
+                rgb(0, 0, 255) none repeat-y scroll 70px 40px / 20px 30px padding-box;"
             );
+        }
 
-            let position_y = single_vec_value_typedef!(position_y,
-                VerticalPosition {
-                    keyword: None,
-                    position: Some(LengthOrPercentage::Length(NoCalcLength::from_px(0f32))),
-                }
-            );
+        #[test]
+        fn serialize_multiple_backgrounds_unequal_property_lists() {
+            // When the lengths of property values are different, the shorthand serialization
+            // should not be used. Previously the implementation cycled values if the lists were
+            // uneven. This is incorrect, in that we should serialize to a shorthand only when the
+            // lists have the same length (this affects background, transition and animation).
+            // https://github.com/servo/servo/issues/15398 )
+            // With background, the color is one exception as it should only appear once for
+            // multiple backgrounds.
+            // Below, background-position and background-origin only have one value.
+            let block_text = "\
+                background-color: rgb(0, 0, 255); \
+                background-image: url(\"http://servo/test.png\"), none; \
+                background-repeat: repeat-x, repeat-y; \
+                background-attachment: scroll, scroll; \
+                background-size: 70px 50px, 20px 30px; \
+                background-position: 7px 4px; \
+                background-origin: border-box; \
+                background-clip: padding-box, padding-box;";
+            let block = parse_declaration_block(block_text);
 
-            let repeat = single_vec_keyword_value!(repeat, repeat_x);
-            let attachment = single_vec_keyword_value!(attachment, scroll);
+            let serialization = block.to_css_string();
 
-            let image = single_vec_value!(image, None);
-
-            let size = DeclaredValue::Initial;
-
-            let origin = DeclaredValue::Initial;
-            let clip = DeclaredValue::Initial;
-
-            properties.push(PropertyDeclaration::BackgroundColor(color));
-            properties.push(PropertyDeclaration::BackgroundPositionX(position_x));
-            properties.push(PropertyDeclaration::BackgroundPositionY(position_y));
-            properties.push(PropertyDeclaration::BackgroundRepeat(repeat));
-            properties.push(PropertyDeclaration::BackgroundAttachment(attachment));
-            properties.push(PropertyDeclaration::BackgroundImage(image));
-            properties.push(PropertyDeclaration::BackgroundSize(size));
-            properties.push(PropertyDeclaration::BackgroundOrigin(origin));
-            properties.push(PropertyDeclaration::BackgroundClip(clip));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "background: rgb(255, 0, 0) none repeat-x scroll 0px 0px;");
+            assert_eq!(serialization, block_text);
         }
     }
 
@@ -1140,23 +993,10 @@ mod shorthand_serialization {
 
     mod animation {
         pub use super::*;
-        use cssparser::Parser;
-        use media_queries::CSSErrorReporterTest;
-        use servo_url::ServoUrl;
-        use style::parser::ParserContext;
-        use style::properties::{parse_property_declaration_list, PropertyDeclarationBlock};
-        use style::stylesheets::Origin;
-
-        fn property_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
-            let url = ServoUrl::parse("http://localhost").unwrap();
-            let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
-            let mut parser = Parser::new(css_properties);
-            parse_property_declaration_list(&context, &mut parser)
-        }
 
         #[test]
         fn serialize_single_animation() {
-            let block = property_declaration_block("\
+            let block = parse_declaration_block("\
                 animation-name: bounce;\
                 animation-duration: 1s;\
                 animation-timing-function: ease-in;\
@@ -1173,7 +1013,7 @@ mod shorthand_serialization {
 
         #[test]
         fn serialize_multiple_animations() {
-            let block = property_declaration_block("\
+            let block = parse_declaration_block("\
                 animation-name: bounce, roll;\
                 animation-duration: 1s, 0.2s;\
                 animation-timing-function: ease-in, linear;\
@@ -1195,7 +1035,7 @@ mod shorthand_serialization {
             // When the lengths of property values are different, the shorthand serialization
             // should not be used. Previously the implementation cycled values if the lists were
             // uneven. This is incorrect, in that we should serialize to a shorthand only when the
-            // lists have the same length (both here and for background and transition. See
+            // lists have the same length (this affects background, transition and animation).
             // https://github.com/servo/servo/issues/15398 )
             let block_text = "\
                 animation-name: bounce, roll, flip, jump; \
@@ -1206,7 +1046,7 @@ mod shorthand_serialization {
                 animation-fill-mode: forwards, backwards; \
                 animation-iteration-count: infinite, 2; \
                 animation-play-state: paused, running;";
-            let block = property_declaration_block(block_text);
+            let block = parse_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 
@@ -1222,7 +1062,58 @@ mod shorthand_serialization {
                               animation-fill-mode: forwards, backwards; \
                               animation-iteration-count: infinite, 2; \
                               animation-play-state: paused, running;";
-            let block = property_declaration_block(block_text);
+            let block = parse_declaration_block(block_text);
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, block_text);
+        }
+    }
+
+    mod transition {
+        pub use super::*;
+
+        #[test]
+        fn transition_should_serialize_all_available_properties() {
+            let block_text = "transition-property: margin-left; \
+                              transition-duration: 3s; \
+                              transition-delay: 4s; \
+                              transition-timing-function: cubic-bezier(0.2, 5, 0.5, 2);";
+            let block = parse_declaration_block(block_text);
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "transition: margin-left 3s cubic-bezier(0.2, 5, 0.5, 2) 4s;");
+        }
+
+        #[test]
+        fn serialize_multiple_transitions() {
+            let block_text = "transition-property: margin-left, width; \
+                              transition-duration: 3s, 2s; \
+                              transition-delay: 4s, 5s; \
+                              transition-timing-function: cubic-bezier(0.2, 5, 0.5, 2), ease;";
+            let block = parse_declaration_block(block_text);
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "transition: \
+                margin-left 3s cubic-bezier(0.2, 5, 0.5, 2) 4s, \
+                width 2s ease 5s;");
+        }
+
+        #[test]
+        fn serialize_multiple_transitions_unequal_property_lists() {
+            // When the lengths of property values are different, the shorthand serialization
+            // should not be used. Previously the implementation cycled values if the lists were
+            // uneven. This is incorrect, in that we should serialize to a shorthand only when the
+            // lists have the same length (this affects background, transition and animation).
+            // https://github.com/servo/servo/issues/15398 )
+            // The duration below has 1 extra value.
+            let block_text = "transition-property: margin-left, width; \
+                              transition-duration: 3s, 2s, 4s; \
+                              transition-delay: 4s, 5s; \
+                              transition-timing-function: cubic-bezier(0.2, 5, 0.5, 2), ease;";
+            let block = parse_declaration_block(block_text);
 
             let serialization = block.to_css_string();
 
