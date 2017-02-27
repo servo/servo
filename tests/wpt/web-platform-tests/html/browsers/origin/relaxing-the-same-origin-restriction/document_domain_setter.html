@@ -57,6 +57,9 @@
           assert_equals(iframe.contentWindow.location.search, iframe_url.search);
           assert_equals(iframe.contentWindow.location.search, iframe_url.search);
           assert_equals(iframe.contentWindow.location.toString(), iframe_url.toString());
+          // document.open checks for same-origin, not same-origin-domain,
+          // https://github.com/whatwg/html/issues/2282
+          assert_throws("SecurityError", function() { iframe.contentDocument.open(); });
           t.done();
         }));
       }, "same-origin-domain iframe");
