@@ -1504,9 +1504,11 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                   // Append missing property values in the initial or the finial keyframes.
                   if step.start_percentage.0 == 0. ||
                      step.start_percentage.0 == 1. {
-                      for (index, property) in animation.properties_changed.iter().enumerate() {
+                      let mut index = unsafe { (*keyframe).mPropertyValues.len() };
+                      for property in animation.properties_changed.iter() {
                           if !seen.has_transition_property_bit(&property) {
                               add_computed_property_value(keyframe, index, style, property);
+                              index += 1;
                           }
                       }
                   }
