@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<iframe src="resources/iframe_contentDocument_inner.html" id="iframe"></iframe>
+<script>
+async_test(function(t) {
+  var iframe = document.getElementById('iframe');
+  var blob = new Blob(['test']);
+  iframe.onload = function(){
+      var otherWindow = this.contentWindow;
+      otherWindow.addEventListener("message", function(msg){
+      }, false);
+      otherWindow.postMessage(blob, '*');
+      this.done();
+  };
+});
+</script>
+</body>
+</html>
