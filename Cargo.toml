@@ -14,3 +14,6 @@ opt-level = 3
 # Uncomment to profile on Linux:
 # debug = true
 # lto = false
+
+[replace]
+"cssparser:0.11.0" = {git = "https://github.com/servo/rust-cssparser", rev = "lol-replace"}

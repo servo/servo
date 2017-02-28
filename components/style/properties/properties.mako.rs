@@ -698,17 +698,17 @@ impl PropertyId {
             Shorthand(ShorthandId),
         }
         ascii_case_insensitive_phf_map! {
-            StaticIds: Map<StaticId> = {
+            static_id -> StaticId = {
                 % for (kind, properties) in [("Longhand", data.longhands), ("Shorthand", data.shorthands)]:
                     % for property in properties:
                         % for name in [property.name] + property.alias:
-                            "${name}" => "StaticId::${kind}(${kind}Id::${property.camel_case})",
+                            "${name}" => StaticId::${kind}(${kind}Id::${property.camel_case}),
                         % endfor
                     % endfor
                 % endfor
             }
         }
-        match StaticIds::get(&property_name) {
+        match static_id(&property_name) {
             Some(&StaticId::Longhand(id)) => Ok(PropertyId::Longhand(id)),
             Some(&StaticId::Shorthand(id)) => Ok(PropertyId::Shorthand(id)),
             None => Err(()),
