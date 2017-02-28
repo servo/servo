@@ -324,9 +324,9 @@
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                                % endif
                 match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                    Ok(CSSWideKeyword::InheritKeyword) => Ok(DeclaredValue::Inherit),
-                    Ok(CSSWideKeyword::InitialKeyword) => Ok(DeclaredValue::Initial),
-                    Ok(CSSWideKeyword::UnsetKeyword) => Ok(DeclaredValue::Unset),
+                    Ok(CSSWideKeyword::Inherit) => Ok(DeclaredValue::Inherit),
+                    Ok(CSSWideKeyword::Initial) => Ok(DeclaredValue::Initial),
+                    Ok(CSSWideKeyword::Unset) => Ok(DeclaredValue::Unset),
                     Err(()) => {
                         input.look_for_var_functions();
                         let start = input.position();
