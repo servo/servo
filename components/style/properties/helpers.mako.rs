@@ -492,8 +492,7 @@
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
-                pub ${sub_property.ident}:
-                    Option<longhands::${sub_property.ident}::SpecifiedValue>,
+                pub ${sub_property.ident}: longhands::${sub_property.ident}::SpecifiedValue,
             % endfor
         }
 
@@ -606,14 +605,11 @@
             if let Ok(value) = value {
                 % for sub_property in shorthand.sub_properties:
                     declarations.push((PropertyDeclaration::${sub_property.camel_case}(
-                        match value.${sub_property.ident} {
-                            % if sub_property.boxed:
-                                Some(value) => DeclaredValue::Value(Box::new(value)),
-                            % else:
-                                Some(value) => DeclaredValue::Value(value),
-                            % endif
-                            None => DeclaredValue::Initial,
-                        }
+                        % if sub_property.boxed:
+                            DeclaredValue::Value(Box::new(value.${sub_property.ident}))
+                        % else:
+                            DeclaredValue::Value(value.${sub_property.ident})
+                        % endif
                     ), Importance::Normal));
                 % endfor
                 Ok(())
@@ -660,7 +656,7 @@
             % endif
             Ok(Longhands {
                 % for side in ["top", "right", "bottom", "left"]:
-                    ${to_rust_ident(sub_property_pattern % side)}: Some(${side}),
+                    ${to_rust_ident(sub_property_pattern % side)}: ${side},
                 % endfor
             })
         }

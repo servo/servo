@@ -14,9 +14,9 @@
         let url = UrlOrNone::parse(context, input)?;
 
         Ok(Longhands {
-            marker_start: Some(url.clone()),
-            marker_mid: Some(url.clone()),
-            marker_end: Some(url),
+            marker_start: url.clone(),
+            marker_mid: url.clone(),
+            marker_end: url,
         })
     }
 

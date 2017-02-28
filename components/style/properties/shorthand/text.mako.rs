@@ -13,7 +13,6 @@
                     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration">
     use cssparser::Color as CSSParserColor;
     use properties::longhands::{text_decoration_color, text_decoration_line, text_decoration_style};
-    use values::specified::CSSColor;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let (mut color, mut line, mut style, mut any) = (None, None, None, false);
@@ -41,10 +40,9 @@
         }
 
         Ok(Longhands {
-            text_decoration_color: color.or(Some(CSSColor { parsed: CSSParserColor::CurrentColor,
-                                                            authored: None })),
-            text_decoration_line: line.or(Some(text_decoration_line::computed_value::none)),
-            text_decoration_style: style.or(Some(text_decoration_style::computed_value::T::solid)),
+            text_decoration_color: unwrap_or_initial!(text_decoration_color, color),
+            text_decoration_line: unwrap_or_initial!(text_decoration_line, line),
+            text_decoration_style: unwrap_or_initial!(text_decoration_style, style),
         })
     }
 

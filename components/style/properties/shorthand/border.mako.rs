@@ -24,7 +24,7 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
         let (top, right, bottom, left) = try!(parse_four_sides(input, |i| specified::BorderWidth::parse(context, i)));
         Ok(Longhands {
             % for side in ["top", "right", "bottom", "left"]:
-                ${to_rust_ident('border-%s-width' % side)}: Some(${side}),
+                ${to_rust_ident('border-%s-width' % side)}: ${side},
             % endfor
         })
     }
@@ -42,10 +42,10 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
 
 
 pub fn parse_border(context: &ParserContext, input: &mut Parser)
-                 -> Result<(Option<specified::CSSColor>,
-                            Option<specified::BorderStyle>,
-                            Option<specified::BorderWidth>), ()> {
-    use values::specified;
+                 -> Result<(specified::CSSColor,
+                            specified::BorderStyle,
+                            specified::BorderWidth), ()> {
+    use values::specified::{CSSColor, BorderStyle, BorderWidth};
     let _unused = context;
     let mut color = None;
     let mut style = None;
@@ -53,21 +53,21 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     let mut any = false;
     loop {
         if color.is_none() {
-            if let Ok(value) = input.try(|i| specified::CSSColor::parse(context, i)) {
+            if let Ok(value) = input.try(|i| CSSColor::parse(context, i)) {
                 color = Some(value);
                 any = true;
                 continue
             }
         }
         if style.is_none() {
-            if let Ok(value) = input.try(|i| specified::BorderStyle::parse(context, i)) {
+            if let Ok(value) = input.try(|i| BorderStyle::parse(context, i)) {
                 style = Some(value);
                 any = true;
                 continue
             }
         }
         if width.is_none() {
-            if let Ok(value) = input.try(|i| specified::BorderWidth::parse(context, i)) {
+            if let Ok(value) = input.try(|i| BorderWidth::parse(context, i)) {
                 width = Some(value);
                 any = true;
                 continue
@@ -75,7 +75,13 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         }
         break
     }
-    if any { Ok((color, style, width)) } else { Err(()) }
+    if any {
+        Ok((color.unwrap_or_else(|| CSSColor::currentcolor()),
+            style.unwrap_or(BorderStyle::none),
+            width.unwrap_or(BorderWidth::Medium)))
+    } else {
+        Err(())
+    }
 }
 
 % for side, logical in ALL_SIDES:
@@ -158,10 +164,10 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let radii = try!(BorderRadius::parse(context, input));
         Ok(Longhands {
-            border_top_left_radius: Some(radii.top_left),
-            border_top_right_radius: Some(radii.top_right),
-            border_bottom_right_radius: Some(radii.bottom_right),
-            border_bottom_left_radius: Some(radii.bottom_left),
+            border_top_left_radius: radii.top_left,
+            border_top_right_radius: radii.top_right,
+            border_bottom_right_radius: radii.bottom_right,
+            border_bottom_left_radius: radii.bottom_left,
         })
     }
 
@@ -254,7 +260,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
         Ok(Longhands {
             % for name in "outset repeat slice source width".split():
-                border_image_${name}: Some(border_image_${name}),
+                border_image_${name}: border_image_${name},
             % endfor
          })
     }
