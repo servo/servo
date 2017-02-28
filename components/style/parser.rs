@@ -91,7 +91,7 @@ impl<'a> ParserContext<'a> {
 /// to log CSS parse errors to stderr.
 pub fn log_css_error(input: &mut Parser, position: SourcePosition, message: &str, parsercontext: &ParserContext) {
     let servo_url = Some(parsercontext.base_url);
-    parsercontext.error_reporter.report_error(input, position, message,servo_url);
+    parsercontext.error_reporter.report_error(input, position, message, servo_url);
 }
 
 // XXXManishearth Replace all specified value parse impls with impls of this
