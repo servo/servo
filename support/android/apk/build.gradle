@@ -1,0 +1,22 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.2.3'
+    }
+
+    buildDir = rootDir.absolutePath + "/../../../target/gradle"
+}
+
+allprojects {
+    repositories {
+        jcenter()
+    }
+}
+
+ext {
+    rustTarget = '' // Overrided by the current product flavor
+}
+

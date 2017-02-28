@@ -763,14 +763,6 @@ impl Window {
     }
 }
 
-// WindowProxy is not implemented for android yet
-
-#[cfg(target_os = "android")]
-fn create_window_proxy(_: &Window) -> Option<glutin::WindowProxy> {
-    None
-}
-
-#[cfg(not(target_os = "android"))]
 fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
     match window.kind {
         WindowKind::Window(ref window) => {
