@@ -4,23 +4,6 @@
 
 <%! from data import Keyword, to_rust_ident, to_camel_case, LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES %>
 
-<%def name="longhand(name, **kwargs)">
-    <%call expr="raw_longhand(name, **kwargs)">
-        ${caller.body()}
-        % if not data.longhands_by_name[name].derived_from:
-            pub fn parse_specified(context: &ParserContext, input: &mut Parser)
-                % if data.longhands_by_name[name].boxed:
-                                   -> Result<DeclaredValue<Box<SpecifiedValue>>, ()> {
-                    parse(context, input).map(|result| DeclaredValue::Value(Box::new(result)))
-                % else:
-                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
-                    parse(context, input).map(DeclaredValue::Value)
-                % endif
-            }
-        % endif
-    </%call>
-</%def>
-
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
             needs_context=True, vector=False, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
@@ -212,7 +195,7 @@
     </%call>
 </%def>
 
-<%def name="raw_longhand(*args, **kwargs)">
+<%def name="longhand(*args, **kwargs)">
     <%
         property = data.declare_longhand(*args, **kwargs)
         if property is None:
@@ -322,6 +305,15 @@
             % endif
         }
         % if not property.derived_from:
+            pub fn parse_specified(context: &ParserContext, input: &mut Parser)
+                % if property.boxed:
+                                   -> Result<DeclaredValue<Box<SpecifiedValue>>, ()> {
+                    parse(context, input).map(|result| DeclaredValue::Value(Box::new(result)))
+                % else:
+                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
+                    parse(context, input).map(DeclaredValue::Value)
+                % endif
+            }
             pub fn parse_declared(context: &ParserContext, input: &mut Parser)
                                % if property.boxed:
                                    -> Result<DeclaredValue<Box<SpecifiedValue>>, ()> {
