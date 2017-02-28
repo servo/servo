@@ -117,21 +117,12 @@ impl Runnable for ImageResponseHandlerRunnable {
 
 /// The context required for asynchronously loading an external image.
 struct ImageContext {
-    /// The element that initiated the request.
-    elem: Trusted<HTMLImageElement>,
-    /// The initial URL requested.
-    url: ServoUrl,
+    /// A handle with which to communicate with the image cache.
+    image_cache: ImageCacheThread,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
     /// The cache ID for this request.
     id: PendingImageId,
-}
-
-impl ImageContext {
-    fn image_cache(&self) -> ImageCacheThread {
-        let elem = self.elem.root();
-        window_from_node(&*elem).image_cache_thread().clone()
-    }
 }
 
 impl FetchResponseListener for ImageContext {
@@ -139,7 +130,7 @@ impl FetchResponseListener for ImageContext {
     fn process_request_eof(&mut self) {}
 
     fn process_response(&mut self, metadata: Result<FetchMetadata, NetworkError>) {
-        self.image_cache().notify_pending_response(
+        self.image_cache.notify_pending_response(
             self.id,
             FetchResponseMsg::ProcessResponse(metadata.clone()));
 
@@ -163,19 +154,16 @@ impl FetchResponseListener for ImageContext {
 
     fn process_response_chunk(&mut self, payload: Vec<u8>) {
         if self.status.is_ok() {
-            self.image_cache().notify_pending_response(
+            self.image_cache.notify_pending_response(
                 self.id,
                 FetchResponseMsg::ProcessResponseChunk(payload));
         }
     }
 
     fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
-        let elem = self.elem.root();
-        let document = document_from_node(&*elem);
-        let image_cache = self.image_cache();
-        image_cache.notify_pending_response(self.id,
-                                            FetchResponseMsg::ProcessResponseEOF(response));
-        document.finish_load(LoadType::Image(self.url.clone()));
+        self.image_cache.notify_pending_response(
+            self.id,
+            FetchResponseMsg::ProcessResponseEOF(response));
     }
 }
 
@@ -251,8 +239,7 @@ impl HTMLImageElement {
         let window = window_from_node(self);
 
         let context = Arc::new(Mutex::new(ImageContext {
-            elem: Trusted::new(self),
-            url: img_url.clone(),
+            image_cache: window.image_cache_thread().clone(),
             status: Ok(()),
             id: id,
         }));
@@ -275,7 +262,9 @@ impl HTMLImageElement {
             .. RequestInit::default()
         };
 
-        document.fetch_async(LoadType::Image(img_url), request, action_sender);
+        // This is a background load because the load blocker already fulfills the
+        // purpose of delaying the document's load event.
+        document.loader().fetch_async_background(request, action_sender);
     }
 
     fn process_image_response(&self, image: ImageResponse) {
@@ -632,6 +621,15 @@ impl HTMLImageElementMethods for HTMLImageElement {
 impl VirtualMethods for HTMLImageElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    }
+
+    fn adopting_steps(&self, old_doc: &Document) {
+        self.super_type().unwrap().adopting_steps(old_doc);
+
+        let elem = self.upcast::<Element>();
+        let document = document_from_node(self);
+        self.update_image(Some((elem.get_string_attribute(&local_name!("src")),
+                                document.base_url())));
     }
 
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
