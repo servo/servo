@@ -107,7 +107,7 @@ use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
 use script_layout_interface::message::{Msg, ReflowQueryType};
 use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
-use script_thread::{MainThreadScriptMsg, Runnable};
+use script_thread::{MainThreadScriptMsg, Runnable, ScriptThread};
 use script_traits::{AnimationState, CompositorEvent, DocumentActivity};
 use script_traits::{MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
@@ -1604,12 +1604,24 @@ impl Document {
             return;
         }
 
-        // The rest will ever run only once per document.
         if self.loader.borrow().events_inhibited() {
             return;
         }
+
+        ScriptThread::mark_document_with_no_blocked_loads(self);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-end
+    pub fn maybe_queue_document_completion(&self) {
+        if self.loader.borrow().is_blocked() {
+            // Step 6.
+            return;
+        }
+
+        assert!(!self.loader.borrow().events_inhibited());
         self.loader.borrow_mut().inhibit_events();
 
+        // The rest will ever run only once per document.
         // Step 7.
         debug!("Document loads are complete.");
         let handler = box DocumentProgressHandler::new(Trusted::new(self));

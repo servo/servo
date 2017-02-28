@@ -483,6 +483,8 @@ pub struct ScriptThread {
 
     /// A handle to the webvr thread, if available
     webvr_thread: Option<IpcSender<WebVRMsg>>,
+
+    docs_with_no_blocking_loads: DOMRefCell<HashSet<PipelineId>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -567,6 +569,15 @@ impl ScriptThreadFactory for ScriptThread {
 }
 
 impl ScriptThread {
+    pub fn mark_document_with_no_blocked_loads(doc: &Document) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.docs_with_no_blocking_loads
+                .borrow_mut()
+                .insert(doc.global().pipeline_id());
+        })
+    }
+
     pub fn invoke_perform_a_microtask_checkpoint() {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
@@ -704,7 +715,9 @@ impl ScriptThread {
 
             layout_to_constellation_chan: state.layout_to_constellation_chan,
 
-            webvr_thread: state.webvr_thread
+            webvr_thread: state.webvr_thread,
+
+            docs_with_no_blocking_loads: Default::default(),
         }
     }
 
@@ -882,6 +895,17 @@ impl ScriptThread {
 
             if let Some(retval) = result {
                 return retval
+            }
+        }
+
+        {
+            // https://html.spec.whatwg.org/multipage/#the-end step 6
+            let mut pipelines = self.docs_with_no_blocking_loads.borrow_mut();
+            for pipeline in pipelines.drain() {
+                let document = self.documents.borrow().find_document(pipeline);
+                if let Some(document) = document {
+                    document.maybe_queue_document_completion();
+                }
             }
         }
 
