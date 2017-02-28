@@ -12874,6 +12874,12 @@
      {}
     ]
    ],
+   "mozilla/img_multiple_request.html": [
+    [
+     "/_mozilla/mozilla/img_multiple_request.html",
+     {}
+    ]
+   ],
    "mozilla/img_width_height.html": [
     [
      "/_mozilla/mozilla/img_width_height.html",
@@ -25343,6 +25349,10 @@
   ],
   "mozilla/iframe_replacement.html": [
    "3c4f36abed83367c851d943b1f25b8394de6fe75",
+   "testharness"
+  ],
+  "mozilla/img_multiple_request.html": [
+   "0a6263ad87c9b3307f2dc694747b094a0517b79b",
    "testharness"
   ],
   "mozilla/img_width_height.html": [
