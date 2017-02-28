@@ -63,6 +63,7 @@ use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwne
 use layout::flow_ref::FlowRef;
 use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT};
 use layout::layout_debug;
+use layout::opaque_node::OpaqueNodeMethods;
 use layout::parallel;
 use layout::query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
 use layout::query::{process_margin_style_query, process_node_overflow_request, process_resolved_style_request};
@@ -459,6 +460,7 @@ impl LayoutThread {
                     stacking_context_scroll_offsets: HashMap::new(),
                     text_index_response: TextIndexResponse(None),
                     pending_images: vec![],
+                    nodes_from_point_response: vec![],
                 })),
             error_reporter: CSSErrorReporter {
                 pipelineid: id,
@@ -977,6 +979,9 @@ impl LayoutThread {
                     ReflowQueryType::HitTestQuery(..) => {
                         rw_data.hit_test_response = (None, false);
                     },
+                    ReflowQueryType::NodesFromPoint(..) => {
+                        rw_data.nodes_from_point_response = Vec::new();
+                    },
                     ReflowQueryType::NodeGeometryQuery(_) => {
                         rw_data.client_rect_response = Rect::zero();
                     },
@@ -1278,6 +1283,29 @@ impl LayoutThread {
             ReflowQueryType::MarginStyleQuery(node) => {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.margin_style_response = process_margin_style_query(node);
+            },
+            ReflowQueryType::NodesFromPoint(page_point, client_point) => {
+                let page_point = Point2D::new(Au::from_f32_px(page_point.x),
+                                              Au::from_f32_px(page_point.y));
+                let client_point = Point2D::new(Au::from_f32_px(client_point.x),
+                                                Au::from_f32_px(client_point.y));
+                let nodes_from_point_list = {
+                    let result = match rw_data.display_list {
+                        None => panic!("Tried to hit test without a DisplayList"),
+                        Some(ref display_list) => {
+                            display_list.hit_test(&page_point,
+                                                  &client_point,
+                                                  &rw_data.stacking_context_scroll_offsets)
+                        }
+                    };
+
+                    result
+                };
+
+                rw_data.nodes_from_point_response = nodes_from_point_list.iter()
+                   .rev()
+                   .map(|metadata| metadata.node.to_untrusted_node_address())
+                   .collect()
             },
             ReflowQueryType::NoQuery => {}
         }
@@ -1585,7 +1613,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
 /// or false if it only needs stacking-relative positions.
 fn reflow_query_type_needs_display_list(query_type: &ReflowQueryType) -> bool {
     match *query_type {
-        ReflowQueryType::HitTestQuery(..) | ReflowQueryType::TextIndexQuery(..) => true,
+        ReflowQueryType::HitTestQuery(..) | ReflowQueryType::TextIndexQuery(..) |
+        ReflowQueryType::NodesFromPoint(..) => true,
         ReflowQueryType::ContentBoxQuery(_) | ReflowQueryType::ContentBoxesQuery(_) |
         ReflowQueryType::NodeGeometryQuery(_) | ReflowQueryType::NodeScrollGeometryQuery(_) |
         ReflowQueryType::NodeOverflowQuery(_) | ReflowQueryType::NodeScrollRootIdQuery(_) |
