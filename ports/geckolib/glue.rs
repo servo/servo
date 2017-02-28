@@ -1102,7 +1102,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
     use cssparser::Color;
     use style::gecko::values::convert_nscolor_to_rgba;
     use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
-    use style::values::specified::{CSSColor, CSSRGBA};
+    use style::properties::longhands;
+    use style::values::specified::CSSColor;
 
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     let long = get_longhand_from_id!(property);
@@ -1114,7 +1115,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
         BorderRightColor => color,
         BorderBottomColor => color,
         BorderLeftColor => color,
-        Color => CSSRGBA { parsed: rgba, authored: None },
+        Color => longhands::color::SpecifiedValue(color),
         BackgroundColor => color,
     };
     declarations.write().declarations.push((prop, Default::default()));
