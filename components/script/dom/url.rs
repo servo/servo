@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::js::{MutNullableJS, Root};
@@ -102,12 +101,6 @@ impl URL {
         ///      and should not be trusted. See issue https://github.com/servo/servo/issues/11722
         let origin = get_blob_origin(&global.get_url());
 
-        if blob.IsClosed() {
-            // Generate a dummy id
-            let id = Uuid::new_v4();
-            return DOMString::from(URL::unicode_serialization_blob_url(&origin, &id));
-        }
-
         let id = blob.get_blob_url_id();
 
         DOMString::from(URL::unicode_serialization_blob_url(&origin, &id))
@@ -116,13 +109,10 @@ impl URL {
     // https://w3c.github.io/FileAPI/#dfn-revokeObjectURL
     pub fn RevokeObjectURL(global: &GlobalScope, url: DOMString) {
         /*
-            If the url refers to a Blob that has a readability state of CLOSED OR
-            if the value provided for the url argument is not a Blob URL, OR
+            If the value provided for the url argument is not a Blob URL OR
             if the value provided for the url argument does not have an entry in the Blob URL Store,
 
             this method call does nothing. User agents may display a message on the error console.
-
-            NOTE: The first step is unnecessary, since closed blobs do not exist in the store
         */
         let origin = get_blob_origin(&global.get_url());
 

@@ -11,21 +11,15 @@ interface Blob {
 
   readonly attribute unsigned long long size;
   readonly attribute DOMString type;
-  readonly attribute boolean isClosed;
 
-  //slice Blob into byte-ranged chunks
-
+  // slice Blob into byte-ranged chunks
   Blob slice([Clamp] optional long long start,
              [Clamp] optional long long end,
              optional DOMString contentType);
-  void close();
-
 };
 
 dictionary BlobPropertyBag {
-
   DOMString type = "";
-
 };
 
 typedef (/*ArrayBuffer or ArrayBufferView or */Blob or DOMString) BlobPart;

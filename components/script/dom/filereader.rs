@@ -375,20 +375,11 @@ impl FileReader {
         if self.ready_state.get() == FileReaderReadyState::Loading {
             return Err(Error::InvalidState);
         }
+
         // Step 2
-        let global = self.global();
-        if blob.IsClosed() {
-            let exception = DOMException::new(&global, DOMErrorName::InvalidStateError);
-            self.error.set(Some(&exception));
-
-            self.dispatch_progress_event(atom!("error"), 0, None);
-            return Ok(());
-        }
-
-        // Step 3
         self.change_ready_state(FileReaderReadyState::Loading);
 
-        // Step 4
+        // Step 3
         let blob_contents = Arc::new(blob.get_bytes().unwrap_or(vec![]));
 
         let type_ = blob.Type();
