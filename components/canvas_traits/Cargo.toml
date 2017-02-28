@@ -17,8 +17,4 @@ heapsize_derive = "0.1"
 ipc-channel = "0.7"
 serde = {version = "0.9", features = ["unstable"]}
 serde_derive = "0.9"
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["serde_derive", "ipc"]
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

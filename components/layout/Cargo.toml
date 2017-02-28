@@ -45,8 +45,4 @@ style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 unicode-bidi = "0.2"
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["serde_derive", "ipc"]
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
