@@ -137,16 +137,13 @@ impl StructuredCloneData {
     pub fn write(cx: *mut JSContext, message: HandleValue) -> Fallible<StructuredCloneData> {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
-        /// NOTE: will (data, nbytes) be updated after call to JS_WriteStructuredClone?
-        let mut sc_data = StructuredCloneData::Struct(data, nbytes);
-        let sc_data_ptr:  *mut raw::c_void = &mut sc_data as *mut _ as *mut raw::c_void;
         let result = unsafe {
             JS_WriteStructuredClone(cx,
                                     message,
                                     &mut data,
                                     &mut nbytes,
                                     &STRUCTURED_CLONE_CALLBACKS,
-                                    sc_data_ptr,
+                                    ptr::null_mut(),
                                     HandleValue::undefined())
         };
         if !result {
@@ -155,7 +152,7 @@ impl StructuredCloneData {
             }
             return Err(Error::DataClone);
         }
-        Ok(sc_data)
+        Ok(StructuredCloneData::Struct(data, nbytes))
     }
 
     /// Converts a StructuredCloneData to Vec<u8> for inter-thread sharing
