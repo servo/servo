@@ -296,7 +296,9 @@ impl HTMLImageElement {
             self.upcast::<EventTarget>().fire_event(atom!("error"));
         }
 
-        LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
+        if trigger_image_load || trigger_image_error {
+            LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
+        }
 
         // Trigger reflow
         let window = window_from_node(self);
