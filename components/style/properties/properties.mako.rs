@@ -365,7 +365,13 @@ impl PropertyDeclarationIdSet {
                 })
                 .unwrap_or(
                     // Invalid at computed-value time.
-                    DeclaredValue::${"Inherit" if property.style_struct.inherited else "Initial"}
+                    DeclaredValue::CSSWideKeyword(
+                        % if property.style_struct.inherited:
+                            CSSWideKeyword::Inherit
+                        % else:
+                            CSSWideKeyword::Initial
+                        % endif
+                    )
                 )
             );
         }
@@ -374,6 +380,7 @@ impl PropertyDeclarationIdSet {
 
 /// An enum to represent a CSS Wide keyword.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum CSSWideKeyword {
     /// The `initial` keyword.
     Initial,
@@ -381,6 +388,16 @@ pub enum CSSWideKeyword {
     Inherit,
     /// The `unset` keyword.
     Unset,
+}
+
+impl ToCss for CSSWideKeyword {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str(match *self {
+            CSSWideKeyword::Initial => "initial",
+            CSSWideKeyword::Inherit => "inherit",
+            CSSWideKeyword::Unset => "unset",
+        })
+    }
 }
 
 impl Parse for CSSWideKeyword {
@@ -545,12 +562,8 @@ pub enum DeclaredValue<T> {
     Value(T),
     /// An unparsed value that contains `var()` functions.
     WithVariables(Box<UnparsedValue>),
-    /// The `initial` keyword.
-    Initial,
-    /// The `inherit` keyword.
-    Inherit,
-    /// The `unset` keyword.
-    Unset,
+    /// An CSS-wide keyword.
+    CSSWideKeyword(CSSWideKeyword),
 }
 
 /// An unparsed property value that contains `var()` functions.
@@ -575,9 +588,7 @@ impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
                 panic!("DeclaredValue::has_viewport_percentage without \
                         resolving variables!")
             },
-            DeclaredValue::Initial |
-            DeclaredValue::Inherit |
-            DeclaredValue::Unset => false,
+            DeclaredValue::CSSWideKeyword(_) => false,
         }
     }
 }
@@ -595,9 +606,7 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
                 }
                 Ok(())
             },
-            DeclaredValue::Initial => dest.write_str("initial"),
-            DeclaredValue::Inherit => dest.write_str("inherit"),
-            DeclaredValue::Unset => dest.write_str("unset"),
+            DeclaredValue::CSSWideKeyword(ref keyword) => keyword.to_css(dest),
         }
     }
 }
@@ -969,9 +978,7 @@ impl PropertyDeclaration {
         match id {
             PropertyId::Custom(name) => {
                 let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                    Ok(CSSWideKeyword::Unset) => DeclaredValue::Unset,
-                    Ok(CSSWideKeyword::Inherit) => DeclaredValue::Inherit,
-                    Ok(CSSWideKeyword::Initial) => DeclaredValue::Initial,
+                    Ok(keyword) => DeclaredValue::CSSWideKeyword(keyword),
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
                         Ok(value) => DeclaredValue::Value(value),
                         Err(()) => return PropertyDeclarationParseResult::InvalidValue,
@@ -1029,26 +1036,11 @@ impl PropertyDeclaration {
                     ${property_pref_check(shorthand)}
 
                     match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                        Ok(CSSWideKeyword::Inherit) => {
+                        Ok(keyword) => {
                             % for sub_property in shorthand.sub_properties:
                                 result_list.push((
                                     PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Inherit), Importance::Normal));
-                            % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                        },
-                        Ok(CSSWideKeyword::Initial) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push((
-                                    PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Initial), Importance::Normal));
-                            % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                        },
-                        Ok(CSSWideKeyword::Unset) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push((PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Unset), Importance::Normal));
+                                        DeclaredValue::CSSWideKeyword(keyword)), Importance::Normal));
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },

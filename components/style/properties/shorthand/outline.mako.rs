@@ -57,12 +57,13 @@
             try!(write!(dest, " "));
 
             match *self.outline_style {
-                DeclaredValue::Initial => try!(write!(dest, "none")),
+                DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial) =>
+                    try!(write!(dest, "none")),
                 _ => try!(self.outline_style.to_css(dest))
             };
 
             match *self.outline_color {
-                DeclaredValue::Initial => Ok(()),
+                DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial) => Ok(()),
                 _ => {
                     try!(write!(dest, " "));
                     self.outline_color.to_css(dest)

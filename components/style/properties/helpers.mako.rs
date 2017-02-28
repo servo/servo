@@ -267,30 +267,32 @@
                                 % endif
                             }
                             DeclaredValue::WithVariables(_) => unreachable!(),
-                            % if not data.current_style_struct.inherited:
-                            DeclaredValue::Unset |
-                            % endif
-                            DeclaredValue::Initial => {
-                                // We assume that it's faster to use copy_*_from rather than
-                                // set_*(get_initial_value());
-                                let initial_struct = default_style
-                                                      .get_${data.current_style_struct.name_lower}();
-                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                      .copy_${property.ident}_from(initial_struct ${maybe_wm});
-                            },
-                            % if data.current_style_struct.inherited:
-                            DeclaredValue::Unset |
-                            % endif
-                            DeclaredValue::Inherit => {
-                                // This is a bit slow, but this is rare so it shouldn't
-                                // matter.
-                                //
-                                // FIXME: is it still?
-                                *cacheable = false;
-                                let inherited_struct =
-                                    inherited_style.get_${data.current_style_struct.name_lower}();
-                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                       .copy_${property.ident}_from(inherited_struct ${maybe_wm});
+                            DeclaredValue::CSSWideKeyword(keyword) => match keyword {
+                                % if not data.current_style_struct.inherited:
+                                CSSWideKeyword::Unset |
+                                % endif
+                                CSSWideKeyword::Initial => {
+                                    // We assume that it's faster to use copy_*_from rather than
+                                    // set_*(get_initial_value());
+                                    let initial_struct = default_style
+                                                        .get_${data.current_style_struct.name_lower}();
+                                    context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                                        .copy_${property.ident}_from(initial_struct ${maybe_wm});
+                                },
+                                % if data.current_style_struct.inherited:
+                                CSSWideKeyword::Unset |
+                                % endif
+                                CSSWideKeyword::Inherit => {
+                                    // This is a bit slow, but this is rare so it shouldn't
+                                    // matter.
+                                    //
+                                    // FIXME: is it still?
+                                    *cacheable = false;
+                                    let inherited_struct =
+                                        inherited_style.get_${data.current_style_struct.name_lower}();
+                                    context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                        .copy_${property.ident}_from(inherited_struct ${maybe_wm});
+                                }
                             }
                         }
                     }, error_reporter);
@@ -324,9 +326,7 @@
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                                % endif
                 match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                    Ok(CSSWideKeyword::Inherit) => Ok(DeclaredValue::Inherit),
-                    Ok(CSSWideKeyword::Initial) => Ok(DeclaredValue::Initial),
-                    Ok(CSSWideKeyword::Unset) => Ok(DeclaredValue::Unset),
+                    Ok(keyword) => Ok(DeclaredValue::CSSWideKeyword(keyword)),
                     Err(()) => {
                         input.look_for_var_functions();
                         let start = input.position();
@@ -483,8 +483,8 @@
         #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{DeclaredValue, PropertyDeclaration, UnparsedValue};
-        use properties::{ShorthandId, longhands};
+        use properties::{CSSWideKeyword, DeclaredValue, PropertyDeclaration};
+        use properties::{ShorthandId, UnparsedValue, longhands};
         use properties::declaration_block::Importance;
         use std::fmt;
         use style_traits::ToCss;
@@ -563,9 +563,11 @@
                 let mut with_variables = false;
                 % for sub_property in shorthand.sub_properties:
                     match *self.${sub_property.ident} {
-                        DeclaredValue::Initial => all_flags &= ALL_INITIAL,
-                        DeclaredValue::Inherit => all_flags &= ALL_INHERIT,
-                        DeclaredValue::Unset => all_flags &= ALL_UNSET,
+                        DeclaredValue::CSSWideKeyword(keyword) => match keyword {
+                            CSSWideKeyword::Initial => all_flags &= ALL_INITIAL,
+                            CSSWideKeyword::Inherit => all_flags &= ALL_INHERIT,
+                            CSSWideKeyword::Unset => all_flags &= ALL_UNSET,
+                        },
                         DeclaredValue::WithVariables(_) => with_variables = true,
                         DeclaredValue::Value(..) => {
                             all_flags = SerializeFlags::empty();

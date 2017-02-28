@@ -7,7 +7,8 @@ use media_queries::CSSErrorReporterTest;
 use servo_url::ServoUrl;
 use style::computed_values::display::T::inline_block;
 use style::parser::ParserContext;
-use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance, PropertyId};
+use style::properties::{CSSWideKeyword, DeclaredValue, PropertyDeclaration};
+use style::properties::{PropertyDeclarationBlock, Importance, PropertyId};
 use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 use style::properties::parse_property_declaration_list;
 use style::stylesheets::Origin;
@@ -376,7 +377,7 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
-            let style = DeclaredValue::Initial;
+            let style = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
                 authored: None
@@ -396,7 +397,7 @@ mod shorthand_serialization {
 
             let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let style = DeclaredValue::Value(BorderStyle::solid);
-            let color = DeclaredValue::Initial;
+            let color = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
 
             properties.push(PropertyDeclaration::BorderTopWidth(width));
             properties.push(PropertyDeclaration::BorderTopStyle(style));
@@ -412,7 +413,7 @@ mod shorthand_serialization {
 
             let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let style = DeclaredValue::Value(BorderStyle::solid);
-            let color = DeclaredValue::Initial;
+            let color = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
 
             properties.push(PropertyDeclaration::BorderRightWidth(width));
             properties.push(PropertyDeclaration::BorderRightStyle(style));
@@ -428,7 +429,7 @@ mod shorthand_serialization {
 
             let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let style = DeclaredValue::Value(BorderStyle::solid);
-            let color = DeclaredValue::Initial;
+            let color = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
 
             properties.push(PropertyDeclaration::BorderBottomWidth(width));
             properties.push(PropertyDeclaration::BorderBottomStyle(style));
@@ -444,7 +445,7 @@ mod shorthand_serialization {
 
             let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let style = DeclaredValue::Value(BorderStyle::solid);
-            let color = DeclaredValue::Initial;
+            let color = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
 
             properties.push(PropertyDeclaration::BorderLeftWidth(width));
             properties.push(PropertyDeclaration::BorderLeftStyle(style));
@@ -460,7 +461,7 @@ mod shorthand_serialization {
 
             let top_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let top_style = DeclaredValue::Value(BorderStyle::solid);
-            let top_color = DeclaredValue::Initial;
+            let top_color = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
 
             properties.push(PropertyDeclaration::BorderTopWidth(top_width));
             properties.push(PropertyDeclaration::BorderTopStyle(top_style));
@@ -468,7 +469,7 @@ mod shorthand_serialization {
 
             let right_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let right_style = DeclaredValue::Value(BorderStyle::solid);
-            let right_color = DeclaredValue::Initial;
+            let right_color = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
 
             properties.push(PropertyDeclaration::BorderRightWidth(right_width));
             properties.push(PropertyDeclaration::BorderRightStyle(right_style));
@@ -476,7 +477,7 @@ mod shorthand_serialization {
 
             let bottom_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let bottom_style = DeclaredValue::Value(BorderStyle::solid);
-            let bottom_color = DeclaredValue::Initial;
+            let bottom_color = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
 
             properties.push(PropertyDeclaration::BorderBottomWidth(bottom_width));
             properties.push(PropertyDeclaration::BorderBottomStyle(bottom_style));
@@ -484,7 +485,7 @@ mod shorthand_serialization {
 
             let left_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
             let left_style = DeclaredValue::Value(BorderStyle::solid);
-            let left_color = DeclaredValue::Initial;
+            let left_color = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
 
             properties.push(PropertyDeclaration::BorderLeftWidth(left_width));
             properties.push(PropertyDeclaration::BorderLeftStyle(left_style));
@@ -522,8 +523,8 @@ mod shorthand_serialization {
         fn list_style_should_show_all_properties_even_if_only_one_is_set() {
             let mut properties = Vec::new();
 
-            let position = DeclaredValue::Initial;
-            let image = DeclaredValue::Initial;
+            let position = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
+            let image = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
             let style_type = DeclaredValue::Value(ListStyleType::disc);
 
             properties.push(PropertyDeclaration::ListStylePosition(position));
@@ -565,7 +566,7 @@ mod shorthand_serialization {
 
             let width = DeclaredValue::Value(WidthContainer(Length::from_px(4f32)));
             let style = DeclaredValue::Value(Either::Second(BorderStyle::solid));
-            let color = DeclaredValue::Initial;
+            let color = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
 
             properties.push(PropertyDeclaration::OutlineWidth(width));
             properties.push(PropertyDeclaration::OutlineStyle(style));
@@ -580,7 +581,7 @@ mod shorthand_serialization {
             let mut properties = Vec::new();
 
             let width = DeclaredValue::Value(WidthContainer(Length::from_px(4f32)));
-            let style = DeclaredValue::Initial;
+            let style = DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial);
             let color = DeclaredValue::Value(CSSColor {
                 parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
                 authored: None

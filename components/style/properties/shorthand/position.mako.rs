@@ -40,14 +40,16 @@
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self.flex_direction {
-                DeclaredValue::Initial => try!(write!(dest, "row")),
+                DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial) =>
+                    try!(write!(dest, "row")),
                 _ => try!(self.flex_direction.to_css(dest))
             };
 
             try!(write!(dest, " "));
 
             match *self.flex_wrap {
-                DeclaredValue::Initial => write!(dest, "nowrap"),
+                DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial) =>
+                    write!(dest, "nowrap"),
                 _ => self.flex_wrap.to_css(dest)
             }
         }

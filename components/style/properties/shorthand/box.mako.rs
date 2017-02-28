@@ -23,9 +23,8 @@
                     *x_value == y_container.0
                 },
                 (&DeclaredValue::WithVariables(_), &DeclaredValue::WithVariables(_)) => true,
-                (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
-                (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
-                (&DeclaredValue::Unset, &DeclaredValue::Unset) => true,
+                (&DeclaredValue::CSSWideKeyword(x_keyword),
+                 &DeclaredValue::CSSWideKeyword(y_keyword)) => x_keyword == y_keyword,
                 _ => false
             };
 
@@ -359,9 +358,8 @@ macro_rules! try_parse_one {
                 (&DeclaredValue::Value(ref x_value), &DeclaredValue::Value(ref y_value)) => {
                     *x_value == *y_value
                 },
-                (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
-                (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
-                (&DeclaredValue::Unset, &DeclaredValue::Unset) => true,
+                (&DeclaredValue::CSSWideKeyword(x_keyword),
+                 &DeclaredValue::CSSWideKeyword(y_keyword)) => x_keyword == y_keyword,
                 (x, y) => { *x == *y },
             };
 
