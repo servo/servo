@@ -83,11 +83,12 @@ class PostBuildCommands(CommandBase):
                 return
             script = [
                 "am force-stop com.mozilla.servo",
-                "echo servo >/sdcard/servo/android_params"
+                "echo servo >/sdcard/Android/data/com.mozilla.servo/files/android_params"
             ]
             for param in params:
                 script += [
-                    "echo '%s' >>/sdcard/servo/android_params" % param.replace("'", "\\'")
+                    "echo '%s' >>/sdcard/Android/data/com.mozilla.servo/files/android_params"
+                    % param.replace("'", "\\'")
                 ]
             script += [
                 "am start com.mozilla.servo/com.mozilla.servo.MainActivity",
