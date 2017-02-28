@@ -4,25 +4,8 @@
 
 <%! from data import Keyword, to_rust_ident, to_camel_case, LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES %>
 
-<%def name="longhand(name, **kwargs)">
-    <%call expr="raw_longhand(name, **kwargs)">
-        ${caller.body()}
-        % if not data.longhands_by_name[name].derived_from:
-            pub fn parse_specified(context: &ParserContext, input: &mut Parser)
-                % if data.longhands_by_name[name].boxed:
-                                   -> Result<DeclaredValue<Box<SpecifiedValue>>, ()> {
-                    parse(context, input).map(|result| DeclaredValue::Value(Box::new(result)))
-                % else:
-                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
-                    parse(context, input).map(DeclaredValue::Value)
-                % endif
-            }
-        % endif
-    </%call>
-</%def>
-
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
-            needs_context=True, vector=False, **kwargs)">
+            needs_context=True, vector=False, initial_specified_value=None, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
@@ -32,6 +15,9 @@
             pub use values::computed::${type} as T;
         }
         #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
+        % if initial_specified_value:
+        #[inline] pub fn get_initial_specified_value() -> SpecifiedValue { ${initial_specified_value} }
+        % endif
         #[allow(unused_variables)]
         #[inline] pub fn parse(context: &ParserContext, input: &mut Parser)
                                -> Result<SpecifiedValue, ()> {
@@ -212,7 +198,7 @@
     </%call>
 </%def>
 
-<%def name="raw_longhand(*args, **kwargs)">
+<%def name="longhand(*args, **kwargs)">
     <%
         property = data.declare_longhand(*args, **kwargs)
         if property is None:
@@ -322,6 +308,15 @@
             % endif
         }
         % if not property.derived_from:
+            pub fn parse_specified(context: &ParserContext, input: &mut Parser)
+                % if property.boxed:
+                                   -> Result<DeclaredValue<Box<SpecifiedValue>>, ()> {
+                    parse(context, input).map(|result| DeclaredValue::Value(Box::new(result)))
+                % else:
+                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
+                    parse(context, input).map(DeclaredValue::Value)
+                % endif
+            }
             pub fn parse_declared(context: &ParserContext, input: &mut Parser)
                                % if property.boxed:
                                    -> Result<DeclaredValue<Box<SpecifiedValue>>, ()> {
@@ -497,8 +492,7 @@
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
-                pub ${sub_property.ident}:
-                    Option<longhands::${sub_property.ident}::SpecifiedValue>,
+                pub ${sub_property.ident}: longhands::${sub_property.ident}::SpecifiedValue,
             % endfor
         }
 
@@ -611,14 +605,11 @@
             if let Ok(value) = value {
                 % for sub_property in shorthand.sub_properties:
                     declarations.push((PropertyDeclaration::${sub_property.camel_case}(
-                        match value.${sub_property.ident} {
-                            % if sub_property.boxed:
-                                Some(value) => DeclaredValue::Value(Box::new(value)),
-                            % else:
-                                Some(value) => DeclaredValue::Value(value),
-                            % endif
-                            None => DeclaredValue::Initial,
-                        }
+                        % if sub_property.boxed:
+                            DeclaredValue::Value(Box::new(value.${sub_property.ident}))
+                        % else:
+                            DeclaredValue::Value(value.${sub_property.ident})
+                        % endif
                     ), Importance::Normal));
                 % endfor
                 Ok(())
@@ -665,7 +656,7 @@
             % endif
             Ok(Longhands {
                 % for side in ["top", "right", "bottom", "left"]:
-                    ${to_rust_ident(sub_property_pattern % side)}: Some(${side}),
+                    ${to_rust_ident(sub_property_pattern % side)}: ${side},
                 % endfor
             })
         }

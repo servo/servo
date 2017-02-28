@@ -103,7 +103,7 @@ use style::matching::{common_style_affecting_attributes, rare_style_affecting_at
 use style::parser::ParserContextExtraData;
 use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
-use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
+use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
@@ -111,7 +111,7 @@ use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
 use style::thread_state;
 use style::values::CSSFloat;
-use style::values::specified::{self, CSSColor, CSSRGBA};
+use style::values::specified::{self, CSSColor};
 use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
@@ -442,10 +442,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(color) = color {
             hints.push(from_declaration(
-                PropertyDeclaration::Color(DeclaredValue::Value(CSSRGBA {
-                    parsed: color,
-                    authored: None,
-                }))));
+                PropertyDeclaration::Color(DeclaredValue::Value(
+                    longhands::color::SpecifiedValue(CSSColor {
+                        parsed: Color::RGBA(color),
+                        authored: None,
+                    })
+                ))
+            ));
         }
 
         let font_family = if let Some(this) = self.downcast::<HTMLFontElement>() {

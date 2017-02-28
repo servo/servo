@@ -115,7 +115,7 @@
 
         Ok(Longhands {
             % for name in "image mode position_x position_y size repeat origin clip composite".split():
-                mask_${name}: Some(mask_${name}),
+                mask_${name}: mask_${name},
             % endfor
          })
     }
@@ -263,8 +263,8 @@
         }
 
         Ok(Longhands {
-            mask_position_x: Some(position_x),
-            mask_position_y: Some(position_y),
+            mask_position_x: position_x,
+            mask_position_y: position_y,
         })
     }
 

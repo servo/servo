@@ -43,8 +43,8 @@
             Err(())
         } else {
             Ok(Longhands {
-                column_count: column_count,
-                column_width: column_width,
+                column_count: unwrap_or_initial!(column_count),
+                column_width: unwrap_or_initial!(column_width),
             })
         }
     }
@@ -87,11 +87,9 @@
         }
         if any {
             Ok(Longhands {
-                % for name in "width style".split():
-                    column_rule_${name}: column_rule_${name}
-                        .or(Some(column_rule_${name}::get_initial_specified_value())),
-                % endfor
-                column_rule_color: column_rule_color,
+                column_rule_width: unwrap_or_initial!(column_rule_width),
+                column_rule_style: unwrap_or_initial!(column_rule_style),
+                column_rule_color: unwrap_or_initial!(column_rule_color),
             })
         } else {
             Err(())

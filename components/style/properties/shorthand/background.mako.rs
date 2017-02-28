@@ -115,15 +115,15 @@
         }));
 
         Ok(Longhands {
-             background_color: background_color,
-             background_image: Some(background_image),
-             background_position_x: Some(background_position_x),
-             background_position_y: Some(background_position_y),
-             background_repeat: Some(background_repeat),
-             background_attachment: Some(background_attachment),
-             background_size: Some(background_size),
-             background_origin: Some(background_origin),
-             background_clip: Some(background_clip),
+             background_color: unwrap_or_initial!(background_color),
+             background_image: background_image,
+             background_position_x: background_position_x,
+             background_position_y: background_position_y,
+             background_repeat: background_repeat,
+             background_attachment: background_attachment,
+             background_size: background_size,
+             background_origin: background_origin,
+             background_clip: background_clip,
          })
     }
 
@@ -246,8 +246,8 @@
         }
 
         Ok(Longhands {
-            background_position_x: Some(position_x),
-            background_position_y: Some(position_y),
+            background_position_x: position_x,
+            background_position_y: position_y,
         })
     }
 

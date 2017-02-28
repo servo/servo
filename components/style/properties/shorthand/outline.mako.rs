@@ -6,7 +6,7 @@
 
 <%helpers:shorthand name="outline" sub_properties="outline-color outline-style outline-width"
                     spec="https://drafts.csswg.org/css-ui/#propdef-outline">
-    use properties::longhands::{outline_width, outline_style};
+    use properties::longhands::{outline_color, outline_width, outline_style};
     use values::specified;
     use parser::Parse;
 
@@ -42,9 +42,9 @@
         }
         if any {
             Ok(Longhands {
-                outline_color: color,
-                outline_style: style,
-                outline_width: width,
+                outline_color: unwrap_or_initial!(outline_color, color),
+                outline_style: unwrap_or_initial!(outline_style, style),
+                outline_width: unwrap_or_initial!(outline_width, width),
             })
         } else {
             Err(())

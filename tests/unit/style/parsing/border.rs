@@ -20,12 +20,12 @@ fn border_image_shorthand_should_parse_when_all_properties_specified() {
                                  round stretch");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.border_image_source.unwrap(),
+    assert_eq!(result.border_image_source,
                parse_longhand!(border_image_source, "linear-gradient(red, blue)"));
-    assert_eq!(result.border_image_slice.unwrap(), parse_longhand!(border_image_slice, "30 30% 45 fill"));
-    assert_eq!(result.border_image_width.unwrap(), parse_longhand!(border_image_width, "20px 40px"));
-    assert_eq!(result.border_image_outset.unwrap(), parse_longhand!(border_image_outset, "10px"));
-    assert_eq!(result.border_image_repeat.unwrap(), parse_longhand!(border_image_repeat, "round stretch"));
+    assert_eq!(result.border_image_slice, parse_longhand!(border_image_slice, "30 30% 45 fill"));
+    assert_eq!(result.border_image_width, parse_longhand!(border_image_width, "20px 40px"));
+    assert_eq!(result.border_image_outset, parse_longhand!(border_image_outset, "10px"));
+    assert_eq!(result.border_image_repeat, parse_longhand!(border_image_repeat, "round stretch"));
 }
 
 #[test]
@@ -35,12 +35,12 @@ fn border_image_shorthand_should_parse_without_width() {
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / / 10px round stretch");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.border_image_source.unwrap(),
+    assert_eq!(result.border_image_source,
                parse_longhand!(border_image_source, "linear-gradient(red, blue)"));
-    assert_eq!(result.border_image_slice.unwrap(), parse_longhand!(border_image_slice, "30 30% 45 fill"));
-    assert_eq!(result.border_image_outset.unwrap(), parse_longhand!(border_image_outset, "10px"));
-    assert_eq!(result.border_image_repeat.unwrap(), parse_longhand!(border_image_repeat, "round stretch"));
-    assert_eq!(result.border_image_width.unwrap(), border_image_width::get_initial_specified_value());
+    assert_eq!(result.border_image_slice, parse_longhand!(border_image_slice, "30 30% 45 fill"));
+    assert_eq!(result.border_image_outset, parse_longhand!(border_image_outset, "10px"));
+    assert_eq!(result.border_image_repeat, parse_longhand!(border_image_repeat, "round stretch"));
+    assert_eq!(result.border_image_width, border_image_width::get_initial_specified_value());
 }
 
 #[test]
@@ -50,12 +50,12 @@ fn border_image_shorthand_should_parse_without_outset() {
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill / 20px 40px round");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.border_image_source.unwrap(),
+    assert_eq!(result.border_image_source,
                parse_longhand!(border_image_source, "linear-gradient(red, blue)"));
-    assert_eq!(result.border_image_slice.unwrap(), parse_longhand!(border_image_slice, "30 30% 45 fill"));
-    assert_eq!(result.border_image_width.unwrap(), parse_longhand!(border_image_width, "20px 40px"));
-    assert_eq!(result.border_image_repeat.unwrap(), parse_longhand!(border_image_repeat, "round"));
-    assert_eq!(result.border_image_outset.unwrap(), border_image_outset::get_initial_specified_value());
+    assert_eq!(result.border_image_slice, parse_longhand!(border_image_slice, "30 30% 45 fill"));
+    assert_eq!(result.border_image_width, parse_longhand!(border_image_width, "20px 40px"));
+    assert_eq!(result.border_image_repeat, parse_longhand!(border_image_repeat, "round"));
+    assert_eq!(result.border_image_outset, border_image_outset::get_initial_specified_value());
 }
 
 #[test]
@@ -65,12 +65,12 @@ fn border_image_shorthand_should_parse_without_width_or_outset() {
     let mut parser = Parser::new("linear-gradient(red, blue) 30 30% 45 fill round");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.border_image_source.unwrap(),
+    assert_eq!(result.border_image_source,
                parse_longhand!(border_image_source, "linear-gradient(red, blue)"));
-    assert_eq!(result.border_image_slice.unwrap(), parse_longhand!(border_image_slice, "30 30% 45 fill"));
-    assert_eq!(result.border_image_repeat.unwrap(), parse_longhand!(border_image_repeat, "round"));
-    assert_eq!(result.border_image_width.unwrap(), border_image_width::get_initial_specified_value());
-    assert_eq!(result.border_image_outset.unwrap(), border_image_outset::get_initial_specified_value());
+    assert_eq!(result.border_image_slice, parse_longhand!(border_image_slice, "30 30% 45 fill"));
+    assert_eq!(result.border_image_repeat, parse_longhand!(border_image_repeat, "round"));
+    assert_eq!(result.border_image_width, border_image_width::get_initial_specified_value());
+    assert_eq!(result.border_image_outset, border_image_outset::get_initial_specified_value());
 }
 
 #[test]
@@ -80,12 +80,12 @@ fn border_image_shorthand_should_parse_with_just_source() {
     let mut parser = Parser::new("linear-gradient(red, blue)");
     let result = border_image::parse_value(&context, &mut parser).unwrap();
 
-    assert_eq!(result.border_image_source.unwrap(),
+    assert_eq!(result.border_image_source,
                parse_longhand!(border_image_source, "linear-gradient(red, blue)"));
-    assert_eq!(result.border_image_slice.unwrap(), border_image_slice::get_initial_specified_value());
-    assert_eq!(result.border_image_width.unwrap(), border_image_width::get_initial_specified_value());
-    assert_eq!(result.border_image_outset.unwrap(), border_image_outset::get_initial_specified_value());
-    assert_eq!(result.border_image_repeat.unwrap(), border_image_repeat::get_initial_specified_value());
+    assert_eq!(result.border_image_slice, border_image_slice::get_initial_specified_value());
+    assert_eq!(result.border_image_width, border_image_width::get_initial_specified_value());
+    assert_eq!(result.border_image_outset, border_image_outset::get_initial_specified_value());
+    assert_eq!(result.border_image_repeat, border_image_repeat::get_initial_specified_value());
 }
 
 #[test]

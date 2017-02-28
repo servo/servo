@@ -88,6 +88,12 @@ pub mod longhands {
     <%include file="/longhand/xul.mako.rs" />
 }
 
+macro_rules! unwrap_or_initial {
+    ($prop: ident) => (unwrap_or_initial!($prop, $prop));
+    ($prop: ident, $expr: expr) =>
+        ($expr.unwrap_or_else(|| $prop::get_initial_specified_value()));
+}
+
 /// A module with code for all the shorthand css properties, and a few
 /// serialization helpers.
 #[allow(missing_docs)]
@@ -343,13 +349,12 @@ impl PropertyDeclarationIdSet {
                                 % if property in shorthand.sub_properties:
                                     Some(ShorthandId::${shorthand.camel_case}) => {
                                         shorthands::${shorthand.ident}::parse_value(&context, input)
-                                        .map(|result| match result.${property.ident} {
+                                        .map(|result| {
                                             % if property.boxed:
-                                                Some(value) => DeclaredValue::Value(Box::new(value)),
+                                                DeclaredValue::Value(Box::new(result.${property.ident}))
                                             % else:
-                                                Some(value) => DeclaredValue::Value(value),
+                                                DeclaredValue::Value(result.${property.ident})
                                             % endif
-                                            None => DeclaredValue::Initial,
                                         })
                                     }
                                 % endif

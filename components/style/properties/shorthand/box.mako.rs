@@ -11,8 +11,8 @@
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let overflow = try!(overflow_x::parse(context, input));
         Ok(Longhands {
-            overflow_x: Some(overflow),
-            overflow_y: Some(overflow_y::SpecifiedValue(overflow)),
+            overflow_x: overflow,
+            overflow_y: overflow_y::SpecifiedValue(overflow),
         })
     }
 
@@ -103,31 +103,25 @@ macro_rules! try_parse_one {
             }
         }
 
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(Longhands {
-                transition_property: None,
-                transition_duration: None,
-                transition_timing_function: None,
-                transition_delay: None,
-            })
-        }
-
-        let results = try!(input.parse_comma_separated(|i| parse_one_transition(context, i)));
         let (mut properties, mut durations) = (Vec::new(), Vec::new());
         let (mut timing_functions, mut delays) = (Vec::new(), Vec::new());
-        for result in results {
-            properties.push(result.transition_property);
-            durations.push(result.transition_duration);
-            timing_functions.push(result.transition_timing_function);
-            delays.push(result.transition_delay);
+
+        if input.try(|input| input.expect_ident_matching("none")).is_err() {
+            let results = try!(input.parse_comma_separated(|i| parse_one_transition(context, i)));
+            for result in results {
+                properties.push(result.transition_property);
+                durations.push(result.transition_duration);
+                timing_functions.push(result.transition_timing_function);
+                delays.push(result.transition_delay);
+            }
         }
 
         Ok(Longhands {
-            transition_property: Some(transition_property::SpecifiedValue(properties)),
-            transition_duration: Some(transition_duration::SpecifiedValue(durations)),
+            transition_property: transition_property::SpecifiedValue(properties),
+            transition_duration: transition_duration::SpecifiedValue(durations),
             transition_timing_function:
-                Some(transition_timing_function::SpecifiedValue(timing_functions)),
-            transition_delay: Some(transition_delay::SpecifiedValue(delays)),
+                transition_timing_function::SpecifiedValue(timing_functions),
+            transition_delay: transition_delay::SpecifiedValue(delays),
         })
     }
 
@@ -258,21 +252,6 @@ macro_rules! try_parse_one {
             }
         }
 
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(Longhands {
-                animation_name: None,
-                animation_duration: None,
-                animation_timing_function: None,
-                animation_delay: None,
-                animation_iteration_count: None,
-                animation_direction: None,
-                animation_fill_mode: None,
-                animation_play_state: None,
-            })
-        }
-
-        let results = try!(input.parse_comma_separated(|i| parse_one_animation(context, i)));
-
         let mut names = vec![];
         let mut durations = vec![];
         let mut timing_functions = vec![];
@@ -282,26 +261,29 @@ macro_rules! try_parse_one {
         let mut fill_modes = vec![];
         let mut play_states = vec![];
 
-        for result in results.into_iter() {
-            names.push(result.animation_name);
-            durations.push(result.animation_duration);
-            timing_functions.push(result.animation_timing_function);
-            delays.push(result.animation_delay);
-            iteration_counts.push(result.animation_iteration_count);
-            directions.push(result.animation_direction);
-            fill_modes.push(result.animation_fill_mode);
-            play_states.push(result.animation_play_state);
+        if input.try(|input| input.expect_ident_matching("none")).is_err() {
+            let results = try!(input.parse_comma_separated(|i| parse_one_animation(context, i)));
+            for result in results.into_iter() {
+                names.push(result.animation_name);
+                durations.push(result.animation_duration);
+                timing_functions.push(result.animation_timing_function);
+                delays.push(result.animation_delay);
+                iteration_counts.push(result.animation_iteration_count);
+                directions.push(result.animation_direction);
+                fill_modes.push(result.animation_fill_mode);
+                play_states.push(result.animation_play_state);
+            }
         }
 
         Ok(Longhands {
-            animation_name: Some(animation_name::SpecifiedValue(names)),
-            animation_duration: Some(animation_duration::SpecifiedValue(durations)),
-            animation_timing_function: Some(animation_timing_function::SpecifiedValue(timing_functions)),
-            animation_delay: Some(animation_delay::SpecifiedValue(delays)),
-            animation_iteration_count: Some(animation_iteration_count::SpecifiedValue(iteration_counts)),
-            animation_direction: Some(animation_direction::SpecifiedValue(directions)),
-            animation_fill_mode: Some(animation_fill_mode::SpecifiedValue(fill_modes)),
-            animation_play_state: Some(animation_play_state::SpecifiedValue(play_states)),
+            animation_name: animation_name::SpecifiedValue(names),
+            animation_duration: animation_duration::SpecifiedValue(durations),
+            animation_timing_function: animation_timing_function::SpecifiedValue(timing_functions),
+            animation_delay: animation_delay::SpecifiedValue(delays),
+            animation_iteration_count: animation_iteration_count::SpecifiedValue(iteration_counts),
+            animation_direction: animation_direction::SpecifiedValue(directions),
+            animation_fill_mode: animation_fill_mode::SpecifiedValue(fill_modes),
+            animation_play_state: animation_play_state::SpecifiedValue(play_states),
         })
     }
 
@@ -364,8 +346,8 @@ macro_rules! try_parse_one {
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let result = try!(scroll_snap_type_x::parse(context, input));
         Ok(Longhands {
-            scroll_snap_type_x: Some(result),
-            scroll_snap_type_y: Some(result),
+            scroll_snap_type_x: result,
+            scroll_snap_type_y: result,
         })
     }
 

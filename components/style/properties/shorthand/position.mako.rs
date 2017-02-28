@@ -31,8 +31,8 @@
             return Err(())
         }
         Ok(Longhands {
-            flex_direction: direction,
-            flex_wrap: wrap,
+            flex_direction: unwrap_or_initial!(flex_direction, direction),
+            flex_wrap: unwrap_or_initial!(flex_wrap, wrap),
         })
     }
 
@@ -73,9 +73,9 @@
 
         if input.try(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(Longhands {
-                flex_grow: Some(Number(0.0)),
-                flex_shrink: Some(Number(0.0)),
-                flex_basis: Some(LengthOrPercentageOrAutoOrContent::Auto)
+                flex_grow: Number(0.0),
+                flex_shrink: Number(0.0),
+                flex_basis: LengthOrPercentageOrAutoOrContent::Auto
             })
         }
         loop {
@@ -99,9 +99,9 @@
             return Err(())
         }
         Ok(Longhands {
-            flex_grow: grow.or(Some(Number(1.0))),
-            flex_shrink: shrink.or(Some(Number(1.0))),
-            flex_basis: basis.or(Some(LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero())))
+            flex_grow: grow.unwrap_or(Number(1.0)),
+            flex_shrink: shrink.unwrap_or(Number(1.0)),
+            flex_basis: basis.unwrap_or(LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero()))
         })
     }
 
