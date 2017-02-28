@@ -88,10 +88,6 @@ url = {version = "1.2", features = ["heap_size", "query_encoding"]}
 uuid = {version = "0.4", features = ["v4"]}
 websocket = "0.17"
 xml5ever = {version = "0.4", features = ["unstable"]}
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["nightly", "serde_derive", "ipc"]
