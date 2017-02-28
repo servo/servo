@@ -46,6 +46,8 @@ use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
 use script_thread::Runnable;
 use servo_url::ServoUrl;
+use std::cell::Cell;
+use std::default::Default;
 use std::i32;
 use std::sync::{Arc, Mutex};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -75,6 +77,7 @@ pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     current_request: DOMRefCell<ImageRequest>,
     pending_request: DOMRefCell<ImageRequest>,
+    generation: Cell<u32>,
 }
 
 impl HTMLImageElement {
@@ -86,14 +89,16 @@ impl HTMLImageElement {
 struct ImageResponseHandlerRunnable {
     element: Trusted<HTMLImageElement>,
     image: ImageResponse,
+    generation: u32,
 }
 
 impl ImageResponseHandlerRunnable {
-    fn new(element: Trusted<HTMLImageElement>, image: ImageResponse)
+    fn new(element: Trusted<HTMLImageElement>, image: ImageResponse, generation: u32)
            -> ImageResponseHandlerRunnable {
         ImageResponseHandlerRunnable {
             element: element,
             image: image,
+            generation: generation,
         }
     }
 }
@@ -103,7 +108,10 @@ impl Runnable for ImageResponseHandlerRunnable {
 
     fn handler(self: Box<Self>) {
         let element = self.element.root();
-        element.process_image_response(self.image);
+        // Ignore any image response for a previous request that has been discarded.
+        if element.generation.get() == self.generation {
+            element.process_image_response(self.image);
+        }
     }
 }
 
@@ -196,11 +204,12 @@ impl HTMLImageElement {
             let window = window_from_node(elem);
             let task_source = window.networking_task_source();
             let wrapper = window.get_runnable_wrapper();
+            let generation = elem.generation.get();
             ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                 // Return the image via a message to the script thread, which marks the element
                 // as dirty and triggers a reflow.
                 let runnable = ImageResponseHandlerRunnable::new(
-                    trusted_node.clone(), message.to().unwrap());
+                    trusted_node.clone(), message.to().unwrap(), generation);
                 let _ = task_source.queue_with_wrapper(box runnable, &wrapper);
             });
 
@@ -308,6 +317,9 @@ impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&self, value: Option<(DOMString, ServoUrl)>) {
+        // Force any in-progress request to be ignored.
+        self.generation.set(self.generation.get() + 1);
+
         let document = document_from_node(self);
         let window = document.window();
         match value {
@@ -380,6 +392,7 @@ impl HTMLImageElement {
                 metadata: None,
                 blocker: None,
             }),
+            generation: Default::default(),
         }
     }
 
