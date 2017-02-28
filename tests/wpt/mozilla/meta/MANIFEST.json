@@ -19600,6 +19600,12 @@
      {}
     ]
    ],
+   "mozilla/structuredclone.html": [
+     {
+       "path": "mozilla/structuredclone.html",
+       "url": "/_mozilla/mozilla/structuredclone.html"
+     }
+   ],
    "mozilla/style_no_trailing_space.html": [
     [
      "/_mozilla/mozilla/style_no_trailing_space.html",
