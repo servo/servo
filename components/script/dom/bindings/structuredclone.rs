@@ -68,14 +68,11 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
 unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     w: *mut JSStructuredCloneWriter,
                                     obj: HandleObject,
-                                    closure: *mut raw::c_void) -> bool {
-    let sc_data: &mut StructuredCloneData = &mut *(closure as *mut StructuredCloneData);
+                                    _closure: *mut raw::c_void) -> bool {
     if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
         if let Ok(blob_vec) = blob.get_bytes() {
-            let s = String::from_utf8(blob_vec).unwrap();
-            let u32_data = u32::from_str_radix(&s, 16).unwrap();
             if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
-                                      u32_data) {
+                                      blob_vec.as_ptr() as u32) {
                 return true
             }
         }

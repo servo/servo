@@ -12,13 +12,11 @@
 async_test(function(t) {
   var iframe = document.getElementById('iframe');
   var blob = new Blob(['test']);
-  iframe.onload = function(){
-      var otherWindow = this.contentWindow;
-      otherWindow.addEventListener("message", function(msg){
-      }, false);
-      otherWindow.postMessage(blob, '*');
-      this.done();
-  };
+  iframe.onload = this.step_func_done(function() {
+    var otherWindow = iframe.contentWindow;
+    otherWindow.postMessage(blob, '*');
+    t.done();
+    }, false);
 });
 </script>
 </body>
