@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::Color;
 use properties::DeclaredValue;
 use style_traits::ToCss;
 use values::specified::{BorderStyle, CSSColor};
@@ -84,7 +85,7 @@ fn serialize_directional_border<W, I,>(dest: &mut W,
     };
 
     match *color {
-        DeclaredValue::Value(ref color) => {
+        DeclaredValue::Value(ref color) if color.parsed != Color::CurrentColor => {
             try!(write!(dest, " "));
             color.to_css(dest)
         },
