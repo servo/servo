@@ -326,6 +326,11 @@ ${helpers.single_keyword("font-variant-caps",
         computed_value::T::Weight400  // normal
     }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -405,6 +410,11 @@ ${helpers.single_keyword("font-variant-caps",
     #[allow(missing_docs)]
     pub fn get_initial_value() -> computed_value::T {
         Au::from_px(FONT_MEDIUM_PX)
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(specified::LengthOrPercentage::Length(NoCalcLength::medium()))
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -500,6 +510,11 @@ ${helpers.single_keyword("font-variant-caps",
 
     #[inline] pub fn get_initial_value() -> computed_value::T {
         computed_value::T::None
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::None
     }
 
     /// none | <number>
@@ -748,6 +763,11 @@ ${helpers.single_keyword("font-variant-position",
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T::Normal
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
     }
 
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {

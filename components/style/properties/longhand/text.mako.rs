@@ -169,6 +169,10 @@ ${helpers.single_keyword("unicode-bidi",
     #[inline] pub fn get_initial_value() -> computed_value::T {
         computed_value::none
     }
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::empty()
+    }
     /// none | [ underline || overline || line-through || blink ]
     pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
         let mut result = SpecifiedValue::empty();
@@ -219,7 +223,8 @@ ${helpers.single_keyword("text-decoration-style",
 
 ${helpers.predefined_type(
     "text-decoration-color", "CSSColor",
-    "CSSParserColor::RGBA(RGBA::new(0, 0, 0, 255))",
+    "::cssparser::Color::CurrentColor",
+    initial_specified_value="specified::CSSColor::currentcolor()",
     complex_color=True,
     products="gecko",
     animatable=True,

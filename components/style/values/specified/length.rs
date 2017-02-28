@@ -344,6 +344,12 @@ impl NoCalcLength {
         *self == NoCalcLength::Absolute(Au(0))
     }
 
+    #[inline]
+    /// Returns a `medium` length.
+    pub fn medium() -> NoCalcLength {
+        NoCalcLength::Absolute(Au::from_px(FONT_MEDIUM_PX))
+    }
+
     /// Get an absolute length from a px value.
     #[inline]
     pub fn from_px(px_value: CSSFloat) -> NoCalcLength {

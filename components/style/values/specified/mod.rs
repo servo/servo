@@ -78,6 +78,27 @@ impl ToCss for CSSColor {
     }
 }
 
+impl CSSColor {
+    #[inline]
+    /// Returns currentcolor value.
+    pub fn currentcolor() -> CSSColor {
+        CSSColor {
+            parsed: cssparser::Color::CurrentColor,
+            authored: None,
+        }
+    }
+
+    #[inline]
+    /// Returns transparent value.
+    pub fn transparent() -> CSSColor {
+        CSSColor {
+            parsed: cssparser::Color::RGBA(cssparser::RGBA::transparent()),
+            // This should probably be "transparent", but maybe it doesn't matter.
+            authored: None,
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]

@@ -5,7 +5,7 @@
 <%! from data import Keyword, to_rust_ident, to_camel_case, LOGICAL_SIDES, PHYSICAL_SIDES, LOGICAL_SIZES %>
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse',
-            needs_context=True, vector=False, **kwargs)">
+            needs_context=True, vector=False, initial_specified_value=None, **kwargs)">
     <%def name="predefined_type_inner(name, type, initial_value, parse_method)">
         #[allow(unused_imports)]
         use app_units::Au;
@@ -15,6 +15,9 @@
             pub use values::computed::${type} as T;
         }
         #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
+        % if initial_specified_value:
+        #[inline] pub fn get_initial_specified_value() -> SpecifiedValue { ${initial_specified_value} }
+        % endif
         #[allow(unused_variables)]
         #[inline] pub fn parse(context: &ParserContext, input: &mut Parser)
                                -> Result<SpecifiedValue, ()> {
