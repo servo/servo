@@ -1309,6 +1309,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.page_zoom = ScaleFactor::new(1.0);
         self.update_zoom_transform();
         self.send_window_size(WindowSizeType::Resize);
+        self.update_page_zoom_for_webrender();
     }
 
     fn on_zoom_window_event(&mut self, magnification: f32) {
@@ -1316,6 +1317,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                           .max(MIN_ZOOM).min(MAX_ZOOM));
         self.update_zoom_transform();
         self.send_window_size(WindowSizeType::Resize);
+        self.update_page_zoom_for_webrender();
+    }
+
+    fn update_page_zoom_for_webrender(&mut self) {
+        let page_zoom = webrender_traits::PageZoomFactor::new(self.page_zoom.get());
+        self.webrender_api.set_page_zoom(page_zoom);
     }
 
     /// Simulate a pinch zoom
