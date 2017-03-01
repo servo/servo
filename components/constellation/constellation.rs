@@ -1092,7 +1092,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::TouchEventProcessed(result) => {
                 self.compositor_proxy.send(ToCompositorMsg::TouchEventProcessed(result))
             }
-
+            FromScriptMsg::GetFrameId(pipeline_id, sender) => {
+                let result = self.pipelines.get(&pipeline_id).map(|pipeline| pipeline.frame_id);
+                let _ = sender.send(result);
+            }
+            FromScriptMsg::GetParentInfo(pipeline_id, sender) => {
+                let result = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
+                let _ = sender.send(result);
+            }
             FromScriptMsg::RegisterServiceWorker(scope_things, scope) => {
                 debug!("constellation got store registration scope message");
                 self.handle_register_serviceworker(scope_things, scope);
