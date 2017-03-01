@@ -38,8 +38,8 @@
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             self.text_emphasis_style.to_css(dest)?;
             dest.write_str(" ")?;
             self.text_emphasis_color.to_css(dest)
@@ -86,8 +86,8 @@
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             self._webkit_text_stroke_width.to_css(dest)?;
             dest.write_str(" ")?;
             self._webkit_text_stroke_color.to_css(dest)

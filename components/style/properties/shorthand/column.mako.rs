@@ -49,8 +49,8 @@
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.column_width.to_css(dest));
             try!(write!(dest, " "));
 
@@ -96,8 +96,8 @@
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             self.column_rule_width.to_css(dest)?;
             dest.write_str(" ")?;
             self.column_rule_style.to_css(dest)?;

@@ -96,8 +96,8 @@
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             self.list_style_position.to_css(dest)?;
             dest.write_str(" ")?;
             self.list_style_image.to_css(dest)?;

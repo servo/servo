@@ -29,8 +29,8 @@ ${helpers.four_sides_shorthand("border-style", "border-%s-style",
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             % for side in ["top", "right", "bottom", "left"]:
                 let ${side} = self.border_${side}_width.clone();
             % endfor
@@ -108,8 +108,8 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             super::serialize_directional_border(
                 dest,
                 self.border_${to_rust_ident(side)}_width,
@@ -139,8 +139,8 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let all_equal = {
                 % for side in PHYSICAL_SIDES:
                   let border_${side}_width = self.border_${side}_width;
@@ -198,8 +198,8 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
     // TODO: I do not understand how border radius works with respect to the slashes /,
     // so putting a default generic impl for now
     // https://developer.mozilla.org/en-US/docs/Web/CSS/border-radius
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.border_top_left_radius.to_css(dest));
             try!(write!(dest, " "));
 
@@ -289,8 +289,8 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
          })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             self.border_image_source.to_css(dest)?;
             dest.write_str(" ")?;
             self.border_image_slice.to_css(dest)?;

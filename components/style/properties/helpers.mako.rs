@@ -554,15 +554,6 @@
             }
         }
 
-        impl<'a> ToCss for LonghandsToSerialize<'a> {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-                where W: fmt::Write,
-            {
-                self.to_css_declared(dest)
-            }
-        }
-
-
         /// Parse the given shorthand and fill the result into the
         /// `declarations` vector.
         pub fn parse(context: &ParserContext,
@@ -635,8 +626,8 @@
             })
         }
 
-        impl<'a> LonghandsToSerialize<'a> {
-            fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        impl<'a> ToCss for LonghandsToSerialize<'a> {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 super::serialize_four_sides(
                     dest,
                     self.${to_rust_ident(sub_property_pattern % 'top')},

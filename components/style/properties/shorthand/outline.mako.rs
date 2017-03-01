@@ -51,8 +51,8 @@
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.outline_width.to_css(dest));
             try!(write!(dest, " "));
             try!(self.outline_style.to_css(dest));
@@ -81,8 +81,8 @@
     }
 
     // TODO: Border radius for the radius shorthand is not implemented correctly yet
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self._moz_outline_radius_topleft.to_css(dest));
             try!(write!(dest, " "));
 

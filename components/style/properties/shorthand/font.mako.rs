@@ -95,8 +95,8 @@
     }
 
     // This may be a bit off, unsure, possibly needs changes
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             self.font_style.to_css(dest)?;
             dest.write_str(" ")?;
             self.font_variant.to_css(dest)?;

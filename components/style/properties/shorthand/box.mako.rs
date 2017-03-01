@@ -16,8 +16,8 @@
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if *self.overflow_x == self.overflow_y.0 {
                 self.overflow_x.to_css(dest)
             } else {
@@ -115,8 +115,8 @@ macro_rules! try_parse_one {
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let len = self.transition_property.0.len();
             // There should be at least one declared value
             if len == 0 {
@@ -257,8 +257,8 @@ macro_rules! try_parse_one {
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let len = self.animation_name.0.len();
             // There should be at least one declared value
             if len == 0 {
@@ -307,10 +307,10 @@ macro_rules! try_parse_one {
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
         // Serializes into the single keyword value if both scroll-snap-type and scroll-snap-type-y are same.
         // Otherwise into an empty string. This is done to match Gecko's behaviour.
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             if self.scroll_snap_type_x == self.scroll_snap_type_y {
                 self.scroll_snap_type_x.to_css(dest)
             } else {
