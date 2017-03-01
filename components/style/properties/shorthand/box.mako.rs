@@ -116,6 +116,15 @@ macro_rules! try_parse_one {
             }
         }
 
+        % for name in "duration delay".split():
+            if ${name}s.is_empty() {
+                ${name}s.push(transition_${name}::single_value::get_initial_value());
+            }
+        % endfor
+        if timing_functions.is_empty() {
+            timing_functions.push(transition_timing_function::single_value::get_initial_specified_value());
+        }
+
         Ok(Longhands {
             transition_property: transition_property::SpecifiedValue(properties),
             transition_duration: transition_duration::SpecifiedValue(durations),
@@ -273,6 +282,15 @@ macro_rules! try_parse_one {
                 fill_modes.push(result.animation_fill_mode);
                 play_states.push(result.animation_play_state);
             }
+        }
+
+        % for name in "duration delay direction fill_mode iteration_count play_state".split():
+            if ${name}s.is_empty() {
+                ${name}s.push(animation_${name}::single_value::get_initial_value());
+            }
+        % endfor
+        if timing_functions.is_empty() {
+            timing_functions.push(animation_timing_function::single_value::get_initial_specified_value());
         }
 
         Ok(Longhands {
