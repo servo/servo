@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use parse_hosts::HostsFile;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::env;
@@ -32,7 +33,7 @@ fn create_host_table() -> Option<HashMap<String, IpAddr>> {
         Err(_) => return None,
     };
 
-    return Some(parse_hostsfile(&lines));
+    Some(parse_hostsfile(&lines))
 }
 
 pub fn replace_host_table(table: HashMap<String, IpAddr>) {
@@ -41,19 +42,17 @@ pub fn replace_host_table(table: HashMap<String, IpAddr>) {
 
 pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
     let mut host_table = HashMap::new();
-    for line in hostsfile_content.split('\n') {
-        let mut ip_host = line.trim().split(|c: char| c == ' ' || c == '\t');
-        if let Some(ip) = ip_host.next() {
-            if let Ok(address) = ip.parse::<IpAddr>() {
-                for token in ip_host {
-                    if token.as_bytes()[0] == b'#' {
-                        break;
-                    }
-                    host_table.insert((*token).to_owned(), address);
+
+    for line in HostsFile::read_buffered(hostsfile_content.as_bytes()).lines() {
+        if let Ok(ref line) = line {
+            for host in line.hosts() {
+                if let Some(ip) = line.ip() {
+                    host_table.insert(host.to_owned(), ip);
                 }
             }
         }
     }
+
     host_table
 }
 
