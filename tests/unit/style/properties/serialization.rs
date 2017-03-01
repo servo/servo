@@ -187,6 +187,72 @@ mod shorthand_serialization {
         }
 
         #[test]
+        fn different_longhands_should_serialize_to_long_form() {
+          let mut properties = Vec::new();
+
+          let solid = DeclaredValue::Value(BorderStyle::solid);
+
+          properties.push(PropertyDeclaration::BorderTopStyle(solid.clone()));
+          properties.push(PropertyDeclaration::BorderRightStyle(solid.clone()));
+          properties.push(PropertyDeclaration::BorderBottomStyle(solid.clone()));
+          properties.push(PropertyDeclaration::BorderLeftStyle(solid.clone()));
+
+          let px_30 = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(30f32)));
+          let px_10 = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(10f32)));
+
+          properties.push(PropertyDeclaration::BorderTopWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderRightWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderBottomWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderLeftWidth(px_10.clone()));
+
+          let blue = DeclaredValue::Value(CSSColor {
+              parsed: ComputedColor::RGBA(RGBA::new(0, 0, 255, 255)),
+              authored: None
+          });
+
+          properties.push(PropertyDeclaration::BorderTopColor(blue.clone()));
+          properties.push(PropertyDeclaration::BorderRightColor(blue.clone()));
+          properties.push(PropertyDeclaration::BorderBottomColor(blue.clone()));
+          properties.push(PropertyDeclaration::BorderLeftColor(blue.clone()));
+
+          let serialization = shorthand_properties_to_string(properties);
+          assert_eq!(serialization,
+          "border-style: solid; border-width: 30px 30px 30px 10px; border-color: rgb(0, 0, 255);");
+        }
+
+        #[test]
+        fn same_longhands_should_serialize_correctly() {
+          let mut properties = Vec::new();
+
+          let solid = DeclaredValue::Value(BorderStyle::solid);
+
+          properties.push(PropertyDeclaration::BorderTopStyle(solid.clone()));
+          properties.push(PropertyDeclaration::BorderRightStyle(solid.clone()));
+          properties.push(PropertyDeclaration::BorderBottomStyle(solid.clone()));
+          properties.push(PropertyDeclaration::BorderLeftStyle(solid.clone()));
+
+          let px_30 = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(30f32)));
+
+          properties.push(PropertyDeclaration::BorderTopWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderRightWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderBottomWidth(px_30.clone()));
+          properties.push(PropertyDeclaration::BorderLeftWidth(px_30.clone()));
+
+          let blue = DeclaredValue::Value(CSSColor {
+              parsed: ComputedColor::RGBA(RGBA::new(0, 0, 255, 255)),
+              authored: None
+          });
+
+          properties.push(PropertyDeclaration::BorderTopColor(blue.clone()));
+          properties.push(PropertyDeclaration::BorderRightColor(blue.clone()));
+          properties.push(PropertyDeclaration::BorderBottomColor(blue.clone()));
+          properties.push(PropertyDeclaration::BorderLeftColor(blue.clone()));
+
+          let serialization = shorthand_properties_to_string(properties);
+          assert_eq!(serialization, "border: 30px solid rgb(0, 0, 255);");
+        }
+
+        #[test]
         fn padding_should_serialize_correctly() {
             let mut properties = Vec::new();
 
