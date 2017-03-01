@@ -42,7 +42,7 @@ use dom::location::Location;
 use dom::mediaquerylist::{MediaQueryList, WeakMediaQueryListVec};
 use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
-use dom::node::{Node, NodeDamage, document_from_node, from_untrusted_node_address, window_from_node};
+use dom::node::{Node, NodeDamage, document_from_node, from_untrusted_node_address};
 use dom::performance::Performance;
 use dom::promise::Promise;
 use dom::screen::Screen;
@@ -631,31 +631,35 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
     fn GetParent(&self) -> Option<Root<BrowsingContext>> {
-        // Steps 1. and 2.
-        if self.maybe_browsing_context().map_or(true, |c| c.is_discarded()) {
+        // Steps 1-3.
+        let context = match self.maybe_browsing_context() {
+            Some(context) => context,
+            None => return None,
+        };
+        if context.is_discarded() {
             return None;
         }
-        match self.parent() {
-            // Step 4.
-            Some(parent) => Some(parent.Window()),
-            // Step 5.
-            None => Some(self.Window())
+        // Step 4.
+        if let Some(parent) = context.parent() {
+            return Some(Root::from_ref(parent));
         }
-     }
+        // Step 5.
+        Some(context)
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-top
     fn GetTop(&self) -> Option<Root<BrowsingContext>> {
-        // Steps 1. and 2.
-        if self.maybe_browsing_context().map_or(true, |c| c.is_discarded()) {
+        // Steps 1-3.
+        let context = match self.maybe_browsing_context() {
+            Some(context) => context,
+            None => return None,
+        };
+        if context.is_discarded() {
             return None;
         }
-        // Step 5.
-        let mut window = Root::from_ref(self);
-        while let Some(parent) = window.parent() {
-            window = parent;
-        }
-        Some(window.Window())
-     }
+        // Steps 4-5.
+        Some(Root::from_ref(context.top()))
+    }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/
     // NavigationTiming/Overview.html#sec-window.performance-attribute
@@ -1655,16 +1659,6 @@ impl Window {
             Some((_, FrameType::IFrame)) => false,
             _ => true,
         }
-    }
-
-    // https://html.spec.whatwg.org/multipage/#parent-browsing-context
-    pub fn parent(&self) -> Option<Root<Window>> {
-        if self.is_top_level() {
-            return None;
-        }
-
-        self.browsing_context().frame_element()
-            .map(|frame_element| window_from_node(frame_element))
     }
 
     /// Returns whether this window is mozbrowser.
