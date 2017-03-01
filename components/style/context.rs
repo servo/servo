@@ -17,7 +17,6 @@ use parking_lot::RwLock;
 use properties::ComputedValues;
 use selectors::matching::ElementSelectorFlags;
 use servo_config::opts;
-use servo_config_facade;
 use std::collections::HashMap;
 use std::env;
 use std::fmt;
@@ -172,7 +171,7 @@ lazy_static! {
 impl TraversalStatistics {
     /// Returns whether statistics dumping is enabled.
     pub fn should_dump() -> bool {
-        *DUMP_STYLE_STATISTICS || servo_config_facade.style_sharing_stats_enabled()
+        *DUMP_STYLE_STATISTICS || opts::get().style_sharing_stats
     }
 
     /// Computes the traversal time given the start time in seconds.
