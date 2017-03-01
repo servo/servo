@@ -3160,7 +3160,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.21.0"
-source = "git+https://github.com/servo/webrender#9565e58d2636108415009ba76690a5dff9019c52"
+source = "git+https://github.com/servo/webrender#040805f31650527311c0a0d58ccf9620b0f3eca9"
 dependencies = [
  "app_units 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "bincode 1.0.0-alpha2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -3188,7 +3188,7 @@ dependencies = [
 [[package]]
 name = "webrender_traits"
 version = "0.22.0"
-source = "git+https://github.com/servo/webrender#9565e58d2636108415009ba76690a5dff9019c52"
+source = "git+https://github.com/servo/webrender#040805f31650527311c0a0d58ccf9620b0f3eca9"
 dependencies = [
  "app_units 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
