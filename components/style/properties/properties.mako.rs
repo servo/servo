@@ -390,13 +390,19 @@ pub enum CSSWideKeyword {
     Unset,
 }
 
-impl ToCss for CSSWideKeyword {
-    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-        dest.write_str(match *self {
+impl CSSWideKeyword {
+    fn to_str(&self) -> &'static str {
+        match *self {
             CSSWideKeyword::Initial => "initial",
             CSSWideKeyword::Inherit => "inherit",
             CSSWideKeyword::Unset => "unset",
-        })
+        }
+    }
+}
+
+impl ToCss for CSSWideKeyword {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str(self.to_str())
     }
 }
 
@@ -545,7 +551,16 @@ impl ShorthandId {
            return None;
         }
 
-        if !declarations3.any(|d| d.with_variables()) {
+        // Check whether they are all the same CSS-wide keyword.
+        if let Some(keyword) = first_declaration.get_css_wide_keyword() {
+            if declarations2.all(|d| d.get_css_wide_keyword() == Some(keyword)) {
+                return Some(AppendableValue::Css(keyword.to_str()));
+            }
+            return None;
+        }
+
+        // Check whether all declarations can be serialized as part of shorthand.
+        if declarations3.all(|d| d.may_serialize_as_part_of_shorthand()) {
             return Some(AppendableValue::DeclarationsForShorthand(self, declarations));
         }
 
@@ -927,20 +942,44 @@ impl PropertyDeclaration {
         }
     }
 
-    /// Return whether this is a pending-substitution value.
-    /// https://drafts.csswg.org/css-variables/#variables-in-shorthands
-    pub fn with_variables(&self) -> bool {
+    /// Returns a CSS-wide keyword if the declaration's value is one.
+    pub fn get_css_wide_keyword(&self) -> Option<CSSWideKeyword> {
         match *self {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(ref value) => match *value {
-                    DeclaredValue::WithVariables(_) => true,
-                    _ => false,
+                    DeclaredValue::CSSWideKeyword(keyword) => Some(keyword),
+                    _ => None,
                 },
             % endfor
             PropertyDeclaration::Custom(_, ref value) => match *value {
-                DeclaredValue::WithVariables(_) => true,
-                _ => false,
+                DeclaredValue::CSSWideKeyword(keyword) => Some(keyword),
+                _ => None,
             }
+        }
+    }
+
+    /// Returns whether the declaration may be serialized as part of a shorthand.
+    ///
+    /// This method returns false if this declaration contains variable or has a
+    /// CSS-wide keyword value, since these values cannot be serialized as part
+    /// of a shorthand.
+    ///
+    /// Caller should check `with_variables_from_shorthand()` and whether all
+    /// needed declarations has the same CSS-wide keyword first.
+    ///
+    /// Note that, serialization of a shorthand may still fail because of other
+    /// property-specific requirement even when this method returns true for all
+    /// the longhand declarations.
+    pub fn may_serialize_as_part_of_shorthand(&self) -> bool {
+        match *self {
+            % for property in data.longhands:
+                PropertyDeclaration::${property.camel_case}(ref value) => match *value {
+                    DeclaredValue::Value(_) => true,
+                    _ => false,
+                },
+            % endfor
+            PropertyDeclaration::Custom(..) =>
+                unreachable!("Serialize a custom property as part of shorthand?"),
         }
     }
 
