@@ -40,19 +40,9 @@
 
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut style_present = false;
-            if let DeclaredValue::Value(ref value) = *self.text_emphasis_style {
-                style_present = true;
-                try!(value.to_css(dest));
-            }
-
-            if let DeclaredValue::Value(ref color) = *self.text_emphasis_color {
-                if style_present {
-                    try!(write!(dest, " "));
-                }
-                try!(color.to_css(dest));
-            }
-            Ok(())
+            self.text_emphasis_style.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.text_emphasis_color.to_css(dest)
         }
     }
 </%helpers:shorthand>
@@ -98,20 +88,9 @@
 
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut style_present = false;
-            if let DeclaredValue::Value(ref width) = *self._webkit_text_stroke_width {
-                style_present = true;
-                try!(width.to_css(dest));
-            }
-
-            if let DeclaredValue::Value(ref color) = *self._webkit_text_stroke_color {
-                if style_present {
-                    try!(write!(dest, " "));
-                }
-                try!(color.to_css(dest));
-            }
-
-            Ok(())
+            self._webkit_text_stroke_width.to_css(dest)?;
+            dest.write_str(" ")?;
+            self._webkit_text_stroke_color.to_css(dest)
         }
     }
 </%helpers:shorthand>

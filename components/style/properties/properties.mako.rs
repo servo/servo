@@ -102,14 +102,6 @@ pub mod shorthands {
     use parser::{Parse, ParserContext};
     use values::specified;
 
-    bitflags! {
-        flags SerializeFlags: u8 {
-            const ALL_INHERIT = 0b001,
-            const ALL_INITIAL = 0b010,
-            const ALL_UNSET   = 0b100,
-        }
-    }
-
     /// Parses a property for four different sides per CSS syntax.
     ///
     ///  * Zero or more than four values is invalid.

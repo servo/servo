@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::Color;
-use properties::DeclaredValue;
 use style_traits::ToCss;
 use values::specified::{BorderStyle, CSSColor};
 use std::fmt;
@@ -60,35 +59,16 @@ pub fn serialize_four_sides<W, I>(dest: &mut W,
 }
 
 fn serialize_directional_border<W, I,>(dest: &mut W,
-                                                width: &DeclaredValue<I>,
-                                                style: &DeclaredValue<BorderStyle>,
-                                                color: &DeclaredValue<CSSColor>)
-                                                -> fmt::Result where W: fmt::Write, I: ToCss {
-    match *width {
-        DeclaredValue::Value(ref width) => {
-            try!(width.to_css(dest));
-        },
-        _ => {
-            try!(write!(dest, "medium"));
-        }
-    };
-
-    try!(write!(dest, " "));
-
-    match *style {
-        DeclaredValue::Value(ref style) => {
-            try!(style.to_css(dest));
-        },
-        _ => {
-            try!(write!(dest, "none"));
-        }
-    };
-
-    match *color {
-        DeclaredValue::Value(ref color) if color.parsed != Color::CurrentColor => {
-            try!(write!(dest, " "));
-            color.to_css(dest)
-        },
-        _ => Ok(())
+                                       width: &I,
+                                       style: &BorderStyle,
+                                       color: &CSSColor)
+    -> fmt::Result where W: fmt::Write, I: ToCss {
+    width.to_css(dest)?;
+    dest.write_str(" ")?;
+    style.to_css(dest)?;
+    if color.parsed != Color::CurrentColor {
+        dest.write_str(" ")?;
+        color.to_css(dest)?;
     }
+    Ok(())
 }

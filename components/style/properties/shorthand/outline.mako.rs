@@ -55,20 +55,9 @@
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.outline_width.to_css(dest));
             try!(write!(dest, " "));
-
-            match *self.outline_style {
-                DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial) =>
-                    try!(write!(dest, "none")),
-                _ => try!(self.outline_style.to_css(dest))
-            };
-
-            match *self.outline_color {
-                DeclaredValue::CSSWideKeyword(CSSWideKeyword::Initial) => Ok(()),
-                _ => {
-                    try!(write!(dest, " "));
-                    self.outline_color.to_css(dest)
-                }
-            }
+            try!(self.outline_style.to_css(dest));
+            try!(write!(dest, " "));
+            self.outline_color.to_css(dest)
         }
     }
 </%helpers:shorthand>

@@ -22,16 +22,11 @@
 
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if let DeclaredValue::Value(ref start) = *self.marker_start {
-                if let DeclaredValue::Value(ref mid) = *self.marker_mid {
-                    if let DeclaredValue::Value(ref end) = *self.marker_end {
-                        if start == mid && mid == end {
-                            start.to_css(dest)?;
-                        }
-                    }
-                }
+            if self.marker_start == self.marker_mid && self.marker_mid == self.marker_end {
+                self.marker_start.to_css(dest)
+            } else {
+                Ok(())
             }
-            Ok(())
         }
     }
 </%helpers:shorthand>

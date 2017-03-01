@@ -70,7 +70,7 @@
             pub mod single_value {
                 use cssparser::Parser;
                 use parser::{Parse, ParserContext, ParserContextExtraData};
-                use properties::{CSSWideKeyword, DeclaredValue, ShorthandId};
+                use properties::{DeclaredValue, ShorthandId};
                 use values::computed::{Context, ToComputedValue};
                 use values::{computed, specified};
                 use values::{Auto, Either, None_, Normal};
@@ -210,14 +210,14 @@
         % if not property.derived_from:
             use cssparser::Parser;
             use parser::{Parse, ParserContext, ParserContextExtraData};
-            use properties::{CSSWideKeyword, DeclaredValue, UnparsedValue, ShorthandId};
+            use properties::{DeclaredValue, UnparsedValue, ShorthandId};
         % endif
         use values::{Auto, Either, None_, Normal};
         use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
         use properties::longhands;
         use properties::LonghandIdSet;
-        use properties::{ComputedValues, PropertyDeclaration};
+        use properties::{CSSWideKeyword, ComputedValues, PropertyDeclaration};
         use properties::style_structs;
         use std::boxed::Box as StdBox;
         use std::collections::HashMap;
@@ -483,12 +483,11 @@
         #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{CSSWideKeyword, DeclaredValue, PropertyDeclaration};
+        use properties::{DeclaredValue, PropertyDeclaration};
         use properties::{ShorthandId, UnparsedValue, longhands};
         use properties::declaration_block::Importance;
         use std::fmt;
         use style_traits::ToCss;
-        use super::{SerializeFlags, ALL_INHERIT, ALL_INITIAL, ALL_UNSET};
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
@@ -502,10 +501,10 @@
             % for sub_property in shorthand.sub_properties:
                 % if sub_property.boxed:
                     pub ${sub_property.ident}:
-                        &'a DeclaredValue<Box<longhands::${sub_property.ident}::SpecifiedValue>>,
+                        &'a Box<longhands::${sub_property.ident}::SpecifiedValue>,
                 % else:
                     pub ${sub_property.ident}:
-                        &'a DeclaredValue<longhands::${sub_property.ident}::SpecifiedValue>,
+                        &'a longhands::${sub_property.ident}::SpecifiedValue,
                 % endif
             % endfor
         }
@@ -525,7 +524,7 @@
                 for longhand in iter {
                     match *longhand {
                         % for sub_property in shorthand.sub_properties:
-                            PropertyDeclaration::${sub_property.camel_case}(ref value) => {
+                            PropertyDeclaration::${sub_property.camel_case}(DeclaredValue::Value(ref value)) => {
                                 ${sub_property.ident} = Some(value)
                             },
                         % endfor
@@ -559,34 +558,7 @@
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result
                 where W: fmt::Write,
             {
-                let mut all_flags = SerializeFlags::all();
-                let mut with_variables = false;
-                % for sub_property in shorthand.sub_properties:
-                    match *self.${sub_property.ident} {
-                        DeclaredValue::CSSWideKeyword(keyword) => match keyword {
-                            CSSWideKeyword::Initial => all_flags &= ALL_INITIAL,
-                            CSSWideKeyword::Inherit => all_flags &= ALL_INHERIT,
-                            CSSWideKeyword::Unset => all_flags &= ALL_UNSET,
-                        },
-                        DeclaredValue::WithVariables(_) => with_variables = true,
-                        DeclaredValue::Value(..) => {
-                            all_flags = SerializeFlags::empty();
-                        }
-                    }
-                % endfor
-
-                if with_variables {
-                    // We don't serialize shorthands with variables
-                    dest.write_str("")
-                } else if all_flags == ALL_INHERIT {
-                    dest.write_str("inherit")
-                } else if all_flags == ALL_INITIAL {
-                    dest.write_str("initial")
-                } else if all_flags == ALL_UNSET {
-                    dest.write_str("unset")
-                } else {
-                    self.to_css_declared(dest)
-                }
+                self.to_css_declared(dest)
             }
         }
 

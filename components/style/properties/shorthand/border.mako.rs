@@ -291,53 +291,15 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
     impl<'a> LonghandsToSerialize<'a>  {
         fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            % for name in "outset repeat slice source width".split():
-                let ${name} = if let DeclaredValue::Value(ref value) = *self.border_image_${name} {
-                    Some(value)
-                } else {
-                    None
-                };
-            % endfor
-
-            if let Some(source) = source {
-                try!(source.to_css(dest));
-            } else {
-                try!(write!(dest, "none"));
-            }
-
-            try!(write!(dest, " "));
-
-            if let Some(slice) = slice {
-                try!(slice.to_css(dest));
-            } else {
-                try!(write!(dest, "100%"));
-            }
-
-            try!(write!(dest, " / "));
-
-            if let Some(width) = width {
-                try!(width.to_css(dest));
-            } else {
-                try!(write!(dest, "1"));
-            }
-
-            try!(write!(dest, " / "));
-
-            if let Some(outset) = outset {
-                try!(outset.to_css(dest));
-            } else {
-                try!(write!(dest, "0"));
-            }
-
-            try!(write!(dest, " "));
-
-            if let Some(repeat) = repeat {
-                try!(repeat.to_css(dest));
-            } else {
-                try!(write!(dest, "stretch"));
-            }
-
-            Ok(())
+            self.border_image_source.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.border_image_slice.to_css(dest)?;
+            dest.write_str(" / ")?;
+            self.border_image_width.to_css(dest)?;
+            dest.write_str(" / ")?;
+            self.border_image_outset.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.border_image_repeat.to_css(dest)
         }
     }
 </%helpers:shorthand>
