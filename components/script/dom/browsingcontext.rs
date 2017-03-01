@@ -63,25 +63,35 @@ pub struct BrowsingContext {
 
     /// The containing iframe element, if this is a same-origin iframe
     frame_element: Option<JS<Element>>,
+
+    /// The parent browsing context, if this is a nested browsing context
+    parent: Option<JS<BrowsingContext>>,
 }
 
 impl BrowsingContext {
     pub fn new_inherited(frame_id: FrameId,
-                         currently_active: PipelineId,
-                         frame_element: Option<&Element>)
+                         currently_active: Option<PipelineId>,
+                         frame_element: Option<&Element>,
+                         parent: Option<&BrowsingContext>)
                          -> BrowsingContext
     {
         BrowsingContext {
             reflector: Reflector::new(),
             frame_id: frame_id,
-            currently_active: Cell::new(Some(currently_active)),
+            currently_active: Cell::new(currently_active),
             discarded: Cell::new(false),
             frame_element: frame_element.map(JS::from_ref),
+            parent: parent.map(JS::from_ref),
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn new(window: &Window, frame_id: FrameId, frame_element: Option<&Element>) -> Root<BrowsingContext> {
+    pub fn new(window: &Window,
+               frame_id: FrameId,
+               frame_element: Option<&Element>,
+               parent: Option<&BrowsingContext>)
+               -> Root<BrowsingContext>
+    {
         unsafe {
             let WindowProxyHandler(handler) = window.windowproxy_handler();
             assert!(!handler.is_null());
@@ -97,8 +107,48 @@ impl BrowsingContext {
             assert!(!window_proxy.is_null());
 
             // Create a new browsing context.
-            let currently_active = window.global().pipeline_id();
-            let mut browsing_context = box BrowsingContext::new_inherited(frame_id, currently_active, frame_element);
+            let current = Some(window.global().pipeline_id());
+            let mut browsing_context = box BrowsingContext::new_inherited(frame_id, current, frame_element, parent);
+
+            // The window proxy owns the browsing context.
+            // When we finalize the window proxy, it drops the browsing context it owns.
+            SetProxyExtra(window_proxy.get(), 0, &PrivateValue(&*browsing_context as *const _ as *const _));
+
+            // Notify the JS engine about the new window proxy binding.
+            SetWindowProxy(cx, window_jsobject, window_proxy.handle());
+
+            // Set the reflector.
+            debug!("Initializing reflector of {:p} to {:p}.", browsing_context, window_proxy.get());
+            browsing_context.reflector.set_jsobject(window_proxy.get());
+            Root::from_ref(&*Box::into_raw(browsing_context))
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn new_dissimilar_origin(global_to_clone_from: &GlobalScope,
+                                 frame_id: FrameId,
+                                 parent: Option<&BrowsingContext>)
+                                 -> Root<BrowsingContext>
+    {
+        unsafe {
+            let handler = CreateWrapperProxyHandler(&XORIGIN_PROXY_HANDLER);
+            assert!(!handler.is_null());
+
+            let cx = global_to_clone_from.get_cx();
+
+            // Create a new browsing context.
+            let mut browsing_context = box BrowsingContext::new_inherited(frame_id, None, None, parent);
+
+            // Create a new dissimilar-origin window.
+            let window = DissimilarOriginWindow::new(global_to_clone_from, &*browsing_context);
+            let window_jsobject = window.reflector().get_jsobject();
+            assert!(!window_jsobject.get().is_null());
+            assert!(((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL) != 0);
+            let _ac = JSAutoCompartment::new(cx, window_jsobject.get());
+
+            // Create a new window proxy.
+            rooted!(in(cx) let window_proxy = NewWindowProxy(cx, window_jsobject, handler));
+            assert!(!window_proxy.is_null());
 
             // The window proxy owns the browsing context.
             // When we finalize the window proxy, it drops the browsing context it owns.
@@ -128,6 +178,18 @@ impl BrowsingContext {
 
     pub fn frame_element(&self) -> Option<&Element> {
         self.frame_element.r()
+    }
+
+    pub fn parent(&self) -> Option<&BrowsingContext> {
+        self.parent.r()
+    }
+
+    pub fn top(&self) -> &BrowsingContext {
+        let mut result = self;
+        while let Some(parent) = result.parent() {
+            result = parent;
+        }
+        result
     }
 
     #[allow(unsafe_code)]
@@ -181,7 +243,8 @@ impl BrowsingContext {
     }
 
     pub fn unset_currently_active(&self) {
-        let window = DissimilarOriginWindow::new(self);
+        let globalscope = self.global();
+        let window = DissimilarOriginWindow::new(&*globalscope, self);
         self.set_window_proxy(&*window.upcast(), &XORIGIN_PROXY_HANDLER);
         self.currently_active.set(None);
     }
