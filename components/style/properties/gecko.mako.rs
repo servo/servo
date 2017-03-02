@@ -1342,6 +1342,24 @@ fn static_assert() {
     ${impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)}
 </%def>
 
+<%def name="impl_animation_or_transition_timing_function(type)">
+    pub fn set_${type}_timing_function(&mut self, v: longhands::${type}_timing_function::computed_value::T) {
+        debug_assert!(!v.0.is_empty());
+        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(v.0.len()) };
+
+        self.gecko.m${type.capitalize()}TimingFunctionCount = v.0.len() as u32;
+        for (servo, gecko) in v.0.into_iter().zip(self.gecko.m${type.capitalize()}s.iter_mut()) {
+            gecko.mTimingFunction = servo.into();
+        }
+    }
+    ${impl_animation_or_transition_count(type, 'timing_function', 'TimingFunction')}
+    ${impl_copy_animation_or_transition_value(type, 'timing_function', 'TimingFunction')}
+    pub fn ${type}_timing_function_at(&self, index: usize)
+        -> longhands::${type}_timing_function::computed_value::SingleComputedValue {
+        self.gecko.m${type.capitalize()}s[index].mTimingFunction.into()
+    }
+</%def>
+
 <%def name="impl_transition_time_value(ident, gecko_ffi_name)">
     ${impl_animation_or_transition_time_value('transition', ident, gecko_ffi_name)}
 </%def>
@@ -1356,6 +1374,10 @@ fn static_assert() {
 
 <%def name="impl_animation_time_value(ident, gecko_ffi_name)">
     ${impl_animation_or_transition_time_value('animation', ident, gecko_ffi_name)}
+</%def>
+
+<%def name="impl_animation_timing_function()">
+    ${impl_animation_or_transition_timing_function('animation')}
 </%def>
 
 <%def name="impl_animation_keyword(ident, gecko_ffi_name, keyword, cast_type='u8')">
@@ -1817,21 +1839,7 @@ fn static_assert() {
     ${impl_animation_count('iteration_count', 'IterationCount')}
     ${impl_copy_animation_value('iteration_count', 'IterationCount')}
 
-    pub fn set_animation_timing_function(&mut self, v: longhands::animation_timing_function::computed_value::T) {
-        debug_assert!(!v.0.is_empty());
-        unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
-
-        self.gecko.mAnimationTimingFunctionCount = v.0.len() as u32;
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
-            gecko.mTimingFunction = servo.into();
-        }
-    }
-    ${impl_animation_count('timing_function', 'TimingFunction')}
-    ${impl_copy_animation_value('timing_function', 'TimingFunction')}
-    pub fn animation_timing_function_at(&self, index: usize)
-        -> longhands::animation_timing_function::computed_value::SingleComputedValue {
-        self.gecko.mAnimations[index].mTimingFunction.into()
-    }
+    ${impl_animation_timing_function()}
 
     <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "none mandatory proximity") %>
 
