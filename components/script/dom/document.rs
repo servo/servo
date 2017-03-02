@@ -2458,19 +2458,19 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
-    fn GetDomain(&self) -> Fallible<DOMString> {
+    fn Domain(&self) -> DOMString {
         // Step 1.
         if !self.has_browsing_context {
-            return Ok(DOMString::new());
+            return DOMString::new();
         }
 
         // Step 2.
         match self.origin.effective_domain() {
             // Step 3.
-            None => Ok(DOMString::new()),
+            None => DOMString::new(),
             // Step 4.
-            Some(Host::Domain(domain)) => Ok(DOMString::from(domain)),
-            Some(host) => Ok(DOMString::from(host.to_string())),
+            Some(Host::Domain(domain)) => DOMString::from(domain),
+            Some(host) => DOMString::from(host.to_string()),
         }
     }
 
