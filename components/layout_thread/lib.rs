@@ -496,7 +496,6 @@ impl LayoutThread {
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context(&self,
                             rw_data: &LayoutThreadData,
-                            screen_size_changed: bool,
                             goal: ReflowGoal,
                             request_images: bool)
                             -> LayoutContext {
@@ -506,7 +505,6 @@ impl LayoutThread {
         LayoutContext {
             style_context: SharedStyleContext {
                 viewport_size: self.viewport_size.clone(),
-                screen_size_changed: screen_size_changed,
                 stylist: rw_data.stylist.clone(),
                 goal: goal,
                 running_animations: self.running_animations.clone(),
@@ -1120,7 +1118,6 @@ impl LayoutThread {
 
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(&*rw_data,
-                                                           viewport_size_changed,
                                                            data.reflow_info.goal,
                                                            true);
 
@@ -1351,7 +1348,6 @@ impl LayoutThread {
         };
 
         let mut layout_context = self.build_layout_context(&*rw_data,
-                                                           false,
                                                            reflow_info.goal,
                                                            false);
 
@@ -1387,7 +1383,6 @@ impl LayoutThread {
         };
 
         let mut layout_context = self.build_layout_context(&*rw_data,
-                                                           false,
                                                            reflow_info.goal,
                                                            false);
 
