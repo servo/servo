@@ -35,13 +35,13 @@ serde_derive = "0.9"
 serde_json = "0.9"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
+servo-websocket = "0.18"
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
 url = {version = "1.2", features = ["heap_size"]}
 uuid = {version = "0.4", features = ["v4"]}
 webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
-websocket = "0.17"
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"
