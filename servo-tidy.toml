@@ -21,10 +21,10 @@ rand = [
   "phf_generator",
   "rayon",
   "servo_rand",
+  "servo-websocket",
   "tempdir",
   "tempfile",
   "uuid",
-  "websocket",
   "ws",
 ]
 num = []
