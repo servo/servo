@@ -1811,6 +1811,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowQueryType::HitTestQuery(..) => "\tHitTestQuery",
+        ReflowQueryType::NodesFromPoint(..) => "\tNodesFromPoint",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowQueryType::NodeOverflowQuery(_n) => "\tNodeOverFlowQuery",
         ReflowQueryType::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",

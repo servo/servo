@@ -12598,6 +12598,12 @@
      {}
     ]
    ],
+   "mozilla/document_elementsFromPoint.html": [
+    [
+     "/_mozilla/mozilla/document_elementsFromPoint.html",
+     {}
+    ]
+   ],
    "mozilla/document_getElementById.html": [
     [
      "/_mozilla/mozilla/document_getElementById.html",
@@ -25135,6 +25141,10 @@
   ],
   "mozilla/document_defaultView.html": [
    "12eef74e9ba1a62b0302df79633cab5c48f4977f",
+   "testharness"
+  ],
+  "mozilla/document_elementsFromPoint.html": [
+   "00da2141b1143619351c6fbb66d677ca9002a4a8",
    "testharness"
   ],
   "mozilla/document_getElementById.html": [

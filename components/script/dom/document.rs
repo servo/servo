@@ -1877,7 +1877,13 @@ impl Document {
             Point2D::new(client_point.x + self.window.PageXOffset() as f32,
                          client_point.y + self.window.PageYOffset() as f32);
 
-        self.window.layout().nodes_from_point(page_point, *client_point)
+        if !self.window.reflow(ReflowGoal::ForScriptQuery,
+                               ReflowQueryType::NodesFromPoint(page_point, *client_point),
+                               ReflowReason::Query) {
+            return vec!();
+        };
+
+        self.window.layout().nodes_from_point_response()
     }
 }
 
