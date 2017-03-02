@@ -620,9 +620,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # but we haven't implemented the stylo glue for the longhand
     # so we generate a stub
     force_stub += ["flex-basis", # position
-
-                   # transition
-                   "transition-property",
                    ]
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
@@ -1363,6 +1360,10 @@ fn static_assert() {
     ${impl_animation_or_transition_time_value('transition', ident, gecko_ffi_name)}
 </%def>
 
+<%def name="impl_transition_count(ident, gecko_ffi_name)">
+    ${impl_animation_or_transition_count('transition', ident, gecko_ffi_name)}
+</%def>
+
 <%def name="impl_copy_animation_value(ident, gecko_ffi_name)">
     ${impl_copy_animation_or_transition_value('animation', ident, gecko_ffi_name)}
 </%def>
@@ -1424,7 +1425,7 @@ fn static_assert() {
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
                           transition-duration transition-delay
-                          transition-timing-function
+                          transition-timing-function transition-property
                           page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
@@ -1771,6 +1772,38 @@ fn static_assert() {
     ${impl_transition_time_value('delay', 'Delay')}
     ${impl_transition_time_value('duration', 'Duration')}
     ${impl_transition_timing_function()}
+
+    pub fn set_transition_property(&mut self, v: longhands::transition_property::computed_value::T) {
+        use gecko_bindings::structs::nsCSSPropertyID_eCSSPropertyExtra_no_properties;
+
+        if !v.0.is_empty() {
+            unsafe { self.gecko.mTransitions.ensure_len(v.0.len()) };
+            self.gecko.mTransitionPropertyCount = v.0.len() as u32;
+            for (servo, gecko) in v.0.into_iter().zip(self.gecko.mTransitions.iter_mut()) {
+                gecko.mProperty = servo.into();
+            }
+        } else {
+            // In gecko |none| is represented by eCSSPropertyExtra_no_properties.
+            self.gecko.mTransitionPropertyCount = 1;
+            self.gecko.mTransitions[0].mProperty = nsCSSPropertyID_eCSSPropertyExtra_no_properties;
+        }
+    }
+    pub fn transition_property_at(&self, index: usize)
+        -> longhands::transition_property::computed_value::SingleComputedValue {
+        self.gecko.mTransitions[index].mProperty.into()
+    }
+
+    pub fn copy_transition_property_from(&mut self, other: &Self) {
+        unsafe { self.gecko.mTransitions.ensure_len(other.gecko.mTransitions.len()) };
+
+        let count = other.gecko.mTransitionPropertyCount;
+        self.gecko.mTransitionPropertyCount = count;
+
+        for (index, transition) in self.gecko.mTransitions.iter_mut().enumerate().take(count as usize) {
+            transition.mProperty = other.gecko.mTransitions[index].mProperty;
+        }
+    }
+    ${impl_transition_count('property', 'Property')}
 
     pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
         use nsstring::nsCString;

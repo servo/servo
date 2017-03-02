@@ -127,6 +127,24 @@ impl From<TransitionProperty> for nsCSSPropertyID {
     }
 }
 
+/// Convert nsCSSPropertyID to TransitionProperty
+#[cfg(feature = "gecko")]
+#[allow(non_upper_case_globals)]
+impl From<nsCSSPropertyID> for TransitionProperty {
+    fn from(property: nsCSSPropertyID) -> TransitionProperty {
+        match property {
+            % for prop in data.longhands:
+                % if prop.animatable:
+                    ${helpers.to_nscsspropertyid(prop.ident)}
+                        => TransitionProperty::${prop.camel_case},
+                % endif
+            % endfor
+            nsCSSPropertyID::eCSSPropertyExtra_all_properties => TransitionProperty::All,
+            _ => panic!("Unsupported Servo transition property: {:?}", property),
+        }
+    }
+}
+
 /// Convert to PropertyDeclarationId.
 #[cfg(feature = "gecko")]
 #[allow(non_upper_case_globals)]
