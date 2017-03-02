@@ -1973,3 +1973,67 @@ ${helpers.single_keyword("-moz-orient",
                           gecko_enum_prefix="StyleOrient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
                           animatable=False)}
+
+<%helpers:longhand name="will-change" products="none" animatable="False"
+                   spec="https://drafts.csswg.org/css-will-change/#will-change">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Auto,
+        AnimateableFeatures(Vec<Atom>),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Auto => dest.write_str("auto"),
+                SpecifiedValue::AnimateableFeatures(ref features) => {
+                    let (first, rest) = features.split_first().unwrap();
+                    // handle head element
+                    dest.write_str(&*first.to_string())?;
+                    // handle tail, precede each with a delimiter
+                    for feature in rest {
+                        dest.write_str(", ")?;
+                        dest.write_str(&*feature.to_string())?
+                    }
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Auto
+    }
+
+    /// auto | <animateable-feature>#
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+            Ok(computed_value::T::Auto)
+        } else {
+            input.parse_comma_separated(|i| {
+                let ident = i.expect_ident()?;
+                match_ignore_ascii_case! { &ident,
+                    "will-change" | "none" | "all" | "auto" |
+                    "initial" | "inherit" | "unset" | "default" => Err(()),
+                    _  => {
+                        Ok((Atom::from(ident.clone())))
+                    }
+                }
+            }).map(SpecifiedValue::AnimateableFeatures)
+        }
+    }
+</%helpers:longhand>
