@@ -345,16 +345,16 @@ impl Window {
                     self.pending_key_event_char.set(Some(ch));
                 }
             }
-            Event::KeyboardInput(element_state, scan_code, Some(virtual_key_code)) => {
+            Event::KeyboardInput(element_state, scan_code, virtual_key_code) => {
                 match virtual_key_code {
-                    VirtualKeyCode::LControl => self.toggle_modifier(LEFT_CONTROL),
-                    VirtualKeyCode::RControl => self.toggle_modifier(RIGHT_CONTROL),
-                    VirtualKeyCode::LShift => self.toggle_modifier(LEFT_SHIFT),
-                    VirtualKeyCode::RShift => self.toggle_modifier(RIGHT_SHIFT),
-                    VirtualKeyCode::LAlt => self.toggle_modifier(LEFT_ALT),
-                    VirtualKeyCode::RAlt => self.toggle_modifier(RIGHT_ALT),
-                    VirtualKeyCode::LWin => self.toggle_modifier(LEFT_SUPER),
-                    VirtualKeyCode::RWin => self.toggle_modifier(RIGHT_SUPER),
+                    Some(VirtualKeyCode::LControl) => self.toggle_modifier(LEFT_CONTROL),
+                    Some(VirtualKeyCode::RControl) => self.toggle_modifier(RIGHT_CONTROL),
+                    Some(VirtualKeyCode::LShift) => self.toggle_modifier(LEFT_SHIFT),
+                    Some(VirtualKeyCode::RShift) => self.toggle_modifier(RIGHT_SHIFT),
+                    Some(VirtualKeyCode::LAlt) => self.toggle_modifier(LEFT_ALT),
+                    Some(VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
+                    Some(VirtualKeyCode::LWin) => self.toggle_modifier(LEFT_SUPER),
+                    Some(VirtualKeyCode::RWin) => self.toggle_modifier(RIGHT_SUPER),
                     _ => {}
                 }
 
@@ -384,17 +384,17 @@ impl Window {
                     }
                 };
 
-                if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
-                    let state = match element_state {
-                        ElementState::Pressed => KeyState::Pressed,
-                        ElementState::Released => KeyState::Released,
-                    };
-                    let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                    self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
-                }
-            }
-            Event::KeyboardInput(_, _, None) => {
-                debug!("Keyboard input without virtual key.");
+                let key = match virtual_key_code {
+                    Some(v) => Window::glutin_key_to_script_key(v).unwrap(),
+                    None => Key::Unidentified,
+                };
+                let state = match element_state {
+                    ElementState::Pressed => KeyState::Pressed,
+                    ElementState::Released => KeyState::Released,
+                };
+                let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+                self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
+
             }
             Event::Resized(width, height) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Resize(TypedSize2D::new(width, height)));
@@ -724,7 +724,7 @@ impl Window {
 
             VirtualKeyCode::NavigateBackward => Ok(Key::NavigateBackward),
             VirtualKeyCode::NavigateForward => Ok(Key::NavigateForward),
-            _ => Err(()),
+            _ => Ok(Key::Unidentified)
         }
     }
 
@@ -1147,9 +1147,9 @@ fn glutin_pressure_stage_to_touchpad_pressure_phase(stage: i64) -> TouchpadPress
     }
 }
 
-fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
+fn filter_nonprintable(ch: char, key_code: Option<VirtualKeyCode>) -> Option<char> {
     use glutin::VirtualKeyCode::*;
-    match key_code {
+    match key_code.unwrap_or(A) {
         Escape |
         F1 |
         F2 |

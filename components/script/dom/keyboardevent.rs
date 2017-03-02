@@ -336,6 +336,7 @@ pub fn key_value(ch: Option<char>, key: Key, mods: KeyModifiers) -> Cow<'static,
         Key::Menu => "ContextMenu",
         Key::NavigateForward => "BrowserForward",
         Key::NavigateBackward => "BrowserBack",
+        Key::Unidentified => "Unidentified",
     })
 }
 
@@ -636,6 +637,7 @@ fn code_value(key: Key) -> &'static str {
 
         Key::NavigateForward => "BrowserForward",
         Key::NavigateBackward => "BrowserBackward",
+        Key::Unidentified => "Unidentified",
     }
 }
 
