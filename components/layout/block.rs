@@ -31,7 +31,7 @@ use app_units::{Au, MAX_AU};
 use context::LayoutContext;
 use display_list_builder::{BorderPaintingMode, DisplayListBuildState, FragmentDisplayListBuilding};
 use display_list_builder::BlockFlowDisplayListBuilding;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
@@ -1811,6 +1811,7 @@ impl BlockFlow {
         }
         let transform = match self.fragment
                                   .transform_matrix(&stacking_relative_border_box)
+                                  .unwrap_or(Matrix4D::identity())
                                   .inverse() {
             Some(transform) => transform,
             None => {
