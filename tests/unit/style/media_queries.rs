@@ -18,11 +18,16 @@ use style_traits::ToCss;
 pub struct CSSErrorReporterTest;
 
 impl ParseErrorReporter for CSSErrorReporterTest {
-     fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str) {
-     }
+    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
+        servo_url: Option<&ServoUrl>) {
+            let css_url = servo_url.unwrap().clone();
+            let location = input.source_location(position);
+        }
+
      fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
         Box::new(CSSErrorReporterTest)
      }
+
 }
 
 fn test_media_rule<F>(css: &str, callback: F)
@@ -30,9 +35,10 @@ fn test_media_rule<F>(css: &str, callback: F)
 {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let css_str = css.to_owned();
+    let error_reporter = Box::new(CSSErrorReporterTest);
     let stylesheet = Stylesheet::from_str(
-        css, url, Origin::Author, Default::default(),
-        None, Box::new(CSSErrorReporterTest),
+        css, url.clone(), Origin::Author, Default::default(),
+        None, error_reporter,
         ParserContextExtraData::default());
     let mut rule_count = 0;
     media_queries(&stylesheet.rules.read().0, &mut |mq| {
@@ -40,6 +46,7 @@ fn test_media_rule<F>(css: &str, callback: F)
         callback(mq, css);
     });
     assert!(rule_count > 0, css_str);
+
 }
 
 fn media_queries<F>(rules: &[CssRule], f: &mut F)

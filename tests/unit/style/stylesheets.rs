@@ -274,6 +274,7 @@ fn test_parse_stylesheet() {
 }
 
 struct CSSError {
+    pub url : ServoUrl,
     pub line: usize,
     pub column: usize,
     pub message: String
@@ -292,7 +293,10 @@ impl CSSInvalidErrorReporterTest {
 }
 
 impl ParseErrorReporter for CSSInvalidErrorReporterTest {
-    fn report_error(&self, input: &mut CssParser, position: SourcePosition, message: &str) {
+    fn report_error(&self, input: &mut CssParser, position: SourcePosition, message: &str,
+        servo_url: Option<&ServoUrl>) {
+
+        let url = servo_url.unwrap().clone();
         let location = input.source_location(position);
 
         let errors = self.errors.clone();
@@ -300,6 +304,8 @@ impl ParseErrorReporter for CSSInvalidErrorReporterTest {
 
         errors.push(
             CSSError{
+
+                url: url,
                 line: location.line,
                 column: location.column,
                 message: message.to_owned()
@@ -327,11 +333,12 @@ fn test_report_error_stylesheet() {
     }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
+    let wrong_url = ServoUrl::parse("about::test_wrong").unwrap();
     let error_reporter = Box::new(CSSInvalidErrorReporterTest::new());
 
     let errors = error_reporter.errors.clone();
 
-    Stylesheet::from_str(css, url, Origin::UserAgent, Default::default(),
+    Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
                          None,
                          error_reporter,
                          ParserContextExtraData::default());
@@ -347,4 +354,45 @@ fn test_report_error_stylesheet() {
     assert_eq!("Unsupported property declaration: 'display: invalid;'", error.message);
     assert_eq!(4, error.line);
     assert_eq!(9, error.column);
+
+    // testing for the url
+    assert_eq!(url, error.url);
+    // assert_eq!(wrong_url, error.url);
+}
+
+
+#[test]
+fn test_report_error_passing_correct_url() {
+    let css = r"
+    div {
+        background-color: red;
+        display: invalid;
+        invalid: true;
+    }
+    ";
+
+    let mut servo_urls = vec!();
+    // let first_url = ServoUrl::parse("about::test").unwrap();
+    servo_urls.push(ServoUrl::parse("about::test").unwrap());
+    servo_urls.push(ServoUrl::parse("about::test1").unwrap());
+    servo_urls.push(ServoUrl::parse("about::test2").unwrap());
+    servo_urls.push(ServoUrl::parse("about::test3").unwrap());
+
+    for servo_url in servo_urls {
+        let error_reporter = Box::new(CSSInvalidErrorReporterTest::new());
+        let errors = error_reporter.errors.clone();
+        Stylesheet::from_str(css, servo_url.clone(), Origin::UserAgent, Default::default(),
+                             None,
+                             error_reporter,
+                             ParserContextExtraData::default());
+
+        let mut errors = errors.lock().unwrap();
+        let error = errors.pop().unwrap();
+
+        // testing for the url
+        assert_eq!(servo_url, error.url);
+        // assert_eq!(servo_url, first_url);
+
+    }
+
 }
