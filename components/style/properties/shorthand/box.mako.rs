@@ -204,13 +204,11 @@ macro_rules! try_parse_one {
         let mut ${prop}s = vec![];
         % endfor
 
-        if input.try(|input| input.expect_ident_matching("none")).is_err() {
-            let results = try!(input.parse_comma_separated(|i| parse_one_animation(context, i)));
-            for result in results.into_iter() {
-                % for prop in props:
-                ${prop}s.push(result.animation_${prop});
-                % endfor
-            }
+        let results = try!(input.parse_comma_separated(|i| parse_one_animation(context, i)));
+        for result in results.into_iter() {
+            % for prop in props:
+            ${prop}s.push(result.animation_${prop});
+            % endfor
         }
 
         Ok(Longhands {
