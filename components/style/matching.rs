@@ -398,7 +398,9 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
             return;
         }
 
-        if box_style.animation_name_count() > 0 {
+        let animation_count = box_style.animation_name_count();
+        debug_assert!(animation_count > 0);
+        if animation_count > 1 || box_style.animation_name_at(0).0 != atom!("") {
             debug!("Failing to insert to the cache: animations");
             return;
         }
