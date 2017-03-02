@@ -622,7 +622,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
     force_stub += ["flex-basis", # position
 
                    # transition
-                   "transition-timing-function",
                    "transition-property",
                    ]
 
@@ -1368,6 +1367,10 @@ fn static_assert() {
     ${impl_copy_animation_or_transition_value('animation', ident, gecko_ffi_name)}
 </%def>
 
+<%def name="impl_transition_timing_function()">
+    ${impl_animation_or_transition_timing_function('transition')}
+</%def>
+
 <%def name="impl_animation_count(ident, gecko_ffi_name)">
     ${impl_animation_or_transition_count('animation', ident, gecko_ffi_name)}
 </%def>
@@ -1421,6 +1424,7 @@ fn static_assert() {
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
                           transition-duration transition-delay
+                          transition-timing-function
                           page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
@@ -1766,6 +1770,7 @@ fn static_assert() {
 
     ${impl_transition_time_value('delay', 'Delay')}
     ${impl_transition_time_value('duration', 'Duration')}
+    ${impl_transition_timing_function()}
 
     pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
         use nsstring::nsCString;
