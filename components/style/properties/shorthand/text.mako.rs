@@ -46,31 +46,15 @@
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self.text_decoration_line {
-                DeclaredValue::Value(ref line) => {
-                    try!(line.to_css(dest));
-                },
-                _ => {
-                    try!(write!(dest, "none"));
-                }
-            };
-
-            if let DeclaredValue::Value(ref style) = *self.text_decoration_style {
-                if *style != text_decoration_style::computed_value::T::solid {
-                    try!(write!(dest, " "));
-                    try!(style.to_css(dest));
-                }
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.text_decoration_line.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.text_decoration_style.to_css(dest)?;
+            if self.text_decoration_color.parsed != CSSParserColor::CurrentColor {
+                dest.write_str(" ")?;
+                self.text_decoration_color.to_css(dest)?;
             }
-
-            if let DeclaredValue::Value(ref color) = *self.text_decoration_color {
-                if color.parsed != CSSParserColor::CurrentColor {
-                    try!(write!(dest, " "));
-                    try!(color.to_css(dest));
-                }
-            }
-
             Ok(())
         }
     }

@@ -95,41 +95,27 @@
     }
 
     // This may be a bit off, unsure, possibly needs changes
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            if let DeclaredValue::Value(ref style) = *self.font_style {
-                try!(style.to_css(dest));
-                try!(write!(dest, " "));
-            }
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.font_style.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.font_variant.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.font_weight.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.font_stretch.to_css(dest)?;
+            dest.write_str(" ")?;
 
-            if let DeclaredValue::Value(ref variant) = *self.font_variant {
-                try!(variant.to_css(dest));
-                try!(write!(dest, " "));
-            }
-
-            if let DeclaredValue::Value(ref weight) = *self.font_weight {
-                try!(weight.to_css(dest));
-                try!(write!(dest, " "));
-            }
-
-            if let DeclaredValue::Value(ref stretch) = *self.font_stretch {
-                try!(stretch.to_css(dest));
-                try!(write!(dest, " "));
-            }
-
-            try!(self.font_size.to_css(dest));
-            if let DeclaredValue::Value(ref height) = *self.line_height {
-                match *height {
-                    line_height::SpecifiedValue::Normal => {},
-                    _ => {
-                        try!(write!(dest, "/"));
-                        try!(height.to_css(dest));
-                    }
+            self.font_size.to_css(dest)?;
+            match *self.line_height {
+                line_height::SpecifiedValue::Normal => {},
+                _ => {
+                    dest.write_str("/")?;
+                    self.line_height.to_css(dest)?;
                 }
             }
 
-            try!(write!(dest, " "));
-
+            dest.write_str(" ")?;
             self.font_family.to_css(dest)
         }
     }

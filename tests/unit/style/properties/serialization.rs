@@ -7,7 +7,8 @@ use media_queries::CSSErrorReporterTest;
 use servo_url::ServoUrl;
 use style::computed_values::display::T::inline_block;
 use style::parser::ParserContext;
-use style::properties::{DeclaredValue, PropertyDeclaration, PropertyDeclarationBlock, Importance, PropertyId};
+use style::properties::{DeclaredValue, PropertyDeclaration};
+use style::properties::{PropertyDeclarationBlock, Importance, PropertyId};
 use style::properties::longhands::outline_color::computed_value::T as ComputedColor;
 use style::properties::parse_property_declaration_list;
 use style::stylesheets::Origin;
@@ -371,33 +372,18 @@ mod shorthand_serialization {
             assert_eq!(serialization, "border-top: 4px solid rgb(255, 0, 0);");
         }
 
-        #[test]
-        fn directional_border_with_no_specified_style_will_show_style_as_none() {
-            let mut properties = Vec::new();
-
-            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
-            let style = DeclaredValue::Initial;
-            let color = DeclaredValue::Value(CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
-            });
-
-            properties.push(PropertyDeclaration::BorderTopWidth(width));
-            properties.push(PropertyDeclaration::BorderTopStyle(style));
-            properties.push(PropertyDeclaration::BorderTopColor(color));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "border-top: 4px none rgb(255, 0, 0);");
+        fn get_border_property_values() -> (DeclaredValue<BorderWidth>,
+                                            DeclaredValue<BorderStyle>,
+                                            DeclaredValue<CSSColor>) {
+            (DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32))),
+             DeclaredValue::Value(BorderStyle::solid),
+             DeclaredValue::Value(CSSColor::currentcolor()))
         }
 
         #[test]
-        fn directional_border_with_no_specified_color_will_not_show_color() {
+        fn border_top_should_serialize_correctly() {
             let mut properties = Vec::new();
-
-            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
-            let style = DeclaredValue::Value(BorderStyle::solid);
-            let color = DeclaredValue::Initial;
-
+            let (width, style, color) = get_border_property_values();
             properties.push(PropertyDeclaration::BorderTopWidth(width));
             properties.push(PropertyDeclaration::BorderTopStyle(style));
             properties.push(PropertyDeclaration::BorderTopColor(color));
@@ -409,11 +395,7 @@ mod shorthand_serialization {
         #[test]
         fn border_right_should_serialize_correctly() {
             let mut properties = Vec::new();
-
-            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
-            let style = DeclaredValue::Value(BorderStyle::solid);
-            let color = DeclaredValue::Initial;
-
+            let (width, style, color) = get_border_property_values();
             properties.push(PropertyDeclaration::BorderRightWidth(width));
             properties.push(PropertyDeclaration::BorderRightStyle(style));
             properties.push(PropertyDeclaration::BorderRightColor(color));
@@ -425,11 +407,7 @@ mod shorthand_serialization {
         #[test]
         fn border_bottom_should_serialize_correctly() {
             let mut properties = Vec::new();
-
-            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
-            let style = DeclaredValue::Value(BorderStyle::solid);
-            let color = DeclaredValue::Initial;
-
+            let (width, style, color) = get_border_property_values();
             properties.push(PropertyDeclaration::BorderBottomWidth(width));
             properties.push(PropertyDeclaration::BorderBottomStyle(style));
             properties.push(PropertyDeclaration::BorderBottomColor(color));
@@ -441,11 +419,7 @@ mod shorthand_serialization {
         #[test]
         fn border_left_should_serialize_correctly() {
             let mut properties = Vec::new();
-
-            let width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
-            let style = DeclaredValue::Value(BorderStyle::solid);
-            let color = DeclaredValue::Initial;
-
+            let (width, style, color) = get_border_property_values();
             properties.push(PropertyDeclaration::BorderLeftWidth(width));
             properties.push(PropertyDeclaration::BorderLeftStyle(style));
             properties.push(PropertyDeclaration::BorderLeftColor(color));
@@ -457,38 +431,23 @@ mod shorthand_serialization {
         #[test]
         fn border_should_serialize_correctly() {
             let mut properties = Vec::new();
+            let (width, style, color) = get_border_property_values();
 
-            let top_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
-            let top_style = DeclaredValue::Value(BorderStyle::solid);
-            let top_color = DeclaredValue::Initial;
+            properties.push(PropertyDeclaration::BorderTopWidth(width.clone()));
+            properties.push(PropertyDeclaration::BorderTopStyle(style.clone()));
+            properties.push(PropertyDeclaration::BorderTopColor(color.clone()));
 
-            properties.push(PropertyDeclaration::BorderTopWidth(top_width));
-            properties.push(PropertyDeclaration::BorderTopStyle(top_style));
-            properties.push(PropertyDeclaration::BorderTopColor(top_color));
+            properties.push(PropertyDeclaration::BorderRightWidth(width.clone()));
+            properties.push(PropertyDeclaration::BorderRightStyle(style.clone()));
+            properties.push(PropertyDeclaration::BorderRightColor(color.clone()));
 
-            let right_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
-            let right_style = DeclaredValue::Value(BorderStyle::solid);
-            let right_color = DeclaredValue::Initial;
+            properties.push(PropertyDeclaration::BorderBottomWidth(width.clone()));
+            properties.push(PropertyDeclaration::BorderBottomStyle(style.clone()));
+            properties.push(PropertyDeclaration::BorderBottomColor(color.clone()));
 
-            properties.push(PropertyDeclaration::BorderRightWidth(right_width));
-            properties.push(PropertyDeclaration::BorderRightStyle(right_style));
-            properties.push(PropertyDeclaration::BorderRightColor(right_color));
-
-            let bottom_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
-            let bottom_style = DeclaredValue::Value(BorderStyle::solid);
-            let bottom_color = DeclaredValue::Initial;
-
-            properties.push(PropertyDeclaration::BorderBottomWidth(bottom_width));
-            properties.push(PropertyDeclaration::BorderBottomStyle(bottom_style));
-            properties.push(PropertyDeclaration::BorderBottomColor(bottom_color));
-
-            let left_width = DeclaredValue::Value(BorderWidth::from_length(Length::from_px(4f32)));
-            let left_style = DeclaredValue::Value(BorderStyle::solid);
-            let left_color = DeclaredValue::Initial;
-
-            properties.push(PropertyDeclaration::BorderLeftWidth(left_width));
-            properties.push(PropertyDeclaration::BorderLeftStyle(left_style));
-            properties.push(PropertyDeclaration::BorderLeftColor(left_color));
+            properties.push(PropertyDeclaration::BorderLeftWidth(width.clone()));
+            properties.push(PropertyDeclaration::BorderLeftStyle(style.clone()));
+            properties.push(PropertyDeclaration::BorderLeftColor(color.clone()));
 
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "border: 4px solid;");
@@ -517,22 +476,6 @@ mod shorthand_serialization {
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "list-style: inside url(\"http://servo/test.png\") disc;");
         }
-
-        #[test]
-        fn list_style_should_show_all_properties_even_if_only_one_is_set() {
-            let mut properties = Vec::new();
-
-            let position = DeclaredValue::Initial;
-            let image = DeclaredValue::Initial;
-            let style_type = DeclaredValue::Value(ListStyleType::disc);
-
-            properties.push(PropertyDeclaration::ListStylePosition(position));
-            properties.push(PropertyDeclaration::ListStyleImage(image));
-            properties.push(PropertyDeclaration::ListStyleType(style_type));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "list-style: outside none disc;");
-        }
     }
 
     mod outline {
@@ -557,40 +500,6 @@ mod shorthand_serialization {
 
             let serialization = shorthand_properties_to_string(properties);
             assert_eq!(serialization, "outline: 4px solid rgb(255, 0, 0);");
-        }
-
-        #[test]
-        fn outline_should_not_show_color_if_not_set() {
-            let mut properties = Vec::new();
-
-            let width = DeclaredValue::Value(WidthContainer(Length::from_px(4f32)));
-            let style = DeclaredValue::Value(Either::Second(BorderStyle::solid));
-            let color = DeclaredValue::Initial;
-
-            properties.push(PropertyDeclaration::OutlineWidth(width));
-            properties.push(PropertyDeclaration::OutlineStyle(style));
-            properties.push(PropertyDeclaration::OutlineColor(color));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "outline: 4px solid;");
-        }
-
-        #[test]
-        fn outline_should_serialize_correctly_when_style_is_not_set() {
-            let mut properties = Vec::new();
-
-            let width = DeclaredValue::Value(WidthContainer(Length::from_px(4f32)));
-            let style = DeclaredValue::Initial;
-            let color = DeclaredValue::Value(CSSColor {
-                parsed: ComputedColor::RGBA(RGBA::new(255, 0, 0, 255)),
-                authored: None
-            });
-            properties.push(PropertyDeclaration::OutlineWidth(width));
-            properties.push(PropertyDeclaration::OutlineStyle(style));
-            properties.push(PropertyDeclaration::OutlineColor(color));
-
-            let serialization = shorthand_properties_to_string(properties);
-            assert_eq!(serialization, "outline: 4px none rgb(255, 0, 0);");
         }
 
         #[test]

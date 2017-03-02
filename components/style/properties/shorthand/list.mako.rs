@@ -96,26 +96,13 @@
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self.list_style_position {
-                DeclaredValue::Initial => try!(write!(dest, "outside")),
-                _ => try!(self.list_style_position.to_css(dest))
-            }
-
-            try!(write!(dest, " "));
-
-            match *self.list_style_image {
-                DeclaredValue::Initial => try!(write!(dest, "none")),
-                _ => try!(self.list_style_image.to_css(dest))
-            };
-
-            try!(write!(dest, " "));
-
-            match *self.list_style_type {
-                DeclaredValue::Initial => write!(dest, "disc"),
-                _ => self.list_style_type.to_css(dest)
-            }
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.list_style_position.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.list_style_image.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.list_style_type.to_css(dest)
         }
     }
 </%helpers:shorthand>

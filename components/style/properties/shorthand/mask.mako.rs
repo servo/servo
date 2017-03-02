@@ -120,113 +120,62 @@
          })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            // mako doesn't like ampersands following `<`
-            fn extract_value<T>(x: &DeclaredValue<T>) -> Option< &T> {
-                match *x {
-                    DeclaredValue::Value(ref val) => Some(val),
-                    _ => None,
-                }
-            }
-            use std::cmp;
-            let mut len = 0;
-            % for name in "image mode position_x position_y size repeat origin clip composite".split():
-                len = cmp::max(len, extract_value(self.mask_${name}).map(|i| i.0.len())
-                                                                   .unwrap_or(0));
-            % endfor
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            use properties::longhands::mask_origin::single_value::computed_value::T as Origin;
+            use properties::longhands::mask_clip::single_value::computed_value::T as Clip;
 
-            // There should be at least one declared value
+            let len = self.mask_image.0.len();
             if len == 0 {
-                return dest.write_str("")
+                return Ok(());
             }
+            % for name in "mode position_x position_y size repeat origin clip composite".split():
+                if self.mask_${name}.0.len() != len {
+                    return Ok(());
+                }
+            % endfor
 
             for i in 0..len {
                 if i > 0 {
-                    try!(dest.write_str(", "));
+                    dest.write_str(", ")?;
                 }
 
                 % for name in "image mode position_x position_y size repeat origin clip composite".split():
-                    let ${name} = if let DeclaredValue::Value(ref arr) = *self.mask_${name} {
-                        arr.0.get(i % arr.0.len())
-                    } else {
-                        None
-                    };
+                    let ${name} = &self.mask_${name}.0[i];
                 % endfor
 
-                if let Some(image) = image {
-                    try!(image.to_css(dest));
-                } else {
-                    try!(write!(dest, "none"));
-                }
-
-                try!(write!(dest, " "));
-
-                if let Some(mode) = mode {
-                    try!(mode.to_css(dest));
-                } else {
-                    try!(write!(dest, "match-source"));
-                }
-
-                try!(write!(dest, " "));
-
-                try!(position_x.unwrap_or(&mask_position_x::single_value
-                                                      ::get_initial_position_value())
-                     .to_css(dest));
-
-                try!(write!(dest, " "));
-
-                try!(position_y.unwrap_or(&mask_position_y::single_value
-                                                      ::get_initial_position_value())
-                     .to_css(dest));
-
-                if let Some(size) = size {
-                    try!(write!(dest, " / "));
-                    try!(size.to_css(dest));
-                }
-
-                try!(write!(dest, " "));
-
-                if let Some(repeat) = repeat {
-                    try!(repeat.to_css(dest));
-                } else {
-                    try!(write!(dest, "repeat"));
-                }
+                image.to_css(dest)?;
+                dest.write_str(" ")?;
+                mode.to_css(dest)?;
+                dest.write_str(" ")?;
+                position_x.to_css(dest)?;
+                dest.write_str(" ")?;
+                position_y.to_css(dest)?;
+                dest.write_str(" / ")?;
+                size.to_css(dest)?;
+                dest.write_str(" ")?;
+                repeat.to_css(dest)?;
+                dest.write_str(" ")?;
 
                 match (origin, clip) {
-                    (Some(origin), Some(clip)) => {
-                        use properties::longhands::mask_origin::single_value::computed_value::T as Origin;
-                        use properties::longhands::mask_clip::single_value::computed_value::T as Clip;
-
-                        try!(write!(dest, " "));
-
-                        match (origin, clip) {
-                            (&Origin::padding_box, &Clip::padding_box) => {
-                                try!(origin.to_css(dest));
-                            },
-                            (&Origin::border_box, &Clip::border_box) => {
-                                try!(origin.to_css(dest));
-                            },
-                            (&Origin::content_box, &Clip::content_box) => {
-                                try!(origin.to_css(dest));
-                            },
-                            _ => {
-                                try!(origin.to_css(dest));
-                                try!(write!(dest, " "));
-                                try!(clip.to_css(dest));
-                            }
-                        }
+                    (&Origin::padding_box, &Clip::padding_box) => {
+                        try!(origin.to_css(dest));
                     },
-                    _ => {}
-                };
-
-                try!(write!(dest, " "));
-
-                if let Some(composite) = composite {
-                    try!(composite.to_css(dest));
-                } else {
-                    try!(write!(dest, "add"));
+                    (&Origin::border_box, &Clip::border_box) => {
+                        try!(origin.to_css(dest));
+                    },
+                    (&Origin::content_box, &Clip::content_box) => {
+                        try!(origin.to_css(dest));
+                    },
+                    _ => {
+                        try!(origin.to_css(dest));
+                        try!(write!(dest, " "));
+                        try!(clip.to_css(dest));
+                    }
                 }
+
+                dest.write_str(" ")?;
+                composite.to_css(dest)?;
             }
 
             Ok(())
@@ -268,47 +217,16 @@
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            // mako doesn't like ampersands following `<`
-            fn extract_value<T>(x: &DeclaredValue<T>) -> Option< &T> {
-                match *x {
-                    DeclaredValue::Value(ref val) => Some(val),
-                    _ => None,
-                }
-            }
-            use std::cmp;
-            let mut len = 0;
-            % for name in "x y".split():
-                len = cmp::max(len, extract_value(self.mask_position_${name})
-                                                      .map(|i| i.0.len())
-                                                      .unwrap_or(0));
-            % endfor
-
-            // There should be at least one declared value
-            if len == 0 {
-                return dest.write_str("")
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let len = self.mask_position_x.0.len();
+            if len == 0 || self.mask_position_y.0.len() != len {
+                return Ok(());
             }
 
             for i in 0..len {
-                % for name in "x y".split():
-                    let position_${name} = if let DeclaredValue::Value(ref arr) =
-                                           *self.mask_position_${name} {
-                        arr.0.get(i % arr.0.len())
-                    } else {
-                        None
-                    };
-                % endfor
-
-                try!(position_x.unwrap_or(&mask_position_x::single_value
-                                                                ::get_initial_position_value())
-                               .to_css(dest));
-
-                try!(write!(dest, " "));
-
-                try!(position_y.unwrap_or(&mask_position_y::single_value
-                                                                ::get_initial_position_value())
-                               .to_css(dest));
+                self.mask_position_x.0[i].to_css(dest)?;
+                self.mask_position_y.0[i].to_css(dest)?;
             }
 
             Ok(())

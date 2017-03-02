@@ -70,7 +70,7 @@
             pub mod single_value {
                 use cssparser::Parser;
                 use parser::{Parse, ParserContext, ParserContextExtraData};
-                use properties::{CSSWideKeyword, DeclaredValue, ShorthandId};
+                use properties::{DeclaredValue, ShorthandId};
                 use values::computed::{Context, ToComputedValue};
                 use values::{computed, specified};
                 use values::{Auto, Either, None_, Normal};
@@ -210,14 +210,14 @@
         % if not property.derived_from:
             use cssparser::Parser;
             use parser::{Parse, ParserContext, ParserContextExtraData};
-            use properties::{CSSWideKeyword, DeclaredValue, UnparsedValue, ShorthandId};
+            use properties::{DeclaredValue, UnparsedValue, ShorthandId};
         % endif
         use values::{Auto, Either, None_, Normal};
         use cascade_info::CascadeInfo;
         use error_reporting::ParseErrorReporter;
         use properties::longhands;
         use properties::LonghandIdSet;
-        use properties::{ComputedValues, PropertyDeclaration};
+        use properties::{CSSWideKeyword, ComputedValues, PropertyDeclaration};
         use properties::style_structs;
         use std::boxed::Box as StdBox;
         use std::collections::HashMap;
@@ -267,30 +267,32 @@
                                 % endif
                             }
                             DeclaredValue::WithVariables(_) => unreachable!(),
-                            % if not data.current_style_struct.inherited:
-                            DeclaredValue::Unset |
-                            % endif
-                            DeclaredValue::Initial => {
-                                // We assume that it's faster to use copy_*_from rather than
-                                // set_*(get_initial_value());
-                                let initial_struct = default_style
-                                                      .get_${data.current_style_struct.name_lower}();
-                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                                      .copy_${property.ident}_from(initial_struct ${maybe_wm});
-                            },
-                            % if data.current_style_struct.inherited:
-                            DeclaredValue::Unset |
-                            % endif
-                            DeclaredValue::Inherit => {
-                                // This is a bit slow, but this is rare so it shouldn't
-                                // matter.
-                                //
-                                // FIXME: is it still?
-                                *cacheable = false;
-                                let inherited_struct =
-                                    inherited_style.get_${data.current_style_struct.name_lower}();
-                                context.mutate_style().mutate_${data.current_style_struct.name_lower}()
-                                       .copy_${property.ident}_from(inherited_struct ${maybe_wm});
+                            DeclaredValue::CSSWideKeyword(keyword) => match keyword {
+                                % if not data.current_style_struct.inherited:
+                                CSSWideKeyword::Unset |
+                                % endif
+                                CSSWideKeyword::Initial => {
+                                    // We assume that it's faster to use copy_*_from rather than
+                                    // set_*(get_initial_value());
+                                    let initial_struct = default_style
+                                                        .get_${data.current_style_struct.name_lower}();
+                                    context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                                        .copy_${property.ident}_from(initial_struct ${maybe_wm});
+                                },
+                                % if data.current_style_struct.inherited:
+                                CSSWideKeyword::Unset |
+                                % endif
+                                CSSWideKeyword::Inherit => {
+                                    // This is a bit slow, but this is rare so it shouldn't
+                                    // matter.
+                                    //
+                                    // FIXME: is it still?
+                                    *cacheable = false;
+                                    let inherited_struct =
+                                        inherited_style.get_${data.current_style_struct.name_lower}();
+                                    context.mutate_style().mutate_${data.current_style_struct.name_lower}()
+                                        .copy_${property.ident}_from(inherited_struct ${maybe_wm});
+                                }
                             }
                         }
                     }, error_reporter);
@@ -324,9 +326,7 @@
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                                % endif
                 match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                    Ok(CSSWideKeyword::InheritKeyword) => Ok(DeclaredValue::Inherit),
-                    Ok(CSSWideKeyword::InitialKeyword) => Ok(DeclaredValue::Initial),
-                    Ok(CSSWideKeyword::UnsetKeyword) => Ok(DeclaredValue::Unset),
+                    Ok(keyword) => Ok(DeclaredValue::CSSWideKeyword(keyword)),
                     Err(()) => {
                         input.look_for_var_functions();
                         let start = input.position();
@@ -483,12 +483,11 @@
         #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{DeclaredValue, PropertyDeclaration, UnparsedValue};
-        use properties::{ShorthandId, longhands};
+        use properties::{DeclaredValue, PropertyDeclaration};
+        use properties::{ShorthandId, UnparsedValue, longhands};
         use properties::declaration_block::Importance;
         use std::fmt;
         use style_traits::ToCss;
-        use super::{SerializeFlags, ALL_INHERIT, ALL_INITIAL, ALL_UNSET};
 
         pub struct Longhands {
             % for sub_property in shorthand.sub_properties:
@@ -502,10 +501,10 @@
             % for sub_property in shorthand.sub_properties:
                 % if sub_property.boxed:
                     pub ${sub_property.ident}:
-                        &'a DeclaredValue<Box<longhands::${sub_property.ident}::SpecifiedValue>>,
+                        &'a Box<longhands::${sub_property.ident}::SpecifiedValue>,
                 % else:
                     pub ${sub_property.ident}:
-                        &'a DeclaredValue<longhands::${sub_property.ident}::SpecifiedValue>,
+                        &'a longhands::${sub_property.ident}::SpecifiedValue,
                 % endif
             % endfor
         }
@@ -525,7 +524,7 @@
                 for longhand in iter {
                     match *longhand {
                         % for sub_property in shorthand.sub_properties:
-                            PropertyDeclaration::${sub_property.camel_case}(ref value) => {
+                            PropertyDeclaration::${sub_property.camel_case}(DeclaredValue::Value(ref value)) => {
                                 ${sub_property.ident} = Some(value)
                             },
                         % endfor
@@ -554,40 +553,6 @@
                 }
             }
         }
-
-        impl<'a> ToCss for LonghandsToSerialize<'a> {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result
-                where W: fmt::Write,
-            {
-                let mut all_flags = SerializeFlags::all();
-                let mut with_variables = false;
-                % for sub_property in shorthand.sub_properties:
-                    match *self.${sub_property.ident} {
-                        DeclaredValue::Initial => all_flags &= ALL_INITIAL,
-                        DeclaredValue::Inherit => all_flags &= ALL_INHERIT,
-                        DeclaredValue::Unset => all_flags &= ALL_UNSET,
-                        DeclaredValue::WithVariables(_) => with_variables = true,
-                        DeclaredValue::Value(..) => {
-                            all_flags = SerializeFlags::empty();
-                        }
-                    }
-                % endfor
-
-                if with_variables {
-                    // We don't serialize shorthands with variables
-                    dest.write_str("")
-                } else if all_flags == ALL_INHERIT {
-                    dest.write_str("inherit")
-                } else if all_flags == ALL_INITIAL {
-                    dest.write_str("initial")
-                } else if all_flags == ALL_UNSET {
-                    dest.write_str("unset")
-                } else {
-                    self.to_css_declared(dest)
-                }
-            }
-        }
-
 
         /// Parse the given shorthand and fill the result into the
         /// `declarations` vector.
@@ -661,8 +626,8 @@
             })
         }
 
-        impl<'a> LonghandsToSerialize<'a> {
-            fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        impl<'a> ToCss for LonghandsToSerialize<'a> {
+            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
                 super::serialize_four_sides(
                     dest,
                     self.${to_rust_ident(sub_property_pattern % 'top')},

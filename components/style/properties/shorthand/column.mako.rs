@@ -49,8 +49,8 @@
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.column_width.to_css(dest));
             try!(write!(dest, " "));
 
@@ -96,30 +96,13 @@
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut need_space = false;
-
-            if let DeclaredValue::Value(ref width) = *self.column_rule_width {
-                try!(width.to_css(dest));
-                need_space = true;
-            }
-
-            if let DeclaredValue::Value(ref style) = *self.column_rule_style {
-                if need_space {
-                    try!(write!(dest, " "));
-                }
-                try!(style.to_css(dest));
-                need_space = true;
-            }
-
-            if let DeclaredValue::Value(ref color) = *self.column_rule_color {
-                if need_space {
-                    try!(write!(dest, " "));
-                }
-                try!(color.to_css(dest));
-            }
-            Ok(())
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.column_rule_width.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.column_rule_style.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.column_rule_color.to_css(dest)
         }
     }
 </%helpers:shorthand>

@@ -8,7 +8,7 @@ use app_units::Au;
 use cssparser::{Color as CSSParserColor, Parser, RGBA};
 use euclid::{Point2D, Size2D};
 #[cfg(feature = "gecko")] use gecko_bindings::structs::nsCSSPropertyID;
-use properties::{DeclaredValue, PropertyDeclaration};
+use properties::{CSSWideKeyword, DeclaredValue, PropertyDeclaration};
 use properties::longhands;
 use properties::longhands::background_size::computed_value::T as BackgroundSize;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
@@ -287,21 +287,23 @@ impl AnimationValue {
                             // https://bugzilla.mozilla.org/show_bug.cgi?id=1326131
                             DeclaredValue::WithVariables(_) => unimplemented!(),
                             DeclaredValue::Value(ref val) => val.to_computed_value(context),
-                            % if not prop.style_struct.inherited:
-                                DeclaredValue::Unset |
-                            % endif
-                            DeclaredValue::Initial => {
-                                let initial_struct = initial.get_${prop.style_struct.name_lower}();
-                                initial_struct.clone_${prop.ident}()
-                            },
-                            % if prop.style_struct.inherited:
-                                DeclaredValue::Unset |
-                            % endif
-                            DeclaredValue::Inherit => {
-                                let inherit_struct = context.inherited_style
-                                                            .get_${prop.style_struct.name_lower}();
-                                inherit_struct.clone_${prop.ident}()
-                            },
+                            DeclaredValue::CSSWideKeyword(keyword) => match keyword {
+                                % if not prop.style_struct.inherited:
+                                    CSSWideKeyword::Unset |
+                                % endif
+                                CSSWideKeyword::Initial => {
+                                    let initial_struct = initial.get_${prop.style_struct.name_lower}();
+                                    initial_struct.clone_${prop.ident}()
+                                },
+                                % if prop.style_struct.inherited:
+                                    CSSWideKeyword::Unset |
+                                % endif
+                                CSSWideKeyword::Inherit => {
+                                    let inherit_struct = context.inherited_style
+                                                                .get_${prop.style_struct.name_lower}();
+                                    inherit_struct.clone_${prop.ident}()
+                                },
+                            }
                         };
                         Some(AnimationValue::${prop.camel_case}(computed))
                     }

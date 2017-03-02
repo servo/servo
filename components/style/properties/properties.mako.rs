@@ -102,14 +102,6 @@ pub mod shorthands {
     use parser::{Parse, ParserContext};
     use values::specified;
 
-    bitflags! {
-        flags SerializeFlags: u8 {
-            const ALL_INHERIT = 0b001,
-            const ALL_INITIAL = 0b010,
-            const ALL_UNSET   = 0b100,
-        }
-    }
-
     /// Parses a property for four different sides per CSS syntax.
     ///
     ///  * Zero or more than four values is invalid.
@@ -365,7 +357,13 @@ impl PropertyDeclarationIdSet {
                 })
                 .unwrap_or(
                     // Invalid at computed-value time.
-                    DeclaredValue::${"Inherit" if property.style_struct.inherited else "Initial"}
+                    DeclaredValue::CSSWideKeyword(
+                        % if property.style_struct.inherited:
+                            CSSWideKeyword::Inherit
+                        % else:
+                            CSSWideKeyword::Initial
+                        % endif
+                    )
                 )
             );
         }
@@ -374,13 +372,30 @@ impl PropertyDeclarationIdSet {
 
 /// An enum to represent a CSS Wide keyword.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum CSSWideKeyword {
     /// The `initial` keyword.
-    InitialKeyword,
+    Initial,
     /// The `inherit` keyword.
-    InheritKeyword,
+    Inherit,
     /// The `unset` keyword.
-    UnsetKeyword,
+    Unset,
+}
+
+impl CSSWideKeyword {
+    fn to_str(&self) -> &'static str {
+        match *self {
+            CSSWideKeyword::Initial => "initial",
+            CSSWideKeyword::Inherit => "inherit",
+            CSSWideKeyword::Unset => "unset",
+        }
+    }
+}
+
+impl ToCss for CSSWideKeyword {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        dest.write_str(self.to_str())
+    }
 }
 
 impl Parse for CSSWideKeyword {
@@ -388,9 +403,9 @@ impl Parse for CSSWideKeyword {
         let ident = input.expect_ident()?;
         input.expect_exhausted()?;
         match_ignore_ascii_case! { &ident,
-            "initial" => Ok(CSSWideKeyword::InitialKeyword),
-            "inherit" => Ok(CSSWideKeyword::InheritKeyword),
-            "unset" => Ok(CSSWideKeyword::UnsetKeyword),
+            "initial" => Ok(CSSWideKeyword::Initial),
+            "inherit" => Ok(CSSWideKeyword::Inherit),
+            "unset" => Ok(CSSWideKeyword::Unset),
             _ => Err(())
         }
     }
@@ -528,7 +543,16 @@ impl ShorthandId {
            return None;
         }
 
-        if !declarations3.any(|d| d.with_variables()) {
+        // Check whether they are all the same CSS-wide keyword.
+        if let Some(keyword) = first_declaration.get_css_wide_keyword() {
+            if declarations2.all(|d| d.get_css_wide_keyword() == Some(keyword)) {
+                return Some(AppendableValue::Css(keyword.to_str()));
+            }
+            return None;
+        }
+
+        // Check whether all declarations can be serialized as part of shorthand.
+        if declarations3.all(|d| d.may_serialize_as_part_of_shorthand()) {
             return Some(AppendableValue::DeclarationsForShorthand(self, declarations));
         }
 
@@ -545,12 +569,8 @@ pub enum DeclaredValue<T> {
     Value(T),
     /// An unparsed value that contains `var()` functions.
     WithVariables(Box<UnparsedValue>),
-    /// The `initial` keyword.
-    Initial,
-    /// The `inherit` keyword.
-    Inherit,
-    /// The `unset` keyword.
-    Unset,
+    /// An CSS-wide keyword.
+    CSSWideKeyword(CSSWideKeyword),
 }
 
 /// An unparsed property value that contains `var()` functions.
@@ -575,9 +595,7 @@ impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
                 panic!("DeclaredValue::has_viewport_percentage without \
                         resolving variables!")
             },
-            DeclaredValue::Initial |
-            DeclaredValue::Inherit |
-            DeclaredValue::Unset => false,
+            DeclaredValue::CSSWideKeyword(_) => false,
         }
     }
 }
@@ -595,9 +613,7 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
                 }
                 Ok(())
             },
-            DeclaredValue::Initial => dest.write_str("initial"),
-            DeclaredValue::Inherit => dest.write_str("inherit"),
-            DeclaredValue::Unset => dest.write_str("unset"),
+            DeclaredValue::CSSWideKeyword(ref keyword) => keyword.to_css(dest),
         }
     }
 }
@@ -918,20 +934,44 @@ impl PropertyDeclaration {
         }
     }
 
-    /// Return whether this is a pending-substitution value.
-    /// https://drafts.csswg.org/css-variables/#variables-in-shorthands
-    pub fn with_variables(&self) -> bool {
+    /// Returns a CSS-wide keyword if the declaration's value is one.
+    pub fn get_css_wide_keyword(&self) -> Option<CSSWideKeyword> {
         match *self {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(ref value) => match *value {
-                    DeclaredValue::WithVariables(_) => true,
-                    _ => false,
+                    DeclaredValue::CSSWideKeyword(keyword) => Some(keyword),
+                    _ => None,
                 },
             % endfor
             PropertyDeclaration::Custom(_, ref value) => match *value {
-                DeclaredValue::WithVariables(_) => true,
-                _ => false,
+                DeclaredValue::CSSWideKeyword(keyword) => Some(keyword),
+                _ => None,
             }
+        }
+    }
+
+    /// Returns whether the declaration may be serialized as part of a shorthand.
+    ///
+    /// This method returns false if this declaration contains variable or has a
+    /// CSS-wide keyword value, since these values cannot be serialized as part
+    /// of a shorthand.
+    ///
+    /// Caller should check `with_variables_from_shorthand()` and whether all
+    /// needed declarations has the same CSS-wide keyword first.
+    ///
+    /// Note that, serialization of a shorthand may still fail because of other
+    /// property-specific requirement even when this method returns true for all
+    /// the longhand declarations.
+    pub fn may_serialize_as_part_of_shorthand(&self) -> bool {
+        match *self {
+            % for property in data.longhands:
+                PropertyDeclaration::${property.camel_case}(ref value) => match *value {
+                    DeclaredValue::Value(_) => true,
+                    _ => false,
+                },
+            % endfor
+            PropertyDeclaration::Custom(..) =>
+                unreachable!("Serialize a custom property as part of shorthand?"),
         }
     }
 
@@ -969,9 +1009,7 @@ impl PropertyDeclaration {
         match id {
             PropertyId::Custom(name) => {
                 let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                    Ok(CSSWideKeyword::UnsetKeyword) => DeclaredValue::Unset,
-                    Ok(CSSWideKeyword::InheritKeyword) => DeclaredValue::Inherit,
-                    Ok(CSSWideKeyword::InitialKeyword) => DeclaredValue::Initial,
+                    Ok(keyword) => DeclaredValue::CSSWideKeyword(keyword),
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
                         Ok(value) => DeclaredValue::Value(value),
                         Err(()) => return PropertyDeclarationParseResult::InvalidValue,
@@ -1029,26 +1067,11 @@ impl PropertyDeclaration {
                     ${property_pref_check(shorthand)}
 
                     match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                        Ok(CSSWideKeyword::InheritKeyword) => {
+                        Ok(keyword) => {
                             % for sub_property in shorthand.sub_properties:
                                 result_list.push((
                                     PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Inherit), Importance::Normal));
-                            % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                        },
-                        Ok(CSSWideKeyword::InitialKeyword) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push((
-                                    PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Initial), Importance::Normal));
-                            % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
-                        },
-                        Ok(CSSWideKeyword::UnsetKeyword) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push((PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::Unset), Importance::Normal));
+                                        DeclaredValue::CSSWideKeyword(keyword)), Importance::Normal));
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },

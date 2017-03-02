@@ -17,7 +17,8 @@ use style::error_reporting::ParseErrorReporter;
 use style::keyframes::{Keyframe, KeyframeSelector, KeyframePercentage};
 use style::parser::ParserContextExtraData;
 use style::properties::Importance;
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
+use style::properties::{CSSWideKeyword, PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::{DeclaredValue, longhands};
 use style::properties::longhands::animation_play_state;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
@@ -102,7 +103,8 @@ fn test_parse_stylesheet() {
                         (PropertyDeclaration::Display(DeclaredValue::Value(
                             longhands::display::SpecifiedValue::none)),
                          Importance::Important),
-                        (PropertyDeclaration::Custom(Atom::from("a"), DeclaredValue::Inherit),
+                        (PropertyDeclaration::Custom(Atom::from("a"),
+                         DeclaredValue::CSSWideKeyword(CSSWideKeyword::Inherit)),
                          Importance::Important),
                     ],
                     important_count: 2,

@@ -127,63 +127,36 @@
          })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            // mako doesn't like ampersands following `<`
-            fn extract_value<T>(x: &DeclaredValue<T>) -> Option< &T> {
-                match *x {
-                    DeclaredValue::Value(ref val) => Some(val),
-                    _ => None,
-                }
-            }
-
-            let len = extract_value(self.background_image).map(|i| i.0.len()).unwrap_or(0);
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let len = self.background_image.0.len();
             // There should be at least one declared value
             if len == 0 {
-                return dest.write_str("")
+                return Ok(());
             }
 
             // If a value list length is differs then we don't do a shorthand serialization.
             // The exceptions to this is color which appears once only and is serialized
             // with the last item.
             % for name in "image position_x position_y size repeat origin clip attachment".split():
-                if len != extract_value(self.background_${name}).map(|i| i.0.len()).unwrap_or(0) {
-                    return dest.write_str("")
+                if len != self.background_${name}.0.len() {
+                    return Ok(());
                 }
             % endfor
 
-            let mut first = true;
             for i in 0..len {
                 % for name in "image position_x position_y repeat size attachment origin clip".split():
-                    let ${name} = if let DeclaredValue::Value(ref arr) = *self.background_${name} {
-                        &arr.0[i]
-                    } else {
-                        unreachable!()
-                    };
+                    let ${name} = &self.background_${name}.0[i];
                 % endfor
 
-                let color = if i == len - 1 {
-                    Some(self.background_color)
-                } else {
-                    None
-                };
-
-                if first {
-                    first = false;
-                } else {
+                if i != 0 {
                     try!(write!(dest, ", "));
                 }
-                match color {
-                    Some(&DeclaredValue::Value(ref color)) => {
-                        try!(color.to_css(dest));
-                        try!(write!(dest, " "));
-                    },
-                    Some(_) => {
-                        try!(write!(dest, "transparent "));
-                    }
-                    // Not yet the last one
-                    None => ()
-                };
+
+                if i == len - 1 {
+                    try!(self.background_color.to_css(dest));
+                    try!(write!(dest, " "));
+                }
 
                 % for name in "image repeat attachment position_x position_y".split():
                     try!(${name}.to_css(dest));
@@ -251,49 +224,17 @@
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            // mako doesn't like ampersands following `<`
-            fn extract_value<T>(x: &DeclaredValue<T>) -> Option< &T> {
-                match *x {
-                    DeclaredValue::Value(ref val) => Some(val),
-                    _ => None,
-                }
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let len = self.background_position_x.0.len();
+            if len == 0 || len != self.background_position_y.0.len() {
+                return Ok(());
             }
-            use std::cmp;
-            let mut len = 0;
-            % for name in "x y".split():
-                len = cmp::max(len, extract_value(self.background_position_${name})
-                                                      .map(|i| i.0.len())
-                                                      .unwrap_or(0));
-            % endfor
-
-            // There should be at least one declared value
-            if len == 0 {
-                return dest.write_str("")
-            }
-
             for i in 0..len {
-                % for name in "x y".split():
-                    let position_${name} = if let DeclaredValue::Value(ref arr) =
-                                           *self.background_position_${name} {
-                        arr.0.get(i % arr.0.len())
-                    } else {
-                        None
-                    };
-                % endfor
-
-                try!(position_x.unwrap_or(&background_position_x::single_value
-                                                                ::get_initial_position_value())
-                               .to_css(dest));
-
-                try!(write!(dest, " "));
-
-                try!(position_y.unwrap_or(&background_position_y::single_value
-                                                                ::get_initial_position_value())
-                               .to_css(dest));
+                self.background_position_x.0[i].to_css(dest)?;
+                dest.write_str(" ")?;
+                self.background_position_y.0[i].to_css(dest)?;
             }
-
             Ok(())
         }
     }
