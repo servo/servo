@@ -575,7 +575,7 @@ trait PrivateMatchMethods: TElement {
                                                    &mut pseudo_style, &booleans);
 
         // Handle animations.
-        if booleans.animate {
+        if booleans.animate && cfg!(feature = "servo") {
             if let Some(ref mut old) = old_values {
                 self.update_animations_for_cascade(shared_context, old,
                                                    possibly_expired_animations);
