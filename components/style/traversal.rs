@@ -130,7 +130,7 @@ pub trait DomTraversal<E: TElement> : Sync {
         if let Some(mut data) = root.mutate_data() {
             if let Some(r) = data.get_restyle_mut() {
                 debug_assert!(root.next_sibling_element().is_none());
-                let _later_siblings = r.expand_snapshot(root, stylist);
+                let _later_siblings = r.compute_final_hint(root, stylist);
             }
         }
 
@@ -414,8 +414,9 @@ pub fn recalc_style_at<E, D>(traversal: &D,
 {
     context.thread_local.begin_element(element, &data);
     context.thread_local.statistics.elements_traversed += 1;
-    debug_assert!(data.get_restyle().map_or(true, |r| r.snapshot.is_none()),
-                  "Snapshots should be expanded by the caller");
+    debug_assert!(data.get_restyle().map_or(true, |r| {
+        r.snapshot.is_none() && !r.has_sibling_invalidations()
+    }), "Should've computed the final hint and handled later_siblings already");
 
     let compute_self = !data.has_current_styles();
     let mut inherited_style_changed = false;
@@ -594,9 +595,9 @@ fn preprocess_children<E, D>(traversal: &D,
             restyle_data.hint.insert(&propagated_hint);
         }
 
-        // Handle element snapshots.
+        // Handle element snapshots and sibling restyle hints.
         let stylist = &traversal.shared_context().stylist;
-        let later_siblings = restyle_data.expand_snapshot(child, stylist);
+        let later_siblings = restyle_data.compute_final_hint(child, stylist);
         if later_siblings {
             propagated_hint.insert(&(RESTYLE_SELF | RESTYLE_DESCENDANTS).into());
         }
