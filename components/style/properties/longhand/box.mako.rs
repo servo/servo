@@ -1940,3 +1940,95 @@ ${helpers.single_keyword("-moz-orient",
                           gecko_enum_prefix="StyleOrient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
                           animatable=False)}
+
+<%helpers:longhand name="will-change" products="none" animatable="False"
+                   spec="https://drafts.csswg.org/css-will-change/#will-change">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub use super::SpecifiedValue as T;
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedValue {
+        Auto,
+        AnimateableFeatures(Vec<AnimateableFeature>),
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Auto => dest.write_str("auto"),
+                SpecifiedValue::AnimateableFeatures(ref features) => {
+                    let mut iter = features.iter();
+                    // handle head element
+                    try!(iter.next().unwrap().to_css(dest));
+                    // handle tail, precede each with a delimiter
+                    for feature in iter {
+                        try!(dest.write_str(", "));
+                        try!(feature.to_css(dest));
+                    }
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum AnimateableFeature {
+        ScrollPosition,
+        Contents,
+        CustomIdent(String),
+    }
+
+    impl Parse for AnimateableFeature {
+        fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
+            if input.try(|input| input.expect_ident_matching("scroll-position")).is_ok() {
+                return Ok(AnimateableFeature::ScrollPosition);
+            }
+            if input.try(|input| input.expect_ident_matching("contents")).is_ok() {
+                return Ok(AnimateableFeature::Contents);
+            }
+
+            match_ignore_ascii_case! { &input.expect_ident()?,
+                "will-change" | "none" | "all" | "auto" => Err(()),
+                ident  => {
+                    Ok(AnimateableFeature::CustomIdent(ident.to_owned()))
+                }
+            }
+        }
+    }
+
+    impl ToCss for AnimateableFeature {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                AnimateableFeature::ScrollPosition => dest.write_str("scroll-position"),
+                AnimateableFeature::Contents => dest.write_str("contents"),
+                AnimateableFeature::CustomIdent(ref ident) => dest.write_str(&*ident),
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::Auto
+    }
+
+    /// auto | <animateable-feature>#
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+            Ok(computed_value::T::Auto)
+        } else {
+            input.parse_comma_separated(|i| AnimateableFeature::parse(context, i))
+                 .map(SpecifiedValue::AnimateableFeatures)
+        }
+    }
+</%helpers:longhand>
