@@ -697,62 +697,15 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             &(*self.unsafe_get()).namespace
         }
     }
-    
-    #[allow(unsafe_code)]
-    fn is_lang_matches(&self, css_lang: &Box<str>) -> bool{
 
+    #[allow(unsafe_code)]
+    fn is_lang_matches(&self, css_lang: &Box<str>) -> bool {
         if css_lang.eq_ignore_ascii_case(&self.get_lang_for_layout()) || css_lang.eq_ignore_ascii_case("*")  {
             return true;
         }
 
         let element_lang: String = self.get_lang_for_layout();
-        let css_lang_tags: Vec<&str> = css_lang.split('\x2d').collect();
-        let element_lang_tags: Vec<&str> = element_lang.split('\x2d').collect();
-        
-        if !(css_lang_tags[0].eq_ignore_ascii_case(element_lang_tags[0])) {
-            return false;
-        }
-
-        let mut css_tag_index = 1;
-        let mut tag_index = 1;
-
-        let lang_tag_length = element_lang_tags.len();
-        let css_tag_size = css_lang_tags.len();
-        let is_match;
-
-        loop {
-            if lang_tag_length <= tag_index {
-                is_match = false;
-                break;
-            }
-        
-            if css_tag_size <= css_tag_index {
-                is_match = true;
-                break;
-            }
-
-            let css_tag = css_lang_tags[css_tag_index];
-            let element_tag = element_lang_tags[tag_index];
-
-            if css_tag == "*" {
-                css_tag_index+=1;
-                continue;
-            }
-
-            if element_tag.len() == 1 {
-                is_match = false;
-                break;
-            }
-
-            if element_tag.eq_ignore_ascii_case(css_tag) {
-                css_tag_index+=1;
-                tag_index+=1;
-            } else {
-                is_match = false;
-                break;
-            }
-        }
-        return is_match;
+        return lang_check(css_lang, element_lang);
     }
 
 
@@ -2680,60 +2633,13 @@ impl Element {
         }).next().unwrap_or(String::new())
     }
 
-    fn is_lang_matches(&self, css_lang: &Box<str>) -> bool{
-
-        if css_lang.eq_ignore_ascii_case(&self.get_lang()) || css_lang.eq_ignore_ascii_case("*")  {
+    fn is_lang_matches(&self, css_lang: &Box<str>) -> bool {
+        if css_lang.eq_ignore_ascii_case(&self.get_lang()) || css_lang.eq_ignore_ascii_case("*") {
             return true;
         }
 
         let element_lang: String = self.get_lang();
-        let css_lang_tags: Vec<&str> = css_lang.split('\x2d').collect();
-        let element_lang_tags: Vec<&str> = element_lang.split('\x2d').collect();
-
-        if !(css_lang_tags[0].eq_ignore_ascii_case(element_lang_tags[0])) {
-            return false;
-        }
-
-        let mut css_tag_index = 1;
-        let mut tag_index = 1;
-
-        let lang_tag_length = element_lang_tags.len();
-        let css_tag_size = css_lang_tags.len();
-        let is_match;
-
-        loop {
-            if lang_tag_length <= tag_index {
-                is_match = false;
-                break;
-            }
-        
-            if css_tag_size <= css_tag_index {
-                is_match = true;
-                break;
-            }
-
-            let css_tag = css_lang_tags[css_tag_index];
-            let element_tag = element_lang_tags[tag_index];
-
-            if css_tag == "*" {
-                css_tag_index+=1;
-                continue;
-            }
-
-            if element_tag.len() == 1 {
-                is_match = false;
-                break;
-            }
-
-            if element_tag.eq_ignore_ascii_case(css_tag) {
-                css_tag_index+=1;
-                tag_index+=1;
-            } else {
-                is_match = false;
-                break;
-            }
-        }
-        return is_match;
+        return lang_check(css_lang, element_lang);
     }
 
     pub fn state(&self) -> ElementState {
@@ -3088,4 +2994,54 @@ pub fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
             _ => unreachable!()
         }
     })
+}
+
+pub fn lang_check(css_lang: &Box<str>, element_lang: String) -> bool {
+    let css_lang_tags: Vec<&str> = css_lang.split('\x2d').collect();
+    let element_lang_tags: Vec<&str> = element_lang.split('\x2d').collect();
+
+    if !(css_lang_tags[0].eq_ignore_ascii_case(element_lang_tags[0])) {
+        return false;
+    }
+
+    let mut css_tag_index = 1;
+    let mut tag_index = 1;
+
+    let lang_tag_length = element_lang_tags.len();
+    let css_tag_size = css_lang_tags.len();
+    let is_match;
+
+    loop {
+        if lang_tag_length <= tag_index {
+            is_match = false;
+            break;
+        }
+
+        if css_tag_size <= css_tag_index {
+            is_match = true;
+            break;
+        }
+
+        let css_tag = css_lang_tags[css_tag_index];
+        let element_tag = element_lang_tags[tag_index];
+
+        if css_tag == "*" {
+            css_tag_index += 1;
+            continue;
+        }
+
+        if element_tag.len() == 1 {
+            is_match = false;
+            break;
+        }
+
+        if element_tag.eq_ignore_ascii_case(css_tag) {
+            css_tag_index += 1;
+            tag_index += 1;
+        } else {
+            is_match = false;
+            break;
+        }
+    }
+    return is_match;
 }
