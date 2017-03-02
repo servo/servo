@@ -919,10 +919,6 @@ impl WindowMethods for Window {
         }
     }
 
-    fn set_page_url(&self, url: ServoUrl) {
-        *self.current_url.borrow_mut() = Some(url);
-    }
-
     fn status(&self, _: Option<String>) {
     }
 
@@ -943,7 +939,8 @@ impl WindowMethods for Window {
     fn load_error(&self, _: NetError, _: String) {
     }
 
-    fn head_parsed(&self) {
+    fn head_parsed(&self, url: ServoUrl) {
+        *self.current_url.borrow_mut() = Some(url);
     }
 
     /// Has no effect on Android.

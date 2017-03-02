@@ -124,8 +124,6 @@ pub trait WindowMethods {
 
     /// Sets the page title for the current page.
     fn set_page_title(&self, title: Option<String>);
-    /// Sets the load data for the current page.
-    fn set_page_url(&self, url: ServoUrl);
     /// Called when the browser chrome should display a status message.
     fn status(&self, Option<String>);
     /// Called when the browser has started loading a frame.
@@ -135,7 +133,7 @@ pub trait WindowMethods {
     /// Called when the browser encounters an error while loading a URL
     fn load_error(&self, code: NetError, url: String);
     /// Called when the <head> tag has finished parsing
-    fn head_parsed(&self);
+    fn head_parsed(&self, url: ServoUrl);
 
     /// Returns the scale factor of the system (device pixels / device independent pixels).
     fn hidpi_factor(&self) -> ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>;

@@ -399,15 +399,28 @@ impl WindowMethods for Window {
         }
     }
 
-    fn head_parsed(&self) {
+    fn head_parsed(&self, url: ServoUrl) {
+        // it seems to be the case that load start is always called
+        // IMMEDIATELY before address change, so just stick it here
+        on_load_start(self);
         let browser = self.cef_browser.borrow();
         let browser = match *browser {
             None => return,
             Some(ref browser) => browser,
         };
-        if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
-           check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_favicon_urlchange) {
-            browser.get_host().get_client().get_display_handler().on_favicon_urlchange((*browser).clone(), &browser.downcast().favicons.borrow());
+        let frame = browser.get_main_frame();
+        let servoframe = frame.downcast();
+        // FIXME(https://github.com/rust-lang/rust/issues/23338)
+        let mut frame_url = servoframe.url.borrow_mut();
+        *frame_url = url.into_string();
+        let utf16_chars: Vec<u16> = frame_url.encode_utf16().collect();
+        if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) {
+            if check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_address_change) {
+                browser.get_host().get_client().get_display_handler().on_address_change((*browser).clone(), frame.clone(), utf16_chars.as_slice());
+            }
+            if check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_favicon_urlchange) {
+                browser.get_host().get_client().get_display_handler().on_favicon_urlchange((*browser).clone(), &browser.downcast().favicons.borrow());
+            }
         }
     }
 
@@ -432,27 +445,6 @@ impl WindowMethods for Window {
 
         if let Some(ref mut visitor) = *title_visitor {
             visitor.visit(&str);
-        }
-    }
-
-    fn set_page_url(&self, url: ServoUrl) {
-        // it seems to be the case that load start is always called
-        // IMMEDIATELY before address change, so just stick it here
-        on_load_start(self);
-        let browser = self.cef_browser.borrow();
-        let browser = match *browser {
-            None => return,
-            Some(ref browser) => browser,
-        };
-        let frame = browser.get_main_frame();
-        let servoframe = frame.downcast();
-        // FIXME(https://github.com/rust-lang/rust/issues/23338)
-        let mut frame_url = servoframe.url.borrow_mut();
-        *frame_url = url.into_string();
-        let utf16_chars: Vec<u16> = frame_url.encode_utf16().collect();
-        if check_ptr_exist!(browser.get_host().get_client(), get_display_handler) &&
-           check_ptr_exist!(browser.get_host().get_client().get_display_handler(), on_address_change) {
-            browser.get_host().get_client().get_display_handler().on_address_change((*browser).clone(), frame.clone(), utf16_chars.as_slice());
         }
     }
 

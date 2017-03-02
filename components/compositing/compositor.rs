@@ -498,10 +498,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_page_title(pipeline_id, title);
             }
 
-            (Msg::ChangePageUrl(pipeline_id, url), ShutdownState::NotShuttingDown) => {
-                self.change_page_url(pipeline_id, url);
-            }
-
             (Msg::SetFrameTree(frame_tree, response_chan),
              ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree, response_chan);
@@ -618,8 +614,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.set_favicon(url);
             }
 
-            (Msg::HeadParsed, ShutdownState::NotShuttingDown) => {
-                self.window.head_parsed();
+            (Msg::HeadParsed(url), ShutdownState::NotShuttingDown) => {
+                self.window.head_parsed(url);
             }
 
             (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {
@@ -715,10 +711,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if set_title {
             self.window.set_page_title(title);
         }
-    }
-
-    fn change_page_url(&mut self, _: PipelineId, url: ServoUrl) {
-        self.window.set_page_url(url);
     }
 
     fn set_frame_tree(&mut self,
@@ -906,7 +898,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.got_load_complete_message = false;
         match ServoUrl::parse(&url_string) {
             Ok(url) => {
-                self.window.set_page_url(url.clone());
                 let msg = match self.root_pipeline {
                     Some(ref pipeline) => ConstellationMsg::LoadUrl(pipeline.id, LoadData::new(url, None, None)),
                     None => ConstellationMsg::InitLoadUrl(url)

@@ -76,8 +76,6 @@ pub enum Msg {
     ScrollFragmentPoint(PipelineId, ScrollRootId, Point2D<f32>, bool),
     /// Alerts the compositor that the current page has changed its title.
     ChangePageTitle(PipelineId, Option<String>),
-    /// Alerts the compositor that the current page has changed its URL.
-    ChangePageUrl(PipelineId, ServoUrl),
     /// Alerts the compositor that the given pipeline has changed whether it is running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Replaces the current frame tree, typically called during main frame navigation.
@@ -104,8 +102,8 @@ pub enum Msg {
     IsReadyToSaveImageReply(bool),
     /// A favicon was detected
     NewFavicon(ServoUrl),
-    /// <head> tag finished parsing
-    HeadParsed,
+    /// <head> tag finished parsing. The URL is the final URL (after all redirections).
+    HeadParsed(ServoUrl),
     /// A status message to be displayed by the browser chrome.
     Status(Option<String>),
     /// Get Window Informations size and position
@@ -141,7 +139,6 @@ impl Debug for Msg {
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
             Msg::ChangeRunningAnimationsState(..) => write!(f, "ChangeRunningAnimationsState"),
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
-            Msg::ChangePageUrl(..) => write!(f, "ChangePageUrl"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
             Msg::LoadComplete(..) => write!(f, "LoadComplete"),
             Msg::LoadStart(..) => write!(f, "LoadStart"),
@@ -154,7 +151,7 @@ impl Debug for Msg {
             Msg::ViewportConstrained(..) => write!(f, "ViewportConstrained"),
             Msg::IsReadyToSaveImageReply(..) => write!(f, "IsReadyToSaveImageReply"),
             Msg::NewFavicon(..) => write!(f, "NewFavicon"),
-            Msg::HeadParsed => write!(f, "HeadParsed"),
+            Msg::HeadParsed(..) => write!(f, "HeadParsed"),
             Msg::Status(..) => write!(f, "Status"),
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::MoveTo(..) => write!(f, "MoveTo"),
