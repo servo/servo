@@ -86,7 +86,7 @@ pub enum ScriptMsg {
     /// Requests that the constellation retrieve the current contents of the clipboard
     GetClipboardContents(IpcSender<String>),
     /// <head> tag finished parsing
-    HeadParsed,
+    HeadParsed(ServoUrl),
     /// All pending loads are complete, and the `load` event for this pipeline
     /// has been dispatched.
     LoadComplete(PipelineId),

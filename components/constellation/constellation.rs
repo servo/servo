@@ -1019,9 +1019,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got new favicon message");
                 self.compositor_proxy.send(ToCompositorMsg::NewFavicon(url));
             }
-            FromScriptMsg::HeadParsed => {
+            FromScriptMsg::HeadParsed(url) => {
                 debug!("constellation got head parsed message");
-                self.compositor_proxy.send(ToCompositorMsg::HeadParsed);
+                self.compositor_proxy.send(ToCompositorMsg::HeadParsed(url));
             }
             FromScriptMsg::CreateCanvasPaintThread(size, sender) => {
                 debug!("constellation got create-canvas-paint-thread message");
@@ -1347,7 +1347,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             url: url.clone(),
             replace: None,
         });
-        self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
 
     fn handle_frame_size_msg(&mut self,
