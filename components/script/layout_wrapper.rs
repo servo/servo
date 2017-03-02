@@ -34,6 +34,7 @@ use atomic_refcell::AtomicRefCell;
 use dom::bindings::inheritance::{CharacterDataTypeId, ElementTypeId};
 use dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::LayoutJS;
+use dom::bindings::str::extended_filtering;
 use dom::characterdata::LayoutCharacterDataHelpers;
 use dom::document::{Document, LayoutDocumentHelpers, PendingRestyle};
 use dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -53,7 +54,6 @@ use selectors::matching::ElementSelectorFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
 use std::fmt;
 use std::fmt::Debug;
 use std::marker::PhantomData;
@@ -621,7 +621,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
             // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
             //                https://tools.ietf.org/html/rfc4647#section-3.3.2
-            NonTSPseudoClass::Lang(ref lang) => lang.eq_ignore_ascii_case(&self.element.get_lang_for_layout()),
+            NonTSPseudoClass::Lang(ref lang) => extended_filtering(&*self.element.get_lang_for_layout(), &*lang),
 
             NonTSPseudoClass::ServoNonZeroBorder => unsafe {
                 match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &local_name!("border")) {
