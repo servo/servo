@@ -1727,15 +1727,13 @@ fn static_assert() {
 
     pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
         use nsstring::nsCString;
+
+        assert!(v.0.len() > 0);
         unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
 
-        if v.0.len() > 0 {
-            self.gecko.mAnimationNameCount = v.0.len() as u32;
-            for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
-                gecko.mName.assign_utf8(&nsCString::from(servo.0.to_string()));
-            }
-        } else {
-            unsafe { self.gecko.mAnimations[0].mName.truncate(); }
+        self.gecko.mAnimationNameCount = v.0.len() as u32;
+        for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
+            gecko.mName.assign_utf8(&nsCString::from(servo.0.to_string()));
         }
     }
     pub fn animation_name_at(&self, index: usize)
