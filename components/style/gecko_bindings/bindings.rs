@@ -679,6 +679,11 @@ extern "C" {
                                                  len: usize);
 }
 extern "C" {
+    pub fn Gecko_EnsureStyleTransitionArrayLength(array:
+                                                      *mut ::std::os::raw::c_void,
+                                                  len: usize);
+}
+extern "C" {
     pub fn Gecko_AnimationAppendKeyframe(keyframes:
                                              RawGeckoKeyframeListBorrowedMut,
                                          offset: f32,
