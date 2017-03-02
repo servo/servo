@@ -41,7 +41,7 @@ pub trait LayoutRPC {
     /// Requests the list of not-yet-loaded images that were encountered in the last reflow.
     fn pending_images(&self) -> Vec<PendingImage>;
     /// Requests the list of nodes from the given point.
-    fn nodes_from_point(&self) -> Vec<UntrustedNodeAddress>;
+    fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
 
     fn text_index(&self) -> TextIndexResponse;
 }

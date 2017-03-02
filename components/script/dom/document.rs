@@ -1883,7 +1883,7 @@ impl Document {
             return vec!();
         };
 
-        self.window.layout().nodes_from_point()
+        self.window.layout().nodes_from_point_response()
     }
 }
 

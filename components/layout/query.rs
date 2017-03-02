@@ -147,7 +147,7 @@ impl LayoutRPC for LayoutRPCImpl {
         }
     }
 
-    fn nodes_from_point(&self) -> Vec<UntrustedNodeAddress> {
+    fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress> {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.nodes_from_point_response.clone()
