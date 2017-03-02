@@ -703,9 +703,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         if css_lang.eq_ignore_ascii_case(&self.get_lang_for_layout()) || css_lang.eq_ignore_ascii_case("*")  {
             return true;
         }
-
-        let element_lang: String = self.get_lang_for_layout();
-        return lang_check(css_lang, element_lang);
+        return lang_check(css_lang, self.get_lang_for_layout());
     }
 
 
@@ -2637,9 +2635,7 @@ impl Element {
         if css_lang.eq_ignore_ascii_case(&self.get_lang()) || css_lang.eq_ignore_ascii_case("*") {
             return true;
         }
-
-        let element_lang: String = self.get_lang();
-        return lang_check(css_lang, element_lang);
+        return lang_check(css_lang, self.get_lang());
     }
 
     pub fn state(&self) -> ElementState {
