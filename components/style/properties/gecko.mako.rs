@@ -622,8 +622,8 @@ impl Debug for ${style_struct.gecko_struct_name} {
     force_stub += ["flex-basis", # position
 
                    # transition
-                   "transition-duration", "transition-timing-function",
-                   "transition-property", "transition-delay",
+                   "transition-timing-function",
+                   "transition-property",
                    ]
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
@@ -1342,6 +1342,10 @@ fn static_assert() {
     ${impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)}
 </%def>
 
+<%def name="impl_transition_time_value(ident, gecko_ffi_name)">
+    ${impl_animation_or_transition_time_value('transition', ident, gecko_ffi_name)}
+</%def>
+
 <%def name="impl_copy_animation_value(ident, gecko_ffi_name)">
     ${impl_copy_animation_or_transition_value('animation', ident, gecko_ffi_name)}
 </%def>
@@ -1394,6 +1398,7 @@ fn static_assert() {
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
+                          transition-duration transition-delay
                           page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
@@ -1736,6 +1741,9 @@ fn static_assert() {
         }
         computed_value::T(Some(result))
     }
+
+    ${impl_transition_time_value('delay', 'Delay')}
+    ${impl_transition_time_value('duration', 'Duration')}
 
     pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
         use nsstring::nsCString;
