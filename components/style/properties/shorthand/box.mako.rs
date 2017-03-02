@@ -198,28 +198,25 @@ macro_rules! try_parse_one {
                 break
             }
 
-            if let Some(name) = name {
-                Ok(SingleAnimation {
-                    animation_name: name,
-                    animation_duration:
-                        duration.unwrap_or_else(animation_duration::single_value::get_initial_value),
-                    animation_timing_function:
-                        timing_function.unwrap_or_else(animation_timing_function::single_value
-                                                                                ::get_initial_specified_value),
-                    animation_delay:
-                        delay.unwrap_or_else(animation_delay::single_value::get_initial_value),
-                    animation_iteration_count:
-                        iteration_count.unwrap_or_else(animation_iteration_count::single_value::get_initial_value),
-                    animation_direction:
-                        direction.unwrap_or_else(animation_direction::single_value::get_initial_value),
-                    animation_fill_mode:
-                        fill_mode.unwrap_or_else(animation_fill_mode::single_value::get_initial_value),
-                    animation_play_state:
-                        play_state.unwrap_or_else(animation_play_state::single_value::get_initial_value),
-                })
-            } else {
-                Err(())
-            }
+            Ok(SingleAnimation {
+                animation_name:
+                    name.unwrap_or_else(animation_name::single_value::get_initial_specified_value),
+                animation_duration:
+                    duration.unwrap_or_else(animation_duration::single_value::get_initial_value),
+                animation_timing_function:
+                    timing_function.unwrap_or_else(animation_timing_function::single_value
+                                                                            ::get_initial_specified_value),
+                animation_delay:
+                    delay.unwrap_or_else(animation_delay::single_value::get_initial_value),
+                animation_iteration_count:
+                    iteration_count.unwrap_or_else(animation_iteration_count::single_value::get_initial_value),
+                animation_direction:
+                    direction.unwrap_or_else(animation_direction::single_value::get_initial_value),
+                animation_fill_mode:
+                    fill_mode.unwrap_or_else(animation_fill_mode::single_value::get_initial_value),
+                animation_play_state:
+                    play_state.unwrap_or_else(animation_play_state::single_value::get_initial_value),
+            })
         }
 
         let mut names = vec![];
