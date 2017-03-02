@@ -53,7 +53,6 @@ use selectors::matching::ElementSelectorFlags;
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
-use std::ascii::AsciiExt;
 use std::fmt;
 use std::fmt::Debug;
 use std::marker::PhantomData;
@@ -503,6 +502,7 @@ impl<'le> ServoLayoutElement<'le> {
 
         true
     }
+
 }
 
 fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
@@ -621,7 +621,7 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
 
             // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
             //                https://tools.ietf.org/html/rfc4647#section-3.3.2
-            NonTSPseudoClass::Lang(ref lang) => lang.eq_ignore_ascii_case(&self.element.get_lang_for_layout()),
+            NonTSPseudoClass::Lang(ref lang) => self.element.is_lang_matches(lang),
 
             NonTSPseudoClass::ServoNonZeroBorder => unsafe {
                 match (*self.element.unsafe_get()).get_attr_for_layout(&ns!(), &local_name!("border")) {
