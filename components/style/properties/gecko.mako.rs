@@ -1298,48 +1298,60 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
-<%def name="impl_copy_animation_value(ident, gecko_ffi_name)">
+<%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
-    pub fn copy_animation_${ident}_from(&mut self, other: &Self) {
-        unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };
+    pub fn copy_${type}_${ident}_from(&mut self, other: &Self) {
+        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(other.gecko.m${type.capitalize()}s.len()) };
 
-        let count = other.gecko.mAnimation${gecko_ffi_name}Count;
-        self.gecko.mAnimation${gecko_ffi_name}Count = count;
+        let count = other.gecko.m${type.capitalize()}${gecko_ffi_name}Count;
+        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = count;
 
-        // The length of mAnimations is often greater than mAnimationXXCount,
+        // The length of mTransitions or mAnimations is often greater than m{Transition|Animation}XXCount,
         // don't copy values over the count.
-        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate().take(count as usize) {
-            animation.m${gecko_ffi_name} = other.gecko.mAnimations[index].m${gecko_ffi_name};
+        for (index, gecko) in self.gecko.m${type.capitalize()}s.iter_mut().enumerate().take(count as usize) {
+            gecko.m${gecko_ffi_name} = other.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name};
         }
     }
 </%def>
 
-<%def name="impl_animation_count(ident, gecko_ffi_name)">
+<%def name="impl_animation_or_transition_count(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
-    pub fn animation_${ident}_count(&self) -> usize {
-        self.gecko.mAnimation${gecko_ffi_name}Count as usize
+    pub fn ${type}_${ident}_count(&self) -> usize {
+        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count as usize
     }
 </%def>
 
-<%def name="impl_animation_time_value(ident, gecko_ffi_name)">
+<%def name="impl_animation_or_transition_time_value(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
-    pub fn set_animation_${ident}(&mut self, v: longhands::animation_${ident}::computed_value::T) {
+    pub fn set_${type}_${ident}(&mut self, v: longhands::${type}_${ident}::computed_value::T) {
         debug_assert!(!v.0.is_empty());
-        unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(v.0.len()) };
 
-        self.gecko.mAnimation${gecko_ffi_name}Count = v.0.len() as u32;
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
+        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = v.0.len() as u32;
+        for (servo, gecko) in v.0.into_iter().zip(self.gecko.m${type.capitalize()}s.iter_mut()) {
             gecko.m${gecko_ffi_name} = servo.seconds() * 1000.;
         }
     }
     #[allow(non_snake_case)]
-    pub fn animation_${ident}_at(&self, index: usize)
-        -> longhands::animation_${ident}::computed_value::SingleComputedValue {
+    pub fn ${type}_${ident}_at(&self, index: usize)
+        -> longhands::${type}_${ident}::computed_value::SingleComputedValue {
         use values::specified::Time;
         Time(self.gecko.mAnimations[index].m${gecko_ffi_name} / 1000.)
     }
-    ${impl_animation_count(ident, gecko_ffi_name)}
-    ${impl_copy_animation_value(ident, gecko_ffi_name)}
+    ${impl_animation_or_transition_count(type, ident, gecko_ffi_name)}
+    ${impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)}
+</%def>
+
+<%def name="impl_copy_animation_value(ident, gecko_ffi_name)">
+    ${impl_copy_animation_or_transition_value('animation', ident, gecko_ffi_name)}
+</%def>
+
+<%def name="impl_animation_count(ident, gecko_ffi_name)">
+    ${impl_animation_or_transition_count('animation', ident, gecko_ffi_name)}
+</%def>
+
+<%def name="impl_animation_time_value(ident, gecko_ffi_name)">
+    ${impl_animation_or_transition_time_value('animation', ident, gecko_ffi_name)}
 </%def>
 
 <%def name="impl_animation_keyword(ident, gecko_ffi_name, keyword, cast_type='u8')">
