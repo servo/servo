@@ -97,14 +97,25 @@
     // This may be a bit off, unsure, possibly needs changes
     impl<'a> ToCss for LonghandsToSerialize<'a>  {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.font_style.to_css(dest)?;
+
+    % if product == "gecko":
+        % for name in "size_adjust kerning variant_caps variant_position".split():
+            if self.font_${name} == font_${name}::get_initial_specified_value() {
+                return Ok(());
+            }
+        % endfor
+    % endif
+
+    % if product == "none":
+            if self.font_language_override == font_language_override::get_initial_specified_value() {
+                return Ok(());
+            }
+    % endif
+
+    % for name in "style variant weight stretch".split():
+            self.font_${name}.to_css(dest)?;
             dest.write_str(" ")?;
-            self.font_variant.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.font_weight.to_css(dest)?;
-            dest.write_str(" ")?;
-            self.font_stretch.to_css(dest)?;
-            dest.write_str(" ")?;
+    % endfor
 
             self.font_size.to_css(dest)?;
             match *self.line_height {
