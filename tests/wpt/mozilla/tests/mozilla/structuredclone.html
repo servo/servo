@@ -16,8 +16,10 @@ async_test(function(t) {
       console.log('received msg')
       console.log(msg.data.size, blob.size)
       assert_equals(msg.data.size, blob.size);
-      var otherWindow = iframe.contentWindow;
-      otherWindow.postMessage(msg.data, '*');
+      reader.addEventListener("loadend", this.step_func_done(function() {
+          console.log(reader.result)
+      }));
+      reader.readAsText(msg.data);
   }), false);
   iframe.onload = this.step_func(function() {
       window.postMessage(blob, '*');
