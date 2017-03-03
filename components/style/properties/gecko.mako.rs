@@ -1385,7 +1385,7 @@ fn static_assert() {
                           page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
-                          perspective-origin transform-origin""" %>
+                          perspective-origin transform-origin will-change""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1850,6 +1850,104 @@ fn static_assert() {
                 .expect("clone for LengthOrPercentage failed"),
             depth: Au::from_gecko_style_coord(&self.gecko.mTransformOrigin[2])
                 .expect("clone for Length failed"),
+        }
+    }
+
+    pub fn set_will_change(&mut self, v: longhands::will_change::computed_value::T) {
+        use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_OPACITY;
+        use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_SCROLL;
+        use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_TRANSFORM;
+        use properties::PropertyId;
+        use properties::longhands::will_change::AnimateableFeature;
+        use properties::longhands::will_change::computed_value::T;
+        use nsstring::nsCString;
+
+        fn will_change_bitfield_from_prop_flags(prop: &LonghandId) -> u8 {
+            use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_ABSPOS_CB;
+            use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_FIXPOS_CB;
+            use gecko_bindings::structs::NS_STYLE_WILL_CHANGE_STACKING_CONTEXT;
+            let mut bitfield = 0;
+
+            if prop.creates_stacking_context() {
+                bitfield |= NS_STYLE_WILL_CHANGE_STACKING_CONTEXT;
+            }
+            if prop.fixpos_cb() {
+                bitfield |= NS_STYLE_WILL_CHANGE_FIXPOS_CB;
+            }
+            if prop.abspos_cb() {
+                bitfield |= NS_STYLE_WILL_CHANGE_ABSPOS_CB;
+            }
+
+            bitfield as u8
+        }
+
+        unsafe { self.gecko.mWillChange.clear(); }
+        self.gecko.mWillChangeBitField = 0;
+
+        match v {
+            T::AnimateableFeatures(features) => {
+                unsafe {
+                    self.gecko.mWillChange
+                        .set_len(features.len() as u32);
+                }
+
+                for (index, feature) in features.iter().enumerate() {
+                    let value = match *feature {
+                        AnimateableFeature::ScrollPosition => {
+                            self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_SCROLL as u8;
+                            "scroll-position"
+                        },
+                        AnimateableFeature::Contents => {
+                            "contents"
+                        },
+                        AnimateableFeature::CustomIdent(ref ident) => {
+                            match &**ident {
+                                "opacity" => {
+                                    self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_OPACITY as u8;
+                                },
+                                "transform" => {
+                                    self.gecko.mWillChangeBitField |= NS_STYLE_WILL_CHANGE_TRANSFORM as u8;
+                                },
+                                _ => (),
+                            }
+                            &*ident
+                        },
+                    };
+
+                    self.gecko.mWillChange[index].assign_utf8(&nsCString::from(value));
+
+                    if let Ok(prop_id) = PropertyId::parse(value.into()) {
+                        match prop_id.as_shorthand() {
+                            Ok(shorthand) => {
+                                for longhand in shorthand.longhands() {
+                                    self.gecko.mWillChangeBitField |=
+                                        will_change_bitfield_from_prop_flags(longhand);
+                                }
+                            },
+                            Err(longhand_or_custom) => {
+                                if let PropertyDeclarationId::Longhand(longhand)
+                                    = longhand_or_custom {
+                                    self.gecko.mWillChangeBitField |=
+                                        will_change_bitfield_from_prop_flags(&longhand);
+                                }
+                            },
+                        }
+                    }
+                }
+            },
+            T::Auto => (),
+        };
+    }
+
+    pub fn copy_will_change_from(&mut self, other: &Self) {
+        self.gecko.mWillChangeBitField = other.gecko.mWillChangeBitField;
+        unsafe {
+            self.gecko.mWillChange
+                .set_len(other.gecko.mWillChange.len() as u32);
+        }
+
+        for (index, this) in self.gecko.mWillChange.iter_mut().enumerate() {
+            this.assign(&*other.gecko.mWillChange[index]);
         }
     }
 </%self:impl_trait>
