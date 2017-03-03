@@ -1983,7 +1983,7 @@ ${helpers.single_keyword("-moz-orient",
                           spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-orient)",
                           animatable=False)}
 
-<%helpers:longhand name="will-change" products="none" animatable="False"
+<%helpers:longhand name="will-change" products="gecko" animatable="False"
                    spec="https://drafts.csswg.org/css-will-change/#will-change">
     use cssparser::serialize_identifier;
     use std::fmt;
