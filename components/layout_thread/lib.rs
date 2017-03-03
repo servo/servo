@@ -1031,9 +1031,6 @@ impl LayoutThread {
                             Au::from_f32_px(constraints.size.height))
             });
 
-        // Handle conditions where the entire flow tree is invalid.
-        let mut needs_dirtying = false;
-
         let viewport_size_changed = self.viewport_size != old_viewport_size;
         if viewport_size_changed {
             if let Some(constraints) = rw_data.stylist.viewport_constraints() {
@@ -1067,9 +1064,9 @@ impl LayoutThread {
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        needs_dirtying |= Arc::get_mut(&mut rw_data.stylist).unwrap().update(&data.document_stylesheets,
-                                                                             Some(&*UA_STYLESHEETS),
-                                                                             data.stylesheets_changed);
+        let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(&data.document_stylesheets,
+                                                                                 Some(&*UA_STYLESHEETS),
+                                                                                 data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {
