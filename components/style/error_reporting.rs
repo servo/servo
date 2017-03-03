@@ -16,7 +16,7 @@ pub trait ParseErrorReporter {
     ///
     /// Returns the current input being parsed, the source position it was
     /// reported from, and a message.
-    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str, url: Option<&ServoUrl>);
+    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str, url: &ServoUrl);
     /// Clone this error reporter.
     ///
     /// TODO(emilio): I'm pretty sure all the box shenanigans can go away.
@@ -29,11 +29,10 @@ pub trait ParseErrorReporter {
 pub struct StdoutErrorReporter;
 impl ParseErrorReporter for StdoutErrorReporter {
     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
-        url: Option<&ServoUrl>) {
+        url: &ServoUrl) {
          if log_enabled!(log::LogLevel::Info) {
              let location = input.source_location(position);
-             info!("Url:\t{}\n{}:{} {}", url.map(|u| u.as_str()).unwrap_or(""),
-             location.line, location.column, message)
+             info!("Url:\t{}\n{}:{} {}", url.as_str(), location.line, location.column, message)
         }
     }
 

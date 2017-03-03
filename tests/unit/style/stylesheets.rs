@@ -294,9 +294,9 @@ impl CSSInvalidErrorReporterTest {
 
 impl ParseErrorReporter for CSSInvalidErrorReporterTest {
     fn report_error(&self, input: &mut CssParser, position: SourcePosition, message: &str,
-        servo_url: Option<&ServoUrl>) {
+        servo_url: &ServoUrl) {
 
-        let url = servo_url.unwrap().clone();
+        let url = servo_url.clone();
         let location = input.source_location(position);
 
         let errors = self.errors.clone();
@@ -333,7 +333,6 @@ fn test_report_error_stylesheet() {
     }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
-    let wrong_url = ServoUrl::parse("about::test_wrong").unwrap();
     let error_reporter = Box::new(CSSInvalidErrorReporterTest::new());
 
     let errors = error_reporter.errors.clone();
@@ -357,7 +356,6 @@ fn test_report_error_stylesheet() {
 
     // testing for the url
     assert_eq!(url, error.url);
-    // assert_eq!(wrong_url, error.url);
 }
 
 
@@ -372,11 +370,7 @@ fn test_report_error_passing_correct_url() {
     ";
 
     let mut servo_urls = vec!();
-    // let first_url = ServoUrl::parse("about::test").unwrap();
     servo_urls.push(ServoUrl::parse("about::test").unwrap());
-    servo_urls.push(ServoUrl::parse("about::test1").unwrap());
-    servo_urls.push(ServoUrl::parse("about::test2").unwrap());
-    servo_urls.push(ServoUrl::parse("about::test3").unwrap());
 
     for servo_url in servo_urls {
         let error_reporter = Box::new(CSSInvalidErrorReporterTest::new());
@@ -391,8 +385,6 @@ fn test_report_error_passing_correct_url() {
 
         // testing for the url
         assert_eq!(servo_url, error.url);
-        // assert_eq!(servo_url, first_url);
-
     }
 
 }

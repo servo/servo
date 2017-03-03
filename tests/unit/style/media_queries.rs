@@ -19,15 +19,12 @@ pub struct CSSErrorReporterTest;
 
 impl ParseErrorReporter for CSSErrorReporterTest {
     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
-        servo_url: Option<&ServoUrl>) {
-            let css_url = servo_url.unwrap().clone();
-            let location = input.source_location(position);
+        _servo_url: &ServoUrl) {
         }
 
      fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
         Box::new(CSSErrorReporterTest)
      }
-
 }
 
 fn test_media_rule<F>(css: &str, callback: F)
@@ -46,7 +43,6 @@ fn test_media_rule<F>(css: &str, callback: F)
         callback(mq, css);
     });
     assert!(rule_count > 0, css_str);
-
 }
 
 fn media_queries<F>(rules: &[CssRule], f: &mut F)

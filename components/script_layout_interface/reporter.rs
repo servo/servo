@@ -11,8 +11,6 @@ use servo_url::ServoUrl;
 use std::sync::{Mutex, Arc};
 use style::error_reporting::ParseErrorReporter;
 
-
-
 #[derive(HeapSizeOf)]
 pub struct CSSErrorReporter {
     pub pipelineid: PipelineId,
@@ -25,13 +23,12 @@ pub struct CSSErrorReporter {
 
 impl ParseErrorReporter for CSSErrorReporter {
      fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
-         servo_url: Option<&ServoUrl>) {
+         servo_url: &ServoUrl) {
          let location = input.source_location(position);
          if log_enabled!(log::LogLevel::Info) {
-             info!("Url:\t{}\n{}:{} {}", servo_url.map(|url| url.as_str()).unwrap_or(""),
-             location.line, location.column, message)
-            //  info!("{}:{} {}", location.line, location.column, message)
-         }
+             info!("Url:\t{}\n{}:{} {}", servo_url.as_str(), location.line, location.column, message)
+            }
+
          //TODO: report a real filename
          let _ = self.script_chan.lock().unwrap().send(
              ConstellationControlMsg::ReportCSSError(self.pipelineid,
