@@ -449,6 +449,41 @@ impl LonghandId {
             _ => *self
         }
     }
+
+    /// Returns true if property requires a stacking context.
+    #[cfg(feature = "gecko")]
+    pub fn creates_stacking_context(&self) -> bool {
+        % for property in data.longhands:
+            %if property.creates_stacking_context:
+                *self == LonghandId::${property.camel_case} ||
+            %endif
+        % endfor
+        false
+    }
+
+    /// Returns true if property has values that can establish a containing block
+    /// for fixed positioned and absolutely positioned elements.
+    #[cfg(feature = "gecko")]
+    pub fn fixpos_cb(&self) -> bool {
+        % for property in data.longhands:
+            %if property.fixpos_cb:
+                *self == LonghandId::${property.camel_case} ||
+            %endif
+        % endfor
+        false
+    }
+
+    /// Returns true if property has values that can establish a containing block
+    /// for absolutely positioned elements.
+    #[cfg(feature = "gecko")]
+    pub fn abspos_cb(&self) -> bool {
+        % for property in data.longhands:
+            %if property.abspos_cb:
+                *self == LonghandId::${property.camel_case} ||
+            %endif
+        % endfor
+        false
+    }
 }
 
 /// An identifier for a given shorthand property.
