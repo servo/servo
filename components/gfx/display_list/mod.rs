@@ -182,17 +182,25 @@ impl DisplayList {
             *client_point
         } else {
             let point = *translated_point - stacking_context.bounds.origin;
-            let inv_transform = match stacking_context.transform.inverse() {
-                Some(transform) => transform,
-                None => {
-                    // If a transform function causes the current transformation matrix of an object
-                    // to be non-invertible, the object and its content do not get displayed.
-                    return;
+
+            match stacking_context.transform {
+                Some(transform) => {
+                    let inv_transform = match transform.inverse() {
+                        Some(transform) => transform,
+                        None => {
+                            // If a transform function causes the current transformation matrix of an object
+                            // to be non-invertible, the object and its content do not get displayed.
+                            return;
+                        }
+                    };
+                    let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
+                                                                                 point.y.to_f32_px()));
+                    Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))
                 }
-            };
-            let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
-                                                                         point.y.to_f32_px()));
-            Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))
+                None => {
+                    point
+                }
+            }
         };
     }
 
@@ -360,10 +368,10 @@ pub struct StackingContext {
     pub blend_mode: mix_blend_mode::T,
 
     /// A transform to be applied to this stacking context.
-    pub transform: Matrix4D<f32>,
+    pub transform: Option<Matrix4D<f32>>,
 
     /// The perspective matrix to be applied to children.
-    pub perspective: Matrix4D<f32>,
+    pub perspective: Option<Matrix4D<f32>>,
 
     /// Whether this stacking context creates a new 3d rendering context.
     pub establishes_3d_context: bool,
@@ -385,8 +393,8 @@ impl StackingContext {
                z_index: i32,
                filters: filter::T,
                blend_mode: mix_blend_mode::T,
-               transform: Matrix4D<f32>,
-               perspective: Matrix4D<f32>,
+               transform: Option<Matrix4D<f32>>,
+               perspective: Option<Matrix4D<f32>>,
                establishes_3d_context: bool,
                scroll_policy: ScrollPolicy,
                parent_scroll_id: ScrollRootId)
@@ -416,8 +424,8 @@ impl StackingContext {
                              0,
                              filter::T::new(Vec::new()),
                              mix_blend_mode::T::normal,
-                             Matrix4D::identity(),
-                             Matrix4D::identity(),
+                             None,
+                             None,
                              true,
                              ScrollPolicy::Scrollable,
                              ScrollRootId::root())

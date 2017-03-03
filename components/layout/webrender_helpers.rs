@@ -381,12 +381,19 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                                                    vec![],
                                                    None);
 
+                let transform = stacking_context.transform.map(|transform| {
+                    LayoutTransform::from_untyped(&transform).into()
+                });
+                let perspective = stacking_context.perspective.map(|perspective| {
+                    LayoutTransform::from_untyped(&perspective)
+                });
+
                 builder.push_stacking_context(stacking_context.scroll_policy,
                                               stacking_context.bounds.to_rectf(),
                                               clip,
                                               stacking_context.z_index,
-                                              LayoutTransform::from_untyped(&stacking_context.transform).into(),
-                                              LayoutTransform::from_untyped(&stacking_context.perspective),
+                                              transform,
+                                              perspective,
                                               stacking_context.blend_mode.to_blend_mode(),
                                               stacking_context.filters.to_filter_ops());
             }
