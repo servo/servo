@@ -20,7 +20,7 @@ use std::fmt::Write;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
-use style::context::{QuirksMode, ReflowGoal, SharedStyleContext, StyleContext};
+use style::context::{QuirksMode, SharedStyleContext, StyleContext};
 use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInfo};
 use style::data::{ElementData, ElementStyles, RestyleData};
 use style::dom::{ShowSubtreeData, TElement, TNode};
@@ -164,8 +164,6 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
     SharedStyleContext {
         // FIXME (bug 1303229): Use the actual viewport size here
         viewport_size: Size2D::new(Au(0), Au(0)),
-        screen_size_changed: false,
-        goal: ReflowGoal::ForScriptQuery,
         stylist: per_doc_data.stylist.clone(),
         running_animations: per_doc_data.running_animations.clone(),
         expired_animations: per_doc_data.expired_animations.clone(),

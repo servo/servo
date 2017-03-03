@@ -496,8 +496,6 @@ impl LayoutThread {
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context(&self,
                             rw_data: &LayoutThreadData,
-                            screen_size_changed: bool,
-                            goal: ReflowGoal,
                             request_images: bool)
                             -> LayoutContext {
         let thread_local_style_context_creation_data =
@@ -506,9 +504,7 @@ impl LayoutThread {
         LayoutContext {
             style_context: SharedStyleContext {
                 viewport_size: self.viewport_size.clone(),
-                screen_size_changed: screen_size_changed,
                 stylist: rw_data.stylist.clone(),
-                goal: goal,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
                 error_reporter: self.error_reporter.clone(),
@@ -1035,9 +1031,6 @@ impl LayoutThread {
                             Au::from_f32_px(constraints.size.height))
             });
 
-        // Handle conditions where the entire flow tree is invalid.
-        let mut needs_dirtying = false;
-
         let viewport_size_changed = self.viewport_size != old_viewport_size;
         if viewport_size_changed {
             if let Some(constraints) = rw_data.stylist.viewport_constraints() {
@@ -1071,9 +1064,9 @@ impl LayoutThread {
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        needs_dirtying |= Arc::get_mut(&mut rw_data.stylist).unwrap().update(&data.document_stylesheets,
-                                                                             Some(&*UA_STYLESHEETS),
-                                                                             data.stylesheets_changed);
+        let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(&data.document_stylesheets,
+                                                                                 Some(&*UA_STYLESHEETS),
+                                                                                 data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {
@@ -1119,10 +1112,7 @@ impl LayoutThread {
         }
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(&*rw_data,
-                                                           viewport_size_changed,
-                                                           data.reflow_info.goal,
-                                                           true);
+        let mut layout_context = self.build_layout_context(&*rw_data, true);
 
         // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
         let traversal_driver = if self.parallel_flag && self.parallel_traversal.is_some() {
@@ -1350,10 +1340,7 @@ impl LayoutThread {
             page_clip_rect: max_rect(),
         };
 
-        let mut layout_context = self.build_layout_context(&*rw_data,
-                                                           false,
-                                                           reflow_info.goal,
-                                                           false);
+        let mut layout_context = self.build_layout_context(&*rw_data, false);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
@@ -1386,10 +1373,7 @@ impl LayoutThread {
             page_clip_rect: max_rect(),
         };
 
-        let mut layout_context = self.build_layout_context(&*rw_data,
-                                                           false,
-                                                           reflow_info.goal,
-                                                           false);
+        let mut layout_context = self.build_layout_context(&*rw_data, false);
 
         // No need to do a style recalc here.
         if self.root_flow.is_none() {
@@ -1516,7 +1500,9 @@ impl LayoutThread {
 
     fn reflow_all_nodes(flow: &mut Flow) {
         debug!("reflowing all nodes!");
-        flow::mut_base(flow).restyle_damage.insert(REPAINT | STORE_OVERFLOW | REFLOW);
+        flow::mut_base(flow)
+            .restyle_damage
+            .insert(REPAINT | STORE_OVERFLOW | REFLOW | REPOSITION);
 
         for child in flow::child_iter_mut(flow) {
             LayoutThread::reflow_all_nodes(child);

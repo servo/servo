@@ -64,14 +64,8 @@ pub struct SharedStyleContext {
     /// The current viewport size.
     pub viewport_size: Size2D<Au>,
 
-    /// Screen sized changed?
-    pub screen_size_changed: bool,
-
     /// The CSS selector stylist.
     pub stylist: Arc<Stylist>,
-
-    /// Why is this reflow occurring
-    pub goal: ReflowGoal,
 
     /// The animations that are currently running.
     pub running_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
