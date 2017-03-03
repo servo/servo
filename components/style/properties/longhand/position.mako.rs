@@ -26,6 +26,7 @@
 ${helpers.predefined_type("z-index", "IntegerOrAuto",
                           "Either::Second(Auto)",
                           spec="https://www.w3.org/TR/CSS2/visuren.html#z-index",
+                          creates_stacking_context=True,
                           animatable="True")}
 
 // CSS Flexible Box Layout Module Level 1
