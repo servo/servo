@@ -198,13 +198,15 @@ impl Pipeline {
             }
         });
 
-        let (script_chan, content_ports) = match state.event_loop {
+        let url = state.load_data.url.clone();
+
+        let script_chan = match state.event_loop {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
                     parent_info: state.parent_info,
                     new_pipeline_id: state.id,
                     frame_id: state.frame_id,
-                    load_data: state.load_data.clone(),
+                    load_data: state.load_data,
                     window_size: window_size,
                     pipeline_port: pipeline_port,
                     content_process_shutdown_chan: Some(layout_content_process_shutdown_chan.clone()),
@@ -214,75 +216,74 @@ impl Pipeline {
                 if let Err(e) = script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info)) {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }
-                (script_chan, None)
+                script_chan
             }
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
-                (EventLoop::new(script_chan), Some((script_port, pipeline_port)))
+
+                // Route messages coming from content to devtools as appropriate.
+                let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
+                    let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel()
+                        .expect("Pipeline script to devtools chan");
+                    let devtools_chan = (*devtools_chan).clone();
+                    ROUTER.add_route(script_to_devtools_port.to_opaque(), box move |message| {
+                        match message.to::<ScriptToDevtoolsControlMsg>() {
+                            Err(e) => error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e),
+                            Ok(message) => if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromScript(message)) {
+                                warn!("Sending to devtools failed ({})", e)
+                            },
+                        }
+                    });
+                    script_to_devtools_chan
+                });
+
+                let (script_content_process_shutdown_chan, script_content_process_shutdown_port) =
+                    ipc::channel().expect("Pipeline script content process shutdown chan");
+
+                let unprivileged_pipeline_content = UnprivilegedPipelineContent {
+                    id: state.id,
+                    frame_id: state.frame_id,
+                    top_level_frame_id: state.top_level_frame_id,
+                    parent_info: state.parent_info,
+                    constellation_chan: state.constellation_chan,
+                    scheduler_chan: state.scheduler_chan,
+                    devtools_chan: script_to_devtools_chan,
+                    bluetooth_thread: state.bluetooth_thread,
+                    swmanager_thread: state.swmanager_thread,
+                    image_cache_thread: state.image_cache_thread,
+                    font_cache_thread: state.font_cache_thread,
+                    resource_threads: state.resource_threads,
+                    time_profiler_chan: state.time_profiler_chan,
+                    mem_profiler_chan: state.mem_profiler_chan,
+                    window_size: window_size,
+                    layout_to_constellation_chan: state.layout_to_constellation_chan,
+                    script_chan: script_chan.clone(),
+                    load_data: state.load_data,
+                    script_port: script_port,
+                    opts: (*opts::get()).clone(),
+                    prefs: PREFS.cloned(),
+                    pipeline_port: pipeline_port,
+                    pipeline_namespace_id: state.pipeline_namespace_id,
+                    layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
+                    layout_content_process_shutdown_port: layout_content_process_shutdown_port,
+                    script_content_process_shutdown_chan: script_content_process_shutdown_chan,
+                    script_content_process_shutdown_port: script_content_process_shutdown_port,
+                    webrender_api_sender: state.webrender_api_sender,
+                    webvr_thread: state.webvr_thread,
+                };
+
+                // Spawn the child process.
+                //
+                // Yes, that's all there is to it!
+                if opts::multiprocess() {
+                    let _ = try!(unprivileged_pipeline_content.spawn_multiprocess());
+                } else {
+                    unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
+                }
+
+                EventLoop::new(script_chan)
             }
         };
-
-        if let Some((script_port, pipeline_port)) = content_ports {
-            // Route messages coming from content to devtools as appropriate.
-            let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
-                let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel()
-                    .expect("Pipeline script to devtools chan");
-                let devtools_chan = (*devtools_chan).clone();
-                ROUTER.add_route(script_to_devtools_port.to_opaque(), box move |message| {
-                    match message.to::<ScriptToDevtoolsControlMsg>() {
-                        Err(e) => error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e),
-                        Ok(message) => if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromScript(message)) {
-                            warn!("Sending to devtools failed ({})", e)
-                        },
-                    }
-                });
-                script_to_devtools_chan
-            });
-
-            let (script_content_process_shutdown_chan, script_content_process_shutdown_port) =
-                ipc::channel().expect("Pipeline script content process shutdown chan");
-
-            let unprivileged_pipeline_content = UnprivilegedPipelineContent {
-                id: state.id,
-                frame_id: state.frame_id,
-                top_level_frame_id: state.top_level_frame_id,
-                parent_info: state.parent_info,
-                constellation_chan: state.constellation_chan,
-                scheduler_chan: state.scheduler_chan,
-                devtools_chan: script_to_devtools_chan,
-                bluetooth_thread: state.bluetooth_thread,
-                swmanager_thread: state.swmanager_thread,
-                image_cache_thread: state.image_cache_thread,
-                font_cache_thread: state.font_cache_thread,
-                resource_threads: state.resource_threads,
-                time_profiler_chan: state.time_profiler_chan,
-                mem_profiler_chan: state.mem_profiler_chan,
-                window_size: window_size,
-                layout_to_constellation_chan: state.layout_to_constellation_chan,
-                script_chan: script_chan.sender(),
-                load_data: state.load_data.clone(),
-                script_port: script_port,
-                opts: (*opts::get()).clone(),
-                prefs: PREFS.cloned(),
-                pipeline_port: pipeline_port,
-                pipeline_namespace_id: state.pipeline_namespace_id,
-                layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
-                layout_content_process_shutdown_port: layout_content_process_shutdown_port,
-                script_content_process_shutdown_chan: script_content_process_shutdown_chan,
-                script_content_process_shutdown_port: script_content_process_shutdown_port,
-                webrender_api_sender: state.webrender_api_sender,
-                webvr_thread: state.webvr_thread,
-            };
-
-            // Spawn the child process.
-            //
-            // Yes, that's all there is to it!
-            if opts::multiprocess() {
-                let _ = try!(unprivileged_pipeline_content.spawn_multiprocess());
-            } else {
-                unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
-            }
-        }
 
         Ok(Pipeline::new(state.id,
                          state.frame_id,
@@ -291,7 +292,7 @@ impl Pipeline {
                          pipeline_chan,
                          state.compositor_proxy,
                          state.is_private,
-                         state.load_data.url,
+                         url,
                          state.window_size,
                          state.prev_visibility.unwrap_or(true)))
     }
