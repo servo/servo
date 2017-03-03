@@ -313,7 +313,7 @@ macro_rules! define_string_types {
                 assert!(s.len() < (u32::MAX as usize));
                 $String {
                     hdr: $StringRepr {
-                        data: s.as_ptr(),
+                        data: if s.is_empty() { ptr::null() } else { s.as_ptr()},
                         length: s.len() as u32,
                         flags: F_NONE,
                     },
@@ -325,6 +325,11 @@ macro_rules! define_string_types {
         impl From<Box<[$char_t]>> for $String<'static> {
             fn from(s: Box<[$char_t]>) -> $String<'static> {
                 assert!(s.len() < (u32::MAX as usize));
+
+                if s.is_empty() {
+                    return $String::new();
+                }
+
                 // SAFETY NOTE: This method produces an F_OWNED ns[C]String from
                 // a Box<[$char_t]>. this is only safe because in the Gecko
                 // tree, we use the same allocator for Rust code as for C++
