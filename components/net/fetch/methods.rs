@@ -258,7 +258,7 @@ pub fn main_fetch(request: Rc<Request>,
 
     // Step 13
     // no need to check if response is a network error, since the type would not be `Default`
-    let response = if response.response_type == ResponseType::Default {
+    let mut response = if response.response_type == ResponseType::Default {
         let response_type = match request.response_tainting.get() {
             ResponseTainting::Basic => ResponseType::Basic,
             ResponseTainting::CorsTainting => ResponseType::Cors,
@@ -271,9 +271,27 @@ pub fn main_fetch(request: Rc<Request>,
 
     let mut response_loaded = false;
     {
-        // Step 14
+        let invalid_mime = {
+            let mime_type = response.headers.get::<ContentType>();
+            let csv: Mime = "text/csv".parse().unwrap();
+            mime_type.is_some() && (match *mime_type.unwrap() {
+                ContentType(Mime(TopLevel::Audio, _, _)) |
+                ContentType(Mime(TopLevel::Video, _, _)) |
+                ContentType(Mime(TopLevel::Image, _, _)) => true,
+                ContentType(ref m_type) => { *m_type == csv }
+            })
+        };
+
         let network_error_res;
-        let internal_response = if let Some(error) = response.get_network_error() {
+        let mut step16 = false;
+        let internal_response = if invalid_mime && request.type_ == Type::Script {
+            // *****Step 16******
+            // should internalResponse to request be blocked due to its MIMEType
+            step16 = true;
+            response = Response::network_error(NetworkError::Internal("Invalid mime type for response".into()));
+            &response
+        } else if let Some(error) = response.get_network_error() {
+            // Step 14
             network_error_res = Response::network_error(error.clone());
             &network_error_res
         } else {
@@ -281,12 +299,15 @@ pub fn main_fetch(request: Rc<Request>,
         };
 
         // Step 15
-        if internal_response.url_list.borrow().is_empty() {
+        // Only do this if coming from step 14
+        if !step16 && internal_response.url_list.borrow().is_empty() {
             *internal_response.url_list.borrow_mut() = request.url_list.borrow().clone();
         }
 
         // Step 16
-        // TODO this step (CSP/blocking)
+        // TODO should internalResponse to request be blocked as mixed content
+        // TODO should internalResponse to request be blocked by Content Security Policy
+        // TODO should internalResponse to request be blocked due to nosniff
 
         // Step 17
         if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
