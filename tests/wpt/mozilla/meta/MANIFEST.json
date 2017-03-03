@@ -19767,6 +19767,12 @@
      "/_mozilla/mozilla/windowproxy.html",
      {}
     ]
+   ],
+   "mozilla/zoom_from_test.html": [
+    [
+     "/_mozilla/mozilla/zoom_from_test.html",
+     {}
+    ]
    ]
   }
  },
@@ -31305,6 +31311,10 @@
   ],
   "mozilla/windowproxy.html": [
    "128cd0aa5cf80f60078979039036d32b470b0616",
+   "testharness"
+  ],
+  "mozilla/zoom_from_test.html": [
+   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
    "testharness"
   ]
  },
