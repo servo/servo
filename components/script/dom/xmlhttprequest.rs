@@ -43,7 +43,7 @@ use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
-use hyper::header::{ContentLength, ContentType};
+use hyper::header::{ContentLength, ContentType, ContentEncoding};
 use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::mime::{self, Attr as MimeAttr, Mime, Value as MimeValue};
@@ -980,14 +980,12 @@ impl XMLHttpRequest {
                 // Part of step 11, send() (processing response end of file)
                 // XXXManishearth handle errors, if any (substep 2)
 
-                // Subsubsteps 5-7
+                // Subsubsteps 6-8
                 self.send_flag.set(false);
 
                 self.change_ready_state(XMLHttpRequestState::Done);
                 return_if_fetch_was_terminated!();
-                // Subsubsteps 10-12
-                self.dispatch_response_progress_event(atom!("progress"));
-                return_if_fetch_was_terminated!();
+                // Subsubsteps 11-12
                 self.dispatch_response_progress_event(atom!("load"));
                 return_if_fetch_was_terminated!();
                 self.dispatch_response_progress_event(atom!("loadend"));
@@ -1010,15 +1008,11 @@ impl XMLHttpRequest {
                 let upload_complete = &self.upload_complete;
                 if !upload_complete.get() {
                     upload_complete.set(true);
-                    self.dispatch_upload_progress_event(atom!("progress"), None);
-                    return_if_fetch_was_terminated!();
                     self.dispatch_upload_progress_event(Atom::from(errormsg), None);
                     return_if_fetch_was_terminated!();
                     self.dispatch_upload_progress_event(atom!("loadend"), None);
                     return_if_fetch_was_terminated!();
                 }
-                self.dispatch_response_progress_event(atom!("progress"));
-                return_if_fetch_was_terminated!();
                 self.dispatch_response_progress_event(Atom::from(errormsg));
                 return_if_fetch_was_terminated!();
                 self.dispatch_response_progress_event(atom!("loadend"));
@@ -1033,12 +1027,17 @@ impl XMLHttpRequest {
     }
 
     fn dispatch_progress_event(&self, upload: bool, type_: Atom, loaded: u64, total: Option<u64>) {
+        let (total_length, length_computable) = if self.response_headers.borrow().has::<ContentEncoding>() {
+            (0, false)
+        } else {
+            (total.unwrap_or(0), total.is_some())
+        };
         let progressevent = ProgressEvent::new(&self.global(),
                                                type_,
                                                EventBubbles::DoesNotBubble,
                                                EventCancelable::NotCancelable,
-                                               total.is_some(), loaded,
-                                               total.unwrap_or(0));
+                                               length_computable, loaded,
+                                               total_length);
         let target = if upload {
             self.upload.upcast()
         } else {
