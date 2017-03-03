@@ -120,51 +120,39 @@ pub fn extended_filtering(tag: &str, range: &str) -> bool {
     let mut is_match: bool = true;
 
     for range_tag in range_tags {
-        // (step 1) Split both the extended language range and the language tag being
-        // compared into a list of subtags by dividing on the hyphen (%x2D)
-        // character.  Two subtags match if either they are the same when
-        // compared case-insensitively or the language range's subtag is the
-        // wildcard '*'.
+        // step 1
         let css_tags: Vec<&str> = range_tag.split('\x2d').collect();
         let elem_tags: Vec<&str> = tag.split('\x2d').collect();
         if tag.eq_ignore_ascii_case(range_tag) || range_tag.eq_ignore_ascii_case("*") {
             return true;
         }
 
-        // (step 2) Begin with the first subtag in each list.  If the first subtag in
-        // the range does not match the first subtag in the tag, the overall
-        // match fails.  Otherwise, move to the next subtag in both the
-        // range and the tag.
+        // step 2
         // Note: [Level-4 spec](https://drafts.csswg.org/selectors/#lang-pseudo) check for wild card
         if !(css_tags[0].eq_ignore_ascii_case(elem_tags[0]) || css_tags[0].eq_ignore_ascii_case("*")) {
             is_match = false;
             continue;
         }
 
-        //(step 3) While there are more subtags left in the language range's list
+        // step 3
         let css_tag_size = css_tags.len();
         let elem_tag_size = elem_tags.len();
         let mut css_tag_index = 1;
         let mut elem_tag_index = 1;
 
         while css_tag_size > css_tag_index {
-            // (step 3a)  If the subtag currently being examined in the range is the
-            // wildcard ('*'), move to the next subtag in the range and
-            // continue with the loop.
+            // step 3a
             if css_tags[css_tag_index].eq_ignore_ascii_case("*") {
                 css_tag_index += 1;
                 continue;
             }
-            // (step 3b) Else, if there are no more subtags in the language tag's
-            // list, the match fails.
+            // step 3b
             if elem_tag_size <= elem_tag_index {
                 is_match = false;
                 break;
             }
 
-            // (step 3c) Else, if the current subtag in the range's list matches the
-            // current subtag in the language tag's list, move to the next
-            // subtag in both lists and continue with the loop.
+            // step 3c
             let css_tag = css_tags[css_tag_index];
             let element_tag = elem_tags[elem_tag_index];
             if element_tag.eq_ignore_ascii_case(css_tag) {
@@ -172,22 +160,18 @@ pub fn extended_filtering(tag: &str, range: &str) -> bool {
                 elem_tag_index += 1;
                 continue;
             } else {
-                // (step 3d) Else, if the language tag's subtag is a "singleton" (a single
-                // letter or digit, which includes the private-use subtag 'x')
-                // the match fails.
+                // step 3d
                 if element_tag.len() == 1 {
                     is_match = false;
                     break;
                 } else {
-                    // (step 3e) Else, move to the next subtag in the language tag's list and
-                    // continue with the loop.
+                    // step 3e
                     elem_tag_index += 1;
                 }
             }
         }
 
-        // (step 4) When the language range's list has no more subtags, the match
-        // succeeds.
+        // step 4
         if css_tag_size <= css_tag_index && is_match {
             is_match = true;
             break;
