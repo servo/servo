@@ -503,7 +503,6 @@ impl<'le> ServoLayoutElement<'le> {
 
         true
     }
-
 }
 
 fn as_element<'le>(node: LayoutJS<Node>) -> Option<ServoLayoutElement<'le>> {
