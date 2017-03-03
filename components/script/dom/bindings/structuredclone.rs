@@ -40,13 +40,16 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    _closure: *mut raw::c_void) -> *mut JSObject {
     println!("reading data: {:?}, tag:  {:?}", data, tag);
     if tag == StructuredCloneTags::ScTagDomBlob as u32 {
-        let mut blob_vec: Vec<u8> = Vec::new();
-        let blob_vec_mut_ptr:  *mut raw::c_void = &mut blob_vec.as_mut_ptr() as *mut _ as *mut raw::c_void;
-        if JS_ReadBytes(r, blob_vec_mut_ptr, data as usize) {
+        let mut empty_vec: Vec<u8> = Vec::new();
+        let vec_mut_ptr:  *mut raw::c_void = &mut empty_vec.as_mut_ptr() as *mut _ as *mut raw::c_void;
+        if JS_ReadBytes(r, vec_mut_ptr, data as usize) {
+            println!("read bytes: {:?}", vec_mut_ptr);
             let js_context = GlobalScope::from_context(cx);
             /// NOTE: missing the content-type string here.
             /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
-            let root = Blob::new(&js_context, BlobImpl::new_from_bytes(blob_vec), "".to_string());
+            let blob_vec_mut_ptr: *mut u8 = vec_mut_ptr as *mut u8;
+            let blob_bytes: Vec<u8> = Vec::from_raw_parts(blob_vec_mut_ptr, data as usize, data as usize);
+            let root = Blob::new(&js_context, BlobImpl::new_from_bytes(blob_bytes), "".to_string());
             println!("returning blob");
             return *root.reflector().get_jsobject().ptr
         }
