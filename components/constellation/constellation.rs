@@ -538,6 +538,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         ScaleFactor::new(1.0),
                     device_pixel_ratio:
                         ScaleFactor::new(opts::get().device_pixels_per_px.unwrap_or(1.0)),
+                    hidpi_factor:
+                        ScaleFactor::new(1.0),
                 },
                 phantom: PhantomData,
                 webdriver: WebDriverData::new(),
@@ -660,6 +662,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             event_loop: event_loop,
             load_data: load_data,
             device_pixel_ratio: self.window_size.device_pixel_ratio,
+            hidpi_factor: self.window_size.hidpi_factor,
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
             prev_visibility: prev_visibility,
             webrender_api_sender: self.webrender_api_sender.clone(),
@@ -1367,6 +1370,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
                     initial_viewport: size,
                     device_pixel_ratio: self.window_size.device_pixel_ratio,
+                    hidpi_factor: self.window_size.hidpi_factor,
                 }, WindowSizeType::Initial);
 
                 pipeline.event_loop.send(msg)

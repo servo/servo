@@ -30,6 +30,7 @@ extern crate rustc_serialize;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate servo_geometry;
 extern crate servo_url;
 extern crate style_traits;
 extern crate time;
@@ -63,6 +64,7 @@ use net_traits::storage_thread::StorageType;
 use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
@@ -667,6 +669,9 @@ pub struct WindowSizeData {
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
     pub device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
+
+    /// The scale factor of the system (device pixels / device independent pixels).
+    pub hidpi_factor: ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>,
 }
 
 /// The type of window size change.
