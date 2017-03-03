@@ -25,7 +25,7 @@ use dom::bindings::js::{JS, LayoutJS, MutNullableJS};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::DomObject;
-use dom::bindings::str::DOMString;
+use dom::bindings::str::{DOMString, extended_filtering};
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::characterdata::CharacterData;
@@ -355,7 +355,6 @@ pub trait LayoutElementHelpers {
     fn local_name(&self) -> &LocalName;
     fn namespace(&self) -> &Namespace;
     fn get_lang_for_layout(&self) -> String;
-    fn is_lang_matches(&self, lang: &Box<str>) -> bool;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
@@ -697,15 +696,6 @@ impl LayoutElementHelpers for LayoutJS<Element> {
             &(*self.unsafe_get()).namespace
         }
     }
-
-    #[allow(unsafe_code)]
-    fn is_lang_matches(&self, css_lang: &Box<str>) -> bool {
-        if css_lang.eq_ignore_ascii_case(&self.get_lang_for_layout()) || css_lang.eq_ignore_ascii_case("*")  {
-            return true;
-        }
-        return lang_check(css_lang, self.get_lang_for_layout());
-    }
-
 
     #[allow(unsafe_code)]
     fn get_lang_for_layout(&self) -> String {
@@ -2412,7 +2402,7 @@ impl<'a> ::selectors::Element for Root<Element> {
 
             // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
             //                https://tools.ietf.org/html/rfc4647#section-3.3.2
-            NonTSPseudoClass::Lang(ref lang) => self.is_lang_matches(lang),
+            NonTSPseudoClass::Lang(ref lang) => extended_filtering(&*self.get_lang(), &*lang),
 
             NonTSPseudoClass::ReadOnly =>
                 !Element::state(self).contains(pseudo_class.state_flag()),
@@ -2629,13 +2619,6 @@ impl Element {
         // TODO: Check meta tags for a pragma-set default language
         // TODO: Check HTTP Content-Language header
         }).next().unwrap_or(String::new())
-    }
-
-    fn is_lang_matches(&self, css_lang: &Box<str>) -> bool {
-        if css_lang.eq_ignore_ascii_case(&self.get_lang()) || css_lang.eq_ignore_ascii_case("*") {
-            return true;
-        }
-        return lang_check(css_lang, self.get_lang());
     }
 
     pub fn state(&self) -> ElementState {
@@ -2990,54 +2973,4 @@ pub fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
             _ => unreachable!()
         }
     })
-}
-
-pub fn lang_check(css_lang: &Box<str>, element_lang: String) -> bool {
-    let css_lang_tags: Vec<&str> = css_lang.split('\x2d').collect();
-    let element_lang_tags: Vec<&str> = element_lang.split('\x2d').collect();
-
-    if !(css_lang_tags[0].eq_ignore_ascii_case(element_lang_tags[0])) {
-        return false;
-    }
-
-    let mut css_tag_index = 1;
-    let mut tag_index = 1;
-
-    let lang_tag_length = element_lang_tags.len();
-    let css_tag_size = css_lang_tags.len();
-    let is_match;
-
-    loop {
-        if lang_tag_length <= tag_index {
-            is_match = false;
-            break;
-        }
-
-        if css_tag_size <= css_tag_index {
-            is_match = true;
-            break;
-        }
-
-        let css_tag = css_lang_tags[css_tag_index];
-        let element_tag = element_lang_tags[tag_index];
-
-        if css_tag == "*" {
-            css_tag_index += 1;
-            continue;
-        }
-
-        if element_tag.len() == 1 {
-            is_match = false;
-            break;
-        }
-
-        if element_tag.eq_ignore_ascii_case(css_tag) {
-            css_tag_index += 1;
-            tag_index += 1;
-        } else {
-            is_match = false;
-            break;
-        }
-    }
-    return is_match;
 }
