@@ -108,6 +108,8 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
                                   need_clone="True"
                                   extra_gecko_values="sticky"
                                   animatable="False"
+                                  creates_stacking_context="True"
+                                  abspos_cb="True"
                                   spec="https://drafts.csswg.org/css-position/#position-property">
     impl SpecifiedValue {
         pub fn is_absolutely_positioned_style(&self) -> bool {
@@ -1116,6 +1118,8 @@ ${helpers.predefined_type("scroll-snap-coordinate",
 
 <%helpers:longhand name="transform" products="gecko servo" extra_prefixes="webkit"
                    animatable="True"
+                   creates_stacking_context="True"
+                   fixpos_cb="True"
                    spec="https://drafts.csswg.org/css-transforms/#propdef-transform">
     use app_units::Au;
     use style_traits::ToCss;
@@ -1672,6 +1676,7 @@ ${helpers.single_keyword("isolation",
                          "auto isolate",
                          products="gecko",
                          spec="https://drafts.fxtf.org/compositing/#isolation",
+                         creates_stacking_context=True,
                          animatable=False)}
 
 // TODO add support for logical values recto and verso
@@ -1710,6 +1715,8 @@ ${helpers.predefined_type("perspective",
                           spec="https://drafts.csswg.org/css-transforms/#perspective",
                           extra_prefixes="moz webkit",
                           boxed=True,
+                          creates_stacking_context=True,
+                          fixpos_cb=True,
                           animatable=True)}
 
 // FIXME: This prop should be animatable
@@ -1819,6 +1826,8 @@ ${helpers.single_keyword("transform-style",
                          "flat preserve-3d",
                          spec="https://drafts.csswg.org/css-transforms/#transform-style-property",
                          extra_prefixes="moz webkit",
+                         creates_stacking_context=True,
+                         fixpos_cb=True,
                          animatable=False)}
 
 <%helpers:longhand name="transform-origin" animatable="True" extra_prefixes="moz webkit" boxed="True"
