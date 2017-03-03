@@ -23,7 +23,8 @@
                               animatable=True, logical=True)}
 % endfor
 
-<%helpers:longhand name="z-index" spec="https://www.w3.org/TR/CSS2/visuren.html#z-index" animatable="True">
+<%helpers:longhand name="z-index" spec="https://www.w3.org/TR/CSS2/visuren.html#z-index" animatable="True"
+                   creates_stacking_context="True">
     use values::HasViewportPercentage;
     use values::computed::ComputedValueAsSpecified;
 
