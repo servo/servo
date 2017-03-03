@@ -99,21 +99,21 @@
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
 
     % if product == "gecko":
-        % for sub_property in "font_size_adjust font_kerning font_variant_caps font_variant_position".split():
-            if let Some(_) = self.${sub_property} {
+        % for name in "size_adjust kerning variant_caps variant_position".split():
+            if self.font_${name}.is_some() {
                 return Ok(());
             }
         % endfor
     % endif
 
     % if product == "none":
-            if let Some(_) = self.font_language_override {
+            if self.font_language_override.is_some() {
                 return Ok(());
             }
     % endif
 
-    % for sub_property in "font_style font_variant font_weight font_stretch".split():
-            self.${sub_property}.to_css(dest)?;
+    % for name in "style variant weight stretch".split():
+            self.font_${name}.to_css(dest)?;
             dest.write_str(" ")?;
     % endfor
 
