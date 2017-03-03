@@ -953,19 +953,12 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 if let Some(ref node) = node {
                     self.current_node = match node.get_pseudo_element_type() {
                         PseudoElementType::Before(_) => {
-                            let first = self.parent_node.get_details_summary_pseudo().or_else(|| unsafe {
-                                self.parent_node.dangerous_first_child()
-                            });
-                            match first {
-                                Some(first) => Some(first),
-                                None => self.parent_node.get_after_pseudo(),
-                            }
+                            self.parent_node.get_details_summary_pseudo()
+                                .or_else(|| unsafe { self.parent_node.dangerous_first_child() })
+                                .or_else(|| self.parent_node.get_after_pseudo())
                         },
                         PseudoElementType::Normal => {
-                            match unsafe { node.dangerous_next_sibling() } {
-                                Some(next) => Some(next),
-                                None => self.parent_node.get_after_pseudo(),
-                            }
+                            unsafe { node.dangerous_next_sibling() }.or_else(|| self.parent_node.get_after_pseudo())
                         },
                         PseudoElementType::DetailsSummary(_) => self.parent_node.get_details_content_pseudo(),
                         PseudoElementType::DetailsContent(_) => self.parent_node.get_after_pseudo(),
