@@ -27,6 +27,7 @@ use script_traits::{NewLayoutInfo, SWManagerMsg, SWManagerSenders, ScriptMsg};
 use script_traits::{ScriptThreadFactory, TimerEventRequest, WindowSizeData};
 use servo_config::opts::{self, Opts};
 use servo_config::prefs::{PREFS, Pref};
+use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 #[cfg(not(windows))]
@@ -154,6 +155,9 @@ pub struct InitialPipelineState {
     /// Information about the device pixel ratio.
     pub device_pixel_ratio: ScaleFactor<f32, CSSPixel, DevicePixel>,
 
+    /// The scale factor of the system (device pixels / device independent pixels).
+    pub hidpi_factor: ScaleFactor<f32, DeviceIndependentPixel, DevicePixel>,
+
     /// The event loop to run in, if applicable.
     pub event_loop: Option<Rc<EventLoop>>,
 
@@ -191,10 +195,12 @@ impl Pipeline {
             ipc::channel().expect("Pipeline layout content shutdown chan");
 
         let device_pixel_ratio = state.device_pixel_ratio;
+        let hidpi_factor = state.hidpi_factor;
         let window_size = state.window_size.map(|size| {
             WindowSizeData {
                 initial_viewport: size,
                 device_pixel_ratio: device_pixel_ratio,
+                hidpi_factor: hidpi_factor,
             }
         });
 

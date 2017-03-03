@@ -745,7 +745,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn send_window_size(&self, size_type: WindowSizeType) {
-        let dppx = self.page_zoom * self.hidpi_factor();
+        let dppx = self.device_pixels_per_page_px();
 
         let window_rect = {
             let offset = webrender_traits::DeviceUintPoint::new(self.window_rect.origin.x, self.window_rect.origin.y);
@@ -761,6 +761,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let msg = ConstellationMsg::WindowSize(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
+            hidpi_factor: self.hidpi_factor(),
         }, size_type);
 
         if let Err(e) = self.constellation_chan.send(msg) {
