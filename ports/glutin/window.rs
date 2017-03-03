@@ -345,56 +345,28 @@ impl Window {
                     self.pending_key_event_char.set(Some(ch));
                 }
             }
-            Event::KeyboardInput(element_state, scan_code, virtual_key_code) => {
+            Event::KeyboardInput(element_state, scan_code, Some(virtual_key_code)) => {
                 match virtual_key_code {
-                    Some(VirtualKeyCode::LControl) => self.toggle_modifier(LEFT_CONTROL),
-                    Some(VirtualKeyCode::RControl) => self.toggle_modifier(RIGHT_CONTROL),
-                    Some(VirtualKeyCode::LShift) => self.toggle_modifier(LEFT_SHIFT),
-                    Some(VirtualKeyCode::RShift) => self.toggle_modifier(RIGHT_SHIFT),
-                    Some(VirtualKeyCode::LAlt) => self.toggle_modifier(LEFT_ALT),
-                    Some(VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
-                    Some(VirtualKeyCode::LWin) => self.toggle_modifier(LEFT_SUPER),
-                    Some(VirtualKeyCode::RWin) => self.toggle_modifier(RIGHT_SUPER),
+                    VirtualKeyCode::LControl => self.toggle_modifier(LEFT_CONTROL),
+                    VirtualKeyCode::RControl => self.toggle_modifier(RIGHT_CONTROL),
+                    VirtualKeyCode::LShift => self.toggle_modifier(LEFT_SHIFT),
+                    VirtualKeyCode::RShift => self.toggle_modifier(RIGHT_SHIFT),
+                    VirtualKeyCode::LAlt => self.toggle_modifier(LEFT_ALT),
+                    VirtualKeyCode::RAlt => self.toggle_modifier(RIGHT_ALT),
+                    VirtualKeyCode::LWin => self.toggle_modifier(LEFT_SUPER),
+                    VirtualKeyCode::RWin => self.toggle_modifier(RIGHT_SUPER),
                     _ => {}
                 }
 
-                let ch = match element_state {
-                    ElementState::Pressed => {
-                        // Retrieve any previosly stored ReceivedCharacter value.
-                        // Store the association between the scan code and the actual
-                        // character value, if there is one.
-                        let ch = self.pending_key_event_char
-                                     .get()
-                                     .and_then(|ch| filter_nonprintable(ch, virtual_key_code));
-                        self.pending_key_event_char.set(None);
-                        if let Some(ch) = ch {
-                            self.pressed_key_map.borrow_mut().push((scan_code, ch));
-                        }
-                        ch
-                    }
+                let ch = self.get_keyboard_input_char(element_state, scan_code)
+                    .and_then(|ch| filter_nonprintable(ch, virtual_key_code));
 
-                    ElementState::Released => {
-                        // Retrieve the associated character value for this release key,
-                        // if one was previously stored.
-                        let idx = self.pressed_key_map
-                                      .borrow()
-                                      .iter()
-                                      .position(|&(code, _)| code == scan_code);
-                        idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
-                    }
-                };
-
-                let key = match virtual_key_code {
-                    Some(v) => Window::glutin_key_to_script_key(v),
-                    None => Key::Unidentified,
-                };
-                let state = match element_state {
-                    ElementState::Pressed => KeyState::Pressed,
-                    ElementState::Released => KeyState::Released,
-                };
-                let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
-
+                let key = Window::glutin_key_to_script_key(virtual_key_code);
+                self.send_key_event(ch, key, element_state);
+            }
+            Event::KeyboardInput(element_state, scan_code, None) => {
+                let ch = self.get_keyboard_input_char(element_state, scan_code);
+                self.send_key_event(ch, Key::Unidentified, element_state)
             }
             Event::Resized(width, height) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Resize(TypedSize2D::new(width, height)));
@@ -465,6 +437,42 @@ impl Window {
         let mut modifiers = self.key_modifiers.get();
         modifiers.toggle(modifier);
         self.key_modifiers.set(modifiers);
+    }
+
+    fn get_keyboard_input_char(&self, element_state: ElementState, scan_code: ScanCode) -> Option<char> {
+        match element_state {
+            ElementState::Pressed => {
+                // Retrieve any previosly stored ReceivedCharacter value.
+                // Store the association between the scan code and the actual
+                // character value, if there is one.
+                let ch = self.pending_key_event_char
+                             .get();
+                self.pending_key_event_char.set(None);
+                if let Some(ch) = ch {
+                    self.pressed_key_map.borrow_mut().push((scan_code, ch));
+                }
+                ch
+            }
+
+            ElementState::Released => {
+                // Retrieve the associated character value for this release key,
+                // if one was previously stored.
+                let idx = self.pressed_key_map
+                              .borrow()
+                              .iter()
+                              .position(|&(code, _)| code == scan_code);
+                idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
+            }
+        }
+    }
+
+    fn send_key_event(&self, ch: Option<char>, key: Key, element_state: ElementState) {
+        let state = match element_state {
+            ElementState::Pressed => KeyState::Pressed,
+            ElementState::Released => KeyState::Released,
+        };
+        let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+        self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
     }
 
     /// Helper function to send a scroll event.
@@ -1147,9 +1155,9 @@ fn glutin_pressure_stage_to_touchpad_pressure_phase(stage: i64) -> TouchpadPress
     }
 }
 
-fn filter_nonprintable(ch: char, key_code: Option<VirtualKeyCode>) -> Option<char> {
+fn filter_nonprintable(ch: char, key_code: VirtualKeyCode) -> Option<char> {
     use glutin::VirtualKeyCode::*;
-    match key_code.unwrap_or(A) {
+    match key_code {
         Escape |
         F1 |
         F2 |
