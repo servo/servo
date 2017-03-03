@@ -14,6 +14,7 @@ use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue};
 use js::jsapi::{Heap, JSContext};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
 use js::jsapi::{JS_ClearPendingException, JSObject, JS_ReadStructuredClone};
+use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
 use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone, JS_WriteUint32Pair};
 use js::jsapi::{MutableHandleObject, TransferableOwnership};
 use libc::size_t;
@@ -23,43 +24,32 @@ use std::slice;
 
 ///TODO: move const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs
 ///TODO: determine which value SCTAG_BASE should have
-const SCTAG_BASE: u32 = 0xFFFF8000;
+const SCTAG_BASE: u32 = 0xFFFF8000 as u32;
 #[repr(u32)]
 enum StructuredCloneTags {
-    SCTAG_BASE,
-    ScTagDomBlob,
+    SCTAG_BASE = 0xFFFF8000,
+    ScTagDomBlob = 0xFFFF8001,
+    max = 0xFFFFFFFF,
 }
 
 #[allow(dead_code)]
 unsafe extern "C" fn read_callback(cx: *mut JSContext,
-                                   _r: *mut JSStructuredCloneReader,
+                                   r: *mut JSStructuredCloneReader,
                                    tag: u32,
                                    data: u32,
-                                   closure: *mut raw::c_void) -> *mut JSObject {
-    let sc_data: &mut StructuredCloneData = &mut *(closure as *mut StructuredCloneData);
-    let vec_data = match *sc_data {
-        StructuredCloneData::Vector(ref vec) => {
-            let vec_data = slice::from_raw_parts(data as *mut u8, vec.len() as usize).to_vec();
-            if *vec != vec_data {
-                return Heap::default().get()
-            }
-            vec_data
-        },
-        StructuredCloneData::Struct(data, len) => {
-            let vec_data = slice::from_raw_parts(data as *mut u8, len as usize).to_vec();
-            let vec = slice::from_raw_parts(data as *mut u8, len as usize).to_vec();
-            if vec != vec_data {
-                return Heap::default().get()
-            }
-            vec_data
-        }
-    };
+                                   _closure: *mut raw::c_void) -> *mut JSObject {
+    println!("reading data: {:?}, tag:  {:?}", data, tag);
     if tag == StructuredCloneTags::ScTagDomBlob as u32 {
-        let js_context = GlobalScope::from_context(cx);
-        /// NOTE: missing the content-type string here.
-        /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
-        let root = Blob::new(&js_context, BlobImpl::new_from_bytes(vec_data), "".to_string());
-        return *root.reflector().get_jsobject().ptr
+        let mut blob_vec: Vec<u8> = Vec::new();
+        let blob_vec_mut_ptr:  *mut raw::c_void = &mut blob_vec.as_mut_ptr() as *mut _ as *mut raw::c_void;
+        if JS_ReadBytes(r, blob_vec_mut_ptr, data as usize) {
+            let js_context = GlobalScope::from_context(cx);
+            /// NOTE: missing the content-type string here.
+            /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
+            let root = Blob::new(&js_context, BlobImpl::new_from_bytes(blob_vec), "".to_string());
+            println!("returning blob");
+            return *root.reflector().get_jsobject().ptr
+        }
     }
     return Heap::default().get()
 }
@@ -71,12 +61,15 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     _closure: *mut raw::c_void) -> bool {
     if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
         if let Ok(blob_vec) = blob.get_bytes() {
+            println!("writing: {:?}", StructuredCloneTags::ScTagDomBlob as u32);
             if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
-                                      blob_vec.as_ptr() as u32) {
-                return true
+                                      blob_vec.len() as u32) {
+                let blob_vec_ptr: *const raw::c_void = &mut blob_vec.as_ptr() as *const _ as *const raw::c_void;
+                return JS_WriteBytes(w, blob_vec_ptr, blob_vec.len())
             }
         }
     }
+    println!("not writing: {:?}", obj);
     return false
 }
 
@@ -111,7 +104,8 @@ unsafe extern "C" fn free_transfer_callback(_tag: u32,
 }
 
 #[allow(dead_code)]
-unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, _errorid: u32) {
+unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, errorid: u32) {
+    println!("callback error: {:?}", errorid);
 }
 
 #[allow(dead_code)]
@@ -125,6 +119,7 @@ static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredClon
 };
 
 /// A buffer for a structured clone.
+#[derive(Debug)]
 pub enum StructuredCloneData {
     /// A non-serializable (default) variant
     Struct(*mut u64, size_t),
@@ -152,7 +147,12 @@ impl StructuredCloneData {
             }
             return Err(Error::DataClone);
         }
-        Ok(StructuredCloneData::Struct(data, nbytes))
+        let sc_data = StructuredCloneData::Struct(data, nbytes);
+        println!("message written: {:?}", message);
+        unsafe {
+            println!("sc_data written: {:?}", slice::from_raw_parts(data as *mut u8, nbytes).to_vec());
+        }
+        Ok(sc_data)
     }
 
     /// Converts a StructuredCloneData to Vec<u8> for inter-thread sharing
@@ -170,33 +170,35 @@ impl StructuredCloneData {
     /// Reads a structured clone.
     ///
     /// Panics if `JS_ReadStructuredClone` fails.
-    fn read_clone(sc_data_ptr: *mut raw::c_void,
-                  global: &GlobalScope,
+    fn read_clone(global: &GlobalScope,
                   data: *mut u64,
                   nbytes: size_t,
                   rval: MutableHandleValue) {
         unsafe {
-            assert!(JS_ReadStructuredClone(global.get_cx(),
+            let result = JS_ReadStructuredClone(global.get_cx(),
                                            data,
                                            nbytes,
                                            JS_STRUCTURED_CLONE_VERSION,
                                            rval,
                                            &STRUCTURED_CLONE_CALLBACKS,
-                                           sc_data_ptr));
+                                           ptr::null_mut());
+            println!("reading: success{:?}", result);
+            assert!(result);
         }
     }
 
     /// Thunk for the actual `read_clone` method. Resolves proper variant for read_clone.
     pub fn read(mut self, global: &GlobalScope, rval: MutableHandleValue) {
-        let sc_data_ptr:  *mut raw::c_void = &mut self as *mut _ as *mut raw::c_void;
+        println!("reading: {:?}", self);
+        println!("rval reading: {:?}", rval);
         match self {
             StructuredCloneData::Vector(mut vec_msg) => {
                 let nbytes = vec_msg.len();
                 let data = vec_msg.as_mut_ptr() as *mut u64;
-                StructuredCloneData::read_clone(sc_data_ptr, global, data, nbytes, rval);
+                StructuredCloneData::read_clone(global, data, nbytes, rval);
             }
             StructuredCloneData::Struct(data, nbytes) => {
-                StructuredCloneData::read_clone(sc_data_ptr, global, data, nbytes, rval)
+                StructuredCloneData::read_clone(global, data, nbytes, rval)
             }
         }
     }

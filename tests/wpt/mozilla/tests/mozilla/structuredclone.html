@@ -12,12 +12,18 @@
 async_test(function(t) {
   var iframe = document.getElementById('iframe');
   var blob = new Blob(['test']);
-  iframe.onload = this.step_func_done(function() {
-    var otherWindow = iframe.contentWindow;
-    otherWindow.postMessage(blob, '*');
-    t.done();
-    }, false);
-});
+  window.addEventListener("message", this.step_func_done(function(msg) {
+      console.log('received msg')
+      console.log(msg.data.size, blob.size)
+      assert_equals(msg.data.size, blob.size);
+      var otherWindow = iframe.contentWindow;
+      otherWindow.postMessage(msg.data, '*');
+  }), false);
+  iframe.onload = this.step_func(function() {
+      window.postMessage(blob, '*');
+      console.log('sent msg')
+  }, false);
+}, "test cloning blobs");
 </script>
 </body>
 </html>
