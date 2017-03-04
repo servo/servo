@@ -42,12 +42,12 @@ fn test_caret_color() {
 
     let blue_color = CSSColor {
         parsed: Color::RGBA(RGBA {
-            red: 0.0,
-            green: 0.0,
-            blue: 1.0,
-            alpha: 1.0,
+            red: 0,
+            green: 0,
+            blue: 255,
+            alpha: 255,
         }),
-        authored: Some("blue".to_string()),
+        authored: Some(String::from("blue").into_boxed_str()),
     };
 
     let color = parse_longhand!(caret_color, "blue");

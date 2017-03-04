@@ -36,5 +36,4 @@ ${helpers.predefined_type("caret-color",
                           "Either::Second(Auto)",
                           spec="https://drafts.csswg.org/css-ui/#caret-color",
                           animatable="True",
-                          products="none",
-                          boxed="True")}
+                          products="none")}
