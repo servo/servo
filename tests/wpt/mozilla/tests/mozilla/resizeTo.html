@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+async_test(function(t) {
+  window.onresize = t.step_func(function() {
+    t.done();
+  });
+
+  window.resizeTo(200, 200);
+}, "onresize");
+</script>
