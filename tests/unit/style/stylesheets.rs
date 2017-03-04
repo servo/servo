@@ -357,34 +357,3 @@ fn test_report_error_stylesheet() {
     // testing for the url
     assert_eq!(url, error.url);
 }
-
-
-#[test]
-fn test_report_error_passing_correct_url() {
-    let css = r"
-    div {
-        background-color: red;
-        display: invalid;
-        invalid: true;
-    }
-    ";
-
-    let mut servo_urls = vec!();
-    servo_urls.push(ServoUrl::parse("about::test").unwrap());
-
-    for servo_url in servo_urls {
-        let error_reporter = Box::new(CSSInvalidErrorReporterTest::new());
-        let errors = error_reporter.errors.clone();
-        Stylesheet::from_str(css, servo_url.clone(), Origin::UserAgent, Default::default(),
-                             None,
-                             error_reporter,
-                             ParserContextExtraData::default());
-
-        let mut errors = errors.lock().unwrap();
-        let error = errors.pop().unwrap();
-
-        // testing for the url
-        assert_eq!(servo_url, error.url);
-    }
-
-}
