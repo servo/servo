@@ -222,7 +222,12 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         % for name in "outset repeat slice source width".split():
-            let mut border_image_${name} = border_image_${name}::get_initial_specified_value();
+             if ${w}.is_none() && ${o}.is_none {
+                    Err(())
+             }
+             else {
+                    Ok((w, o))
+             }
         % endfor
 
         try!(input.try(|input| {
