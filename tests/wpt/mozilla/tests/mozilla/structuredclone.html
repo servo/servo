@@ -11,19 +11,24 @@
 <script>
 async_test(function(t) {
   var iframe = document.getElementById('iframe');
-  var blob = new Blob(['test']);
-  window.addEventListener("message", this.step_func_done(function(msg) {
-      console.log('received msg')
-      console.log(msg.data.size, blob.size)
+  var blob = new Blob(['<a id="a"><b id="b">hey!</b></a>'], {type:"text/plain"});
+  window.addEventListener("message", this.step_func(function(msg) {
       assert_equals(msg.data.size, blob.size);
-      reader.addEventListener("loadend", this.step_func_done(function() {
-          console.log(reader.result)
+      var cloned_content, original_content;
+      var reader = new FileReader();
+      reader.addEventListener("loadend", this.step_func(function() {
+          original_content = reader.result;
       }));
-      reader.readAsText(msg.data);
+      reader.readAsText(blob);
+      var reader2 = new FileReader();
+      reader2.addEventListener("loadend", this.step_func_done(function() {
+          cloned_content = reader2.result;
+          assert_equals(cloned_content, original_content);
+      }));
+      reader2.readAsText(msg.data);
   }), false);
   iframe.onload = this.step_func(function() {
       window.postMessage(blob, '*');
-      console.log('sent msg')
   }, false);
 }, "test cloning blobs");
 </script>
