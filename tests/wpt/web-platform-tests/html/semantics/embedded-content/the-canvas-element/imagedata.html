@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function constructor_domexceptions(domExcepName, description, func) {
+    test(function() {
+        var result;
+        try {
+            func();
+        } catch (ex) {
+            if (ex instanceof DOMException) {
+                result = ex.name;
+            }
+        }
+        assert_equals(domExcepName, result);
+    }, description);
+}
+
+constructor_domexceptions("IndexSizeError",
+    "ImagaData(w, h), width cannot be 0",
+    function() {
+        new ImageData(0, 1)
+    });
+
+constructor_domexceptions("IndexSizeError",
+    "ImagaData(w, h), height cannot be 0",
+    function() {
+        new ImageData(1, 0)
+    });
+
+test(function() {
+    var imageData = new ImageData(2, 3);
+    assert_equals(imageData.data.length, 24);
+}, "ImageData's buffer must be w * h * 4 long");
+
+constructor_domexceptions("InvalidStateError",
+    "ImagaData(buffer, w), the buffer size must be a multiple of 4",
+    function() {
+        new ImageData(new Uint8ClampedArray(3), 1);
+    });
+
+constructor_domexceptions("IndexSizeError",
+    "ImagaData(buffer, w, h), buffer.lenght == 4 * w * h must be true",
+    function() {
+        new ImageData(new Uint8ClampedArray(16), 4, 3);
+    });
+
+test(function() {
+    assert_throws(new TypeError(), function() {
+        new ImageData(new Int8Array(1), 1);
+    });
+}, "ImagaData(Uint8ClampedArray, w), Uint8ClampedArray type check");
+</script>

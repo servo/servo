@@ -5,6 +5,7 @@
 use core::nonzero::NonZero;
 use dom::bindings::codegen::Bindings::ImageDataBinding;
 use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
+use dom::bindings::error::{Fallible, Error};
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::globalscope::GlobalScope;
@@ -52,6 +53,68 @@ impl ImageData {
 
         reflect_dom_object(imagedata,
                            global, ImageDataBinding::Wrap)
+    }
+
+    #[allow(unsafe_code)]
+    unsafe fn new_with_jsobject(global: &GlobalScope, width: u32, height: u32, data: *mut JSObject) -> Root<ImageData> {
+        let imagedata = box ImageData {
+            reflector_: Reflector::new(),
+            width: width,
+            height: height,
+            data: Heap::default(),
+        };
+
+        (*imagedata).data.set(data);
+        reflect_dom_object(imagedata, global, ImageDataBinding::Wrap)
+    }
+
+    //https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-3
+    #[allow(unsafe_code)]
+    pub fn Constructor(global: &GlobalScope, width: u32, height: u32) -> Fallible<Root<Self>> {
+        if width == 0 || height == 0 {
+            return Err(Error::IndexSize);
+        }
+        unsafe {
+            let len = width * height * 4;
+            let cx = global.get_cx();
+            rooted!(in (cx) let mut array = ptr::null_mut());
+            Uint8ClampedArray::create(cx, CreateWith::Length(len), array.handle_mut()).unwrap();
+            Ok(Self::new_with_jsobject(global, width, height, array.get()))
+        }
+    }
+
+    //https://html.spec.whatwg.org/multipage/#pixel-manipulation:dom-imagedata-4
+    #[allow(unsafe_code)]
+    pub unsafe fn Constructor_(cx: *mut JSContext,
+                        global: &GlobalScope,
+                        data: *mut JSObject,
+                        width: u32,
+                        opt_height: Option<u32>)
+                        -> Fallible<Root<Self>> {
+        typedarray!(in(cx) let data_res: Uint8ClampedArray = data);
+        let mut array = match data_res {
+            Ok(data) => data,
+            Err(_)   => {
+                return Err(Error::Type("Argument to Image data is not an ArrayBufferView".to_owned()));
+            }
+        };
+
+        let byte_len = array.as_slice().len() as u32;
+        if byte_len % 4 != 0 {
+            return Err(Error::InvalidState);
+        }
+
+        let len = byte_len / 4;
+        if width == 0 || len % width != 0 {
+            return Err(Error::IndexSize);
+        }
+
+        let height = len / width;
+        if opt_height.map_or(false, |x| height != x) {
+            return Err(Error::IndexSize);
+        }
+
+        Ok(Self::new_with_jsobject(global, width, height, data))
     }
 
     #[allow(unsafe_code)]
