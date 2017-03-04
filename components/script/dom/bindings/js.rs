@@ -235,20 +235,20 @@ impl LayoutJS<Node> {
 /// GC barriers are enforced.
 #[must_root]
 #[derive(JSTraceable)]
-pub struct MutHeapJSVal {
+pub struct HeapJSVal {
     val: UnsafeCell<Heap<JSVal>>,
 }
 
-impl MutHeapJSVal {
-    /// Create a new `MutHeapJSVal`.
-    pub fn new() -> MutHeapJSVal {
+impl HeapJSVal {
+    /// Create a new `HeapJSVal`.
+    pub fn new() -> HeapJSVal {
         debug_assert!(thread_state::get().is_script());
-        MutHeapJSVal {
+        HeapJSVal {
             val: UnsafeCell::new(Heap::default()),
         }
     }
 
-    /// Set this `MutHeapJSVal` to the given value, calling write barriers as
+    /// Set this `HeapJSVal` to the given value, calling write barriers as
     /// appropriate.
     pub fn set(&self, val: JSVal) {
         debug_assert!(thread_state::get().is_script());
@@ -258,7 +258,7 @@ impl MutHeapJSVal {
         }
     }
 
-    /// Get the value in this `MutHeapJSVal`, calling read barriers as appropriate.
+    /// Get the value in this `HeapJSVal`, calling read barriers as appropriate.
     pub fn get(&self) -> JSVal {
         debug_assert!(thread_state::get().is_script());
         unsafe { (*self.val.get()).get() }

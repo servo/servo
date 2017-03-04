@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::PopStateEventBinding;
 use dom::bindings::codegen::Bindings::PopStateEventBinding::PopStateEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutHeapJSVal, Root};
+use dom::bindings::js::{HeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
@@ -23,14 +23,14 @@ use servo_atoms::Atom;
 pub struct PopStateEvent {
     event: Event,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    state: MutHeapJSVal,
+    state: HeapJSVal,
 }
 
 impl PopStateEvent {
     fn new_inherited() -> PopStateEvent {
         PopStateEvent {
             event: Event::new_inherited(),
-            state: MutHeapJSVal::new(),
+            state: HeapJSVal::new(),
         }
     }
 

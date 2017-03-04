@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutHeapJSVal, Root};
+use dom::bindings::js::{HeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedTraceableBox;
@@ -28,7 +28,7 @@ pub struct ErrorEvent {
     lineno: Cell<u32>,
     colno: Cell<u32>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    error: MutHeapJSVal,
+    error: HeapJSVal,
 }
 
 impl ErrorEvent {
@@ -39,7 +39,7 @@ impl ErrorEvent {
             filename: DOMRefCell::new(DOMString::new()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
-            error: MutHeapJSVal::new()
+            error: HeapJSVal::new()
         }
     }
 
