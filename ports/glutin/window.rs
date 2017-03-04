@@ -834,7 +834,10 @@ impl WindowMethods for Window {
             WindowKind::Window(ref window) => {
                 window.set_inner_size(size.width as u32, size.height as u32)
             }
-            WindowKind::Headless(..) => {}
+            WindowKind::Headless(..) => {
+                let dimensions = TypedSize2D::new(size.width as u32, size.height as u32);
+                self.event_queue.borrow_mut().push(WindowEvent::Resize(dimensions));
+            }
         }
     }
 
