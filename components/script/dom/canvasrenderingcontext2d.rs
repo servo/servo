@@ -1059,7 +1059,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             chunk[2] = UNPREMULTIPLY_TABLE[256 * alpha + chunk[2] as usize];
         }
 
-        Ok(ImageData::new(&self.global(), sw, sh, Some(data)))
+        Ok(ImageData::from_vec(&self.global(), sw, sh, Some(data)))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata
