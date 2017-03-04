@@ -24,6 +24,7 @@ use std::slice;
 
 ///TODO: move const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs
 ///TODO: determine which value SCTAG_BASE should have
+///NOTE: Values are from: https://dxr.mozilla.org/mozilla-central/source/js/public/StructuredClone.h#323
 const SCTAG_BASE: u32 = 0xFFFF8000 as u32;
 #[repr(u32)]
 enum StructuredCloneTags {
@@ -41,14 +42,10 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
     println!("reading data: {:?}, tag:  {:?}", data, tag);
     if tag == StructuredCloneTags::ScTagDomBlob as u32 {
         let mut empty_vec: Vec<u8> = Vec::with_capacity(data as usize);
-        let mut vec_mut_ptr:  *mut raw::c_void = &mut empty_vec.as_mut_ptr() as *mut _ as *mut raw::c_void;
-        println!("vec_mut_ptr: {:?}", vec_mut_ptr);
+        let vec_mut_ptr:  *mut raw::c_void = empty_vec.as_mut_ptr() as *mut _ as *mut raw::c_void;
         if JS_ReadBytes(r, vec_mut_ptr, data as usize) {
-            println!("read bytes: {:?}", vec_mut_ptr);
-            println!("empty vec now contains: {:?}", empty_vec);
-            let blob_vec_mut_ptr: *mut u8 = vec_mut_ptr as *mut u8;
-            let blob_bytes: Vec<u8> = Vec::from_raw_parts(blob_vec_mut_ptr, data as usize, data as usize);
-            println!("blob bytes{:?}", blob_vec_mut_ptr);
+            let blob_bytes: Vec<u8> = Vec::from_raw_parts(vec_mut_ptr as *mut u8, data as usize, data as usize);
+            println!("blob bytes{:?}", blob_bytes);
             let js_context = GlobalScope::from_context(cx);
             /// NOTE: missing the content-type string here.
             /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
@@ -71,9 +68,9 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
             println!("writing: {:?}", StructuredCloneTags::ScTagDomBlob as u32);
             if JS_WriteUint32Pair(w, StructuredCloneTags::ScTagDomBlob as u32,
                                       blob_vec.len() as u32) {
-                let blob_vec_ptr: *const raw::c_void = &mut blob_vec.as_ptr() as *const _ as *const raw::c_void;
+                let blob_vec_ptr: *const raw::c_void = blob_vec.as_ptr() as *const _ as *const raw::c_void;
                 let success =  JS_WriteBytes(w, blob_vec_ptr, blob_vec.len());
-                println!("wrote bytes: {:?}", blob_vec_ptr as *mut u8);
+                println!("wrote bytes: {:?}", blob_vec);
                 return success
             }
         }
@@ -114,7 +111,6 @@ unsafe extern "C" fn free_transfer_callback(_tag: u32,
 
 #[allow(dead_code)]
 unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, errorid: u32) {
-    println!("callback error: {:?}", errorid);
 }
 
 #[allow(dead_code)]
@@ -157,10 +153,6 @@ impl StructuredCloneData {
             return Err(Error::DataClone);
         }
         let sc_data = StructuredCloneData::Struct(data, nbytes);
-        println!("message written: {:?}", message);
-        unsafe {
-            println!("sc_data written: {:?}", slice::from_raw_parts(data as *mut u8, nbytes).to_vec());
-        }
         Ok(sc_data)
     }
 
@@ -191,15 +183,12 @@ impl StructuredCloneData {
                                            rval,
                                            &STRUCTURED_CLONE_CALLBACKS,
                                            ptr::null_mut());
-            println!("reading: success{:?}", result);
             assert!(result);
         }
     }
 
     /// Thunk for the actual `read_clone` method. Resolves proper variant for read_clone.
-    pub fn read(mut self, global: &GlobalScope, rval: MutableHandleValue) {
-        println!("reading: {:?}", self);
-        println!("rval reading: {:?}", rval);
+    pub fn read(self, global: &GlobalScope, rval: MutableHandleValue) {
         match self {
             StructuredCloneData::Vector(mut vec_msg) => {
                 let nbytes = vec_msg.len();
