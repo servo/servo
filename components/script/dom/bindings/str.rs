@@ -116,14 +116,14 @@ pub fn is_token(s: &[u8]) -> bool {
 /// Returns whether the language is matched, as defined by
 /// [RFC 4647](https://tools.ietf.org/html/rfc4647#section-3.3.2).
 pub fn extended_filtering(tag: &str, range: &str) -> bool {
-    let range_tags: Vec<&str> = range.split(',').collect();
+    let lang_ranges: Vec<&str> = range.split(',').collect();
     let mut is_match: bool = true;
 
-    for range_tag in range_tags {
+    for lang_range in lang_ranges {
         // step 1
-        let css_tags: Vec<&str> = range_tag.split('\x2d').collect();
+        let css_tags: Vec<&str> = lang_range.split('\x2d').collect();
         let elem_tags: Vec<&str> = tag.split('\x2d').collect();
-        if tag.eq_ignore_ascii_case(range_tag) || range_tag.eq_ignore_ascii_case("*") {
+        if tag.eq_ignore_ascii_case(lang_range) || lang_range.eq_ignore_ascii_case("*") {
             return true;
         }
 
