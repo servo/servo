@@ -6,6 +6,8 @@
 <script>
 async_test(function(t) {
   window.onresize = t.step_func(function() {
+    assert_equals(window.innerWidth, 200);
+    assert_equals(window.innerHeight, 200);
     t.done();
   });
 
