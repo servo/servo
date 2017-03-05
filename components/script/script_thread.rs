@@ -663,7 +663,7 @@ impl ScriptThread {
                 };
 
                 let dppx = zoom_factor * window_size.hidpi_factor;
-                script_thread.handle_resize(id, WindowSizeData {
+                script_thread.handle_resize_event(id, WindowSizeData {
                     device_pixel_ratio: dppx,
                     initial_viewport: window_size.initial_viewport,
                     hidpi_factor: window_size.hidpi_factor,
