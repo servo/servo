@@ -84,11 +84,7 @@ pub enum ConstructionResult {
 }
 
 impl ConstructionResult {
-    pub fn swap_out(&mut self) -> ConstructionResult {
-        if opts::get().nonincremental_layout {
-            return mem::replace(self, ConstructionResult::None)
-        }
-
+    pub fn get(&mut self) -> ConstructionResult {
         // FIXME(pcwalton): Stop doing this with inline fragments. Cloning fragments is very
         // inefficient!
         (*self).clone()
@@ -485,7 +481,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             inline_fragment_accumulator: &mut InlineFragmentsAccumulator,
             abs_descendants: &mut AbsoluteDescendants,
             legalizer: &mut Legalizer) {
-        match kid.swap_out_construction_result() {
+        match kid.get_construction_result() {
             ConstructionResult::None => {}
             ConstructionResult::Flow(kid_flow, kid_abs_descendants) => {
                 // If kid_flow is TableCaptionFlow, kid_flow should be added under
@@ -784,7 +780,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             if kid.get_pseudo_element_type() != PseudoElementType::Normal {
                 self.process(&kid);
             }
-            match kid.swap_out_construction_result() {
+            match kid.get_construction_result() {
                 ConstructionResult::None => {}
                 ConstructionResult::Flow(flow, kid_abs_descendants) => {
                     if !flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
@@ -1035,7 +1031,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                                        side: caption_side::T) {
         // Only flows that are table captions are matched here.
         for kid in node.children() {
-            match kid.swap_out_construction_result() {
+            match kid.get_construction_result() {
                 ConstructionResult::Flow(kid_flow, _) => {
                     if kid_flow.is_table_caption() &&
                         kid_flow.as_block()
@@ -1304,7 +1300,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             // CSS 2.1 § 17.2.1. Treat all non-column child fragments of `table-column-group`
             // as `display: none`.
             if let ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(fragment)) =
-                kid.swap_out_construction_result() {
+                kid.get_construction_result() {
                 col_fragments.push(fragment)
             }
         }
@@ -1641,9 +1637,8 @@ trait NodeUtils {
     /// Sets the construction result of a flow.
     fn set_flow_construction_result(self, result: ConstructionResult);
 
-    /// Replaces the flow construction result in a node with `ConstructionResult::None` and returns
-    /// the old value.
-    fn swap_out_construction_result(self) -> ConstructionResult;
+    /// Returns the construction result for this node.
+    fn get_construction_result(self) -> ConstructionResult;
 }
 
 impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
@@ -1686,9 +1681,9 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
     }
 
     #[inline(always)]
-    fn swap_out_construction_result(self) -> ConstructionResult {
+    fn get_construction_result(self) -> ConstructionResult {
         let mut layout_data = self.mutate_layout_data().unwrap();
-        self.construction_result_mut(&mut *layout_data).swap_out()
+        self.construction_result_mut(&mut *layout_data).get()
     }
 }
 

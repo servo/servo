@@ -111,7 +111,7 @@ use script_runtime::{CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::{AnimationState, CompositorEvent, DocumentActivity};
 use script_traits::{MouseButton, MouseEventType, MozBrowserEvent};
-use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
+use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
 use script_traits::{TouchEventType, TouchId};
 use script_traits::UntrustedNodeAddress;
 use servo_atoms::Atom;
@@ -136,8 +136,18 @@ use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use task_source::TaskSource;
 use time;
+use timers::OneshotTimerCallback;
 use url::Host;
 use url::percent_encoding::percent_decode;
+
+/// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
+/// falling back to fake ones.
+///
+/// A spurious `requestAnimationFrame()` call is defined as one that does not change the DOM.
+const SPURIOUS_ANIMATION_FRAME_THRESHOLD: u8 = 5;
+
+/// The amount of time between fake `requestAnimationFrame()`s.
+const FAKE_REQUEST_ANIMATION_FRAME_DELAY: u64 = 16;
 
 pub enum TouchEventResult {
     Processed(bool),
@@ -290,6 +300,11 @@ pub struct Document {
     last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
     /// https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter
     ignore_destructive_writes_counter: Cell<u32>,
+    /// The number of spurious `requestAnimationFrame()` requests we've received.
+    ///
+    /// A rAF request is considered spurious if nothing was actually reflowed.
+    spurious_animation_frames: Cell<u8>,
+
     /// Track the total number of elements in this DOM's tree.
     /// This is sent to the layout thread every time a reflow is done;
     /// layout uses this to determine if the gains from parallel layout will be worth the overhead.
@@ -1498,11 +1513,20 @@ impl Document {
         //
         // TODO: Should tick animation only when document is visible
         if !self.running_animation_callbacks.get() {
-            let global_scope = self.window.upcast::<GlobalScope>();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(
-                global_scope.pipeline_id(),
-                AnimationState::AnimationCallbacksPresent);
-            global_scope.constellation_chan().send(event).unwrap();
+            if !self.is_faking_animation_frames() {
+                let global_scope = self.window.upcast::<GlobalScope>();
+                let event = ConstellationMsg::ChangeRunningAnimationsState(
+                    global_scope.pipeline_id(),
+                    AnimationState::AnimationCallbacksPresent);
+                global_scope.constellation_chan().send(event).unwrap();
+            } else {
+                let callback = FakeRequestAnimationFrameCallback {
+                    document: Trusted::new(self),
+                };
+                self.global()
+                    .schedule_callback(OneshotTimerCallback::FakeRequestAnimationFrame(callback),
+                                       MsDuration::new(FAKE_REQUEST_ANIMATION_FRAME_DELAY));
+            }
         }
 
         ident
@@ -1524,6 +1548,7 @@ impl Document {
             &mut *self.animation_frame_list.borrow_mut());
 
         self.running_animation_callbacks.set(true);
+        let was_faking_animation_frames = self.is_faking_animation_frames();
         let timing = self.window.Performance().Now();
 
         for (_, callback) in animation_frame_list.drain(..) {
@@ -1532,24 +1557,40 @@ impl Document {
             }
         }
 
+        self.running_animation_callbacks.set(false);
+
+        let spurious = !self.window.reflow(ReflowGoal::ForDisplay,
+                                           ReflowQueryType::NoQuery,
+                                           ReflowReason::RequestAnimationFrame);
+
         // Only send the animation change state message after running any callbacks.
         // This means that if the animation callback adds a new callback for
         // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
         // message quickly followed by an AnimationCallbacksPresent message.
-        if self.animation_frame_list.borrow().is_empty() {
+        //
+        // If this frame was spurious and we've seen too many spurious frames in a row, tell the
+        // constellation to stop giving us video refresh callbacks, to save energy. (A spurious
+        // animation frame is one in which the callback did not mutate the DOM—that is, an
+        // animation frame that wasn't actually used for animation.)
+        if self.animation_frame_list.borrow().is_empty() ||
+                (!was_faking_animation_frames && self.is_faking_animation_frames()) {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
                       &mut *animation_frame_list);
             let global_scope = self.window.upcast::<GlobalScope>();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(global_scope.pipeline_id(),
-                                                                       AnimationState::NoAnimationCallbacksPresent);
+            let event = ConstellationMsg::ChangeRunningAnimationsState(
+                global_scope.pipeline_id(),
+                AnimationState::NoAnimationCallbacksPresent);
             global_scope.constellation_chan().send(event).unwrap();
         }
 
-        self.running_animation_callbacks.set(false);
-
-        self.window.reflow(ReflowGoal::ForDisplay,
-                           ReflowQueryType::NoQuery,
-                           ReflowReason::RequestAnimationFrame);
+        // Update the counter of spurious animation frames.
+        if spurious {
+            if self.spurious_animation_frames.get() < SPURIOUS_ANIMATION_FRAME_THRESHOLD {
+                self.spurious_animation_frames.set(self.spurious_animation_frames.get() + 1)
+            }
+        } else {
+            self.spurious_animation_frames.set(0)
+        }
     }
 
     pub fn fetch_async(&self, load: LoadType,
@@ -2048,6 +2089,7 @@ impl Document {
             target_element: MutNullableJS::new(None),
             last_click_info: DOMRefCell::new(None),
             ignore_destructive_writes_counter: Default::default(),
+            spurious_animation_frames: Cell::new(0),
             dom_count: Cell::new(1),
             fullscreen_element: MutNullableJS::new(None),
         }
@@ -2252,6 +2294,12 @@ impl Document {
     pub fn decr_ignore_destructive_writes_counter(&self) {
         self.ignore_destructive_writes_counter.set(
             self.ignore_destructive_writes_counter.get() - 1);
+    }
+
+    /// Whether we've seen so many spurious animation frames (i.e. animation frames that didn't
+    /// mutate the DOM) that we've decided to fall back to fake ones.
+    fn is_faking_animation_frames(&self) -> bool {
+        self.spurious_animation_frames.get() >= SPURIOUS_ANIMATION_FRAME_THRESHOLD
     }
 
     // https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen
@@ -3666,6 +3714,26 @@ pub enum FocusType {
 pub enum FocusEventType {
     Focus,      // Element gained focus. Doesn't bubble.
     Blur,       // Element lost focus. Doesn't bubble.
+}
+
+/// A fake `requestAnimationFrame()` callback—"fake" because it is not triggered by the video
+/// refresh but rather a simple timer.
+///
+/// If the page is observed to be using `requestAnimationFrame()` for non-animation purposes (i.e.
+/// without mutating the DOM), then we fall back to simple timeouts to save energy over video
+/// refresh.
+#[derive(JSTraceable, HeapSizeOf)]
+pub struct FakeRequestAnimationFrameCallback {
+    /// The document.
+    #[ignore_heap_size_of = "non-owning"]
+    document: Trusted<Document>,
+}
+
+impl FakeRequestAnimationFrameCallback {
+    pub fn invoke(self) {
+        let document = self.document.root();
+        document.run_the_animation_frame_callbacks();
+    }
 }
 
 #[derive(HeapSizeOf, JSTraceable)]
