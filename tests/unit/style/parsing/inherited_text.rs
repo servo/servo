@@ -74,7 +74,7 @@ fn text_emphasis_style_longhand_should_parse_properly() {
 #[test]
 fn test_text_emphasis_position() {
     use style::properties::longhands::text_emphasis_position;
-    use style::properties::longhands::text_emphasis_position::{HorizontalWritingModeValue, VerticalWritingModeValue };
+    use style::properties::longhands::text_emphasis_position::{HorizontalWritingModeValue, VerticalWritingModeValue};
     use style::properties::longhands::text_emphasis_position::SpecifiedValue;
 
     let over_right = parse_longhand!(text_emphasis_position, "over right");
@@ -115,14 +115,14 @@ fn webkit_text_stroke_shorthand_should_parse_properly() {
 
     let mut parser = Parser::new("thin red");
     let result = _webkit_text_stroke::parse_value(&context, &mut parser).unwrap();
-    assert_eq!(result._webkit_text_stroke_color.unwrap(), parse_longhand!(_webkit_text_stroke_color, "red"));
-    assert_eq!(result._webkit_text_stroke_width.unwrap(), parse_longhand!(_webkit_text_stroke_width, "thin"));
+    assert_eq!(result._webkit_text_stroke_color, parse_longhand!(_webkit_text_stroke_color, "red"));
+    assert_eq!(result._webkit_text_stroke_width, parse_longhand!(_webkit_text_stroke_width, "thin"));
 
     // ensure its no longer sensitive to order
     let mut parser = Parser::new("red thin");
     let result = _webkit_text_stroke::parse_value(&context, &mut parser).unwrap();
-    assert_eq!(result._webkit_text_stroke_color.unwrap(), parse_longhand!(_webkit_text_stroke_color, "red"));
-    assert_eq!(result._webkit_text_stroke_width.unwrap(), parse_longhand!(_webkit_text_stroke_width, "thin"));
+    assert_eq!(result._webkit_text_stroke_color, parse_longhand!(_webkit_text_stroke_color, "red"));
+    assert_eq!(result._webkit_text_stroke_width, parse_longhand!(_webkit_text_stroke_width, "thin"));
 }
 
 #[test]

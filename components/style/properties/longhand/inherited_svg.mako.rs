@@ -22,12 +22,12 @@ ${helpers.single_keyword("text-anchor",
 
 // Section 11 - Painting: Filling, Stroking and Marker Symbols
 ${helpers.single_keyword("color-interpolation",
-                         "auto sRGB linearRGB",
+                         "auto srgb linearrgb",
                          products="gecko",
                          animatable=False,
                          spec="https://www.w3.org/TR/SVG11/painting.html#ColorInterpolationProperty")}
 
-${helpers.single_keyword("color-interpolation-filters", "auto sRGB linearRGB",
+${helpers.single_keyword("color-interpolation-filters", "auto srgb linearrgb",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_COLOR_INTERPOLATION",
                          animatable=False,
@@ -52,7 +52,7 @@ ${helpers.single_keyword("fill-rule", "nonzero evenodd",
                          spec="https://www.w3.org/TR/SVG11/painting.html#FillRuleProperty")}
 
 ${helpers.single_keyword("shape-rendering",
-                         "auto optimizeSpeed crispEdges geometricPrecision",
+                         "auto optimizespeed crispedges geometricprecision",
                          products="gecko",
                          animatable=False,
                          spec="https://www.w3.org/TR/SVG11/painting.html#ShapeRenderingProperty")}
@@ -196,7 +196,7 @@ ${helpers.predefined_type("marker-end", "UrlOrNone", "Either::Second(None_)",
             loop {
 
                 let result = input.try(|i| {
-                    match_ignore_ascii_case! { i.expect_ident()?,
+                    match_ignore_ascii_case! { &i.expect_ident()?,
                         "fill" => Ok(FILL),
                         "stroke" => Ok(STROKE),
                         "markers" => Ok(MARKERS),

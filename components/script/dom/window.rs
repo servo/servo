@@ -48,6 +48,7 @@ use dom::promise::Promise;
 use dom::screen::Screen;
 use dom::storage::Storage;
 use dom::testrunner::TestRunner;
+use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
 use fetch;
 use gfx_traits::ScrollRootId;
@@ -774,7 +775,7 @@ impl WindowMethods for Window {
     //TODO Include Scrollbar
     fn InnerHeight(&self) -> i32 {
         self.window_size.get()
-                        .and_then(|e| e.visible_viewport.height.to_i32())
+                        .and_then(|e| e.initial_viewport.height.to_i32())
                         .unwrap_or(0)
     }
 
@@ -782,7 +783,7 @@ impl WindowMethods for Window {
     //TODO Include Scrollbar
     fn InnerWidth(&self) -> i32 {
         self.window_size.get()
-                        .and_then(|e| e.visible_viewport.width.to_i32())
+                        .and_then(|e| e.initial_viewport.width.to_i32())
                         .unwrap_or(0)
     }
 
@@ -1810,6 +1811,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowQueryType::HitTestQuery(..) => "\tHitTestQuery",
+        ReflowQueryType::NodesFromPoint(..) => "\tNodesFromPoint",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
         ReflowQueryType::NodeOverflowQuery(_n) => "\tNodeOverFlowQuery",
         ReflowQueryType::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",

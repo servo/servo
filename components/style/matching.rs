@@ -443,6 +443,33 @@ struct CascadeBooleans {
 }
 
 trait PrivateMatchMethods: TElement {
+    /// Returns the closest parent element that doesn't have a display: contents
+    /// style (and thus generates a box).
+    ///
+    /// This is needed to correctly handle blockification of flex and grid
+    /// items.
+    ///
+    /// Returns itself if the element has no parent. In practice this doesn't
+    /// happen because the root element is blockified per spec, but it could
+    /// happen if we decide to not blockify for roots of disconnected subtrees,
+    /// which is a kind of dubious beahavior.
+    fn layout_parent(&self) -> Self {
+        let mut current = self.clone();
+        loop {
+            current = match current.parent_element() {
+                Some(el) => el,
+                None => return current,
+            };
+
+            let is_display_contents =
+                current.borrow_data().unwrap().styles().primary.values().is_display_contents();
+
+            if !is_display_contents {
+                return current;
+            }
+        }
+    }
+
     fn cascade_internal(&self,
                         context: &StyleContext<Self>,
                         primary_style: &ComputedStyle,
@@ -467,7 +494,7 @@ trait PrivateMatchMethods: TElement {
         let parent_data;
         let inherited_values_ = if pseudo_style.is_none() {
             parent_el = self.parent_element();
-            parent_data = parent_el.as_ref().and_then(|x| x.borrow_data());
+            parent_data = parent_el.as_ref().and_then(|e| e.borrow_data());
             let parent_values = parent_data.as_ref().map(|d| {
                 // Sometimes Gecko eagerly styles things without processing
                 // pending restyles first. In general we'd like to avoid this,
@@ -479,25 +506,44 @@ trait PrivateMatchMethods: TElement {
                 d.styles().primary.values()
             });
 
-            // Propagate the "can be fragmented" bit. It would be nice to
-            // encapsulate this better.
-            if let Some(ref p) = parent_values {
-                let can_be_fragmented =
-                    p.is_multicol() || parent_el.unwrap().as_node().can_be_fragmented();
-                unsafe { self.as_node().set_can_be_fragmented(can_be_fragmented); }
-            }
-
             parent_values
         } else {
+            parent_el = Some(self.clone());
             Some(primary_style.values())
         };
+
+        let mut layout_parent_el = parent_el.clone();
+        let layout_parent_data;
+        let mut layout_parent_style = inherited_values_;
+        if inherited_values_.map_or(false, |s| s.is_display_contents()) {
+            layout_parent_el = Some(layout_parent_el.unwrap().layout_parent());
+            layout_parent_data = layout_parent_el.as_ref().unwrap().borrow_data().unwrap();
+            layout_parent_style = Some(layout_parent_data.styles().primary.values())
+        }
+
         let inherited_values = inherited_values_.map(|x| &**x);
+        let layout_parent_style = layout_parent_style.map(|x| &**x);
+
+        // Propagate the "can be fragmented" bit. It would be nice to
+        // encapsulate this better.
+        //
+        // Note that this is not needed for pseudos since we already do that
+        // when we resolve the non-pseudo style.
+        if pseudo_style.is_none() {
+            if let Some(ref p) = layout_parent_style {
+                let can_be_fragmented =
+                    p.is_multicol() ||
+                    layout_parent_el.as_ref().unwrap().as_node().can_be_fragmented();
+                unsafe { self.as_node().set_can_be_fragmented(can_be_fragmented); }
+            }
+        }
 
         // Invoke the cascade algorithm.
         let values =
             Arc::new(cascade(shared_context.viewport_size,
                              rule_node,
                              inherited_values,
+                             layout_parent_style,
                              &shared_context.default_computed_values,
                              Some(&mut cascade_info),
                              shared_context.error_reporter.clone(),

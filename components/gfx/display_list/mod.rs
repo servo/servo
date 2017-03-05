@@ -182,17 +182,25 @@ impl DisplayList {
             *client_point
         } else {
             let point = *translated_point - stacking_context.bounds.origin;
-            let inv_transform = match stacking_context.transform.inverse() {
-                Some(transform) => transform,
-                None => {
-                    // If a transform function causes the current transformation matrix of an object
-                    // to be non-invertible, the object and its content do not get displayed.
-                    return;
+
+            match stacking_context.transform {
+                Some(transform) => {
+                    let inv_transform = match transform.inverse() {
+                        Some(transform) => transform,
+                        None => {
+                            // If a transform function causes the current transformation matrix of an object
+                            // to be non-invertible, the object and its content do not get displayed.
+                            return;
+                        }
+                    };
+                    let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
+                                                                                 point.y.to_f32_px()));
+                    Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))
                 }
-            };
-            let frac_point = inv_transform.transform_point(&Point2D::new(point.x.to_f32_px(),
-                                                                         point.y.to_f32_px()));
-            Point2D::new(Au::from_f32_px(frac_point.x), Au::from_f32_px(frac_point.y))
+                None => {
+                    point
+                }
+            }
         };
     }
 
@@ -360,10 +368,10 @@ pub struct StackingContext {
     pub blend_mode: mix_blend_mode::T,
 
     /// A transform to be applied to this stacking context.
-    pub transform: Matrix4D<f32>,
+    pub transform: Option<Matrix4D<f32>>,
 
     /// The perspective matrix to be applied to children.
-    pub perspective: Matrix4D<f32>,
+    pub perspective: Option<Matrix4D<f32>>,
 
     /// Whether this stacking context creates a new 3d rendering context.
     pub establishes_3d_context: bool,
@@ -385,8 +393,8 @@ impl StackingContext {
                z_index: i32,
                filters: filter::T,
                blend_mode: mix_blend_mode::T,
-               transform: Matrix4D<f32>,
-               perspective: Matrix4D<f32>,
+               transform: Option<Matrix4D<f32>>,
+               perspective: Option<Matrix4D<f32>>,
                establishes_3d_context: bool,
                scroll_policy: ScrollPolicy,
                parent_scroll_id: ScrollRootId)
@@ -416,8 +424,8 @@ impl StackingContext {
                              0,
                              filter::T::new(Vec::new()),
                              mix_blend_mode::T::normal,
-                             Matrix4D::identity(),
-                             Matrix4D::identity(),
+                             None,
+                             None,
                              true,
                              ScrollPolicy::Scrollable,
                              ScrollRootId::root())
@@ -891,15 +899,9 @@ pub struct GradientDisplayItem {
     pub stops: Vec<GradientStop>,
 }
 
-/// Paints a border.
+/// A normal border, supporting CSS border styles.
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
-pub struct BorderDisplayItem {
-    /// Fields common to all display items.
-    pub base: BaseDisplayItem,
-
-    /// Border widths.
-    pub border_widths: SideOffsets2D<Au>,
-
+pub struct NormalBorder {
     /// Border colors.
     pub color: SideOffsets2D<ColorF>,
 
@@ -910,6 +912,50 @@ pub struct BorderDisplayItem {
     ///
     /// TODO(pcwalton): Elliptical radii.
     pub radius: BorderRadii<Au>,
+}
+
+/// A border that is made of image segments.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct ImageBorder {
+    /// The image this border uses, border-image-source.
+    pub image: WebRenderImageInfo,
+
+    /// How to slice the image, as per border-image-slice.
+    pub slice: SideOffsets2D<u32>,
+
+    /// Outsets for the border, as per border-image-outset.
+    pub outset: SideOffsets2D<f32>,
+
+    /// If fill is true, draw the center patch of the image.
+    pub fill: bool,
+
+    /// How to repeat or stretch horizontal edges (border-image-repeat).
+    #[ignore_heap_size_of = "WebRender traits type, and tiny"]
+    pub repeat_horizontal: webrender_traits::RepeatMode,
+
+    /// How to repeat or stretch vertical edges (border-image-repeat).
+    #[ignore_heap_size_of = "WebRender traits type, and tiny"]
+    pub repeat_vertical: webrender_traits::RepeatMode,
+}
+
+/// Specifies the type of border
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub enum BorderDetails {
+    Normal(NormalBorder),
+    Image(ImageBorder),
+}
+
+/// Paints a border.
+#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
+pub struct BorderDisplayItem {
+    /// Fields common to all display items.
+    pub base: BaseDisplayItem,
+
+    /// Border widths.
+    pub border_widths: SideOffsets2D<Au>,
+
+    /// Details for specific border type
+    pub details: BorderDetails,
 }
 
 /// Information about the border radii.

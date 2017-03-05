@@ -14,4 +14,4 @@ crate_type = ["rlib"]
 log = "0.3.5"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-ws = "0.5.3"
+ws = "0.6"

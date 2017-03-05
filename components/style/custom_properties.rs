@@ -9,7 +9,7 @@
 use Atom;
 use cssparser::{Delimiter, Parser, SourcePosition, Token, TokenSerializationType};
 use parser::ParserContext;
-use properties::DeclaredValue;
+use properties::{CSSWideKeyword, DeclaredValue};
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
@@ -362,11 +362,13 @@ pub fn cascade<'a>(custom_properties: &mut Option<HashMap<&'a Name, BorrowedSpec
             });
         },
         DeclaredValue::WithVariables(_) => unreachable!(),
-        DeclaredValue::Initial => {
-            map.remove(&name);
+        DeclaredValue::CSSWideKeyword(keyword) => match keyword {
+            CSSWideKeyword::Initial => {
+                map.remove(&name);
+            }
+            CSSWideKeyword::Unset | // Custom properties are inherited by default.
+            CSSWideKeyword::Inherit => {} // The inherited value is what we already have.
         }
-        DeclaredValue::Unset | // Custom properties are inherited by default.
-        DeclaredValue::Inherit => {}  // The inherited value is what we already have.
     }
 }
 

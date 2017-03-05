@@ -4,9 +4,8 @@
 
 //! Helper types for the `@viewport` rule.
 
-use {PagePx, ViewportPx};
+use {CSSPixel, PinchZoomFactor};
 use cssparser::{Parser, ToCss};
-use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use std::ascii::AsciiExt;
 use std::fmt;
@@ -31,13 +30,13 @@ pub struct ViewportConstraints {
     /// Width and height:
     ///  * https://drafts.csswg.org/css-device-adapt/#width-desc
     ///  * https://drafts.csswg.org/css-device-adapt/#height-desc
-    pub size: TypedSize2D<f32, ViewportPx>,
+    pub size: TypedSize2D<f32, CSSPixel>,
     /// https://drafts.csswg.org/css-device-adapt/#zoom-desc
-    pub initial_zoom: ScaleFactor<f32, PagePx, ViewportPx>,
+    pub initial_zoom: PinchZoomFactor,
     /// https://drafts.csswg.org/css-device-adapt/#min-max-width-desc
-    pub min_zoom: Option<ScaleFactor<f32, PagePx, ViewportPx>>,
+    pub min_zoom: Option<PinchZoomFactor>,
     /// https://drafts.csswg.org/css-device-adapt/#min-max-width-desc
-    pub max_zoom: Option<ScaleFactor<f32, PagePx, ViewportPx>>,
+    pub max_zoom: Option<PinchZoomFactor>,
     /// https://drafts.csswg.org/css-device-adapt/#user-zoom-desc
     pub user_zoom: UserZoom,
     /// https://drafts.csswg.org/css-device-adapt/#orientation-desc

@@ -2873,13 +2873,13 @@ impl Fragment {
     }
 
     /// Returns the 4D matrix representing this fragment's transform.
-    pub fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32> {
-        let mut transform = Matrix4D::identity();
+    pub fn transform_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Matrix4D<f32>> {
         let operations = match self.style.get_box().transform.0 {
-            None => return transform,
+            None => return None,
             Some(ref operations) => operations,
         };
 
+        let mut transform = Matrix4D::identity();
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x = model::specified(transform_origin.horizontal,
                                                   stacking_relative_border_box.size
@@ -2928,11 +2928,11 @@ impl Fragment {
             transform = transform.pre_mul(&matrix);
         }
 
-        pre_transform.pre_mul(&transform).pre_mul(&post_transform)
+        Some(pre_transform.pre_mul(&transform).pre_mul(&post_transform))
     }
 
     /// Returns the 4D matrix representing this fragment's perspective.
-    pub fn perspective_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Matrix4D<f32> {
+    pub fn perspective_matrix(&self, stacking_relative_border_box: &Rect<Au>) -> Option<Matrix4D<f32>> {
         match self.style().get_box().perspective {
             Either::First(length) => {
                 let perspective_origin = self.style().get_box().perspective_origin;
@@ -2951,10 +2951,10 @@ impl Fragment {
 
                 let perspective_matrix = create_perspective_matrix(length);
 
-                pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform)
+                Some(pre_transform.pre_mul(&perspective_matrix).pre_mul(&post_transform))
             }
             Either::Second(values::None_) => {
-                Matrix4D::identity()
+                None
             }
         }
     }

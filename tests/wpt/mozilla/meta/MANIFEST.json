@@ -11036,6 +11036,12 @@
      {}
     ]
    ],
+   "css/float-abspos.html": [
+    [
+     "/_mozilla/css/float-abspos.html",
+     {}
+    ]
+   ],
    "css/float_relative_to_position.html": [
     [
      "/_mozilla/css/float_relative_to_position.html",
@@ -12500,6 +12506,12 @@
      {}
     ]
    ],
+   "mozilla/createEvent-storageevent.html": [
+    [
+     "/_mozilla/mozilla/createEvent-storageevent.html",
+     {}
+    ]
+   ],
    "mozilla/cross-origin-objects/cross-origin-objects.html": [
     [
      "/_mozilla/mozilla/cross-origin-objects/cross-origin-objects.html",
@@ -12583,6 +12595,12 @@
    "mozilla/document_defaultView.html": [
     [
      "/_mozilla/mozilla/document_defaultView.html",
+     {}
+    ]
+   ],
+   "mozilla/document_elementsFromPoint.html": [
+    [
+     "/_mozilla/mozilla/document_elementsFromPoint.html",
      {}
     ]
    ],
@@ -20889,6 +20907,10 @@
    "2712a0a76b5eeb4d0f2b4a45277d04791a8ff206",
    "support"
   ],
+  "css/float-abspos.html": [
+   "d34a9ce0be290bc3c46aa80eb136a91460957346",
+   "testharness"
+  ],
   "css/float_clearance_a.html": [
    "372652bf4c345098f864cfc52ad0fb274308b22c",
    "reftest"
@@ -25045,6 +25067,10 @@
    "f1029d519aa7017a1a3d18a891a0774b9a39f847",
    "testharness"
   ],
+  "mozilla/createEvent-storageevent.html": [
+   "eea787f4d2372e9c2c6777a0569ce5d110c3110a",
+   "testharness"
+  ],
   "mozilla/cross-origin-objects/cross-origin-objects.html": [
    "5d5a3ba4099dfabddbed1ea98ad8fe1f5c00a3d3",
    "testharness"
@@ -25115,6 +25141,10 @@
   ],
   "mozilla/document_defaultView.html": [
    "12eef74e9ba1a62b0302df79633cab5c48f4977f",
+   "testharness"
+  ],
+  "mozilla/document_elementsFromPoint.html": [
+   "00da2141b1143619351c6fbb66d677ca9002a4a8",
    "testharness"
   ],
   "mozilla/document_getElementById.html": [

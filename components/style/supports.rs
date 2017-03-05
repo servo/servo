@@ -47,7 +47,7 @@ impl SupportsCondition {
                 return Ok(in_parens)
             }
             Ok(Token::Ident(ident)) => {
-                match_ignore_ascii_case! { ident,
+                match_ignore_ascii_case! { &ident,
                     "and" => ("and", SupportsCondition::And as fn(_) -> _),
                     "or" => ("or", SupportsCondition::Or as fn(_) -> _),
                     _ => return Err(())

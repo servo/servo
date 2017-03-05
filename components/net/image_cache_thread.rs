@@ -326,10 +326,13 @@ fn get_placeholder_image(webrender_api: &webrender_traits::RenderApi) -> io::Res
         height: image.height,
         stride: None,
         format: format,
+        offset: 0,
         is_opaque: is_image_opaque(format, &bytes),
     };
     let data = webrender_traits::ImageData::new(bytes);
-    image.id = Some(webrender_api.add_image(descriptor, data));
+    let image_key = webrender_api.generate_image_key();
+    webrender_api.add_image(image_key, descriptor, data, None);
+    image.id = Some(image_key);
     Ok(Arc::new(image))
 }
 
@@ -486,10 +489,13 @@ impl ImageCache {
                     height: image.height,
                     stride: None,
                     format: format,
+                    offset: 0,
                     is_opaque: is_image_opaque(format, &bytes),
                 };
                 let data = webrender_traits::ImageData::new(bytes);
-                image.id = Some(self.webrender_api.add_image(descriptor, data));
+                let image_key = self.webrender_api.generate_image_key();
+                self.webrender_api.add_image(image_key, descriptor, data, None);
+                image.id = Some(image_key);
             }
             LoadResult::PlaceholderLoaded(..) | LoadResult::None => {}
         }

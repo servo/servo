@@ -1042,8 +1042,7 @@ impl WindowMethods for Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
 
-            (NONE, None, Key::PageDown) |
-            (NONE, Some(' '), _) => {
+            (NONE, None, Key::PageDown) => {
                let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(0.0,
                                    -self.framebuffer_size()
                                         .to_f32()
@@ -1052,8 +1051,7 @@ impl WindowMethods for Window {
                 self.scroll_window(scroll_location,
                                    TouchEventType::Move);
             }
-            (NONE, None, Key::PageUp) |
-            (SHIFT, Some(' '), _) => {
+            (NONE, None, Key::PageUp) => {
                 let scroll_location = ScrollLocation::Delta(TypedPoint2D::new(0.0,
                                    self.framebuffer_size()
                                        .to_f32()

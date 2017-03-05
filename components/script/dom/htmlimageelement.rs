@@ -32,6 +32,7 @@ use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use euclid::point::Point2D;
 use html5ever_atoms::LocalName;
 use ipc_channel::ipc;

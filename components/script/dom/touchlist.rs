@@ -8,6 +8,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::touch::Touch;
 use dom::window::Window;
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct TouchList {

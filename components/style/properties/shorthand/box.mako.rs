@@ -11,64 +11,18 @@
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let overflow = try!(overflow_x::parse(context, input));
         Ok(Longhands {
-            overflow_x: Some(overflow),
-            overflow_y: Some(overflow_y::SpecifiedValue(overflow)),
+            overflow_x: overflow,
+            overflow_y: overflow_y::SpecifiedValue(overflow),
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let x_and_y_equal = match (self.overflow_x, self.overflow_y) {
-                (&DeclaredValue::Value(ref x_value), &DeclaredValue::Value(ref y_container)) => {
-                    *x_value == y_container.0
-                },
-                (&DeclaredValue::WithVariables(_), &DeclaredValue::WithVariables(_)) => true,
-                (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
-                (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
-                (&DeclaredValue::Unset, &DeclaredValue::Unset) => true,
-                _ => false
-            };
-
-            if x_and_y_equal {
-                try!(self.overflow_x.to_css(dest));
-            }
-            Ok(())
-        }
-
-        // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
-        // values, they no longer use the shared property name "overflow".
-        // Other shorthands do not include their name in the to_css method
-        pub fn to_css_declared_with_name<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let x_and_y_equal = match (self.overflow_x, self.overflow_y) {
-                (&DeclaredValue::Value(ref x_value), &DeclaredValue::Value(ref y_container)) => {
-                    *x_value == y_container.0
-                },
-                (_, &DeclaredValue::WithVariables(_)) |
-                (&DeclaredValue::WithVariables(_), _) => {
-                    // We don't serialize shorthands with variables
-                    return dest.write_str("");
-                },
-                (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
-                (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
-                (&DeclaredValue::Unset, &DeclaredValue::Unset) => true,
-                _ => false
-            };
-
-            if x_and_y_equal {
-                try!(write!(dest, "overflow"));
-                try!(write!(dest, ": "));
-                try!(self.overflow_x.to_css(dest));
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if *self.overflow_x == self.overflow_y.0 {
+                self.overflow_x.to_css(dest)
             } else {
-                try!(write!(dest, "overflow-x"));
-                try!(write!(dest, ": "));
-                try!(self.overflow_x.to_css(dest));
-                try!(write!(dest, "; "));
-
-                try!(write!(dest, "overflow-y: "));
-                try!(self.overflow_y.to_css(dest));
+                Ok(())
             }
-
-            write!(dest, ";")
         }
     }
 </%helpers:shorthand>
@@ -139,46 +93,55 @@ macro_rules! try_parse_one {
             }
         }
 
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(Longhands {
-                transition_property: None,
-                transition_duration: None,
-                transition_timing_function: None,
-                transition_delay: None,
-            })
-        }
-
-        let results = try!(input.parse_comma_separated(|i| parse_one_transition(context, i)));
         let (mut properties, mut durations) = (Vec::new(), Vec::new());
         let (mut timing_functions, mut delays) = (Vec::new(), Vec::new());
-        for result in results {
-            properties.push(result.transition_property);
-            durations.push(result.transition_duration);
-            timing_functions.push(result.transition_timing_function);
-            delays.push(result.transition_delay);
+
+        if input.try(|input| input.expect_ident_matching("none")).is_err() {
+            let results = try!(input.parse_comma_separated(|i| parse_one_transition(context, i)));
+            for result in results {
+                properties.push(result.transition_property);
+                durations.push(result.transition_duration);
+                timing_functions.push(result.transition_timing_function);
+                delays.push(result.transition_delay);
+            }
         }
 
         Ok(Longhands {
-            transition_property: Some(transition_property::SpecifiedValue(properties)),
-            transition_duration: Some(transition_duration::SpecifiedValue(durations)),
+            transition_property: transition_property::SpecifiedValue(properties),
+            transition_duration: transition_duration::SpecifiedValue(durations),
             transition_timing_function:
-                Some(transition_timing_function::SpecifiedValue(timing_functions)),
-            transition_delay: Some(transition_delay::SpecifiedValue(delays)),
+                transition_timing_function::SpecifiedValue(timing_functions),
+            transition_delay: transition_delay::SpecifiedValue(delays),
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            try!(self.transition_property.to_css(dest));
-            try!(write!(dest, " "));
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let len = self.transition_property.0.len();
+            // There should be at least one declared value
+            if len == 0 {
+                return Ok(());
+            }
 
-            try!(self.transition_duration.to_css(dest));
-            try!(write!(dest, " "));
+            // If any value list length is differs then we don't do a shorthand serialization
+            // either.
+            % for name in "property duration delay timing_function".split():
+                if len != self.transition_${name}.0.len() {
+                    return Ok(());
+                }
+            % endfor
 
-            try!(self.transition_timing_function.to_css(dest));
-            try!(write!(dest, " "));
-
-            self.transition_delay.to_css(dest)
+            for i in 0..len {
+                if i != 0 {
+                    write!(dest, ", ")?;
+                }
+                self.transition_property.0[i].to_css(dest)?;
+                % for name in "duration timing_function delay".split():
+                    dest.write_str(" ")?;
+                    self.transition_${name}.0[i].to_css(dest)?;
+                % endfor
+            }
+            Ok(())
         }
     }
 </%helpers:shorthand>
@@ -259,21 +222,6 @@ macro_rules! try_parse_one {
             }
         }
 
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-            return Ok(Longhands {
-                animation_name: None,
-                animation_duration: None,
-                animation_timing_function: None,
-                animation_delay: None,
-                animation_iteration_count: None,
-                animation_direction: None,
-                animation_fill_mode: None,
-                animation_play_state: None,
-            })
-        }
-
-        let results = try!(input.parse_comma_separated(|i| parse_one_animation(context, i)));
-
         let mut names = vec![];
         let mut durations = vec![];
         let mut timing_functions = vec![];
@@ -283,78 +231,63 @@ macro_rules! try_parse_one {
         let mut fill_modes = vec![];
         let mut play_states = vec![];
 
-        for result in results.into_iter() {
-            names.push(result.animation_name);
-            durations.push(result.animation_duration);
-            timing_functions.push(result.animation_timing_function);
-            delays.push(result.animation_delay);
-            iteration_counts.push(result.animation_iteration_count);
-            directions.push(result.animation_direction);
-            fill_modes.push(result.animation_fill_mode);
-            play_states.push(result.animation_play_state);
+        if input.try(|input| input.expect_ident_matching("none")).is_err() {
+            let results = try!(input.parse_comma_separated(|i| parse_one_animation(context, i)));
+            for result in results.into_iter() {
+                names.push(result.animation_name);
+                durations.push(result.animation_duration);
+                timing_functions.push(result.animation_timing_function);
+                delays.push(result.animation_delay);
+                iteration_counts.push(result.animation_iteration_count);
+                directions.push(result.animation_direction);
+                fill_modes.push(result.animation_fill_mode);
+                play_states.push(result.animation_play_state);
+            }
         }
 
         Ok(Longhands {
-            animation_name: Some(animation_name::SpecifiedValue(names)),
-            animation_duration: Some(animation_duration::SpecifiedValue(durations)),
-            animation_timing_function: Some(animation_timing_function::SpecifiedValue(timing_functions)),
-            animation_delay: Some(animation_delay::SpecifiedValue(delays)),
-            animation_iteration_count: Some(animation_iteration_count::SpecifiedValue(iteration_counts)),
-            animation_direction: Some(animation_direction::SpecifiedValue(directions)),
-            animation_fill_mode: Some(animation_fill_mode::SpecifiedValue(fill_modes)),
-            animation_play_state: Some(animation_play_state::SpecifiedValue(play_states)),
+            animation_name: animation_name::SpecifiedValue(names),
+            animation_duration: animation_duration::SpecifiedValue(durations),
+            animation_timing_function: animation_timing_function::SpecifiedValue(timing_functions),
+            animation_delay: animation_delay::SpecifiedValue(delays),
+            animation_iteration_count: animation_iteration_count::SpecifiedValue(iteration_counts),
+            animation_direction: animation_direction::SpecifiedValue(directions),
+            animation_fill_mode: animation_fill_mode::SpecifiedValue(fill_modes),
+            animation_play_state: animation_play_state::SpecifiedValue(play_states),
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            fn extract_value<T>(x: &DeclaredValue<T>) -> Option< &T> {
-                match *x {
-                    DeclaredValue::Value(ref val) => Some(val),
-                    _ => None,
-                }
-            }
-
-            // TODO: When the lengths are different, shorthand shouldn't be serialized
-            // at all.
-            use std::cmp;
-            let mut len = 0;
-            % for name in "duration timing_function delay direction fill_mode iteration_count play_state name".split():
-                len = cmp::max(len, extract_value(self.animation_${name}).map(|i| i.0.len())
-                                                                         .unwrap_or(0));
-            % endfor
-
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            let len = self.animation_name.0.len();
             // There should be at least one declared value
             if len == 0 {
-                return dest.write_str("")
+                return Ok(());
             }
 
-            let mut first = true;
-            for i in 0..len {
-            % for name in "duration timing_function delay direction fill_mode iteration_count play_state name".split():
-                let ${name} = if let DeclaredValue::Value(ref arr) = *self.animation_${name} {
-                    arr.0.get(i % arr.0.len())
-                } else {
-                    None
-                };
+            <%
+                subproperties = "duration timing_function delay direction \
+                                 fill_mode iteration_count play_state".split()
+            %>
+
+            // If any value list length is differs then we don't do a shorthand serialization
+            // either.
+            % for name in subproperties:
+                if len != self.animation_${name}.0.len() {
+                    return Ok(())
+                }
             % endfor
 
-                if first {
-                    first = false;
-                } else {
+            for i in 0..len {
+                if i != 0 {
                     try!(write!(dest, ", "));
                 }
 
-            % for name in "duration timing_function delay direction fill_mode iteration_count play_state".split():
-                if let Some(${name}) = ${name} {
-                    try!(${name}.to_css(dest));
-                    try!(write!(dest, " "));
-                }
-            % endfor
-
-                if let Some(name) = name {
-                    try!(name.to_css(dest));
-                }
+                % for name in subproperties:
+                    self.animation_${name}.0[i].to_css(dest)?;
+                    dest.write_str(" ")?;
+                % endfor
+                self.animation_name.0[i].to_css(dest)?;
             }
             Ok(())
         }
@@ -369,26 +302,16 @@ macro_rules! try_parse_one {
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let result = try!(scroll_snap_type_x::parse(context, input));
         Ok(Longhands {
-            scroll_snap_type_x: Some(result),
-            scroll_snap_type_y: Some(result),
+            scroll_snap_type_x: result,
+            scroll_snap_type_y: result,
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
         // Serializes into the single keyword value if both scroll-snap-type and scroll-snap-type-y are same.
         // Otherwise into an empty string. This is done to match Gecko's behaviour.
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let x_and_y_equal = match (self.scroll_snap_type_x, self.scroll_snap_type_y) {
-                (&DeclaredValue::Value(ref x_value), &DeclaredValue::Value(ref y_value)) => {
-                    *x_value == *y_value
-                },
-                (&DeclaredValue::Initial, &DeclaredValue::Initial) => true,
-                (&DeclaredValue::Inherit, &DeclaredValue::Inherit) => true,
-                (&DeclaredValue::Unset, &DeclaredValue::Unset) => true,
-                (x, y) => { *x == *y },
-            };
-
-            if x_and_y_equal {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if self.scroll_snap_type_x == self.scroll_snap_type_y {
                 self.scroll_snap_type_x.to_css(dest)
             } else {
                 Ok(())

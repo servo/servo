@@ -165,7 +165,7 @@ impl Resolution {
             _ => return Err(()),
         };
 
-        Ok(match_ignore_ascii_case! { unit,
+        Ok(match_ignore_ascii_case! { &unit,
             "dpi" => Resolution::Dpi(value),
             "dppx" => Resolution::Dppx(value),
             "dpcm" => Resolution::Dpcm(value),
@@ -492,6 +492,7 @@ impl Expression {
             is_root_element: false,
             viewport_size: device.au_viewport_size(),
             inherited_style: default_values,
+            layout_parent_style: default_values,
             // This cloning business is kind of dumb.... It's because Context
             // insists on having an actual ComputedValues inside itself.
             style: default_values.clone(),

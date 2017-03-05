@@ -130,6 +130,11 @@ impl ComputedValues {
         })
     }
 
+    #[inline]
+    pub fn is_display_contents(&self) -> bool {
+        self.get_box().clone_display() == longhands::display::computed_value::T::contents
+    }
+
     % for style_struct in data.style_structs:
     #[inline]
     pub fn clone_${style_struct.name_lower}(&self) -> Arc<style_structs::${style_struct.name}> {
@@ -153,10 +158,6 @@ impl ComputedValues {
     pub fn has_moz_binding(&self) -> bool {
         !self.get_box().gecko.mBinding.mRawPtr.is_null()
     }
-
-    pub fn root_font_size(&self) -> Au { self.root_font_size }
-    pub fn set_root_font_size(&mut self, s: Au) { self.root_font_size = s; }
-    pub fn set_writing_mode(&mut self, mode: WritingMode) { self.writing_mode = mode; }
 
     // FIXME(bholley): Implement this properly.
     #[inline]
@@ -635,6 +636,8 @@ impl Debug for ${style_struct.gecko_struct_name} {
         "LengthOrPercentageOrAuto": impl_style_coord,
         "LengthOrPercentageOrNone": impl_style_coord,
         "LengthOrNone": impl_style_coord,
+        "MaxLength": impl_style_coord,
+        "MinLength": impl_style_coord,
         "Number": impl_simple,
         "Opacity": impl_simple,
         "CSSColor": impl_color,
@@ -1240,9 +1243,6 @@ fn static_assert() {
         unsafe { transmute(self.gecko.mFont.weight) }
     }
 
-    // This is used for PartialEq, which we don't implement for gecko style structs.
-    pub fn compute_font_hash(&mut self) {}
-
     pub fn set_font_synthesis(&mut self, v: longhands::font_synthesis::computed_value::T) {
         use gecko_bindings::structs::{NS_FONT_SYNTHESIS_WEIGHT, NS_FONT_SYNTHESIS_STYLE};
 
@@ -1413,10 +1413,26 @@ fn static_assert() {
         self.gecko.mDisplay = result;
         self.gecko.mOriginalDisplay = result;
     }
+
+    /// Set the display value from the style adjustment code. This is pretty
+    /// much like set_display, but without touching the mOriginalDisplay field,
+    /// which we want to keep.
+    pub fn set_adjusted_display(&mut self, v: longhands::display::computed_value::T) {
+        use properties::longhands::display::computed_value::T as Keyword;
+        let result = match v {
+            % for value in display_keyword.values_for('gecko'):
+                Keyword::${to_rust_ident(value)} =>
+                    structs::${display_keyword.gecko_constant(value)},
+            % endfor
+        };
+        self.gecko.mDisplay = result;
+    }
+
     pub fn copy_display_from(&mut self, other: &Self) {
         self.gecko.mDisplay = other.gecko.mDisplay;
-        self.gecko.mOriginalDisplay = other.gecko.mOriginalDisplay;
+        self.gecko.mOriginalDisplay = other.gecko.mDisplay;
     }
+
     <%call expr="impl_keyword_clone('display', 'mDisplay', display_keyword)"></%call>
 
     // overflow-y is implemented as a newtype of overflow-x, so we need special handling.
@@ -2286,8 +2302,8 @@ fn static_assert() {
                 self.gecko.mImageRegion.height = 0;
             }
             Either::First(rect) => {
-                self.gecko.mImageRegion.x = rect.left.0;
-                self.gecko.mImageRegion.y = rect.top.0;
+                self.gecko.mImageRegion.x = rect.left.unwrap_or(Au(0)).0;
+                self.gecko.mImageRegion.y = rect.top.unwrap_or(Au(0)).0;
                 self.gecko.mImageRegion.height = rect.bottom.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.y;
                 self.gecko.mImageRegion.width = rect.right.unwrap_or(Au(0)).0 - self.gecko.mImageRegion.x;
             }
@@ -2308,7 +2324,7 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Effects"
-                  skip_longhands="box-shadow filter">
+                  skip_longhands="box-shadow clip filter">
     pub fn set_box_shadow(&mut self, v: longhands::box_shadow::computed_value::T) {
 
         self.gecko.mBoxShadow.replace_with_new(v.0.len() as u32);
@@ -2351,6 +2367,61 @@ fn static_assert() {
             }
         }).collect();
         longhands::box_shadow::computed_value::T(buf)
+    }
+
+    pub fn set_clip(&mut self, v: longhands::clip::computed_value::T) {
+        use gecko_bindings::structs::NS_STYLE_CLIP_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_RECT;
+        use gecko_bindings::structs::NS_STYLE_CLIP_LEFT_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_TOP_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_RIGHT_AUTO;
+        use gecko_bindings::structs::NS_STYLE_CLIP_BOTTOM_AUTO;
+        use values::Either;
+
+        match v {
+            Either::First(rect) => {
+                self.gecko.mClipFlags = NS_STYLE_CLIP_RECT as u8;
+                if let Some(left) = rect.left {
+                    self.gecko.mClip.x = left.0;
+                } else {
+                    self.gecko.mClip.x = 0;
+                    self.gecko.mClipFlags |= NS_STYLE_CLIP_LEFT_AUTO as u8;
+                }
+
+                if let Some(top) = rect.top {
+                    self.gecko.mClip.y = top.0;
+                } else {
+                    self.gecko.mClip.y = 0;
+                    self.gecko.mClipFlags |= NS_STYLE_CLIP_TOP_AUTO as u8;
+                }
+
+                if let Some(bottom) = rect.bottom {
+                    self.gecko.mClip.height = bottom.0 - self.gecko.mClip.y;
+                } else {
+                    self.gecko.mClip.height = 1 << 30; // NS_MAXSIZE
+                    self.gecko.mClipFlags |= NS_STYLE_CLIP_BOTTOM_AUTO as u8;
+                }
+
+                if let Some(right) = rect.right {
+                    self.gecko.mClip.width = right.0 - self.gecko.mClip.x;
+                } else {
+                    self.gecko.mClip.width = 1 << 30; // NS_MAXSIZE
+                    self.gecko.mClipFlags |= NS_STYLE_CLIP_RIGHT_AUTO as u8;
+                }
+            },
+            Either::Second(_auto) => {
+                self.gecko.mClipFlags = NS_STYLE_CLIP_AUTO as u8;
+                self.gecko.mClip.x = 0;
+                self.gecko.mClip.y = 0;
+                self.gecko.mClip.width = 0;
+                self.gecko.mClip.height = 0;
+            }
+        }
+    }
+
+    pub fn copy_clip_from(&mut self, other: &Self) {
+        self.gecko.mClip = other.gecko.mClip;
+        self.gecko.mClipFlags = other.gecko.mClipFlags;
     }
 
     pub fn set_filter(&mut self, v: longhands::filter::computed_value::T) {
@@ -3120,6 +3191,8 @@ clip-path
                             => self.gecko.mContents[i].mType = eStyleContentType_NoOpenQuote,
                         ContentItem::NoCloseQuote
                             => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
+                        ContentItem::MozAltContent
+                            => self.gecko.mContents[i].mType = eStyleContentType_AltContent,
                         ContentItem::Counter(..) |
                         ContentItem::Counters(..)
                             => self.gecko.mContents[i].mType = eStyleContentType_Uninitialized,

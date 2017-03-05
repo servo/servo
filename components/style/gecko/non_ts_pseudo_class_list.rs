@@ -46,4 +46,5 @@ pseudo_class_list! {
     ("read-only", ReadOnly, _, IN_READ_WRITE_STATE, _),
 
     ("-moz-browser-frame", MozBrowserFrame, mozBrowserFrame, _, PSEUDO_CLASS_INTERNAL),
+    ("-moz-table-border-nonzero", MozTableBorderNonzero, mozTableBorderNonzero, _, PSEUDO_CLASS_INTERNAL),
 }

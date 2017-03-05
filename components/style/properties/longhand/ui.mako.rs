@@ -16,11 +16,12 @@ ${helpers.single_keyword("ime-mode", "normal auto active disabled inactive",
                          animatable=False,
                          spec="https://drafts.csswg.org/css-ui/#input-method-editor")}
 
-${helpers.single_keyword("-moz-user-select", "auto text none all", products="gecko",
+${helpers.single_keyword("-moz-user-select", "auto text none all element elements" +
+                            " toggle tri_state -moz-all -moz-none -moz-text",
+                         products="gecko",
                          alias="-webkit-user-select",
                          gecko_ffi_name="mUserSelect",
                          gecko_enum_prefix="StyleUserSelect",
-                         gecko_inexhaustive=True,
                          animatable=False,
                          spec="https://drafts.csswg.org/css-ui-4/#propdef-user-select")}
 

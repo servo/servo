@@ -217,24 +217,104 @@ ${helpers.predefined_type("flex-basis",
                               needs_context=False,
                               spec=spec % size,
                               animatable=True, logical = logical)}
+    % if product == "gecko":
+        % for min_max in ["min", "max"]:
+            <%
+                MinMax = min_max.title()
+                initial = "None" if "max" == min_max else "Auto"
+            %>
 
-    // min-width, min-height, min-block-size, min-inline-size
-    ${helpers.predefined_type("min-%s" % size,
-                              "LengthOrPercentage",
-                              "computed::LengthOrPercentage::Length(Au(0))",
-                              "parse_non_negative",
-                              needs_context=False,
-                              spec=spec % ("min-%s" % size),
-                              animatable=True, logical = logical)}
+            // min-width, min-height, min-block-size, min-inline-size,
+            // max-width, max-height, max-block-size, max-inline-size
+            //
+            // Keyword values are only valid in the inline direction; they must
+            // be replaced with auto/none in block.
+            <%helpers:longhand name="${min_max}-${size}" spec="${spec % ('%s-%s' % (min_max, size))}"
+                               animatable="True" logical="${logical}" predefined_type="${MinMax}Length">
 
-    // max-width, max-height, max-block-size, max-inline-size
-    ${helpers.predefined_type("max-%s" % size,
-                              "LengthOrPercentageOrNone",
-                              "computed::LengthOrPercentageOrNone::None",
-                              "parse_non_negative",
-                              needs_context=False,
-                              spec=spec % ("max-%s" % size),
-                              animatable=True, logical = logical)}
+                use std::fmt;
+                use style_traits::ToCss;
+                use values::HasViewportPercentage;
+                use values::specified::${MinMax}Length;
+
+                impl HasViewportPercentage for SpecifiedValue {
+                    fn has_viewport_percentage(&self) -> bool {
+                        self.0.has_viewport_percentage()
+                    }
+                }
+
+                pub mod computed_value {
+                    pub type T = ::values::computed::${MinMax}Length;
+                }
+
+                #[derive(PartialEq, Clone, Debug)]
+                #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+                pub struct SpecifiedValue(${MinMax}Length);
+
+                #[inline]
+                pub fn get_initial_value() -> computed_value::T {
+                    use values::computed::${MinMax}Length;
+                    ${MinMax}Length::${initial}
+                }
+                fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+                    ${MinMax}Length::parse(context, input).map(SpecifiedValue)
+                }
+
+                impl ToCss for SpecifiedValue {
+                    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+                        self.0.to_css(dest)
+                    }
+                }
+
+                impl ToComputedValue for SpecifiedValue {
+                    type ComputedValue = computed_value::T;
+                    #[inline]
+                    fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                        use values::computed::${MinMax}Length;
+                        let computed = self.0.to_computed_value(context);
+
+                        // filter out keyword values in the block direction
+                        % if logical:
+                            % if "block" in size:
+                                if let ${MinMax}Length::ExtremumLength(..) = computed {
+                                    return get_initial_value()
+                                }
+                            % endif
+                        % else:
+                            if let ${MinMax}Length::ExtremumLength(..) = computed {
+                                <% is_height = "true" if "height" in size else "false" %>
+                                if ${is_height} != context.style().writing_mode.is_vertical() {
+                                    return get_initial_value()
+                                }
+                            }
+                        % endif
+                        computed
+                    }
+
+                    #[inline]
+                    fn from_computed_value(computed: &computed_value::T) -> Self {
+                        SpecifiedValue(ToComputedValue::from_computed_value(computed))
+                    }
+                }
+            </%helpers:longhand>
+        % endfor
+    % else:
+        // servo versions (no keyword support)
+        ${helpers.predefined_type("min-%s" % size,
+                                  "LengthOrPercentage",
+                                  "computed::LengthOrPercentage::Length(Au(0))",
+                                  "parse_non_negative",
+                                  needs_context=False,
+                                  spec=spec % ("min-%s" % size),
+                                  animatable=True, logical = logical)}
+        ${helpers.predefined_type("max-%s" % size,
+                                  "LengthOrPercentageOrNone",
+                                  "computed::LengthOrPercentageOrNone::None",
+                                  "parse_non_negative",
+                                  needs_context=False,
+                                  spec=spec % ("min-%s" % size),
+                                  animatable=True, logical = logical)}
+    % endif
 % endfor
 
 ${helpers.single_keyword("box-sizing",

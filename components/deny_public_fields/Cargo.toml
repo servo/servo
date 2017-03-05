@@ -10,5 +10,5 @@ path = "lib.rs"
 proc-macro = true
 
 [dependencies]
-syn = "0.10"
-synstructure = "0.4"
+syn = "0.11"
+synstructure = "0.5"

@@ -9,6 +9,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 use dom::globalscope::GlobalScope;
+use dom_struct::dom_struct;
 
 // http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
 #[dom_struct]

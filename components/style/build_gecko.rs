@@ -531,6 +531,7 @@ mod bindings {
             "RawGeckoDocument",
             "RawGeckoElement",
             "RawGeckoKeyframeList",
+            "RawGeckoComputedKeyframeValuesList",
             "RawGeckoNode",
             "RawGeckoAnimationValueList",
             "RawServoAnimationValue",
@@ -638,6 +639,7 @@ mod bindings {
             "nsCSSValue",
             "RawGeckoAnimationValueList",
             "RawGeckoKeyframeList",
+            "RawGeckoComputedKeyframeValuesList",
         ];
         for &ty in structs_types.iter() {
             builder = builder.hide_type(ty)

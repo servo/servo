@@ -33,10 +33,11 @@ bluetooth_traits = {path = "../bluetooth_traits"}
 byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
-cssparser = {version = "0.10", features = ["heapsize", "serde"]}
+cookie = "0.2.5"
+cssparser = "0.12"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
+dom_struct = {path = "../dom_struct"}
 domobject_derive = {path = "../domobject_derive"}
 encoding = "0.2"
 euclid = "0.11"
@@ -79,18 +80,14 @@ servo_config = {path = "../config", features = ["servo"] }
 servo_geometry = {path = "../geometry" }
 servo_rand = {path = "../rand"}
 servo_url = {path = "../url", features = ["servo"] }
+servo-websocket = "0.18"
 smallvec = "0.1"
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"
 url = {version = "1.2", features = ["heap_size", "query_encoding"]}
 uuid = {version = "0.4", features = ["v4"]}
-websocket = "0.17"
 xml5ever = {version = "0.4", features = ["unstable"]}
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["nightly", "serde_derive", "ipc"]

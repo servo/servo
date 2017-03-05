@@ -26,6 +26,7 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::{Node, UnbindContext};
 use dom::text::Text;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use heapsize::HeapSizeOf;
 use js::jsapi::JSTracer;
 use std::cell::{Cell, UnsafeCell};

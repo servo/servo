@@ -72,6 +72,7 @@ use dom::text::Text;
 use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::ReflowReason;
+use dom_struct::dom_struct;
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
@@ -102,7 +103,7 @@ use style::matching::{common_style_affecting_attributes, rare_style_affecting_at
 use style::parser::ParserContextExtraData;
 use style::properties::{DeclaredValue, Importance};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
-use style::properties::longhands::{background_image, border_spacing, font_family, font_size, overflow_x};
+use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size, overflow_x};
 use style::restyle_hints::RESTYLE_SELF;
 use style::rule_tree::CascadeLevel;
 use style::selector_parser::{NonTSPseudoClass, RestyleDamage, SelectorImpl, SelectorParser};
@@ -110,7 +111,7 @@ use style::sink::Push;
 use style::stylist::ApplicableDeclarationBlock;
 use style::thread_state;
 use style::values::CSSFloat;
-use style::values::specified::{self, CSSColor, CSSRGBA};
+use style::values::specified::{self, CSSColor};
 use stylesheet_loader::StylesheetOwner;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
@@ -353,6 +354,7 @@ pub trait LayoutElementHelpers {
     fn style_attribute(&self) -> *const Option<Arc<RwLock<PropertyDeclarationBlock>>>;
     fn local_name(&self) -> &LocalName;
     fn namespace(&self) -> &Namespace;
+    fn get_lang_for_layout(&self) -> String;
     fn get_checked_state_for_layout(&self) -> bool;
     fn get_indeterminate_state_for_layout(&self) -> bool;
     fn get_state_for_layout(&self) -> ElementState;
@@ -440,10 +442,13 @@ impl LayoutElementHelpers for LayoutJS<Element> {
 
         if let Some(color) = color {
             hints.push(from_declaration(
-                PropertyDeclaration::Color(DeclaredValue::Value(CSSRGBA {
-                    parsed: color,
-                    authored: None,
-                }))));
+                PropertyDeclaration::Color(DeclaredValue::Value(
+                    longhands::color::SpecifiedValue(CSSColor {
+                        parsed: Color::RGBA(color),
+                        authored: None,
+                    })
+                ))
+            ));
         }
 
         let font_family = if let Some(this) = self.downcast::<HTMLFontElement>() {
@@ -689,6 +694,30 @@ impl LayoutElementHelpers for LayoutJS<Element> {
     fn namespace(&self) -> &Namespace {
         unsafe {
             &(*self.unsafe_get()).namespace
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_lang_for_layout(&self) -> String {
+        unsafe {
+            let mut current_node = Some(self.upcast::<Node>());
+            while let Some(node) = current_node {
+                current_node = node.parent_node_ref();
+                match node.downcast::<Element>().map(|el| el.unsafe_get()) {
+                    Some(elem) => {
+                        if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(xml), &local_name!("lang")) {
+                            return attr.to_owned();
+                        }
+                        if let Some(attr) = (*elem).get_attr_val_for_layout(&ns!(), &local_name!("lang")) {
+                            return attr.to_owned();
+                        }
+                    }
+                    None => continue
+                }
+            }
+            // TODO: Check meta tags for a pragma-set default language
+            // TODO: Check HTTP Content-Language header
+            String::new()
         }
     }
 
@@ -2371,6 +2400,10 @@ impl<'a> ::selectors::Element for Root<Element> {
                 }
             },
 
+            // FIXME(#15746): This is wrong, we need to instead use extended filtering as per RFC4647
+            //                https://tools.ietf.org/html/rfc4647#section-3.3.2
+            NonTSPseudoClass::Lang(ref lang) => lang.eq_ignore_ascii_case(&self.get_lang()),
+
             NonTSPseudoClass::ReadOnly =>
                 !Element::state(self).contains(pseudo_class.state_flag()),
 
@@ -2573,6 +2606,19 @@ impl Element {
         }
         // Step 7
         self.set_click_in_progress(false);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#language
+    pub fn get_lang(&self) -> String {
+        self.upcast::<Node>().inclusive_ancestors().filter_map(|node| {
+            node.downcast::<Element>().and_then(|el| {
+                el.get_attribute(&ns!(xml), &local_name!("lang")).or_else(|| {
+                    el.get_attribute(&ns!(), &local_name!("lang"))
+                }).map(|attr| String::from(attr.Value()))
+            })
+        // TODO: Check meta tags for a pragma-set default language
+        // TODO: Check HTTP Content-Language header
+        }).next().unwrap_or(String::new())
     }
 
     pub fn state(&self) -> ElementState {

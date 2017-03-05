@@ -40,7 +40,8 @@ pub trait LayoutRPC {
     fn margin_style(&self) -> MarginStyleResponse;
     /// Requests the list of not-yet-loaded images that were encountered in the last reflow.
     fn pending_images(&self) -> Vec<PendingImage>;
-    fn nodes_from_point(&self, page_point: Point2D<f32>, client_point: Point2D<f32>) -> Vec<UntrustedNodeAddress>;
+    /// Requests the list of nodes from the given point.
+    fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
 
     fn text_index(&self) -> TextIndexResponse;
 }

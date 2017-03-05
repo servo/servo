@@ -39,7 +39,7 @@
     }
 
     #[allow(non_camel_case_types)]
-    #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug)]
+    #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
     #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
     pub enum SpecifiedValue {
         % for value in values:
@@ -68,7 +68,7 @@
     /// Parse a display value.
     pub fn parse(_context: &ParserContext, input: &mut Parser)
                  -> Result<SpecifiedValue, ()> {
-        match_ignore_ascii_case! { try!(input.expect_ident()),
+        match_ignore_ascii_case! { &try!(input.expect_ident()),
             % for value in values:
                 "${value}" => {
                     Ok(computed_value::T::${to_rust_ident(value)})
@@ -84,7 +84,6 @@
         fn cascade_property_custom(_declaration: &PropertyDeclaration,
                                    _inherited_style: &ComputedValues,
                                    context: &mut computed::Context,
-                                   _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
                                    _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
             longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
@@ -299,7 +298,7 @@ ${helpers.single_keyword("-moz-top-layer", "none top",
         input.try(|i| specified::LengthOrPercentage::parse(context, i))
         .map(SpecifiedValue::LengthOrPercentage)
         .or_else(|_| {
-            match_ignore_ascii_case! { try!(input.expect_ident()),
+            match_ignore_ascii_case! { &try!(input.expect_ident()),
                 % for keyword in vertical_align_keywords:
                     "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
                 % endfor
@@ -588,7 +587,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     impl Parse for SpecifiedValue {
         fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
             if let Ok(function_name) = input.try(|input| input.expect_function()) {
-                return match_ignore_ascii_case! { function_name,
+                return match_ignore_ascii_case! { &function_name,
                     "cubic-bezier" => {
                         let (mut p1x, mut p1y, mut p2x, mut p2y) = (0.0, 0.0, 0.0, 0.0);
                         try!(input.parse_nested_block(|input| {
@@ -618,7 +617,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
                             if input.try(|input| input.expect_comma()).is_ok() {
                                 start_end = try!(match_ignore_ascii_case! {
-                                    try!(input.expect_ident()),
+                                    &try!(input.expect_ident()),
                                     "start" => Ok(StartEnd::Start),
                                     "end" => Ok(StartEnd::End),
                                     _ => Err(())
@@ -1319,7 +1318,7 @@ ${helpers.predefined_type("scroll-snap-coordinate",
                 Err(_) => break,
             };
             match_ignore_ascii_case! {
-                name,
+                &name,
                 "matrix" => {
                     try!(input.parse_nested_block(|input| {
                         let values = try!(input.parse_comma_separated(|input| {

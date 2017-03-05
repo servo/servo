@@ -25,6 +25,7 @@ use dom::globalscope::GlobalScope;
 use dom::headers::{Guard, Headers};
 use dom::promise::Promise;
 use dom::xmlhttprequest::Extractable;
+use dom_struct::dom_struct;
 use hyper::method::Method as HttpMethod;
 use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::request::{Origin, Window};
@@ -183,9 +184,8 @@ impl Request {
             !init.window.handle().is_undefined() {
                 // Step 13.1
                 if request.mode == NetTraitsRequestMode::Navigate {
-                    return Err(Error::Type(
-                        "Init is present and request mode is 'navigate'".to_string()));
-                    }
+                    request.mode = NetTraitsRequestMode::SameOrigin;
+                }
                 // Step 13.2
                 request.omit_origin_header.set(false);
                 // Step 13.3
@@ -211,17 +211,13 @@ impl Request {
                 }
                 // Step 14.5
                 if let Ok(parsed_referrer) = parsed_referrer {
-                    if parsed_referrer.cannot_be_a_base() &&
+                    if (parsed_referrer.cannot_be_a_base() &&
                         parsed_referrer.scheme() == "about" &&
-                        parsed_referrer.path() == "client" {
+                        parsed_referrer.path() == "client") ||
+                       parsed_referrer.origin() != origin {
                             *request.referrer.borrow_mut() = NetTraitsRequestReferrer::Client;
                         } else {
                             // Step 14.6
-                            if parsed_referrer.origin() != origin {
-                                return Err(Error::Type(
-                                    "RequestInit's referrer has invalid origin".to_string()));
-                            }
-                            // Step 14.7
                             *request.referrer.borrow_mut() = NetTraitsRequestReferrer::ReferrerUrl(parsed_referrer);
                         }
                 }
@@ -576,7 +572,7 @@ impl RequestMethods for Request {
         let referrer = r.referrer.borrow();
         USVString(match &*referrer {
             &NetTraitsRequestReferrer::NoReferrer => String::from("no-referrer"),
-            &NetTraitsRequestReferrer::Client => String::from("client"),
+            &NetTraitsRequestReferrer::Client => String::from("about:client"),
             &NetTraitsRequestReferrer::ReferrerUrl(ref u) => {
                 let u_c = u.clone();
                 u_c.into_string()

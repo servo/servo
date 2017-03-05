@@ -13,6 +13,7 @@ use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
+use dom_struct::dom_struct;
 use html5ever_atoms::LocalName;
 
 #[dom_struct]

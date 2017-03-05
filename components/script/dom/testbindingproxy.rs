@@ -7,7 +7,7 @@
 use dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
 use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
-
+use dom_struct::dom_struct;
 
 #[dom_struct]
 pub struct TestBindingProxy {

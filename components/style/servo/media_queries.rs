@@ -10,7 +10,7 @@ use euclid::{Size2D, TypedSize2D};
 use media_queries::MediaType;
 use properties::ComputedValues;
 use std::fmt;
-use style_traits::{ToCss, ViewportPx};
+use style_traits::{CSSPixel, ToCss};
 use style_traits::viewport::ViewportConstraints;
 use values::computed::{self, ToComputedValue};
 use values::specified;
@@ -23,14 +23,14 @@ use values::specified;
 pub struct Device {
     /// The current media type used by de device.
     media_type: MediaType,
-    /// The current viewport size, in viewport pixels.
-    viewport_size: TypedSize2D<f32, ViewportPx>,
+    /// The current viewport size, in CSS pixels.
+    viewport_size: TypedSize2D<f32, CSSPixel>,
 }
 
 impl Device {
     /// Trivially construct a new `Device`.
     pub fn new(media_type: MediaType,
-               viewport_size: TypedSize2D<f32, ViewportPx>)
+               viewport_size: TypedSize2D<f32, CSSPixel>)
                -> Device {
         Device {
             media_type: media_type,
@@ -53,7 +53,7 @@ impl Device {
 
     /// Returns the viewport size in pixels.
     #[inline]
-    pub fn px_viewport_size(&self) -> TypedSize2D<f32, ViewportPx> {
+    pub fn px_viewport_size(&self) -> TypedSize2D<f32, CSSPixel> {
         self.viewport_size
     }
 
@@ -106,7 +106,7 @@ impl Expression {
             let name = try!(input.expect_ident());
             try!(input.expect_colon());
             // TODO: Handle other media features
-            Ok(Expression(match_ignore_ascii_case! { name,
+            Ok(Expression(match_ignore_ascii_case! { &name,
                 "min-width" => {
                     ExpressionKind::Width(Range::Min(try!(specified::Length::parse_non_negative(input))))
                 },
@@ -180,6 +180,7 @@ impl Range<specified::Length> {
             is_root_element: false,
             viewport_size: viewport_size,
             inherited_style: default_values,
+            layout_parent_style: default_values,
             // This cloning business is kind of dumb.... It's because Context
             // insists on having an actual ComputedValues inside itself.
             style: default_values.clone(),

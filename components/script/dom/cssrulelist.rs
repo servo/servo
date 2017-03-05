@@ -12,6 +12,7 @@ use dom::csskeyframerule::CSSKeyframeRule;
 use dom::cssrule::CSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::stylesheets::{CssRules, KeyframesRule, RulesMutateError};

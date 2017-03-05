@@ -19,7 +19,7 @@ macro_rules! define_numbered_css_keyword_enum {
     };
     ($name: ident: $( $css: expr => $variant: ident = $value: expr ),+) => {
         #[allow(non_camel_case_types, missing_docs)]
-        #[derive(Clone, Eq, PartialEq, PartialOrd, Ord, Copy, RustcEncodable, Debug)]
+        #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
         pub enum $name {
             $( $variant = $value ),+
@@ -28,7 +28,7 @@ macro_rules! define_numbered_css_keyword_enum {
         impl Parse for $name {
             #[allow(missing_docs)]
             fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                match_ignore_ascii_case! { try!(input.expect_ident()),
+                match_ignore_ascii_case! { &try!(input.expect_ident()),
                     $( $css => Ok($name::$variant), )+
                     _ => Err(())
                 }
@@ -185,3 +185,11 @@ impl<A: ToComputedValue, B: ToComputedValue> ToComputedValue for Either<A, B> {
         }
     }
 }
+
+// A type for possible values for min- and max- flavors of width,
+// height, block-size, and inline-size.
+define_css_keyword_enum!(ExtremumLength:
+                         "max-content" => MaxContent,
+                         "min-content" => MinContent,
+                         "fit-content" => FitContent,
+                         "fill-available" => FillAvailable);

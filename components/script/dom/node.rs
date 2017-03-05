@@ -53,6 +53,7 @@ use dom::svgsvgelement::{SVGSVGElement, LayoutSVGSVGElementHelpers};
 use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
+use dom_struct::dom_struct;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;

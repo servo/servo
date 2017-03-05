@@ -101,6 +101,11 @@
      #[inline]
     pub fn get_initial_value() -> computed_value::T { computed_value::T::Normal }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Normal
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
@@ -1031,6 +1036,7 @@ ${helpers.single_keyword("text-align-last",
 
 ${helpers.predefined_type("text-emphasis-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
+                          initial_specified_value="specified::CSSColor::currentcolor()",
                           products="gecko", animatable=True,
                           complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-color")}
@@ -1056,6 +1062,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "-webkit-text-stroke-color", "CSSColor",
     "CSSParserColor::CurrentColor",
+    initial_specified_value="specified::CSSColor::currentcolor()",
     products="gecko", animatable=True,
     complex_color=True, need_clone=True,
     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke-color")}
@@ -1066,7 +1073,7 @@ ${helpers.predefined_type(
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::specified::BorderWidth;
+    use values::specified::{BorderWidth, Length};
 
     pub type SpecifiedValue = BorderWidth;
 
@@ -1081,6 +1088,10 @@ ${helpers.predefined_type(
     }
     #[inline] pub fn get_initial_value() -> computed_value::T {
         Au::from_px(0)
+    }
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        BorderWidth::from_length(Length::zero())
     }
 </%helpers:longhand>
 

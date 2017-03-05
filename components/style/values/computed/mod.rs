@@ -23,6 +23,7 @@ pub use super::specified::{Angle, BorderStyle, GridLine, Time, UrlOrNone};
 pub use super::specified::url::{SpecifiedUrl, UrlExtraData};
 pub use self::length::{CalcLengthOrPercentage, Length, LengthOrNumber, LengthOrPercentage, LengthOrPercentageOrAuto};
 pub use self::length::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone, LengthOrNone};
+pub use self::length::{MaxLength, MinLength};
 pub use self::position::Position;
 
 pub mod basic_shape;
@@ -41,6 +42,12 @@ pub struct Context<'a> {
 
     /// The style we're inheriting from.
     pub inherited_style: &'a ComputedValues,
+
+    /// The style of the layout parent node. This will almost always be
+    /// `inherited_style`, except when `display: contents` is at play, in which
+    /// case it's the style of the last ancestor with a `display` value that
+    /// isn't `contents`.
+    pub layout_parent_style: &'a ComputedValues,
 
     /// Values access through this need to be in the properties "computed
     /// early": color, text-decoration, font-size, display, position, float,
@@ -294,17 +301,22 @@ pub type LoPOrNumber = Either<LengthOrPercentage, Number>;
 #[allow(missing_docs)]
 /// A computed cliprect for clip and image-region
 pub struct ClipRect {
-    pub top: Au,
+    pub top: Option<Au>,
     pub right: Option<Au>,
     pub bottom: Option<Au>,
-    pub left: Au,
+    pub left: Option<Au>,
 }
 
 impl ToCss for ClipRect {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         try!(dest.write_str("rect("));
-        try!(self.top.to_css(dest));
-        try!(dest.write_str(", "));
+        if let Some(top) = self.top {
+            try!(top.to_css(dest));
+            try!(dest.write_str(", "));
+        } else {
+            try!(dest.write_str("auto, "));
+        }
+
         if let Some(right) = self.right {
             try!(right.to_css(dest));
             try!(dest.write_str(", "));
@@ -319,7 +331,11 @@ impl ToCss for ClipRect {
             try!(dest.write_str("auto, "));
         }
 
-        try!(self.left.to_css(dest));
+        if let Some(left) = self.left {
+            try!(left.to_css(dest));
+        } else {
+            try!(dest.write_str("auto"));
+        }
         dest.write_str(")")
     }
 }

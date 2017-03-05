@@ -63,6 +63,7 @@ use layout::flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwne
 use layout::flow_ref::FlowRef;
 use layout::incremental::{LayoutDamageComputation, REFLOW_ENTIRE_DOCUMENT};
 use layout::layout_debug;
+use layout::opaque_node::OpaqueNodeMethods;
 use layout::parallel;
 use layout::query::{LayoutRPCImpl, LayoutThreadData, process_content_box_request, process_content_boxes_request};
 use layout::query::{process_margin_style_query, process_node_overflow_request, process_resolved_style_request};
@@ -459,6 +460,7 @@ impl LayoutThread {
                     stacking_context_scroll_offsets: HashMap::new(),
                     text_index_response: TextIndexResponse(None),
                     pending_images: vec![],
+                    nodes_from_point_response: vec![],
                 })),
             error_reporter: CSSErrorReporter {
                 pipelineid: id,
@@ -494,8 +496,6 @@ impl LayoutThread {
     // Create a layout context for use in building display lists, hit testing, &c.
     fn build_layout_context(&self,
                             rw_data: &LayoutThreadData,
-                            screen_size_changed: bool,
-                            goal: ReflowGoal,
                             request_images: bool)
                             -> LayoutContext {
         let thread_local_style_context_creation_data =
@@ -504,9 +504,7 @@ impl LayoutThread {
         LayoutContext {
             style_context: SharedStyleContext {
                 viewport_size: self.viewport_size.clone(),
-                screen_size_changed: screen_size_changed,
                 stylist: rw_data.stylist.clone(),
-                goal: goal,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
                 error_reporter: self.error_reporter.clone(),
@@ -776,7 +774,7 @@ impl LayoutThread {
             Some(x) => x,
             None => return None,
         };
-        let result = data.flow_construction_result.swap_out();
+        let result = data.flow_construction_result.get();
 
         let mut flow = match result {
             ConstructionResult::Flow(mut flow, abs_descendants) => {
@@ -934,7 +932,7 @@ impl LayoutThread {
                 Some(get_root_flow_background_color(layout_root)),
                 webrender_traits::Epoch(epoch_number),
                 viewport_size,
-                builder,
+                builder.finalize(),
                 true);
             self.webrender_api.generate_frame(None);
         });
@@ -976,6 +974,9 @@ impl LayoutThread {
                     },
                     ReflowQueryType::HitTestQuery(..) => {
                         rw_data.hit_test_response = (None, false);
+                    },
+                    ReflowQueryType::NodesFromPoint(..) => {
+                        rw_data.nodes_from_point_response = Vec::new();
                     },
                     ReflowQueryType::NodeGeometryQuery(_) => {
                         rw_data.client_rect_response = Rect::zero();
@@ -1030,9 +1031,6 @@ impl LayoutThread {
                             Au::from_f32_px(constraints.size.height))
             });
 
-        // Handle conditions where the entire flow tree is invalid.
-        let mut needs_dirtying = false;
-
         let viewport_size_changed = self.viewport_size != old_viewport_size;
         if viewport_size_changed {
             if let Some(constraints) = rw_data.stylist.viewport_constraints() {
@@ -1066,9 +1064,9 @@ impl LayoutThread {
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        needs_dirtying |= Arc::get_mut(&mut rw_data.stylist).unwrap().update(&data.document_stylesheets,
-                                                                             Some(&*UA_STYLESHEETS),
-                                                                             data.stylesheets_changed);
+        let needs_dirtying = Arc::get_mut(&mut rw_data.stylist).unwrap().update(&data.document_stylesheets,
+                                                                                 Some(&*UA_STYLESHEETS),
+                                                                                 data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         if needs_dirtying {
             if let Some(mut d) = element.mutate_data() {
@@ -1114,10 +1112,7 @@ impl LayoutThread {
         }
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(&*rw_data,
-                                                           viewport_size_changed,
-                                                           data.reflow_info.goal,
-                                                           true);
+        let mut layout_context = self.build_layout_context(&*rw_data, true);
 
         // NB: Type inference falls apart here for some reason, so we need to be very verbose. :-(
         let traversal_driver = if self.parallel_flag && self.parallel_traversal.is_some() {
@@ -1279,6 +1274,29 @@ impl LayoutThread {
                 let node = unsafe { ServoLayoutNode::new(&node) };
                 rw_data.margin_style_response = process_margin_style_query(node);
             },
+            ReflowQueryType::NodesFromPoint(page_point, client_point) => {
+                let page_point = Point2D::new(Au::from_f32_px(page_point.x),
+                                              Au::from_f32_px(page_point.y));
+                let client_point = Point2D::new(Au::from_f32_px(client_point.x),
+                                                Au::from_f32_px(client_point.y));
+                let nodes_from_point_list = {
+                    let result = match rw_data.display_list {
+                        None => panic!("Tried to hit test without a DisplayList"),
+                        Some(ref display_list) => {
+                            display_list.hit_test(&page_point,
+                                                  &client_point,
+                                                  &rw_data.stacking_context_scroll_offsets)
+                        }
+                    };
+
+                    result
+                };
+
+                rw_data.nodes_from_point_response = nodes_from_point_list.iter()
+                   .rev()
+                   .map(|metadata| metadata.node.to_untrusted_node_address())
+                   .collect()
+            },
             ReflowQueryType::NoQuery => {}
         }
     }
@@ -1322,10 +1340,7 @@ impl LayoutThread {
             page_clip_rect: max_rect(),
         };
 
-        let mut layout_context = self.build_layout_context(&*rw_data,
-                                                           false,
-                                                           reflow_info.goal,
-                                                           false);
+        let mut layout_context = self.build_layout_context(&*rw_data, false);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             // Perform an abbreviated style recalc that operates without access to the DOM.
@@ -1358,10 +1373,7 @@ impl LayoutThread {
             page_clip_rect: max_rect(),
         };
 
-        let mut layout_context = self.build_layout_context(&*rw_data,
-                                                           false,
-                                                           reflow_info.goal,
-                                                           false);
+        let mut layout_context = self.build_layout_context(&*rw_data, false);
 
         // No need to do a style recalc here.
         if self.root_flow.is_none() {
@@ -1488,7 +1500,9 @@ impl LayoutThread {
 
     fn reflow_all_nodes(flow: &mut Flow) {
         debug!("reflowing all nodes!");
-        flow::mut_base(flow).restyle_damage.insert(REPAINT | STORE_OVERFLOW | REFLOW);
+        flow::mut_base(flow)
+            .restyle_damage
+            .insert(REPAINT | STORE_OVERFLOW | REFLOW | REPOSITION);
 
         for child in flow::child_iter_mut(flow) {
             LayoutThread::reflow_all_nodes(child);
@@ -1585,7 +1599,8 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
 /// or false if it only needs stacking-relative positions.
 fn reflow_query_type_needs_display_list(query_type: &ReflowQueryType) -> bool {
     match *query_type {
-        ReflowQueryType::HitTestQuery(..) | ReflowQueryType::TextIndexQuery(..) => true,
+        ReflowQueryType::HitTestQuery(..) | ReflowQueryType::TextIndexQuery(..) |
+        ReflowQueryType::NodesFromPoint(..) => true,
         ReflowQueryType::ContentBoxQuery(_) | ReflowQueryType::ContentBoxesQuery(_) |
         ReflowQueryType::NodeGeometryQuery(_) | ReflowQueryType::NodeScrollGeometryQuery(_) |
         ReflowQueryType::NodeOverflowQuery(_) | ReflowQueryType::NodeScrollRootIdQuery(_) |

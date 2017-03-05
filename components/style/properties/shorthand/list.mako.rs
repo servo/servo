@@ -51,6 +51,8 @@
             break
         }
 
+        let position = unwrap_or_initial!(list_style_position, position);
+
         // If there are two `none`s, then we can't have a type or image; if there is one `none`,
         // then we can't have both a type *and* an image; if there is no `none` then we're fine as
         // long as we parsed something.
@@ -58,62 +60,49 @@
             (true, 2, None, None) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: Some(Either::Second(None_)),
-                    list_style_type: Some(list_style_type::SpecifiedValue::none),
+                    list_style_image: Either::Second(None_),
+                    list_style_type: list_style_type::SpecifiedValue::none,
                 })
             }
             (true, 1, None, Some(image)) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: Some(image),
-                    list_style_type: Some(list_style_type::SpecifiedValue::none),
+                    list_style_image: image,
+                    list_style_type: list_style_type::SpecifiedValue::none,
                 })
             }
             (true, 1, Some(list_style_type), None) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: Some(Either::Second(None_)),
-                    list_style_type: Some(list_style_type),
+                    list_style_image: Either::Second(None_),
+                    list_style_type: list_style_type,
                 })
             }
             (true, 1, None, None) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: Some(Either::Second(None_)),
-                    list_style_type: Some(list_style_type::SpecifiedValue::none),
+                    list_style_image: Either::Second(None_),
+                    list_style_type: list_style_type::SpecifiedValue::none,
                 })
             }
             (true, 0, list_style_type, image) => {
                 Ok(Longhands {
                     list_style_position: position,
-                    list_style_image: image,
-                    list_style_type: list_style_type,
+                    list_style_image: unwrap_or_initial!(list_style_image, image),
+                    list_style_type: unwrap_or_initial!(list_style_type),
                 })
             }
             _ => Err(()),
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self.list_style_position {
-                DeclaredValue::Initial => try!(write!(dest, "outside")),
-                _ => try!(self.list_style_position.to_css(dest))
-            }
-
-            try!(write!(dest, " "));
-
-            match *self.list_style_image {
-                DeclaredValue::Initial => try!(write!(dest, "none")),
-                _ => try!(self.list_style_image.to_css(dest))
-            };
-
-            try!(write!(dest, " "));
-
-            match *self.list_style_type {
-                DeclaredValue::Initial => write!(dest, "disc"),
-                _ => self.list_style_type.to_css(dest)
-            }
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.list_style_position.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.list_style_image.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.list_style_type.to_css(dest)
         }
     }
 </%helpers:shorthand>

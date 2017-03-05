@@ -29,34 +29,20 @@
             break
         }
         if color.is_some() || style.is_some() {
-            if style.is_none() {
-                style = Some(text_emphasis_style::get_initial_specified_value());
-            }
-
             Ok(Longhands {
-                text_emphasis_color: color,
-                text_emphasis_style: style,
+                text_emphasis_color: unwrap_or_initial!(text_emphasis_color, color),
+                text_emphasis_style: unwrap_or_initial!(text_emphasis_style, style),
             })
         } else {
             Err(())
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut style_present = false;
-            if let DeclaredValue::Value(ref value) = *self.text_emphasis_style {
-                style_present = true;
-                try!(value.to_css(dest));
-            }
-
-            if let DeclaredValue::Value(ref color) = *self.text_emphasis_color {
-                if style_present {
-                    try!(write!(dest, " "));
-                }
-                try!(color.to_css(dest));
-            }
-            Ok(())
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.text_emphasis_style.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.text_emphasis_color.to_css(dest)
         }
     }
 </%helpers:shorthand>
@@ -68,13 +54,9 @@
                                     -webkit-text-stroke-width"
                     products="gecko"
                     spec="https://compat.spec.whatwg.org/#the-webkit-text-stroke">
-    use cssparser::Color as CSSParserColor;
     use properties::longhands::{_webkit_text_stroke_color, _webkit_text_stroke_width};
-    use values::specified::CSSColor;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
-        use values::specified::{BorderWidth, Length};
-
         let mut color = None;
         let mut width = None;
         loop {
@@ -96,31 +78,19 @@
 
         if color.is_some() || width.is_some() {
             Ok(Longhands {
-                _webkit_text_stroke_color: color.or(Some(CSSColor { parsed: CSSParserColor::CurrentColor,
-                    authored: None })),
-                _webkit_text_stroke_width: width.or(Some(BorderWidth::from_length(Length::zero()))),
+                _webkit_text_stroke_color: unwrap_or_initial!(_webkit_text_stroke_color, color),
+                _webkit_text_stroke_width: unwrap_or_initial!(_webkit_text_stroke_width, width),
             })
         } else {
             Err(())
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let mut style_present = false;
-            if let DeclaredValue::Value(ref width) = *self._webkit_text_stroke_width {
-                style_present = true;
-                try!(width.to_css(dest));
-            }
-
-            if let DeclaredValue::Value(ref color) = *self._webkit_text_stroke_color {
-                if style_present {
-                    try!(write!(dest, " "));
-                }
-                try!(color.to_css(dest));
-            }
-
-            Ok(())
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self._webkit_text_stroke_width.to_css(dest)?;
+            dest.write_str(" ")?;
+            self._webkit_text_stroke_color.to_css(dest)
         }
     }
 </%helpers:shorthand>

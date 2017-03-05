@@ -19,6 +19,7 @@ use dom::bindings::js::MutHeapJSVal;
 use dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
 use dom::globalscope::GlobalScope;
 use dom::promisenativehandler::PromiseNativeHandler;
+use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{CallOriginalPromiseResolve, CallOriginalPromiseReject, CallOriginalPromiseThen};
 use js::jsapi::{JSAutoCompartment, CallArgs, JS_GetFunctionObject, JS_NewFunction};

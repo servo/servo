@@ -11,6 +11,7 @@
 
 // TODO(pcwalton): `invert`
 ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor",
+                          initial_specified_value="specified::CSSColor::currentcolor()",
                           animatable=True, complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-ui/#propdef-outline-color")}
 
@@ -36,6 +37,11 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
+        Either::Second(BorderStyle::none)
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
         Either::Second(BorderStyle::none)
     }
 
@@ -88,7 +94,13 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
         use app_units::Au;
         pub type T = Au;
     }
+
     pub use super::border_top_width::get_initial_value;
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(specified::Length::NoCalc(specified::NoCalcLength::medium()))
+    }
+
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 

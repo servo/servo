@@ -8,8 +8,10 @@ use devtools_traits::DevtoolsControlMsg;
 use fetch::cors_cache::CorsCache;
 use filemanager_thread::FileManager;
 use http_loader::{HttpState, determine_request_referrer, http_fetch, set_default_accept_language};
+use hyper::Error;
+use hyper::error::Result as HyperResult;
 use hyper::header::{Accept, AcceptLanguage, ContentLanguage, ContentType};
-use hyper::header::{HeaderView, QualityItem, Referer as RefererHeader, q, qitem};
+use hyper::header::{Header, HeaderFormat, HeaderView, QualityItem, Referer as RefererHeader, q, qitem};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
@@ -19,10 +21,12 @@ use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, Response
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use std::borrow::Cow;
+use std::fmt;
 use std::fs::File;
 use std::io::Read;
 use std::mem;
 use std::rc::Rc;
+use std::str;
 use std::sync::mpsc::{Sender, Receiver};
 use subresource_integrity::is_response_integrity_valid;
 
@@ -269,13 +273,12 @@ pub fn main_fetch(request: Rc<Request>,
         response
     };
 
-    let mut response_loaded = false;
-    {
+    let internal_error = { // Inner scope to reborrow response
         // Step 14
-        let network_error_res;
+        let network_error_response;
         let internal_response = if let Some(error) = response.get_network_error() {
-            network_error_res = Response::network_error(error.clone());
-            &network_error_res
+            network_error_response = Response::network_error(error.clone());
+            &network_error_response
         } else {
             response.actual_response()
         };
@@ -286,21 +289,41 @@ pub fn main_fetch(request: Rc<Request>,
         }
 
         // Step 16
-        // TODO this step (CSP/blocking)
+        // TODO Blocking for CSP, mixed content, MIME type
+        let blocked_error_response;
+        let internal_response = if !response.is_network_error() && should_block_nosniff(&request, &response) {
+            // Defer rebinding result
+            blocked_error_response = Response::network_error(NetworkError::Internal("Blocked by nosniff".into()));
+            &blocked_error_response
+        } else {
+            internal_response
+        };
 
         // Step 17
-        if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
+        // We check `internal_response` since we did not mutate `response` in the previous step.
+        let not_network_error = !response.is_network_error() && !internal_response.is_network_error();
+        if not_network_error && (is_null_body_status(&internal_response.status) ||
             match *request.method.borrow() {
                 Method::Head | Method::Connect => true,
-                _ => false })
-            {
+                _ => false }) {
             // when Fetch is used only asynchronously, we will need to make sure
             // that nothing tries to write to the body at this point
             let mut body = internal_response.body.lock().unwrap();
             *body = ResponseBody::Empty;
         }
-    }
-     // Step 18
+
+        internal_response.get_network_error().map(|e| e.clone())
+    };
+
+    // Execute deferred rebinding of response
+    let response = if let Some(error) = internal_error {
+        Response::network_error(error)
+    } else {
+        response
+    };
+
+    // Step 18
+    let mut response_loaded = false;
     let response = if !response.is_network_error() && *request.integrity_metadata.borrow() != "" {
         // Substep 1
         wait_for_response(&response, target, done_chan);
@@ -510,3 +533,94 @@ fn is_null_body_status(status: &Option<StatusCode>) -> bool {
     }
 }
 
+/// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff?
+fn should_block_nosniff(request: &Request, response: &Response) -> bool {
+    /// https://fetch.spec.whatwg.org/#x-content-type-options-header
+    /// This is needed to parse `X-Content-Type-Options` according to spec,
+    /// which requires that we inspect only the first value.
+    ///
+    /// A [unit-like struct](https://doc.rust-lang.org/book/structs.html#unit-like-structs)
+    /// is sufficient since a valid header implies that we use `nosniff`.
+    #[derive(Debug, Clone, Copy)]
+    struct XContentTypeOptions();
+
+    impl Header for XContentTypeOptions {
+        fn header_name() -> &'static str {
+            "X-Content-Type-Options"
+        }
+
+        /// https://fetch.spec.whatwg.org/#should-response-to-request-be-blocked-due-to-nosniff%3F #2
+        fn parse_header(raw: &[Vec<u8>]) -> HyperResult<Self> {
+            raw.first()
+                .and_then(|v| str::from_utf8(v).ok())
+                .and_then(|s| match s.trim().to_lowercase().as_str() {
+                    "nosniff" => Some(XContentTypeOptions()),
+                    _ => None
+                })
+                .ok_or(Error::Header)
+        }
+    }
+
+    impl HeaderFormat for XContentTypeOptions {
+        fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            f.write_str("nosniff")
+        }
+    }
+
+    match response.headers.get::<XContentTypeOptions>() {
+        None => return false, // Step 1
+        _ => () // Step 2 & 3 are implemented by the XContentTypeOptions struct
+    };
+
+    // Step 4
+    // Note: an invalid MIME type will produce a `None`.
+    let content_type_header = response.headers.get::<ContentType>();
+    // Step 5
+    let type_ = request.type_;
+
+    /// https://html.spec.whatwg.org/multipage/#scriptingLanguages
+    #[inline]
+    fn is_javascript_mime_type(mime_type: &Mime) -> bool {
+        let javascript_mime_types: [Mime; 16] = [
+            mime!(Application / ("ecmascript")),
+            mime!(Application / ("javascript")),
+            mime!(Application / ("x-ecmascript")),
+            mime!(Application / ("x-javascript")),
+            mime!(Text / ("ecmascript")),
+            mime!(Text / ("javascript")),
+            mime!(Text / ("javascript1.0")),
+            mime!(Text / ("javascript1.1")),
+            mime!(Text / ("javascript1.2")),
+            mime!(Text / ("javascript1.3")),
+            mime!(Text / ("javascript1.4")),
+            mime!(Text / ("javascript1.5")),
+            mime!(Text / ("jscript")),
+            mime!(Text / ("livescript")),
+            mime!(Text / ("x-ecmascript")),
+            mime!(Text / ("x-javascript")),
+        ];
+
+        javascript_mime_types.contains(mime_type)
+    }
+
+    let text_css: Mime = mime!(Text / Css);
+    // Assumes str::starts_with is equivalent to mime::TopLevel
+    return match type_ {
+        // Step 6
+        Type::Script => {
+            match content_type_header {
+                Some(&ContentType(ref mime_type)) => !is_javascript_mime_type(&mime_type),
+                None => true
+            }
+        }
+        // Step 7
+        Type::Style => {
+            match content_type_header {
+                Some(&ContentType(ref mime_type)) => mime_type != &text_css,
+                None => true
+            }
+        }
+        // Step 8
+        _ => false
+    };
+}

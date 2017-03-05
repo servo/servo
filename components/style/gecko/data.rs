@@ -11,13 +11,9 @@ use gecko_bindings::bindings::RawServoStyleSet;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
 use gecko_bindings::sugar::ownership::{HasBoxFFI, HasFFI, HasSimpleFFI};
 use media_queries::Device;
-use num_cpus;
 use parking_lot::RwLock;
 use properties::ComputedValues;
-use rayon;
-use std::cmp;
 use std::collections::HashMap;
-use std::env;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use stylesheets::Stylesheet;
@@ -48,28 +44,11 @@ pub struct PerDocumentStyleDataImpl {
     /// Unused. Will go away when we actually implement transitions and
     /// animations properly.
     pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
-
-    /// The worker thread pool.
-    /// FIXME(bholley): This shouldn't be per-document.
-    pub work_queue: Option<rayon::ThreadPool>,
-
-    /// The number of threads of the work queue.
-    pub num_threads: usize,
 }
 
 /// The data itself is an `AtomicRefCell`, which guarantees the proper semantics
 /// and unexpected races while trying to mutate it.
 pub struct PerDocumentStyleData(AtomicRefCell<PerDocumentStyleDataImpl>);
-
-lazy_static! {
-    /// The number of layout threads, computed statically.
-    pub static ref NUM_THREADS: usize = {
-        match env::var("STYLO_THREADS").map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS")) {
-            Ok(num) => num,
-            _ => cmp::max(num_cpus::get() * 3 / 4, 1),
-        }
-    };
-}
 
 impl PerDocumentStyleData {
     /// Create a dummy `PerDocumentStyleData`.
@@ -86,14 +65,6 @@ impl PerDocumentStyleData {
             new_animations_receiver: new_anims_receiver,
             running_animations: Arc::new(RwLock::new(HashMap::new())),
             expired_animations: Arc::new(RwLock::new(HashMap::new())),
-            work_queue: if *NUM_THREADS <= 1 {
-                None
-            } else {
-                let configuration =
-                    rayon::Configuration::new().set_num_threads(*NUM_THREADS);
-                rayon::ThreadPool::new(configuration).ok()
-            },
-            num_threads: *NUM_THREADS,
         }))
     }
 
@@ -141,9 +112,3 @@ unsafe impl HasFFI for PerDocumentStyleData {
 }
 unsafe impl HasSimpleFFI for PerDocumentStyleData {}
 unsafe impl HasBoxFFI for PerDocumentStyleData {}
-
-impl Drop for PerDocumentStyleDataImpl {
-    fn drop(&mut self) {
-        let _ = self.work_queue.take();
-    }
-}

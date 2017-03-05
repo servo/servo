@@ -18,6 +18,7 @@ use dom::cssstylesheet::CSSStyleSheet;
 use dom::csssupportsrule::CSSSupportsRule;
 use dom::cssviewportrule::CSSViewportRule;
 use dom::window::Window;
+use dom_struct::dom_struct;
 use std::cell::Cell;
 use style::stylesheets::CssRule as StyleCssRule;
 

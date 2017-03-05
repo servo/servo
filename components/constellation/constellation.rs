@@ -119,7 +119,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread;
 use std::time::Instant;
-use style_traits::PagePx;
+use style_traits::CSSPixel;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
@@ -534,8 +534,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 time_profiler_chan: state.time_profiler_chan,
                 mem_profiler_chan: state.mem_profiler_chan,
                 window_size: WindowSizeData {
-                    visible_viewport: opts::get().initial_window_size.to_f32() *
-                                          ScaleFactor::new(1.0),
                     initial_viewport: opts::get().initial_window_size.to_f32() *
                         ScaleFactor::new(1.0),
                     device_pixel_ratio:
@@ -588,7 +586,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     pipeline_id: PipelineId,
                     frame_id: FrameId,
                     parent_info: Option<(PipelineId, FrameType)>,
-                    initial_window_size: Option<TypedSize2D<f32, PagePx>>,
+                    initial_window_size: Option<TypedSize2D<f32, CSSPixel>>,
                     load_data: LoadData,
                     sandbox: IFrameSandboxState,
                     is_private: bool) {
@@ -1335,7 +1333,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_init_load(&mut self, url: ServoUrl) {
-        let window_size = self.window_size.visible_viewport;
+        let window_size = self.window_size.initial_viewport;
         let root_pipeline_id = PipelineId::new();
         let root_frame_id = self.root_frame_id;
         let load_data = LoadData::new(url.clone(), None, None);
@@ -1353,7 +1351,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_frame_size_msg(&mut self,
-                             iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, PagePx>)>) {
+                             iframe_sizes: Vec<(PipelineId, TypedSize2D<f32, CSSPixel>)>) {
         for (pipeline_id, size) in iframe_sizes {
             let result = {
                 let pipeline = match self.pipelines.get_mut(&pipeline_id) {
@@ -1367,8 +1365,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
                 pipeline.size = Some(size);
                 let msg = ConstellationControlMsg::Resize(pipeline_id, WindowSizeData {
-                    visible_viewport: size,
-                    initial_viewport: size * ScaleFactor::new(1.0),
+                    initial_viewport: size,
                     device_pixel_ratio: self.window_size.device_pixel_ratio,
                 }, WindowSizeType::Initial);
 
@@ -2212,8 +2209,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     /// Called when the window is resized.
     fn handle_window_size_msg(&mut self, new_size: WindowSizeData, size_type: WindowSizeType) {
-        debug!("handle_window_size_msg: {:?} {:?}", new_size.initial_viewport.to_untyped(),
-                                                       new_size.visible_viewport.to_untyped());
+        debug!("handle_window_size_msg: {:?}", new_size.initial_viewport.to_untyped());
 
         if let Some(frame) = self.frames.get(&self.root_frame_id) {
             // Send Resize (or ResizeInactive) messages to each

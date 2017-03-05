@@ -12,7 +12,7 @@ path = "lib.rs"
 [dependencies]
 brotli = "1.0.6"
 content-blocker = "0.2.3"
-cookie = {version = "0.2.5", features = ["serialize-rustc"]}
+cookie = "0.2.5"
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
 hyper = "0.9.9"
@@ -35,17 +35,13 @@ serde_derive = "0.9"
 serde_json = "0.9"
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
+servo-websocket = "0.18"
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
-url = {version = "1.2", features = ["heap_size", "rustc-serialize"]}
+url = {version = "1.2", features = ["heap_size"]}
 uuid = {version = "0.4", features = ["v4"]}
-websocket = "0.17"
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["serde_derive", "ipc"]
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"

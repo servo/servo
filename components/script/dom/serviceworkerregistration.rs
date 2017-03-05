@@ -11,6 +11,7 @@ use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom::serviceworker::ServiceWorker;
 use dom::workerglobalscope::prepare_workerscope_init;
+use dom_struct::dom_struct;
 use script_traits::{WorkerScriptLoadOrigin, ScopeThings};
 use servo_url::ServoUrl;
 use std::cell::Cell;

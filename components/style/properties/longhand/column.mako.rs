@@ -10,6 +10,7 @@
 ${helpers.predefined_type("column-width",
                           "length::LengthOrAuto",
                           "Either::Second(Auto)",
+                          initial_specified_value="Either::Second(Auto)",
                           parse_method="parse_non_negative_length",
                           extra_prefixes="moz",
                           animatable=False,
@@ -60,6 +61,11 @@ ${helpers.predefined_type("column-width",
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
         computed_value::T(None)
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Auto
     }
 
     impl ToComputedValue for SpecifiedValue {
@@ -146,6 +152,7 @@ ${helpers.single_keyword("column-fill", "auto balance", extra_prefixes="moz",
 // https://drafts.csswg.org/css-multicol-1/#crc
 ${helpers.predefined_type("column-rule-color", "CSSColor",
                           "::cssparser::Color::CurrentColor",
+                          initial_specified_value="specified::CSSColor::currentcolor()",
                           products="gecko", animatable=True, extra_prefixes="moz",
                           complex_color=True, need_clone=True,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-rule-color")}

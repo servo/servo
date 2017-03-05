@@ -38,12 +38,8 @@ style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1.12"
 unicode-script = {version = "0.1", features = ["harfbuzz"]}
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 xi-unicode = "0.1.0"
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["serde_derive", "ipc"]
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "1.0"
@@ -59,5 +55,5 @@ servo-fontconfig = "0.2.1"
 simd = "0.2.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-servo-dwrote = "0.2"
+dwrote = "0.3"
 truetype = "0.26"

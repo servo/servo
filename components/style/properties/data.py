@@ -70,7 +70,7 @@ class Keyword(object):
         moz_stripped = value.replace("-moz-", '') if self.gecko_strip_moz_prefix else value.replace("-moz-", 'moz-')
         mapped = self.consts_map.get(value)
         if self.gecko_enum_prefix:
-            parts = moz_stripped.split('-')
+            parts = moz_stripped.replace('-', '_').split('_')
             parts = mapped if mapped else [p.title() for p in parts]
             return self.gecko_enum_prefix + "::" + "".join(parts)
         else:

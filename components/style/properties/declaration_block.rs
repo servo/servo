@@ -128,10 +128,9 @@ impl PropertyDeclarationBlock {
                 // Step 1.2.3
                 // We don't print !important when serializing individual properties,
                 // so we treat this as a normal-importance property
-                let importance = Importance::Normal;
                 match shorthand.get_shorthand_appendable_value(list) {
                     Some(appendable_value) =>
-                        append_declaration_value(dest, appendable_value, importance, false),
+                        append_declaration_value(dest, appendable_value),
                     None => return Ok(()),
                 }
             }
@@ -275,6 +274,39 @@ impl PropertyDeclarationBlock {
             }
         }
     }
+
+    /// Only keep the "winning" declaration for any given property, by importance then source order.
+    pub fn deduplicate(&mut self) {
+        let mut deduplicated = Vec::with_capacity(self.declarations.len());
+        let mut seen_normal = PropertyDeclarationIdSet::new();
+        let mut seen_important = PropertyDeclarationIdSet::new();
+
+        for (declaration, importance) in self.declarations.drain(..).rev() {
+            if importance.important() {
+                let id = declaration.id();
+                if seen_important.contains(id) {
+                    self.important_count -= 1;
+                    continue
+                }
+                if seen_normal.contains(id) {
+                    let previous_len = deduplicated.len();
+                    deduplicated.retain(|&(ref d, _)| PropertyDeclaration::id(d) != id);
+                    debug_assert_eq!(deduplicated.len(), previous_len - 1);
+                }
+                seen_important.insert(id);
+            } else {
+                let id = declaration.id();
+                if seen_normal.contains(id) ||
+                   seen_important.contains(id) {
+                    continue
+                }
+                seen_normal.insert(id)
+            }
+            deduplicated.push((declaration, importance))
+        }
+        deduplicated.reverse();
+        self.declarations = deduplicated;
+    }
 }
 
 impl ToCss for PropertyDeclarationBlock {
@@ -343,22 +375,25 @@ impl ToCss for PropertyDeclarationBlock {
                         Importance::Normal
                     };
 
-                    // Substep 5
-                    let was_serialized =
-                        try!(
-                            shorthand.serialize_shorthand_to_buffer(
-                                dest,
-                                current_longhands.iter().cloned(),
-                                &mut is_first_serialization,
-                                importance
-                            )
-                        );
-                    // If serialization occured, Substep 7 & 8 will have been completed
+                    // Substep 5 - Let value be the result of invoking serialize a CSS
+                    // value of current longhands.
+                    let mut value = String::new();
+                    match shorthand.get_shorthand_appendable_value(current_longhands.iter().cloned()) {
+                        None => continue,
+                        Some(appendable_value) => {
+                            try!(append_declaration_value(&mut value, appendable_value));
+                        }
+                    }
 
                     // Substep 6
-                    if !was_serialized {
-                        continue;
+                    if value.is_empty() {
+                        continue
                     }
+
+                    // Substeps 7 and 8
+                    try!(append_serialization::<W, Cloned<slice::Iter< _>>, _>(
+                             dest, &shorthand, AppendableValue::Css(&value), importance,
+                             &mut is_first_serialization));
 
                     for current_longhand in current_longhands {
                         // Substep 9
@@ -413,7 +448,8 @@ pub enum AppendableValue<'a, I>
     /// FIXME: This needs more docs, where are the shorthands expanded? We print
     /// the property name before-hand, don't we?
     DeclarationsForShorthand(ShorthandId, I),
-    /// A raw CSS string, coming for example from a property with CSS variables.
+    /// A raw CSS string, coming for example from a property with CSS variables,
+    /// or when storing a serialized shorthand value before appending directly.
     Css(&'a str)
 }
 
@@ -434,9 +470,7 @@ fn handle_first_serialization<W>(dest: &mut W,
 
 /// Append a given kind of appendable value to a serialization.
 pub fn append_declaration_value<'a, W, I>(dest: &mut W,
-                                          appendable_value: AppendableValue<'a, I>,
-                                          importance: Importance,
-                                          is_overflow_with_name: bool)
+                                          appendable_value: AppendableValue<'a, I>)
                                           -> fmt::Result
     where W: fmt::Write,
           I: Iterator<Item=&'a PropertyDeclaration>,
@@ -447,18 +481,10 @@ pub fn append_declaration_value<'a, W, I>(dest: &mut W,
         },
         AppendableValue::Declaration(decl) => {
             try!(decl.to_css(dest));
-         },
-         AppendableValue::DeclarationsForShorthand(shorthand, decls) => {
-            if is_overflow_with_name {
-              try!(shorthand.overflow_longhands_to_css(decls, dest));
-            } else {
-              try!(shorthand.longhands_to_css(decls, dest));
-            }
-         }
-    }
-
-    if importance.important() {
-        try!(write!(dest, " !important"));
+        },
+        AppendableValue::DeclarationsForShorthand(shorthand, decls) => {
+            try!(shorthand.longhands_to_css(decls, dest));
+        }
     }
 
     Ok(())
@@ -477,12 +503,6 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
 {
     try!(handle_first_serialization(dest, is_first_serialization));
 
-    // Overflow does not behave like a normal shorthand. When overflow-x and overflow-y are not of equal
-    // values, they no longer use the shared property name "overflow" and must be handled differently
-    if shorthands::is_overflow_shorthand(&appendable_value) {
-        return append_declaration_value(dest, appendable_value, importance, true);
-    }
-
     try!(property_name.to_css(dest));
     try!(dest.write_char(':'));
 
@@ -496,11 +516,18 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
                 // for normal parsed values, add a space between key: and value
                 try!(write!(dest, " "));
             }
-         },
-         &AppendableValue::DeclarationsForShorthand(..) => try!(write!(dest, " "))
+        },
+        // Currently append_serialization is only called with a Css or
+        // a Declaration AppendableValue.
+        &AppendableValue::DeclarationsForShorthand(..) => unreachable!()
     }
 
-    try!(append_declaration_value(dest, appendable_value, importance, false));
+    try!(append_declaration_value(dest, appendable_value));
+
+    if importance.important() {
+        try!(write!(dest, " !important"));
+    }
+
     write!(dest, ";")
 }
 
@@ -618,6 +645,6 @@ pub fn parse_property_declaration_list(context: &ParserContext,
         declarations: iter.parser.declarations,
         important_count: important_count,
     };
-    super::deduplicate_property_declarations(&mut block);
+    block.deduplicate();
     block
 }

@@ -6,7 +6,7 @@
 
 <%helpers:shorthand name="outline" sub_properties="outline-color outline-style outline-width"
                     spec="https://drafts.csswg.org/css-ui/#propdef-outline">
-    use properties::longhands::{outline_width, outline_style};
+    use properties::longhands::{outline_color, outline_width, outline_style};
     use values::specified;
     use parser::Parse;
 
@@ -42,32 +42,22 @@
         }
         if any {
             Ok(Longhands {
-                outline_color: color,
-                outline_style: style,
-                outline_width: width,
+                outline_color: unwrap_or_initial!(outline_color, color),
+                outline_style: unwrap_or_initial!(outline_style, style),
+                outline_width: unwrap_or_initial!(outline_width, width),
             })
         } else {
             Err(())
         }
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self.outline_width.to_css(dest));
             try!(write!(dest, " "));
-
-            match *self.outline_style {
-                DeclaredValue::Initial => try!(write!(dest, "none")),
-                _ => try!(self.outline_style.to_css(dest))
-            };
-
-            match *self.outline_color {
-                DeclaredValue::Initial => Ok(()),
-                _ => {
-                    try!(write!(dest, " "));
-                    self.outline_color.to_css(dest)
-                }
-            }
+            try!(self.outline_style.to_css(dest));
+            try!(write!(dest, " "));
+            self.outline_color.to_css(dest)
         }
     }
 </%helpers:shorthand>
@@ -91,8 +81,8 @@
     }
 
     // TODO: Border radius for the radius shorthand is not implemented correctly yet
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             try!(self._moz_outline_radius_topleft.to_css(dest));
             try!(write!(dest, " "));
 

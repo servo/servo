@@ -13,7 +13,6 @@
                     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration">
     use cssparser::Color as CSSParserColor;
     use properties::longhands::{text_decoration_color, text_decoration_line, text_decoration_style};
-    use values::specified::CSSColor;
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         let (mut color, mut line, mut style, mut any) = (None, None, None, false);
@@ -41,38 +40,21 @@
         }
 
         Ok(Longhands {
-            text_decoration_color: color.or(Some(CSSColor { parsed: CSSParserColor::CurrentColor,
-                                                            authored: None })),
-            text_decoration_line: line.or(Some(text_decoration_line::computed_value::none)),
-            text_decoration_style: style.or(Some(text_decoration_style::computed_value::T::solid)),
+            text_decoration_color: unwrap_or_initial!(text_decoration_color, color),
+            text_decoration_line: unwrap_or_initial!(text_decoration_line, line),
+            text_decoration_style: unwrap_or_initial!(text_decoration_style, style),
         })
     }
 
-    impl<'a> LonghandsToSerialize<'a>  {
-        fn to_css_declared<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            match *self.text_decoration_line {
-                DeclaredValue::Value(ref line) => {
-                    try!(line.to_css(dest));
-                },
-                _ => {
-                    try!(write!(dest, "none"));
-                }
-            };
-
-            if let DeclaredValue::Value(ref style) = *self.text_decoration_style {
-                if *style != text_decoration_style::computed_value::T::solid {
-                    try!(write!(dest, " "));
-                    try!(style.to_css(dest));
-                }
+    impl<'a> ToCss for LonghandsToSerialize<'a>  {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.text_decoration_line.to_css(dest)?;
+            dest.write_str(" ")?;
+            self.text_decoration_style.to_css(dest)?;
+            if self.text_decoration_color.parsed != CSSParserColor::CurrentColor {
+                dest.write_str(" ")?;
+                self.text_decoration_color.to_css(dest)?;
             }
-
-            if let DeclaredValue::Value(ref color) = *self.text_decoration_color {
-                if color.parsed != CSSParserColor::CurrentColor {
-                    try!(write!(dest, " "));
-                    try!(color.to_css(dest));
-                }
-            }
-
             Ok(())
         }
     }

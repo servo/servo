@@ -81,7 +81,6 @@ ${helpers.predefined_type("clip",
                           "ClipRectOrAuto",
                           "computed::ClipRectOrAuto::auto()",
                           animatable=False,
-                          products="servo",
                           boxed="True",
                           spec="https://drafts.fxtf.org/css-masking/#clip-property")}
 
@@ -340,7 +339,7 @@ ${helpers.predefined_type("clip",
             % endif
             if let Ok(function_name) = input.try(|input| input.expect_function()) {
                 filters.push(try!(input.parse_nested_block(|input| {
-                    match_ignore_ascii_case! { function_name,
+                    match_ignore_ascii_case! { &function_name,
                         "blur" => specified::Length::parse_non_negative(input).map(SpecifiedFilter::Blur),
                         "brightness" => parse_factor(input).map(SpecifiedFilter::Brightness),
                         "contrast" => parse_factor(input).map(SpecifiedFilter::Contrast),
@@ -446,7 +445,7 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
         if let Err(_) = input.try(|input| {
             let token = try!(input.expect_ident());
             match_ignore_ascii_case! {
-                token,
+                &token,
                 "left" => {
                     if horizontal.is_none() {
                         horizontal = Some(LengthOrPercentage::Percentage(Percentage(0.0)))
@@ -488,7 +487,7 @@ pub fn parse_origin(context: &ParserContext, input: &mut Parser) -> Result<Origi
             }
             Ok(())
         }) {
-            match LengthOrPercentage::parse(context, input) {
+            match input.try(|input| LengthOrPercentage::parse(context, input)) {
                 Ok(value) => {
                     if horizontal.is_none() {
                         horizontal = Some(value);

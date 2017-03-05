@@ -8,28 +8,31 @@ use cssparser::Parser;
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
 use euclid::Size2D;
+use num_cpus;
 use parking_lot::RwLock;
+use rayon;
 use selectors::Element;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
+use std::cmp;
 use std::env;
 use std::fmt::Write;
-use std::mem;
 use std::ptr;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
-use style::context::{QuirksMode, ReflowGoal, SharedStyleContext, StyleContext};
+use style::context::{QuirksMode, SharedStyleContext, StyleContext};
 use style::context::{ThreadLocalStyleContext, ThreadLocalStyleContextCreationInfo};
 use style::data::{ElementData, ElementStyles, RestyleData};
 use style::dom::{ShowSubtreeData, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
-use style::gecko::data::{NUM_THREADS, PerDocumentStyleData, PerDocumentStyleDataImpl};
+use style::gecko::data::{PerDocumentStyleData, PerDocumentStyleDataImpl};
 use style::gecko::restyle_damage::GeckoRestyleDamage;
 use style::gecko::selector_parser::{SelectorImpl, PseudoElement};
 use style::gecko::traversal::RecalcStyleOnly;
 use style::gecko::wrapper::DUMMY_BASE_URL;
 use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
+use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
 use style::gecko_bindings::bindings::{RawServoStyleRuleBorrowed, RawServoStyleRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
@@ -38,9 +41,8 @@ use style::gecko_bindings::bindings::{RawServoStyleSheetStrong, ServoComputedVal
 use style::gecko_bindings::bindings::{ServoCssRulesBorrowed, ServoCssRulesStrong};
 use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
-use style::gecko_bindings::bindings::RawGeckoAnimationValueListBorrowedMut;
+use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
-use style::gecko_bindings::bindings::RawGeckoKeyframeListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
@@ -90,6 +92,45 @@ use stylesheet_loader::StylesheetLoader;
  * depend on but good enough for our purposes.
  */
 
+struct GlobalStyleData {
+    // How many threads parallel styling can use.
+    pub num_threads: usize,
+
+    // The parallel styling thread pool.
+    pub style_thread_pool: Option<rayon::ThreadPool>,
+}
+
+impl GlobalStyleData {
+    pub fn new() -> Self {
+        let stylo_threads = env::var("STYLO_THREADS")
+            .map(|s| s.parse::<usize>().expect("invalid STYLO_THREADS value"));
+        let num_threads = match stylo_threads {
+            Ok(num) => num,
+            _ => cmp::max(num_cpus::get() * 3 / 4, 1),
+        };
+
+        let pool = if num_threads <= 1 {
+            None
+        } else {
+            let configuration =
+                rayon::Configuration::new().set_num_threads(num_threads);
+            let pool = rayon::ThreadPool::new(configuration).ok();
+            pool
+        };
+
+        GlobalStyleData {
+            num_threads: num_threads,
+            style_thread_pool: pool,
+        }
+    }
+}
+
+lazy_static! {
+    static ref GLOBAL_STYLE_DATA: GlobalStyleData = {
+        GlobalStyleData::new()
+    };
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_Initialize() -> () {
     // Initialize logging.
@@ -123,8 +164,6 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
     SharedStyleContext {
         // FIXME (bug 1303229): Use the actual viewport size here
         viewport_size: Size2D::new(Au(0), Au(0)),
-        screen_size_changed: false,
-        goal: ReflowGoal::ForScriptQuery,
         stylist: per_doc_data.stylist.clone(),
         running_animations: per_doc_data.running_animations.clone(),
         expired_animations: per_doc_data.expired_animations.clone(),
@@ -148,7 +187,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
         }
     }
 
-    let mut per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let per_doc_data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     let token = RecalcStyleOnly::pre_traverse(element, &per_doc_data.stylist, unstyled_children_only);
     if !token.should_traverse() {
@@ -159,7 +198,9 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     debug!("{:?}", ShowSubtreeData(element.as_node()));
 
     let shared_style_context = create_shared_context(&per_doc_data);
-    let traversal_driver = if per_doc_data.num_threads == 1 || per_doc_data.work_queue.is_none() {
+    let ref global_style_data = *GLOBAL_STYLE_DATA;
+
+    let traversal_driver = if global_style_data.style_thread_pool.is_none() {
         TraversalDriver::Sequential
     } else {
         TraversalDriver::Parallel
@@ -169,7 +210,7 @@ fn traverse_subtree(element: GeckoElement, raw_data: RawServoStyleSetBorrowed,
     let known_depth = None;
     if traversal_driver.is_parallel() {
         parallel::traverse_dom(&traversal, element, known_depth, token,
-                               per_doc_data.work_queue.as_mut().unwrap());
+                               global_style_data.style_thread_pool.as_ref().unwrap());
     } else {
         sequential::traverse_dom(&traversal, element, token);
     }
@@ -273,68 +314,19 @@ pub extern "C" fn Servo_AnimationValue_GetTransform(value: RawServoAnimationValu
     }
 }
 
-/// Takes a ServoAnimationValues and populates it with the animation values corresponding
-/// to a given property declaration block
 #[no_mangle]
-pub extern "C" fn Servo_AnimationValues_Populate(anim: RawGeckoAnimationValueListBorrowedMut,
-                                                 declarations: RawServoDeclarationBlockBorrowed,
-                                                 style: ServoComputedValuesBorrowed,
-                                                 parent_style: ServoComputedValuesBorrowedOrNull,
-                                                 pres_context: RawGeckoPresContextBorrowed)
+pub extern "C" fn Servo_AnimationValue_DeepEqual(this: RawServoAnimationValueBorrowed,
+                                                 other: RawServoAnimationValueBorrowed)
+     -> bool
 {
-    use style::properties::declaration_block::Importance;
-    use style::values::computed::Context;
-
-    let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
-    // FIXME this might not be efficient since Populate
-    // is called multiple times. We should precalculate the Context
-    // and share it across Populate calls
-    let style = ComputedValues::as_arc(&style);
-    let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    let guard = declarations.read();
-
-    let init = ComputedValues::default_values(pres_context);
-
-    let context = Context {
-        is_root_element: false,
-        // FIXME (bug 1303229): Use the actual viewport size here
-        viewport_size: Size2D::new(Au(0), Au(0)),
-        inherited_style: parent_style.unwrap_or(&init),
-        style: (**style).clone(),
-        font_metrics_provider: None,
-    };
-
-    let mut iter = guard.declarations
-                    .iter()
-                    .filter_map(|&(ref decl, imp)| {
-                        if imp == Importance::Normal {
-                            AnimationValue::from_declaration(decl, &context, &init)
-                        } else {
-                            None
-                        }
-                    });
-
-    let mut geckoiter = anim.iter_mut();
-    {
-        // we reborrow to scope the consumed mutable borrow
-        // we need to be able to ensure geckoiter is empty later on
-        // and thus can't directly use `geckoiter`
-        let local_geckoiter = &mut geckoiter;
-        for (gecko, servo) in local_geckoiter.zip(&mut iter) {
-            gecko.mValue.mServo.set_arc_leaky(Arc::new(servo));
-        }
-    }
-
-    // we should have gone through both iterators
-    if iter.next().is_some() || geckoiter.next().is_some() {
-        warn!("stylo: Mismatched sizes of Gecko and Servo \
-               array during animation value construction");
-    }
+    let this_value = AnimationValue::as_arc(&this);
+    let other_value = AnimationValue::as_arc(&other);
+    this_value == other_value
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
-    *NUM_THREADS as u32
+    GLOBAL_STYLE_DATA.num_threads as u32
 }
 
 #[no_mangle]
@@ -351,12 +343,10 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
         SheetParsingMode::eUserSheetFeatures => Origin::User,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
     };
-    let sheet = Arc::new(Stylesheet::from_str(
+    Arc::new(Stylesheet::from_str(
         "", url, origin, Default::default(), None,
-        Box::new(StdoutErrorReporter), extra_data));
-    unsafe {
-        mem::transmute(sheet)
-    }
+        Box::new(StdoutErrorReporter), extra_data)
+    ).into_strong()
 }
 
 #[no_mangle]
@@ -396,12 +386,10 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
         Some(ref s) => Some(s),
     };
 
-    let sheet = Arc::new(Stylesheet::from_str(
+    Arc::new(Stylesheet::from_str(
         input, url, origin, Default::default(), loader,
-        Box::new(StdoutErrorReporter), extra_data));
-    unsafe {
-        mem::transmute(sheet)
-    }
+        Box::new(StdoutErrorReporter), extra_data)
+    ).into_strong()
 }
 
 #[no_mangle]
@@ -655,7 +643,10 @@ fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
         PseudoElementCascadeType::Lazy => {
             let d = doc_data.borrow_mut();
             let base = styles.primary.values();
-            d.stylist.lazily_compute_pseudo_element_style(&element, &pseudo, base, &d.default_computed_values())
+            d.stylist.lazily_compute_pseudo_element_style(&element,
+                                                          &pseudo,
+                                                          base,
+                                                          &d.default_computed_values())
                      .map(|s| s.values().clone())
         },
     }
@@ -1109,7 +1100,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
     use cssparser::Color;
     use style::gecko::values::convert_nscolor_to_rgba;
     use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
-    use style::values::specified::{CSSColor, CSSRGBA};
+    use style::properties::longhands;
+    use style::values::specified::CSSColor;
 
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     let long = get_longhand_from_id!(property);
@@ -1121,7 +1113,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
         BorderRightColor => color,
         BorderBottomColor => color,
         BorderLeftColor => color,
-        Color => CSSRGBA { parsed: rgba, authored: None },
+        Color => longhands::color::SpecifiedValue(color),
         BackgroundColor => color,
     };
     declarations.write().declarations.push((prop, Default::default()));
@@ -1260,7 +1252,7 @@ pub extern "C" fn Servo_ImportRule_GetSheet(import_rule:
                                             RawServoImportRuleBorrowed)
                                             -> RawServoStyleSheetStrong {
     let import_rule = RwLock::<ImportRule>::as_arc(&import_rule);
-    unsafe { mem::transmute(import_rule.read().stylesheet.clone()) }
+    import_rule.read().stylesheet.clone().into_strong()
 }
 
 #[no_mangle]
@@ -1338,6 +1330,77 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
     result.unwrap().into_strong()
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeListBorrowed,
+                                                  style: ServoComputedValuesBorrowed,
+                                                  parent_style: ServoComputedValuesBorrowedOrNull,
+                                                  pres_context: RawGeckoPresContextBorrowed,
+                                                  computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut)
+{
+    use style::properties::LonghandIdSet;
+    use style::properties::declaration_block::Importance;
+    use style::values::computed::Context;
+
+    let style = ComputedValues::as_arc(&style);
+    let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
+    let init = ComputedValues::default_values(pres_context);
+
+    let context = Context {
+        is_root_element: false,
+        // FIXME (bug 1303229): Use the actual viewport size here
+        viewport_size: Size2D::new(Au(0), Au(0)),
+        inherited_style: parent_style.unwrap_or(&init),
+        layout_parent_style: parent_style.unwrap_or(&init),
+        style: (**style).clone(),
+        font_metrics_provider: None,
+    };
+
+    for (index, keyframe) in keyframes.iter().enumerate() {
+        let ref mut animation_values = computed_keyframes[index];
+
+        let mut seen = LonghandIdSet::new();
+
+        // mServoDeclarationBlock is null in the case where we have an invalid css property.
+        let iter = keyframe.mPropertyValues.iter()
+                                           .filter(|&property| !property.mServoDeclarationBlock.mRawPtr.is_null());
+        for property in iter {
+            let declarations = unsafe { &*property.mServoDeclarationBlock.mRawPtr.clone() };
+            let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
+            let guard = declarations.read();
+
+            let anim_iter = guard.declarations
+                            .iter()
+                            .filter_map(|&(ref decl, imp)| {
+                                if imp == Importance::Normal {
+                                    let property = TransitionProperty::from_declaration(decl);
+                                    let animation = AnimationValue::from_declaration(decl, &context, &init);
+                                    debug_assert!(property.is_none() == animation.is_none(),
+                                                  "The failure condition of TransitionProperty::from_declaration \
+                                                   and AnimationValue::from_declaration should be the same");
+                                    // Skip the property if either ::from_declaration fails.
+                                    if property.is_none() || animation.is_none() {
+                                        None
+                                    } else {
+                                        Some((property.unwrap(), animation.unwrap()))
+                                    }
+                                } else {
+                                    None
+                                }
+                            });
+
+            for (i, anim) in anim_iter.enumerate() {
+                if !seen.has_transition_property_bit(&anim.0) {
+                    // This is safe since we immediately write to the uninitialized values.
+                    unsafe { animation_values.set_len((i + 1) as u32) };
+                    seen.set_transition_property_bit(&anim.0);
+                    animation_values[i].mProperty = anim.0.into();
+                    animation_values[i].mValue.mServo.set_arc_leaky(Arc::new(anim.1));
+                }
+            }
+        }
+    }
+}
+
 
 #[no_mangle]
 pub extern "C" fn Servo_AssertTreeIsClean(root: RawGeckoElementBorrowed) {
@@ -1365,7 +1428,7 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                                                       style: ServoComputedValuesBorrowed,
                                                       keyframes: RawGeckoKeyframeListBorrowedMut) -> bool {
     use style::gecko_bindings::structs::Keyframe;
-    use style::properties::property_bit_field::PropertyBitField;
+    use style::properties::LonghandIdSet;
 
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
@@ -1418,7 +1481,7 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                                declaration.is_animatable()
                            });
 
-                  let mut seen = PropertyBitField::new();
+                  let mut seen = LonghandIdSet::new();
 
                   for (index, &(ref declaration, _)) in animatable.enumerate() {
                       unsafe {
@@ -1440,9 +1503,11 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                   // Append missing property values in the initial or the finial keyframes.
                   if step.start_percentage.0 == 0. ||
                      step.start_percentage.0 == 1. {
-                      for (index, property) in animation.properties_changed.iter().enumerate() {
+                      let mut index = unsafe { (*keyframe).mPropertyValues.len() };
+                      for property in animation.properties_changed.iter() {
                           if !seen.has_transition_property_bit(&property) {
                               add_computed_property_value(keyframe, index, style, property);
+                              index += 1;
                           }
                       }
                   }
