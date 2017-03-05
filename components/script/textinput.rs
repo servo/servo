@@ -14,6 +14,7 @@ use std::cmp::{max, min};
 use std::default::Default;
 use std::ops::Range;
 use std::usize;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Selection {
@@ -376,18 +377,16 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
         let adjust = {
             let current_line = &self.lines[self.edit_point.line];
-            // FIXME: We adjust by one code point, but it proably should be one grapheme cluster
-            // https://github.com/unicode-rs/unicode-segmentation
             match direction {
                 Direction::Forward => {
-                    match current_line[self.edit_point.index..].chars().next() {
-                        Some(c) => c.len_utf8() as isize,
+                    match current_line[self.edit_point.index..].graphemes(true).next() {
+                        Some(c) => c.len() as isize,
                         None => 1,  // Going to the next line is a "one byte" offset
                     }
                 }
                 Direction::Backward => {
-                    match current_line[..self.edit_point.index].chars().next_back() {
-                        Some(c) => -(c.len_utf8() as isize),
+                    match current_line[..self.edit_point.index].graphemes(true).next_back() {
+                        Some(c) => -(c.len() as isize),
                         None => -1,  // Going to the previous line is a "one byte" offset
                     }
                 }
@@ -676,5 +675,13 @@ impl<T: ClipboardProvider> TextInput<T> {
         };
 
         selection_start as u32
+    }
+
+    pub fn set_edit_point_index(&mut self, index: usize) {
+        let byte_size = self.lines[self.edit_point.line]
+            .graphemes(true)
+            .take(index)
+            .fold(0, |acc, x| acc + x.len());
+        self.edit_point.index = byte_size;
     }
 }
