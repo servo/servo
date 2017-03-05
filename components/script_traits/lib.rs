@@ -661,7 +661,7 @@ pub struct StackingContextScrollState {
 pub enum DevicePixel {}
 
 /// Data about the window size.
-#[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Copy, Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// http://www.w3.org/TR/css-device-adapt/#initial-viewport

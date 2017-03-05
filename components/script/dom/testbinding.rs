@@ -35,9 +35,11 @@ use dom::promise::Promise;
 use dom::promisenativehandler::{PromiseNativeHandler, Callback};
 use dom::url::URL;
 use dom_struct::dom_struct;
+use euclid::scale_factor::ScaleFactor;
 use js::jsapi::{HandleObject, HandleValue, Heap, JSContext, JSObject, JSAutoCompartment};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
+use script_thread::ScriptThread;
 use script_traits::MsDuration;
 use servo_config::prefs::PREFS;
 use std::borrow::ToOwned;
@@ -786,7 +788,9 @@ impl TestBindingMethods for TestBinding {
         GlobalScope::incumbent().unwrap()
     }
 
-    fn SetZoomFactor(&self, zoom_factor: Finite<f32>) {}
+    fn SetZoomFactor(&self, zoom_factor: Finite<f32>) {
+        ScriptThread::resize(self.global().pipeline_id(), ScaleFactor::new(*zoom_factor));
+    }
 }
 
 impl TestBinding {
