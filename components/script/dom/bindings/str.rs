@@ -117,67 +117,56 @@ pub fn is_token(s: &[u8]) -> bool {
 /// [RFC 4647](https://tools.ietf.org/html/rfc4647#section-3.3.2).
 pub fn extended_filtering(tag: &str, range: &str) -> bool {
     let lang_ranges: Vec<&str> = range.split(',').collect();
-    let mut is_match: bool = true;
 
-    for lang_range in lang_ranges {
+    lang_ranges.iter().any(|&lang_range| {
         // step 1
-        let css_tags: Vec<&str> = lang_range.split('\x2d').collect();
-        let elem_tags: Vec<&str> = tag.split('\x2d').collect();
+        let range_subtags: Vec<&str> = lang_range.split('\x2d').collect();
+        let tag_subtags: Vec<&str> = tag.split('\x2d').collect();
         if tag.eq_ignore_ascii_case(lang_range) || lang_range.eq_ignore_ascii_case("*") {
             return true;
         }
 
+        let mut range_iter = range_subtags.iter();
+        let mut tag_iter = tag_subtags.iter();
+
         // step 2
         // Note: [Level-4 spec](https://drafts.csswg.org/selectors/#lang-pseudo) check for wild card
-        if !(css_tags[0].eq_ignore_ascii_case(elem_tags[0]) || css_tags[0].eq_ignore_ascii_case("*")) {
-            is_match = false;
-            continue;
+        if let (Some(range_subtag), Some(tag_subtag)) = (range_iter.next(), tag_iter.next()) {
+            if !(range_subtag.eq_ignore_ascii_case(tag_subtag) || range_subtag.eq_ignore_ascii_case("*")) {
+                return false;
+            }
         }
 
         // step 3
-        let css_tag_size = css_tags.len();
-        let elem_tag_size = elem_tags.len();
-        let mut css_tag_index = 1;
-        let mut elem_tag_index = 1;
-
-        while css_tag_size > css_tag_index {
+        for range_subtag in range_iter {
             // step 3a
-            if css_tags[css_tag_index].eq_ignore_ascii_case("*") {
-                css_tag_index += 1;
+            if range_subtag.eq_ignore_ascii_case("*") {
                 continue;
             }
-            // step 3b
-            if elem_tag_size <= elem_tag_index {
-                is_match = false;
-                break;
-            }
-
-            // step 3c
-            let css_tag = css_tags[css_tag_index];
-            let element_tag = elem_tags[elem_tag_index];
-            if element_tag.eq_ignore_ascii_case(css_tag) {
-                css_tag_index += 1;
-                elem_tag_index += 1;
-                continue;
-            } else {
-                // step 3d
-                if element_tag.len() == 1 {
-                    is_match = false;
-                    break;
-                } else {
-                    // step 3e
-                    elem_tag_index += 1;
+            loop {
+                match tag_iter.next() {
+                    Some(tag_subtag) => {
+                        // step 3c
+                        if range_subtag.eq_ignore_ascii_case(tag_subtag) {
+                            break;
+                        } else {
+                            // step 3d
+                            if tag_subtag.len() == 1 {
+                                return false;
+                            } else {
+                                // step 3e
+                                tag_iter.next();
+                            }
+                        }
+                    },
+                    // step 3b
+                    None => { return false; }
                 }
             }
         }
-
         // step 4
-        if css_tag_size <= css_tag_index && is_match {
-            is_match = true;
-            break;
-        }
-    }
-    is_match
+        return true;
+    })
 }
 
 
