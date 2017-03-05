@@ -172,6 +172,10 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 None
             };
 
+            let framebuffer_size = window.framebuffer_size();
+            let framebuffer_size = webrender_traits::DeviceUintSize::new(framebuffer_size.width,
+                                                                         framebuffer_size.height);
+
             webrender::Renderer::new(webrender::RendererOptions {
                 device_pixel_ratio: device_pixel_ratio,
                 resource_override_path: Some(resource_path),
@@ -184,7 +188,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 renderer_kind: renderer_kind,
                 enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
                 ..Default::default()
-            }).expect("Unable to initialize webrender!")
+            }, framebuffer_size).expect("Unable to initialize webrender!")
         };
 
         // Important that this call is done in a single-threaded fashion, we
