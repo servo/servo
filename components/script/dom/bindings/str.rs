@@ -122,9 +122,6 @@ pub fn extended_filtering(tag: &str, range: &str) -> bool {
         // step 1
         let range_subtags: Vec<&str> = lang_range.split('\x2d').collect();
         let tag_subtags: Vec<&str> = tag.split('\x2d').collect();
-        if tag.eq_ignore_ascii_case(lang_range) || lang_range.eq_ignore_ascii_case("*") {
-            return true;
-        }
 
         let mut range_iter = range_subtags.iter();
         let mut tag_iter = tag_subtags.iter();
@@ -153,10 +150,9 @@ pub fn extended_filtering(tag: &str, range: &str) -> bool {
                             // step 3d
                             if tag_subtag.len() == 1 {
                                 return false;
-                            } else {
-                                // step 3e
-                                tag_iter.next();
                             }
+                            // else step 3e - continue with loop
+                            continue;
                         }
                     },
                     // step 3b
@@ -165,7 +161,7 @@ pub fn extended_filtering(tag: &str, range: &str) -> bool {
             }
         }
         // step 4
-        return true;
+        true
     })
 }
 
