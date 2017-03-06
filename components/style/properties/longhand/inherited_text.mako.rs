@@ -192,18 +192,46 @@ ${helpers.single_keyword("word-break",
                          spec="https://drafts.csswg.org/css-text/#propdef-word-break")}
 
 // TODO(pcwalton): Support `text-justify: distribute`.
-${helpers.single_keyword("text-justify",
-                         "auto none inter-word",
-                         products="servo",
-                         animatable=False,
-                         spec="https://drafts.csswg.org/css-text/#propdef-text-justify")}
+<%helpers:single_keyword_computed name="text-justify"
+                                  values="auto none inter-word"
+                                  extra_gecko_values="inter-character"
+                                  extra_specified="${'distribute' if product == 'gecko' else ''}"
+                                  gecko_enum_prefix="StyleTextJustify"
+                                  animatable="False"
+                                  spec="https://drafts.csswg.org/css-text/#propdef-text-justify">
+    use values::HasViewportPercentage;
+    no_viewport_percentage!(SpecifiedValue);
 
-${helpers.single_keyword("text-align-last",
-                         "auto start end left right center justify",
-                         products="gecko",
-                         gecko_constant_prefix="NS_STYLE_TEXT_ALIGN",
-                         animatable=False,
-                         spec="https://drafts.csswg.org/css-text/#propdef-text-align-last")}
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _: &Context) -> computed_value::T {
+            match *self {
+                % for value in "auto none inter_word".split():
+                    SpecifiedValue::${value} => computed_value::T::${value},
+                % endfor
+                % if product == "gecko":
+                    SpecifiedValue::inter_character => computed_value::T::inter_character,
+                    // https://drafts.csswg.org/css-text-3/#valdef-text-justify-distribute
+                    SpecifiedValue::distribute => computed_value::T::inter_character,
+                % endif
+            }
+        }
+
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> SpecifiedValue {
+            match *computed {
+                % for value in "auto none inter_word".split():
+                    computed_value::T::${value} => SpecifiedValue::${value},
+                % endfor
+                % if product == "gecko":
+                    computed_value::T::inter_character => SpecifiedValue::inter_character,
+                % endif
+            }
+        }
+    }
+</%helpers:single_keyword_computed>
 
 // TODO make this a shorthand and implement text-align-last/text-align-all
 <%helpers:longhand name="text-align" animatable="False" spec="https://drafts.csswg.org/css-text/#propdef-text-align">
