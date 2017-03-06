@@ -983,7 +983,7 @@ mod shorthand_serialization {
 
             let serialization = block.to_css_string();
 
-            assert_eq!(serialization, "animation: 1s ease-in 0s normal forwards infinite paused bounce;")
+            assert_eq!(serialization, "animation: 1s ease-in 0s infinite normal forwards paused bounce;")
         }
 
         #[test]
@@ -1001,8 +1001,8 @@ mod shorthand_serialization {
             let serialization = block.to_css_string();
 
             assert_eq!(serialization,
-                       "animation: 1s ease-in 0s normal forwards infinite paused bounce, \
-                                   0.2s linear 1s reverse backwards 2 running roll;");
+                       "animation: 1s ease-in 0s infinite normal forwards paused bounce, \
+                                   0.2s linear 1s 2 reverse backwards running roll;");
         }
 
         #[test]
