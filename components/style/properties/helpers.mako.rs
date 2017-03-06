@@ -499,13 +499,8 @@
         /// correspond to a shorthand.
         pub struct LonghandsToSerialize<'a> {
             % for sub_property in shorthand.sub_properties:
-                % if sub_property.boxed:
-                    pub ${sub_property.ident}:
-                        &'a Box<longhands::${sub_property.ident}::SpecifiedValue>,
-                % else:
-                    pub ${sub_property.ident}:
-                        &'a longhands::${sub_property.ident}::SpecifiedValue,
-                % endif
+                pub ${sub_property.ident}:
+                    &'a longhands::${sub_property.ident}::SpecifiedValue,
             % endfor
         }
 
