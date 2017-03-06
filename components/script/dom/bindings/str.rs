@@ -142,21 +142,20 @@ pub fn extended_filtering(tag: &str, range: &str) -> bool {
             if range_subtag.eq_ignore_ascii_case("*") {
                 continue;
             }
-            match tag_iter.next() {
+            match current_tag_subtag.clone() {
                 Some(tag_subtag) => {
                     // step 3c
                     if range_subtag.eq_ignore_ascii_case(tag_subtag) {
                         current_tag_subtag = tag_iter.next();
-                        break;
+                        continue;
                     } else {
                         // step 3d
                         if tag_subtag.len() == 1 {
                             return false;
                         } else {
                             // else step 3e - continue with loop
-                            #[allow(unused_assignments)]
                             current_tag_subtag = tag_iter.next();
-                            if current_tag_subtag == None {
+                            if current_tag_subtag.is_none() {
                                 return false;
                             }
                         }
