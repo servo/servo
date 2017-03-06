@@ -1209,6 +1209,19 @@ mod shorthand_serialization {
 
             assert_eq!(serialization, block_text);
         }
+
+        #[test]
+        fn transition_should_serialize_acceptable_frames_timing_function() {
+            let block_text = "transition-property: margin-left; \
+                              transition-duration: 3s; \
+                              transition-delay: 4s; \
+                              transition-timing-function: frames(2);";
+            let block = parse(|c, i| Ok(parse_property_declaration_list(c, i)), block_text).unwrap();
+
+            let serialization = block.to_css_string();
+
+            assert_eq!(serialization, "transition: margin-left 3s frames(2) 4s;");
+        }
     }
 
     mod keywords {
