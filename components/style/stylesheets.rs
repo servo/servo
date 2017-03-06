@@ -252,7 +252,8 @@ impl ParseErrorReporter for MemoryHoleReporter {
     fn report_error(&self,
             _: &mut Parser,
             _: SourcePosition,
-            _: &str) {
+            _: &str,
+            _: &ServoUrl) {
         // do nothing
     }
     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {

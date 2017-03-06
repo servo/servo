@@ -276,6 +276,7 @@ fn test_parse_stylesheet() {
 }
 
 struct CSSError {
+    pub url : ServoUrl,
     pub line: usize,
     pub column: usize,
     pub message: String
@@ -294,7 +295,9 @@ impl CSSInvalidErrorReporterTest {
 }
 
 impl ParseErrorReporter for CSSInvalidErrorReporterTest {
-    fn report_error(&self, input: &mut CssParser, position: SourcePosition, message: &str) {
+    fn report_error(&self, input: &mut CssParser, position: SourcePosition, message: &str,
+        url: &ServoUrl) {
+
         let location = input.source_location(position);
 
         let errors = self.errors.clone();
@@ -302,6 +305,7 @@ impl ParseErrorReporter for CSSInvalidErrorReporterTest {
 
         errors.push(
             CSSError{
+                url: url.clone(),
                 line: location.line,
                 column: location.column,
                 message: message.to_owned()
@@ -333,7 +337,7 @@ fn test_report_error_stylesheet() {
 
     let errors = error_reporter.errors.clone();
 
-    Stylesheet::from_str(css, url, Origin::UserAgent, Default::default(),
+    Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
                          None,
                          error_reporter,
                          ParserContextExtraData::default());
@@ -349,4 +353,7 @@ fn test_report_error_stylesheet() {
     assert_eq!("Unsupported property declaration: 'display: invalid;'", error.message);
     assert_eq!(4, error.line);
     assert_eq!(9, error.column);
+
+    // testing for the url
+    assert_eq!(url, error.url);
 }
