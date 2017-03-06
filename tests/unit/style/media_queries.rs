@@ -20,7 +20,7 @@ pub struct CSSErrorReporterTest;
 impl ParseErrorReporter for CSSErrorReporterTest {
     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
         _url: &ServoUrl) {
-        }
+    }
 
      fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
         Box::new(CSSErrorReporterTest)

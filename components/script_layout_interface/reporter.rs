@@ -23,9 +23,9 @@ pub struct CSSErrorReporter {
 
 impl ParseErrorReporter for CSSErrorReporter {
      fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
-         url: &ServoUrl) {
-         let location = input.source_location(position);
-         if log_enabled!(log::LogLevel::Info) {
+        url: &ServoUrl) {
+        let location = input.source_location(position);
+        if log_enabled!(log::LogLevel::Info) {
              info!("Url:\t{}\n{}:{} {}", url.as_str(), location.line, location.column, message)
         }
 
