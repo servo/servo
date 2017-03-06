@@ -1295,6 +1295,14 @@ pub mod style_structs {
                 }
             % endif
         % endfor
+
+        % if style_struct.name == "Box":
+            /// Returns whether there is any animation specified with
+            /// animation-name other than `none`.
+            pub fn specifies_animations(&self) -> bool {
+                self.animation_name_iter().any(|name| name.0 != atom!(""))
+            }
+        % endif
     }
 
     % for longhand in style_struct.longhands:

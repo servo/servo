@@ -776,7 +776,6 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 </%helpers:vector_longhand>
 
 <%helpers:vector_longhand name="animation-name"
-                          allow_empty="True"
                           need_index="True"
                           animatable="False",
                           extra_prefixes="moz webkit"
@@ -797,6 +796,16 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
     pub struct SpecifiedValue(pub Atom);
 
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        get_initial_specified_value()
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(atom!(""))
+    }
+
     impl fmt::Display for SpecifiedValue {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             self.0.fmt(f)
@@ -805,7 +814,11 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            dest.write_str(&*self.0.to_string())
+            if self.0 == atom!("") {
+                dest.write_str("none")
+            } else {
+                dest.write_str(&*self.0.to_string())
+            }
         }
     }
 
@@ -813,7 +826,12 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         fn parse(_context: &ParserContext, input: &mut ::cssparser::Parser) -> Result<Self, ()> {
             use cssparser::Token;
             Ok(match input.next() {
-                Ok(Token::Ident(ref value)) if value != "none" => SpecifiedValue(Atom::from(&**value)),
+                Ok(Token::Ident(ref value)) => SpecifiedValue(if value == "none" {
+                    // FIXME We may want to support `@keyframes ""` at some point.
+                    atom!("")
+                } else {
+                    Atom::from(&**value)
+                }),
                 Ok(Token::QuotedString(value)) => SpecifiedValue(Atom::from(&*value)),
                 _ => return Err(()),
             })
