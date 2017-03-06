@@ -174,12 +174,14 @@ macro_rules! try_parse_one {
             let mut ${prop} = None;
             % endfor
 
+            let mut parsed = 0;
             // NB: Name must be the last one here so that keywords valid for other
             // longhands are not interpreted as names.
             //
             // Also, duration must be before delay, see
             // https://drafts.csswg.org/css-animations/#typedef-single-animation
             loop {
+                parsed += 1;
                 try_parse_one!(context, input, duration, animation_duration);
                 try_parse_one!(context, input, timing_function, animation_timing_function);
                 try_parse_one!(context, input, delay, animation_delay);
@@ -189,15 +191,21 @@ macro_rules! try_parse_one {
                 try_parse_one!(input, play_state, animation_play_state);
                 try_parse_one!(context, input, name, animation_name);
 
+                parsed -= 1;
                 break
             }
 
-            Ok(SingleAnimation {
-                % for prop in props:
-                animation_${prop}: ${prop}.unwrap_or_else(animation_${prop}::single_value
-                                                          ::get_initial_specified_value),
-                % endfor
-            })
+            // If nothing is parsed, this is an invalid entry.
+            if parsed == 0 {
+                Err(())
+            } else {
+                Ok(SingleAnimation {
+                    % for prop in props:
+                    animation_${prop}: ${prop}.unwrap_or_else(animation_${prop}::single_value
+                                                              ::get_initial_specified_value),
+                    % endfor
+                })
+            }
         }
 
         % for prop in props:
