@@ -1802,13 +1802,10 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
     let mut custom_properties = None;
     let mut seen_custom = HashSet::new();
     for declaration in iter_declarations() {
-        match *declaration {
-            PropertyDeclaration::Custom(ref name, ref value) => {
-                ::custom_properties::cascade(
-                    &mut custom_properties, &inherited_custom_properties,
-                    &mut seen_custom, name, value)
-            }
-            _ => {}
+        if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
+            ::custom_properties::cascade(
+                &mut custom_properties, &inherited_custom_properties,
+                &mut seen_custom, name, value)
         }
     }
 
