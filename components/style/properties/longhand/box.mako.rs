@@ -460,6 +460,11 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         Time(0.0)
     }
 
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue(0.0)
+    }
+
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
         Time::parse(context, input)
     }
@@ -727,7 +732,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     #[inline]
     pub fn get_initial_specified_value() -> SpecifiedValue {
-        ToComputedValue::from_computed_value(&ease())
+        SpecifiedValue::Keyword(FunctionKeyword::Ease)
     }
 
     pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
@@ -853,6 +858,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-duration",
                           allowed_in_keyframe_block="False">
     pub use properties::longhands::transition_duration::single_value::computed_value;
+    pub use properties::longhands::transition_duration::single_value::get_initial_specified_value;
     pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
     pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
 </%helpers:vector_longhand>
@@ -921,7 +927,12 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::Number(1.0)
+        get_initial_specified_value()
+    }
+
+    #[inline]
+    pub fn get_initial_specified_value() -> SpecifiedValue {
+        SpecifiedValue::Number(1.0)
     }
 
     #[inline]
@@ -973,6 +984,7 @@ ${helpers.single_keyword("animation-fill-mode",
                           spec="https://drafts.csswg.org/css-animations/#propdef-animation-delay",
                           allowed_in_keyframe_block="False">
     pub use properties::longhands::transition_duration::single_value::computed_value;
+    pub use properties::longhands::transition_duration::single_value::get_initial_specified_value;
     pub use properties::longhands::transition_duration::single_value::{get_initial_value, parse};
     pub use properties::longhands::transition_duration::single_value::SpecifiedValue;
 </%helpers:vector_longhand>
