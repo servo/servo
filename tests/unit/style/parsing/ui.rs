@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::Parser;
+use cssparser::{Color, Parser, RGBA};
 use media_queries::CSSErrorReporterTest;
 use servo_url::ServoUrl;
 use style::parser::ParserContext;
 use style::stylesheets::Origin;
+use style::values::{Auto, Either};
+use style::values::specified::CSSColor;
 use style_traits::ToCss;
 
 #[test]
@@ -29,4 +31,25 @@ fn test_moz_user_select() {
 
     let mut negative = Parser::new("potato");
     assert!(_moz_user_select::parse(&context, &mut negative).is_err());
+}
+
+#[test]
+fn test_caret_color() {
+    use style::properties::longhands::caret_color;
+
+    let auto = parse_longhand!(caret_color, "auto");
+    assert_eq!(auto, Either::Second(Auto));
+
+    let blue_color = CSSColor {
+        parsed: Color::RGBA(RGBA {
+            red: 0,
+            green: 0,
+            blue: 255,
+            alpha: 255,
+        }),
+        authored: Some(String::from("blue").into_boxed_str()),
+    };
+
+    let color = parse_longhand!(caret_color, "blue");
+    assert_eq!(color, Either::First(blue_color));
 }
