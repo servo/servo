@@ -139,6 +139,8 @@ impl Cookie {
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.3
     pub fn domain_match(string: &str, domain_string: &str) -> bool {
+        debug_assert!(string.to_lowercase() == string);
+        debug_assert!(domain_string.to_lowercase() == domain_string);
         string == domain_string ||
         (string.ends_with(domain_string) &&
          string.as_bytes()[string.len()-domain_string.len()-1] == b'.' &&
