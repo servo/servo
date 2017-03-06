@@ -531,6 +531,8 @@ pub struct IFrameLoadInfo {
     /// Wether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
     pub replace: bool,
+    /// Wether this iframe has the content blocker enabled.
+    pub content_blocker_enabled: bool,
 }
 
 /// Specifies the information required to load a URL in an iframe.
