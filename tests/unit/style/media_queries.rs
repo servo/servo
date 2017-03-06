@@ -19,7 +19,7 @@ pub struct CSSErrorReporterTest;
 
 impl ParseErrorReporter for CSSErrorReporterTest {
     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
-        _servo_url: &ServoUrl) {
+        _url: &ServoUrl) {
         }
 
      fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
@@ -32,10 +32,9 @@ fn test_media_rule<F>(css: &str, callback: F)
 {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let css_str = css.to_owned();
-    let error_reporter = Box::new(CSSErrorReporterTest);
     let stylesheet = Stylesheet::from_str(
-        css, url.clone(), Origin::Author, Default::default(),
-        None, error_reporter,
+        css, url, Origin::Author, Default::default(),
+        None, Box::new(CSSErrorReporterTest),
         ParserContextExtraData::default());
     let mut rule_count = 0;
     media_queries(&stylesheet.rules.read().0, &mut |mq| {

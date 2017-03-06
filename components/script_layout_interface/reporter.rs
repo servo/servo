@@ -23,11 +23,11 @@ pub struct CSSErrorReporter {
 
 impl ParseErrorReporter for CSSErrorReporter {
      fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
-         servo_url: &ServoUrl) {
+         _url: &ServoUrl) {
          let location = input.source_location(position);
          if log_enabled!(log::LogLevel::Info) {
-             info!("Url:\t{}\n{}:{} {}", servo_url.as_str(), location.line, location.column, message)
-            }
+             info!("Url:\t{}\n{}:{} {}", _url.as_str(), location.line, location.column, message)
+        }
 
          //TODO: report a real filename
          let _ = self.script_chan.lock().unwrap().send(
