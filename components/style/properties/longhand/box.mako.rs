@@ -511,6 +511,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
         pub enum T {
             CubicBezier(Point2D<f32>, Point2D<f32>),
             Steps(u32, StartEnd),
+            Frames(u32),
         }
 
         impl ToCss for T {
@@ -528,10 +529,15 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         try!(dest.write_str(", "));
                         try!(p2.y.to_css(dest));
                         dest.write_str(")")
-                    }
+                    },
                     T::Steps(steps, start_end) => {
                         super::serialize_steps(dest, specified::Integer::new(steps as i32), start_end)
-                    }
+                    },
+                    T::Frames(frames) => {
+                        try!(dest.write_str("frames("));
+                        try!(frames.to_css(dest));
+                        dest.write_str(")")
+                    },
                 }
             }
         }
@@ -569,6 +575,7 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
     pub enum SpecifiedValue {
         CubicBezier(Point2D<Number>, Point2D<Number>),
         Steps(specified::Integer, StartEnd),
+        Frames(specified::Integer),
         Keyword(FunctionKeyword),
     }
 
@@ -617,6 +624,13 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                         }));
                         Ok(SpecifiedValue::Steps(step_count, start_end))
                     },
+                    "frames" => {
+                        // https://drafts.csswg.org/css-timing/#frames-timing-functions
+                        let frames = try!(input.parse_nested_block(|input| {
+                            specified::Integer::parse_with_minimum(context, input, 2)
+                        }));
+                        Ok(SpecifiedValue::Frames(frames))
+                    },
                     _ => Err(())
                 }
             }
@@ -655,6 +669,11 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                 SpecifiedValue::Steps(steps, start_end) => {
                     serialize_steps(dest, steps, start_end)
                 },
+                SpecifiedValue::Frames(frames) => {
+                    try!(dest.write_str("frames("));
+                    try!(frames.to_css(dest));
+                    dest.write_str(")")
+                },
                 SpecifiedValue::Keyword(keyword) => {
                     match keyword {
                         FunctionKeyword::StepStart => {
@@ -686,6 +705,9 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                 SpecifiedValue::Steps(count, start_end) => {
                     computed_value::T::Steps(count.to_computed_value(context) as u32, start_end)
                 },
+                SpecifiedValue::Frames(frames) => {
+                    computed_value::T::Frames(frames.to_computed_value(context) as u32)
+                },
                 SpecifiedValue::Keyword(keyword) => keyword.to_computed_value(),
             }
         }
@@ -702,6 +724,10 @@ ${helpers.single_keyword("overflow-x", "visible hidden scroll auto",
                 computed_value::T::Steps(count, start_end) => {
                     let int_count = count as i32;
                     SpecifiedValue::Steps(specified::Integer::from_computed_value(&int_count), start_end)
+                },
+                computed_value::T::Frames(frames) => {
+                    let frames = frames as i32;
+                    SpecifiedValue::Frames(specified::Integer::from_computed_value(&frames))
                 },
             }
         }

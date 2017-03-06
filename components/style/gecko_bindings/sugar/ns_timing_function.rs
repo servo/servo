@@ -21,6 +21,13 @@ impl nsTimingFunction {
         }
     }
 
+    fn set_as_frames(&mut self, frames: u32) {
+        self.mType = nsTimingFunction_Type::Frames;
+        unsafe {
+            self.__bindgen_anon_1.__bindgen_anon_1.as_mut().mStepsOrFrames = frames;
+        }
+    }
+
     fn set_as_bezier(&mut self,
                      function_type: nsTimingFunction_Type,
                      p1: Point2D<f32>,
@@ -48,6 +55,9 @@ impl From<ComputedTimingFunction> for nsTimingFunction {
             ComputedTimingFunction::Steps(steps, StartEnd::End) => {
                 tf.set_as_step(nsTimingFunction_Type::StepEnd, steps);
             },
+            ComputedTimingFunction::Frames(frames) => {
+                tf.set_as_frames(frames);
+            },
             ComputedTimingFunction::CubicBezier(p1, p2) => {
                 tf.set_as_bezier(nsTimingFunction_Type::CubicBezier, p1, p2);
             },
@@ -68,6 +78,10 @@ impl From<SpecifiedTimingFunction> for nsTimingFunction {
             SpecifiedTimingFunction::Steps(steps, StartEnd::End) => {
                 debug_assert!(steps.value() >= 0);
                 tf.set_as_step(nsTimingFunction_Type::StepEnd, steps.value() as u32);
+            },
+            SpecifiedTimingFunction::Frames(frames) => {
+                debug_assert!(frames.value() >= 2);
+                tf.set_as_frames(frames.value() as u32);
             },
             SpecifiedTimingFunction::CubicBezier(p1, p2) => {
                 tf.set_as_bezier(nsTimingFunction_Type::CubicBezier,
@@ -104,6 +118,9 @@ impl From<SpecifiedTimingFunction> for nsTimingFunction {
                         debug_assert!(keyword == FunctionKeyword::StepEnd && steps == 1);
                         tf.set_as_step(nsTimingFunction_Type::StepEnd, steps);
                     },
+                    ComputedTimingFunction::Frames(frames) => {
+                        tf.set_as_frames(frames)
+                    }
                 }
             },
         }
@@ -125,8 +142,8 @@ impl From<nsTimingFunction> for ComputedTimingFunction {
                     StartEnd::End)
             },
             nsTimingFunction_Type::Frames => {
-                // https://github.com/servo/servo/issues/15740
-                panic!("Frames timing function is not support yet");
+                ComputedTimingFunction::Frames(
+                    unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mStepsOrFrames })
             }
             nsTimingFunction_Type::Ease |
             nsTimingFunction_Type::Linear |

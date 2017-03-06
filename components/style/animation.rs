@@ -352,6 +352,14 @@ impl PropertyAnimation {
             TransitionTimingFunction::Steps(steps, StartEnd::End) => {
                 (time * (steps as f64)).floor() / (steps as f64)
             }
+            TransitionTimingFunction::Frames(frames) => {
+                // https://drafts.csswg.org/css-timing/#frames-timing-functions
+                let mut out = (time * (frames as f64)).floor() / ((frames - 1) as f64);
+                if out > 1.0 && time <= 1.0 {
+                    out = 1.0;
+                }
+                out
+            }
         };
 
         self.property.update(style, progress);
