@@ -17,7 +17,7 @@ devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
 hyper = "0.10"
 hyper_serde = "0.6"
-hyper-openssl = "0.2.2"
+hyper-openssl = {git = "https://github.com/avadacatavra/rust-hyper-openssl", branch="pub-sslstream"}
 immeta = "0.3.1"
 ipc-channel = "0.7"
 lazy_static = "0.2"
@@ -45,7 +45,7 @@ webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc
 webpki = "0.8.0"
 antidote = "1.0.0"
 untrusted = "0.3.1"
-rustls = "*"
+rustls = {git = "https://github.com/avadacatavra/rustls", branch="parallel-verif"} 
 
 [target.'cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))'.dependencies]
 tinyfiledialogs = "2.5.9"

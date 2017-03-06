@@ -2,37 +2,33 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use hyper;
 use hyper::client::Pool;
+use hyper::net::{HttpsConnector};
 use hyper_openssl;
-use openssl::ssl::{SslConnectorBuilder, SslMethod};
-use hyper::net::HttpsConnector;
 use hyper::net::{SslClient, SslServer, NetworkStream, HttpStream};
 use openssl::x509::{X509StoreContextRef, X509, X509Ref};
+use openssl::ssl::{Ssl, SslContextBuilder, SslContext, SslMethod, HandshakeError};
 use hyper;
+use openssl::ssl::SslStream as OpensslStream;
+use hyper_openssl::SslStream;
 use openssl;
 use std::io::{Read, Write};
-use hyper_openssl;
+
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER};
-use servo_config::resource_files::resources_dir_path;
-use openssl::ssl::{Ssl, SslContext, SslContextBuilder, SslMethod};
+use openssl::ssl::{SslConnector, SslConnectorBuilder};
 use openssl::error::ErrorStack;
 use std::sync::Arc;
-use webpki::*;
+use servo_config::resource_files::resources_dir_path;
 use std::fmt::Debug;
 use antidote::Mutex;
+//use std::result::Result;
 use hyper::Result;
 
-use untrusted::Input;
-use webpki::trust_anchor_util;
-use rustls::internal::pemfile;
-use rustls::RootCertStore;
-use std::io::{BufReader};
-use std::fs::File;
+use rustls::{self, RootCertStore};
 use std::io::BufReader;
-use std::sync::Arc;
+use std::fs::File;
 
-pub type Connector = hyper::net::HttpsConnector<hyper_openssl::OpensslClient>;
+pub type Connector = HttpsConnector<ServoSslClient>;
 
 // The basic logic here is to prefer ciphers with ECDSA certificates, Forward
 // Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
@@ -50,45 +46,24 @@ const DEFAULT_CIPHERS: &'static str = concat!(
     "AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA"
 );
 
-static ALL_SIGALGS: &'static [&'static SignatureAlgorithm] = &[
-    &ECDSA_P256_SHA256,
-    &ECDSA_P256_SHA384,
-    &ECDSA_P384_SHA256,
-    &ECDSA_P384_SHA384,
-    &RSA_PKCS1_2048_8192_SHA1,
-    &RSA_PKCS1_2048_8192_SHA256,
-    &RSA_PKCS1_2048_8192_SHA384,
-    &RSA_PKCS1_2048_8192_SHA512,
-    &RSA_PKCS1_3072_8192_SHA384
-];
-
 pub fn create_http_connector(certificate_file: &str) -> Arc<Pool<Connector>> {
     let ca_file = &resources_dir_path()
         .expect("Need certificate file to make network requests")
         .join(certificate_file);
-
     let mut context = SslContextBuilder::new(SslMethod::tls()).unwrap();
     context.set_ca_file(ca_file);
     context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
     context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
 
-    //create the rustls root cert store
-    let ca_pem = File::open(ca_file).unwrap();
-    let mut ca_pem = BufReader::new(ca_pem);
-    let mut root_store = RootCertStore::empty();
-    let num_added = root_store.add_pem_file(&mut ca_pem).unwrap().0;
-
     let servo_connector = ServoSslConnector { 
-        context: Arc::new(context.build()),
-        roots: Arc::new(root_store),
+        context: Arc::new(context.build()) 
     };
-
     let connector = HttpsConnector::new(ServoSslClient {
+        //context: Arc::new(context)
         connector: Arc::new(servo_connector),
     });
-
-    
     Arc::new(Pool::with_connector(Default::default(), connector))
+    
 }
 
 #[derive(Clone)]
@@ -110,7 +85,6 @@ impl SslClient for ServoSslClient {
 #[derive(Clone)]
 pub struct ServoSslConnector {
     context: Arc<SslContext>,
-    roots: Arc<RootCertStore>,
 }
 
 impl ServoSslConnector {
@@ -118,7 +92,15 @@ impl ServoSslConnector {
         let mut ssl = Ssl::new(&self.context).unwrap();
         ssl.set_hostname(domain).unwrap();
         let domain = domain.to_owned();
-        let roots = self.roots.clone();
+
+            // create a rustls root store 
+        let mut roots = RootCertStore::empty();
+        let ca_file = &resources_dir_path()
+            .expect("Need certificate file to make network requests")
+            .join("certs");
+        let ca_pem = File::open(ca_file).unwrap();
+        let mut ca_pem = BufReader::new(ca_pem);
+        let r = roots.add_pem_file(&mut ca_pem);
 
         ssl.set_verify_callback(SSL_VERIFY_PEER, move |p, x| {
             rustls_verify(&domain, &roots, p, x)
@@ -128,6 +110,7 @@ impl ServoSslConnector {
             Ok(stream) => Ok(stream),
             Err(err) => Err(hyper::Error::Ssl(Box::new(err))),
         }
+    }
 }
 
 fn rustls_verify (domain: &str,
@@ -139,6 +122,8 @@ fn rustls_verify (domain: &str,
     }
 
     // create presented certs
+    let mut presented_certs = vec!();
+
     match x509_ctx.chain() {
         Some(mut chain) => {
             for cert in chain {
