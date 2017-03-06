@@ -662,11 +662,17 @@ impl ScriptThread {
                     None => return
                 };
 
-                let dppx = zoom_factor * window_size.hidpi_factor;
+                let WindowSizeData {
+                    initial_viewport,
+                    device_pixel_ratio,
+                    hidpi_factor
+                } = window_size;
+                let new_dppx = zoom_factor * hidpi_factor;
+                let current_window_size = initial_viewport * device_pixel_ratio;
                 script_thread.handle_resize_event(id, WindowSizeData {
-                    device_pixel_ratio: dppx,
-                    initial_viewport: window_size.initial_viewport,
-                    hidpi_factor: window_size.hidpi_factor,
+                    device_pixel_ratio: new_dppx,
+                    initial_viewport: current_window_size / new_dppx,
+                    hidpi_factor: hidpi_factor,
                 }, WindowSizeType::Resize);
             }
         });
