@@ -18,8 +18,8 @@ use test::{self, Bencher};
 struct ErrorringErrorReporter;
 impl ParseErrorReporter for ErrorringErrorReporter {
     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
-        _url: &ServoUrl) {
-        panic!("CSS error: {}\t\n{:?} {}", _url.as_str(), position, message);
+        url: &ServoUrl) {
+        panic!("CSS error: {}\t\n{:?} {}", url.as_str(), position, message);
     }
 
     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {

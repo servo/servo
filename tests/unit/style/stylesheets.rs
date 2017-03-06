@@ -294,7 +294,7 @@ impl CSSInvalidErrorReporterTest {
 
 impl ParseErrorReporter for CSSInvalidErrorReporterTest {
     fn report_error(&self, input: &mut CssParser, position: SourcePosition, message: &str,
-        _url: &ServoUrl) {
+        url: &ServoUrl) {
 
         let location = input.source_location(position);
 
@@ -303,7 +303,7 @@ impl ParseErrorReporter for CSSInvalidErrorReporterTest {
 
         errors.push(
             CSSError{
-                url: _url.clone(),
+                url: url.clone(),
                 line: location.line,
                 column: location.column,
                 message: message.to_owned()
