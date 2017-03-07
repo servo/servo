@@ -181,7 +181,7 @@ impl KeyframesStep {
            value: KeyframesStepValue) -> Self {
         let declared_timing_function = match value {
             KeyframesStepValue::Declarations { ref block } => {
-                block.read().declarations.iter().any(|&(ref prop_decl, _)| {
+                block.read().declarations().iter().any(|&(ref prop_decl, _)| {
                     match *prop_decl {
                         PropertyDeclaration::AnimationTimingFunction(..) => true,
                         _ => false,
@@ -249,7 +249,7 @@ fn get_animated_properties(keyframes: &[Arc<RwLock<Keyframe>>]) -> Vec<Transitio
     // it here.
     for keyframe in keyframes {
         let keyframe = keyframe.read();
-        for &(ref declaration, importance) in keyframe.block.read().declarations.iter() {
+        for &(ref declaration, importance) in keyframe.block.read().declarations().iter() {
             assert!(!importance.important());
 
             if let Some(property) = TransitionProperty::from_declaration(declaration) {

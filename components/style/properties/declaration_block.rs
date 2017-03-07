@@ -40,20 +40,13 @@ impl Importance {
     }
 }
 
-impl Default for Importance {
-    #[inline]
-    fn default() -> Self {
-        Importance::Normal
-    }
-}
-
 /// Overridden declarations are skipped.
 #[derive(Debug, PartialEq, Clone)]
 pub struct PropertyDeclarationBlock {
     /// The group of declarations, along with their importance.
     ///
     /// Only deduplicated declarations appear here.
-    pub declarations: Vec<(PropertyDeclaration, Importance)>,
+    declarations: Vec<(PropertyDeclaration, Importance)>,
 
     /// The number of entries in `self.declaration` with `Importance::Important`
     important_count: usize,
@@ -74,6 +67,11 @@ impl PropertyDeclarationBlock {
             declarations: vec![(declaration, importance)],
             important_count: if importance.important() { 1 } else { 0 },
         }
+    }
+
+    /// The declarations in this block
+    pub fn declarations(&self) -> &[(PropertyDeclaration, Importance)] {
+        &self.declarations
     }
 
     /// Returns wheather this block contains any declaration with `!important`.

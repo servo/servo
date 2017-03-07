@@ -418,11 +418,11 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             let guard = declarations.read();
 
             // No !important in keyframes.
-            debug_assert!(guard.declarations.iter()
+            debug_assert!(guard.declarations().iter()
                             .all(|&(_, importance)| importance == Importance::Normal));
 
             let iter = || {
-                guard.declarations.iter().rev().map(|&(ref decl, _importance)| decl)
+                guard.declarations().iter().rev().map(|&(ref decl, _importance)| decl)
             };
 
             let computed =

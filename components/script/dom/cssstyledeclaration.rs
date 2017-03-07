@@ -67,7 +67,7 @@ impl CSSStyleOwner {
 
                     // Here `changed` is somewhat silly, because we know the
                     // exact conditions under it changes.
-                    changed = !pdb.declarations.is_empty();
+                    changed = !pdb.declarations().is_empty();
                     if changed {
                         attr = Some(Arc::new(RwLock::new(pdb)));
                     }
@@ -274,7 +274,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
         self.owner.with_block(|pdb| {
-            pdb.declarations.len() as u32
+            pdb.declarations().len() as u32
         })
     }
 
@@ -399,7 +399,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
         self.owner.with_block(|pdb| {
-            pdb.declarations.get(index as usize).map(|entry| {
+            pdb.declarations().get(index as usize).map(|entry| {
                 let (ref declaration, importance) = *entry;
                 let mut css = declaration.to_css_string();
                 if importance.important() {
