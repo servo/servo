@@ -247,7 +247,7 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
                                 border_image_outset::parse(context, input)
                             }).ok();
                             
-                            if ${w}.is_none() && ${o}.is_none {
+                            if ${w}.is_none() && ${o}.is_none() {
                                Err(())
                             }
                             else {
