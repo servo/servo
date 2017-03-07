@@ -251,18 +251,13 @@ pub extern "C" fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueB
      -> RawServoDeclarationBlockStrong
 {
     let value = unsafe { value.as_ref().unwrap() };
-    let uncomputed_values = value.into_iter()
-                                 .map(|v| {
-                                     let raw_anim = unsafe { v.as_ref().unwrap() };
-                                     let anim = AnimationValue::as_arc(&raw_anim);
-                                     (anim.uncompute(), Importance::Normal)
-                                 })
-                                 .collect();
-
-    Arc::new(RwLock::new(PropertyDeclarationBlock {
-        declarations: uncomputed_values,
-        important_count: 0,
-    })).into_strong()
+    let mut block = PropertyDeclarationBlock::new();
+    for v in value.iter() {
+        let raw_anim = unsafe { v.as_ref().unwrap() };
+        let anim = AnimationValue::as_arc(&raw_anim);
+        block.push(anim.uncompute(), Importance::Normal);
+    }
+    Arc::new(RwLock::new(block)).into_strong()
 }
 
 macro_rules! get_property_id_from_nscsspropertyid {
@@ -715,12 +710,9 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 
     match ParsedDeclaration::parse(id, &context, &mut Parser::new(value), false) {
         Ok(parsed) => {
-            let mut declarations = Vec::new();
-            parsed.expand(|d| declarations.push((d, Importance::Normal)));
-            Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: declarations,
-                important_count: 0,
-            })).into_strong()
+            let mut block = PropertyDeclarationBlock::new();
+            parsed.expand(|d| block.push(d, Importance::Normal));
+            Arc::new(RwLock::new(block)).into_strong()
         }
         Err(_) => RawServoDeclarationBlockStrong::null()
     }

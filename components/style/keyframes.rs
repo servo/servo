@@ -362,10 +362,10 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
             context: self.context,
         };
         let mut iter = DeclarationListParser::new(input, parser);
-        let mut declarations = Vec::new();
+        let mut block = PropertyDeclarationBlock::new();
         while let Some(declaration) = iter.next() {
             match declaration {
-                Ok(parsed) => parsed.expand(|d| declarations.push((d, Importance::Normal))),
+                Ok(parsed) => parsed.expand(|d| block.push(d, Importance::Normal)),
                 Err(range) => {
                     let pos = range.start;
                     let message = format!("Unsupported keyframe property declaration: '{}'",
@@ -377,10 +377,7 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         }
         Ok(Arc::new(RwLock::new(Keyframe {
             selector: prelude,
-            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: declarations,
-                important_count: 0,
-            })),
+            block: Arc::new(RwLock::new(block)),
         })))
     }
 }

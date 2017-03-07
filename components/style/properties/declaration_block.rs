@@ -60,6 +60,14 @@ pub struct PropertyDeclarationBlock {
 }
 
 impl PropertyDeclarationBlock {
+    /// Create an empty block
+    pub fn new() -> Self {
+        PropertyDeclarationBlock {
+            declarations: Vec::new(),
+            important_count: 0,
+        }
+    }
+
     /// Returns wheather this block contains any declaration with `!important`.
     ///
     /// This is based on the `important_count` counter,
@@ -169,11 +177,21 @@ impl PropertyDeclarationBlock {
     }
 
     /// Adds or overrides the declaration for a given property in this block,
-    /// without taking into account any kind of priority. Returns whether the
-    /// declaration block is actually changed.
+    /// except if an existing declaration for the same property is more important.
+    pub fn push(&mut self, declaration: PropertyDeclaration, importance: Importance) {
+        self.push_common(declaration, importance, false);
+    }
+
+    /// Adds or overrides the declaration for a given property in this block,
+    /// Returns whether the declaration block is actually changed.
     pub fn set_parsed_declaration(&mut self,
                                   declaration: PropertyDeclaration,
                                   importance: Importance) -> bool {
+        self.push_common(declaration, importance, true)
+    }
+
+    fn push_common(&mut self, declaration: PropertyDeclaration, importance: Importance,
+                   overwrite_more_important: bool) -> bool {
         for slot in &mut *self.declarations {
             if slot.0.id() == declaration.id() {
                 match (slot.1, importance) {
@@ -181,7 +199,11 @@ impl PropertyDeclarationBlock {
                         self.important_count += 1;
                     }
                     (Importance::Important, Importance::Normal) => {
-                        self.important_count -= 1;
+                        if overwrite_more_important {
+                            self.important_count -= 1;
+                        } else {
+                            return false
+                        }
                     }
                     _ => if slot.0 == declaration {
                         return false;
@@ -275,39 +297,6 @@ impl PropertyDeclarationBlock {
                 }
             }
         }
-    }
-
-    /// Only keep the "winning" declaration for any given property, by importance then source order.
-    pub fn deduplicate(&mut self) {
-        let mut deduplicated = Vec::with_capacity(self.declarations.len());
-        let mut seen_normal = PropertyDeclarationIdSet::new();
-        let mut seen_important = PropertyDeclarationIdSet::new();
-
-        for (declaration, importance) in self.declarations.drain(..).rev() {
-            if importance.important() {
-                let id = declaration.id();
-                if seen_important.contains(id) {
-                    self.important_count -= 1;
-                    continue
-                }
-                if seen_normal.contains(id) {
-                    let previous_len = deduplicated.len();
-                    deduplicated.retain(|&(ref d, _)| PropertyDeclaration::id(d) != id);
-                    debug_assert_eq!(deduplicated.len(), previous_len - 1);
-                }
-                seen_important.insert(id);
-            } else {
-                let id = declaration.id();
-                if seen_normal.contains(id) ||
-                   seen_important.contains(id) {
-                    continue
-                }
-                seen_normal.insert(id)
-            }
-            deduplicated.push((declaration, importance))
-        }
-        deduplicated.reverse();
-        self.declarations = deduplicated;
     }
 }
 
@@ -603,21 +592,14 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 pub fn parse_property_declaration_list(context: &ParserContext,
                                        input: &mut Parser)
                                        -> PropertyDeclarationBlock {
-    let mut declarations = Vec::new();
-    let mut important_count = 0;
+    let mut block = PropertyDeclarationBlock::new();
     let parser = PropertyDeclarationParser {
         context: context,
     };
     let mut iter = DeclarationListParser::new(input, parser);
     while let Some(declaration) = iter.next() {
         match declaration {
-            Ok((parsed, importance)) => {
-                let old_len = declarations.len();
-                parsed.expand(|d| declarations.push((d, importance)));
-                if importance.important() {
-                    important_count += declarations.len() - old_len;
-                }
-            }
+            Ok((parsed, importance)) => parsed.expand(|d| block.push(d, importance)),
             Err(range) => {
                 let pos = range.start;
                 let message = format!("Unsupported property declaration: '{}'",
@@ -626,10 +608,5 @@ pub fn parse_property_declaration_list(context: &ParserContext,
             }
         }
     }
-    let mut block = PropertyDeclarationBlock {
-        declarations: declarations,
-        important_count: important_count,
-    };
-    block.deduplicate();
     block
 }
