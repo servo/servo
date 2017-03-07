@@ -765,7 +765,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let msg = ConstellationMsg::WindowSize(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
-            hidpi_factor: self.hidpi_factor(),
         }, size_type);
 
         if let Err(e) = self.constellation_chan.send(msg) {
