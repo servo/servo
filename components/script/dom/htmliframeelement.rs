@@ -196,7 +196,7 @@ impl HTMLIFrameElement {
         if mode == ProcessingMode::FirstTime && !self.upcast::<Element>().has_attribute(&local_name!("src")) {
             let window = window_from_node(self);
             let event_loop = window.dom_manipulation_task_source();
-            let _ = event_loop.queue(box IframeLoadEventSteps::new(self),
+            let _ = event_loop.queue(box IFrameLoadEventSteps::new(self),
                                      window.upcast());
             return;
         }
@@ -740,22 +740,22 @@ impl VirtualMethods for HTMLIFrameElement {
     }
 }
 
-struct IframeLoadEventSteps {
+struct IFrameLoadEventSteps {
     frame_element: Trusted<HTMLIFrameElement>,
     pipeline_id: PipelineId,
 }
 
-impl IframeLoadEventSteps {
-    fn new(frame_element: &HTMLIFrameElement) -> IframeLoadEventSteps {
-        IframeLoadEventSteps {
+impl IFrameLoadEventSteps {
+    fn new(frame_element: &HTMLIFrameElement) -> IFrameLoadEventSteps {
+        IFrameLoadEventSteps {
             frame_element: Trusted::new(frame_element),
             pipeline_id: frame_element.pipeline_id().unwrap(),
         }
     }
 }
 
-impl Runnable for IframeLoadEventSteps {
-    fn handler(self: Box<IframeLoadEventSteps>) {
+impl Runnable for IFrameLoadEventSteps {
+    fn handler(self: Box<IFrameLoadEventSteps>) {
         let this = self.frame_element.root();
         this.iframe_load_event_steps(self.pipeline_id);
     }
