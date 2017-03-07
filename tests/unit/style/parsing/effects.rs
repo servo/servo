@@ -68,8 +68,6 @@ fn test_effects_parser_exhaustion() {
 fn test_parse_factor() {
     use parsing::parse;
     use style::properties::longhands::filter;
-    
-
 
     assert!(parse(filter::parse, "brightness(0)").is_ok());
     assert!(parse(filter::parse, "brightness(55)").is_ok());
