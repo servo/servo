@@ -361,12 +361,7 @@ impl Window {
                 let ch = self.get_keyboard_input_char(element_state, scan_code)
                     .and_then(|ch| filter_nonprintable(ch, virtual_key_code));
                 if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
-                    let state = match element_state {
-                        ElementState::Pressed => KeyState::Pressed,
-                        ElementState::Released => KeyState::Released,
-                    };
-                    let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                    self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
+                    self.send_key_event(ch, key, element_state);
                 }
             }
             Event::KeyboardInput(_, _, None) => {
@@ -467,6 +462,15 @@ impl Window {
                 idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
             }
         }
+    }
+
+    fn send_key_event(&self, ch: Option<char>, key: Key, element_state: ElementState) {
+        let state = match element_state {
+            ElementState::Pressed => KeyState::Pressed,
+            ElementState::Released => KeyState::Released,
+        };
+        let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+        self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(ch, key, state, modifiers));
     }
 
     /// Helper function to send a scroll event.
