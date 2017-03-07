@@ -563,7 +563,6 @@ impl ShorthandId {
 /// Servo's representation of a declared value for a given `T`, which is the
 /// declared value for that property.
 #[derive(Clone, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum DeclaredValue<T> {
     /// A known specified value from the stylesheet.
     Value(T),
@@ -574,8 +573,7 @@ pub enum DeclaredValue<T> {
 }
 
 /// An unparsed property value that contains `var()` functions.
-#[derive(Clone, PartialEq, Eq, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(PartialEq, Eq, Debug)]
 pub struct UnparsedValue {
     /// The css serialization for this value.
     css: String,
@@ -854,7 +852,6 @@ impl ParsedDeclaration {
 
 /// Servo's representation for a property declaration.
 #[derive(PartialEq, Clone)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum PropertyDeclaration {
     % for property in data.longhands:
         /// ${property.name}

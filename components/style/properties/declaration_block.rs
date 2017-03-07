@@ -49,12 +49,10 @@ impl Default for Importance {
 
 /// Overridden declarations are skipped.
 #[derive(Debug, PartialEq, Clone)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct PropertyDeclarationBlock {
     /// The group of declarations, along with their importance.
     ///
     /// Only deduplicated declarations appear here.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "#7038")]
     pub declarations: Vec<(PropertyDeclaration, Importance)>,
 
     /// The number of entries in `self.declaration` with `Importance::Important`

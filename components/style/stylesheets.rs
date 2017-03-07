@@ -52,7 +52,6 @@ pub enum Origin {
 
 /// A set of namespaces applying to a given stylesheet.
 #[derive(Default, Debug)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct Namespaces {
     pub default: Option<Namespace>,
@@ -389,7 +388,6 @@ impl ToCss for CssRule {
 }
 
 #[derive(Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct NamespaceRule {
     /// `None` for the default Namespace

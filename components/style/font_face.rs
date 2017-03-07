@@ -21,7 +21,7 @@ use values::specified::url::SpecifiedUrl;
 
 /// A source for a font-face rule.
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub enum Source {
     /// A `url()` source.
     Url(UrlSource),
@@ -54,7 +54,7 @@ impl OneOrMoreCommaSeparated for Source {}
 ///
 /// https://drafts.csswg.org/css-fonts/#src-desc
 #[derive(Clone, Debug, PartialEq, Eq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct UrlSource {
     /// The specified url.
     pub url: SpecifiedUrl,
@@ -184,7 +184,6 @@ macro_rules! font_face_descriptors {
         ///
         /// https://drafts.csswg.org/css-fonts/#font-face-rule
         #[derive(Debug, PartialEq, Eq)]
-        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
         pub struct FontFaceRule {
             $(
                 #[$m_doc]

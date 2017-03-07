@@ -70,8 +70,7 @@ impl KeyframePercentage {
 
 /// A keyframes selector is a list of percentages or from/to symbols, which are
 /// converted at parse time to percentages.
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug, PartialEq)]
 pub struct KeyframeSelector(Vec<KeyframePercentage>);
 impl KeyframeSelector {
     /// Return the list of percentages this selector contains.
@@ -93,8 +92,7 @@ impl KeyframeSelector {
 }
 
 /// A keyframe.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug)]
 pub struct Keyframe {
     /// The selector this keyframe was specified from.
     pub selector: KeyframeSelector,
@@ -103,7 +101,6 @@ pub struct Keyframe {
     ///
     /// Note that `!important` rules in keyframes don't apply, but we keep this
     /// `Arc` just for convenience.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub block: Arc<RwLock<PropertyDeclarationBlock>>,
 }
 
@@ -148,7 +145,7 @@ impl Keyframe {
 /// declarations to apply.
 ///
 /// TODO: Find a better name for this?
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesStepValue {
     /// A step formed by a declaration block specified by the CSS.
@@ -163,7 +160,7 @@ pub enum KeyframesStepValue {
 }
 
 /// A single step from a keyframe animation.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesStep {
     /// The percentage of the animation duration when this step starts.
@@ -235,7 +232,7 @@ impl KeyframesStep {
 /// of keyframes, in order.
 ///
 /// It only takes into account animable properties.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesAnimation {
     /// The difference steps of the animation.
