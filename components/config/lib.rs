@@ -4,7 +4,7 @@
 
 #![deny(unsafe_code)]
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 extern crate android_injected_glue;
 extern crate euclid;
 extern crate getopts;

@@ -266,8 +266,11 @@ public class MainActivity extends android.app.NativeActivity {
 
     private void set_url(String url) {
         try {
-            String path = getAppDataDir() + "/android_params";
-            PrintStream out = new PrintStream(new FileOutputStream(path));
+            File file = new File(getAppDataDir() + "/android_params");
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            PrintStream out = new PrintStream(new FileOutputStream(file, false));
             out.println("# The first line here should be the \"servo\" argument (without quotes) and the");
             out.println("# last should be the URL to load.");
             out.println("# Blank lines and those beginning with a '#' are ignored.");
@@ -280,7 +283,8 @@ public class MainActivity extends android.app.NativeActivity {
             out.println(absUrl);
             out.flush();
             out.close();
-        } catch (FileNotFoundException e) {
+        } catch (Exception e) {
+            Log.e(LOGTAG, Log.getStackTraceString(e));
         }
     }
 }

@@ -6,11 +6,11 @@
 //! For linux based platforms, it uses the XDG base directory spec but provides
 //! similar abstractions for non-linux platforms.
 
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 use android_injected_glue;
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::env;
-#[cfg(target_os="android")]
+#[cfg(target_os = "android")]
 use std::ffi::CStr;
 use std::path::PathBuf;
 #[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
