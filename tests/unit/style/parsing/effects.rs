@@ -63,3 +63,46 @@ fn test_effects_parser_exhaustion() {
     assert_parser_exhausted!(perspective_origin, "1px some-rubbish", false);
     assert_parser_exhausted!(transform_origin, "1px some-rubbish", false);
 }
+
+#[test]
+fn test_parse_factor() {
+    use parsing::parse;
+    use style::properties::longhands::filter;
+
+    assert!(parse(filter::parse, "brightness(0)").is_ok());
+    assert!(parse(filter::parse, "brightness(55)").is_ok());
+    assert!(parse(filter::parse, "brightness(100)").is_ok());
+
+    assert!(parse(filter::parse, "contrast(0)").is_ok());
+    assert!(parse(filter::parse, "contrast(55)").is_ok());
+    assert!(parse(filter::parse, "contrast(100)").is_ok());
+
+    assert!(parse(filter::parse, "grayscale(0)").is_ok());
+    assert!(parse(filter::parse, "grayscale(55)").is_ok());
+    assert!(parse(filter::parse, "grayscale(100)").is_ok());
+
+    assert!(parse(filter::parse, "invert(0)").is_ok());
+    assert!(parse(filter::parse, "invert(55)").is_ok());
+    assert!(parse(filter::parse, "invert(100)").is_ok());
+
+    assert!(parse(filter::parse, "opacity(0)").is_ok());
+    assert!(parse(filter::parse, "opacity(55)").is_ok());
+    assert!(parse(filter::parse, "opacity(100)").is_ok());
+
+    assert!(parse(filter::parse, "sepia(0)").is_ok());
+    assert!(parse(filter::parse, "sepia(55)").is_ok());
+    assert!(parse(filter::parse, "sepia(100)").is_ok());
+
+    assert!(parse(filter::parse, "saturate(0)").is_ok());
+    assert!(parse(filter::parse, "saturate(55)").is_ok());
+    assert!(parse(filter::parse, "saturate(100)").is_ok());
+
+    // Negative numbers are invalid for certain filters
+    assert!(parse(filter::parse, "brightness(-1)").is_err());
+    assert!(parse(filter::parse, "contrast(-1)").is_err());
+    assert!(parse(filter::parse, "grayscale(-1)").is_err());
+    assert!(parse(filter::parse, "invert(-1)").is_err());
+    assert!(parse(filter::parse, "opacity(-1)").is_err());
+    assert!(parse(filter::parse, "sepia(-1)").is_err());
+    assert!(parse(filter::parse, "saturate(-1)").is_err());
+}
