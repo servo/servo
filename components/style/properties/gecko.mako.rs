@@ -620,10 +620,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # but we haven't implemented the stylo glue for the longhand
     # so we generate a stub
     force_stub += ["flex-basis", # position
-
-                   # transition
-                   "transition-duration", "transition-timing-function",
-                   "transition-property", "transition-delay",
                    ]
 
     # Types used with predefined_type()-defined properties that we can auto-generate.
@@ -1298,48 +1294,94 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
-<%def name="impl_copy_animation_value(ident, gecko_ffi_name)">
+<%def name="impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
-    pub fn copy_animation_${ident}_from(&mut self, other: &Self) {
-        unsafe { self.gecko.mAnimations.ensure_len(other.gecko.mAnimations.len()) };
+    pub fn copy_${type}_${ident}_from(&mut self, other: &Self) {
+        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(other.gecko.m${type.capitalize()}s.len()) };
 
-        let count = other.gecko.mAnimation${gecko_ffi_name}Count;
-        self.gecko.mAnimation${gecko_ffi_name}Count = count;
+        let count = other.gecko.m${type.capitalize()}${gecko_ffi_name}Count;
+        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = count;
 
-        // The length of mAnimations is often greater than mAnimationXXCount,
+        // The length of mTransitions or mAnimations is often greater than m{Transition|Animation}XXCount,
         // don't copy values over the count.
-        for (index, animation) in self.gecko.mAnimations.iter_mut().enumerate().take(count as usize) {
-            animation.m${gecko_ffi_name} = other.gecko.mAnimations[index].m${gecko_ffi_name};
+        for (index, gecko) in self.gecko.m${type.capitalize()}s.iter_mut().enumerate().take(count as usize) {
+            gecko.m${gecko_ffi_name} = other.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name};
         }
     }
 </%def>
 
-<%def name="impl_animation_count(ident, gecko_ffi_name)">
+<%def name="impl_animation_or_transition_count(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
-    pub fn animation_${ident}_count(&self) -> usize {
-        self.gecko.mAnimation${gecko_ffi_name}Count as usize
+    pub fn ${type}_${ident}_count(&self) -> usize {
+        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count as usize
     }
 </%def>
 
-<%def name="impl_animation_time_value(ident, gecko_ffi_name)">
+<%def name="impl_animation_or_transition_time_value(type, ident, gecko_ffi_name)">
     #[allow(non_snake_case)]
-    pub fn set_animation_${ident}(&mut self, v: longhands::animation_${ident}::computed_value::T) {
+    pub fn set_${type}_${ident}(&mut self, v: longhands::${type}_${ident}::computed_value::T) {
         debug_assert!(!v.0.is_empty());
-        unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(v.0.len()) };
 
-        self.gecko.mAnimation${gecko_ffi_name}Count = v.0.len() as u32;
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
+        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = v.0.len() as u32;
+        for (servo, gecko) in v.0.into_iter().zip(self.gecko.m${type.capitalize()}s.iter_mut()) {
             gecko.m${gecko_ffi_name} = servo.seconds() * 1000.;
         }
     }
     #[allow(non_snake_case)]
-    pub fn animation_${ident}_at(&self, index: usize)
-        -> longhands::animation_${ident}::computed_value::SingleComputedValue {
+    pub fn ${type}_${ident}_at(&self, index: usize)
+        -> longhands::${type}_${ident}::computed_value::SingleComputedValue {
         use values::specified::Time;
         Time(self.gecko.mAnimations[index].m${gecko_ffi_name} / 1000.)
     }
-    ${impl_animation_count(ident, gecko_ffi_name)}
-    ${impl_copy_animation_value(ident, gecko_ffi_name)}
+    ${impl_animation_or_transition_count(type, ident, gecko_ffi_name)}
+    ${impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)}
+</%def>
+
+<%def name="impl_animation_or_transition_timing_function(type)">
+    pub fn set_${type}_timing_function(&mut self, v: longhands::${type}_timing_function::computed_value::T) {
+        debug_assert!(!v.0.is_empty());
+        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(v.0.len()) };
+
+        self.gecko.m${type.capitalize()}TimingFunctionCount = v.0.len() as u32;
+        for (servo, gecko) in v.0.into_iter().zip(self.gecko.m${type.capitalize()}s.iter_mut()) {
+            gecko.mTimingFunction = servo.into();
+        }
+    }
+    ${impl_animation_or_transition_count(type, 'timing_function', 'TimingFunction')}
+    ${impl_copy_animation_or_transition_value(type, 'timing_function', 'TimingFunction')}
+    pub fn ${type}_timing_function_at(&self, index: usize)
+        -> longhands::${type}_timing_function::computed_value::SingleComputedValue {
+        self.gecko.m${type.capitalize()}s[index].mTimingFunction.into()
+    }
+</%def>
+
+<%def name="impl_transition_time_value(ident, gecko_ffi_name)">
+    ${impl_animation_or_transition_time_value('transition', ident, gecko_ffi_name)}
+</%def>
+
+<%def name="impl_transition_count(ident, gecko_ffi_name)">
+    ${impl_animation_or_transition_count('transition', ident, gecko_ffi_name)}
+</%def>
+
+<%def name="impl_copy_animation_value(ident, gecko_ffi_name)">
+    ${impl_copy_animation_or_transition_value('animation', ident, gecko_ffi_name)}
+</%def>
+
+<%def name="impl_transition_timing_function()">
+    ${impl_animation_or_transition_timing_function('transition')}
+</%def>
+
+<%def name="impl_animation_count(ident, gecko_ffi_name)">
+    ${impl_animation_or_transition_count('animation', ident, gecko_ffi_name)}
+</%def>
+
+<%def name="impl_animation_time_value(ident, gecko_ffi_name)">
+    ${impl_animation_or_transition_time_value('animation', ident, gecko_ffi_name)}
+</%def>
+
+<%def name="impl_animation_timing_function()">
+    ${impl_animation_or_transition_timing_function('animation')}
 </%def>
 
 <%def name="impl_animation_keyword(ident, gecko_ffi_name, keyword, cast_type='u8')">
@@ -1382,6 +1424,8 @@ fn static_assert() {
                           animation-name animation-delay animation-duration
                           animation-direction animation-fill-mode animation-play-state
                           animation-iteration-count animation-timing-function
+                          transition-duration transition-delay
+                          transition-timing-function transition-property
                           page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
@@ -1725,6 +1769,42 @@ fn static_assert() {
         computed_value::T(Some(result))
     }
 
+    ${impl_transition_time_value('delay', 'Delay')}
+    ${impl_transition_time_value('duration', 'Duration')}
+    ${impl_transition_timing_function()}
+
+    pub fn set_transition_property(&mut self, v: longhands::transition_property::computed_value::T) {
+        use gecko_bindings::structs::nsCSSPropertyID_eCSSPropertyExtra_no_properties;
+
+        if !v.0.is_empty() {
+            unsafe { self.gecko.mTransitions.ensure_len(v.0.len()) };
+            self.gecko.mTransitionPropertyCount = v.0.len() as u32;
+            for (servo, gecko) in v.0.into_iter().zip(self.gecko.mTransitions.iter_mut()) {
+                gecko.mProperty = servo.into();
+            }
+        } else {
+            // In gecko |none| is represented by eCSSPropertyExtra_no_properties.
+            self.gecko.mTransitionPropertyCount = 1;
+            self.gecko.mTransitions[0].mProperty = nsCSSPropertyID_eCSSPropertyExtra_no_properties;
+        }
+    }
+    pub fn transition_property_at(&self, index: usize)
+        -> longhands::transition_property::computed_value::SingleComputedValue {
+        self.gecko.mTransitions[index].mProperty.into()
+    }
+
+    pub fn copy_transition_property_from(&mut self, other: &Self) {
+        unsafe { self.gecko.mTransitions.ensure_len(other.gecko.mTransitions.len()) };
+
+        let count = other.gecko.mTransitionPropertyCount;
+        self.gecko.mTransitionPropertyCount = count;
+
+        for (index, transition) in self.gecko.mTransitions.iter_mut().enumerate().take(count as usize) {
+            transition.mProperty = other.gecko.mTransitions[index].mProperty;
+        }
+    }
+    ${impl_transition_count('property', 'Property')}
+
     pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
         use nsstring::nsCString;
 
@@ -1797,21 +1877,7 @@ fn static_assert() {
     ${impl_animation_count('iteration_count', 'IterationCount')}
     ${impl_copy_animation_value('iteration_count', 'IterationCount')}
 
-    pub fn set_animation_timing_function(&mut self, v: longhands::animation_timing_function::computed_value::T) {
-        debug_assert!(!v.0.is_empty());
-        unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
-
-        self.gecko.mAnimationTimingFunctionCount = v.0.len() as u32;
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
-            gecko.mTimingFunction = servo.into();
-        }
-    }
-    ${impl_animation_count('timing_function', 'TimingFunction')}
-    ${impl_copy_animation_value('timing_function', 'TimingFunction')}
-    pub fn animation_timing_function_at(&self, index: usize)
-        -> longhands::animation_timing_function::computed_value::SingleComputedValue {
-        self.gecko.mAnimations[index].mTimingFunction.into()
-    }
+    ${impl_animation_timing_function()}
 
     <% scroll_snap_type_keyword = Keyword("scroll-snap-type", "none mandatory proximity") %>
 
