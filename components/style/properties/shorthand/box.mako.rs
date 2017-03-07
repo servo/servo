@@ -153,39 +153,35 @@ macro_rules! try_parse_one {
                                     animation-fill-mode animation-play-state"
                     allowed_in_keyframe_block="False"
                     spec="https://drafts.csswg.org/css-animations/#propdef-animation">
+    <%
+        props = "name duration timing_function delay iteration_count \
+                 direction fill_mode play_state".split()
+    %>
     use parser::Parse;
-    use properties::longhands::{animation_name, animation_duration, animation_timing_function};
-    use properties::longhands::{animation_delay, animation_iteration_count, animation_direction};
-    use properties::longhands::{animation_fill_mode, animation_play_state};
+    % for prop in props:
+    use properties::longhands::animation_${prop};
+    % endfor
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         struct SingleAnimation {
-            animation_name: animation_name::SingleSpecifiedValue,
-            animation_duration: animation_duration::SingleSpecifiedValue,
-            animation_timing_function: animation_timing_function::SingleSpecifiedValue,
-            animation_delay: animation_delay::SingleSpecifiedValue,
-            animation_iteration_count: animation_iteration_count::SingleSpecifiedValue,
-            animation_direction: animation_direction::SingleSpecifiedValue,
-            animation_fill_mode: animation_fill_mode::SingleSpecifiedValue,
-            animation_play_state: animation_play_state::SingleSpecifiedValue,
+            % for prop in props:
+            animation_${prop}: animation_${prop}::SingleSpecifiedValue,
+            % endfor
         }
 
         fn parse_one_animation(context: &ParserContext, input: &mut Parser) -> Result<SingleAnimation,()> {
-            let mut duration = None;
-            let mut timing_function = None;
-            let mut delay = None;
-            let mut iteration_count = None;
-            let mut direction = None;
-            let mut fill_mode = None;
-            let mut play_state = None;
-            let mut name = None;
+            % for prop in props:
+            let mut ${prop} = None;
+            % endfor
 
+            let mut parsed = 0;
             // NB: Name must be the last one here so that keywords valid for other
             // longhands are not interpreted as names.
             //
             // Also, duration must be before delay, see
             // https://drafts.csswg.org/css-animations/#typedef-single-animation
             loop {
+                parsed += 1;
                 try_parse_one!(context, input, duration, animation_duration);
                 try_parse_one!(context, input, timing_function, animation_timing_function);
                 try_parse_one!(context, input, delay, animation_delay);
@@ -195,65 +191,38 @@ macro_rules! try_parse_one {
                 try_parse_one!(input, play_state, animation_play_state);
                 try_parse_one!(context, input, name, animation_name);
 
+                parsed -= 1;
                 break
             }
 
-            if let Some(name) = name {
-                Ok(SingleAnimation {
-                    animation_name: name,
-                    animation_duration:
-                        duration.unwrap_or_else(animation_duration::single_value::get_initial_value),
-                    animation_timing_function:
-                        timing_function.unwrap_or_else(animation_timing_function::single_value
-                                                                                ::get_initial_specified_value),
-                    animation_delay:
-                        delay.unwrap_or_else(animation_delay::single_value::get_initial_value),
-                    animation_iteration_count:
-                        iteration_count.unwrap_or_else(animation_iteration_count::single_value::get_initial_value),
-                    animation_direction:
-                        direction.unwrap_or_else(animation_direction::single_value::get_initial_value),
-                    animation_fill_mode:
-                        fill_mode.unwrap_or_else(animation_fill_mode::single_value::get_initial_value),
-                    animation_play_state:
-                        play_state.unwrap_or_else(animation_play_state::single_value::get_initial_value),
-                })
-            } else {
+            // If nothing is parsed, this is an invalid entry.
+            if parsed == 0 {
                 Err(())
+            } else {
+                Ok(SingleAnimation {
+                    % for prop in props:
+                    animation_${prop}: ${prop}.unwrap_or_else(animation_${prop}::single_value
+                                                              ::get_initial_specified_value),
+                    % endfor
+                })
             }
         }
 
-        let mut names = vec![];
-        let mut durations = vec![];
-        let mut timing_functions = vec![];
-        let mut delays = vec![];
-        let mut iteration_counts = vec![];
-        let mut directions = vec![];
-        let mut fill_modes = vec![];
-        let mut play_states = vec![];
+        % for prop in props:
+        let mut ${prop}s = vec![];
+        % endfor
 
-        if input.try(|input| input.expect_ident_matching("none")).is_err() {
-            let results = try!(input.parse_comma_separated(|i| parse_one_animation(context, i)));
-            for result in results.into_iter() {
-                names.push(result.animation_name);
-                durations.push(result.animation_duration);
-                timing_functions.push(result.animation_timing_function);
-                delays.push(result.animation_delay);
-                iteration_counts.push(result.animation_iteration_count);
-                directions.push(result.animation_direction);
-                fill_modes.push(result.animation_fill_mode);
-                play_states.push(result.animation_play_state);
-            }
+        let results = try!(input.parse_comma_separated(|i| parse_one_animation(context, i)));
+        for result in results.into_iter() {
+            % for prop in props:
+            ${prop}s.push(result.animation_${prop});
+            % endfor
         }
 
         Ok(Longhands {
-            animation_name: animation_name::SpecifiedValue(names),
-            animation_duration: animation_duration::SpecifiedValue(durations),
-            animation_timing_function: animation_timing_function::SpecifiedValue(timing_functions),
-            animation_delay: animation_delay::SpecifiedValue(delays),
-            animation_iteration_count: animation_iteration_count::SpecifiedValue(iteration_counts),
-            animation_direction: animation_direction::SpecifiedValue(directions),
-            animation_fill_mode: animation_fill_mode::SpecifiedValue(fill_modes),
-            animation_play_state: animation_play_state::SpecifiedValue(play_states),
+            % for prop in props:
+            animation_${prop}: animation_${prop}::SpecifiedValue(${prop}s),
+            % endfor
         })
     }
 
@@ -265,14 +234,9 @@ macro_rules! try_parse_one {
                 return Ok(());
             }
 
-            <%
-                subproperties = "duration timing_function delay direction \
-                                 fill_mode iteration_count play_state".split()
-            %>
-
             // If any value list length is differs then we don't do a shorthand serialization
             // either.
-            % for name in subproperties:
+            % for name in props[1:]:
                 if len != self.animation_${name}.0.len() {
                     return Ok(())
                 }
@@ -283,7 +247,7 @@ macro_rules! try_parse_one {
                     try!(write!(dest, ", "));
                 }
 
-                % for name in subproperties:
+                % for name in props[1:]:
                     self.animation_${name}.0[i].to_css(dest)?;
                     dest.write_str(" ")?;
                 % endfor
