@@ -4,7 +4,6 @@
 
 use brotli::Decompressor;
 use connector::{Connector, create_http_connector};
-use content_blocker_parser::RuleList;
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -70,7 +69,6 @@ pub struct HttpState {
     pub hsts_list: Arc<RwLock<HstsList>>,
     pub cookie_jar: Arc<RwLock<CookieStorage>>,
     pub auth_cache: Arc<RwLock<AuthCache>>,
-    pub blocked_content: Arc<Option<RuleList>>,
     pub connector_pool: Arc<Pool<Connector>>,
 }
 
@@ -80,7 +78,6 @@ impl HttpState {
             hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
             auth_cache: Arc::new(RwLock::new(AuthCache::new())),
-            blocked_content: Arc::new(None),
             connector_pool: create_http_connector(certificate_path),
         }
     }

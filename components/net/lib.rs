@@ -7,7 +7,6 @@
 #![feature(mpsc_select)]
 
 extern crate brotli;
-extern crate content_blocker as content_blocker_parser;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
@@ -15,7 +14,6 @@ extern crate hyper;
 extern crate hyper_serde;
 extern crate immeta;
 extern crate ipc_channel;
-#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 #[macro_use] #[no_link] extern crate matches;
 #[macro_use]
@@ -46,7 +44,6 @@ extern crate websocket;
 mod blob_loader;
 mod chrome_loader;
 mod connector;
-mod content_blocker;
 pub mod cookie;
 pub mod cookie_storage;
 mod data_loader;
