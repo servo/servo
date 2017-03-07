@@ -659,6 +659,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.set_fullscreen_state(state);
             }
 
+            (Msg::PageZoom(magnification), ShutdownState::NotShuttingDown) => {
+                self.on_zoom_window_event(magnification);
+            }
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.

@@ -151,6 +151,8 @@ pub enum ScriptMsg {
     RegisterServiceWorker(ScopeThings, ServoUrl),
     /// Enter or exit fullscreen
     SetFullscreenState(bool),
+    /// Apply a zoom factor to the page.
+    PageZoom(f32),
     /// Requests that the compositor shut down.
     Exit,
 }
