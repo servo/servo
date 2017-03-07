@@ -143,6 +143,8 @@ pub enum Key {
 
     NavigateBackward,
     NavigateForward,
+
+    Unidentified,
 }
 
 bitflags! {
