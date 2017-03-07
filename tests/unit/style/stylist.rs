@@ -23,14 +23,11 @@ fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
 
         let rule = Arc::new(RwLock::new(StyleRule {
             selectors: selectors,
-            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: vec![
-                    (PropertyDeclaration::Display(DeclaredValue::Value(
-                        longhands::display::SpecifiedValue::block)),
-                     Importance::Normal),
-                ],
-                important_count: 0,
-            })),
+            block: Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
+                PropertyDeclaration::Display(DeclaredValue::Value(
+                    longhands::display::SpecifiedValue::block)),
+                Importance::Normal
+            ))),
         }));
 
         let guard = rule.read();

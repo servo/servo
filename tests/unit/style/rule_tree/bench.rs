@@ -68,14 +68,11 @@ fn test_insertion(rule_tree: &RuleTree, rules: Vec<(StyleSource, CascadeLevel)>)
 
 fn test_insertion_style_attribute(rule_tree: &RuleTree, rules: &[(StyleSource, CascadeLevel)]) -> StrongRuleNode {
     let mut rules = rules.to_vec();
-    rules.push((StyleSource::Declarations(Arc::new(RwLock::new(PropertyDeclarationBlock {
-        declarations: vec![
-            (PropertyDeclaration::Display(DeclaredValue::Value(
-                longhands::display::SpecifiedValue::block)),
-            Importance::Normal),
-        ],
-        important_count: 0,
-    }))), CascadeLevel::UserNormal));
+    rules.push((StyleSource::Declarations(Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
+        PropertyDeclaration::Display(DeclaredValue::Value(
+            longhands::display::SpecifiedValue::block)),
+        Importance::Normal
+    )))), CascadeLevel::UserNormal));
     test_insertion(rule_tree, rules)
 }
 

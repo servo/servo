@@ -62,10 +62,7 @@ impl CSSStyleOwner {
                     let result = f(&mut pdb, &mut changed);
                     result
                 } else {
-                    let mut pdb = PropertyDeclarationBlock {
-                        important_count: 0,
-                        declarations: vec![],
-                    };
+                    let mut pdb = PropertyDeclarationBlock::new();
                     let result = f(&mut pdb, &mut changed);
 
                     // Here `changed` is somewhat silly, because we know the
@@ -116,10 +113,7 @@ impl CSSStyleOwner {
                 match *el.style_attribute().borrow() {
                     Some(ref pdb) => f(&pdb.read()),
                     None => {
-                        let pdb = PropertyDeclarationBlock {
-                            important_count: 0,
-                            declarations: vec![],
-                        };
+                        let pdb = PropertyDeclarationBlock::new();
                         f(&pdb)
                     }
                 }

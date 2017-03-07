@@ -56,7 +56,7 @@ pub struct PropertyDeclarationBlock {
     pub declarations: Vec<(PropertyDeclaration, Importance)>,
 
     /// The number of entries in `self.declaration` with `Importance::Important`
-    pub important_count: usize,
+    important_count: usize,
 }
 
 impl PropertyDeclarationBlock {
@@ -65,6 +65,14 @@ impl PropertyDeclarationBlock {
         PropertyDeclarationBlock {
             declarations: Vec::new(),
             important_count: 0,
+        }
+    }
+
+    /// Create a block with a single declaration
+    pub fn with_one(declaration: PropertyDeclaration, importance: Importance) -> Self {
+        PropertyDeclarationBlock {
+            declarations: vec![(declaration, importance)],
+            important_count: if importance.important() { 1 } else { 0 },
         }
     }
 

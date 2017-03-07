@@ -168,23 +168,19 @@ impl ComputedValues {
             % for prop in data.longhands:
                 % if prop.animatable:
                     PropertyDeclarationId::Longhand(LonghandId::${prop.camel_case}) => {
-                        PropertyDeclarationBlock {
-                            declarations: vec![
-                                (PropertyDeclaration::${prop.camel_case}(DeclaredValue::Value(
-                                    % if prop.boxed:
-                                        Box::new(
-                                    % endif
-                                    longhands::${prop.ident}::SpecifiedValue::from_computed_value(
-                                      &self.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
-                                    % if prop.boxed:
-                                        )
-                                    % endif
-
-                                 )),
-                                 Importance::Normal)
-                            ],
-                            important_count: 0
-                        }
+                         PropertyDeclarationBlock::with_one(
+                            PropertyDeclaration::${prop.camel_case}(DeclaredValue::Value(
+                                % if prop.boxed:
+                                    Box::new(
+                                % endif
+                                longhands::${prop.ident}::SpecifiedValue::from_computed_value(
+                                  &self.get_${prop.style_struct.ident.strip("_")}().clone_${prop.ident}())
+                                % if prop.boxed:
+                                    )
+                                % endif
+                            )),
+                            Importance::Normal
+                        )
                     },
                 % endif
             % endfor

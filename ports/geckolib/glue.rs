@@ -276,10 +276,8 @@ pub extern "C" fn Servo_AnimationValue_Serialize(value: RawServoAnimationValueBo
 {
     let uncomputed_value = AnimationValue::as_arc(&value).uncompute();
     let mut string = String::new();
-    let rv = PropertyDeclarationBlock {
-        declarations: vec![(uncomputed_value, Importance::Normal)],
-        important_count: 0
-    }.single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), &mut string);
+    let rv = PropertyDeclarationBlock::with_one(uncomputed_value, Importance::Normal)
+        .single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), &mut string);
     debug_assert!(rv.is_ok());
 
     write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
@@ -726,7 +724,7 @@ pub extern "C" fn Servo_ParseStyleAttribute(data: *const nsACString) -> RawServo
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_CreateEmpty() -> RawServoDeclarationBlockStrong {
-    Arc::new(RwLock::new(PropertyDeclarationBlock { declarations: vec![], important_count: 0 })).into_strong()
+    Arc::new(RwLock::new(PropertyDeclarationBlock::new())).into_strong()
 }
 
 #[no_mangle]
@@ -1479,10 +1477,9 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                           (*keyframe).mPropertyValues.set_len((index + 1) as u32);
                           (*keyframe).mPropertyValues[index].mProperty = property.into();
                           (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
-                              Arc::new(RwLock::new(
-                                  PropertyDeclarationBlock { declarations: vec![ (declaration.clone(),
-                                                                                  Importance::Normal) ],
-                                                             important_count: 0 })));
+                              Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
+                                declaration.clone(), Importance::Normal
+                              ))));
                           if step.start_percentage.0 == 0. ||
                              step.start_percentage.0 == 1. {
                               seen.set_transition_property_bit(&property);
