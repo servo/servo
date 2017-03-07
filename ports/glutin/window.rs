@@ -363,9 +363,7 @@ impl Window {
                         // Retrieve any previosly stored ReceivedCharacter value.
                         // Store the association between the scan code and the actual
                         // character value, if there is one.
-                        let ch = self.pending_key_event_char
-                                     .get()
-                                     .and_then(|ch| filter_nonprintable(ch, virtual_key_code));
+                        let ch = self.pending_key_event_char.get();
                         self.pending_key_event_char.set(None);
                         if let Some(ch) = ch {
                             self.pressed_key_map.borrow_mut().push((scan_code, ch));
@@ -383,6 +381,7 @@ impl Window {
                         idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
                     }
                 };
+                let ch = ch.and_then(|ch| filter_nonprintable(ch, virtual_key_code));
 
                 if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
                     let state = match element_state {
