@@ -67,7 +67,7 @@ use style::gecko_properties::{self, style_structs};
 use style::keyframes::KeyframesStepValue;
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
-use style::properties::{ComputedValues, Importance, PropertyDeclaration};
+use style::properties::{ComputedValues, Importance, ParsedDeclaration};
 use style::properties::{PropertyDeclarationBlock, PropertyId};
 use style::properties::animated_properties::{AnimationValue, Interpolate, TransitionProperty};
 use style::properties::parse_one_declaration;
@@ -713,7 +713,7 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
                                                      Box::new(StdoutErrorReporter),
                                                      extra_data);
 
-    match PropertyDeclaration::parse(id, &context, &mut Parser::new(value), false) {
+    match ParsedDeclaration::parse(id, &context, &mut Parser::new(value), false) {
         Ok(parsed) => {
             let mut declarations = Vec::new();
             parsed.expand(|d| declarations.push((d, Importance::Normal)));

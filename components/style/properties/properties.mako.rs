@@ -857,6 +857,92 @@ impl ParsedDeclaration {
             ParsedDeclaration::LonghandOrCustom(declaration) => f(declaration),
         }
     }
+
+    /// The `in_keyframe_block` parameter controls this:
+    ///
+    /// https://drafts.csswg.org/css-animations/#keyframes
+    /// > The <declaration-list> inside of <keyframe-block> accepts any CSS property
+    /// > except those defined in this specification,
+    /// > but does accept the `animation-play-state` property and interprets it specially.
+    ///
+    /// This will not actually parse Importance values, and will always set things
+    /// to Importance::Normal. Parsing Importance values is the job of PropertyDeclarationParser,
+    /// we only set them here so that we don't have to reallocate
+    pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser,
+                 in_keyframe_block: bool)
+                 -> Result<ParsedDeclaration, PropertyDeclarationParseError> {
+        match id {
+            PropertyId::Custom(name) => {
+                let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
+                    Ok(keyword) => DeclaredValue::CSSWideKeyword(keyword),
+                    Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
+                        Ok(value) => DeclaredValue::Value(value),
+                        Err(()) => return Err(PropertyDeclarationParseError::InvalidValue),
+                    }
+                };
+                Ok(ParsedDeclaration::LonghandOrCustom(PropertyDeclaration::Custom(name, value)))
+            }
+            PropertyId::Longhand(id) => match id {
+            % for property in data.longhands:
+                LonghandId::${property.camel_case} => {
+                    % if not property.derived_from:
+                        % if not property.allowed_in_keyframe_block:
+                            if in_keyframe_block {
+                                return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
+                            }
+                        % endif
+                        % if property.internal:
+                            if context.stylesheet_origin != Origin::UserAgent {
+                                return Err(PropertyDeclarationParseError::UnknownProperty)
+                            }
+                        % endif
+
+                        ${property_pref_check(property)}
+
+                        match longhands::${property.ident}::parse_declared(context, input) {
+                            Ok(value) => {
+                                Ok(ParsedDeclaration::LonghandOrCustom(
+                                    PropertyDeclaration::${property.camel_case}(value)
+                                ))
+                            },
+                            Err(()) => Err(PropertyDeclarationParseError::InvalidValue),
+                        }
+                    % else:
+                        Err(PropertyDeclarationParseError::UnknownProperty)
+                    % endif
+                }
+            % endfor
+            },
+            PropertyId::Shorthand(id) => match id {
+            % for shorthand in data.shorthands:
+                ShorthandId::${shorthand.camel_case} => {
+                    % if not shorthand.allowed_in_keyframe_block:
+                        if in_keyframe_block {
+                            return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
+                        }
+                    % endif
+                    % if shorthand.internal:
+                        if context.stylesheet_origin != Origin::UserAgent {
+                            return Err(PropertyDeclarationParseError::UnknownProperty)
+                        }
+                    % endif
+
+                    ${property_pref_check(shorthand)}
+
+                    match input.try(|i| CSSWideKeyword::parse(context, i)) {
+                        Ok(keyword) => {
+                            Ok(ParsedDeclaration::${shorthand.camel_case}CSSWideKeyword(keyword))
+                        },
+                        Err(()) => {
+                            shorthands::${shorthand.ident}::parse(context, input)
+                                .map_err(|()| PropertyDeclarationParseError::InvalidValue)
+                        }
+                    }
+                }
+            % endfor
+            }
+        }
+    }
 }
 
 /// Servo's representation for a property declaration.
@@ -1049,92 +1135,6 @@ impl PropertyDeclaration {
           % endfor
           PropertyDeclaration::Custom(..) => true
       }
-    }
-
-    /// The `in_keyframe_block` parameter controls this:
-    ///
-    /// https://drafts.csswg.org/css-animations/#keyframes
-    /// > The <declaration-list> inside of <keyframe-block> accepts any CSS property
-    /// > except those defined in this specification,
-    /// > but does accept the `animation-play-state` property and interprets it specially.
-    ///
-    /// This will not actually parse Importance values, and will always set things
-    /// to Importance::Normal. Parsing Importance values is the job of PropertyDeclarationParser,
-    /// we only set them here so that we don't have to reallocate
-    pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser,
-                 in_keyframe_block: bool)
-                 -> Result<ParsedDeclaration, PropertyDeclarationParseError> {
-        match id {
-            PropertyId::Custom(name) => {
-                let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                    Ok(keyword) => DeclaredValue::CSSWideKeyword(keyword),
-                    Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
-                        Ok(value) => DeclaredValue::Value(value),
-                        Err(()) => return Err(PropertyDeclarationParseError::InvalidValue),
-                    }
-                };
-                Ok(ParsedDeclaration::LonghandOrCustom(PropertyDeclaration::Custom(name, value)))
-            }
-            PropertyId::Longhand(id) => match id {
-            % for property in data.longhands:
-                LonghandId::${property.camel_case} => {
-                    % if not property.derived_from:
-                        % if not property.allowed_in_keyframe_block:
-                            if in_keyframe_block {
-                                return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
-                            }
-                        % endif
-                        % if property.internal:
-                            if context.stylesheet_origin != Origin::UserAgent {
-                                return Err(PropertyDeclarationParseError::UnknownProperty)
-                            }
-                        % endif
-
-                        ${property_pref_check(property)}
-
-                        match longhands::${property.ident}::parse_declared(context, input) {
-                            Ok(value) => {
-                                Ok(ParsedDeclaration::LonghandOrCustom(
-                                    PropertyDeclaration::${property.camel_case}(value)
-                                ))
-                            },
-                            Err(()) => Err(PropertyDeclarationParseError::InvalidValue),
-                        }
-                    % else:
-                        Err(PropertyDeclarationParseError::UnknownProperty)
-                    % endif
-                }
-            % endfor
-            },
-            PropertyId::Shorthand(id) => match id {
-            % for shorthand in data.shorthands:
-                ShorthandId::${shorthand.camel_case} => {
-                    % if not shorthand.allowed_in_keyframe_block:
-                        if in_keyframe_block {
-                            return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
-                        }
-                    % endif
-                    % if shorthand.internal:
-                        if context.stylesheet_origin != Origin::UserAgent {
-                            return Err(PropertyDeclarationParseError::UnknownProperty)
-                        }
-                    % endif
-
-                    ${property_pref_check(shorthand)}
-
-                    match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                        Ok(keyword) => {
-                            Ok(ParsedDeclaration::${shorthand.camel_case}CSSWideKeyword(keyword))
-                        },
-                        Err(()) => {
-                            shorthands::${shorthand.ident}::parse(context, input)
-                                .map_err(|()| PropertyDeclarationParseError::InvalidValue)
-                        }
-                    }
-                }
-            % endfor
-            }
-        }
     }
 
     /// The shorthands that this longhand is part of.

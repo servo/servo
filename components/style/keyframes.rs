@@ -401,7 +401,7 @@ impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
 
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<ParsedDeclaration, ()> {
         let id = try!(PropertyId::parse(name.into()));
-        match PropertyDeclaration::parse(id, self.context, input, true) {
+        match ParsedDeclaration::parse(id, self.context, input, true) {
             Ok(parsed) => {
                 // In case there is still unparsed text in the declaration, we should roll back.
                 if !input.is_exhausted() {
