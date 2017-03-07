@@ -250,14 +250,14 @@ impl CSSStyleDeclaration {
 
             // Step 6
             let window = self.owner.window();
-            let declarations =
+            let result =
                 parse_one_declaration(id, &value, &self.owner.base_url(),
                                       window.css_error_reporter(),
                                       ParserContextExtraData::default());
 
             // Step 7
-            let declarations = match declarations {
-                Ok(declarations) => declarations,
+            let parsed = match result {
+                Ok(parsed) => parsed,
                 Err(_) => {
                     *changed = false;
                     return Ok(());
@@ -267,9 +267,9 @@ impl CSSStyleDeclaration {
             // Step 8
             // Step 9
             *changed = false;
-            for declaration in declarations {
-                *changed |= pdb.set_parsed_declaration(declaration.0, importance);
-            }
+            parsed.expand(|declaration| {
+                *changed |= pdb.set_parsed_declaration(declaration, importance);
+            });
 
             Ok(())
         })

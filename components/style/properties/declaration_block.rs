@@ -56,7 +56,7 @@ pub struct PropertyDeclarationBlock {
     pub declarations: Vec<(PropertyDeclaration, Importance)>,
 
     /// The number of entries in `self.declaration` with `Importance::Important`
-    pub important_count: u32,
+    pub important_count: usize,
 }
 
 impl PropertyDeclarationBlock {
@@ -75,7 +75,7 @@ impl PropertyDeclarationBlock {
     /// which should be maintained whenever `declarations` is changed.
     // FIXME: make fields private and maintain it here in methods?
     pub fn any_normal(&self) -> bool {
-        self.declarations.len() > self.important_count as usize
+        self.declarations.len() > self.important_count
     }
 
     /// Get a declaration for a given property.
@@ -554,63 +554,46 @@ pub fn parse_one_declaration(id: PropertyId,
                              base_url: &ServoUrl,
                              error_reporter: StdBox<ParseErrorReporter + Send>,
                              extra_data: ParserContextExtraData)
-                             -> Result<Vec<(PropertyDeclaration, Importance)>, ()> {
+                             -> Result<ParsedDeclaration, ()> {
     let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     Parser::new(input).parse_entirely(|parser| {
-        let mut results = vec![];
-        match PropertyDeclaration::parse(id, &context, parser, &mut results, false) {
-            Ok(()) => Ok(results),
-            Err(_) => Err(())
-        }
+        PropertyDeclaration::parse(id, &context, parser, false)
+            .map_err(|_| ())
     })
 }
 
 /// A struct to parse property declarations.
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    declarations: Vec<(PropertyDeclaration, Importance)>
 }
 
 
 /// Default methods reject all at rules.
 impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
     type Prelude = ();
-    type AtRule = (u32, Importance);
+    type AtRule = (ParsedDeclaration, Importance);
 }
 
 
 impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
-    /// Declarations are pushed to the internal vector. This will only
-    /// let you know if the decl was !important and how many longhands
-    /// it expanded to
-    type Declaration = (u32, Importance);
+    type Declaration = (ParsedDeclaration, Importance);
 
     fn parse_value(&mut self, name: &str, input: &mut Parser)
-                   -> Result<(u32, Importance), ()> {
+                   -> Result<(ParsedDeclaration, Importance), ()> {
         let id = try!(PropertyId::parse(name.into()));
-        let old_len = self.declarations.len();
-        let parse_result = input.parse_until_before(Delimiter::Bang, |input| {
-            PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, false)
-            .map_err(|_| ())
-        });
-        if let Err(_) = parse_result {
-            // rollback
-            self.declarations.truncate(old_len);
-            return Err(())
-        }
+        let parsed = input.parse_until_before(Delimiter::Bang, |input| {
+            PropertyDeclaration::parse(id, self.context, input, false)
+                .map_err(|_| ())
+        })?;
         let importance = match input.try(parse_important) {
             Ok(()) => Importance::Important,
             Err(()) => Importance::Normal,
         };
         // In case there is still unparsed text in the declaration, we should roll back.
         if !input.is_exhausted() {
-            self.declarations.truncate(old_len);
             return Err(())
         }
-        for decl in &mut self.declarations[old_len..] {
-            decl.1 = importance
-        }
-        Ok(((self.declarations.len() - old_len) as u32, importance))
+        Ok((parsed, importance))
     }
 }
 
@@ -620,17 +603,19 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
 pub fn parse_property_declaration_list(context: &ParserContext,
                                        input: &mut Parser)
                                        -> PropertyDeclarationBlock {
+    let mut declarations = Vec::new();
     let mut important_count = 0;
     let parser = PropertyDeclarationParser {
         context: context,
-        declarations: vec![],
     };
     let mut iter = DeclarationListParser::new(input, parser);
     while let Some(declaration) = iter.next() {
         match declaration {
-            Ok((count, importance)) => {
+            Ok((parsed, importance)) => {
+                let old_len = declarations.len();
+                parsed.expand(|d| declarations.push((d, importance)));
                 if importance.important() {
-                    important_count += count;
+                    important_count += declarations.len() - old_len;
                 }
             }
             Err(range) => {
@@ -642,7 +627,7 @@ pub fn parse_property_declaration_list(context: &ParserContext,
         }
     }
     let mut block = PropertyDeclarationBlock {
-        declarations: iter.parser.declarations,
+        declarations: declarations,
         important_count: important_count,
     };
     block.deduplicate();

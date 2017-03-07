@@ -800,11 +800,14 @@ pub enum ParsedDeclaration {
     % for shorthand in data.shorthands:
         /// ${shorthand.name}
         ${shorthand.camel_case}(shorthands::${shorthand.ident}::Longhands),
-    % endfor
-    % for shorthand in data.shorthands:
+
+        /// ${shorthand.name} with a CSS-wide keyword
+        ${shorthand.camel_case}CSSWideKeyword(CSSWideKeyword),
+
         /// ${shorthand.name} with var() functions
         ${shorthand.camel_case}WithVariables(Arc<UnparsedValue>),
     % endfor
+
     /// Not a shorthand
     LonghandOrCustom(PropertyDeclaration),
 }
@@ -832,8 +835,13 @@ impl ParsedDeclaration {
                         ));
                     % endfor
                 }
-            % endfor
-            % for shorthand in data.shorthands:
+                ParsedDeclaration::${shorthand.camel_case}CSSWideKeyword(keyword) => {
+                    % for sub_property in shorthand.sub_properties:
+                        f(PropertyDeclaration::${sub_property.camel_case}(
+                            DeclaredValue::CSSWideKeyword(keyword)
+                        ));
+                    % endfor
+                }
                 ParsedDeclaration::${shorthand.camel_case}WithVariables(value) => {
                     debug_assert_eq!(
                         value.from_shorthand,
@@ -841,7 +849,8 @@ impl ParsedDeclaration {
                     );
                     % for sub_property in shorthand.sub_properties:
                         f(PropertyDeclaration::${sub_property.camel_case}(
-                            DeclaredValue::WithVariables(value.clone())));
+                            DeclaredValue::WithVariables(value.clone())
+                        ));
                     % endfor
                 }
             % endfor
@@ -1053,9 +1062,8 @@ impl PropertyDeclaration {
     /// to Importance::Normal. Parsing Importance values is the job of PropertyDeclarationParser,
     /// we only set them here so that we don't have to reallocate
     pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser,
-                 result_list: &mut Vec<(PropertyDeclaration, Importance)>,
                  in_keyframe_block: bool)
-                 -> Result<(), PropertyDeclarationParseError> {
+                 -> Result<ParsedDeclaration, PropertyDeclarationParseError> {
         match id {
             PropertyId::Custom(name) => {
                 let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
@@ -1065,9 +1073,7 @@ impl PropertyDeclaration {
                         Err(()) => return Err(PropertyDeclarationParseError::InvalidValue),
                     }
                 };
-                result_list.push((PropertyDeclaration::Custom(name, value),
-                                  Importance::Normal));
-                return Ok(());
+                Ok(ParsedDeclaration::LonghandOrCustom(PropertyDeclaration::Custom(name, value)))
             }
             PropertyId::Longhand(id) => match id {
             % for property in data.longhands:
@@ -1088,9 +1094,9 @@ impl PropertyDeclaration {
 
                         match longhands::${property.ident}::parse_declared(context, input) {
                             Ok(value) => {
-                                result_list.push((PropertyDeclaration::${property.camel_case}(value),
-                                                  Importance::Normal));
-                                Ok(())
+                                Ok(ParsedDeclaration::LonghandOrCustom(
+                                    PropertyDeclaration::${property.camel_case}(value)
+                                ))
                             },
                             Err(()) => Err(PropertyDeclarationParseError::InvalidValue),
                         }
@@ -1118,21 +1124,11 @@ impl PropertyDeclaration {
 
                     match input.try(|i| CSSWideKeyword::parse(context, i)) {
                         Ok(keyword) => {
-                            % for sub_property in shorthand.sub_properties:
-                                result_list.push((
-                                    PropertyDeclaration::${sub_property.camel_case}(
-                                        DeclaredValue::CSSWideKeyword(keyword)), Importance::Normal));
-                            % endfor
-                            Ok(())
+                            Ok(ParsedDeclaration::${shorthand.camel_case}CSSWideKeyword(keyword))
                         },
-                        Err(()) => match shorthands::${shorthand.ident}::parse(context, input) {
-                            Ok(parsed) => {
-                                parsed.expand(|declaration| {
-                                    result_list.push((declaration, Importance::Normal))
-                                });
-                                Ok(())
-                            }
-                            Err(()) => Err(PropertyDeclarationParseError::InvalidValue),
+                        Err(()) => {
+                            shorthands::${shorthand.ident}::parse(context, input)
+                                .map_err(|()| PropertyDeclarationParseError::InvalidValue)
                         }
                     }
                 }

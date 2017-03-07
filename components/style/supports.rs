@@ -211,13 +211,8 @@ impl Declaration {
             return false
         };
         let mut input = Parser::new(&self.val);
-        let mut list = Vec::new();
-        let res = PropertyDeclaration::parse(id, cx, &mut input,
-                                             &mut list, /* in_keyframe */ false);
+        let res = PropertyDeclaration::parse(id, cx, &mut input, /* in_keyframe */ false);
         let _ = input.try(parse_important);
-        if !input.is_exhausted() {
-            return false;
-        }
-        res.is_ok()
+        res.is_ok() && input.is_exhausted()
     }
 }

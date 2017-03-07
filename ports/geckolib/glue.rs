@@ -713,18 +713,17 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
                                                      Box::new(StdoutErrorReporter),
                                                      extra_data);
 
-    let mut results = vec![];
-    let result = PropertyDeclaration::parse(
-        id, &context, &mut Parser::new(value), &mut results, false
-    );
-    if result.is_err() {
-        return RawServoDeclarationBlockStrong::null()
+    match PropertyDeclaration::parse(id, &context, &mut Parser::new(value), false) {
+        Ok(parsed) => {
+            let mut declarations = Vec::new();
+            parsed.expand(|d| declarations.push((d, Importance::Normal)));
+            Arc::new(RwLock::new(PropertyDeclarationBlock {
+                declarations: declarations,
+                important_count: 0,
+            })).into_strong()
+        }
+        Err(_) => RawServoDeclarationBlockStrong::null()
     }
-
-    Arc::new(RwLock::new(PropertyDeclarationBlock {
-        declarations: results,
-        important_count: 0,
-    })).into_strong()
 }
 
 #[no_mangle]
@@ -834,14 +833,14 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
     // FIXME Needs real URL and ParserContextExtraData.
     let base_url = &*DUMMY_BASE_URL;
     let extra_data = ParserContextExtraData::default();
-    if let Ok(decls) = parse_one_declaration(property_id, value, &base_url,
-                                             Box::new(StdoutErrorReporter), extra_data) {
+    if let Ok(parsed) = parse_one_declaration(property_id, value, &base_url,
+                                              Box::new(StdoutErrorReporter), extra_data) {
         let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
         let importance = if is_important { Importance::Important } else { Importance::Normal };
         let mut changed = false;
-        for decl in decls.into_iter() {
-            changed |= declarations.set_parsed_declaration(decl.0, importance);
-        }
+        parsed.expand(|decl| {
+            changed |= declarations.set_parsed_declaration(decl, importance);
+        });
         changed
     } else {
         false
@@ -1166,10 +1165,7 @@ pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const 
     let base_url = &*DUMMY_BASE_URL;
     let extra_data = ParserContextExtraData::default();
 
-    match parse_one_declaration(id, &value, &base_url, Box::new(StdoutErrorReporter), extra_data) {
-        Ok(decls) => !decls.is_empty(),
-        Err(()) => false,
-    }
+    parse_one_declaration(id, &value, &base_url, Box::new(StdoutErrorReporter), extra_data).is_ok()
 }
 
 #[no_mangle]
