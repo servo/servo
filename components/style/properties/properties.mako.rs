@@ -177,6 +177,7 @@ pub mod animated_properties {
 }
 
 /// A set of longhand properties
+#[derive(Clone)]
 pub struct LonghandIdSet {
     storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
 }
@@ -200,6 +201,13 @@ impl LonghandIdSet {
     pub fn insert(&mut self, id: LonghandId) {
         let bit = id as usize;
         self.storage[bit / 32] |= 1 << (bit % 32);
+    }
+
+    /// Remove the given property from the set
+    #[inline]
+    pub fn remove(&mut self, id: LonghandId) {
+        let bit = id as usize;
+        self.storage[bit / 32] &= !(1 << (bit % 32));
     }
 
     /// Set the corresponding bit of TransitionProperty.

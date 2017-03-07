@@ -738,7 +738,8 @@ pub extern "C" fn Servo_DeclarationBlock_Clone(declarations: RawServoDeclaration
 pub extern "C" fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
                                                 b: RawServoDeclarationBlockBorrowed)
                                                 -> bool {
-    *RwLock::<PropertyDeclarationBlock>::as_arc(&a).read() == *RwLock::<PropertyDeclarationBlock>::as_arc(&b).read()
+    *RwLock::<PropertyDeclarationBlock>::as_arc(&a).read().declarations() ==
+    *RwLock::<PropertyDeclarationBlock>::as_arc(&b).read().declarations()
 }
 
 #[no_mangle]
