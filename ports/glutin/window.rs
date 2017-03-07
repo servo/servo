@@ -358,31 +358,8 @@ impl Window {
                     _ => {}
                 }
 
-                let ch = match element_state {
-                    ElementState::Pressed => {
-                        // Retrieve any previosly stored ReceivedCharacter value.
-                        // Store the association between the scan code and the actual
-                        // character value, if there is one.
-                        let ch = self.pending_key_event_char.get();
-                        self.pending_key_event_char.set(None);
-                        if let Some(ch) = ch {
-                            self.pressed_key_map.borrow_mut().push((scan_code, ch));
-                        }
-                        ch
-                    }
-
-                    ElementState::Released => {
-                        // Retrieve the associated character value for this release key,
-                        // if one was previously stored.
-                        let idx = self.pressed_key_map
-                                      .borrow()
-                                      .iter()
-                                      .position(|&(code, _)| code == scan_code);
-                        idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
-                    }
-                };
-                let ch = ch.and_then(|ch| filter_nonprintable(ch, virtual_key_code));
-
+                let ch = self.get_keyboard_input_char(element_state, scan_code)
+                    .and_then(|ch| filter_nonprintable(ch, virtual_key_code));
                 if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
                     let state = match element_state {
                         ElementState::Pressed => KeyState::Pressed,
@@ -464,6 +441,32 @@ impl Window {
         let mut modifiers = self.key_modifiers.get();
         modifiers.toggle(modifier);
         self.key_modifiers.set(modifiers);
+    }
+
+    fn get_keyboard_input_char(&self, element_state: ElementState, scan_code: ScanCode) -> Option<char> {
+        match element_state {
+            ElementState::Pressed => {
+                // Retrieve any previosly stored ReceivedCharacter value.
+                // Store the association between the scan code and the actual
+                // character value, if there is one.
+                let ch = self.pending_key_event_char.get();
+                self.pending_key_event_char.set(None);
+                if let Some(ch) = ch {
+                    self.pressed_key_map.borrow_mut().push((scan_code, ch));
+                }
+                ch
+            }
+
+            ElementState::Released => {
+                // Retrieve the associated character value for this release key,
+                // if one was previously stored.
+                let idx = self.pressed_key_map
+                              .borrow()
+                              .iter()
+                              .position(|&(code, _)| code == scan_code);
+                idx.map(|idx| self.pressed_key_map.borrow_mut().swap_remove(idx).1)
+            }
+        }
     }
 
     /// Helper function to send a scroll event.
