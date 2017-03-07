@@ -821,6 +821,8 @@ pub mod root {
     pub const NS_STYLE_COLUMN_COUNT_UNLIMITED: ::std::os::raw::c_int = -1;
     pub const NS_STYLE_COLUMN_FILL_AUTO: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_COLUMN_FILL_BALANCE: ::std::os::raw::c_uint = 1;
+    pub const NS_STYLE_COLUMN_SPAN_NONE: ::std::os::raw::c_uint = 0;
+    pub const NS_STYLE_COLUMN_SPAN_ALL: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_IME_MODE_AUTO: ::std::os::raw::c_uint = 0;
     pub const NS_STYLE_IME_MODE_NORMAL: ::std::os::raw::c_uint = 1;
     pub const NS_STYLE_IME_MODE_ACTIVE: ::std::os::raw::c_uint = 2;
@@ -1142,6 +1144,7 @@ pub mod root {
         pub const SERVO_PREF_ENABLED_column_rule_color: bool = false;
         pub const SERVO_PREF_ENABLED_column_rule_style: bool = false;
         pub const SERVO_PREF_ENABLED_column_rule_width: bool = false;
+        pub const SERVO_PREF_ENABLED_column_span: bool = true;
         pub const SERVO_PREF_ENABLED_column_width: bool = false;
         pub const SERVO_PREF_ENABLED_columns: bool = false;
         pub const SERVO_PREF_ENABLED_contain: bool = true;
@@ -1267,8 +1270,8 @@ pub mod root {
         pub const SERVO_PREF_ENABLED_min_inline_size: bool = false;
         pub const SERVO_PREF_ENABLED_min_width: bool = false;
         pub const SERVO_PREF_ENABLED_mix_blend_mode: bool = true;
-        pub const SERVO_PREF_ENABLED_object_fit: bool = true;
-        pub const SERVO_PREF_ENABLED_object_position: bool = true;
+        pub const SERVO_PREF_ENABLED_object_fit: bool = false;
+        pub const SERVO_PREF_ENABLED_object_position: bool = false;
         pub const SERVO_PREF_ENABLED_offset_block_end: bool = false;
         pub const SERVO_PREF_ENABLED_offset_block_start: bool = false;
         pub const SERVO_PREF_ENABLED_offset_inline_end: bool = false;
@@ -1363,6 +1366,7 @@ pub mod root {
         pub const SERVO_PREF_ENABLED_text_emphasis_style: bool = false;
         pub const SERVO_PREF_ENABLED__webkit_text_fill_color: bool = true;
         pub const SERVO_PREF_ENABLED_text_indent: bool = false;
+        pub const SERVO_PREF_ENABLED_text_justify: bool = true;
         pub const SERVO_PREF_ENABLED_text_orientation: bool = false;
         pub const SERVO_PREF_ENABLED_text_overflow: bool = false;
         pub const SERVO_PREF_ENABLED_text_rendering: bool = false;
@@ -2583,7 +2587,7 @@ pub mod root {
             pub struct CallbackObject_CallSetup {
                 pub mCx: *mut root::JSContext,
                 pub mCompartment: *mut root::JSCompartment,
-                pub mAutoEntryScript: [u64; 21usize],
+                pub mAutoEntryScript: [u64; 23usize],
                 pub mAutoIncumbentScript: [u64; 6usize],
                 pub mRootedCallable: [u64; 4usize],
                 pub mAsyncStack: [u64; 4usize],
@@ -2596,7 +2600,7 @@ pub mod root {
             #[test]
             fn bindgen_test_layout_CallbackObject_CallSetup() {
                 assert_eq!(::std::mem::size_of::<CallbackObject_CallSetup>() ,
-                           400usize , concat ! (
+                           416usize , concat ! (
                            "Size of: " , stringify ! (
                            CallbackObject_CallSetup ) ));
                 assert_eq! (::std::mem::align_of::<CallbackObject_CallSetup>()
@@ -2627,20 +2631,20 @@ pub mod root {
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const CallbackObject_CallSetup ) )
                             . mAutoIncumbentScript as * const _ as usize } ,
-                            184usize , concat ! (
+                            200usize , concat ! (
                             "Alignment of field: " , stringify ! (
                             CallbackObject_CallSetup ) , "::" , stringify ! (
                             mAutoIncumbentScript ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const CallbackObject_CallSetup ) )
                             . mRootedCallable as * const _ as usize } ,
-                            232usize , concat ! (
+                            248usize , concat ! (
                             "Alignment of field: " , stringify ! (
                             CallbackObject_CallSetup ) , "::" , stringify ! (
                             mRootedCallable ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const CallbackObject_CallSetup ) )
-                            . mAsyncStack as * const _ as usize } , 264usize ,
+                            . mAsyncStack as * const _ as usize } , 280usize ,
                             concat ! (
                             "Alignment of field: " , stringify ! (
                             CallbackObject_CallSetup ) , "::" , stringify ! (
@@ -2648,20 +2652,20 @@ pub mod root {
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const CallbackObject_CallSetup ) )
                             . mAsyncStackSetter as * const _ as usize } ,
-                            296usize , concat ! (
+                            312usize , concat ! (
                             "Alignment of field: " , stringify ! (
                             CallbackObject_CallSetup ) , "::" , stringify ! (
                             mAsyncStackSetter ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const CallbackObject_CallSetup ) )
-                            . mAc as * const _ as usize } , 352usize , concat
+                            . mAc as * const _ as usize } , 368usize , concat
                             ! (
                             "Alignment of field: " , stringify ! (
                             CallbackObject_CallSetup ) , "::" , stringify ! (
                             mAc ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const CallbackObject_CallSetup ) )
-                            . mErrorResult as * const _ as usize } , 384usize
+                            . mErrorResult as * const _ as usize } , 400usize
                             , concat ! (
                             "Alignment of field: " , stringify ! (
                             CallbackObject_CallSetup ) , "::" , stringify ! (
@@ -2669,13 +2673,13 @@ pub mod root {
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const CallbackObject_CallSetup ) )
                             . mExceptionHandling as * const _ as usize } ,
-                            392usize , concat ! (
+                            408usize , concat ! (
                             "Alignment of field: " , stringify ! (
                             CallbackObject_CallSetup ) , "::" , stringify ! (
                             mExceptionHandling ) ));
                 assert_eq! (unsafe {
                             & ( * ( 0 as * const CallbackObject_CallSetup ) )
-                            . mIsMainThread as * const _ as usize } , 396usize
+                            . mIsMainThread as * const _ as usize } , 412usize
                             , concat ! (
                             "Alignment of field: " , stringify ! (
                             CallbackObject_CallSetup ) , "::" , stringify ! (
@@ -5279,6 +5283,41 @@ pub mod root {
             OwnedByDocument = 0,
             NotOwnedByDocument = 1,
         }
+        #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct StyleSheet_ChildSheetListBuilder {
+            pub sheetSlot: *mut root::RefPtr<root::mozilla::StyleSheet>,
+            pub parent: *mut root::mozilla::StyleSheet,
+        }
+        #[test]
+        fn bindgen_test_layout_StyleSheet_ChildSheetListBuilder() {
+            assert_eq!(::std::mem::size_of::<StyleSheet_ChildSheetListBuilder>()
+                       , 16usize , concat ! (
+                       "Size of: " , stringify ! (
+                       StyleSheet_ChildSheetListBuilder ) ));
+            assert_eq! (::std::mem::align_of::<StyleSheet_ChildSheetListBuilder>()
+                        , 8usize , concat ! (
+                        "Alignment of " , stringify ! (
+                        StyleSheet_ChildSheetListBuilder ) ));
+            assert_eq! (unsafe {
+                        & (
+                        * ( 0 as * const StyleSheet_ChildSheetListBuilder ) )
+                        . sheetSlot as * const _ as usize } , 0usize , concat
+                        ! (
+                        "Alignment of field: " , stringify ! (
+                        StyleSheet_ChildSheetListBuilder ) , "::" , stringify
+                        ! ( sheetSlot ) ));
+            assert_eq! (unsafe {
+                        & (
+                        * ( 0 as * const StyleSheet_ChildSheetListBuilder ) )
+                        . parent as * const _ as usize } , 8usize , concat ! (
+                        "Alignment of field: " , stringify ! (
+                        StyleSheet_ChildSheetListBuilder ) , "::" , stringify
+                        ! ( parent ) ));
+        }
+        impl Clone for StyleSheet_ChildSheetListBuilder {
+            fn clone(&self) -> Self { *self }
+        }
         extern "C" {
             #[link_name = "_ZN7mozilla10StyleSheet21_cycleCollectorGlobalE"]
             pub static mut StyleSheet__cycleCollectorGlobal:
@@ -5344,62 +5383,67 @@ pub mod root {
             eUseCounter_OfflineResourceList_oncached_setter = 27,
             eUseCounter_OfflineResourceList_onobsolete_getter = 28,
             eUseCounter_OfflineResourceList_onobsolete_setter = 29,
-            eUseCounter_DataTransfer_addElement = 30,
-            eUseCounter_DataTransfer_mozItemCount_getter = 31,
-            eUseCounter_DataTransfer_mozItemCount_setter = 32,
-            eUseCounter_DataTransfer_mozCursor_getter = 33,
-            eUseCounter_DataTransfer_mozCursor_setter = 34,
-            eUseCounter_DataTransfer_mozTypesAt = 35,
-            eUseCounter_DataTransfer_mozClearDataAt = 36,
-            eUseCounter_DataTransfer_mozSetDataAt = 37,
-            eUseCounter_DataTransfer_mozGetDataAt = 38,
-            eUseCounter_DataTransfer_mozUserCancelled_getter = 39,
-            eUseCounter_DataTransfer_mozUserCancelled_setter = 40,
-            eUseCounter_DataTransfer_mozSourceNode_getter = 41,
-            eUseCounter_DataTransfer_mozSourceNode_setter = 42,
-            eUseCounter_GetAttributeNode = 43,
-            eUseCounter_SetAttributeNode = 44,
-            eUseCounter_GetAttributeNodeNS = 45,
-            eUseCounter_SetAttributeNodeNS = 46,
-            eUseCounter_RemoveAttributeNode = 47,
-            eUseCounter_CreateAttribute = 48,
-            eUseCounter_CreateAttributeNS = 49,
-            eUseCounter_NodeValue = 50,
-            eUseCounter_TextContent = 51,
-            eUseCounter_EnablePrivilege = 52,
-            eUseCounter_DOMExceptionCode = 53,
-            eUseCounter_NoExposedProps = 54,
-            eUseCounter_MutationEvent = 55,
-            eUseCounter_Components = 56,
-            eUseCounter_PrefixedVisibilityAPI = 57,
-            eUseCounter_NodeIteratorDetach = 58,
-            eUseCounter_LenientThis = 59,
-            eUseCounter_GetPreventDefault = 60,
-            eUseCounter_GetSetUserData = 61,
-            eUseCounter_MozGetAsFile = 62,
-            eUseCounter_UseOfCaptureEvents = 63,
-            eUseCounter_UseOfReleaseEvents = 64,
-            eUseCounter_UseOfDOM3LoadMethod = 65,
-            eUseCounter_ChromeUseOfDOM3LoadMethod = 66,
-            eUseCounter_ShowModalDialog = 67,
-            eUseCounter_Window_Content = 68,
-            eUseCounter_SyncXMLHttpRequest = 69,
-            eUseCounter_DataContainerEvent = 70,
-            eUseCounter_Window_Controllers = 71,
-            eUseCounter_ImportXULIntoContent = 72,
-            eUseCounter_PannerNodeDoppler = 73,
-            eUseCounter_NavigatorGetUserMedia = 74,
-            eUseCounter_WebrtcDeprecatedPrefix = 75,
-            eUseCounter_RTCPeerConnectionGetStreams = 76,
-            eUseCounter_AppCache = 77,
-            eUseCounter_PrefixedImageSmoothingEnabled = 78,
-            eUseCounter_PrefixedFullscreenAPI = 79,
-            eUseCounter_LenientSetter = 80,
-            eUseCounter_FileLastModifiedDate = 81,
-            eUseCounter_ImageBitmapRenderingContext_TransferImageBitmap = 82,
-            eUseCounter_URLCreateObjectURL_MediaStream = 83,
-            eUseCounter_XMLBaseAttribute = 84,
-            eUseCounter_Count = 85,
+            eUseCounter_IDBDatabase_createMutableFile = 30,
+            eUseCounter_IDBDatabase_mozCreateFileHandle = 31,
+            eUseCounter_IDBMutableFile_open = 32,
+            eUseCounter_IDBMutableFile_getFile = 33,
+            eUseCounter_DataTransfer_addElement = 34,
+            eUseCounter_DataTransfer_mozItemCount_getter = 35,
+            eUseCounter_DataTransfer_mozItemCount_setter = 36,
+            eUseCounter_DataTransfer_mozCursor_getter = 37,
+            eUseCounter_DataTransfer_mozCursor_setter = 38,
+            eUseCounter_DataTransfer_mozTypesAt = 39,
+            eUseCounter_DataTransfer_mozClearDataAt = 40,
+            eUseCounter_DataTransfer_mozSetDataAt = 41,
+            eUseCounter_DataTransfer_mozGetDataAt = 42,
+            eUseCounter_DataTransfer_mozUserCancelled_getter = 43,
+            eUseCounter_DataTransfer_mozUserCancelled_setter = 44,
+            eUseCounter_DataTransfer_mozSourceNode_getter = 45,
+            eUseCounter_DataTransfer_mozSourceNode_setter = 46,
+            eUseCounter_GetAttributeNode = 47,
+            eUseCounter_SetAttributeNode = 48,
+            eUseCounter_GetAttributeNodeNS = 49,
+            eUseCounter_SetAttributeNodeNS = 50,
+            eUseCounter_RemoveAttributeNode = 51,
+            eUseCounter_CreateAttribute = 52,
+            eUseCounter_CreateAttributeNS = 53,
+            eUseCounter_NodeValue = 54,
+            eUseCounter_TextContent = 55,
+            eUseCounter_EnablePrivilege = 56,
+            eUseCounter_DOMExceptionCode = 57,
+            eUseCounter_NoExposedProps = 58,
+            eUseCounter_MutationEvent = 59,
+            eUseCounter_Components = 60,
+            eUseCounter_PrefixedVisibilityAPI = 61,
+            eUseCounter_NodeIteratorDetach = 62,
+            eUseCounter_LenientThis = 63,
+            eUseCounter_GetPreventDefault = 64,
+            eUseCounter_GetSetUserData = 65,
+            eUseCounter_MozGetAsFile = 66,
+            eUseCounter_UseOfCaptureEvents = 67,
+            eUseCounter_UseOfReleaseEvents = 68,
+            eUseCounter_UseOfDOM3LoadMethod = 69,
+            eUseCounter_ChromeUseOfDOM3LoadMethod = 70,
+            eUseCounter_ShowModalDialog = 71,
+            eUseCounter_Window_Content = 72,
+            eUseCounter_SyncXMLHttpRequest = 73,
+            eUseCounter_DataContainerEvent = 74,
+            eUseCounter_Window_Controllers = 75,
+            eUseCounter_ImportXULIntoContent = 76,
+            eUseCounter_PannerNodeDoppler = 77,
+            eUseCounter_NavigatorGetUserMedia = 78,
+            eUseCounter_WebrtcDeprecatedPrefix = 79,
+            eUseCounter_RTCPeerConnectionGetStreams = 80,
+            eUseCounter_AppCache = 81,
+            eUseCounter_PrefixedImageSmoothingEnabled = 82,
+            eUseCounter_PrefixedFullscreenAPI = 83,
+            eUseCounter_LenientSetter = 84,
+            eUseCounter_FileLastModifiedDate = 85,
+            eUseCounter_ImageBitmapRenderingContext_TransferImageBitmap = 86,
+            eUseCounter_URLCreateObjectURL_MediaStream = 87,
+            eUseCounter_XMLBaseAttribute = 88,
+            eUseCounter_XMLBaseAttributeWithStyledElement = 89,
+            eUseCounter_Count = 90,
         }
         #[repr(u32)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -5736,6 +5780,14 @@ pub mod root {
             URL = 1,
             Shape = 2,
             Box = 3,
+        }
+        #[repr(u8)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum StyleTextJustify {
+            None = 0,
+            Auto = 1,
+            InterWord = 2,
+            InterCharacter = 3,
         }
         #[repr(u8)]
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -8094,6 +8146,10 @@ pub mod root {
         nsresult::NS_ERROR_ALREADY_CONNECTED;
     pub const nsresult_NS_NET_STATUS_CONNECTED_TO: root::nsresult =
         nsresult::NS_BINDING_RETARGETED;
+    pub const nsresult_NS_NET_STATUS_TLS_HANDSHAKE_STARTING: root::nsresult =
+        nsresult::NS_ERROR_NOT_CONNECTED;
+    pub const nsresult_NS_NET_STATUS_TLS_HANDSHAKE_ENDED: root::nsresult =
+        nsresult::NS_ERROR_CONNECTION_REFUSED;
     pub const nsresult_NS_NET_STATUS_WAITING_FOR: root::nsresult =
         nsresult::NS_ERROR_MALFORMED_URI;
     pub const nsresult_NS_STATE_PROPERTY_EXISTS: root::nsresult =
@@ -11391,6 +11447,7 @@ pub mod root {
         pub mExtraPropertyTables: root::nsTArray<root::nsAutoPtr<root::nsPropertyTable>>,
         pub mChildrenCollection: root::nsCOMPtr<root::nsIHTMLCollection>,
         pub mFontFaceSet: root::RefPtr<root::mozilla::dom::FontFaceSet>,
+        pub mLastFocusTime: root::mozilla::TimeStamp,
         pub _bitfield_1: u8,
         pub _bitfield_2: u8,
         pub _bitfield_3: u8,
@@ -11697,7 +11754,8 @@ pub mod root {
         eImageBitmapRenderingContext_TransferImageBitmap = 39,
         eURLCreateObjectURL_MediaStream = 40,
         eXMLBaseAttribute = 41,
-        eDeprecatedOperationCount = 42,
+        eXMLBaseAttributeWithStyledElement = 42,
+        eDeprecatedOperationCount = 43,
     }
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -11732,7 +11790,7 @@ pub mod root {
     pub struct nsIDocument_FrameRequest([u8; 0]);
     #[test]
     fn bindgen_test_layout_nsIDocument() {
-        assert_eq!(::std::mem::size_of::<nsIDocument>() , 1024usize , concat !
+        assert_eq!(::std::mem::size_of::<nsIDocument>() , 1032usize , concat !
                    ( "Size of: " , stringify ! ( nsIDocument ) ));
         assert_eq! (::std::mem::align_of::<nsIDocument>() , 8usize , concat !
                     ( "Alignment of " , stringify ! ( nsIDocument ) ));
@@ -12290,6 +12348,9 @@ pub mod root {
         pub mFirstScrollTime: root::mozilla::TimeStamp,
         pub mInteractionTimeEnabled: bool,
         pub mLastStyleUpdateForAllAnimations: root::mozilla::TimeStamp,
+        pub mTelemetryScrollLastY: root::nscoord,
+        pub mTelemetryScrollMaxY: root::nscoord,
+        pub mTelemetryScrollTotalY: root::nscoord,
         pub _bitfield_1: [u8; 4usize],
         pub _bitfield_2: [u8; 2usize],
         pub mRestyleLoggingEnabled: bool,
@@ -12419,7 +12480,7 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_nsPresContext() {
-        assert_eq!(::std::mem::size_of::<nsPresContext>() , 1360usize , concat
+        assert_eq!(::std::mem::size_of::<nsPresContext>() , 1368usize , concat
                    ! ( "Size of: " , stringify ! ( nsPresContext ) ));
         assert_eq! (::std::mem::align_of::<nsPresContext>() , 8usize , concat
                     ! ( "Alignment of " , stringify ! ( nsPresContext ) ));
@@ -12770,18 +12831,36 @@ pub mod root {
                     ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) .
-                    mRestyleLoggingEnabled as * const _ as usize } , 1342usize
+                    mTelemetryScrollLastY as * const _ as usize } , 1336usize
+                    , concat ! (
+                    "Alignment of field: " , stringify ! ( nsPresContext ) ,
+                    "::" , stringify ! ( mTelemetryScrollLastY ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsPresContext ) ) .
+                    mTelemetryScrollMaxY as * const _ as usize } , 1340usize ,
+                    concat ! (
+                    "Alignment of field: " , stringify ! ( nsPresContext ) ,
+                    "::" , stringify ! ( mTelemetryScrollMaxY ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsPresContext ) ) .
+                    mTelemetryScrollTotalY as * const _ as usize } , 1344usize
+                    , concat ! (
+                    "Alignment of field: " , stringify ! ( nsPresContext ) ,
+                    "::" , stringify ! ( mTelemetryScrollTotalY ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsPresContext ) ) .
+                    mRestyleLoggingEnabled as * const _ as usize } , 1354usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mRestyleLoggingEnabled ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mInitialized as *
-                    const _ as usize } , 1343usize , concat ! (
+                    const _ as usize } , 1355usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mInitialized ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsPresContext ) ) . mLayoutPhaseCount
-                    as * const _ as usize } , 1344usize , concat ! (
+                    as * const _ as usize } , 1356usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsPresContext ) ,
                     "::" , stringify ! ( mLayoutPhaseCount ) ));
     }
@@ -13478,8 +13557,6 @@ pub mod root {
         nsIRequest__bindgen_ty_1::LOAD_NORMAL;
     pub const nsIRequest_LOAD_BACKGROUND: root::nsIRequest__bindgen_ty_1 =
         nsIRequest__bindgen_ty_1::LOAD_BACKGROUND;
-    pub const nsIRequest_INHIBIT_PIPELINE: root::nsIRequest__bindgen_ty_1 =
-        nsIRequest__bindgen_ty_1::INHIBIT_PIPELINE;
     pub const nsIRequest_INHIBIT_CACHING: root::nsIRequest__bindgen_ty_1 =
         nsIRequest__bindgen_ty_1::INHIBIT_CACHING;
     pub const nsIRequest_INHIBIT_PERSISTENT_CACHING:
@@ -13507,7 +13584,6 @@ pub mod root {
         LOAD_REQUESTMASK = 65535,
         LOAD_NORMAL = 0,
         LOAD_BACKGROUND = 1,
-        INHIBIT_PIPELINE = 64,
         INHIBIT_CACHING = 128,
         INHIBIT_PERSISTENT_CACHING = 256,
         LOAD_BYPASS_CACHE = 512,
@@ -13917,92 +13993,6 @@ pub mod root {
     impl Clone for nsIStreamListener {
         fn clone(&self) -> Self { *self }
     }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCOMArray_base {
-        pub mArray: root::nsTArray<*mut root::nsISupports>,
-    }
-    pub type nsCOMArray_base_nsBaseArrayEnumFunc =
-        ::std::option::Option<unsafe extern "C" fn(aElement:
-                                                       *mut ::std::os::raw::c_void,
-                                                   aData:
-                                                       *mut ::std::os::raw::c_void)
-                                  -> bool>;
-    pub type nsCOMArray_base_nsBaseArrayComparatorFunc =
-        ::std::option::Option<unsafe extern "C" fn(aElement1:
-                                                       *mut root::nsISupports,
-                                                   aElement2:
-                                                       *mut root::nsISupports,
-                                                   aData:
-                                                       *mut ::std::os::raw::c_void)
-                                  -> ::std::os::raw::c_int>;
-    #[repr(C)]
-    #[derive(Debug, Copy)]
-    pub struct nsCOMArray_base_nsCOMArrayComparatorContext {
-        pub mComparatorFunc: root::nsCOMArray_base_nsBaseArrayComparatorFunc,
-        pub mData: *mut ::std::os::raw::c_void,
-    }
-    #[test]
-    fn bindgen_test_layout_nsCOMArray_base_nsCOMArrayComparatorContext() {
-        assert_eq!(::std::mem::size_of::<nsCOMArray_base_nsCOMArrayComparatorContext>()
-                   , 16usize , concat ! (
-                   "Size of: " , stringify ! (
-                   nsCOMArray_base_nsCOMArrayComparatorContext ) ));
-        assert_eq! (::std::mem::align_of::<nsCOMArray_base_nsCOMArrayComparatorContext>()
-                    , 8usize , concat ! (
-                    "Alignment of " , stringify ! (
-                    nsCOMArray_base_nsCOMArrayComparatorContext ) ));
-        assert_eq! (unsafe {
-                    & (
-                    * (
-                    0 as * const nsCOMArray_base_nsCOMArrayComparatorContext )
-                    ) . mComparatorFunc as * const _ as usize } , 0usize ,
-                    concat ! (
-                    "Alignment of field: " , stringify ! (
-                    nsCOMArray_base_nsCOMArrayComparatorContext ) , "::" ,
-                    stringify ! ( mComparatorFunc ) ));
-        assert_eq! (unsafe {
-                    & (
-                    * (
-                    0 as * const nsCOMArray_base_nsCOMArrayComparatorContext )
-                    ) . mData as * const _ as usize } , 8usize , concat ! (
-                    "Alignment of field: " , stringify ! (
-                    nsCOMArray_base_nsCOMArrayComparatorContext ) , "::" ,
-                    stringify ! ( mData ) ));
-    }
-    impl Clone for nsCOMArray_base_nsCOMArrayComparatorContext {
-        fn clone(&self) -> Self { *self }
-    }
-    #[test]
-    fn bindgen_test_layout_nsCOMArray_base() {
-        assert_eq!(::std::mem::size_of::<nsCOMArray_base>() , 8usize , concat
-                   ! ( "Size of: " , stringify ! ( nsCOMArray_base ) ));
-        assert_eq! (::std::mem::align_of::<nsCOMArray_base>() , 8usize ,
-                    concat ! (
-                    "Alignment of " , stringify ! ( nsCOMArray_base ) ));
-        assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsCOMArray_base ) ) . mArray as *
-                    const _ as usize } , 0usize , concat ! (
-                    "Alignment of field: " , stringify ! ( nsCOMArray_base ) ,
-                    "::" , stringify ! ( mArray ) ));
-    }
-    #[repr(C)]
-    #[derive(Debug)]
-    pub struct nsCOMArray<T> {
-        pub _base: root::nsCOMArray_base,
-        pub _phantom_0: ::std::marker::PhantomData<T>,
-    }
-    pub type nsCOMArray_nsCOMArrayEnumFunc<T> =
-        ::std::option::Option<unsafe extern "C" fn(aElement: *mut T,
-                                                   aData:
-                                                       *mut ::std::os::raw::c_void)
-                                  -> bool>;
-    pub type nsCOMArray_nsCOMArrayComparatorFunc<T> =
-        ::std::option::Option<unsafe extern "C" fn(aElement1: *mut T,
-                                                   aElement2: *mut T,
-                                                   aData:
-                                                       *mut ::std::os::raw::c_void)
-                                  -> ::std::os::raw::c_int>;
     #[repr(u32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub enum nsCompatibility {
@@ -14765,7 +14755,8 @@ pub mod root {
         pub mAllocatedPointers: [u64; 6usize],
         pub mPaintCount: u64,
         pub mScrollPositionClampingScrollPortSize: root::nsSize,
-        pub mWeakFrames: *mut root::nsWeakFrame,
+        pub mAutoWeakFrames: *mut root::AutoWeakFrame,
+        pub mWeakFrames: [u64; 6usize],
         pub mCanvasBackgroundColor: root::nscolor,
         pub mResolution: [u32; 2usize],
         pub mSelectionFlags: i16,
@@ -15101,7 +15092,7 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_nsIPresShell() {
-        assert_eq!(::std::mem::size_of::<nsIPresShell>() , 392usize , concat !
+        assert_eq!(::std::mem::size_of::<nsIPresShell>() , 440usize , concat !
                    ( "Size of: " , stringify ! ( nsIPresShell ) ));
         assert_eq! (::std::mem::align_of::<nsIPresShell>() , 8usize , concat !
                     ( "Alignment of " , stringify ! ( nsIPresShell ) ));
@@ -15186,99 +15177,104 @@ pub mod root {
                     "::" , stringify ! ( mScrollPositionClampingScrollPortSize
                     ) ));
         assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsIPresShell ) ) . mAutoWeakFrames as
+                    * const _ as usize } , 312usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsIPresShell ) ,
+                    "::" , stringify ! ( mAutoWeakFrames ) ));
+        assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) . mWeakFrames as *
-                    const _ as usize } , 312usize , concat ! (
+                    const _ as usize } , 320usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mWeakFrames ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) .
-                    mCanvasBackgroundColor as * const _ as usize } , 320usize
+                    mCanvasBackgroundColor as * const _ as usize } , 368usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mCanvasBackgroundColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) . mResolution as *
-                    const _ as usize } , 324usize , concat ! (
+                    const _ as usize } , 372usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mResolution ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) . mSelectionFlags as
-                    * const _ as usize } , 332usize , concat ! (
+                    * const _ as usize } , 380usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mSelectionFlags ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) . mRenderFlags as *
-                    const _ as usize } , 334usize , concat ! (
+                    const _ as usize } , 382usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mRenderFlags ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) . mPresShellId as *
-                    const _ as usize } , 340usize , concat ! (
+                    const _ as usize } , 388usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mPresShellId ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) .
-                    mChangedScopeStyleRoots as * const _ as usize } , 344usize
+                    mChangedScopeStyleRoots as * const _ as usize } , 392usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mChangedScopeStyleRoots ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) .
                     mFontSizeInflationEmPerLine as * const _ as usize } ,
-                    368usize , concat ! (
+                    416usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mFontSizeInflationEmPerLine ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) .
                     mFontSizeInflationMinTwips as * const _ as usize } ,
-                    372usize , concat ! (
+                    420usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mFontSizeInflationMinTwips ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) .
                     mFontSizeInflationLineThreshold as * const _ as usize } ,
-                    376usize , concat ! (
+                    424usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mFontSizeInflationLineThreshold ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) .
                     mFontSizeInflationForceEnabled as * const _ as usize } ,
-                    380usize , concat ! (
+                    428usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mFontSizeInflationForceEnabled ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) .
                     mFontSizeInflationDisabledInMasterProcess as * const _ as
-                    usize } , 381usize , concat ! (
+                    usize } , 429usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! (
                     mFontSizeInflationDisabledInMasterProcess ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) .
                     mFontSizeInflationEnabled as * const _ as usize } ,
-                    382usize , concat ! (
+                    430usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mFontSizeInflationEnabled ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) . mPaintingIsFrozen
-                    as * const _ as usize } , 383usize , concat ! (
+                    as * const _ as usize } , 431usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mPaintingIsFrozen ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) .
                     mFontSizeInflationEnabledIsDirty as * const _ as usize } ,
-                    384usize , concat ! (
+                    432usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mFontSizeInflationEnabledIsDirty )
                     ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) . mIsNeverPainting
-                    as * const _ as usize } , 385usize , concat ! (
+                    as * const _ as usize } , 433usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mIsNeverPainting ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsIPresShell ) ) . mInFlush as *
-                    const _ as usize } , 386usize , concat ! (
+                    const _ as usize } , 434usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsIPresShell ) ,
                     "::" , stringify ! ( mInFlush ) ));
     }
@@ -15964,394 +15960,396 @@ pub mod root {
         eCSSProperty_column_rule_color = 87,
         eCSSProperty_column_rule_style = 88,
         eCSSProperty_column_rule_width = 89,
-        eCSSProperty_column_width = 90,
-        eCSSProperty_contain = 91,
-        eCSSProperty_content = 92,
-        eCSSProperty__moz_control_character_visibility = 93,
-        eCSSProperty_counter_increment = 94,
-        eCSSProperty_counter_reset = 95,
-        eCSSProperty_cursor = 96,
-        eCSSProperty_direction = 97,
-        eCSSProperty_display = 98,
-        eCSSProperty_dominant_baseline = 99,
-        eCSSProperty_empty_cells = 100,
-        eCSSProperty_fill = 101,
-        eCSSProperty_fill_opacity = 102,
-        eCSSProperty_fill_rule = 103,
-        eCSSProperty_filter = 104,
-        eCSSProperty_flex_basis = 105,
-        eCSSProperty_flex_direction = 106,
-        eCSSProperty_flex_grow = 107,
-        eCSSProperty_flex_shrink = 108,
-        eCSSProperty_flex_wrap = 109,
-        eCSSProperty_float_ = 110,
-        eCSSProperty__moz_float_edge = 111,
-        eCSSProperty_flood_color = 112,
-        eCSSProperty_flood_opacity = 113,
-        eCSSProperty_font_family = 114,
-        eCSSProperty_font_feature_settings = 115,
-        eCSSProperty_font_kerning = 116,
-        eCSSProperty_font_language_override = 117,
-        eCSSProperty_font_size = 118,
-        eCSSProperty_font_size_adjust = 119,
-        eCSSProperty_font_stretch = 120,
-        eCSSProperty_font_style = 121,
-        eCSSProperty_font_synthesis = 122,
-        eCSSProperty_font_variant_alternates = 123,
-        eCSSProperty_font_variant_caps = 124,
-        eCSSProperty_font_variant_east_asian = 125,
-        eCSSProperty_font_variant_ligatures = 126,
-        eCSSProperty_font_variant_numeric = 127,
-        eCSSProperty_font_variant_position = 128,
-        eCSSProperty_font_variation_settings = 129,
-        eCSSProperty_font_weight = 130,
-        eCSSProperty__moz_force_broken_image_icon = 131,
-        eCSSProperty_grid_auto_columns = 132,
-        eCSSProperty_grid_auto_flow = 133,
-        eCSSProperty_grid_auto_rows = 134,
-        eCSSProperty_grid_column_end = 135,
-        eCSSProperty_grid_column_gap = 136,
-        eCSSProperty_grid_column_start = 137,
-        eCSSProperty_grid_row_end = 138,
-        eCSSProperty_grid_row_gap = 139,
-        eCSSProperty_grid_row_start = 140,
-        eCSSProperty_grid_template_areas = 141,
-        eCSSProperty_grid_template_columns = 142,
-        eCSSProperty_grid_template_rows = 143,
-        eCSSProperty_height = 144,
-        eCSSProperty_hyphens = 145,
-        eCSSProperty_initial_letter = 146,
-        eCSSProperty_image_orientation = 147,
-        eCSSProperty__moz_image_region = 148,
-        eCSSProperty_image_rendering = 149,
-        eCSSProperty_ime_mode = 150,
-        eCSSProperty_inline_size = 151,
-        eCSSProperty_isolation = 152,
-        eCSSProperty_justify_content = 153,
-        eCSSProperty_justify_items = 154,
-        eCSSProperty_justify_self = 155,
-        eCSSProperty__x_lang = 156,
-        eCSSProperty_left = 157,
-        eCSSProperty_letter_spacing = 158,
-        eCSSProperty_lighting_color = 159,
-        eCSSProperty_line_height = 160,
-        eCSSProperty_list_style_image = 161,
-        eCSSProperty_list_style_position = 162,
-        eCSSProperty_list_style_type = 163,
-        eCSSProperty_margin_block_end = 164,
-        eCSSProperty_margin_block_start = 165,
-        eCSSProperty_margin_bottom = 166,
-        eCSSProperty_margin_inline_end = 167,
-        eCSSProperty_margin_inline_start = 168,
-        eCSSProperty_margin_left = 169,
-        eCSSProperty_margin_right = 170,
-        eCSSProperty_margin_top = 171,
-        eCSSProperty_marker_end = 172,
-        eCSSProperty_marker_mid = 173,
-        eCSSProperty_marker_start = 174,
-        eCSSProperty_mask_clip = 175,
-        eCSSProperty_mask_composite = 176,
-        eCSSProperty_mask_image = 177,
-        eCSSProperty_mask_mode = 178,
-        eCSSProperty_mask_origin = 179,
-        eCSSProperty_mask_position_x = 180,
-        eCSSProperty_mask_position_y = 181,
-        eCSSProperty_mask_repeat = 182,
-        eCSSProperty_mask_size = 183,
-        eCSSProperty_mask_type = 184,
-        eCSSProperty__moz_math_display = 185,
-        eCSSProperty__moz_math_variant = 186,
-        eCSSProperty_max_block_size = 187,
-        eCSSProperty_max_height = 188,
-        eCSSProperty_max_inline_size = 189,
-        eCSSProperty_max_width = 190,
-        eCSSProperty_min_block_size = 191,
-        eCSSProperty__moz_min_font_size_ratio = 192,
-        eCSSProperty_min_height = 193,
-        eCSSProperty_min_inline_size = 194,
-        eCSSProperty_min_width = 195,
-        eCSSProperty_mix_blend_mode = 196,
-        eCSSProperty_object_fit = 197,
-        eCSSProperty_object_position = 198,
-        eCSSProperty_offset_block_end = 199,
-        eCSSProperty_offset_block_start = 200,
-        eCSSProperty_offset_inline_end = 201,
-        eCSSProperty_offset_inline_start = 202,
-        eCSSProperty_opacity = 203,
-        eCSSProperty_order = 204,
-        eCSSProperty__moz_orient = 205,
-        eCSSProperty__moz_osx_font_smoothing = 206,
-        eCSSProperty_outline_color = 207,
-        eCSSProperty_outline_offset = 208,
-        eCSSProperty__moz_outline_radius_bottomleft = 209,
-        eCSSProperty__moz_outline_radius_bottomright = 210,
-        eCSSProperty__moz_outline_radius_topleft = 211,
-        eCSSProperty__moz_outline_radius_topright = 212,
-        eCSSProperty_outline_style = 213,
-        eCSSProperty_outline_width = 214,
-        eCSSProperty_overflow_clip_box = 215,
-        eCSSProperty_overflow_x = 216,
-        eCSSProperty_overflow_y = 217,
-        eCSSProperty_padding_block_end = 218,
-        eCSSProperty_padding_block_start = 219,
-        eCSSProperty_padding_bottom = 220,
-        eCSSProperty_padding_inline_end = 221,
-        eCSSProperty_padding_inline_start = 222,
-        eCSSProperty_padding_left = 223,
-        eCSSProperty_padding_right = 224,
-        eCSSProperty_padding_top = 225,
-        eCSSProperty_page_break_after = 226,
-        eCSSProperty_page_break_before = 227,
-        eCSSProperty_page_break_inside = 228,
-        eCSSProperty_paint_order = 229,
-        eCSSProperty_perspective = 230,
-        eCSSProperty_perspective_origin = 231,
-        eCSSProperty_pointer_events = 232,
-        eCSSProperty_position = 233,
-        eCSSProperty_quotes = 234,
-        eCSSProperty_resize = 235,
-        eCSSProperty_right = 236,
-        eCSSProperty_ruby_align = 237,
-        eCSSProperty_ruby_position = 238,
-        eCSSProperty__moz_script_level = 239,
-        eCSSProperty__moz_script_min_size = 240,
-        eCSSProperty__moz_script_size_multiplier = 241,
-        eCSSProperty_scroll_behavior = 242,
-        eCSSProperty_scroll_snap_coordinate = 243,
-        eCSSProperty_scroll_snap_destination = 244,
-        eCSSProperty_scroll_snap_points_x = 245,
-        eCSSProperty_scroll_snap_points_y = 246,
-        eCSSProperty_scroll_snap_type_x = 247,
-        eCSSProperty_scroll_snap_type_y = 248,
-        eCSSProperty_shape_outside = 249,
-        eCSSProperty_shape_rendering = 250,
-        eCSSProperty__x_span = 251,
-        eCSSProperty__moz_stack_sizing = 252,
-        eCSSProperty_stop_color = 253,
-        eCSSProperty_stop_opacity = 254,
-        eCSSProperty_stroke = 255,
-        eCSSProperty_stroke_dasharray = 256,
-        eCSSProperty_stroke_dashoffset = 257,
-        eCSSProperty_stroke_linecap = 258,
-        eCSSProperty_stroke_linejoin = 259,
-        eCSSProperty_stroke_miterlimit = 260,
-        eCSSProperty_stroke_opacity = 261,
-        eCSSProperty_stroke_width = 262,
-        eCSSProperty__x_system_font = 263,
-        eCSSProperty__moz_tab_size = 264,
-        eCSSProperty_table_layout = 265,
-        eCSSProperty_text_align = 266,
-        eCSSProperty_text_align_last = 267,
-        eCSSProperty_text_anchor = 268,
-        eCSSProperty_text_combine_upright = 269,
-        eCSSProperty_text_decoration_color = 270,
-        eCSSProperty_text_decoration_line = 271,
-        eCSSProperty_text_decoration_style = 272,
-        eCSSProperty_text_emphasis_color = 273,
-        eCSSProperty_text_emphasis_position = 274,
-        eCSSProperty_text_emphasis_style = 275,
-        eCSSProperty__webkit_text_fill_color = 276,
-        eCSSProperty_text_indent = 277,
-        eCSSProperty_text_orientation = 278,
-        eCSSProperty_text_overflow = 279,
-        eCSSProperty_text_rendering = 280,
-        eCSSProperty_text_shadow = 281,
-        eCSSProperty__moz_text_size_adjust = 282,
-        eCSSProperty__webkit_text_stroke_color = 283,
-        eCSSProperty__webkit_text_stroke_width = 284,
-        eCSSProperty_text_transform = 285,
-        eCSSProperty__x_text_zoom = 286,
-        eCSSProperty_top = 287,
-        eCSSProperty__moz_top_layer = 288,
-        eCSSProperty_touch_action = 289,
-        eCSSProperty_transform = 290,
-        eCSSProperty_transform_box = 291,
-        eCSSProperty_transform_origin = 292,
-        eCSSProperty_transform_style = 293,
-        eCSSProperty_transition_delay = 294,
-        eCSSProperty_transition_duration = 295,
-        eCSSProperty_transition_property = 296,
-        eCSSProperty_transition_timing_function = 297,
-        eCSSProperty_unicode_bidi = 298,
-        eCSSProperty__moz_user_focus = 299,
-        eCSSProperty__moz_user_input = 300,
-        eCSSProperty__moz_user_modify = 301,
-        eCSSProperty__moz_user_select = 302,
-        eCSSProperty_vector_effect = 303,
-        eCSSProperty_vertical_align = 304,
-        eCSSProperty_visibility = 305,
-        eCSSProperty_white_space = 306,
-        eCSSProperty_width = 307,
-        eCSSProperty_will_change = 308,
-        eCSSProperty__moz_window_dragging = 309,
-        eCSSProperty__moz_window_shadow = 310,
-        eCSSProperty_word_break = 311,
-        eCSSProperty_word_spacing = 312,
-        eCSSProperty_overflow_wrap = 313,
-        eCSSProperty_writing_mode = 314,
-        eCSSProperty_z_index = 315,
-        eCSSProperty_COUNT_no_shorthands = 316,
-        eCSSProperty_animation = 317,
-        eCSSProperty_background = 318,
-        eCSSProperty_background_position = 319,
-        eCSSProperty_border = 320,
-        eCSSProperty_border_block_end = 321,
-        eCSSProperty_border_block_start = 322,
-        eCSSProperty_border_bottom = 323,
-        eCSSProperty_border_color = 324,
-        eCSSProperty_border_image = 325,
-        eCSSProperty_border_inline_end = 326,
-        eCSSProperty_border_inline_start = 327,
-        eCSSProperty_border_left = 328,
-        eCSSProperty_border_radius = 329,
-        eCSSProperty_border_right = 330,
-        eCSSProperty_border_style = 331,
-        eCSSProperty_border_top = 332,
-        eCSSProperty_border_width = 333,
-        eCSSProperty_column_rule = 334,
-        eCSSProperty_columns = 335,
-        eCSSProperty_flex = 336,
-        eCSSProperty_flex_flow = 337,
-        eCSSProperty_font = 338,
-        eCSSProperty_font_variant = 339,
-        eCSSProperty_grid = 340,
-        eCSSProperty_grid_area = 341,
-        eCSSProperty_grid_column = 342,
-        eCSSProperty_grid_gap = 343,
-        eCSSProperty_grid_row = 344,
-        eCSSProperty_grid_template = 345,
-        eCSSProperty_list_style = 346,
-        eCSSProperty_margin = 347,
-        eCSSProperty_marker = 348,
-        eCSSProperty_mask = 349,
-        eCSSProperty_mask_position = 350,
-        eCSSProperty_outline = 351,
-        eCSSProperty__moz_outline_radius = 352,
-        eCSSProperty_overflow = 353,
-        eCSSProperty_padding = 354,
-        eCSSProperty_place_content = 355,
-        eCSSProperty_place_items = 356,
-        eCSSProperty_place_self = 357,
-        eCSSProperty_scroll_snap_type = 358,
-        eCSSProperty_text_decoration = 359,
-        eCSSProperty_text_emphasis = 360,
-        eCSSProperty__webkit_text_stroke = 361,
-        eCSSProperty__moz_transform = 362,
-        eCSSProperty_transition = 363,
-        eCSSProperty_COUNT = 364,
-        eCSSPropertyAlias_MozTransformOrigin = 365,
-        eCSSPropertyAlias_MozPerspectiveOrigin = 366,
-        eCSSPropertyAlias_MozPerspective = 367,
-        eCSSPropertyAlias_MozTransformStyle = 368,
-        eCSSPropertyAlias_MozBackfaceVisibility = 369,
-        eCSSPropertyAlias_MozBorderImage = 370,
-        eCSSPropertyAlias_MozTransition = 371,
-        eCSSPropertyAlias_MozTransitionDelay = 372,
-        eCSSPropertyAlias_MozTransitionDuration = 373,
-        eCSSPropertyAlias_MozTransitionProperty = 374,
-        eCSSPropertyAlias_MozTransitionTimingFunction = 375,
-        eCSSPropertyAlias_MozAnimation = 376,
-        eCSSPropertyAlias_MozAnimationDelay = 377,
-        eCSSPropertyAlias_MozAnimationDirection = 378,
-        eCSSPropertyAlias_MozAnimationDuration = 379,
-        eCSSPropertyAlias_MozAnimationFillMode = 380,
-        eCSSPropertyAlias_MozAnimationIterationCount = 381,
-        eCSSPropertyAlias_MozAnimationName = 382,
-        eCSSPropertyAlias_MozAnimationPlayState = 383,
-        eCSSPropertyAlias_MozAnimationTimingFunction = 384,
-        eCSSPropertyAlias_MozBoxSizing = 385,
-        eCSSPropertyAlias_MozFontFeatureSettings = 386,
-        eCSSPropertyAlias_MozFontLanguageOverride = 387,
-        eCSSPropertyAlias_MozPaddingEnd = 388,
-        eCSSPropertyAlias_MozPaddingStart = 389,
-        eCSSPropertyAlias_MozMarginEnd = 390,
-        eCSSPropertyAlias_MozMarginStart = 391,
-        eCSSPropertyAlias_MozBorderEnd = 392,
-        eCSSPropertyAlias_MozBorderEndColor = 393,
-        eCSSPropertyAlias_MozBorderEndStyle = 394,
-        eCSSPropertyAlias_MozBorderEndWidth = 395,
-        eCSSPropertyAlias_MozBorderStart = 396,
-        eCSSPropertyAlias_MozBorderStartColor = 397,
-        eCSSPropertyAlias_MozBorderStartStyle = 398,
-        eCSSPropertyAlias_MozBorderStartWidth = 399,
-        eCSSPropertyAlias_MozHyphens = 400,
-        eCSSPropertyAlias_MozColumnCount = 401,
-        eCSSPropertyAlias_MozColumnFill = 402,
-        eCSSPropertyAlias_MozColumnGap = 403,
-        eCSSPropertyAlias_MozColumnRule = 404,
-        eCSSPropertyAlias_MozColumnRuleColor = 405,
-        eCSSPropertyAlias_MozColumnRuleStyle = 406,
-        eCSSPropertyAlias_MozColumnRuleWidth = 407,
-        eCSSPropertyAlias_MozColumnWidth = 408,
-        eCSSPropertyAlias_MozColumns = 409,
-        eCSSPropertyAlias_WebkitAnimation = 410,
-        eCSSPropertyAlias_WebkitAnimationDelay = 411,
-        eCSSPropertyAlias_WebkitAnimationDirection = 412,
-        eCSSPropertyAlias_WebkitAnimationDuration = 413,
-        eCSSPropertyAlias_WebkitAnimationFillMode = 414,
-        eCSSPropertyAlias_WebkitAnimationIterationCount = 415,
-        eCSSPropertyAlias_WebkitAnimationName = 416,
-        eCSSPropertyAlias_WebkitAnimationPlayState = 417,
-        eCSSPropertyAlias_WebkitAnimationTimingFunction = 418,
-        eCSSPropertyAlias_WebkitFilter = 419,
-        eCSSPropertyAlias_WebkitTextSizeAdjust = 420,
-        eCSSPropertyAlias_WebkitTransform = 421,
-        eCSSPropertyAlias_WebkitTransformOrigin = 422,
-        eCSSPropertyAlias_WebkitTransformStyle = 423,
-        eCSSPropertyAlias_WebkitBackfaceVisibility = 424,
-        eCSSPropertyAlias_WebkitPerspective = 425,
-        eCSSPropertyAlias_WebkitPerspectiveOrigin = 426,
-        eCSSPropertyAlias_WebkitTransition = 427,
-        eCSSPropertyAlias_WebkitTransitionDelay = 428,
-        eCSSPropertyAlias_WebkitTransitionDuration = 429,
-        eCSSPropertyAlias_WebkitTransitionProperty = 430,
-        eCSSPropertyAlias_WebkitTransitionTimingFunction = 431,
-        eCSSPropertyAlias_WebkitBorderRadius = 432,
-        eCSSPropertyAlias_WebkitBorderTopLeftRadius = 433,
-        eCSSPropertyAlias_WebkitBorderTopRightRadius = 434,
-        eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 435,
-        eCSSPropertyAlias_WebkitBorderBottomRightRadius = 436,
-        eCSSPropertyAlias_WebkitBackgroundClip = 437,
-        eCSSPropertyAlias_WebkitBackgroundOrigin = 438,
-        eCSSPropertyAlias_WebkitBackgroundSize = 439,
-        eCSSPropertyAlias_WebkitBorderImage = 440,
-        eCSSPropertyAlias_WebkitBoxShadow = 441,
-        eCSSPropertyAlias_WebkitBoxSizing = 442,
-        eCSSPropertyAlias_WebkitBoxFlex = 443,
-        eCSSPropertyAlias_WebkitBoxOrdinalGroup = 444,
-        eCSSPropertyAlias_WebkitBoxOrient = 445,
-        eCSSPropertyAlias_WebkitBoxDirection = 446,
-        eCSSPropertyAlias_WebkitBoxAlign = 447,
-        eCSSPropertyAlias_WebkitBoxPack = 448,
-        eCSSPropertyAlias_WebkitFlexDirection = 449,
-        eCSSPropertyAlias_WebkitFlexWrap = 450,
-        eCSSPropertyAlias_WebkitFlexFlow = 451,
-        eCSSPropertyAlias_WebkitOrder = 452,
-        eCSSPropertyAlias_WebkitFlex = 453,
-        eCSSPropertyAlias_WebkitFlexGrow = 454,
-        eCSSPropertyAlias_WebkitFlexShrink = 455,
-        eCSSPropertyAlias_WebkitFlexBasis = 456,
-        eCSSPropertyAlias_WebkitJustifyContent = 457,
-        eCSSPropertyAlias_WebkitAlignItems = 458,
-        eCSSPropertyAlias_WebkitAlignSelf = 459,
-        eCSSPropertyAlias_WebkitAlignContent = 460,
-        eCSSPropertyAlias_WebkitUserSelect = 461,
-        eCSSPropertyAlias_WebkitMask = 462,
-        eCSSPropertyAlias_WebkitMaskClip = 463,
-        eCSSPropertyAlias_WebkitMaskComposite = 464,
-        eCSSPropertyAlias_WebkitMaskImage = 465,
-        eCSSPropertyAlias_WebkitMaskOrigin = 466,
-        eCSSPropertyAlias_WebkitMaskPosition = 467,
-        eCSSPropertyAlias_WebkitMaskPositionX = 468,
-        eCSSPropertyAlias_WebkitMaskPositionY = 469,
-        eCSSPropertyAlias_WebkitMaskRepeat = 470,
-        eCSSPropertyAlias_WebkitMaskSize = 471,
-        eCSSProperty_COUNT_with_aliases = 472,
-        eCSSPropertyExtra_all_properties = 473,
-        eCSSPropertyExtra_x_none_value = 474,
-        eCSSPropertyExtra_x_auto_value = 475,
-        eCSSPropertyExtra_variable = 476,
-        eCSSProperty_DOM = 477,
+        eCSSProperty_column_span = 90,
+        eCSSProperty_column_width = 91,
+        eCSSProperty_contain = 92,
+        eCSSProperty_content = 93,
+        eCSSProperty__moz_control_character_visibility = 94,
+        eCSSProperty_counter_increment = 95,
+        eCSSProperty_counter_reset = 96,
+        eCSSProperty_cursor = 97,
+        eCSSProperty_direction = 98,
+        eCSSProperty_display = 99,
+        eCSSProperty_dominant_baseline = 100,
+        eCSSProperty_empty_cells = 101,
+        eCSSProperty_fill = 102,
+        eCSSProperty_fill_opacity = 103,
+        eCSSProperty_fill_rule = 104,
+        eCSSProperty_filter = 105,
+        eCSSProperty_flex_basis = 106,
+        eCSSProperty_flex_direction = 107,
+        eCSSProperty_flex_grow = 108,
+        eCSSProperty_flex_shrink = 109,
+        eCSSProperty_flex_wrap = 110,
+        eCSSProperty_float_ = 111,
+        eCSSProperty__moz_float_edge = 112,
+        eCSSProperty_flood_color = 113,
+        eCSSProperty_flood_opacity = 114,
+        eCSSProperty_font_family = 115,
+        eCSSProperty_font_feature_settings = 116,
+        eCSSProperty_font_kerning = 117,
+        eCSSProperty_font_language_override = 118,
+        eCSSProperty_font_size = 119,
+        eCSSProperty_font_size_adjust = 120,
+        eCSSProperty_font_stretch = 121,
+        eCSSProperty_font_style = 122,
+        eCSSProperty_font_synthesis = 123,
+        eCSSProperty_font_variant_alternates = 124,
+        eCSSProperty_font_variant_caps = 125,
+        eCSSProperty_font_variant_east_asian = 126,
+        eCSSProperty_font_variant_ligatures = 127,
+        eCSSProperty_font_variant_numeric = 128,
+        eCSSProperty_font_variant_position = 129,
+        eCSSProperty_font_variation_settings = 130,
+        eCSSProperty_font_weight = 131,
+        eCSSProperty__moz_force_broken_image_icon = 132,
+        eCSSProperty_grid_auto_columns = 133,
+        eCSSProperty_grid_auto_flow = 134,
+        eCSSProperty_grid_auto_rows = 135,
+        eCSSProperty_grid_column_end = 136,
+        eCSSProperty_grid_column_gap = 137,
+        eCSSProperty_grid_column_start = 138,
+        eCSSProperty_grid_row_end = 139,
+        eCSSProperty_grid_row_gap = 140,
+        eCSSProperty_grid_row_start = 141,
+        eCSSProperty_grid_template_areas = 142,
+        eCSSProperty_grid_template_columns = 143,
+        eCSSProperty_grid_template_rows = 144,
+        eCSSProperty_height = 145,
+        eCSSProperty_hyphens = 146,
+        eCSSProperty_initial_letter = 147,
+        eCSSProperty_image_orientation = 148,
+        eCSSProperty__moz_image_region = 149,
+        eCSSProperty_image_rendering = 150,
+        eCSSProperty_ime_mode = 151,
+        eCSSProperty_inline_size = 152,
+        eCSSProperty_isolation = 153,
+        eCSSProperty_justify_content = 154,
+        eCSSProperty_justify_items = 155,
+        eCSSProperty_justify_self = 156,
+        eCSSProperty__x_lang = 157,
+        eCSSProperty_left = 158,
+        eCSSProperty_letter_spacing = 159,
+        eCSSProperty_lighting_color = 160,
+        eCSSProperty_line_height = 161,
+        eCSSProperty_list_style_image = 162,
+        eCSSProperty_list_style_position = 163,
+        eCSSProperty_list_style_type = 164,
+        eCSSProperty_margin_block_end = 165,
+        eCSSProperty_margin_block_start = 166,
+        eCSSProperty_margin_bottom = 167,
+        eCSSProperty_margin_inline_end = 168,
+        eCSSProperty_margin_inline_start = 169,
+        eCSSProperty_margin_left = 170,
+        eCSSProperty_margin_right = 171,
+        eCSSProperty_margin_top = 172,
+        eCSSProperty_marker_end = 173,
+        eCSSProperty_marker_mid = 174,
+        eCSSProperty_marker_start = 175,
+        eCSSProperty_mask_clip = 176,
+        eCSSProperty_mask_composite = 177,
+        eCSSProperty_mask_image = 178,
+        eCSSProperty_mask_mode = 179,
+        eCSSProperty_mask_origin = 180,
+        eCSSProperty_mask_position_x = 181,
+        eCSSProperty_mask_position_y = 182,
+        eCSSProperty_mask_repeat = 183,
+        eCSSProperty_mask_size = 184,
+        eCSSProperty_mask_type = 185,
+        eCSSProperty__moz_math_display = 186,
+        eCSSProperty__moz_math_variant = 187,
+        eCSSProperty_max_block_size = 188,
+        eCSSProperty_max_height = 189,
+        eCSSProperty_max_inline_size = 190,
+        eCSSProperty_max_width = 191,
+        eCSSProperty_min_block_size = 192,
+        eCSSProperty__moz_min_font_size_ratio = 193,
+        eCSSProperty_min_height = 194,
+        eCSSProperty_min_inline_size = 195,
+        eCSSProperty_min_width = 196,
+        eCSSProperty_mix_blend_mode = 197,
+        eCSSProperty_object_fit = 198,
+        eCSSProperty_object_position = 199,
+        eCSSProperty_offset_block_end = 200,
+        eCSSProperty_offset_block_start = 201,
+        eCSSProperty_offset_inline_end = 202,
+        eCSSProperty_offset_inline_start = 203,
+        eCSSProperty_opacity = 204,
+        eCSSProperty_order = 205,
+        eCSSProperty__moz_orient = 206,
+        eCSSProperty__moz_osx_font_smoothing = 207,
+        eCSSProperty_outline_color = 208,
+        eCSSProperty_outline_offset = 209,
+        eCSSProperty__moz_outline_radius_bottomleft = 210,
+        eCSSProperty__moz_outline_radius_bottomright = 211,
+        eCSSProperty__moz_outline_radius_topleft = 212,
+        eCSSProperty__moz_outline_radius_topright = 213,
+        eCSSProperty_outline_style = 214,
+        eCSSProperty_outline_width = 215,
+        eCSSProperty_overflow_clip_box = 216,
+        eCSSProperty_overflow_x = 217,
+        eCSSProperty_overflow_y = 218,
+        eCSSProperty_padding_block_end = 219,
+        eCSSProperty_padding_block_start = 220,
+        eCSSProperty_padding_bottom = 221,
+        eCSSProperty_padding_inline_end = 222,
+        eCSSProperty_padding_inline_start = 223,
+        eCSSProperty_padding_left = 224,
+        eCSSProperty_padding_right = 225,
+        eCSSProperty_padding_top = 226,
+        eCSSProperty_page_break_after = 227,
+        eCSSProperty_page_break_before = 228,
+        eCSSProperty_page_break_inside = 229,
+        eCSSProperty_paint_order = 230,
+        eCSSProperty_perspective = 231,
+        eCSSProperty_perspective_origin = 232,
+        eCSSProperty_pointer_events = 233,
+        eCSSProperty_position = 234,
+        eCSSProperty_quotes = 235,
+        eCSSProperty_resize = 236,
+        eCSSProperty_right = 237,
+        eCSSProperty_ruby_align = 238,
+        eCSSProperty_ruby_position = 239,
+        eCSSProperty__moz_script_level = 240,
+        eCSSProperty__moz_script_min_size = 241,
+        eCSSProperty__moz_script_size_multiplier = 242,
+        eCSSProperty_scroll_behavior = 243,
+        eCSSProperty_scroll_snap_coordinate = 244,
+        eCSSProperty_scroll_snap_destination = 245,
+        eCSSProperty_scroll_snap_points_x = 246,
+        eCSSProperty_scroll_snap_points_y = 247,
+        eCSSProperty_scroll_snap_type_x = 248,
+        eCSSProperty_scroll_snap_type_y = 249,
+        eCSSProperty_shape_outside = 250,
+        eCSSProperty_shape_rendering = 251,
+        eCSSProperty__x_span = 252,
+        eCSSProperty__moz_stack_sizing = 253,
+        eCSSProperty_stop_color = 254,
+        eCSSProperty_stop_opacity = 255,
+        eCSSProperty_stroke = 256,
+        eCSSProperty_stroke_dasharray = 257,
+        eCSSProperty_stroke_dashoffset = 258,
+        eCSSProperty_stroke_linecap = 259,
+        eCSSProperty_stroke_linejoin = 260,
+        eCSSProperty_stroke_miterlimit = 261,
+        eCSSProperty_stroke_opacity = 262,
+        eCSSProperty_stroke_width = 263,
+        eCSSProperty__x_system_font = 264,
+        eCSSProperty__moz_tab_size = 265,
+        eCSSProperty_table_layout = 266,
+        eCSSProperty_text_align = 267,
+        eCSSProperty_text_align_last = 268,
+        eCSSProperty_text_anchor = 269,
+        eCSSProperty_text_combine_upright = 270,
+        eCSSProperty_text_decoration_color = 271,
+        eCSSProperty_text_decoration_line = 272,
+        eCSSProperty_text_decoration_style = 273,
+        eCSSProperty_text_emphasis_color = 274,
+        eCSSProperty_text_emphasis_position = 275,
+        eCSSProperty_text_emphasis_style = 276,
+        eCSSProperty__webkit_text_fill_color = 277,
+        eCSSProperty_text_indent = 278,
+        eCSSProperty_text_justify = 279,
+        eCSSProperty_text_orientation = 280,
+        eCSSProperty_text_overflow = 281,
+        eCSSProperty_text_rendering = 282,
+        eCSSProperty_text_shadow = 283,
+        eCSSProperty__moz_text_size_adjust = 284,
+        eCSSProperty__webkit_text_stroke_color = 285,
+        eCSSProperty__webkit_text_stroke_width = 286,
+        eCSSProperty_text_transform = 287,
+        eCSSProperty__x_text_zoom = 288,
+        eCSSProperty_top = 289,
+        eCSSProperty__moz_top_layer = 290,
+        eCSSProperty_touch_action = 291,
+        eCSSProperty_transform = 292,
+        eCSSProperty_transform_box = 293,
+        eCSSProperty_transform_origin = 294,
+        eCSSProperty_transform_style = 295,
+        eCSSProperty_transition_delay = 296,
+        eCSSProperty_transition_duration = 297,
+        eCSSProperty_transition_property = 298,
+        eCSSProperty_transition_timing_function = 299,
+        eCSSProperty_unicode_bidi = 300,
+        eCSSProperty__moz_user_focus = 301,
+        eCSSProperty__moz_user_input = 302,
+        eCSSProperty__moz_user_modify = 303,
+        eCSSProperty__moz_user_select = 304,
+        eCSSProperty_vector_effect = 305,
+        eCSSProperty_vertical_align = 306,
+        eCSSProperty_visibility = 307,
+        eCSSProperty_white_space = 308,
+        eCSSProperty_width = 309,
+        eCSSProperty_will_change = 310,
+        eCSSProperty__moz_window_dragging = 311,
+        eCSSProperty__moz_window_shadow = 312,
+        eCSSProperty_word_break = 313,
+        eCSSProperty_word_spacing = 314,
+        eCSSProperty_overflow_wrap = 315,
+        eCSSProperty_writing_mode = 316,
+        eCSSProperty_z_index = 317,
+        eCSSProperty_COUNT_no_shorthands = 318,
+        eCSSProperty_animation = 319,
+        eCSSProperty_background = 320,
+        eCSSProperty_background_position = 321,
+        eCSSProperty_border = 322,
+        eCSSProperty_border_block_end = 323,
+        eCSSProperty_border_block_start = 324,
+        eCSSProperty_border_bottom = 325,
+        eCSSProperty_border_color = 326,
+        eCSSProperty_border_image = 327,
+        eCSSProperty_border_inline_end = 328,
+        eCSSProperty_border_inline_start = 329,
+        eCSSProperty_border_left = 330,
+        eCSSProperty_border_radius = 331,
+        eCSSProperty_border_right = 332,
+        eCSSProperty_border_style = 333,
+        eCSSProperty_border_top = 334,
+        eCSSProperty_border_width = 335,
+        eCSSProperty_column_rule = 336,
+        eCSSProperty_columns = 337,
+        eCSSProperty_flex = 338,
+        eCSSProperty_flex_flow = 339,
+        eCSSProperty_font = 340,
+        eCSSProperty_font_variant = 341,
+        eCSSProperty_grid = 342,
+        eCSSProperty_grid_area = 343,
+        eCSSProperty_grid_column = 344,
+        eCSSProperty_grid_gap = 345,
+        eCSSProperty_grid_row = 346,
+        eCSSProperty_grid_template = 347,
+        eCSSProperty_list_style = 348,
+        eCSSProperty_margin = 349,
+        eCSSProperty_marker = 350,
+        eCSSProperty_mask = 351,
+        eCSSProperty_mask_position = 352,
+        eCSSProperty_outline = 353,
+        eCSSProperty__moz_outline_radius = 354,
+        eCSSProperty_overflow = 355,
+        eCSSProperty_padding = 356,
+        eCSSProperty_place_content = 357,
+        eCSSProperty_place_items = 358,
+        eCSSProperty_place_self = 359,
+        eCSSProperty_scroll_snap_type = 360,
+        eCSSProperty_text_decoration = 361,
+        eCSSProperty_text_emphasis = 362,
+        eCSSProperty__webkit_text_stroke = 363,
+        eCSSProperty__moz_transform = 364,
+        eCSSProperty_transition = 365,
+        eCSSProperty_COUNT = 366,
+        eCSSPropertyAlias_MozTransformOrigin = 367,
+        eCSSPropertyAlias_MozPerspectiveOrigin = 368,
+        eCSSPropertyAlias_MozPerspective = 369,
+        eCSSPropertyAlias_MozTransformStyle = 370,
+        eCSSPropertyAlias_MozBackfaceVisibility = 371,
+        eCSSPropertyAlias_MozBorderImage = 372,
+        eCSSPropertyAlias_MozTransition = 373,
+        eCSSPropertyAlias_MozTransitionDelay = 374,
+        eCSSPropertyAlias_MozTransitionDuration = 375,
+        eCSSPropertyAlias_MozTransitionProperty = 376,
+        eCSSPropertyAlias_MozTransitionTimingFunction = 377,
+        eCSSPropertyAlias_MozAnimation = 378,
+        eCSSPropertyAlias_MozAnimationDelay = 379,
+        eCSSPropertyAlias_MozAnimationDirection = 380,
+        eCSSPropertyAlias_MozAnimationDuration = 381,
+        eCSSPropertyAlias_MozAnimationFillMode = 382,
+        eCSSPropertyAlias_MozAnimationIterationCount = 383,
+        eCSSPropertyAlias_MozAnimationName = 384,
+        eCSSPropertyAlias_MozAnimationPlayState = 385,
+        eCSSPropertyAlias_MozAnimationTimingFunction = 386,
+        eCSSPropertyAlias_MozBoxSizing = 387,
+        eCSSPropertyAlias_MozFontFeatureSettings = 388,
+        eCSSPropertyAlias_MozFontLanguageOverride = 389,
+        eCSSPropertyAlias_MozPaddingEnd = 390,
+        eCSSPropertyAlias_MozPaddingStart = 391,
+        eCSSPropertyAlias_MozMarginEnd = 392,
+        eCSSPropertyAlias_MozMarginStart = 393,
+        eCSSPropertyAlias_MozBorderEnd = 394,
+        eCSSPropertyAlias_MozBorderEndColor = 395,
+        eCSSPropertyAlias_MozBorderEndStyle = 396,
+        eCSSPropertyAlias_MozBorderEndWidth = 397,
+        eCSSPropertyAlias_MozBorderStart = 398,
+        eCSSPropertyAlias_MozBorderStartColor = 399,
+        eCSSPropertyAlias_MozBorderStartStyle = 400,
+        eCSSPropertyAlias_MozBorderStartWidth = 401,
+        eCSSPropertyAlias_MozHyphens = 402,
+        eCSSPropertyAlias_MozColumnCount = 403,
+        eCSSPropertyAlias_MozColumnFill = 404,
+        eCSSPropertyAlias_MozColumnGap = 405,
+        eCSSPropertyAlias_MozColumnRule = 406,
+        eCSSPropertyAlias_MozColumnRuleColor = 407,
+        eCSSPropertyAlias_MozColumnRuleStyle = 408,
+        eCSSPropertyAlias_MozColumnRuleWidth = 409,
+        eCSSPropertyAlias_MozColumnWidth = 410,
+        eCSSPropertyAlias_MozColumns = 411,
+        eCSSPropertyAlias_WebkitAnimation = 412,
+        eCSSPropertyAlias_WebkitAnimationDelay = 413,
+        eCSSPropertyAlias_WebkitAnimationDirection = 414,
+        eCSSPropertyAlias_WebkitAnimationDuration = 415,
+        eCSSPropertyAlias_WebkitAnimationFillMode = 416,
+        eCSSPropertyAlias_WebkitAnimationIterationCount = 417,
+        eCSSPropertyAlias_WebkitAnimationName = 418,
+        eCSSPropertyAlias_WebkitAnimationPlayState = 419,
+        eCSSPropertyAlias_WebkitAnimationTimingFunction = 420,
+        eCSSPropertyAlias_WebkitFilter = 421,
+        eCSSPropertyAlias_WebkitTextSizeAdjust = 422,
+        eCSSPropertyAlias_WebkitTransform = 423,
+        eCSSPropertyAlias_WebkitTransformOrigin = 424,
+        eCSSPropertyAlias_WebkitTransformStyle = 425,
+        eCSSPropertyAlias_WebkitBackfaceVisibility = 426,
+        eCSSPropertyAlias_WebkitPerspective = 427,
+        eCSSPropertyAlias_WebkitPerspectiveOrigin = 428,
+        eCSSPropertyAlias_WebkitTransition = 429,
+        eCSSPropertyAlias_WebkitTransitionDelay = 430,
+        eCSSPropertyAlias_WebkitTransitionDuration = 431,
+        eCSSPropertyAlias_WebkitTransitionProperty = 432,
+        eCSSPropertyAlias_WebkitTransitionTimingFunction = 433,
+        eCSSPropertyAlias_WebkitBorderRadius = 434,
+        eCSSPropertyAlias_WebkitBorderTopLeftRadius = 435,
+        eCSSPropertyAlias_WebkitBorderTopRightRadius = 436,
+        eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 437,
+        eCSSPropertyAlias_WebkitBorderBottomRightRadius = 438,
+        eCSSPropertyAlias_WebkitBackgroundClip = 439,
+        eCSSPropertyAlias_WebkitBackgroundOrigin = 440,
+        eCSSPropertyAlias_WebkitBackgroundSize = 441,
+        eCSSPropertyAlias_WebkitBorderImage = 442,
+        eCSSPropertyAlias_WebkitBoxShadow = 443,
+        eCSSPropertyAlias_WebkitBoxSizing = 444,
+        eCSSPropertyAlias_WebkitBoxFlex = 445,
+        eCSSPropertyAlias_WebkitBoxOrdinalGroup = 446,
+        eCSSPropertyAlias_WebkitBoxOrient = 447,
+        eCSSPropertyAlias_WebkitBoxDirection = 448,
+        eCSSPropertyAlias_WebkitBoxAlign = 449,
+        eCSSPropertyAlias_WebkitBoxPack = 450,
+        eCSSPropertyAlias_WebkitFlexDirection = 451,
+        eCSSPropertyAlias_WebkitFlexWrap = 452,
+        eCSSPropertyAlias_WebkitFlexFlow = 453,
+        eCSSPropertyAlias_WebkitOrder = 454,
+        eCSSPropertyAlias_WebkitFlex = 455,
+        eCSSPropertyAlias_WebkitFlexGrow = 456,
+        eCSSPropertyAlias_WebkitFlexShrink = 457,
+        eCSSPropertyAlias_WebkitFlexBasis = 458,
+        eCSSPropertyAlias_WebkitJustifyContent = 459,
+        eCSSPropertyAlias_WebkitAlignItems = 460,
+        eCSSPropertyAlias_WebkitAlignSelf = 461,
+        eCSSPropertyAlias_WebkitAlignContent = 462,
+        eCSSPropertyAlias_WebkitUserSelect = 463,
+        eCSSPropertyAlias_WebkitMask = 464,
+        eCSSPropertyAlias_WebkitMaskClip = 465,
+        eCSSPropertyAlias_WebkitMaskComposite = 466,
+        eCSSPropertyAlias_WebkitMaskImage = 467,
+        eCSSPropertyAlias_WebkitMaskOrigin = 468,
+        eCSSPropertyAlias_WebkitMaskPosition = 469,
+        eCSSPropertyAlias_WebkitMaskPositionX = 470,
+        eCSSPropertyAlias_WebkitMaskPositionY = 471,
+        eCSSPropertyAlias_WebkitMaskRepeat = 472,
+        eCSSPropertyAlias_WebkitMaskSize = 473,
+        eCSSProperty_COUNT_with_aliases = 474,
+        eCSSPropertyExtra_all_properties = 475,
+        eCSSPropertyExtra_x_none_value = 476,
+        eCSSPropertyExtra_x_auto_value = 477,
+        eCSSPropertyExtra_variable = 478,
+        eCSSProperty_DOM = 479,
     }
     #[repr(i32)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -16589,562 +16587,565 @@ pub mod root {
         eCSSKeyword_disclosure_closed = 197,
         eCSSKeyword_disclosure_open = 198,
         eCSSKeyword_discretionary_ligatures = 199,
-        eCSSKeyword_dot = 200,
-        eCSSKeyword_dotted = 201,
-        eCSSKeyword_double = 202,
-        eCSSKeyword_double_circle = 203,
-        eCSSKeyword_double_struck = 204,
-        eCSSKeyword_drag = 205,
-        eCSSKeyword_drop_shadow = 206,
-        eCSSKeyword_e_resize = 207,
-        eCSSKeyword_ease = 208,
-        eCSSKeyword_ease_in = 209,
-        eCSSKeyword_ease_in_out = 210,
-        eCSSKeyword_ease_out = 211,
-        eCSSKeyword_economy = 212,
-        eCSSKeyword_element = 213,
-        eCSSKeyword_elements = 214,
-        eCSSKeyword_ellipse = 215,
-        eCSSKeyword_ellipsis = 216,
-        eCSSKeyword_em = 217,
-        eCSSKeyword_embed = 218,
-        eCSSKeyword_enabled = 219,
-        eCSSKeyword_end = 220,
-        eCSSKeyword_ethiopic_numeric = 221,
-        eCSSKeyword_ex = 222,
-        eCSSKeyword_exact = 223,
-        eCSSKeyword_exclude = 224,
-        eCSSKeyword_exclusion = 225,
-        eCSSKeyword_expanded = 226,
-        eCSSKeyword_extends = 227,
-        eCSSKeyword_extra_condensed = 228,
-        eCSSKeyword_extra_expanded = 229,
-        eCSSKeyword_ew_resize = 230,
-        eCSSKeyword_fallback = 231,
-        eCSSKeyword_fantasy = 232,
-        eCSSKeyword_farthest_side = 233,
-        eCSSKeyword_farthest_corner = 234,
-        eCSSKeyword_fill = 235,
-        eCSSKeyword_filled = 236,
-        eCSSKeyword_fill_box = 237,
-        eCSSKeyword_first = 238,
-        eCSSKeyword_fit_content = 239,
-        eCSSKeyword_fixed = 240,
-        eCSSKeyword_flat = 241,
-        eCSSKeyword_flex = 242,
-        eCSSKeyword_flex_end = 243,
-        eCSSKeyword_flex_start = 244,
-        eCSSKeyword_flip = 245,
-        eCSSKeyword_flow_root = 246,
-        eCSSKeyword_forwards = 247,
-        eCSSKeyword_fraktur = 248,
-        eCSSKeyword_from_image = 249,
-        eCSSKeyword_full_width = 250,
-        eCSSKeyword_fullscreen = 251,
-        eCSSKeyword_grab = 252,
-        eCSSKeyword_grabbing = 253,
-        eCSSKeyword_grad = 254,
-        eCSSKeyword_grayscale = 255,
-        eCSSKeyword_graytext = 256,
-        eCSSKeyword_grid = 257,
-        eCSSKeyword_groove = 258,
-        eCSSKeyword_hard_light = 259,
-        eCSSKeyword_hebrew = 260,
-        eCSSKeyword_help = 261,
-        eCSSKeyword_hidden = 262,
-        eCSSKeyword_hide = 263,
-        eCSSKeyword_highlight = 264,
-        eCSSKeyword_highlighttext = 265,
-        eCSSKeyword_historical_forms = 266,
-        eCSSKeyword_historical_ligatures = 267,
-        eCSSKeyword_horizontal = 268,
-        eCSSKeyword_horizontal_tb = 269,
-        eCSSKeyword_hue = 270,
-        eCSSKeyword_hue_rotate = 271,
-        eCSSKeyword_hz = 272,
-        eCSSKeyword_icon = 273,
-        eCSSKeyword_ignore = 274,
-        eCSSKeyword_in = 275,
-        eCSSKeyword_interlace = 276,
-        eCSSKeyword_inactive = 277,
-        eCSSKeyword_inactiveborder = 278,
-        eCSSKeyword_inactivecaption = 279,
-        eCSSKeyword_inactivecaptiontext = 280,
-        eCSSKeyword_infinite = 281,
-        eCSSKeyword_infobackground = 282,
-        eCSSKeyword_infotext = 283,
-        eCSSKeyword_inherit = 284,
-        eCSSKeyword_initial = 285,
-        eCSSKeyword_inline = 286,
-        eCSSKeyword_inline_axis = 287,
-        eCSSKeyword_inline_block = 288,
-        eCSSKeyword_inline_end = 289,
-        eCSSKeyword_inline_flex = 290,
-        eCSSKeyword_inline_grid = 291,
-        eCSSKeyword_inline_start = 292,
-        eCSSKeyword_inline_table = 293,
-        eCSSKeyword_inset = 294,
-        eCSSKeyword_inside = 295,
-        eCSSKeyword_interpolatematrix = 296,
-        eCSSKeyword_accumulatematrix = 297,
-        eCSSKeyword_intersect = 298,
-        eCSSKeyword_isolate = 299,
-        eCSSKeyword_isolate_override = 300,
-        eCSSKeyword_invert = 301,
-        eCSSKeyword_italic = 302,
-        eCSSKeyword_japanese_formal = 303,
-        eCSSKeyword_japanese_informal = 304,
-        eCSSKeyword_jis78 = 305,
-        eCSSKeyword_jis83 = 306,
-        eCSSKeyword_jis90 = 307,
-        eCSSKeyword_jis04 = 308,
-        eCSSKeyword_justify = 309,
-        eCSSKeyword_keep_all = 310,
-        eCSSKeyword_khz = 311,
-        eCSSKeyword_korean_hangul_formal = 312,
-        eCSSKeyword_korean_hanja_formal = 313,
-        eCSSKeyword_korean_hanja_informal = 314,
-        eCSSKeyword_landscape = 315,
-        eCSSKeyword_large = 316,
-        eCSSKeyword_larger = 317,
-        eCSSKeyword_last = 318,
-        eCSSKeyword_last_baseline = 319,
-        eCSSKeyword_layout = 320,
-        eCSSKeyword_left = 321,
-        eCSSKeyword_legacy = 322,
-        eCSSKeyword_lighten = 323,
-        eCSSKeyword_lighter = 324,
-        eCSSKeyword_line_through = 325,
-        eCSSKeyword_linear = 326,
-        eCSSKeyword_lining_nums = 327,
-        eCSSKeyword_list_item = 328,
-        eCSSKeyword_local = 329,
-        eCSSKeyword_logical = 330,
-        eCSSKeyword_looped = 331,
-        eCSSKeyword_lowercase = 332,
-        eCSSKeyword_lr = 333,
-        eCSSKeyword_lr_tb = 334,
-        eCSSKeyword_ltr = 335,
-        eCSSKeyword_luminance = 336,
-        eCSSKeyword_luminosity = 337,
-        eCSSKeyword_mandatory = 338,
-        eCSSKeyword_manipulation = 339,
-        eCSSKeyword_manual = 340,
-        eCSSKeyword_margin_box = 341,
-        eCSSKeyword_markers = 342,
-        eCSSKeyword_match_parent = 343,
-        eCSSKeyword_match_source = 344,
-        eCSSKeyword_matrix = 345,
-        eCSSKeyword_matrix3d = 346,
-        eCSSKeyword_max_content = 347,
-        eCSSKeyword_medium = 348,
-        eCSSKeyword_menu = 349,
-        eCSSKeyword_menutext = 350,
-        eCSSKeyword_message_box = 351,
-        eCSSKeyword_middle = 352,
-        eCSSKeyword_min_content = 353,
-        eCSSKeyword_minmax = 354,
-        eCSSKeyword_mix = 355,
-        eCSSKeyword_mixed = 356,
-        eCSSKeyword_mm = 357,
-        eCSSKeyword_monospace = 358,
-        eCSSKeyword_move = 359,
-        eCSSKeyword_ms = 360,
-        eCSSKeyword_multiply = 361,
-        eCSSKeyword_n_resize = 362,
-        eCSSKeyword_narrower = 363,
-        eCSSKeyword_ne_resize = 364,
-        eCSSKeyword_nesw_resize = 365,
-        eCSSKeyword_no_clip = 366,
-        eCSSKeyword_no_close_quote = 367,
-        eCSSKeyword_no_common_ligatures = 368,
-        eCSSKeyword_no_contextual = 369,
-        eCSSKeyword_no_discretionary_ligatures = 370,
-        eCSSKeyword_no_drag = 371,
-        eCSSKeyword_no_drop = 372,
-        eCSSKeyword_no_historical_ligatures = 373,
-        eCSSKeyword_no_open_quote = 374,
-        eCSSKeyword_no_repeat = 375,
-        eCSSKeyword_none = 376,
-        eCSSKeyword_normal = 377,
-        eCSSKeyword_not_allowed = 378,
-        eCSSKeyword_nowrap = 379,
-        eCSSKeyword_numeric = 380,
-        eCSSKeyword_ns_resize = 381,
-        eCSSKeyword_nw_resize = 382,
-        eCSSKeyword_nwse_resize = 383,
-        eCSSKeyword_oblique = 384,
-        eCSSKeyword_oldstyle_nums = 385,
-        eCSSKeyword_opacity = 386,
-        eCSSKeyword_open = 387,
-        eCSSKeyword_open_quote = 388,
-        eCSSKeyword_optional = 389,
-        eCSSKeyword_ordinal = 390,
-        eCSSKeyword_ornaments = 391,
-        eCSSKeyword_outset = 392,
-        eCSSKeyword_outside = 393,
-        eCSSKeyword_over = 394,
-        eCSSKeyword_overlay = 395,
-        eCSSKeyword_overline = 396,
-        eCSSKeyword_paint = 397,
-        eCSSKeyword_padding_box = 398,
-        eCSSKeyword_painted = 399,
-        eCSSKeyword_pan_x = 400,
-        eCSSKeyword_pan_y = 401,
-        eCSSKeyword_paused = 402,
-        eCSSKeyword_pc = 403,
-        eCSSKeyword_perspective = 404,
-        eCSSKeyword_petite_caps = 405,
-        eCSSKeyword_physical = 406,
-        eCSSKeyword_plaintext = 407,
-        eCSSKeyword_pointer = 408,
-        eCSSKeyword_polygon = 409,
-        eCSSKeyword_portrait = 410,
-        eCSSKeyword_pre = 411,
-        eCSSKeyword_pre_wrap = 412,
-        eCSSKeyword_pre_line = 413,
-        eCSSKeyword_preserve_3d = 414,
-        eCSSKeyword_progress = 415,
-        eCSSKeyword_progressive = 416,
-        eCSSKeyword_proportional_nums = 417,
-        eCSSKeyword_proportional_width = 418,
-        eCSSKeyword_proximity = 419,
-        eCSSKeyword_pt = 420,
-        eCSSKeyword_px = 421,
-        eCSSKeyword_rad = 422,
-        eCSSKeyword_read_only = 423,
-        eCSSKeyword_read_write = 424,
-        eCSSKeyword_relative = 425,
-        eCSSKeyword_repeat = 426,
-        eCSSKeyword_repeat_x = 427,
-        eCSSKeyword_repeat_y = 428,
-        eCSSKeyword_reverse = 429,
-        eCSSKeyword_ridge = 430,
-        eCSSKeyword_right = 431,
-        eCSSKeyword_rl = 432,
-        eCSSKeyword_rl_tb = 433,
-        eCSSKeyword_rotate = 434,
-        eCSSKeyword_rotate3d = 435,
-        eCSSKeyword_rotatex = 436,
-        eCSSKeyword_rotatey = 437,
-        eCSSKeyword_rotatez = 438,
-        eCSSKeyword_round = 439,
-        eCSSKeyword_row = 440,
-        eCSSKeyword_row_resize = 441,
-        eCSSKeyword_row_reverse = 442,
-        eCSSKeyword_rtl = 443,
-        eCSSKeyword_ruby = 444,
-        eCSSKeyword_ruby_base = 445,
-        eCSSKeyword_ruby_base_container = 446,
-        eCSSKeyword_ruby_text = 447,
-        eCSSKeyword_ruby_text_container = 448,
-        eCSSKeyword_running = 449,
-        eCSSKeyword_s = 450,
-        eCSSKeyword_s_resize = 451,
-        eCSSKeyword_safe = 452,
-        eCSSKeyword_saturate = 453,
-        eCSSKeyword_saturation = 454,
-        eCSSKeyword_scale = 455,
-        eCSSKeyword_scale_down = 456,
-        eCSSKeyword_scale3d = 457,
-        eCSSKeyword_scalex = 458,
-        eCSSKeyword_scaley = 459,
-        eCSSKeyword_scalez = 460,
-        eCSSKeyword_screen = 461,
-        eCSSKeyword_script = 462,
-        eCSSKeyword_scroll = 463,
-        eCSSKeyword_scrollbar = 464,
-        eCSSKeyword_scrollbar_small = 465,
-        eCSSKeyword_scrollbar_horizontal = 466,
-        eCSSKeyword_scrollbar_vertical = 467,
-        eCSSKeyword_se_resize = 468,
-        eCSSKeyword_select_after = 469,
-        eCSSKeyword_select_all = 470,
-        eCSSKeyword_select_before = 471,
-        eCSSKeyword_select_menu = 472,
-        eCSSKeyword_select_same = 473,
-        eCSSKeyword_self_end = 474,
-        eCSSKeyword_self_start = 475,
-        eCSSKeyword_semi_condensed = 476,
-        eCSSKeyword_semi_expanded = 477,
-        eCSSKeyword_separate = 478,
-        eCSSKeyword_sepia = 479,
-        eCSSKeyword_serif = 480,
-        eCSSKeyword_sesame = 481,
-        eCSSKeyword_show = 482,
-        eCSSKeyword_sideways = 483,
-        eCSSKeyword_sideways_lr = 484,
-        eCSSKeyword_sideways_right = 485,
-        eCSSKeyword_sideways_rl = 486,
-        eCSSKeyword_simp_chinese_formal = 487,
-        eCSSKeyword_simp_chinese_informal = 488,
-        eCSSKeyword_simplified = 489,
-        eCSSKeyword_skew = 490,
-        eCSSKeyword_skewx = 491,
-        eCSSKeyword_skewy = 492,
-        eCSSKeyword_slashed_zero = 493,
-        eCSSKeyword_slice = 494,
-        eCSSKeyword_small = 495,
-        eCSSKeyword_small_caps = 496,
-        eCSSKeyword_small_caption = 497,
-        eCSSKeyword_smaller = 498,
-        eCSSKeyword_smooth = 499,
-        eCSSKeyword_soft = 500,
-        eCSSKeyword_soft_light = 501,
-        eCSSKeyword_solid = 502,
-        eCSSKeyword_space_around = 503,
-        eCSSKeyword_space_between = 504,
-        eCSSKeyword_space_evenly = 505,
-        eCSSKeyword_span = 506,
-        eCSSKeyword_spell_out = 507,
-        eCSSKeyword_square = 508,
-        eCSSKeyword_stacked_fractions = 509,
-        eCSSKeyword_start = 510,
-        eCSSKeyword_static = 511,
-        eCSSKeyword_standalone = 512,
-        eCSSKeyword_status_bar = 513,
-        eCSSKeyword_step_end = 514,
-        eCSSKeyword_step_start = 515,
-        eCSSKeyword_sticky = 516,
-        eCSSKeyword_stretch = 517,
-        eCSSKeyword_stretch_to_fit = 518,
-        eCSSKeyword_stretched = 519,
-        eCSSKeyword_strict = 520,
-        eCSSKeyword_stroke = 521,
-        eCSSKeyword_stroke_box = 522,
-        eCSSKeyword_style = 523,
-        eCSSKeyword_styleset = 524,
-        eCSSKeyword_stylistic = 525,
-        eCSSKeyword_sub = 526,
-        eCSSKeyword_subgrid = 527,
-        eCSSKeyword_subtract = 528,
-        eCSSKeyword_super = 529,
-        eCSSKeyword_sw_resize = 530,
-        eCSSKeyword_swash = 531,
-        eCSSKeyword_swap = 532,
-        eCSSKeyword_table = 533,
-        eCSSKeyword_table_caption = 534,
-        eCSSKeyword_table_cell = 535,
-        eCSSKeyword_table_column = 536,
-        eCSSKeyword_table_column_group = 537,
-        eCSSKeyword_table_footer_group = 538,
-        eCSSKeyword_table_header_group = 539,
-        eCSSKeyword_table_row = 540,
-        eCSSKeyword_table_row_group = 541,
-        eCSSKeyword_tabular_nums = 542,
-        eCSSKeyword_tailed = 543,
-        eCSSKeyword_tb = 544,
-        eCSSKeyword_tb_rl = 545,
-        eCSSKeyword_text = 546,
-        eCSSKeyword_text_bottom = 547,
-        eCSSKeyword_text_top = 548,
-        eCSSKeyword_thick = 549,
-        eCSSKeyword_thin = 550,
-        eCSSKeyword_threeddarkshadow = 551,
-        eCSSKeyword_threedface = 552,
-        eCSSKeyword_threedhighlight = 553,
-        eCSSKeyword_threedlightshadow = 554,
-        eCSSKeyword_threedshadow = 555,
-        eCSSKeyword_titling_caps = 556,
-        eCSSKeyword_toggle = 557,
-        eCSSKeyword_top = 558,
-        eCSSKeyword_top_outside = 559,
-        eCSSKeyword_trad_chinese_formal = 560,
-        eCSSKeyword_trad_chinese_informal = 561,
-        eCSSKeyword_traditional = 562,
-        eCSSKeyword_translate = 563,
-        eCSSKeyword_translate3d = 564,
-        eCSSKeyword_translatex = 565,
-        eCSSKeyword_translatey = 566,
-        eCSSKeyword_translatez = 567,
-        eCSSKeyword_transparent = 568,
-        eCSSKeyword_triangle = 569,
-        eCSSKeyword_tri_state = 570,
-        eCSSKeyword_ultra_condensed = 571,
-        eCSSKeyword_ultra_expanded = 572,
-        eCSSKeyword_under = 573,
-        eCSSKeyword_underline = 574,
-        eCSSKeyword_unicase = 575,
-        eCSSKeyword_unsafe = 576,
-        eCSSKeyword_unset = 577,
-        eCSSKeyword_uppercase = 578,
-        eCSSKeyword_upright = 579,
-        eCSSKeyword_vertical = 580,
-        eCSSKeyword_vertical_lr = 581,
-        eCSSKeyword_vertical_rl = 582,
-        eCSSKeyword_vertical_text = 583,
-        eCSSKeyword_view_box = 584,
-        eCSSKeyword_visible = 585,
-        eCSSKeyword_visiblefill = 586,
-        eCSSKeyword_visiblepainted = 587,
-        eCSSKeyword_visiblestroke = 588,
-        eCSSKeyword_w_resize = 589,
-        eCSSKeyword_wait = 590,
-        eCSSKeyword_wavy = 591,
-        eCSSKeyword_weight = 592,
-        eCSSKeyword_wider = 593,
-        eCSSKeyword_window = 594,
-        eCSSKeyword_windowframe = 595,
-        eCSSKeyword_windowtext = 596,
-        eCSSKeyword_words = 597,
-        eCSSKeyword_wrap = 598,
-        eCSSKeyword_wrap_reverse = 599,
-        eCSSKeyword_write_only = 600,
-        eCSSKeyword_x_large = 601,
-        eCSSKeyword_x_small = 602,
-        eCSSKeyword_xx_large = 603,
-        eCSSKeyword_xx_small = 604,
-        eCSSKeyword_zoom_in = 605,
-        eCSSKeyword_zoom_out = 606,
-        eCSSKeyword_radio = 607,
-        eCSSKeyword_checkbox = 608,
-        eCSSKeyword_button_bevel = 609,
-        eCSSKeyword_toolbox = 610,
-        eCSSKeyword_toolbar = 611,
-        eCSSKeyword_toolbarbutton = 612,
-        eCSSKeyword_toolbargripper = 613,
-        eCSSKeyword_dualbutton = 614,
-        eCSSKeyword_toolbarbutton_dropdown = 615,
-        eCSSKeyword_button_arrow_up = 616,
-        eCSSKeyword_button_arrow_down = 617,
-        eCSSKeyword_button_arrow_next = 618,
-        eCSSKeyword_button_arrow_previous = 619,
-        eCSSKeyword_separator = 620,
-        eCSSKeyword_splitter = 621,
-        eCSSKeyword_statusbar = 622,
-        eCSSKeyword_statusbarpanel = 623,
-        eCSSKeyword_resizerpanel = 624,
-        eCSSKeyword_resizer = 625,
-        eCSSKeyword_listbox = 626,
-        eCSSKeyword_listitem = 627,
-        eCSSKeyword_numbers = 628,
-        eCSSKeyword_number_input = 629,
-        eCSSKeyword_treeview = 630,
-        eCSSKeyword_treeitem = 631,
-        eCSSKeyword_treetwisty = 632,
-        eCSSKeyword_treetwistyopen = 633,
-        eCSSKeyword_treeline = 634,
-        eCSSKeyword_treeheader = 635,
-        eCSSKeyword_treeheadercell = 636,
-        eCSSKeyword_treeheadersortarrow = 637,
-        eCSSKeyword_progressbar = 638,
-        eCSSKeyword_progressbar_vertical = 639,
-        eCSSKeyword_progresschunk = 640,
-        eCSSKeyword_progresschunk_vertical = 641,
-        eCSSKeyword_tab = 642,
-        eCSSKeyword_tabpanels = 643,
-        eCSSKeyword_tabpanel = 644,
-        eCSSKeyword_tab_scroll_arrow_back = 645,
-        eCSSKeyword_tab_scroll_arrow_forward = 646,
-        eCSSKeyword_tooltip = 647,
-        eCSSKeyword_spinner = 648,
-        eCSSKeyword_spinner_upbutton = 649,
-        eCSSKeyword_spinner_downbutton = 650,
-        eCSSKeyword_spinner_textfield = 651,
-        eCSSKeyword_scrollbarbutton_up = 652,
-        eCSSKeyword_scrollbarbutton_down = 653,
-        eCSSKeyword_scrollbarbutton_left = 654,
-        eCSSKeyword_scrollbarbutton_right = 655,
-        eCSSKeyword_scrollbartrack_horizontal = 656,
-        eCSSKeyword_scrollbartrack_vertical = 657,
-        eCSSKeyword_scrollbarthumb_horizontal = 658,
-        eCSSKeyword_scrollbarthumb_vertical = 659,
-        eCSSKeyword_sheet = 660,
-        eCSSKeyword_textfield = 661,
-        eCSSKeyword_textfield_multiline = 662,
-        eCSSKeyword_caret = 663,
-        eCSSKeyword_searchfield = 664,
-        eCSSKeyword_menubar = 665,
-        eCSSKeyword_menupopup = 666,
-        eCSSKeyword_menuitem = 667,
-        eCSSKeyword_checkmenuitem = 668,
-        eCSSKeyword_radiomenuitem = 669,
-        eCSSKeyword_menucheckbox = 670,
-        eCSSKeyword_menuradio = 671,
-        eCSSKeyword_menuseparator = 672,
-        eCSSKeyword_menuarrow = 673,
-        eCSSKeyword_menuimage = 674,
-        eCSSKeyword_menuitemtext = 675,
-        eCSSKeyword_menulist = 676,
-        eCSSKeyword_menulist_button = 677,
-        eCSSKeyword_menulist_text = 678,
-        eCSSKeyword_menulist_textfield = 679,
-        eCSSKeyword_meterbar = 680,
-        eCSSKeyword_meterchunk = 681,
-        eCSSKeyword_minimal_ui = 682,
-        eCSSKeyword_range = 683,
-        eCSSKeyword_range_thumb = 684,
-        eCSSKeyword_sans_serif = 685,
-        eCSSKeyword_sans_serif_bold_italic = 686,
-        eCSSKeyword_sans_serif_italic = 687,
-        eCSSKeyword_scale_horizontal = 688,
-        eCSSKeyword_scale_vertical = 689,
-        eCSSKeyword_scalethumb_horizontal = 690,
-        eCSSKeyword_scalethumb_vertical = 691,
-        eCSSKeyword_scalethumbstart = 692,
-        eCSSKeyword_scalethumbend = 693,
-        eCSSKeyword_scalethumbtick = 694,
-        eCSSKeyword_groupbox = 695,
-        eCSSKeyword_checkbox_container = 696,
-        eCSSKeyword_radio_container = 697,
-        eCSSKeyword_checkbox_label = 698,
-        eCSSKeyword_radio_label = 699,
-        eCSSKeyword_button_focus = 700,
-        eCSSKeyword__moz_win_media_toolbox = 701,
-        eCSSKeyword__moz_win_communications_toolbox = 702,
-        eCSSKeyword__moz_win_browsertabbar_toolbox = 703,
-        eCSSKeyword__moz_win_mediatext = 704,
-        eCSSKeyword__moz_win_communicationstext = 705,
-        eCSSKeyword__moz_win_glass = 706,
-        eCSSKeyword__moz_win_borderless_glass = 707,
-        eCSSKeyword__moz_window_titlebar = 708,
-        eCSSKeyword__moz_window_titlebar_maximized = 709,
-        eCSSKeyword__moz_window_frame_left = 710,
-        eCSSKeyword__moz_window_frame_right = 711,
-        eCSSKeyword__moz_window_frame_bottom = 712,
-        eCSSKeyword__moz_window_button_close = 713,
-        eCSSKeyword__moz_window_button_minimize = 714,
-        eCSSKeyword__moz_window_button_maximize = 715,
-        eCSSKeyword__moz_window_button_restore = 716,
-        eCSSKeyword__moz_window_button_box = 717,
-        eCSSKeyword__moz_window_button_box_maximized = 718,
-        eCSSKeyword__moz_mac_help_button = 719,
-        eCSSKeyword__moz_win_exclude_glass = 720,
-        eCSSKeyword__moz_mac_vibrancy_light = 721,
-        eCSSKeyword__moz_mac_vibrancy_dark = 722,
-        eCSSKeyword__moz_mac_disclosure_button_closed = 723,
-        eCSSKeyword__moz_mac_disclosure_button_open = 724,
-        eCSSKeyword__moz_mac_source_list = 725,
-        eCSSKeyword__moz_mac_source_list_selection = 726,
-        eCSSKeyword__moz_mac_active_source_list_selection = 727,
-        eCSSKeyword_alphabetic = 728,
-        eCSSKeyword_bevel = 729,
-        eCSSKeyword_butt = 730,
-        eCSSKeyword_central = 731,
-        eCSSKeyword_crispedges = 732,
-        eCSSKeyword_evenodd = 733,
-        eCSSKeyword_geometricprecision = 734,
-        eCSSKeyword_hanging = 735,
-        eCSSKeyword_ideographic = 736,
-        eCSSKeyword_linearrgb = 737,
-        eCSSKeyword_mathematical = 738,
-        eCSSKeyword_miter = 739,
-        eCSSKeyword_no_change = 740,
-        eCSSKeyword_non_scaling_stroke = 741,
-        eCSSKeyword_nonzero = 742,
-        eCSSKeyword_optimizelegibility = 743,
-        eCSSKeyword_optimizequality = 744,
-        eCSSKeyword_optimizespeed = 745,
-        eCSSKeyword_reset_size = 746,
-        eCSSKeyword_srgb = 747,
-        eCSSKeyword_symbolic = 748,
-        eCSSKeyword_symbols = 749,
-        eCSSKeyword_text_after_edge = 750,
-        eCSSKeyword_text_before_edge = 751,
-        eCSSKeyword_use_script = 752,
-        eCSSKeyword__moz_crisp_edges = 753,
-        eCSSKeyword_space = 754,
-        eCSSKeyword_COUNT = 755,
+        eCSSKeyword_distribute = 200,
+        eCSSKeyword_dot = 201,
+        eCSSKeyword_dotted = 202,
+        eCSSKeyword_double = 203,
+        eCSSKeyword_double_circle = 204,
+        eCSSKeyword_double_struck = 205,
+        eCSSKeyword_drag = 206,
+        eCSSKeyword_drop_shadow = 207,
+        eCSSKeyword_e_resize = 208,
+        eCSSKeyword_ease = 209,
+        eCSSKeyword_ease_in = 210,
+        eCSSKeyword_ease_in_out = 211,
+        eCSSKeyword_ease_out = 212,
+        eCSSKeyword_economy = 213,
+        eCSSKeyword_element = 214,
+        eCSSKeyword_elements = 215,
+        eCSSKeyword_ellipse = 216,
+        eCSSKeyword_ellipsis = 217,
+        eCSSKeyword_em = 218,
+        eCSSKeyword_embed = 219,
+        eCSSKeyword_enabled = 220,
+        eCSSKeyword_end = 221,
+        eCSSKeyword_ethiopic_numeric = 222,
+        eCSSKeyword_ex = 223,
+        eCSSKeyword_exact = 224,
+        eCSSKeyword_exclude = 225,
+        eCSSKeyword_exclusion = 226,
+        eCSSKeyword_expanded = 227,
+        eCSSKeyword_extends = 228,
+        eCSSKeyword_extra_condensed = 229,
+        eCSSKeyword_extra_expanded = 230,
+        eCSSKeyword_ew_resize = 231,
+        eCSSKeyword_fallback = 232,
+        eCSSKeyword_fantasy = 233,
+        eCSSKeyword_farthest_side = 234,
+        eCSSKeyword_farthest_corner = 235,
+        eCSSKeyword_fill = 236,
+        eCSSKeyword_filled = 237,
+        eCSSKeyword_fill_box = 238,
+        eCSSKeyword_first = 239,
+        eCSSKeyword_fit_content = 240,
+        eCSSKeyword_fixed = 241,
+        eCSSKeyword_flat = 242,
+        eCSSKeyword_flex = 243,
+        eCSSKeyword_flex_end = 244,
+        eCSSKeyword_flex_start = 245,
+        eCSSKeyword_flip = 246,
+        eCSSKeyword_flow_root = 247,
+        eCSSKeyword_forwards = 248,
+        eCSSKeyword_fraktur = 249,
+        eCSSKeyword_from_image = 250,
+        eCSSKeyword_full_width = 251,
+        eCSSKeyword_fullscreen = 252,
+        eCSSKeyword_grab = 253,
+        eCSSKeyword_grabbing = 254,
+        eCSSKeyword_grad = 255,
+        eCSSKeyword_grayscale = 256,
+        eCSSKeyword_graytext = 257,
+        eCSSKeyword_grid = 258,
+        eCSSKeyword_groove = 259,
+        eCSSKeyword_hard_light = 260,
+        eCSSKeyword_hebrew = 261,
+        eCSSKeyword_help = 262,
+        eCSSKeyword_hidden = 263,
+        eCSSKeyword_hide = 264,
+        eCSSKeyword_highlight = 265,
+        eCSSKeyword_highlighttext = 266,
+        eCSSKeyword_historical_forms = 267,
+        eCSSKeyword_historical_ligatures = 268,
+        eCSSKeyword_horizontal = 269,
+        eCSSKeyword_horizontal_tb = 270,
+        eCSSKeyword_hue = 271,
+        eCSSKeyword_hue_rotate = 272,
+        eCSSKeyword_hz = 273,
+        eCSSKeyword_icon = 274,
+        eCSSKeyword_ignore = 275,
+        eCSSKeyword_in = 276,
+        eCSSKeyword_interlace = 277,
+        eCSSKeyword_inactive = 278,
+        eCSSKeyword_inactiveborder = 279,
+        eCSSKeyword_inactivecaption = 280,
+        eCSSKeyword_inactivecaptiontext = 281,
+        eCSSKeyword_infinite = 282,
+        eCSSKeyword_infobackground = 283,
+        eCSSKeyword_infotext = 284,
+        eCSSKeyword_inherit = 285,
+        eCSSKeyword_initial = 286,
+        eCSSKeyword_inline = 287,
+        eCSSKeyword_inline_axis = 288,
+        eCSSKeyword_inline_block = 289,
+        eCSSKeyword_inline_end = 290,
+        eCSSKeyword_inline_flex = 291,
+        eCSSKeyword_inline_grid = 292,
+        eCSSKeyword_inline_start = 293,
+        eCSSKeyword_inline_table = 294,
+        eCSSKeyword_inset = 295,
+        eCSSKeyword_inside = 296,
+        eCSSKeyword_inter_character = 297,
+        eCSSKeyword_inter_word = 298,
+        eCSSKeyword_interpolatematrix = 299,
+        eCSSKeyword_accumulatematrix = 300,
+        eCSSKeyword_intersect = 301,
+        eCSSKeyword_isolate = 302,
+        eCSSKeyword_isolate_override = 303,
+        eCSSKeyword_invert = 304,
+        eCSSKeyword_italic = 305,
+        eCSSKeyword_japanese_formal = 306,
+        eCSSKeyword_japanese_informal = 307,
+        eCSSKeyword_jis78 = 308,
+        eCSSKeyword_jis83 = 309,
+        eCSSKeyword_jis90 = 310,
+        eCSSKeyword_jis04 = 311,
+        eCSSKeyword_justify = 312,
+        eCSSKeyword_keep_all = 313,
+        eCSSKeyword_khz = 314,
+        eCSSKeyword_korean_hangul_formal = 315,
+        eCSSKeyword_korean_hanja_formal = 316,
+        eCSSKeyword_korean_hanja_informal = 317,
+        eCSSKeyword_landscape = 318,
+        eCSSKeyword_large = 319,
+        eCSSKeyword_larger = 320,
+        eCSSKeyword_last = 321,
+        eCSSKeyword_last_baseline = 322,
+        eCSSKeyword_layout = 323,
+        eCSSKeyword_left = 324,
+        eCSSKeyword_legacy = 325,
+        eCSSKeyword_lighten = 326,
+        eCSSKeyword_lighter = 327,
+        eCSSKeyword_line_through = 328,
+        eCSSKeyword_linear = 329,
+        eCSSKeyword_lining_nums = 330,
+        eCSSKeyword_list_item = 331,
+        eCSSKeyword_local = 332,
+        eCSSKeyword_logical = 333,
+        eCSSKeyword_looped = 334,
+        eCSSKeyword_lowercase = 335,
+        eCSSKeyword_lr = 336,
+        eCSSKeyword_lr_tb = 337,
+        eCSSKeyword_ltr = 338,
+        eCSSKeyword_luminance = 339,
+        eCSSKeyword_luminosity = 340,
+        eCSSKeyword_mandatory = 341,
+        eCSSKeyword_manipulation = 342,
+        eCSSKeyword_manual = 343,
+        eCSSKeyword_margin_box = 344,
+        eCSSKeyword_markers = 345,
+        eCSSKeyword_match_parent = 346,
+        eCSSKeyword_match_source = 347,
+        eCSSKeyword_matrix = 348,
+        eCSSKeyword_matrix3d = 349,
+        eCSSKeyword_max_content = 350,
+        eCSSKeyword_medium = 351,
+        eCSSKeyword_menu = 352,
+        eCSSKeyword_menutext = 353,
+        eCSSKeyword_message_box = 354,
+        eCSSKeyword_middle = 355,
+        eCSSKeyword_min_content = 356,
+        eCSSKeyword_minmax = 357,
+        eCSSKeyword_mix = 358,
+        eCSSKeyword_mixed = 359,
+        eCSSKeyword_mm = 360,
+        eCSSKeyword_monospace = 361,
+        eCSSKeyword_move = 362,
+        eCSSKeyword_ms = 363,
+        eCSSKeyword_multiply = 364,
+        eCSSKeyword_n_resize = 365,
+        eCSSKeyword_narrower = 366,
+        eCSSKeyword_ne_resize = 367,
+        eCSSKeyword_nesw_resize = 368,
+        eCSSKeyword_no_clip = 369,
+        eCSSKeyword_no_close_quote = 370,
+        eCSSKeyword_no_common_ligatures = 371,
+        eCSSKeyword_no_contextual = 372,
+        eCSSKeyword_no_discretionary_ligatures = 373,
+        eCSSKeyword_no_drag = 374,
+        eCSSKeyword_no_drop = 375,
+        eCSSKeyword_no_historical_ligatures = 376,
+        eCSSKeyword_no_open_quote = 377,
+        eCSSKeyword_no_repeat = 378,
+        eCSSKeyword_none = 379,
+        eCSSKeyword_normal = 380,
+        eCSSKeyword_not_allowed = 381,
+        eCSSKeyword_nowrap = 382,
+        eCSSKeyword_numeric = 383,
+        eCSSKeyword_ns_resize = 384,
+        eCSSKeyword_nw_resize = 385,
+        eCSSKeyword_nwse_resize = 386,
+        eCSSKeyword_oblique = 387,
+        eCSSKeyword_oldstyle_nums = 388,
+        eCSSKeyword_opacity = 389,
+        eCSSKeyword_open = 390,
+        eCSSKeyword_open_quote = 391,
+        eCSSKeyword_optional = 392,
+        eCSSKeyword_ordinal = 393,
+        eCSSKeyword_ornaments = 394,
+        eCSSKeyword_outset = 395,
+        eCSSKeyword_outside = 396,
+        eCSSKeyword_over = 397,
+        eCSSKeyword_overlay = 398,
+        eCSSKeyword_overline = 399,
+        eCSSKeyword_paint = 400,
+        eCSSKeyword_padding_box = 401,
+        eCSSKeyword_painted = 402,
+        eCSSKeyword_pan_x = 403,
+        eCSSKeyword_pan_y = 404,
+        eCSSKeyword_paused = 405,
+        eCSSKeyword_pc = 406,
+        eCSSKeyword_perspective = 407,
+        eCSSKeyword_petite_caps = 408,
+        eCSSKeyword_physical = 409,
+        eCSSKeyword_plaintext = 410,
+        eCSSKeyword_pointer = 411,
+        eCSSKeyword_polygon = 412,
+        eCSSKeyword_portrait = 413,
+        eCSSKeyword_pre = 414,
+        eCSSKeyword_pre_wrap = 415,
+        eCSSKeyword_pre_line = 416,
+        eCSSKeyword_preserve_3d = 417,
+        eCSSKeyword_progress = 418,
+        eCSSKeyword_progressive = 419,
+        eCSSKeyword_proportional_nums = 420,
+        eCSSKeyword_proportional_width = 421,
+        eCSSKeyword_proximity = 422,
+        eCSSKeyword_pt = 423,
+        eCSSKeyword_px = 424,
+        eCSSKeyword_rad = 425,
+        eCSSKeyword_read_only = 426,
+        eCSSKeyword_read_write = 427,
+        eCSSKeyword_relative = 428,
+        eCSSKeyword_repeat = 429,
+        eCSSKeyword_repeat_x = 430,
+        eCSSKeyword_repeat_y = 431,
+        eCSSKeyword_reverse = 432,
+        eCSSKeyword_ridge = 433,
+        eCSSKeyword_right = 434,
+        eCSSKeyword_rl = 435,
+        eCSSKeyword_rl_tb = 436,
+        eCSSKeyword_rotate = 437,
+        eCSSKeyword_rotate3d = 438,
+        eCSSKeyword_rotatex = 439,
+        eCSSKeyword_rotatey = 440,
+        eCSSKeyword_rotatez = 441,
+        eCSSKeyword_round = 442,
+        eCSSKeyword_row = 443,
+        eCSSKeyword_row_resize = 444,
+        eCSSKeyword_row_reverse = 445,
+        eCSSKeyword_rtl = 446,
+        eCSSKeyword_ruby = 447,
+        eCSSKeyword_ruby_base = 448,
+        eCSSKeyword_ruby_base_container = 449,
+        eCSSKeyword_ruby_text = 450,
+        eCSSKeyword_ruby_text_container = 451,
+        eCSSKeyword_running = 452,
+        eCSSKeyword_s = 453,
+        eCSSKeyword_s_resize = 454,
+        eCSSKeyword_safe = 455,
+        eCSSKeyword_saturate = 456,
+        eCSSKeyword_saturation = 457,
+        eCSSKeyword_scale = 458,
+        eCSSKeyword_scale_down = 459,
+        eCSSKeyword_scale3d = 460,
+        eCSSKeyword_scalex = 461,
+        eCSSKeyword_scaley = 462,
+        eCSSKeyword_scalez = 463,
+        eCSSKeyword_screen = 464,
+        eCSSKeyword_script = 465,
+        eCSSKeyword_scroll = 466,
+        eCSSKeyword_scrollbar = 467,
+        eCSSKeyword_scrollbar_small = 468,
+        eCSSKeyword_scrollbar_horizontal = 469,
+        eCSSKeyword_scrollbar_vertical = 470,
+        eCSSKeyword_se_resize = 471,
+        eCSSKeyword_select_after = 472,
+        eCSSKeyword_select_all = 473,
+        eCSSKeyword_select_before = 474,
+        eCSSKeyword_select_menu = 475,
+        eCSSKeyword_select_same = 476,
+        eCSSKeyword_self_end = 477,
+        eCSSKeyword_self_start = 478,
+        eCSSKeyword_semi_condensed = 479,
+        eCSSKeyword_semi_expanded = 480,
+        eCSSKeyword_separate = 481,
+        eCSSKeyword_sepia = 482,
+        eCSSKeyword_serif = 483,
+        eCSSKeyword_sesame = 484,
+        eCSSKeyword_show = 485,
+        eCSSKeyword_sideways = 486,
+        eCSSKeyword_sideways_lr = 487,
+        eCSSKeyword_sideways_right = 488,
+        eCSSKeyword_sideways_rl = 489,
+        eCSSKeyword_simp_chinese_formal = 490,
+        eCSSKeyword_simp_chinese_informal = 491,
+        eCSSKeyword_simplified = 492,
+        eCSSKeyword_skew = 493,
+        eCSSKeyword_skewx = 494,
+        eCSSKeyword_skewy = 495,
+        eCSSKeyword_slashed_zero = 496,
+        eCSSKeyword_slice = 497,
+        eCSSKeyword_small = 498,
+        eCSSKeyword_small_caps = 499,
+        eCSSKeyword_small_caption = 500,
+        eCSSKeyword_smaller = 501,
+        eCSSKeyword_smooth = 502,
+        eCSSKeyword_soft = 503,
+        eCSSKeyword_soft_light = 504,
+        eCSSKeyword_solid = 505,
+        eCSSKeyword_space_around = 506,
+        eCSSKeyword_space_between = 507,
+        eCSSKeyword_space_evenly = 508,
+        eCSSKeyword_span = 509,
+        eCSSKeyword_spell_out = 510,
+        eCSSKeyword_square = 511,
+        eCSSKeyword_stacked_fractions = 512,
+        eCSSKeyword_start = 513,
+        eCSSKeyword_static = 514,
+        eCSSKeyword_standalone = 515,
+        eCSSKeyword_status_bar = 516,
+        eCSSKeyword_step_end = 517,
+        eCSSKeyword_step_start = 518,
+        eCSSKeyword_sticky = 519,
+        eCSSKeyword_stretch = 520,
+        eCSSKeyword_stretch_to_fit = 521,
+        eCSSKeyword_stretched = 522,
+        eCSSKeyword_strict = 523,
+        eCSSKeyword_stroke = 524,
+        eCSSKeyword_stroke_box = 525,
+        eCSSKeyword_style = 526,
+        eCSSKeyword_styleset = 527,
+        eCSSKeyword_stylistic = 528,
+        eCSSKeyword_sub = 529,
+        eCSSKeyword_subgrid = 530,
+        eCSSKeyword_subtract = 531,
+        eCSSKeyword_super = 532,
+        eCSSKeyword_sw_resize = 533,
+        eCSSKeyword_swash = 534,
+        eCSSKeyword_swap = 535,
+        eCSSKeyword_table = 536,
+        eCSSKeyword_table_caption = 537,
+        eCSSKeyword_table_cell = 538,
+        eCSSKeyword_table_column = 539,
+        eCSSKeyword_table_column_group = 540,
+        eCSSKeyword_table_footer_group = 541,
+        eCSSKeyword_table_header_group = 542,
+        eCSSKeyword_table_row = 543,
+        eCSSKeyword_table_row_group = 544,
+        eCSSKeyword_tabular_nums = 545,
+        eCSSKeyword_tailed = 546,
+        eCSSKeyword_tb = 547,
+        eCSSKeyword_tb_rl = 548,
+        eCSSKeyword_text = 549,
+        eCSSKeyword_text_bottom = 550,
+        eCSSKeyword_text_top = 551,
+        eCSSKeyword_thick = 552,
+        eCSSKeyword_thin = 553,
+        eCSSKeyword_threeddarkshadow = 554,
+        eCSSKeyword_threedface = 555,
+        eCSSKeyword_threedhighlight = 556,
+        eCSSKeyword_threedlightshadow = 557,
+        eCSSKeyword_threedshadow = 558,
+        eCSSKeyword_titling_caps = 559,
+        eCSSKeyword_toggle = 560,
+        eCSSKeyword_top = 561,
+        eCSSKeyword_top_outside = 562,
+        eCSSKeyword_trad_chinese_formal = 563,
+        eCSSKeyword_trad_chinese_informal = 564,
+        eCSSKeyword_traditional = 565,
+        eCSSKeyword_translate = 566,
+        eCSSKeyword_translate3d = 567,
+        eCSSKeyword_translatex = 568,
+        eCSSKeyword_translatey = 569,
+        eCSSKeyword_translatez = 570,
+        eCSSKeyword_transparent = 571,
+        eCSSKeyword_triangle = 572,
+        eCSSKeyword_tri_state = 573,
+        eCSSKeyword_ultra_condensed = 574,
+        eCSSKeyword_ultra_expanded = 575,
+        eCSSKeyword_under = 576,
+        eCSSKeyword_underline = 577,
+        eCSSKeyword_unicase = 578,
+        eCSSKeyword_unsafe = 579,
+        eCSSKeyword_unset = 580,
+        eCSSKeyword_uppercase = 581,
+        eCSSKeyword_upright = 582,
+        eCSSKeyword_vertical = 583,
+        eCSSKeyword_vertical_lr = 584,
+        eCSSKeyword_vertical_rl = 585,
+        eCSSKeyword_vertical_text = 586,
+        eCSSKeyword_view_box = 587,
+        eCSSKeyword_visible = 588,
+        eCSSKeyword_visiblefill = 589,
+        eCSSKeyword_visiblepainted = 590,
+        eCSSKeyword_visiblestroke = 591,
+        eCSSKeyword_w_resize = 592,
+        eCSSKeyword_wait = 593,
+        eCSSKeyword_wavy = 594,
+        eCSSKeyword_weight = 595,
+        eCSSKeyword_wider = 596,
+        eCSSKeyword_window = 597,
+        eCSSKeyword_windowframe = 598,
+        eCSSKeyword_windowtext = 599,
+        eCSSKeyword_words = 600,
+        eCSSKeyword_wrap = 601,
+        eCSSKeyword_wrap_reverse = 602,
+        eCSSKeyword_write_only = 603,
+        eCSSKeyword_x_large = 604,
+        eCSSKeyword_x_small = 605,
+        eCSSKeyword_xx_large = 606,
+        eCSSKeyword_xx_small = 607,
+        eCSSKeyword_zoom_in = 608,
+        eCSSKeyword_zoom_out = 609,
+        eCSSKeyword_radio = 610,
+        eCSSKeyword_checkbox = 611,
+        eCSSKeyword_button_bevel = 612,
+        eCSSKeyword_toolbox = 613,
+        eCSSKeyword_toolbar = 614,
+        eCSSKeyword_toolbarbutton = 615,
+        eCSSKeyword_toolbargripper = 616,
+        eCSSKeyword_dualbutton = 617,
+        eCSSKeyword_toolbarbutton_dropdown = 618,
+        eCSSKeyword_button_arrow_up = 619,
+        eCSSKeyword_button_arrow_down = 620,
+        eCSSKeyword_button_arrow_next = 621,
+        eCSSKeyword_button_arrow_previous = 622,
+        eCSSKeyword_separator = 623,
+        eCSSKeyword_splitter = 624,
+        eCSSKeyword_statusbar = 625,
+        eCSSKeyword_statusbarpanel = 626,
+        eCSSKeyword_resizerpanel = 627,
+        eCSSKeyword_resizer = 628,
+        eCSSKeyword_listbox = 629,
+        eCSSKeyword_listitem = 630,
+        eCSSKeyword_numbers = 631,
+        eCSSKeyword_number_input = 632,
+        eCSSKeyword_treeview = 633,
+        eCSSKeyword_treeitem = 634,
+        eCSSKeyword_treetwisty = 635,
+        eCSSKeyword_treetwistyopen = 636,
+        eCSSKeyword_treeline = 637,
+        eCSSKeyword_treeheader = 638,
+        eCSSKeyword_treeheadercell = 639,
+        eCSSKeyword_treeheadersortarrow = 640,
+        eCSSKeyword_progressbar = 641,
+        eCSSKeyword_progressbar_vertical = 642,
+        eCSSKeyword_progresschunk = 643,
+        eCSSKeyword_progresschunk_vertical = 644,
+        eCSSKeyword_tab = 645,
+        eCSSKeyword_tabpanels = 646,
+        eCSSKeyword_tabpanel = 647,
+        eCSSKeyword_tab_scroll_arrow_back = 648,
+        eCSSKeyword_tab_scroll_arrow_forward = 649,
+        eCSSKeyword_tooltip = 650,
+        eCSSKeyword_spinner = 651,
+        eCSSKeyword_spinner_upbutton = 652,
+        eCSSKeyword_spinner_downbutton = 653,
+        eCSSKeyword_spinner_textfield = 654,
+        eCSSKeyword_scrollbarbutton_up = 655,
+        eCSSKeyword_scrollbarbutton_down = 656,
+        eCSSKeyword_scrollbarbutton_left = 657,
+        eCSSKeyword_scrollbarbutton_right = 658,
+        eCSSKeyword_scrollbartrack_horizontal = 659,
+        eCSSKeyword_scrollbartrack_vertical = 660,
+        eCSSKeyword_scrollbarthumb_horizontal = 661,
+        eCSSKeyword_scrollbarthumb_vertical = 662,
+        eCSSKeyword_sheet = 663,
+        eCSSKeyword_textfield = 664,
+        eCSSKeyword_textfield_multiline = 665,
+        eCSSKeyword_caret = 666,
+        eCSSKeyword_searchfield = 667,
+        eCSSKeyword_menubar = 668,
+        eCSSKeyword_menupopup = 669,
+        eCSSKeyword_menuitem = 670,
+        eCSSKeyword_checkmenuitem = 671,
+        eCSSKeyword_radiomenuitem = 672,
+        eCSSKeyword_menucheckbox = 673,
+        eCSSKeyword_menuradio = 674,
+        eCSSKeyword_menuseparator = 675,
+        eCSSKeyword_menuarrow = 676,
+        eCSSKeyword_menuimage = 677,
+        eCSSKeyword_menuitemtext = 678,
+        eCSSKeyword_menulist = 679,
+        eCSSKeyword_menulist_button = 680,
+        eCSSKeyword_menulist_text = 681,
+        eCSSKeyword_menulist_textfield = 682,
+        eCSSKeyword_meterbar = 683,
+        eCSSKeyword_meterchunk = 684,
+        eCSSKeyword_minimal_ui = 685,
+        eCSSKeyword_range = 686,
+        eCSSKeyword_range_thumb = 687,
+        eCSSKeyword_sans_serif = 688,
+        eCSSKeyword_sans_serif_bold_italic = 689,
+        eCSSKeyword_sans_serif_italic = 690,
+        eCSSKeyword_scale_horizontal = 691,
+        eCSSKeyword_scale_vertical = 692,
+        eCSSKeyword_scalethumb_horizontal = 693,
+        eCSSKeyword_scalethumb_vertical = 694,
+        eCSSKeyword_scalethumbstart = 695,
+        eCSSKeyword_scalethumbend = 696,
+        eCSSKeyword_scalethumbtick = 697,
+        eCSSKeyword_groupbox = 698,
+        eCSSKeyword_checkbox_container = 699,
+        eCSSKeyword_radio_container = 700,
+        eCSSKeyword_checkbox_label = 701,
+        eCSSKeyword_radio_label = 702,
+        eCSSKeyword_button_focus = 703,
+        eCSSKeyword__moz_win_media_toolbox = 704,
+        eCSSKeyword__moz_win_communications_toolbox = 705,
+        eCSSKeyword__moz_win_browsertabbar_toolbox = 706,
+        eCSSKeyword__moz_win_mediatext = 707,
+        eCSSKeyword__moz_win_communicationstext = 708,
+        eCSSKeyword__moz_win_glass = 709,
+        eCSSKeyword__moz_win_borderless_glass = 710,
+        eCSSKeyword__moz_window_titlebar = 711,
+        eCSSKeyword__moz_window_titlebar_maximized = 712,
+        eCSSKeyword__moz_window_frame_left = 713,
+        eCSSKeyword__moz_window_frame_right = 714,
+        eCSSKeyword__moz_window_frame_bottom = 715,
+        eCSSKeyword__moz_window_button_close = 716,
+        eCSSKeyword__moz_window_button_minimize = 717,
+        eCSSKeyword__moz_window_button_maximize = 718,
+        eCSSKeyword__moz_window_button_restore = 719,
+        eCSSKeyword__moz_window_button_box = 720,
+        eCSSKeyword__moz_window_button_box_maximized = 721,
+        eCSSKeyword__moz_mac_help_button = 722,
+        eCSSKeyword__moz_win_exclude_glass = 723,
+        eCSSKeyword__moz_mac_vibrancy_light = 724,
+        eCSSKeyword__moz_mac_vibrancy_dark = 725,
+        eCSSKeyword__moz_mac_disclosure_button_closed = 726,
+        eCSSKeyword__moz_mac_disclosure_button_open = 727,
+        eCSSKeyword__moz_mac_source_list = 728,
+        eCSSKeyword__moz_mac_source_list_selection = 729,
+        eCSSKeyword__moz_mac_active_source_list_selection = 730,
+        eCSSKeyword_alphabetic = 731,
+        eCSSKeyword_bevel = 732,
+        eCSSKeyword_butt = 733,
+        eCSSKeyword_central = 734,
+        eCSSKeyword_crispedges = 735,
+        eCSSKeyword_evenodd = 736,
+        eCSSKeyword_geometricprecision = 737,
+        eCSSKeyword_hanging = 738,
+        eCSSKeyword_ideographic = 739,
+        eCSSKeyword_linearrgb = 740,
+        eCSSKeyword_mathematical = 741,
+        eCSSKeyword_miter = 742,
+        eCSSKeyword_no_change = 743,
+        eCSSKeyword_non_scaling_stroke = 744,
+        eCSSKeyword_nonzero = 745,
+        eCSSKeyword_optimizelegibility = 746,
+        eCSSKeyword_optimizequality = 747,
+        eCSSKeyword_optimizespeed = 748,
+        eCSSKeyword_reset_size = 749,
+        eCSSKeyword_srgb = 750,
+        eCSSKeyword_symbolic = 751,
+        eCSSKeyword_symbols = 752,
+        eCSSKeyword_text_after_edge = 753,
+        eCSSKeyword_text_before_edge = 754,
+        eCSSKeyword_use_script = 755,
+        eCSSKeyword__moz_crisp_edges = 756,
+        eCSSKeyword_space = 757,
+        eCSSKeyword_COUNT = 758,
     }
     pub const nsStyleStructID_nsStyleStructID_DUMMY1: root::nsStyleStructID =
         nsStyleStructID::nsStyleStructID_None;
@@ -17256,29 +17257,29 @@ pub mod root {
     extern "C" {
         #[link_name = "_ZN10nsCSSProps9kSIDTableE"]
         pub static mut nsCSSProps_kSIDTable:
-                   [root::nsStyleStructID; 316usize];
+                   [root::nsStyleStructID; 318usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kKeywordTableTableE"]
         pub static mut nsCSSProps_kKeywordTableTable:
-                   [*const root::nsCSSProps_KTableEntry; 316usize];
+                   [*const root::nsCSSProps_KTableEntry; 318usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps14kAnimTypeTableE"]
         pub static mut nsCSSProps_kAnimTypeTable:
-                   [root::nsStyleAnimType; 316usize];
+                   [root::nsStyleAnimType; 318usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps23kStyleStructOffsetTableE"]
-        pub static mut nsCSSProps_kStyleStructOffsetTable: [isize; 316usize];
+        pub static mut nsCSSProps_kStyleStructOffsetTable: [isize; 318usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps11kFlagsTableE"]
-        pub static mut nsCSSProps_kFlagsTable: [u32; 364usize];
+        pub static mut nsCSSProps_kFlagsTable: [u32; 366usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kParserVariantTableE"]
-        pub static mut nsCSSProps_kParserVariantTable: [u32; 316usize];
+        pub static mut nsCSSProps_kParserVariantTable: [u32; 318usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kSubpropertyTableE"]
@@ -17288,7 +17289,7 @@ pub mod root {
     extern "C" {
         #[link_name = "_ZN10nsCSSProps26gShorthandsContainingTableE"]
         pub static mut nsCSSProps_gShorthandsContainingTable:
-                   [*mut root::nsCSSPropertyID; 316usize];
+                   [*mut root::nsCSSPropertyID; 318usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25gShorthandsContainingPoolE"]
@@ -17301,7 +17302,7 @@ pub mod root {
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps22gPropertyIndexInStructE"]
-        pub static mut nsCSSProps_gPropertyIndexInStruct: [usize; 316usize];
+        pub static mut nsCSSProps_gPropertyIndexInStruct: [usize; 318usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps18kLogicalGroupTableE"]
@@ -17310,21 +17311,21 @@ pub mod root {
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps16gPropertyEnabledE"]
-        pub static mut nsCSSProps_gPropertyEnabled: [bool; 472usize];
+        pub static mut nsCSSProps_gPropertyEnabled: [bool; 474usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps13kIDLNameTableE"]
         pub static mut nsCSSProps_kIDLNameTable:
-                   [*const ::std::os::raw::c_char; 364usize];
+                   [*const ::std::os::raw::c_char; 366usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kIDLNameSortPositionTableE"]
-        pub static mut nsCSSProps_kIDLNameSortPositionTable: [i32; 364usize];
+        pub static mut nsCSSProps_kIDLNameSortPositionTable: [i32; 366usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19gPropertyUseCounterE"]
         pub static mut nsCSSProps_gPropertyUseCounter:
-                   [root::mozilla::UseCounter; 316usize];
+                   [root::mozilla::UseCounter; 318usize];
     }
     extern "C" {
         #[link_name = "_ZN10nsCSSProps25kAnimationDirectionKTableE"]
@@ -17584,6 +17585,11 @@ pub mod root {
     extern "C" {
         #[link_name = "_ZN10nsCSSProps17kColumnFillKTableE"]
         pub static mut nsCSSProps_kColumnFillKTable:
+                   [root::nsCSSProps_KTableEntry; 0usize];
+    }
+    extern "C" {
+        #[link_name = "_ZN10nsCSSProps17kColumnSpanKTableE"]
+        pub static mut nsCSSProps_kColumnSpanKTable:
                    [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
@@ -18087,6 +18093,11 @@ pub mod root {
                    [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
+        #[link_name = "_ZN10nsCSSProps18kTextJustifyKTableE"]
+        pub static mut nsCSSProps_kTextJustifyKTable:
+                   [root::nsCSSProps_KTableEntry; 0usize];
+    }
+    extern "C" {
         #[link_name = "_ZN10nsCSSProps22kTextOrientationKTableE"]
         pub static mut nsCSSProps_kTextOrientationKTable:
                    [root::nsCSSProps_KTableEntry; 0usize];
@@ -18094,6 +18105,11 @@ pub mod root {
     extern "C" {
         #[link_name = "_ZN10nsCSSProps19kTextOverflowKTableE"]
         pub static mut nsCSSProps_kTextOverflowKTable:
+                   [root::nsCSSProps_KTableEntry; 0usize];
+    }
+    extern "C" {
+        #[link_name = "_ZN10nsCSSProps21kTextSizeAdjustKTableE"]
+        pub static mut nsCSSProps_kTextSizeAdjustKTable:
                    [root::nsCSSProps_KTableEntry; 0usize];
     }
     extern "C" {
@@ -21010,6 +21026,7 @@ pub mod root {
         NS_FRAME_HAS_INVALID_RECT = 4503599627370496,
         NS_FRAME_IS_NONDISPLAY = 9007199254740992,
         NS_FRAME_HAS_LAYER_ACTIVITY_PROPERTY = 18014398509481984,
+        NS_FRAME_OWNS_ANON_BOXES = 36028797018963968,
         NS_FRAME_MATHML_SCRIPT_DESCENDANT = 288230376151711744,
         NS_FRAME_IS_IN_SINGLE_CHAR_MI = 576460752303423488,
         NS_STATE_BOX_CHILD_RESERVED = 1048576,
@@ -21055,7 +21072,10 @@ pub mod root {
     pub struct nsCSSFrameConstructor([u8; 0]);
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
-    pub struct nsWeakFrame([u8; 0]);
+    pub struct AutoWeakFrame([u8; 0]);
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct WeakFrame([u8; 0]);
     /**
  * Interface for frames that are scrollable. This interface exposes
  * APIs for examining scroll state, observing changes to scroll state,
@@ -21745,7 +21765,7 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_nsRootPresContext() {
-        assert_eq!(::std::mem::size_of::<nsRootPresContext>() , 1520usize ,
+        assert_eq!(::std::mem::size_of::<nsRootPresContext>() , 1528usize ,
                    concat ! ( "Size of: " , stringify ! ( nsRootPresContext )
                    ));
         assert_eq! (::std::mem::align_of::<nsRootPresContext>() , 8usize ,
@@ -21753,37 +21773,37 @@ pub mod root {
                     "Alignment of " , stringify ! ( nsRootPresContext ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
-                    mNotifyDidPaintTimers as * const _ as usize } , 1360usize
+                    mNotifyDidPaintTimers as * const _ as usize } , 1368usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mNotifyDidPaintTimers ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
                     mApplyPluginGeometryTimer as * const _ as usize } ,
-                    1440usize , concat ! (
+                    1448usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mApplyPluginGeometryTimer ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
-                    mRegisteredPlugins as * const _ as usize } , 1448usize ,
+                    mRegisteredPlugins as * const _ as usize } , 1456usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mRegisteredPlugins ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
-                    mWillPaintObservers as * const _ as usize } , 1496usize ,
+                    mWillPaintObservers as * const _ as usize } , 1504usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mWillPaintObservers ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
                     mWillPaintFallbackEvent as * const _ as usize } ,
-                    1504usize , concat ! (
+                    1512usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mWillPaintFallbackEvent ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsRootPresContext ) ) .
-                    mDOMGeneration as * const _ as usize } , 1512usize ,
+                    mDOMGeneration as * const _ as usize } , 1520usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsRootPresContext )
                     , "::" , stringify ! ( mDOMGeneration ) ));
@@ -23875,6 +23895,7 @@ pub mod root {
         pub mTextAlign: u8,
         pub mTextAlignLast: u8,
         pub _bitfield_1: u8,
+        pub mTextJustify: root::mozilla::StyleTextJustify,
         pub mTextTransform: u8,
         pub mWhiteSpace: u8,
         pub mWordBreak: u8,
@@ -23902,7 +23923,7 @@ pub mod root {
     }
     #[test]
     fn bindgen_test_layout_nsStyleText() {
-        assert_eq!(::std::mem::size_of::<nsStyleText>() , 152usize , concat !
+        assert_eq!(::std::mem::size_of::<nsStyleText>() , 160usize , concat !
                    ( "Size of: " , stringify ! ( nsStyleText ) ));
         assert_eq! (::std::mem::align_of::<nsStyleText>() , 8usize , concat !
                     ( "Alignment of " , stringify ! ( nsStyleText ) ));
@@ -23917,129 +23938,134 @@ pub mod root {
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextAlignLast ) ));
         assert_eq! (unsafe {
-                    & ( * ( 0 as * const nsStyleText ) ) . mTextTransform as *
+                    & ( * ( 0 as * const nsStyleText ) ) . mTextJustify as *
                     const _ as usize } , 3usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleText ) ,
+                    "::" , stringify ! ( mTextJustify ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleText ) ) . mTextTransform as *
+                    const _ as usize } , 4usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextTransform ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mWhiteSpace as *
-                    const _ as usize } , 4usize , concat ! (
+                    const _ as usize } , 5usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mWhiteSpace ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mWordBreak as *
-                    const _ as usize } , 5usize , concat ! (
+                    const _ as usize } , 6usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mWordBreak ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mOverflowWrap as *
-                    const _ as usize } , 6usize , concat ! (
+                    const _ as usize } , 7usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mOverflowWrap ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mHyphens as * const
-                    _ as usize } , 7usize , concat ! (
+                    _ as usize } , 8usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mHyphens ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mRubyAlign as *
-                    const _ as usize } , 8usize , concat ! (
+                    const _ as usize } , 9usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mRubyAlign ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mRubyPosition as *
-                    const _ as usize } , 9usize , concat ! (
+                    const _ as usize } , 10usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mRubyPosition ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mTextSizeAdjust as
-                    * const _ as usize } , 10usize , concat ! (
+                    * const _ as usize } , 11usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextSizeAdjust ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mTextCombineUpright
-                    as * const _ as usize } , 11usize , concat ! (
+                    as * const _ as usize } , 12usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextCombineUpright ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) .
                     mControlCharacterVisibility as * const _ as usize } ,
-                    12usize , concat ! (
+                    13usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mControlCharacterVisibility ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) .
-                    mTextEmphasisPosition as * const _ as usize } , 13usize ,
+                    mTextEmphasisPosition as * const _ as usize } , 14usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextEmphasisPosition ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mTextEmphasisStyle
-                    as * const _ as usize } , 14usize , concat ! (
+                    as * const _ as usize } , 15usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextEmphasisStyle ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mTextRendering as *
-                    const _ as usize } , 15usize , concat ! (
+                    const _ as usize } , 16usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextRendering ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mTextEmphasisColor
-                    as * const _ as usize } , 16usize , concat ! (
+                    as * const _ as usize } , 20usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextEmphasisColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) .
-                    mWebkitTextFillColor as * const _ as usize } , 24usize ,
+                    mWebkitTextFillColor as * const _ as usize } , 28usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mWebkitTextFillColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) .
-                    mWebkitTextStrokeColor as * const _ as usize } , 32usize ,
+                    mWebkitTextStrokeColor as * const _ as usize } , 36usize ,
                     concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mWebkitTextStrokeColor ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mTabSize as * const
-                    _ as usize } , 40usize , concat ! (
+                    _ as usize } , 48usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTabSize ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mWordSpacing as *
-                    const _ as usize } , 56usize , concat ! (
+                    const _ as usize } , 64usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mWordSpacing ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mLetterSpacing as *
-                    const _ as usize } , 72usize , concat ! (
+                    const _ as usize } , 80usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mLetterSpacing ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mLineHeight as *
-                    const _ as usize } , 88usize , concat ! (
+                    const _ as usize } , 96usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mLineHeight ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mTextIndent as *
-                    const _ as usize } , 104usize , concat ! (
+                    const _ as usize } , 112usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextIndent ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) .
-                    mWebkitTextStrokeWidth as * const _ as usize } , 120usize
+                    mWebkitTextStrokeWidth as * const _ as usize } , 128usize
                     , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mWebkitTextStrokeWidth ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) . mTextShadow as *
-                    const _ as usize } , 128usize , concat ! (
+                    const _ as usize } , 136usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextShadow ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleText ) ) .
                     mTextEmphasisStyleString as * const _ as usize } ,
-                    136usize , concat ! (
+                    144usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleText ) ,
                     "::" , stringify ! ( mTextEmphasisStyleString ) ));
     }
@@ -24634,6 +24660,7 @@ pub mod root {
         pub mColumnRuleColor: root::mozilla::StyleComplexColor,
         pub mColumnRuleStyle: u8,
         pub mColumnFill: u8,
+        pub mColumnSpan: u8,
         pub mColumnRuleWidth: root::nscoord,
         pub mTwipsPerPixel: root::nscoord,
     }
@@ -24674,6 +24701,11 @@ pub mod root {
                     const _ as usize } , 49usize , concat ! (
                     "Alignment of field: " , stringify ! ( nsStyleColumn ) ,
                     "::" , stringify ! ( mColumnFill ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const nsStyleColumn ) ) . mColumnSpan as *
+                    const _ as usize } , 50usize , concat ! (
+                    "Alignment of field: " , stringify ! ( nsStyleColumn ) ,
+                    "::" , stringify ! ( mColumnSpan ) ));
         assert_eq! (unsafe {
                     & ( * ( 0 as * const nsStyleColumn ) ) . mColumnRuleWidth
                     as * const _ as usize } , 52usize , concat ! (
@@ -25277,6 +25309,17 @@ pub mod root {
     #[derive(Debug)]
     pub struct nsTArray<T> {
         pub mBuffer: *mut T,
+    }
+    /**
+ * <div rustbindgen replaces="nsCOMArray"></div>
+ *
+ * mozilla::ArrayIterator doesn't work well with bindgen.
+ */
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct nsCOMArray<T> {
+        pub mBuffer: root::nsTArray<*mut root::nsISupports>,
+        pub _phantom_0: ::std::marker::PhantomData<T>,
     }
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
@@ -26060,14 +26103,14 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_15() {
-        assert_eq!(::std::mem::size_of::<root::JS::Heap<*mut root::JSScript>>()
-                   , 8usize , concat ! (
+        assert_eq!(::std::mem::size_of::<root::JS::Heap<root::JS::Value>>() ,
+                   8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
-                   root::JS::Heap<*mut root::JSScript> ) ));
-        assert_eq!(::std::mem::align_of::<root::JS::Heap<*mut root::JSScript>>()
-                   , 8usize , concat ! (
+                   root::JS::Heap<root::JS::Value> ) ));
+        assert_eq!(::std::mem::align_of::<root::JS::Heap<root::JS::Value>>() ,
+                   8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
-                   root::JS::Heap<*mut root::JSScript> ) ));
+                   root::JS::Heap<root::JS::Value> ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_16() {
@@ -26198,17 +26241,6 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_27() {
-        assert_eq!(::std::mem::size_of::<root::JS::Heap<root::JS::Value>>() ,
-                   8usize , concat ! (
-                   "Size of template specialization: " , stringify ! (
-                   root::JS::Heap<root::JS::Value> ) ));
-        assert_eq!(::std::mem::align_of::<root::JS::Heap<root::JS::Value>>() ,
-                   8usize , concat ! (
-                   "Alignment of template specialization: " , stringify ! (
-                   root::JS::Heap<root::JS::Value> ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_28() {
         assert_eq!(::std::mem::size_of::<root::JS::DeletePolicy<root::JSErrorNotes_Note>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26219,7 +26251,7 @@ pub mod root {
                    root::JS::DeletePolicy<root::JSErrorNotes_Note> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_29() {
+    fn __bindgen_test_layout_template_28() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::JSErrorNotes_Note,
                                                root::JS::DeletePolicy<root::JSErrorNotes_Note>>>()
                    , 8usize , concat ! (
@@ -26236,7 +26268,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_30() {
+    fn __bindgen_test_layout_template_29() {
         assert_eq!(::std::mem::size_of::<root::std::iterator<root::std::input_iterator_tag,
                                           root::mozilla::UniquePtr<root::JSErrorNotes_Note,
                                                                    root::JS::DeletePolicy<root::JSErrorNotes_Note>>,
@@ -26277,7 +26309,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_31() {
+    fn __bindgen_test_layout_template_30() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26288,7 +26320,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIRunnable> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_32() {
+    fn __bindgen_test_layout_template_31() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIPrincipal>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26299,7 +26331,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIPrincipal> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_33() {
+    fn __bindgen_test_layout_template_32() {
         assert_eq!(::std::mem::size_of::<[u64; 29usize]>() , 232usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -26310,7 +26342,7 @@ pub mod root {
                    [u64; 29usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_34() {
+    fn __bindgen_test_layout_template_33() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIURI>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26321,7 +26353,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_35() {
+    fn __bindgen_test_layout_template_34() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::AnonymousContent>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26334,7 +26366,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_36() {
+    fn __bindgen_test_layout_template_35() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::StyleSheet>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26345,7 +26377,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::StyleSheet> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_37() {
+    fn __bindgen_test_layout_template_36() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::Element>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26356,7 +26388,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::Element> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_38() {
+    fn __bindgen_test_layout_template_37() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::Element>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26369,7 +26401,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_39() {
+    fn __bindgen_test_layout_template_38() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIObserver>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26380,7 +26412,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIObserver> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_40() {
+    fn __bindgen_test_layout_template_39() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsCOMPtr<root::nsIObserver>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26391,7 +26423,7 @@ pub mod root {
                    root::nsTArray<root::nsCOMPtr<root::nsIObserver>> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_41() {
+    fn __bindgen_test_layout_template_40() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIDocument>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26402,7 +26434,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIDocument> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_42() {
+    fn __bindgen_test_layout_template_41() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsContentList>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26413,7 +26445,7 @@ pub mod root {
                    root::already_AddRefed<root::nsContentList> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_43() {
+    fn __bindgen_test_layout_template_42() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsINode>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26424,7 +26456,7 @@ pub mod root {
                    root::already_AddRefed<root::nsINode> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_44() {
+    fn __bindgen_test_layout_template_43() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIWeakReference>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26435,7 +26467,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIWeakReference> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_45() {
+    fn __bindgen_test_layout_template_44() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -26444,7 +26476,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_46() {
+    fn __bindgen_test_layout_template_45() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::nsRect>>() ,
                    8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26455,7 +26487,7 @@ pub mod root {
                    root::nsTArray<root::nsRect> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_47() {
+    fn __bindgen_test_layout_template_46() {
         assert_eq!(::std::mem::size_of::<[u64; 29usize]>() , 232usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -26466,7 +26498,7 @@ pub mod root {
                    [u64; 29usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_48() {
+    fn __bindgen_test_layout_template_47() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::mozilla::dom::NodeInfo>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26477,7 +26509,7 @@ pub mod root {
                    root::already_AddRefed<root::mozilla::dom::NodeInfo> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_49() {
+    fn __bindgen_test_layout_template_48() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26488,7 +26520,7 @@ pub mod root {
                    root::nsTArray<*mut root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_50() {
+    fn __bindgen_test_layout_template_49() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -26499,7 +26531,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_51() {
+    fn __bindgen_test_layout_template_50() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::mozilla::dom::TimeoutManager>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26512,7 +26544,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_52() {
+    fn __bindgen_test_layout_template_51() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsISupports>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26523,7 +26555,7 @@ pub mod root {
                    root::already_AddRefed<root::nsISupports> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_53() {
+    fn __bindgen_test_layout_template_52() {
         assert_eq!(::std::mem::size_of::<root::nsCOMPtr<root::nsIRunnable>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26534,7 +26566,7 @@ pub mod root {
                    root::nsCOMPtr<root::nsIRunnable> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_54() {
+    fn __bindgen_test_layout_template_53() {
         assert_eq!(::std::mem::size_of::<root::nsAutoPtr<root::nsMediaQuery>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26545,7 +26577,7 @@ pub mod root {
                    root::nsAutoPtr<root::nsMediaQuery> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_55() {
+    fn __bindgen_test_layout_template_54() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsIContent>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26556,7 +26588,7 @@ pub mod root {
                    root::already_AddRefed<root::nsIContent> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_56() {
+    fn __bindgen_test_layout_template_55() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -26567,7 +26599,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_57() {
+    fn __bindgen_test_layout_template_56() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::nsINode>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26576,6 +26608,17 @@ pub mod root {
                    , 8usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    root::mozilla::OwningNonNull<root::nsINode> ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_57() {
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_58() {
@@ -26601,17 +26644,6 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_60() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_61() {
         assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -26620,6 +26652,17 @@ pub mod root {
                    (
                    "Alignment of template specialization: " , stringify ! (
                    [u32; 4usize] ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_61() {
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_62() {
@@ -26634,14 +26677,14 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_63() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
+        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
+                   [u32; 4usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
                    (
                    "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
+                   [u32; 4usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_64() {
@@ -26667,23 +26710,23 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_66() {
-        assert_eq!(::std::mem::size_of::<[u32; 4usize]>() , 16usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 4usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 4usize] ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_67() {
         assert_eq!(::std::mem::size_of::<u32>() , 4usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u32 )
                    ));
         assert_eq!(::std::mem::align_of::<u32>() , 4usize , concat ! (
                    "Alignment of template specialization: " , stringify ! (
                    u32 ) ));
+    }
+    #[test]
+    fn __bindgen_test_layout_template_67() {
+        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
+                   (
+                   "Size of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
+        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
+                   (
+                   "Alignment of template specialization: " , stringify ! (
+                   [u32; 2usize] ) ));
     }
     #[test]
     fn __bindgen_test_layout_template_68() {
@@ -26709,17 +26752,6 @@ pub mod root {
     }
     #[test]
     fn __bindgen_test_layout_template_70() {
-        assert_eq!(::std::mem::size_of::<[u32; 2usize]>() , 8usize , concat !
-                   (
-                   "Size of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-        assert_eq!(::std::mem::align_of::<[u32; 2usize]>() , 4usize , concat !
-                   (
-                   "Alignment of template specialization: " , stringify ! (
-                   [u32; 2usize] ) ));
-    }
-    #[test]
-    fn __bindgen_test_layout_template_71() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<f64>>() , 8usize ,
                    concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26730,7 +26762,7 @@ pub mod root {
                    root::nsTArray<f64> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_72() {
+    fn __bindgen_test_layout_template_71() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26743,7 +26775,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_73() {
+    fn __bindgen_test_layout_template_72() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::RefPtr<root::mozilla::dom::DOMIntersectionObserverEntry>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26756,7 +26788,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_74() {
+    fn __bindgen_test_layout_template_73() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::FontFamilyName>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26767,7 +26799,7 @@ pub mod root {
                    root::nsTArray<root::mozilla::FontFamilyName> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_75() {
+    fn __bindgen_test_layout_template_74() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<::std::os::raw::c_uint>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26778,7 +26810,7 @@ pub mod root {
                    root::nsTArray<::std::os::raw::c_uint> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_76() {
+    fn __bindgen_test_layout_template_75() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::ProxyBehaviour>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26789,7 +26821,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::ProxyBehaviour> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_77() {
+    fn __bindgen_test_layout_template_76() {
         assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIURI>>()
                    , 24usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26800,7 +26832,7 @@ pub mod root {
                    root::nsMainThreadPtrHolder<root::nsIURI> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_78() {
+    fn __bindgen_test_layout_template_77() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsMainThreadPtrHolder<root::nsIURI>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26813,7 +26845,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_79() {
+    fn __bindgen_test_layout_template_78() {
         assert_eq!(::std::mem::size_of::<root::nsMainThreadPtrHolder<root::nsIPrincipal>>()
                    , 24usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26824,7 +26856,7 @@ pub mod root {
                    root::nsMainThreadPtrHolder<root::nsIPrincipal> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_80() {
+    fn __bindgen_test_layout_template_79() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsMainThreadPtrHolder<root::nsIPrincipal>>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26837,7 +26869,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_81() {
+    fn __bindgen_test_layout_template_80() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsCSSValueList>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26848,7 +26880,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::nsCSSValueList> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_82() {
+    fn __bindgen_test_layout_template_81() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValueList,
                                                root::mozilla::DefaultDelete<root::nsCSSValueList>>>()
                    , 8usize , concat ! (
@@ -26865,7 +26897,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_83() {
+    fn __bindgen_test_layout_template_82() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsCSSValuePairList>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26878,7 +26910,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_84() {
+    fn __bindgen_test_layout_template_83() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsCSSValuePairList,
                                                root::mozilla::DefaultDelete<root::nsCSSValuePairList>>>()
                    , 8usize , concat ! (
@@ -26895,7 +26927,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_85() {
+    fn __bindgen_test_layout_template_84() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::FramePropertyTable_PropertyValue>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26908,7 +26940,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_86() {
+    fn __bindgen_test_layout_template_85() {
         assert_eq!(::std::mem::size_of::<root::nsPtrHashKey<root::nsIFrame>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26919,7 +26951,7 @@ pub mod root {
                    root::nsPtrHashKey<root::nsIFrame> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_87() {
+    fn __bindgen_test_layout_template_86() {
         assert_eq!(::std::mem::size_of::<[u64; 6usize]>() , 48usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -26930,7 +26962,7 @@ pub mod root {
                    [u64; 6usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_88() {
+    fn __bindgen_test_layout_template_87() {
         assert_eq!(::std::mem::size_of::<root::mozilla::OwningNonNull<root::mozilla::EffectCompositor_AnimationStyleRuleProcessor>>()
                    , 16usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26943,7 +26975,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_89() {
+    fn __bindgen_test_layout_template_88() {
         assert_eq!(::std::mem::size_of::<[u64; 2usize]>() , 16usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -26954,7 +26986,7 @@ pub mod root {
                    [u64; 2usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_90() {
+    fn __bindgen_test_layout_template_89() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -26963,7 +26995,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_91() {
+    fn __bindgen_test_layout_template_90() {
         assert_eq!(::std::mem::size_of::<[u32; 3usize]>() , 12usize , concat !
                    (
                    "Size of template specialization: " , stringify ! (
@@ -26974,7 +27006,7 @@ pub mod root {
                    [u32; 3usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_92() {
+    fn __bindgen_test_layout_template_91() {
         assert_eq!(::std::mem::size_of::<root::already_AddRefed<root::nsStyleImageRequest>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26985,7 +27017,7 @@ pub mod root {
                    root::already_AddRefed<root::nsStyleImageRequest> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_93() {
+    fn __bindgen_test_layout_template_92() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::nsStyleSides>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -26996,7 +27028,7 @@ pub mod root {
                    root::mozilla::DefaultDelete<root::nsStyleSides> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_94() {
+    fn __bindgen_test_layout_template_93() {
         assert_eq!(::std::mem::size_of::<root::mozilla::UniquePtr<root::nsStyleSides,
                                                root::mozilla::DefaultDelete<root::nsStyleSides>>>()
                    , 8usize , concat ! (
@@ -27013,7 +27045,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_95() {
+    fn __bindgen_test_layout_template_94() {
         assert_eq!(::std::mem::size_of::<root::mozilla::DefaultDelete<root::CachedBorderImageData>>()
                    , 1usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27026,7 +27058,7 @@ pub mod root {
                    ));
     }
     #[test]
-    fn __bindgen_test_layout_template_96() {
+    fn __bindgen_test_layout_template_95() {
         assert_eq!(::std::mem::size_of::<root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr>>()
                    , 32usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27037,7 +27069,7 @@ pub mod root {
                    root::std::pair<::nsstring::nsStringRepr, ::nsstring::nsStringRepr> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_97() {
+    fn __bindgen_test_layout_template_96() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::std::pair<::nsstring::nsStringRepr,
                                                      ::nsstring::nsStringRepr>>>()
                    , 8usize , concat ! (
@@ -27052,7 +27084,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_98() {
+    fn __bindgen_test_layout_template_97() {
         assert_eq!(::std::mem::size_of::<[u64; 18usize]>() , 144usize , concat
                    ! (
                    "Size of template specialization: " , stringify ! (
@@ -27063,7 +27095,7 @@ pub mod root {
                    [u64; 18usize] ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_99() {
+    fn __bindgen_test_layout_template_98() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<root::mozilla::DisplayItemClip_RoundedRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27076,7 +27108,7 @@ pub mod root {
                    ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_100() {
+    fn __bindgen_test_layout_template_99() {
         assert_eq!(::std::mem::size_of::<root::RefPtr<root::mozilla::dom::DOMRect>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
@@ -27087,7 +27119,7 @@ pub mod root {
                    root::RefPtr<root::mozilla::dom::DOMRect> ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_101() {
+    fn __bindgen_test_layout_template_100() {
         assert_eq!(::std::mem::size_of::<u64>() , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! ( u64 )
                    ));
@@ -27096,7 +27128,7 @@ pub mod root {
                    u64 ) ));
     }
     #[test]
-    fn __bindgen_test_layout_template_102() {
+    fn __bindgen_test_layout_template_101() {
         assert_eq!(::std::mem::size_of::<root::nsTArray<*mut root::mozilla::css::DocumentRule>>()
                    , 8usize , concat ! (
                    "Size of template specialization: " , stringify ! (
