@@ -171,10 +171,11 @@ impl PropertyDeclarationBlock {
     }
 
     /// Adds or overrides the declaration for a given property in this block,
-    /// without taking into account any kind of priority.
+    /// without taking into account any kind of priority. Returns whether the
+    /// declaration block is actually changed.
     pub fn set_parsed_declaration(&mut self,
                                   declaration: PropertyDeclaration,
-                                  importance: Importance) {
+                                  importance: Importance) -> bool {
         for slot in &mut *self.declarations {
             if slot.0.id() == declaration.id() {
                 match (slot.1, importance) {
@@ -184,10 +185,12 @@ impl PropertyDeclarationBlock {
                     (Importance::Important, Importance::Normal) => {
                         self.important_count -= 1;
                     }
-                    _ => {}
+                    _ => if slot.0 == declaration {
+                        return false;
+                    }
                 }
                 *slot = (declaration, importance);
-                return
+                return true;
             }
         }
 
@@ -195,6 +198,7 @@ impl PropertyDeclarationBlock {
         if importance.important() {
             self.important_count += 1;
         }
+        true
     }
 
     /// Set the declaration importance for a given property, if found.

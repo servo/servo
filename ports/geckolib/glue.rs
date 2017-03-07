@@ -837,10 +837,11 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
                                              Box::new(StdoutErrorReporter), extra_data) {
         let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
         let importance = if is_important { Importance::Important } else { Importance::Normal };
+        let mut changed = false;
         for decl in decls.into_iter() {
-            declarations.set_parsed_declaration(decl.0, importance);
+            changed |= declarations.set_parsed_declaration(decl.0, importance);
         }
-        true
+        changed
     } else {
         false
     }
