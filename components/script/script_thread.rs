@@ -56,7 +56,6 @@ use dom::window::{ReflowReason, Window};
 use dom::worker::TrustedWorkerAddress;
 use euclid::Rect;
 use euclid::point::Point2D;
-use euclid::scale_factor::ScaleFactor;
 use hyper::header::{ContentType, HttpDate, LastModified, Headers};
 use hyper::header::ReferrerPolicy as ReferrerPolicyHeader;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -95,7 +94,6 @@ use script_traits::WebVREventMsg;
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue, AsyncJobHandler};
 use servo_config::opts;
-use servo_geometry::DeviceIndependentPixel;
 use servo_url::{MutableOrigin, ServoUrl};
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
@@ -112,7 +110,6 @@ use std::thread;
 use style::context::ReflowGoal;
 use style::dom::{TNode, UnsafeNode};
 use style::thread_state;
-use style_traits::CSSPixel;
 use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSource};
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
@@ -632,37 +629,6 @@ impl ScriptThread {
             let script_thread = unsafe { &*script_thread };
             script_thread.documents.borrow().find_document(id)
         }))
-    }
-
-    pub fn resize(id: PipelineId,
-                  zoom_factor: ScaleFactor<f32, CSSPixel, DeviceIndependentPixel>) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            if let Some(script_thread) = root.get() {
-                let script_thread = unsafe { &*script_thread };
-                let window = match script_thread.documents.borrow().find_window(id) {
-                    Some(window) => window,
-                    None => return
-                };
-
-                let window_size = match window.window_size() {
-                    Some(window_size) => window_size,
-                    None => return
-                };
-
-                let WindowSizeData {
-                    initial_viewport,
-                    device_pixel_ratio,
-                    hidpi_factor
-                } = window_size;
-                let new_dppx = zoom_factor * hidpi_factor;
-                let current_window_size = initial_viewport * device_pixel_ratio;
-                script_thread.handle_resize_event(id, WindowSizeData {
-                    device_pixel_ratio: new_dppx,
-                    initial_viewport: current_window_size / new_dppx,
-                    hidpi_factor: hidpi_factor,
-                }, WindowSizeType::Resize);
-            }
-        });
     }
 
     /// Creates a new script thread.
