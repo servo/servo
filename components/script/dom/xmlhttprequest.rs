@@ -15,7 +15,7 @@ use dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, MutHeapJSVal, MutNullableJS, Root};
+use dom::bindings::js::{JS, MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
 use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
@@ -50,7 +50,7 @@ use hyper::mime::{self, Attr as MimeAttr, Mime, Value as MimeValue};
 use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use js::jsapi::{JSContext, JS_ParseJSON};
+use js::jsapi::{Heap, JSContext, JS_ParseJSON};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use net_traits::{FetchMetadata, FilteredMetadata};
@@ -133,7 +133,7 @@ pub struct XMLHttpRequest {
     response_xml: MutNullableJS<Document>,
     response_blob: MutNullableJS<Blob>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    response_json: MutHeapJSVal,
+    response_json: Heap<JSVal>,
     #[ignore_heap_size_of = "Defined in hyper"]
     response_headers: DOMRefCell<Headers>,
     #[ignore_heap_size_of = "Defined in hyper"]
@@ -183,7 +183,7 @@ impl XMLHttpRequest {
             response_type: Cell::new(XMLHttpRequestResponseType::_empty),
             response_xml: Default::default(),
             response_blob: Default::default(),
-            response_json: MutHeapJSVal::new(),
+            response_json: Heap::default(),
             response_headers: DOMRefCell::new(Headers::new()),
             override_mime_type: DOMRefCell::new(None),
             override_charset: DOMRefCell::new(None),

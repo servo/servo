@@ -31,8 +31,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::trace_reflector;
 use dom::node::Node;
 use heapsize::HeapSizeOf;
-use js::jsapi::{Heap, JSObject, JSTracer};
-use js::jsval::JSVal;
+use js::jsapi::{JSObject, JSTracer};
 use script_layout_interface::TrustedNodeAddress;
 use script_thread::STACK_ROOTS;
 use std::cell::UnsafeCell;
@@ -228,49 +227,6 @@ impl LayoutJS<Node> {
         }
     }
 }
-
-/// A holder that provides interior mutability for GC-managed JSVals.
-///
-/// Must be used in place of traditional interior mutability to ensure proper
-/// GC barriers are enforced.
-#[must_root]
-#[derive(JSTraceable)]
-pub struct MutHeapJSVal {
-    val: UnsafeCell<Heap<JSVal>>,
-}
-
-impl MutHeapJSVal {
-    /// Create a new `MutHeapJSVal`.
-    pub fn new() -> MutHeapJSVal {
-        debug_assert!(thread_state::get().is_script());
-        MutHeapJSVal {
-            val: UnsafeCell::new(Heap::default()),
-        }
-    }
-
-    /// Set this `MutHeapJSVal` to the given value, calling write barriers as
-    /// appropriate.
-    pub fn set(&self, val: JSVal) {
-        debug_assert!(thread_state::get().is_script());
-        unsafe {
-            let cell = self.val.get();
-            (*cell).set(val);
-        }
-    }
-
-    /// Get the value in this `MutHeapJSVal`, calling read barriers as appropriate.
-    pub fn get(&self) -> JSVal {
-        debug_assert!(thread_state::get().is_script());
-        unsafe { (*self.val.get()).get() }
-    }
-
-    /// Get the underlying unsafe pointer to the contained value.
-    pub unsafe fn get_unsafe(&self) -> *mut JSVal {
-        debug_assert!(thread_state::get().is_script());
-        (*self.val.get()).get_unsafe()
-    }
-}
-
 
 /// A holder that provides interior mutability for GC-managed values such as
 /// `JS<T>`.  Essentially a `Cell<JS<T>>`, but safer.
