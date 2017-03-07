@@ -14209,7 +14209,7 @@ pub mod root {
         pub mReflowContinueTimer: root::nsCOMPtr<root::nsITimer>,
         pub mPaintCount: u64,
         pub mScrollPositionClampingScrollPortSize: root::nsSize,
-        pub mWeakFrames: *mut root::nsWeakFrame,
+        pub mAutoWeakFrames: *mut root::AutoWeakFrame,
         pub mCanvasBackgroundColor: root::nscolor,
         pub mResolution: [u32; 2usize],
         pub mSelectionFlags: i16,
@@ -20413,7 +20413,7 @@ pub mod root {
     pub struct nsCSSFrameConstructor([u8; 0]);
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
-    pub struct nsWeakFrame([u8; 0]);
+    pub struct AutoWeakFrame([u8; 0]);
     /**
  * Interface for frames that are scrollable. This interface exposes
  * APIs for examining scroll state, observing changes to scroll state,
