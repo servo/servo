@@ -17,7 +17,7 @@ use test::{self, Bencher};
 
 struct ErrorringErrorReporter;
 impl ParseErrorReporter for ErrorringErrorReporter {
-    fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
+    fn report_error(&self, _input: &mut Parser, position: SourcePosition, message: &str,
         url: &ServoUrl) {
         panic!("CSS error: {}\t\n{:?} {}", url.as_str(), position, message);
     }
