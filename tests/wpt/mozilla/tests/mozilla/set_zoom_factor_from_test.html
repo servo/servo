@@ -1,0 +1,23 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Set zoom factor from test</title>
+<link rel="match" href="set_zoom_factor_from_test_ref.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style type="text/css">
+  div {
+    width: 100px;
+    height: 100px;
+    background: red;
+  }
+</style>
+<div></div>
+<script>
+  window.onresize = function() {
+      document.documentElement.classList.remove("reftest-wait");
+  };
+
+  (new TestBinding()).setZoomFactor(1.1);
+</script>
+</html>

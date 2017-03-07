@@ -10893,6 +10893,11 @@
      {}
     ]
    ],
+   "mozilla/set_zoom_factor_from_test_ref.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/simple_scroll_to_fragment_ref.html": [
     [
      {}
@@ -19606,6 +19611,12 @@
      {}
     ]
    ],
+   "mozilla/set_zoom_factor_from_test.html": [
+    [
+     "/_mozilla/mozilla/set_zoom_factor_from_test.html",
+     {}
+    ]
+   ],
    "mozilla/sigsegv.html": [
     [
      "/_mozilla/mozilla/sigsegv.html",
@@ -19765,12 +19776,6 @@
    "mozilla/windowproxy.html": [
     [
      "/_mozilla/mozilla/windowproxy.html",
-     {}
-    ]
-   ],
-   "mozilla/zoom_from_test.html": [
-    [
-     "/_mozilla/mozilla/zoom_from_test.html",
      {}
     ]
    ]
@@ -31061,6 +31066,14 @@
    "14e8b67eea2c1b6302cf5166218ed5b073624ee8",
    "testharness"
   ],
+  "mozilla/set_zoom_factor_from_test.html": [
+   "8b1da3fd92aafcd6839273f58539fa2b94aa1cab",
+   "testharness"
+  ],
+  "mozilla/set_zoom_factor_from_test_ref.html": [
+   "eb231ef3b3089e7bcff31b23d8412306c9fc5f6a",
+   "support"
+  ],
   "mozilla/sigsegv.html": [
    "24b45126c26470bfe2db19b7edfe02979d9d5ca1",
    "testharness"
@@ -31311,10 +31324,6 @@
   ],
   "mozilla/windowproxy.html": [
    "128cd0aa5cf80f60078979039036d32b470b0616",
-   "testharness"
-  ],
-  "mozilla/zoom_from_test.html": [
-   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
    "testharness"
   ]
  },
