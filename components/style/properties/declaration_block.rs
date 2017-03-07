@@ -561,8 +561,8 @@ pub fn parse_one_declaration(id: PropertyId,
     Parser::new(input).parse_entirely(|parser| {
         let mut results = vec![];
         match PropertyDeclaration::parse(id, &context, parser, &mut results, false) {
-            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
-            _ => Err(())
+            Ok(()) => Ok(results),
+            Err(_) => Err(())
         }
     })
 }
@@ -592,10 +592,8 @@ impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
         let id = try!(PropertyId::parse(name.into()));
         let old_len = self.declarations.len();
         let parse_result = input.parse_until_before(Delimiter::Bang, |input| {
-            match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, false) {
-                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(()),
-                _ => Err(())
-            }
+            PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, false)
+            .map_err(|_| ())
         });
         if let Err(_) = parse_result {
             // rollback

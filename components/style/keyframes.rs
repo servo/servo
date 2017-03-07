@@ -13,7 +13,6 @@ use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
 use properties::{PropertyDeclarationId, LonghandId, DeclaredValue};
 use properties::LonghandIdSet;
-use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use std::fmt;
@@ -407,12 +406,9 @@ impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
         let id = try!(PropertyId::parse(name.into()));
         let old_len = self.declarations.len();
-        match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, true) {
-            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
-            _ => {
-                self.declarations.truncate(old_len);
-                return Err(());
-            }
+        if PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, true).is_err() {
+            self.declarations.truncate(old_len);
+            return Err(())
         }
         // In case there is still unparsed text in the declaration, we should roll back.
         if !input.is_exhausted() {

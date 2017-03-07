@@ -68,7 +68,7 @@ use style::keyframes::KeyframesStepValue;
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{ComputedValues, Importance, PropertyDeclaration};
-use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock, PropertyId};
+use style::properties::{PropertyDeclarationBlock, PropertyId};
 use style::properties::animated_properties::{AnimationValue, Interpolate, TransitionProperty};
 use style::properties::parse_one_declaration;
 use style::restyle_hints::{self, RestyleHint};
@@ -714,10 +714,11 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
                                                      extra_data);
 
     let mut results = vec![];
-    match PropertyDeclaration::parse(id, &context, &mut Parser::new(value),
-                                     &mut results, false) {
-        PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {},
-        _ => return RawServoDeclarationBlockStrong::null(),
+    let result = PropertyDeclaration::parse(
+        id, &context, &mut Parser::new(value), &mut results, false
+    );
+    if result.is_err() {
+        return RawServoDeclarationBlockStrong::null()
     }
 
     Arc::new(RwLock::new(PropertyDeclarationBlock {

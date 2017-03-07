@@ -205,7 +205,6 @@ impl Declaration {
     ///
     /// https://drafts.csswg.org/css-conditional-3/#support-definition
     pub fn eval(&self, cx: &ParserContext) -> bool {
-        use properties::PropertyDeclarationParseResult::*;
         let id = if let Ok(id) = PropertyId::parse((&*self.prop).into()) {
             id
         } else {
@@ -219,13 +218,6 @@ impl Declaration {
         if !input.is_exhausted() {
             return false;
         }
-        match res {
-            UnknownProperty => false,
-            ExperimentalProperty => false, // only happens for experimental props
-                                           // that haven't been enabled
-            InvalidValue => false,
-            AnimationPropertyInKeyframeBlock => unreachable!(),
-            ValidOrIgnoredDeclaration => true,
-        }
+        res.is_ok()
     }
 }

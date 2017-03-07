@@ -886,7 +886,7 @@ impl HasViewportPercentage for PropertyDeclaration {
 
 /// The result of parsing a property declaration.
 #[derive(Eq, PartialEq, Copy, Clone)]
-pub enum PropertyDeclarationParseResult {
+pub enum PropertyDeclarationParseError {
     /// The property declaration was for an unknown property.
     UnknownProperty,
     /// The property declaration was for a disabled experimental property.
@@ -898,8 +898,6 @@ pub enum PropertyDeclarationParseResult {
     ///
     /// See: https://drafts.csswg.org/css-animations/#keyframes
     AnimationPropertyInKeyframeBlock,
-    /// The declaration was either valid or ignored.
-    ValidOrIgnoredDeclaration,
 }
 
 impl fmt::Debug for PropertyDeclaration {
@@ -933,7 +931,7 @@ impl ToCss for PropertyDeclaration {
     % if property.experimental and product == "servo":
         if !PREFS.get("${property.experimental}")
             .as_boolean().unwrap_or(false) {
-            return PropertyDeclarationParseResult::ExperimentalProperty
+            return Err(PropertyDeclarationParseError::ExperimentalProperty)
         }
     % endif
     % if product == "gecko":
@@ -950,7 +948,7 @@ impl ToCss for PropertyDeclaration {
             let id = structs::${helpers.to_nscsspropertyid(property.ident)};
             let enabled = unsafe { bindings::Gecko_PropertyId_IsPrefEnabled(id) };
             if !enabled {
-                return PropertyDeclarationParseResult::ExperimentalProperty
+                return Err(PropertyDeclarationParseError::ExperimentalProperty)
             }
         }
     % endif
@@ -1060,19 +1058,19 @@ impl PropertyDeclaration {
     pub fn parse(id: PropertyId, context: &ParserContext, input: &mut Parser,
                  result_list: &mut Vec<(PropertyDeclaration, Importance)>,
                  in_keyframe_block: bool)
-                 -> PropertyDeclarationParseResult {
+                 -> Result<(), PropertyDeclarationParseError> {
         match id {
             PropertyId::Custom(name) => {
                 let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
                     Ok(keyword) => DeclaredValue::CSSWideKeyword(keyword),
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
                         Ok(value) => DeclaredValue::Value(value),
-                        Err(()) => return PropertyDeclarationParseResult::InvalidValue,
+                        Err(()) => return Err(PropertyDeclarationParseError::InvalidValue),
                     }
                 };
                 result_list.push((PropertyDeclaration::Custom(name, value),
                                   Importance::Normal));
-                return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration;
+                return Ok(());
             }
             PropertyId::Longhand(id) => match id {
             % for property in data.longhands:
@@ -1080,12 +1078,12 @@ impl PropertyDeclaration {
                     % if not property.derived_from:
                         % if not property.allowed_in_keyframe_block:
                             if in_keyframe_block {
-                                return PropertyDeclarationParseResult::AnimationPropertyInKeyframeBlock
+                                return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
                             }
                         % endif
                         % if property.internal:
                             if context.stylesheet_origin != Origin::UserAgent {
-                                return PropertyDeclarationParseResult::UnknownProperty
+                                return Err(PropertyDeclarationParseError::UnknownProperty)
                             }
                         % endif
 
@@ -1095,12 +1093,12 @@ impl PropertyDeclaration {
                             Ok(value) => {
                                 result_list.push((PropertyDeclaration::${property.camel_case}(value),
                                                   Importance::Normal));
-                                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                                Ok(())
                             },
-                            Err(()) => PropertyDeclarationParseResult::InvalidValue,
+                            Err(()) => Err(PropertyDeclarationParseError::InvalidValue),
                         }
                     % else:
-                        PropertyDeclarationParseResult::UnknownProperty
+                        Err(PropertyDeclarationParseError::UnknownProperty)
                     % endif
                 }
             % endfor
@@ -1110,12 +1108,12 @@ impl PropertyDeclaration {
                 ShorthandId::${shorthand.camel_case} => {
                     % if not shorthand.allowed_in_keyframe_block:
                         if in_keyframe_block {
-                            return PropertyDeclarationParseResult::AnimationPropertyInKeyframeBlock
+                            return Err(PropertyDeclarationParseError::AnimationPropertyInKeyframeBlock)
                         }
                     % endif
                     % if shorthand.internal:
                         if context.stylesheet_origin != Origin::UserAgent {
-                            return PropertyDeclarationParseResult::UnknownProperty
+                            return Err(PropertyDeclarationParseError::UnknownProperty)
                         }
                     % endif
 
@@ -1128,16 +1126,16 @@ impl PropertyDeclaration {
                                     PropertyDeclaration::${sub_property.camel_case}(
                                         DeclaredValue::CSSWideKeyword(keyword)), Importance::Normal));
                             % endfor
-                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                            Ok(())
                         },
                         Err(()) => match shorthands::${shorthand.ident}::parse(context, input) {
                             Ok(parsed) => {
                                 parsed.expand(|declaration| {
                                     result_list.push((declaration, Importance::Normal))
                                 });
-                                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                                Ok(())
                             }
-                            Err(()) => PropertyDeclarationParseResult::InvalidValue,
+                            Err(()) => Err(PropertyDeclarationParseError::InvalidValue),
                         }
                     }
                 }
