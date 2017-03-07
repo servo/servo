@@ -1097,11 +1097,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_broadcast_storage_event(pipeline_id, storage, url, key, old_value, new_value);
             }
             FromScriptMsg::SetFullscreenState(state) => {
-                println!("FromScriptMsg::SetFullscreenState");
                 self.compositor_proxy.send(ToCompositorMsg::SetFullscreenState(state));
             }
             FromScriptMsg::PageZoom(magnification) => {
-                println!("FromScriptMsg::PageZoom");
                 self.compositor_proxy.send(ToCompositorMsg::PageZoom(magnification));
             }
         }
