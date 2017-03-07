@@ -568,7 +568,7 @@ pub enum DeclaredValue<T> {
     /// A known specified value from the stylesheet.
     Value(T),
     /// An unparsed value that contains `var()` functions.
-    WithVariables(Box<UnparsedValue>),
+    WithVariables(Arc<UnparsedValue>),
     /// An CSS-wide keyword.
     CSSWideKeyword(CSSWideKeyword),
 }
@@ -793,6 +793,61 @@ impl PropertyId {
             PropertyId::Shorthand(id) => Ok(id),
             PropertyId::Longhand(id) => Err(PropertyDeclarationId::Longhand(id)),
             PropertyId::Custom(ref name) => Err(PropertyDeclarationId::Custom(name)),
+        }
+    }
+}
+
+/// Includes shorthands before expansion
+pub enum ParsedDeclaration {
+    % for shorthand in data.shorthands:
+        /// ${shorthand.name}
+        ${shorthand.camel_case}(shorthands::${shorthand.ident}::Longhands),
+    % endfor
+    % for shorthand in data.shorthands:
+        /// ${shorthand.name} with var() functions
+        ${shorthand.camel_case}WithVariables(Arc<UnparsedValue>),
+    % endfor
+    /// Not a shorthand
+    LonghandOrCustom(PropertyDeclaration),
+}
+
+impl ParsedDeclaration {
+    /// Transform this ParsedDeclaration into a sequence of PropertyDeclaration
+    /// by expanding shorthand declarations into their corresponding longhands
+    pub fn expand<F>(self, mut f: F) where F: FnMut(PropertyDeclaration) {
+        match self {
+            % for shorthand in data.shorthands:
+                ParsedDeclaration::${shorthand.camel_case}(
+                    shorthands::${shorthand.ident}::Longhands {
+                        % for sub_property in shorthand.sub_properties:
+                            ${sub_property.ident},
+                        % endfor
+                    }
+                ) => {
+                    % for sub_property in shorthand.sub_properties:
+                        f(PropertyDeclaration::${sub_property.camel_case}(
+                            % if sub_property.boxed:
+                                DeclaredValue::Value(Box::new(${sub_property.ident}))
+                            % else:
+                                DeclaredValue::Value(${sub_property.ident})
+                            % endif
+                        ));
+                    % endfor
+                }
+            % endfor
+            % for shorthand in data.shorthands:
+                ParsedDeclaration::${shorthand.camel_case}WithVariables(value) => {
+                    debug_assert_eq!(
+                        value.from_shorthand,
+                        Some(ShorthandId::${shorthand.camel_case})
+                    );
+                    % for sub_property in shorthand.sub_properties:
+                        f(PropertyDeclaration::${sub_property.camel_case}(
+                            DeclaredValue::WithVariables(value.clone())));
+                    % endfor
+                }
+            % endfor
+            ParsedDeclaration::LonghandOrCustom(declaration) => f(declaration),
         }
     }
 }
@@ -1075,8 +1130,13 @@ impl PropertyDeclaration {
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
-                        Err(()) => match shorthands::${shorthand.ident}::parse(context, input, result_list) {
-                            Ok(()) => PropertyDeclarationParseResult::ValidOrIgnoredDeclaration,
+                        Err(()) => match shorthands::${shorthand.ident}::parse(context, input) {
+                            Ok(parsed) => {
+                                parsed.expand(|declaration| {
+                                    result_list.push((declaration, Importance::Normal))
+                                });
+                                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
+                            }
                             Err(()) => PropertyDeclarationParseResult::InvalidValue,
                         }
                     }

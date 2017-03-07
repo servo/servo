@@ -339,7 +339,7 @@
                             input.reset(start);
                             let (first_token_type, css) = try!(
                                 ::custom_properties::parse_non_custom_with_var(input));
-                            return Ok(DeclaredValue::WithVariables(Box::new(UnparsedValue {
+                            return Ok(DeclaredValue::WithVariables(Arc::new(UnparsedValue {
                                 css: css.into_owned(),
                                 first_token_type: first_token_type,
                                 base_url: context.base_url.clone(),
@@ -483,10 +483,10 @@
         #[allow(unused_imports)]
         use cssparser::Parser;
         use parser::ParserContext;
-        use properties::{DeclaredValue, PropertyDeclaration};
+        use properties::{DeclaredValue, PropertyDeclaration, ParsedDeclaration};
         use properties::{ShorthandId, UnparsedValue, longhands};
-        use properties::declaration_block::Importance;
         use std::fmt;
+        use std::sync::Arc;
         use style_traits::ToCss;
 
         pub struct Longhands {
@@ -551,10 +551,7 @@
 
         /// Parse the given shorthand and fill the result into the
         /// `declarations` vector.
-        pub fn parse(context: &ParserContext,
-                     input: &mut Parser,
-                     declarations: &mut Vec<(PropertyDeclaration, Importance)>)
-                     -> Result<(), ()> {
+        pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<ParsedDeclaration, ()> {
             input.look_for_var_functions();
             let start = input.position();
             let value = input.parse_entirely(|input| parse_value(context, input));
@@ -563,31 +560,17 @@
             }
             let var = input.seen_var_functions();
             if let Ok(value) = value {
-                % for sub_property in shorthand.sub_properties:
-                    declarations.push((PropertyDeclaration::${sub_property.camel_case}(
-                        % if sub_property.boxed:
-                            DeclaredValue::Value(Box::new(value.${sub_property.ident}))
-                        % else:
-                            DeclaredValue::Value(value.${sub_property.ident})
-                        % endif
-                    ), Importance::Normal));
-                % endfor
-                Ok(())
+                Ok(ParsedDeclaration::${shorthand.camel_case}(value))
             } else if var {
                 input.reset(start);
                 let (first_token_type, css) = try!(
                     ::custom_properties::parse_non_custom_with_var(input));
-                % for sub_property in shorthand.sub_properties:
-                    declarations.push((PropertyDeclaration::${sub_property.camel_case}(
-                        DeclaredValue::WithVariables(Box::new(UnparsedValue {
-                            css: css.clone().into_owned(),
-                            first_token_type: first_token_type,
-                            base_url: context.base_url.clone(),
-                            from_shorthand: Some(ShorthandId::${shorthand.camel_case}),
-                        }))
-                    ), Importance::Normal));
-                % endfor
-                Ok(())
+                Ok(ParsedDeclaration::${shorthand.camel_case}WithVariables(Arc::new(UnparsedValue {
+                    css: css.into_owned(),
+                    first_token_type: first_token_type,
+                    base_url: context.base_url.clone(),
+                    from_shorthand: Some(ShorthandId::${shorthand.camel_case}),
+                })))
             } else {
                 Err(())
             }
