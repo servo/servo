@@ -19,7 +19,8 @@ use wrappers::CefWrap;
 
 use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use euclid::point::Point2D;
+use euclid::point::{Point2D, TypedPoint2D};
+use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use gleam::gl;
@@ -204,6 +205,12 @@ impl WindowMethods for Window {
                 }
             }
         }
+    }
+
+    fn window_rect(&self) -> TypedRect<u32, DevicePixel> {
+        let size = self.framebuffer_size();
+        let origin = TypedPoint2D::zero();
+        TypedRect::new(origin, size)
     }
 
     fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {

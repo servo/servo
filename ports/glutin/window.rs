@@ -9,6 +9,7 @@ use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::{Point2D, Size2D, TypedPoint2D};
+use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 #[cfg(target_os = "windows")]
@@ -795,6 +796,12 @@ impl WindowMethods for Window {
                 TypedSize2D::new(context.width, context.height)
             }
         }
+    }
+
+    fn window_rect(&self) -> TypedRect<u32, DevicePixel> {
+        let size = self.framebuffer_size();
+        let origin = TypedPoint2D::zero();
+        TypedRect::new(origin, size)
     }
 
     fn size(&self) -> TypedSize2D<f32, DeviceIndependentPixel> {
