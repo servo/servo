@@ -11,7 +11,6 @@ path = "lib.rs"
 
 [dependencies]
 brotli = "1.0.6"
-content-blocker = "0.2.3"
 cookie = "0.2.5"
 devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
@@ -19,7 +18,6 @@ hyper = "0.9.9"
 hyper_serde = "0.5"
 immeta = "0.3.1"
 ipc-channel = "0.7"
-lazy_static = "0.2"
 log = "0.3.5"
 matches = "0.1"
 mime = "0.2.1"

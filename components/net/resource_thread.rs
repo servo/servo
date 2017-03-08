@@ -4,7 +4,6 @@
 
 //! A thread that takes a URL and streams back the binary data.
 use connector::{Connector, create_http_connector};
-use content_blocker::BLOCKED_CONTENT_RULES;
 use cookie;
 use cookie_rs;
 use cookie_storage::CookieStorage;
@@ -324,7 +323,6 @@ impl CoreResourceManager {
             hsts_list: group.hsts_list.clone(),
             cookie_jar: group.cookie_jar.clone(),
             auth_cache: group.auth_cache.clone(),
-            blocked_content: BLOCKED_CONTENT_RULES.clone(),
             // FIXME(#15694): use group.connector.clone() instead.
             connector_pool: create_http_connector("certs"),
         };
