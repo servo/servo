@@ -584,19 +584,34 @@ impl CalcLengthOrPercentage {
         let mut products = Vec::new();
         products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
 
-        while let Ok(token) = input.next() {
-            match token {
-                Token::Delim('+') => {
-                    products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
+        loop {
+          let position = input.position();
+          match input.next_including_whitespace() {
+            Ok(Token::WhiteSpace(_)) => {
+              match input.next() {
+
+                Ok(Token::Delim('+')) => {
+                  products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
                 }
-                Token::Delim('-') => {
-                    let mut right = try!(CalcLengthOrPercentage::parse_product(input, expected_unit));
-                    right.values.push(CalcValueNode::Number(-1.));
-                    products.push(right);
+
+                Ok(Token::Delim('-')) => {
+                  let mut right = try!(CalcLengthOrPercentage::parse_product(input, expected_unit));
+                  right.values.push(CalcValueNode::Number(-1.));
+                  products.push(right);
                 }
-                _ => return Err(())
+
+                _ => {
+                  return Err(());
+                }
+             }
             }
-        }
+            _ => {
+                input.reset(position);
+                break
+            }
+          }
+      }
+
 
         Ok(CalcSumNode { products: products })
     }
