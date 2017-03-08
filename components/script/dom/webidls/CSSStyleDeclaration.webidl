@@ -257,6 +257,8 @@ partial interface CSSStyleDeclaration {
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-align;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textDecoration;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-decoration;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textDecorationLine;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-decoration-line;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textIndent;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString text-indent;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString textJustify;
