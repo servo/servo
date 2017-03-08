@@ -746,11 +746,7 @@ fn http_redirect_fetch(request: Rc<Request>,
     request.redirect_count.set(request.redirect_count.get() + 1);
 
     // Step 7
-    let same_origin = if let Origin::Origin(ref origin) = *request.origin.borrow() {
-        *origin == request.current_url().origin()
-    } else {
-        false
-    };
+    let same_origin = location_url.origin()== request.current_url().origin();
     let has_credentials = has_credentials(&location_url);
 
     if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {

@@ -17,7 +17,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use mime_guess::guess_mime_type;
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy};
-use net_traits::request::{RedirectMode, Referrer, Request, RequestMode, ResponseTainting};
+use net_traits::request::{Referrer, Request, RequestMode, ResponseTainting};
 use net_traits::request::{Type, Origin, Window};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use std::borrow::Cow;
@@ -240,7 +240,6 @@ pub fn main_fetch(request: Rc<Request>,
                  (!is_simple_method(&request.method.borrow()) ||
                   request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
                 request.response_tainting.set(ResponseTainting::CorsTainting);
-                request.redirect_mode.set(RedirectMode::Error);
                 let response = http_fetch(request.clone(), cache, true, true, false,
                                           target, done_chan, context);
                 if response.is_network_error() {
