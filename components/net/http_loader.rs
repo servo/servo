@@ -786,11 +786,11 @@ fn http_redirect_fetch(request: Rc<Request>,
     main_fetch(request, cache, cors_flag, true, target, done_chan, context)
 }
 
-fn try_url_origin_to_hyper_origin(url_origin: &UrlOrigin) -> Option<HyperOrigin> {
-    match *url_origin {
+fn try_immutable_origin_to_hyper_origin(origin: &ImmutableOrigin) -> Option<HyperOrigin> {
+    match *origin {
         // TODO (servo/servo#15569) Set "Origin: null" when hyper supports it
-        UrlOrigin::Opaque(_) => None,
-        UrlOrigin::Tuple(ref scheme, ref host, ref port) =>
+        ImmutableOrigin::Opaque(_) => None,
+        ImmutableOrigin::Tuple(ref scheme, ref host, ref port) =>
             Some(HyperOrigin::new(scheme.clone(), host.to_string(), Some(port.clone())))
     }
 }
@@ -858,7 +858,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         if cors_flag || (*method != Method::Get && *method != Method::Head) {
             debug_assert!(*http_request.origin.borrow() != Origin::Client);
             if let Origin::Origin(ref url_origin) = *http_request.origin.borrow() {
-                if let Some(hyper_origin) = try_url_origin_to_hyper_origin(url_origin) {
+                if let Some(hyper_origin) = try_immutable_origin_to_hyper_origin(url_origin) {
                     http_request.headers.borrow_mut().set(hyper_origin)
                 }
             }
