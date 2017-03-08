@@ -9,4 +9,7 @@ use style::values::specified::length::Length;
 #[test]
 fn test_calc() {
     assert!(parse(Length::parse, "calc(1px+ 2px)").is_err());
+    assert!(parse(Length::parse, "calc( 1px + 2px )").is_ok());
+    assert!(parse(Length::parse, "calc(1px + 2px )").is_ok());
+    assert!(parse(Length::parse, "calc( 1px + 2px)").is_ok());
 }
