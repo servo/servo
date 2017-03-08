@@ -3,8 +3,6 @@
 <meta charset="utf-8">
 <title>Set zoom factor from test</title>
 <link rel="match" href="set_zoom_factor_from_test_ref.html">
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
 <style type="text/css">
   div {
     width: 100px;
@@ -15,7 +13,11 @@
 <div></div>
 <script>
   window.onresize = function() {
-    document.documentElement.classList.remove("reftest-wait");
+    // We do this in a timeout, so that the compositor has a chance
+    // to update the layer tree.
+    setTimeout(function() {
+      document.documentElement.classList.remove("reftest-wait");
+    });
   };
 
   (new TestBinding()).setZoomFactor(1.1);
