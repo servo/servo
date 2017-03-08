@@ -99,6 +99,7 @@ use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use webrender::renderer::RendererKind;
 use webvr::{WebVRThread, WebVRCompositorHandler};
 
 pub use gleam::gl;
@@ -159,9 +160,9 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             };
 
             let renderer_kind = if opts::get().should_use_osmesa() {
-                webrender_traits::RendererKind::OSMesa
+                RendererKind::OSMesa
             } else {
-                webrender_traits::RendererKind::Native
+                RendererKind::Native
             };
 
             let recorder = if opts.webrender_record {

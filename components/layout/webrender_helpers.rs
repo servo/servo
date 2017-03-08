@@ -11,7 +11,7 @@ use app_units::Au;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use gfx::display_list::{BorderDetails, BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayListTraversal, StackingContextType};
-use gfx_traits::{FragmentType, ScrollRootId};
+use gfx_traits::ScrollRootId;
 use msg::constellation_msg::PipelineId;
 use style::computed_values::{image_rendering, mix_blend_mode};
 use style::computed_values::filter::{self, Filter};
@@ -419,21 +419,5 @@ trait WebRenderScrollRootIdConverter {
 impl WebRenderScrollRootIdConverter for ScrollRootId {
     fn convert_to_webrender(&self) -> webrender_traits::ServoScrollRootId {
         webrender_traits::ServoScrollRootId(self.0)
-    }
-}
-
-trait WebRenderFragmentTypeConverter {
-    fn convert_to_webrender(&self) -> webrender_traits::FragmentType;
-}
-
-impl WebRenderFragmentTypeConverter for FragmentType {
-    fn convert_to_webrender(&self) -> webrender_traits::FragmentType {
-        match *self {
-            FragmentType::FragmentBody => webrender_traits::FragmentType::FragmentBody,
-            FragmentType::BeforePseudoContent => {
-                webrender_traits::FragmentType::BeforePseudoContent
-            }
-            FragmentType::AfterPseudoContent => webrender_traits::FragmentType::AfterPseudoContent,
-        }
     }
 }
