@@ -34,20 +34,20 @@ impl CookieStorage {
 
     // http://tools.ietf.org/html/rfc6265#section-5.3
     pub fn remove(&mut self, cookie: &Cookie, url: &ServoUrl, source: CookieSource) -> Result<Option<Cookie>, ()> {
-        let domain = reg_host(cookie.cookie.domain.as_ref().unwrap_or(&"".to_string()));
+        let domain = reg_host(cookie.cookie.domain().as_ref().unwrap_or(&""));
         let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
 
         // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt Step 2
-        if !cookie.cookie.secure && !url.is_secure_scheme() {
-            let new_domain = cookie.cookie.domain.as_ref().unwrap();
-            let new_path = cookie.cookie.path.as_ref().unwrap();
+        if !cookie.cookie.secure() && !url.is_secure_scheme() {
+            let new_domain = cookie.cookie.domain().as_ref().unwrap().to_owned();
+            let new_path = cookie.cookie.path().as_ref().unwrap().to_owned();
 
             let any_overlapping = cookies.iter().any(|c| {
-                let existing_domain = c.cookie.domain.as_ref().unwrap();
-                let existing_path = c.cookie.path.as_ref().unwrap();
+                let existing_domain = c.cookie.domain().as_ref().unwrap().to_owned();
+                let existing_path = c.cookie.path().as_ref().unwrap().to_owned();
 
-                c.cookie.name == cookie.cookie.name &&
-                c.cookie.secure &&
+                c.cookie.name() == cookie.cookie.name() &&
+                c.cookie.secure() &&
                 (Cookie::domain_match(new_domain, existing_domain) ||
                  Cookie::domain_match(existing_domain, new_domain)) &&
                 Cookie::path_match(new_path, existing_path)
@@ -60,9 +60,9 @@ impl CookieStorage {
 
         // Step 11.1
         let position = cookies.iter().position(|c| {
-            c.cookie.domain == cookie.cookie.domain &&
-            c.cookie.path == cookie.cookie.path &&
-            c.cookie.name == cookie.cookie.name
+            c.cookie.domain() == cookie.cookie.domain() &&
+            c.cookie.path() == cookie.cookie.path() &&
+            c.cookie.name() == cookie.cookie.name()
         });
 
         if let Some(ind) = position {
@@ -70,7 +70,7 @@ impl CookieStorage {
             let c = cookies.remove(ind);
 
             // http://tools.ietf.org/html/rfc6265#section-5.3 step 11.2
-            if c.cookie.httponly && source == CookieSource::NonHTTP {
+            if c.cookie.http_only() && source == CookieSource::NonHTTP {
                 // Undo the removal.
                 cookies.push(c);
                 Err(())
@@ -85,7 +85,7 @@ impl CookieStorage {
     // http://tools.ietf.org/html/rfc6265#section-5.3
     pub fn push(&mut self, mut cookie: Cookie, url: &ServoUrl, source: CookieSource) {
         // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt Step 1
-        if cookie.cookie.secure && !url.is_secure_scheme() {
+        if cookie.cookie.secure() && !url.is_secure_scheme() {
             return;
         }
 
@@ -102,7 +102,7 @@ impl CookieStorage {
         }
 
         // Step 12
-        let domain = reg_host(&cookie.cookie.domain.as_ref().unwrap_or(&"".to_string()));
+        let domain = reg_host(&cookie.cookie.domain().as_ref().unwrap_or(&""));
         let mut cookies = self.cookies_map.entry(domain).or_insert(vec![]);
 
         if cookies.len() == self.max_per_host {
@@ -111,7 +111,7 @@ impl CookieStorage {
             let new_len = cookies.len();
 
             // https://www.ietf.org/id/draft-ietf-httpbis-cookie-alone-01.txt
-            if new_len == old_len && !evict_one_cookie(cookie.cookie.secure, cookies) {
+            if new_len == old_len && !evict_one_cookie(cookie.cookie.secure(), cookies) {
                 return;
             }
         }
@@ -119,8 +119,8 @@ impl CookieStorage {
     }
 
     pub fn cookie_comparator(a: &Cookie, b: &Cookie) -> Ordering {
-        let a_path_len = a.cookie.path.as_ref().map_or(0, |p| p.len());
-        let b_path_len = b.cookie.path.as_ref().map_or(0, |p| p.len());
+        let a_path_len = a.cookie.path().as_ref().map_or(0, |p| p.len());
+        let b_path_len = b.cookie.path().as_ref().map_or(0, |p| p.len());
         match a_path_len.cmp(&b_path_len) {
             Ordering::Equal => {
                 let a_creation_time = a.creation_time.to_timespec();
@@ -137,10 +137,10 @@ impl CookieStorage {
     pub fn cookies_for_url(&mut self, url: &ServoUrl, source: CookieSource) -> Option<String> {
         let filterer = |c: &&mut Cookie| -> bool {
             info!(" === SENT COOKIE : {} {} {:?} {:?}",
-                  c.cookie.name,
-                  c.cookie.value,
-                  c.cookie.domain,
-                  c.cookie.path);
+                  c.cookie.name(),
+                  c.cookie.value(),
+                  c.cookie.domain(),
+                  c.cookie.path());
             info!(" === SENT COOKIE RESULT {}",
                   c.appropriate_for_url(url, source));
             // Step 1
@@ -161,7 +161,7 @@ impl CookieStorage {
             (match acc.len() {
                 0 => acc,
                 _ => acc + "; ",
-            }) + &c.cookie.name + "=" + &c.cookie.value
+            }) + &c.cookie.name() + "=" + &c.cookie.value()
         };
         let result = url_cookies.iter_mut().fold("".to_owned(), reducer);
 
@@ -175,7 +175,7 @@ impl CookieStorage {
     pub fn cookies_data_for_url<'a>(&'a mut self,
                                     url: &'a ServoUrl,
                                     source: CookieSource)
-                                    -> Box<Iterator<Item = cookie_rs::Cookie> + 'a> {
+                                    -> Box<Iterator<Item = cookie_rs::Cookie<'static>> + 'a> {
         let domain = reg_host(url.host_str().unwrap_or(""));
         let cookies = self.cookies_map.entry(domain).or_insert(vec![]);
 
@@ -187,7 +187,7 @@ impl CookieStorage {
 }
 
 fn reg_host<'a>(url: &'a str) -> String {
-    reg_suffix(url).to_string()
+    reg_suffix(url).to_lowercase()
 }
 
 fn is_cookie_expired(cookie: &Cookie) -> bool {
@@ -219,7 +219,7 @@ fn evict_one_cookie(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> bool {
 fn get_oldest_accessed(is_secure_cookie: bool, cookies: &mut Vec<Cookie>) -> Option<(usize, Tm)> {
     let mut oldest_accessed: Option<(usize, Tm)> = None;
     for (i, c) in cookies.iter().enumerate() {
-        if (c.cookie.secure == is_secure_cookie) &&
+        if (c.cookie.secure() == is_secure_cookie) &&
            oldest_accessed.as_ref().map_or(true, |a| c.last_access < a.1) {
             oldest_accessed = Some((i, c.last_access));
         }

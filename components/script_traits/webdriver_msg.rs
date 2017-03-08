@@ -16,7 +16,7 @@ use servo_url::ServoUrl;
 pub enum WebDriverScriptCommand {
     AddCookie(#[serde(deserialize_with = "::hyper_serde::deserialize",
                 serialize_with = "::hyper_serde::serialize")]
-              Cookie,
+              Cookie<'static>,
               IpcSender<Result<(), WebDriverCookieError>>),
     ExecuteScript(String, IpcSender<WebDriverJSResult>),
     ExecuteAsyncScript(String, IpcSender<WebDriverJSResult>),
@@ -24,8 +24,8 @@ pub enum WebDriverScriptCommand {
     FindElementsCSS(String, IpcSender<Result<Vec<String>, ()>>),
     FocusElement(String, IpcSender<Result<(), ()>>),
     GetActiveElement(IpcSender<Option<String>>),
-    GetCookie(String, IpcSender<Vec<Serde<Cookie>>>),
-    GetCookies(IpcSender<Vec<Serde<Cookie>>>),
+    GetCookie(String, IpcSender<Vec<Serde<Cookie<'static>>>>),
+    GetCookies(IpcSender<Vec<Serde<Cookie<'static>>>>),
     GetElementAttribute(String, String, IpcSender<Result<Option<String>, ()>>),
     GetElementCSS(String, String, IpcSender<Result<String, ()>>),
     GetElementRect(String, IpcSender<Result<Rect<f64>, ()>>),
