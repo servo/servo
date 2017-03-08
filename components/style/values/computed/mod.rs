@@ -7,6 +7,7 @@
 use app_units::Au;
 use euclid::size::Size2D;
 use font_metrics::FontMetricsProvider;
+use media_queries::Device;
 use properties::ComputedValues;
 use std::fmt;
 use style_traits::ToCss;
@@ -37,8 +38,8 @@ pub struct Context<'a> {
     /// Whether the current element is the root element.
     pub is_root_element: bool,
 
-    /// The current viewport size.
-    pub viewport_size: Size2D<Au>,
+    /// The Device holds the viewport and other external state.
+    pub device: &'a Device,
 
     /// The style we're inheriting from.
     pub inherited_style: &'a ComputedValues,
@@ -65,7 +66,7 @@ impl<'a> Context<'a> {
     /// Whether the current element is the root element.
     pub fn is_root_element(&self) -> bool { self.is_root_element }
     /// The current viewport size.
-    pub fn viewport_size(&self) -> Size2D<Au> { self.viewport_size }
+    pub fn viewport_size(&self) -> Size2D<Au> { self.device.au_viewport_size() }
     /// The style we're inheriting from.
     pub fn inherited_style(&self) -> &ComputedValues { &self.inherited_style }
     /// The current style. Note that only "eager" properties should be accessed
@@ -113,18 +114,65 @@ impl<T> ToComputedValue for T
     }
 }
 
+impl ToComputedValue for specified::Color {
+    type ComputedValue = RGBA;
+
+    #[cfg(not(feature = "gecko"))]
+    fn to_computed_value(&self, context: &Context) -> RGBA {
+        match *self {
+            specified::Color::RGBA(rgba) => rgba,
+            specified::Color::CurrentColor => context.inherited_style.get_color().clone_color(),
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    fn to_computed_value(&self, context: &Context) -> RGBA {
+        use gecko::values::convert_nscolor_to_rgba as to_rgba;
+        // It's safe to access the nsPresContext immutably during style computation.
+        let pres_context = unsafe { &*context.device.pres_context };
+        match *self {
+            specified::Color::RGBA(rgba) => rgba,
+            specified::Color::CurrentColor => context.inherited_style.get_color().clone_color(),
+            specified::Color::MozDefaultColor => to_rgba(pres_context.mDefaultColor),
+            specified::Color::MozDefaultBackgroundColor => to_rgba(pres_context.mBackgroundColor),
+            specified::Color::MozHyperlinktext => to_rgba(pres_context.mLinkColor),
+            specified::Color::MozActiveHyperlinktext => to_rgba(pres_context.mActiveLinkColor),
+            specified::Color::MozVisitedHyperlinktext => to_rgba(pres_context.mVisitedLinkColor),
+        }
+    }
+
+    fn from_computed_value(computed: &RGBA) -> Self {
+        specified::Color::RGBA(*computed)
+    }
+}
+
 impl ToComputedValue for specified::CSSColor {
     type ComputedValue = CSSColor;
 
+    #[cfg(not(feature = "gecko"))]
     #[inline]
     fn to_computed_value(&self, _context: &Context) -> CSSColor {
         self.parsed
     }
 
+    #[cfg(feature = "gecko")]
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> CSSColor {
+        match self.parsed {
+            specified::Color::RGBA(rgba) => CSSColor::RGBA(rgba),
+            specified::Color::CurrentColor => CSSColor::CurrentColor,
+            // Resolve non-standard -moz keywords to RGBA:
+            non_standard => CSSColor::RGBA(non_standard.to_computed_value(context)),
+        }
+    }
+
     #[inline]
     fn from_computed_value(computed: &CSSColor) -> Self {
         specified::CSSColor {
-            parsed: *computed,
+            parsed: match *computed {
+                CSSColor::RGBA(rgba) => specified::Color::RGBA(rgba),
+                CSSColor::CurrentColor => specified::Color::CurrentColor,
+            },
             authored: None,
         }
     }
