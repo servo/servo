@@ -823,7 +823,7 @@ pub enum ParsedDeclaration {
 impl ParsedDeclaration {
     /// Transform this ParsedDeclaration into a sequence of PropertyDeclaration
     /// by expanding shorthand declarations into their corresponding longhands
-    pub fn expand<F>(self, mut f: F) where F: FnMut(PropertyDeclaration) {
+    pub fn expand<F>(self, mut push: F) where F: FnMut(PropertyDeclaration) {
         match self {
             % for shorthand in data.shorthands:
                 ParsedDeclaration::${shorthand.camel_case}(
@@ -834,7 +834,7 @@ impl ParsedDeclaration {
                     }
                 ) => {
                     % for sub_property in shorthand.sub_properties:
-                        f(PropertyDeclaration::${sub_property.camel_case}(
+                        push(PropertyDeclaration::${sub_property.camel_case}(
                             % if sub_property.boxed:
                                 DeclaredValue::Value(Box::new(${sub_property.ident}))
                             % else:
@@ -845,7 +845,7 @@ impl ParsedDeclaration {
                 }
                 ParsedDeclaration::${shorthand.camel_case}CSSWideKeyword(keyword) => {
                     % for sub_property in shorthand.sub_properties:
-                        f(PropertyDeclaration::${sub_property.camel_case}(
+                        push(PropertyDeclaration::${sub_property.camel_case}(
                             DeclaredValue::CSSWideKeyword(keyword)
                         ));
                     % endfor
@@ -856,13 +856,13 @@ impl ParsedDeclaration {
                         Some(ShorthandId::${shorthand.camel_case})
                     );
                     % for sub_property in shorthand.sub_properties:
-                        f(PropertyDeclaration::${sub_property.camel_case}(
+                        push(PropertyDeclaration::${sub_property.camel_case}(
                             DeclaredValue::WithVariables(value.clone())
                         ));
                     % endfor
                 }
             % endfor
-            ParsedDeclaration::LonghandOrCustom(declaration) => f(declaration),
+            ParsedDeclaration::LonghandOrCustom(declaration) => push(declaration),
         }
     }
 

@@ -393,7 +393,6 @@ impl<'a, 'b> AtRuleParser for KeyframeDeclarationParser<'a, 'b> {
 }
 
 impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
-    /// We parse rules directly into the declarations object
     type Declaration = ParsedDeclaration;
 
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<ParsedDeclaration, ()> {
