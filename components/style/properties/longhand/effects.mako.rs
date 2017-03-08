@@ -367,8 +367,8 @@ ${helpers.predefined_type("clip",
     fn parse_factor(input: &mut Parser) -> Result<::values::CSSFloat, ()> {
         use cssparser::Token;
         match input.next() {
-            Ok(Token::Number(value)) => Ok(value.value),
-            Ok(Token::Percentage(value)) => Ok(value.unit_value),
+            Ok(Token::Number(value)) if value.value.is_sign_positive() => Ok(value.value),
+            Ok(Token::Percentage(value)) if value.unit_value.is_sign_positive() => Ok(value.unit_value),
             _ => Err(())
         }
     }
