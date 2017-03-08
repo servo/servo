@@ -588,6 +588,9 @@ impl CalcLengthOrPercentage {
             let position = input.position();
             match input.next_including_whitespace() {
                 Ok(Token::WhiteSpace(_)) => {
+                    if input.is_exhausted() {
+                        break; // allow trailing whitespace
+                    }
                     match input.next() {
                         Ok(Token::Delim('+')) => {
                             products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
