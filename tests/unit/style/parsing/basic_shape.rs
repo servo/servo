@@ -87,8 +87,6 @@ fn test_border_radius() {
     assert!(parse(BorderRadius::parse, "borderRadius(10px -20px 30px 40px)").is_err());
     assert!(parse(BorderRadius::parse, "borderRadius(10px 20px -30px 40px)").is_err());
     assert!(parse(BorderRadius::parse, "borderRadius(10px 20px 30px -40px)").is_err());
-
-
 }
 
 #[test]
