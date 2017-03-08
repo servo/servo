@@ -328,7 +328,7 @@ impl Stylist {
         // the actual used value, and the computed value of it would need
         // blockification.
         let computed =
-            properties::cascade(self.device.au_viewport_size(),
+            properties::cascade(&self.device,
                                 &rule_node,
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
@@ -409,7 +409,7 @@ impl Stylist {
         // (tl;dr: It doesn't apply for replaced elements and such, but the
         // computed value is still "contents").
         let computed =
-            properties::cascade(self.device.au_viewport_size(),
+            properties::cascade(&self.device,
                                 &rule_node,
                                 Some(&**parent),
                                 Some(&**parent),

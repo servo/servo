@@ -18,11 +18,12 @@ use std::fmt;
 use std::ops::Mul;
 use style_traits::ToCss;
 use super::{Auto, CSSFloat, HasViewportPercentage, Either, None_};
-use super::computed::{ComputedValueAsSpecified, Context, ToComputedValue};
-use super::computed::Shadow as ComputedShadow;
+use super::computed::{ComputedValueAsSpecified, Context};
+use super::computed::{Shadow as ComputedShadow, ToComputedValue};
 
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignItems, AlignJustifyContent, AlignJustifySelf, JustifyItems};
+pub use self::color::Color;
 pub use self::grid::{GridLine, TrackKeyword};
 pub use self::image::{AngleOrCorner, ColorStop, EndingShape as GradientEndingShape, Gradient};
 pub use self::image::{GradientKind, HorizontalDirection, Image, LengthOrKeyword, LengthOrPercentageOrKeyword};
@@ -36,6 +37,7 @@ pub use self::position::{HorizontalPosition, Position, VerticalPosition};
 #[cfg(feature = "gecko")]
 pub mod align;
 pub mod basic_shape;
+pub mod color;
 pub mod grid;
 pub mod image;
 pub mod length;
@@ -48,12 +50,12 @@ no_viewport_percentage!(i32);  // For PropertyDeclaration::Order
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 #[allow(missing_docs)]
 pub struct CSSColor {
-    pub parsed: cssparser::Color,
+    pub parsed: Color,
     pub authored: Option<Box<str>>,
 }
 
 impl Parse for CSSColor {
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
+    fn parse(context: &ParserContext, input: &mut Parser) -> Result<Self, ()> {
         let start_position = input.position();
         let authored = match input.next() {
             Ok(Token::Ident(s)) => Some(s.into_owned().into_boxed_str()),
@@ -61,7 +63,7 @@ impl Parse for CSSColor {
         };
         input.reset(start_position);
         Ok(CSSColor {
-            parsed: try!(cssparser::Color::parse(input)),
+            parsed: try!(Parse::parse(context, input)),
             authored: authored,
         })
     }
@@ -83,7 +85,7 @@ impl CSSColor {
     /// Returns currentcolor value.
     pub fn currentcolor() -> CSSColor {
         CSSColor {
-            parsed: cssparser::Color::CurrentColor,
+            parsed: Color::CurrentColor,
             authored: None,
         }
     }
@@ -92,7 +94,7 @@ impl CSSColor {
     /// Returns transparent value.
     pub fn transparent() -> CSSColor {
         CSSColor {
-            parsed: cssparser::Color::RGBA(cssparser::RGBA::transparent()),
+            parsed: Color::RGBA(cssparser::RGBA::transparent()),
             // This should probably be "transparent", but maybe it doesn't matter.
             authored: None,
         }
@@ -616,7 +618,7 @@ impl ToComputedValue for Shadow {
             spread_radius: self.spread_radius.to_computed_value(context),
             color: self.color
                         .as_ref()
-                        .map(|color| color.parsed)
+                        .map(|color| color.to_computed_value(context))
                         .unwrap_or(cssparser::Color::CurrentColor),
             inset: self.inset,
         }

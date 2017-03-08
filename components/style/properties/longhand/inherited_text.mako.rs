@@ -792,7 +792,7 @@ ${helpers.single_keyword("text-align-last",
                     blur_radius: value.blur_radius.to_computed_value(context),
                     color: value.color
                                 .as_ref()
-                                .map(|color| color.parsed)
+                                .map(|color| color.to_computed_value(context))
                                 .unwrap_or(cssparser::Color::CurrentColor),
                 }
             }).collect())
