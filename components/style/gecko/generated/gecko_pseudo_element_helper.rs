@@ -103,8 +103,11 @@
     pseudo_element!(":-moz-text",
                     atom!(":-moz-text"),
                     true);
-    pseudo_element!(":-moz-other-non-element",
-                    atom!(":-moz-other-non-element"),
+    pseudo_element!(":-moz-oof-placeholder",
+                    atom!(":-moz-oof-placeholder"),
+                    true);
+    pseudo_element!(":-moz-first-letter-continuation",
+                    atom!(":-moz-first-letter-continuation"),
                     true);
     pseudo_element!(":-moz-anonymous-block",
                     atom!(":-moz-anonymous-block"),
