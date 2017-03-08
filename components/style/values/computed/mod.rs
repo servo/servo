@@ -14,6 +14,8 @@ use super::{CSSFloat, RGBA, specified};
 use super::specified::grid::{TrackBreadth as GenericTrackBreadth, TrackSize as GenericTrackSize};
 
 pub use cssparser::Color as CSSColor;
+#[cfg(feature = "gecko")]
+use gecko_bindings::structs::RawGeckoPresContextBorrowed;
 pub use self::image::{AngleOrCorner, EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use self::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use super::{Auto, Either, None_};
@@ -59,6 +61,10 @@ pub struct Context<'a> {
     ///
     /// TODO(emilio): This should be required, see #14079.
     pub font_metrics_provider: Option<&'a FontMetricsProvider>,
+
+    /// The nsPresContext. It is only safe to access this immutably.
+    #[cfg(feature = "gecko")]
+    pub pres_context: RawGeckoPresContextBorrowed,
 }
 
 impl<'a> Context<'a> {
@@ -113,18 +119,64 @@ impl<T> ToComputedValue for T
     }
 }
 
+impl ToComputedValue for specified::Color {
+    type ComputedValue = RGBA;
+
+    #[cfg(not(feature = "gecko"))]
+    fn to_computed_value(&self, context: &Context) -> RGBA {
+        match *self {
+            specified::Color::RGBA(rgba) => rgba,
+            specified::Color::CurrentColor => context.inherited_style.get_color().clone_color(),
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    fn to_computed_value(&self, context: &Context) -> RGBA {
+        use gecko::values::convert_nscolor_to_rgba as to_rgba;
+        let pres_context = unsafe { &*context.pres_context };
+        match *self {
+            specified::Color::RGBA(rgba) => rgba,
+            specified::Color::CurrentColor => context.inherited_style.get_color().clone_color(),
+            specified::Color::MozDefaultColor => to_rgba(pres_context.mDefaultColor),
+            specified::Color::MozDefaultBackgroundColor => to_rgba(pres_context.mBackgroundColor),
+            specified::Color::MozHyperlinktext => to_rgba(pres_context.mLinkColor),
+            specified::Color::MozActiveHyperlinktext => to_rgba(pres_context.mActiveLinkColor),
+            specified::Color::MozVisitedHyperlinktext => to_rgba(pres_context.mVisitedLinkColor),
+        }
+    }
+
+    fn from_computed_value(computed: &RGBA) -> Self {
+        specified::Color::RGBA(*computed)
+    }
+}
+
 impl ToComputedValue for specified::CSSColor {
     type ComputedValue = CSSColor;
 
+    #[cfg(not(feature = "gecko"))]
     #[inline]
     fn to_computed_value(&self, _context: &Context) -> CSSColor {
         self.parsed
     }
 
+    #[cfg(feature = "gecko")]
+    #[inline]
+    fn to_computed_value(&self, context: &Context) -> CSSColor {
+        match self.parsed {
+            specified::Color::RGBA(rgba) => CSSColor::RGBA(rgba),
+            specified::Color::CurrentColor => CSSColor::CurrentColor,
+            // Resolve non-standard -moz keywords to RGBA:
+            non_standard => CSSColor::RGBA(non_standard.to_computed_value(context)),
+        }
+    }
+
     #[inline]
     fn from_computed_value(computed: &CSSColor) -> Self {
         specified::CSSColor {
-            parsed: *computed,
+            parsed: match *computed {
+                CSSColor::RGBA(rgba) => specified::Color::RGBA(rgba),
+                CSSColor::CurrentColor => specified::Color::CurrentColor,
+            },
             authored: None,
         }
     }

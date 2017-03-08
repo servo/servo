@@ -224,7 +224,7 @@ ${helpers.single_keyword("text-decoration-style",
 
 ${helpers.predefined_type(
     "text-decoration-color", "CSSColor",
-    "::cssparser::Color::CurrentColor",
+    "computed::CSSColor::CurrentColor",
     initial_specified_value="specified::CSSColor::currentcolor()",
     complex_color=True,
     products="gecko",

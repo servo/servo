@@ -21,13 +21,14 @@ use app_units::Au;
 use cssparser::{Parser, TokenSerializationType};
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
-use euclid::size::Size2D;
 use computed_values;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
+#[cfg(feature = "gecko")] use gecko_bindings::structs::RawGeckoPresContextBorrowed;
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
+use media_queries::Device;
 use parser::{Parse, ParserContext, ParserContextExtraData};
 use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
@@ -1793,7 +1794,7 @@ bitflags! {
 ///
 /// The arguments are:
 ///
-///   * `viewport_size`: The size of the initial viewport.
+///   * `device`: Used to get the initial viewport and other external state.
 ///
 ///   * `rule_node`: The rule node in the tree that represent the CSS rules that
 ///   matched.
@@ -1803,7 +1804,7 @@ bitflags! {
 /// Returns the computed values.
 ///   * `flags`: Various flags.
 ///
-pub fn cascade(viewport_size: Size2D<Au>,
+pub fn cascade(device: &Device,
                rule_node: &StrongRuleNode,
                parent_style: Option<<&ComputedValues>,
                layout_parent_style: Option<<&ComputedValues>,
@@ -1836,7 +1837,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
             })
         })
     };
-    apply_declarations(viewport_size,
+    apply_declarations(device,
                        is_root_element,
                        iter_declarations,
                        inherited_style,
@@ -1850,7 +1851,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
 
 /// NOTE: This function expects the declaration with more priority to appear
 /// first.
-pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
+pub fn apply_declarations<'a, F, I>(device: &Device,
                                     is_root_element: bool,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
@@ -1903,13 +1904,24 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                             )
     };
 
+    #[cfg(not(feature = "gecko"))]
     let mut context = computed::Context {
         is_root_element: is_root_element,
-        viewport_size: viewport_size,
+        viewport_size: device.au_viewport_size(),
         inherited_style: inherited_style,
         layout_parent_style: layout_parent_style,
         style: starting_style,
         font_metrics_provider: font_metrics_provider,
+    };
+    #[cfg(feature = "gecko")]
+    let mut context = computed::Context {
+        is_root_element: is_root_element,
+        viewport_size: device.au_viewport_size(),
+        inherited_style: inherited_style,
+        layout_parent_style: layout_parent_style,
+        style: starting_style,
+        font_metrics_provider: font_metrics_provider,
+        pres_context: device.pres_context as RawGeckoPresContextBorrowed,
     };
 
     // Set computed values, overwriting earlier declarations for the same

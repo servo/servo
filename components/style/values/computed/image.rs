@@ -250,7 +250,7 @@ impl ToComputedValue for specified::ColorStop {
     #[inline]
     fn to_computed_value(&self, context: &Context) -> ColorStop {
         ColorStop {
-            color: self.color.parsed,
+            color: self.color.to_computed_value(context),
             position: match self.position {
                 None => None,
                 Some(ref value) => Some(value.to_computed_value(context)),

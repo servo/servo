@@ -1166,9 +1166,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
 pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(declarations:
                                                          RawServoDeclarationBlockBorrowed,
                                                          property: nsCSSPropertyID) {
-    use cssparser::Color;
     use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
-    use style::values::specified::CSSColor;
+    use style::values::specified::{Color, CSSColor};
 
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     let long = get_longhand_from_id!(property);
@@ -1188,11 +1187,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
                                                        RawServoDeclarationBlockBorrowed,
                                                        property: nsCSSPropertyID,
                                                        value: structs::nscolor) {
-    use cssparser::Color;
     use style::gecko::values::convert_nscolor_to_rgba;
     use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
     use style::properties::longhands;
-    use style::values::specified::CSSColor;
+    use style::values::specified::{Color, CSSColor};
 
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     let long = get_longhand_from_id!(property);
@@ -1442,6 +1440,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
         layout_parent_style: parent_style.unwrap_or(default_values),
         style: (**style).clone(),
         font_metrics_provider: None,
+        pres_context: data.stylist.device.pres_context,
     };
 
     for (index, keyframe) in keyframes.iter().enumerate() {

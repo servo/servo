@@ -685,6 +685,7 @@ impl MaybeNew for ViewportConstraints {
         let initial_viewport = device.au_viewport_size();
 
         // TODO(emilio): Stop cloning `ComputedValues` around!
+        #[cfg(not(feature = "gecko"))]
         let context = Context {
             is_root_element: false,
             viewport_size: initial_viewport,
@@ -692,6 +693,16 @@ impl MaybeNew for ViewportConstraints {
             layout_parent_style: device.default_values(),
             style: device.default_values().clone(),
             font_metrics_provider: None, // TODO: Should have!
+        };
+        #[cfg(feature = "gecko")]
+        let context = Context {
+            is_root_element: false,
+            viewport_size: initial_viewport,
+            inherited_style: device.default_values(),
+            layout_parent_style: device.default_values(),
+            style: device.default_values().clone(),
+            font_metrics_provider: None, // TODO: Should have!
+            pres_context: device.pres_context,
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

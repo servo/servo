@@ -10,12 +10,11 @@
                     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration">
 
     % if product == "gecko" or data.testing:
-        use cssparser::Color as CSSParserColor;
+        use values::specified;
         use properties::longhands::{text_decoration_line, text_decoration_style, text_decoration_color};
     % else:
         use properties::longhands::text_decoration_line;
     % endif
-
 
     pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
         % if product == "gecko" or data.testing:
@@ -71,7 +70,7 @@
                     self.text_decoration_style.to_css(dest)?;
                 }
 
-                if self.text_decoration_color.parsed != CSSParserColor::CurrentColor {
+                if self.text_decoration_color.parsed != specified::Color::CurrentColor {
                     dest.write_str(" ")?;
                     self.text_decoration_color.to_css(dest)?;
                 }
