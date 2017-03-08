@@ -585,33 +585,29 @@ impl CalcLengthOrPercentage {
         products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
 
         loop {
-          let position = input.position();
-          match input.next_including_whitespace() {
-            Ok(Token::WhiteSpace(_)) => {
-              match input.next() {
-                Ok(Token::Delim('+')) => {
-                  products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
+            let position = input.position();
+            match input.next_including_whitespace() {
+                Ok(Token::WhiteSpace(_)) => {
+                    match input.next() {
+                        Ok(Token::Delim('+')) => {
+                            products.push(try!(CalcLengthOrPercentage::parse_product(input, expected_unit)));
+                        }
+                        Ok(Token::Delim('-')) => {
+                            let mut right = try!(CalcLengthOrPercentage::parse_product(input, expected_unit));
+                            right.values.push(CalcValueNode::Number(-1.));
+                            products.push(right);
+                        }
+                        _ => {
+                            return Err(());
+                        }
+                    }
                 }
-
-                Ok(Token::Delim('-')) => {
-                  let mut right = try!(CalcLengthOrPercentage::parse_product(input, expected_unit));
-                  right.values.push(CalcValueNode::Number(-1.));
-                  products.push(right);
-                }
-
                 _ => {
-                  return Err(());
+                    input.reset(position);
+                    break
                 }
-             }
             }
-            _ => {
-                input.reset(position);
-                break
-            }
-          }
-      }
-
-
+        }
         Ok(CalcSumNode { products: products })
     }
 
