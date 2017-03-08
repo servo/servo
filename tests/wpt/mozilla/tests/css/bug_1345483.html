@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+    var style = document.documentElement.style;
+    style.marginTop = "0";
+    assert_equals(style.marginTop, "0px");
+    style.margin = null;  // This used to fail to unset a bit in a LonghandIdSet
+    assert_equals(style.marginTop, "");
+    style.marginTop = null;  // This would find the bit and expect to find a corresponding declarations.
+}, "regression for bug 1345483")
+</script>
