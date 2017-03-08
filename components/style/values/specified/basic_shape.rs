@@ -770,8 +770,8 @@ impl Parse for BorderRadius {
 
 fn parse_one_set_of_border_values(context: &ParserContext, mut input: &mut Parser)
                                  -> Result<[LengthOrPercentage; 4], ()> {
-    let a = try!(LengthOrPercentage::parse(context, input));
 
+    let a = try!(LengthOrPercentage::parse_non_negative(input));
     let b = if let Ok(b) = input.try(|i| LengthOrPercentage::parse(context, i)) {
         b
     } else {
