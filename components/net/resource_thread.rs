@@ -14,6 +14,7 @@ use filemanager_thread::{FileManager, TFDProvider};
 use hsts::HstsList;
 use http_loader::HttpState;
 use hyper::client::pool::Pool;
+use hyper::header::{Header, SetCookie};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcReceiver, IpcReceiverSet, IpcSender};
 use net_traits::{CookieSource, CoreResourceThread};
@@ -100,6 +101,8 @@ fn create_resource_groups(config_dir: Option<&Path>)
     let mut hsts_list = HstsList::from_servo_preload();
     let mut auth_cache = AuthCache::new();
     let mut cookie_jar = CookieStorage::new(150);
+    let certificate_file = "certs";
+
     if let Some(config_dir) = config_dir {
         read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
         read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
@@ -109,13 +112,13 @@ fn create_resource_groups(config_dir: Option<&Path>)
         cookie_jar: Arc::new(RwLock::new(cookie_jar)),
         auth_cache: Arc::new(RwLock::new(auth_cache)),
         hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
-        connector: create_http_connector("certs"),
+        connector: create_http_connector(&certificate_file),
     };
     let private_resource_group = ResourceGroup {
         cookie_jar: Arc::new(RwLock::new(CookieStorage::new(150))),
         auth_cache: Arc::new(RwLock::new(AuthCache::new())),
         hsts_list: Arc::new(RwLock::new(HstsList::new())),
-        connector: create_http_connector("certs"),
+        connector: create_http_connector(&certificate_file),
     };
     (resource_group, private_resource_group)
 }
@@ -149,6 +152,7 @@ impl ResourceChannelManager {
         }
     }
 
+
     /// Returns false if the thread should exit.
     fn process_msg(&mut self,
                    msg: CoreResourceMsg,
@@ -159,10 +163,10 @@ impl ResourceChannelManager {
             CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                 self.resource_manager.websocket_connect(connect, connect_data, group),
             CoreResourceMsg::SetCookieForUrl(request, cookie, source) =>
-                self.resource_manager.set_cookie_for_url(&request, cookie, source, group),
+                self.resource_manager.set_cookie_for_url(&request, cookie.into_inner(), source, group),
             CoreResourceMsg::SetCookiesForUrl(request, cookies, source) => {
                 for cookie in cookies {
-                    self.resource_manager.set_cookie_for_url(&request, cookie.0, source, group);
+                    self.resource_manager.set_cookie_for_url(&request, cookie.into_inner(), source, group);
                 }
             }
             CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
@@ -308,9 +312,11 @@ impl CoreResourceManager {
         }
     }
 
-    fn set_cookie_for_url(&mut self, request: &ServoUrl, cookie: cookie_rs::Cookie, source: CookieSource,
-                          resource_group: &ResourceGroup) {
-        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
+    fn set_cookie_for_url(&mut self, request: &ServoUrl,
+                           cookie: cookie_rs::Cookie<'static>,
+                           source: CookieSource,
+                           resource_group: &ResourceGroup) {
+        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, request, source) {
             let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
             cookie_jar.push(cookie, request, source)
         }

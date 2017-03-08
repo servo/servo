@@ -3,11 +3,30 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use hyper::client::Pool;
-use hyper::net::{HttpStream, HttpsConnector, SslClient};
+use hyper::net::{HttpsConnector};
+use hyper_openssl;
+use hyper::net::{SslClient, SslServer, NetworkStream, HttpStream};
+use openssl::x509::{X509StoreContextRef, X509, X509Ref};
+use openssl::ssl::{Ssl, SslContextBuilder, SslContext, SslMethod, HandshakeError};
+use hyper;
+use openssl::ssl::SslStream as OpensslStream;
+use hyper_openssl::SslStream;
+use openssl;
+use std::io::{Read, Write};
+
 use openssl::ssl::{SSL_OP_NO_COMPRESSION, SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER};
-use openssl::ssl::{Ssl, SslContext, SslMethod, SslStream};
-use servo_config::resource_files::resources_dir_path;
+use openssl::ssl::{SslConnector, SslConnectorBuilder};
+use openssl::error::ErrorStack;
 use std::sync::Arc;
+use servo_config::resource_files::resources_dir_path;
+use std::fmt::Debug;
+use antidote::Mutex;
+//use std::result::Result;
+use hyper::Result;
+
+use rustls::{self, RootCertStore};
+use std::io::BufReader;
+use std::fs::File;
 
 pub type Connector = HttpsConnector<ServoSslClient>;
 
@@ -28,33 +47,103 @@ const DEFAULT_CIPHERS: &'static str = concat!(
 );
 
 pub fn create_http_connector(certificate_file: &str) -> Arc<Pool<Connector>> {
-    let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-    context.set_CA_file(&resources_dir_path()
-                        .expect("Need certificate file to make network requests")
-                        .join(certificate_file)).unwrap();
+    let ca_file = &resources_dir_path()
+        .expect("Need certificate file to make network requests")
+        .join(certificate_file);
+    let mut context = SslContextBuilder::new(SslMethod::tls()).unwrap();
+    context.set_ca_file(ca_file);
     context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
     context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3 | SSL_OP_NO_COMPRESSION);
-    let connector = HttpsConnector::new(ServoSslClient {
-        context: Arc::new(context)
-    });
 
+    let servo_connector = ServoSslConnector { 
+        context: Arc::new(context.build()) 
+    };
+    let connector = HttpsConnector::new(ServoSslClient {
+        //context: Arc::new(context)
+        connector: Arc::new(servo_connector),
+    });
     Arc::new(Pool::with_connector(Default::default(), connector))
+    
 }
 
-pub struct ServoSslClient {
-    context: Arc<SslContext>,
+#[derive(Clone)]
+pub struct ServoSslClient{
+    connector: Arc<ServoSslConnector>,
 }
 
 impl SslClient for ServoSslClient {
-    type Stream = SslStream<HttpStream>;
+    type Stream = hyper_openssl::SslStream<HttpStream>;
 
-    fn wrap_client(&self, stream: HttpStream, host: &str) -> Result<Self::Stream, ::hyper::Error> {
-        let mut ssl = try!(Ssl::new(&self.context));
-        try!(ssl.set_hostname(host));
-        let host = host.to_owned();
-        ssl.set_verify_callback(SSL_VERIFY_PEER, move |p, x| {
-            ::openssl_verify::verify_callback(&host, p, x)
-        });
-        SslStream::connect(ssl, stream).map_err(From::from)
+    fn wrap_client(&self, stream: HttpStream, host: &str) -> Result<Self::Stream> {
+        match self.connector.connect(host, stream) {
+            Ok(stream) => Ok(hyper_openssl::SslStream(Arc::new(Mutex::new(stream)))),
+            Err(err) => Err(err),
+        }
     }
+}
+
+#[derive(Clone)]
+pub struct ServoSslConnector {
+    context: Arc<SslContext>,
+}
+
+impl ServoSslConnector {
+    pub fn connect(&self, domain: &str, stream: HttpStream) -> Result<openssl::ssl::SslStream<HttpStream>> {
+        let mut ssl = Ssl::new(&self.context).unwrap();
+        ssl.set_hostname(domain).unwrap();
+        let domain = domain.to_owned();
+
+            // create a rustls root store 
+        let mut roots = RootCertStore::empty();
+        let ca_file = &resources_dir_path()
+            .expect("Need certificate file to make network requests")
+            .join("certs");
+        let ca_pem = File::open(ca_file).unwrap();
+        let mut ca_pem = BufReader::new(ca_pem);
+        let r = roots.add_pem_file(&mut ca_pem);
+
+        ssl.set_verify_callback(SSL_VERIFY_PEER, move |p, x| {
+            rustls_verify(&domain, &roots, p, x)
+        });
+
+        match ssl.connect(stream) {
+            Ok(stream) => Ok(stream),
+            Err(err) => Err(hyper::Error::Ssl(Box::new(err))),
+        }
+    }
+}
+
+fn rustls_verify (domain: &str,
+                roots: &RootCertStore,
+                preverify_ok: bool,
+                x509_ctx: &X509StoreContextRef) -> bool {
+    if !preverify_ok || x509_ctx.error_depth() != 0 {
+        return preverify_ok;
+    }
+
+    // create presented certs
+    let mut presented_certs = vec!();
+
+    match x509_ctx.chain() {
+        Some(mut chain) => {
+            for cert in chain {
+                presented_certs.push(rustls::Certificate(cert.to_der().unwrap()));
+            }
+        },
+        None => (),
+    };
+
+    //step 3: verify certificate
+    match rustls::parallel_verify_server_cert(&roots, &presented_certs, &domain) {
+        Ok(_) => true,
+        Err(error) => {debug!("Verification error: {:?}", error);
+                      false },
+    }
+
+    //TODO figure out when/if to use serial?
+    /*match rustls::verify_server_cert(&roots, &presented_certs, &domain) {
+        Ok(_) => true,
+        Err(error) => { error!("Verification error: {:?}", error);
+                      false },
+    }*/
 }
