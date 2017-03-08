@@ -41,7 +41,7 @@ use std::collections::LinkedList;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
 use style::computed_values::{border_collapse, box_sizing, clear, color, display, mix_blend_mode};
-use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration, transform};
+use style::computed_values::{overflow_wrap, overflow_x, position, text_decoration_line, transform};
 use style::computed_values::{transform_style, vertical_align, white_space, word_break, z_index};
 use style::computed_values::content::ContentItem;
 use style::logical_geometry::{Direction, LogicalMargin, LogicalRect, LogicalSize, WritingMode};
@@ -1419,15 +1419,15 @@ impl Fragment {
         self.style().get_color().color
     }
 
-    /// Returns the text decoration of this fragment, according to the style of the nearest ancestor
+    /// Returns the text decoration line of this fragment, according to the style of the nearest ancestor
     /// element.
     ///
-    /// NB: This may not be the actual text decoration, because of the override rules specified in
+    /// NB: This may not be the actual text decoration line, because of the override rules specified in
     /// CSS 2.1 § 16.3.1. Unfortunately, computing this properly doesn't really fit into Servo's
     /// model. Therefore, this is a best lower bound approximation, but the end result may actually
     /// have the various decoration flags turned on afterward.
-    pub fn text_decoration(&self) -> text_decoration::T {
-        self.style().get_text().text_decoration
+    pub fn text_decoration_line(&self) -> text_decoration_line::T {
+        self.style().get_text().text_decoration_line
     }
 
     /// Returns the inline-start offset from margin edge to content edge.
@@ -2297,7 +2297,7 @@ impl Fragment {
              &SpecificFragmentInfo::UnscannedText(_)) => {
                 // FIXME: Should probably use a whitelist of styles that can safely differ (#3165)
                 if self.style().get_font() != other.style().get_font() ||
-                        self.text_decoration() != other.text_decoration() ||
+                        self.text_decoration_line() != other.text_decoration_line() ||
                         self.white_space() != other.white_space() ||
                         self.color() != other.color() {
                     return false
