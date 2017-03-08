@@ -24,7 +24,7 @@ use selectors::MatchAttr;
 use selectors::bloom::BloomFilter;
 use selectors::matching::{ElementSelectorFlags, StyleRelations};
 use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
-use servo_config::opts;
+use servo_config_facade;
 use sink::ForgetfulSink;
 use std::collections::hash_map::Entry;
 use std::slice::IterMut;
@@ -864,7 +864,7 @@ pub trait MatchMethods : TElement {
                                       shared_context: &SharedStyleContext,
                                       data: &mut AtomicRefMut<ElementData>)
                                       -> StyleSharingResult {
-        if opts::get().disable_share_style_cache {
+        if servo_config_facade::disable_share_style_cache_enabled() {
             return StyleSharingResult::CannotShare
         }
 

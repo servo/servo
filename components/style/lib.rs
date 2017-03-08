@@ -70,7 +70,11 @@ extern crate rayon;
 extern crate selectors;
 #[cfg(feature = "servo")] #[macro_use] extern crate serde_derive;
 #[cfg(feature = "servo")] #[macro_use] extern crate servo_atoms;
+<<<<<<< Updated upstream
 extern crate servo_config;
+=======
+#[cfg(feature = "servo")] extern crate servo_config;
+>>>>>>> Stashed changes
 extern crate servo_url;
 extern crate smallvec;
 #[macro_use]
@@ -108,6 +112,7 @@ pub mod restyle_hints;
 pub mod rule_tree;
 pub mod scoped_tls;
 pub mod selector_parser;
+#[allow(missing_docs)] pub mod servo_config_facade;
 pub mod stylist;
 #[cfg(feature = "servo")] #[allow(unsafe_code)] pub mod servo;
 pub mod sequential;

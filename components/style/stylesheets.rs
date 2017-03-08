@@ -20,7 +20,7 @@ use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selector_parser::{SelectorImpl, SelectorParser};
 use selectors::parser::SelectorList;
-use servo_config::prefs::PREFS;
+use servo_config_facade;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fmt;
@@ -997,7 +997,7 @@ impl<'a, 'b> AtRuleParser for NestedRuleParser<'a, 'b> {
                 Ok(AtRuleType::WithBlock(AtRulePrelude::FontFace))
             },
             "viewport" => {
-                if PREFS.get("layout.viewport.enabled").as_boolean().unwrap_or(false) ||
+                if servo_config_facade::layout_viewport_enabled() ||
                    cfg!(feature = "gecko") {
                     Ok(AtRuleType::WithBlock(AtRulePrelude::Viewport))
                 } else {

@@ -632,12 +632,21 @@ impl Shadow {
                 }
             }
             if !lengths_parsed {
-                if let Ok(lengths[0]) = input.try(|i| Length::parse(context, i)) {
+                if let Ok(value) = input.try(|i| Length::parse(context, i)) {
+                    lengths[0] = value;
+                    let mut length_parsed_count = 1;
+                    while length_parsed_count < length_count {
+                        if let Ok(value) = input.try(|i| Length::parse(context, i)) {
+                            lengths[length_parsed_count] = value
+                        } else {
+                            break
+                        }
+                        length_parsed_count += 1;
+                    }
 
-                    try!(Length::parse(input).map(lengths[1])) //second value must parse if first parsed
-
-                    if let OK(lengths[2]) = input.try(|i| Length::parse_nonnegative(i)) && !disable_spread_and_inset { //optional parse blur radius
-                        try!(Length::parse(input).map(ShadowSpecifiedValue::shdw::spread_radius); //parse spread radius if above passes
+                    // The first two lengths must be specified.
+                    if length_parsed_count < 2 {
+                        return Err(())
                     }
 
                     lengths_parsed = true;
