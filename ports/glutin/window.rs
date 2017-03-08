@@ -442,11 +442,10 @@ impl Window {
     fn get_keyboard_input_char(&self, element_state: ElementState, scan_code: ScanCode) -> Option<char> {
         match element_state {
             ElementState::Pressed => {
-                // Retrieve any previosly stored ReceivedCharacter value.
+                // Retrieve any previously stored ReceivedCharacter value.
                 // Store the association between the scan code and the actual
                 // character value, if there is one.
-                let ch = self.pending_key_event_char
-                             .get();
+                let ch = self.pending_key_event_char.get();
                 self.pending_key_event_char.set(None);
                 if let Some(ch) = ch {
                     self.pressed_key_map.borrow_mut().push((scan_code, ch));
