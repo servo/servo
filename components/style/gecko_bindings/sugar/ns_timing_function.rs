@@ -17,7 +17,7 @@ impl nsTimingFunction {
                       "function_type should be step-start or step-end");
         self.mType = function_type;
         unsafe {
-            self.__bindgen_anon_1.__bindgen_anon_1.as_mut().mSteps = steps;
+            self.__bindgen_anon_1.__bindgen_anon_1.as_mut().mStepsOrFrames = steps;
         }
     }
 
@@ -91,13 +91,19 @@ impl From<nsTimingFunction> for ComputedTimingFunction {
     fn from(function: nsTimingFunction) -> ComputedTimingFunction {
         match function.mType {
             nsTimingFunction_Type::StepStart => {
-                ComputedTimingFunction::Steps(unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mSteps },
-                                              StartEnd::Start)
+                ComputedTimingFunction::Steps(
+                    unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mStepsOrFrames },
+                    StartEnd::Start)
             },
             nsTimingFunction_Type::StepEnd => {
-                ComputedTimingFunction::Steps(unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mSteps },
-                                              StartEnd::End)
+                ComputedTimingFunction::Steps(
+                    unsafe { function.__bindgen_anon_1.__bindgen_anon_1.as_ref().mStepsOrFrames },
+                    StartEnd::End)
             },
+            nsTimingFunction_Type::Frames => {
+                // https://github.com/servo/servo/issues/15740
+                panic!("Frames timing function is not support yet");
+            }
             nsTimingFunction_Type::Ease |
             nsTimingFunction_Type::Linear |
             nsTimingFunction_Type::EaseIn |
