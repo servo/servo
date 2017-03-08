@@ -12,7 +12,6 @@ use super::{Number, ToComputedValue, Context};
 use values::{Auto, CSSFloat, Either, ExtremumLength, None_, Normal, specified};
 use values::specified::length::{FontRelativeLength, ViewportPercentageLength};
 
-pub use cssparser::Color as CSSColor;
 pub use super::image::{EndingShape as GradientShape, Gradient, GradientKind, Image};
 pub use super::image::{LengthOrKeyword, LengthOrPercentageOrKeyword};
 pub use values::specified::{Angle, BorderStyle, Time, UrlOrNone};

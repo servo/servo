@@ -687,7 +687,7 @@ impl MaybeNew for ViewportConstraints {
         // TODO(emilio): Stop cloning `ComputedValues` around!
         let context = Context {
             is_root_element: false,
-            viewport_size: initial_viewport,
+            device: device,
             inherited_style: device.default_values(),
             layout_parent_style: device.default_values(),
             style: device.default_values().clone(),
