@@ -787,7 +787,7 @@ impl TestBindingMethods for TestBinding {
     }
 
     fn SetZoomFactor(&self, magnification: Finite<f32>) {
-        self.global().as_window().page_zoom(*magnification);
+        self.global().as_window().set_page_zoom_for_testing(*magnification);
     }
 }
 

@@ -643,7 +643,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.set_fullscreen_state(state);
             }
 
-            (Msg::PageZoom(magnification), ShutdownState::NotShuttingDown) => {
+            (Msg::SetPageZoomForTesting(magnification), ShutdownState::NotShuttingDown) => {
                 self.on_zoom_window_event(magnification);
             }
 

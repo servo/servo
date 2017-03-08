@@ -131,8 +131,8 @@ pub enum Msg {
     Dispatch(Box<Fn() + Send>),
     /// Enter or exit fullscreen
     SetFullscreenState(bool),
-    /// Apply a zoom factor to the page.
-    PageZoom(f32),
+    /// Apply a zoom factor to the page from a test.
+    SetPageZoomForTesting(f32),
 }
 
 impl Debug for Msg {
@@ -166,7 +166,7 @@ impl Debug for Msg {
             Msg::NewScrollFrameReady(..) => write!(f, "NewScrollFrameReady"),
             Msg::Dispatch(..) => write!(f, "Dispatch"),
             Msg::SetFullscreenState(..) => write!(f, "SetFullscreenState"),
-            Msg::PageZoom(..) => write!(f, "PageZoom"),
+            Msg::SetPageZoomForTesting(..) => write!(f, "SetPageZoomForTesting"),
         }
     }
 }
