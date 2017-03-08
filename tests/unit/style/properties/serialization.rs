@@ -17,6 +17,7 @@ use style::values::specified::{BorderStyle, BorderWidth, CSSColor, Length, NoCal
 use style::values::specified::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrAutoOrContent};
 use style::values::specified::url::SpecifiedUrl;
 use style_traits::ToCss;
+use stylesheets::block_from;
 
 fn parse_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
     let url = ServoUrl::parse("http://localhost").unwrap();
@@ -56,10 +57,7 @@ fn property_declaration_block_should_serialize_correctly() {
          Importance::Normal),
     ];
 
-    let block = PropertyDeclarationBlock {
-        declarations: declarations,
-        important_count: 0,
-    };
+    let block = block_from(declarations);
 
     let css_string = block.to_css_string();
 
@@ -73,10 +71,7 @@ mod shorthand_serialization {
     pub use super::*;
 
     pub fn shorthand_properties_to_string(properties: Vec<PropertyDeclaration>) -> String {
-        let block = PropertyDeclarationBlock {
-            declarations: properties.into_iter().map(|d| (d, Importance::Normal)).collect(),
-            important_count: 0,
-        };
+        let block = block_from(properties.into_iter().map(|d| (d, Importance::Normal)));
 
         block.to_css_string()
     }
@@ -882,10 +877,7 @@ mod shorthand_serialization {
                 Importance::Normal)
             ];
 
-            let block = PropertyDeclarationBlock {
-                declarations: declarations,
-                important_count: 0
-            };
+            let block = block_from(declarations);
 
             let mut s = String::new();
 
@@ -905,10 +897,7 @@ mod shorthand_serialization {
                 Importance::Normal)
             ];
 
-            let block = PropertyDeclarationBlock {
-                declarations: declarations,
-                important_count: 0
-            };
+            let block = block_from(declarations);
 
             let mut s = String::new();
 

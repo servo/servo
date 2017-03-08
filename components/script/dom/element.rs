@@ -385,10 +385,9 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         #[inline]
         fn from_declaration(declaration: PropertyDeclaration) -> ApplicableDeclarationBlock {
             ApplicableDeclarationBlock::from_declarations(
-                Arc::new(RwLock::new(PropertyDeclarationBlock {
-                    declarations: vec![(declaration, Importance::Normal)],
-                    important_count: 0,
-                })),
+                Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
+                    declaration, Importance::Normal
+                ))),
                 CascadeLevel::PresHints)
         }
 

@@ -11,9 +11,8 @@ use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
 use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
-use properties::{PropertyDeclarationId, LonghandId, DeclaredValue};
+use properties::{PropertyDeclarationId, LonghandId, DeclaredValue, ParsedDeclaration};
 use properties::LonghandIdSet;
-use properties::PropertyDeclarationParseResult;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
 use std::fmt;
@@ -71,8 +70,7 @@ impl KeyframePercentage {
 
 /// A keyframes selector is a list of percentages or from/to symbols, which are
 /// converted at parse time to percentages.
-#[derive(Debug, Clone, PartialEq)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug, PartialEq)]
 pub struct KeyframeSelector(Vec<KeyframePercentage>);
 impl KeyframeSelector {
     /// Return the list of percentages this selector contains.
@@ -94,8 +92,7 @@ impl KeyframeSelector {
 }
 
 /// A keyframe.
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+#[derive(Debug)]
 pub struct Keyframe {
     /// The selector this keyframe was specified from.
     pub selector: KeyframeSelector,
@@ -104,7 +101,6 @@ pub struct Keyframe {
     ///
     /// Note that `!important` rules in keyframes don't apply, but we keep this
     /// `Arc` just for convenience.
-    #[cfg_attr(feature = "servo", ignore_heap_size_of = "Arc")]
     pub block: Arc<RwLock<PropertyDeclarationBlock>>,
 }
 
@@ -149,7 +145,7 @@ impl Keyframe {
 /// declarations to apply.
 ///
 /// TODO: Find a better name for this?
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub enum KeyframesStepValue {
     /// A step formed by a declaration block specified by the CSS.
@@ -164,7 +160,7 @@ pub enum KeyframesStepValue {
 }
 
 /// A single step from a keyframe animation.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesStep {
     /// The percentage of the animation duration when this step starts.
@@ -185,7 +181,7 @@ impl KeyframesStep {
            value: KeyframesStepValue) -> Self {
         let declared_timing_function = match value {
             KeyframesStepValue::Declarations { ref block } => {
-                block.read().declarations.iter().any(|&(ref prop_decl, _)| {
+                block.read().declarations().iter().any(|&(ref prop_decl, _)| {
                     match *prop_decl {
                         PropertyDeclaration::AnimationTimingFunction(..) => true,
                         _ => false,
@@ -236,7 +232,7 @@ impl KeyframesStep {
 /// of keyframes, in order.
 ///
 /// It only takes into account animable properties.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
 pub struct KeyframesAnimation {
     /// The difference steps of the animation.
@@ -253,7 +249,7 @@ fn get_animated_properties(keyframes: &[Arc<RwLock<Keyframe>>]) -> Vec<Transitio
     // it here.
     for keyframe in keyframes {
         let keyframe = keyframe.read();
-        for &(ref declaration, importance) in keyframe.block.read().declarations.iter() {
+        for &(ref declaration, importance) in keyframe.block.read().declarations().iter() {
             assert!(!importance.important());
 
             if let Some(property) = TransitionProperty::from_declaration(declaration) {
@@ -364,12 +360,12 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
                    -> Result<Self::QualifiedRule, ()> {
         let parser = KeyframeDeclarationParser {
             context: self.context,
-            declarations: vec![],
         };
         let mut iter = DeclarationListParser::new(input, parser);
+        let mut block = PropertyDeclarationBlock::new();
         while let Some(declaration) = iter.next() {
             match declaration {
-                Ok(_) => (),
+                Ok(parsed) => parsed.expand(|d| block.push(d, Importance::Normal)),
                 Err(range) => {
                     let pos = range.start;
                     let message = format!("Unsupported keyframe property declaration: '{}'",
@@ -381,45 +377,36 @@ impl<'a> QualifiedRuleParser for KeyframeListParser<'a> {
         }
         Ok(Arc::new(RwLock::new(Keyframe {
             selector: prelude,
-            block: Arc::new(RwLock::new(PropertyDeclarationBlock {
-                declarations: iter.parser.declarations,
-                important_count: 0,
-            })),
+            block: Arc::new(RwLock::new(block)),
         })))
     }
 }
 
 struct KeyframeDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    declarations: Vec<(PropertyDeclaration, Importance)>
 }
 
 /// Default methods reject all at rules.
 impl<'a, 'b> AtRuleParser for KeyframeDeclarationParser<'a, 'b> {
     type Prelude = ();
-    type AtRule = ();
+    type AtRule = ParsedDeclaration;
 }
 
 impl<'a, 'b> DeclarationParser for KeyframeDeclarationParser<'a, 'b> {
-    /// We parse rules directly into the declarations object
-    type Declaration = ();
+    type Declaration = ParsedDeclaration;
 
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
+    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<ParsedDeclaration, ()> {
         let id = try!(PropertyId::parse(name.into()));
-        let old_len = self.declarations.len();
-        match PropertyDeclaration::parse(id, self.context, input, &mut self.declarations, true) {
-            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
-            _ => {
-                self.declarations.truncate(old_len);
-                return Err(());
+        match ParsedDeclaration::parse(id, self.context, input, true) {
+            Ok(parsed) => {
+                // In case there is still unparsed text in the declaration, we should roll back.
+                if !input.is_exhausted() {
+                    Err(())
+                } else {
+                    Ok(parsed)
+                }
             }
-        }
-        // In case there is still unparsed text in the declaration, we should roll back.
-        if !input.is_exhausted() {
-            self.declarations.truncate(old_len);
-            Err(())
-        } else {
-            Ok(())
+            Err(_) => Err(())
         }
     }
 }

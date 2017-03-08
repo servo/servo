@@ -67,8 +67,8 @@ use style::gecko_properties::{self, style_structs};
 use style::keyframes::KeyframesStepValue;
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
-use style::properties::{ComputedValues, Importance, PropertyDeclaration};
-use style::properties::{PropertyDeclarationParseResult, PropertyDeclarationBlock, PropertyId};
+use style::properties::{ComputedValues, Importance, ParsedDeclaration};
+use style::properties::{PropertyDeclarationBlock, PropertyId};
 use style::properties::animated_properties::{AnimationValue, Interpolate, TransitionProperty};
 use style::properties::parse_one_declaration;
 use style::restyle_hints::{self, RestyleHint};
@@ -251,18 +251,13 @@ pub extern "C" fn Servo_AnimationValues_Uncompute(value: RawServoAnimationValueB
      -> RawServoDeclarationBlockStrong
 {
     let value = unsafe { value.as_ref().unwrap() };
-    let uncomputed_values = value.into_iter()
-                                 .map(|v| {
-                                     let raw_anim = unsafe { v.as_ref().unwrap() };
-                                     let anim = AnimationValue::as_arc(&raw_anim);
-                                     (anim.uncompute(), Importance::Normal)
-                                 })
-                                 .collect();
-
-    Arc::new(RwLock::new(PropertyDeclarationBlock {
-        declarations: uncomputed_values,
-        important_count: 0,
-    })).into_strong()
+    let mut block = PropertyDeclarationBlock::new();
+    for v in value.iter() {
+        let raw_anim = unsafe { v.as_ref().unwrap() };
+        let anim = AnimationValue::as_arc(&raw_anim);
+        block.push(anim.uncompute(), Importance::Normal);
+    }
+    Arc::new(RwLock::new(block)).into_strong()
 }
 
 macro_rules! get_property_id_from_nscsspropertyid {
@@ -281,10 +276,8 @@ pub extern "C" fn Servo_AnimationValue_Serialize(value: RawServoAnimationValueBo
 {
     let uncomputed_value = AnimationValue::as_arc(&value).uncompute();
     let mut string = String::new();
-    let rv = PropertyDeclarationBlock {
-        declarations: vec![(uncomputed_value, Importance::Normal)],
-        important_count: 0
-    }.single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), &mut string);
+    let rv = PropertyDeclarationBlock::with_one(uncomputed_value, Importance::Normal)
+        .single_value_to_css(&get_property_id_from_nscsspropertyid!(property, ()), &mut string);
     debug_assert!(rv.is_ok());
 
     write!(unsafe { &mut *buffer }, "{}", string).expect("Failed to copy string");
@@ -713,17 +706,14 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
                                                      Box::new(StdoutErrorReporter),
                                                      extra_data);
 
-    let mut results = vec![];
-    match PropertyDeclaration::parse(id, &context, &mut Parser::new(value),
-                                     &mut results, false) {
-        PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {},
-        _ => return RawServoDeclarationBlockStrong::null(),
+    match ParsedDeclaration::parse(id, &context, &mut Parser::new(value), false) {
+        Ok(parsed) => {
+            let mut block = PropertyDeclarationBlock::new();
+            parsed.expand(|d| block.push(d, Importance::Normal));
+            Arc::new(RwLock::new(block)).into_strong()
+        }
+        Err(_) => RawServoDeclarationBlockStrong::null()
     }
-
-    Arc::new(RwLock::new(PropertyDeclarationBlock {
-        declarations: results,
-        important_count: 0,
-    })).into_strong()
 }
 
 #[no_mangle]
@@ -734,7 +724,7 @@ pub extern "C" fn Servo_ParseStyleAttribute(data: *const nsACString) -> RawServo
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_CreateEmpty() -> RawServoDeclarationBlockStrong {
-    Arc::new(RwLock::new(PropertyDeclarationBlock { declarations: vec![], important_count: 0 })).into_strong()
+    Arc::new(RwLock::new(PropertyDeclarationBlock::new())).into_strong()
 }
 
 #[no_mangle]
@@ -748,7 +738,8 @@ pub extern "C" fn Servo_DeclarationBlock_Clone(declarations: RawServoDeclaration
 pub extern "C" fn Servo_DeclarationBlock_Equals(a: RawServoDeclarationBlockBorrowed,
                                                 b: RawServoDeclarationBlockBorrowed)
                                                 -> bool {
-    *RwLock::<PropertyDeclarationBlock>::as_arc(&a).read() == *RwLock::<PropertyDeclarationBlock>::as_arc(&b).read()
+    *RwLock::<PropertyDeclarationBlock>::as_arc(&a).read().declarations() ==
+    *RwLock::<PropertyDeclarationBlock>::as_arc(&b).read().declarations()
 }
 
 #[no_mangle]
@@ -775,14 +766,14 @@ pub extern "C" fn Servo_DeclarationBlock_SerializeOneValue(
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_Count(declarations: RawServoDeclarationBlockBorrowed) -> u32 {
      let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-     declarations.read().declarations.len() as u32
+     declarations.read().declarations().len() as u32
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_GetNthProperty(declarations: RawServoDeclarationBlockBorrowed,
                                                         index: u32, result: *mut nsAString) -> bool {
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
-    if let Some(&(ref decl, _)) = declarations.read().declarations.get(index as usize) {
+    if let Some(&(ref decl, _)) = declarations.read().declarations().get(index as usize) {
         let result = unsafe { result.as_mut().unwrap() };
         decl.id().to_css(result).unwrap();
         true
@@ -833,14 +824,14 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
     // FIXME Needs real URL and ParserContextExtraData.
     let base_url = &*DUMMY_BASE_URL;
     let extra_data = ParserContextExtraData::default();
-    if let Ok(decls) = parse_one_declaration(property_id, value, &base_url,
-                                             Box::new(StdoutErrorReporter), extra_data) {
+    if let Ok(parsed) = parse_one_declaration(property_id, value, &base_url,
+                                              Box::new(StdoutErrorReporter), extra_data) {
         let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
         let importance = if is_important { Importance::Important } else { Importance::Normal };
         let mut changed = false;
-        for decl in decls.into_iter() {
-            changed |= declarations.set_parsed_declaration(decl.0, importance);
-        }
+        parsed.expand(|decl| {
+            changed |= declarations.set_parsed_declaration(decl, importance);
+        });
         changed
     } else {
         false
@@ -933,7 +924,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetIdentStringValue(declarations:
     let prop = match_wrap_declared! { long,
         XLang => Lang(Atom::from(value)),
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push(prop, Importance::Normal);
 }
 
 #[no_mangle]
@@ -970,7 +961,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(declarations:
         BorderBottomStyle => BorderStyle::from_gecko_keyword(value),
         BorderLeftStyle => BorderStyle::from_gecko_keyword(value),
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push(prop, Importance::Normal);
 }
 
 #[no_mangle]
@@ -985,7 +976,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetIntValue(declarations: RawServoDecla
     let prop = match_wrap_declared! { long,
         XSpan => Span(value),
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push(prop, Importance::Normal);
 }
 
 #[no_mangle]
@@ -1024,7 +1015,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(declarations:
             }
         ),
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push(prop, Importance::Normal);
 }
 
 #[no_mangle]
@@ -1047,7 +1038,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(declarations:
         MarginBottom => pc.into(),
         MarginLeft => pc.into(),
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push(prop, Importance::Normal);
 }
 
 #[no_mangle]
@@ -1069,7 +1060,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
         MarginBottom => auto,
         MarginLeft => auto,
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push(prop, Importance::Normal);
 }
 
 #[no_mangle]
@@ -1090,7 +1081,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(declarations:
         BorderBottomColor => cc,
         BorderLeftColor => cc,
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push(prop, Importance::Normal);
 }
 
 #[no_mangle]
@@ -1117,7 +1108,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
         Color => longhands::color::SpecifiedValue(color),
         BackgroundColor => color,
     };
-    declarations.write().declarations.push((prop, Default::default()));
+    declarations.write().push(prop, Importance::Normal);
 }
 
 #[no_mangle]
@@ -1134,7 +1125,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetFontFamily(declarations:
     if let Ok(family) = FontFamily::parse(&mut parser) {
         if parser.is_exhausted() {
             let decl = PropertyDeclaration::FontFamily(DeclaredValue::Value(family));
-            declarations.write().declarations.push((decl, Default::default()));
+            declarations.write().push(decl, Importance::Normal);
         }
     }
 }
@@ -1149,7 +1140,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetTextDecorationColorOverride(declarat
     let mut decoration = text_decoration_line::computed_value::none;
     decoration |= text_decoration_line::COLOR_OVERRIDE;
     let decl = PropertyDeclaration::TextDecorationLine(DeclaredValue::Value(decoration));
-    declarations.write().declarations.push((decl, Default::default()));
+    declarations.write().push(decl, Importance::Normal);
 }
 
 #[no_mangle]
@@ -1165,10 +1156,7 @@ pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const 
     let base_url = &*DUMMY_BASE_URL;
     let extra_data = ParserContextExtraData::default();
 
-    match parse_one_declaration(id, &value, &base_url, Box::new(StdoutErrorReporter), extra_data) {
-        Ok(decls) => !decls.is_empty(),
-        Err(()) => false,
-    }
+    parse_one_declaration(id, &value, &base_url, Box::new(StdoutErrorReporter), extra_data).is_ok()
 }
 
 #[no_mangle]
@@ -1369,7 +1357,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
             let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
             let guard = declarations.read();
 
-            let anim_iter = guard.declarations
+            let anim_iter = guard.declarations()
                             .iter()
                             .filter_map(|&(ref decl, imp)| {
                                 if imp == Importance::Normal {
@@ -1476,7 +1464,7 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                   let guard = block.read();
                   // Filter out non-animatable properties.
                   let animatable =
-                      guard.declarations
+                      guard.declarations()
                            .iter()
                            .filter(|&&(ref declaration, _)| {
                                declaration.is_animatable()
@@ -1490,10 +1478,9 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
                           (*keyframe).mPropertyValues.set_len((index + 1) as u32);
                           (*keyframe).mPropertyValues[index].mProperty = property.into();
                           (*keyframe).mPropertyValues[index].mServoDeclarationBlock.set_arc_leaky(
-                              Arc::new(RwLock::new(
-                                  PropertyDeclarationBlock { declarations: vec![ (declaration.clone(),
-                                                                                  Importance::Normal) ],
-                                                             important_count: 0 })));
+                              Arc::new(RwLock::new(PropertyDeclarationBlock::with_one(
+                                declaration.clone(), Importance::Normal
+                              ))));
                           if step.start_percentage.0 == 0. ||
                              step.start_percentage.0 == 1. {
                               seen.set_transition_property_bit(&property);

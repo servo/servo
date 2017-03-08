@@ -6,7 +6,7 @@
 
 use cssparser::{parse_important, Parser, Token};
 use parser::ParserContext;
-use properties::{PropertyDeclaration, PropertyId};
+use properties::{PropertyId, ParsedDeclaration};
 use std::fmt;
 use style_traits::ToCss;
 
@@ -205,27 +205,14 @@ impl Declaration {
     ///
     /// https://drafts.csswg.org/css-conditional-3/#support-definition
     pub fn eval(&self, cx: &ParserContext) -> bool {
-        use properties::PropertyDeclarationParseResult::*;
         let id = if let Ok(id) = PropertyId::parse((&*self.prop).into()) {
             id
         } else {
             return false
         };
         let mut input = Parser::new(&self.val);
-        let mut list = Vec::new();
-        let res = PropertyDeclaration::parse(id, cx, &mut input,
-                                             &mut list, /* in_keyframe */ false);
+        let res = ParsedDeclaration::parse(id, cx, &mut input, /* in_keyframe */ false);
         let _ = input.try(parse_important);
-        if !input.is_exhausted() {
-            return false;
-        }
-        match res {
-            UnknownProperty => false,
-            ExperimentalProperty => false, // only happens for experimental props
-                                           // that haven't been enabled
-            InvalidValue => false,
-            AnimationPropertyInKeyframeBlock => unreachable!(),
-            ValidOrIgnoredDeclaration => true,
-        }
+        res.is_ok() && input.is_exhausted()
     }
 }

@@ -62,15 +62,12 @@ impl CSSStyleOwner {
                     let result = f(&mut pdb, &mut changed);
                     result
                 } else {
-                    let mut pdb = PropertyDeclarationBlock {
-                        important_count: 0,
-                        declarations: vec![],
-                    };
+                    let mut pdb = PropertyDeclarationBlock::new();
                     let result = f(&mut pdb, &mut changed);
 
                     // Here `changed` is somewhat silly, because we know the
                     // exact conditions under it changes.
-                    changed = !pdb.declarations.is_empty();
+                    changed = !pdb.declarations().is_empty();
                     if changed {
                         attr = Some(Arc::new(RwLock::new(pdb)));
                     }
@@ -116,10 +113,7 @@ impl CSSStyleOwner {
                 match *el.style_attribute().borrow() {
                     Some(ref pdb) => f(&pdb.read()),
                     None => {
-                        let pdb = PropertyDeclarationBlock {
-                            important_count: 0,
-                            declarations: vec![],
-                        };
+                        let pdb = PropertyDeclarationBlock::new();
                         f(&pdb)
                     }
                 }
@@ -250,14 +244,14 @@ impl CSSStyleDeclaration {
 
             // Step 6
             let window = self.owner.window();
-            let declarations =
+            let result =
                 parse_one_declaration(id, &value, &self.owner.base_url(),
                                       window.css_error_reporter(),
                                       ParserContextExtraData::default());
 
             // Step 7
-            let declarations = match declarations {
-                Ok(declarations) => declarations,
+            let parsed = match result {
+                Ok(parsed) => parsed,
                 Err(_) => {
                     *changed = false;
                     return Ok(());
@@ -267,9 +261,9 @@ impl CSSStyleDeclaration {
             // Step 8
             // Step 9
             *changed = false;
-            for declaration in declarations {
-                *changed |= pdb.set_parsed_declaration(declaration.0, importance);
-            }
+            parsed.expand(|declaration| {
+                *changed |= pdb.set_parsed_declaration(declaration, importance);
+            });
 
             Ok(())
         })
@@ -280,7 +274,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length
     fn Length(&self) -> u32 {
         self.owner.with_block(|pdb| {
-            pdb.declarations.len() as u32
+            pdb.declarations().len() as u32
         })
     }
 
@@ -405,7 +399,7 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
     // https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
     fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
         self.owner.with_block(|pdb| {
-            pdb.declarations.get(index as usize).map(|entry| {
+            pdb.declarations().get(index as usize).map(|entry| {
                 let (ref declaration, importance) = *entry;
                 let mut css = declaration.to_css_string();
                 if importance.important() {
