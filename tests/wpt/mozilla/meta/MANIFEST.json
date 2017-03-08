@@ -11024,6 +11024,12 @@
      {}
     ]
    ],
+   "css/bug_1345483.html": [
+    [
+     "/_mozilla/css/bug_1345483.html",
+     {}
+    ]
+   ],
    "css/empty-keyframes.html": [
     [
      "/_mozilla/css/empty-keyframes.html",
@@ -20612,6 +20618,10 @@
   "css/bubbles.png": [
    "2ebf9c8f963a2f3971a3c1b64b6b01825eacdedc",
    "support"
+  ],
+  "css/bug_1345483.html": [
+   "d5e1649c88102f27da5fe1ac16715cfee7f70f84",
+   "testharness"
   ],
   "css/button_css_width.html": [
    "bb88fcb6c5856a1f5199599938e1b9c84aa8ea77",
