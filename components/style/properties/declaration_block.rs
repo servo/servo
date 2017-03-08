@@ -289,9 +289,13 @@ impl PropertyDeclarationBlock {
         let important_count = &mut self.important_count;
         let mut removed_at_least_one = false;
         self.declarations.retain(|&(ref declaration, importance)| {
-            let remove = declaration.id().is_or_is_longhand_of(property);
+            let id = declaration.id();
+            let remove = id.is_or_is_longhand_of(property);
             if remove {
                 removed_at_least_one = true;
+                if let PropertyId::Longhand(id) = *property {
+                    self.longhands.remove(id)
+                }
                 if importance.important() {
                     *important_count -= 1
                 }
@@ -301,7 +305,6 @@ impl PropertyDeclarationBlock {
 
         if let PropertyId::Longhand(id) = *property {
             debug_assert!(removed_at_least_one);
-            self.longhands.remove(id);
         }
         removed_at_least_one
     }
