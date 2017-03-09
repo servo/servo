@@ -414,23 +414,16 @@ impl HTMLImageElement {
     pub fn areas(&self) -> Option<Vec<Root<HTMLAreaElement>>> {
         let elem = self.upcast::<Element>();
         let usemap_attr;
-        if elem.has_attribute(&LocalName::from("usemap")) {
-            usemap_attr = elem.get_string_attribute(&local_name!("usemap"));
-        } else {
-            return None;
+        if !elem.has_attribute(&LocalName::from("usemap")) {
+            return None
         }
+        usemap_attr = elem.get_string_attribute(&local_name!("usemap"));
 
         let (first, last) = usemap_attr.split_at(1);
 
-        match first {
-            "#" => {},
-            _ => return None,
-        };
-
-        match last.len() {
-            0 => return None,
-            _ => {},
-        };
+        if (first != "#") || (last.len() != 0) {
+            return None
+        }
 
         let map = self.upcast::<Node>()
                       .following_siblings()
