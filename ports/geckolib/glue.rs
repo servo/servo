@@ -681,11 +681,21 @@ pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) -> () {
     let _ = data.into_box::<PerDocumentStyleData>();
 }
 
+// Must be a macro since we need to store the base_url on the stack somewhere
+/// Initializes the data needed for constructing a ParserContext from
+/// Gecko-side values
+macro_rules! make_context {
+    (($base:ident, $data:ident) => ($base_url:ident, $extra_data:ident)) => {
+        let base_str = unsafe { $base.as_ref().unwrap().as_str_unchecked() };
+        let $base_url = ServoUrl::parse(base_str).unwrap();
+        let $extra_data = unsafe { ParserContextExtraData::new($data) };
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const nsACString,
-                                      base_url: *const nsACString, base: *mut ThreadSafeURIHolder,
-                                      referrer: *mut ThreadSafeURIHolder,
-                                      principal: *mut ThreadSafePrincipalHolder)
+                                      base: *const nsACString,
+                                      data: *const structs::GeckoParserExtraData)
                                       -> RawServoDeclarationBlockStrong {
     let name = unsafe { property.as_ref().unwrap().as_str_unchecked() };
     let id = if let Ok(id) = PropertyId::parse(name.into()) {
@@ -694,15 +704,11 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
         return RawServoDeclarationBlockStrong::null()
     };
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
-    let base_str = unsafe { base_url.as_ref().unwrap().as_str_unchecked() };
-    let base_url = ServoUrl::parse(base_str).unwrap();
-    let extra_data = unsafe { ParserContextExtraData {
-        base: Some(GeckoArcURI::new(base)),
-        referrer: Some(GeckoArcURI::new(referrer)),
-        principal: Some(GeckoArcPrincipal::new(principal)),
-    }};
 
-    let context = ParserContext::new_with_extra_data(Origin::Author, &base_url,
+    make_context!((base, data) => (base_url, extra_data));
+
+    let context = ParserContext::new_with_extra_data(Origin::Author,
+                                                     &base_url,
                                                      Box::new(StdoutErrorReporter),
                                                      extra_data);
 
@@ -819,11 +825,11 @@ pub extern "C" fn Servo_DeclarationBlock_GetPropertyIsImportant(declarations: Ra
 }
 
 fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId,
-                value: *mut nsACString, is_important: bool) -> bool {
+                value: *const nsACString, is_important: bool,
+                base: *const nsACString, data: *const structs::GeckoParserExtraData) -> bool {
     let value = unsafe { value.as_ref().unwrap().as_str_unchecked() };
-    // FIXME Needs real URL and ParserContextExtraData.
-    let base_url = &*DUMMY_BASE_URL;
-    let extra_data = ParserContextExtraData::default();
+
+    make_context!((base, data) => (base_url, extra_data));
     if let Ok(parsed) = parse_one_declaration(property_id, value, &base_url,
                                               Box::new(StdoutErrorReporter), extra_data) {
         let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
@@ -840,16 +846,22 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetProperty(declarations: RawServoDeclarationBlockBorrowed,
-                                                     property: *const nsACString, value: *mut nsACString,
-                                                     is_important: bool) -> bool {
-    set_property(declarations, get_property_id_from_property!(property, false), value, is_important)
+                                                     property: *const nsACString, value: *const nsACString,
+                                                     is_important: bool,
+                                                     base: *const nsACString,
+                                                     data: *const structs::GeckoParserExtraData) -> bool {
+    set_property(declarations, get_property_id_from_property!(property, false),
+                 value, is_important, base, data)
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_SetPropertyById(declarations: RawServoDeclarationBlockBorrowed,
-                                                         property: nsCSSPropertyID, value: *mut nsACString,
-                                                         is_important: bool) -> bool {
-    set_property(declarations, get_property_id_from_nscsspropertyid!(property, false), value, is_important)
+                                                         property: nsCSSPropertyID, value: *const nsACString,
+                                                         is_important: bool,
+                                                         base: *const nsACString,
+                                                         data: *const structs::GeckoParserExtraData) -> bool {
+    set_property(declarations, get_property_id_from_nscsspropertyid!(property, false),
+                 value, is_important, base, data)
 }
 
 fn remove_property(declarations: RawServoDeclarationBlockBorrowed, property_id: PropertyId) {

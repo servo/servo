@@ -14,6 +14,7 @@ use gecko_bindings::structs::RawServoAnimationValue;
 use gecko_bindings::structs::RawServoDeclarationBlock;
 use gecko_bindings::structs::RawGeckoPresContext;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
+use gecko_bindings::structs::GeckoParserExtraData;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::ThreadSafeURIHolder;
 use gecko_bindings::structs::ThreadSafePrincipalHolder;
@@ -1339,10 +1340,8 @@ extern "C" {
 extern "C" {
     pub fn Servo_ParseProperty(property: *const nsACString_internal,
                                value: *const nsACString_internal,
-                               base_url: *const nsACString_internal,
-                               base: *mut ThreadSafeURIHolder,
-                               referrer: *mut ThreadSafeURIHolder,
-                               principal: *mut ThreadSafePrincipalHolder)
+                               base: *const nsACString_internal,
+                               data: *const GeckoParserExtraData)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
@@ -1464,16 +1463,27 @@ extern "C" {
                                                   RawServoDeclarationBlockBorrowed,
                                               property:
                                                   *const nsACString_internal,
-                                              value: *mut nsACString_internal,
-                                              is_important: bool) -> bool;
+                                              value:
+                                                  *const nsACString_internal,
+                                              is_important: bool,
+                                              base:
+                                                  *const nsACString_internal,
+                                              data:
+                                                  *const GeckoParserExtraData)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_SetPropertyById(declarations:
                                                       RawServoDeclarationBlockBorrowed,
                                                   property: nsCSSPropertyID,
                                                   value:
-                                                      *mut nsACString_internal,
-                                                  is_important: bool) -> bool;
+                                                      *const nsACString_internal,
+                                                  is_important: bool,
+                                                  base:
+                                                      *const nsACString_internal,
+                                                  data:
+                                                      *const GeckoParserExtraData)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_DeclarationBlock_RemoveProperty(declarations:

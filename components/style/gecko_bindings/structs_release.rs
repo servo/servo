@@ -25148,6 +25148,40 @@ pub mod root {
     impl Clone for ServoBundledURI {
         fn clone(&self) -> Self { *self }
     }
+    #[repr(C)]
+    #[derive(Debug)]
+    pub struct GeckoParserExtraData {
+        pub mBaseURI: root::RefPtr<root::nsMainThreadPtrHolder<root::nsIURI>>,
+        pub mReferrer: root::RefPtr<root::nsMainThreadPtrHolder<root::nsIURI>>,
+        pub mPrincipal: root::RefPtr<root::nsMainThreadPtrHolder<root::nsIPrincipal>>,
+    }
+    #[test]
+    fn bindgen_test_layout_GeckoParserExtraData() {
+        assert_eq!(::std::mem::size_of::<GeckoParserExtraData>() , 24usize ,
+                   concat ! (
+                   "Size of: " , stringify ! ( GeckoParserExtraData ) ));
+        assert_eq! (::std::mem::align_of::<GeckoParserExtraData>() , 8usize ,
+                    concat ! (
+                    "Alignment of " , stringify ! ( GeckoParserExtraData ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const GeckoParserExtraData ) ) . mBaseURI
+                    as * const _ as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! (
+                    GeckoParserExtraData ) , "::" , stringify ! ( mBaseURI )
+                    ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const GeckoParserExtraData ) ) . mReferrer
+                    as * const _ as usize } , 8usize , concat ! (
+                    "Alignment of field: " , stringify ! (
+                    GeckoParserExtraData ) , "::" , stringify ! ( mReferrer )
+                    ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const GeckoParserExtraData ) ) . mPrincipal
+                    as * const _ as usize } , 16usize , concat ! (
+                    "Alignment of field: " , stringify ! (
+                    GeckoParserExtraData ) , "::" , stringify ! ( mPrincipal )
+                    ));
+    }
     pub type nsMediaFeatureValueGetter =
         ::std::option::Option<unsafe extern "C" fn(aPresContext:
                                                        *mut root::nsPresContext,
