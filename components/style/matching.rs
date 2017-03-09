@@ -10,7 +10,7 @@
 use {Atom, LocalName};
 use animation::{self, Animation, PropertyAnimation};
 use atomic_refcell::AtomicRefMut;
-use cache::LRUCache;
+use cache::{LRUCache, LRUCacheMutIterator};
 use cascade_info::CascadeInfo;
 use context::{SequentialTask, SharedStyleContext, StyleContext};
 use data::{ComputedStyle, ElementData, ElementStyles, RestyleData};
@@ -27,7 +27,6 @@ use selectors::matching::AFFECTED_BY_PSEUDO_ELEMENTS;
 use servo_config::opts;
 use sink::ForgetfulSink;
 use std::collections::hash_map::Entry;
-use std::slice::IterMut;
 use std::sync::Arc;
 use stylist::ApplicableDeclarationBlock;
 
@@ -366,7 +365,7 @@ impl<E: TElement> StyleSharingCandidateCache<E> {
         }
     }
 
-    fn iter_mut(&mut self) -> IterMut<StyleSharingCandidate<E>> {
+    fn iter_mut(&mut self) -> LRUCacheMutIterator<StyleSharingCandidate<E>> {
         self.cache.iter_mut()
     }
 

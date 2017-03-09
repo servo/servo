@@ -6,7 +6,7 @@
 
 #![deny(missing_docs)]
 
-use std::slice::{Iter, IterMut};
+use std::{iter, slice};
 
 /// A LRU cache used to store a set of at most `n` elements at the same time.
 ///
@@ -15,6 +15,12 @@ pub struct LRUCache<K> {
     entries: Vec<K>,
     cache_size: usize,
 }
+
+/// A iterator over the items of the LRU cache.
+pub type LRUCacheIterator<'a, K> = iter::Rev<slice::Iter<'a, K>>;
+
+/// A iterator over the mutable items of the LRU cache.
+pub type LRUCacheMutIterator<'a, K> = iter::Rev<slice::IterMut<'a, K>>;
 
 impl<K: PartialEq> LRUCache<K> {
     /// Create a new LRU cache with `size` elements at most.
@@ -35,14 +41,15 @@ impl<K: PartialEq> LRUCache<K> {
         }
     }
 
-    /// Iterate over the contents of this cache.
-    pub fn iter(&self) -> Iter<K> {
-        self.entries.iter()
+    /// Iterate over the contents of this cache, from more to less recently
+    /// used.
+    pub fn iter(&self) -> LRUCacheIterator<K> {
+        self.entries.iter().rev()
     }
 
     /// Iterate mutably over the contents of this cache.
-    pub fn iter_mut(&mut self) -> IterMut<K> {
-        self.entries.iter_mut()
+    pub fn iter_mut(&mut self) -> LRUCacheMutIterator<K> {
+        self.entries.iter_mut().rev()
     }
 
     /// Insert a given key in the cache.
