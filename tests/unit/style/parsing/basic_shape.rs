@@ -77,6 +77,22 @@ fn test_border_radius() {
     assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
                                  "10px", "20px", "30px", "40px" ;
                                  "1px", "2px", "3px", "4px");
+    assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
+                                 "10px", "20px", "30px", "40px" ;
+                                 "1px", "2px", "3px", "4px");
+    assert_border_radius_values!("10px 20px 30px 40px / 1px 2px 3px 4px";
+                                 "10px", "20px", "30px", "40px" ;
+                                 "1px", "2px", "3px", "4px");
+    assert_border_radius_values!("10px -20px 30px 40px";
+                                 "10px", "10px", "10px", "10px";
+                                 "10px", "10px", "10px", "10px");
+    assert_border_radius_values!("10px 20px -30px 40px";
+                                 "10px", "20px", "10px", "20px";
+                                 "10px", "20px", "10px", "20px");
+    assert_border_radius_values!("10px 20px 30px -40px";
+                                 "10px", "20px", "30px", "20px";
+                                 "10px", "20px", "30px", "20px");
+    assert!(parse(BorderRadius::parse, "-10px 20px 30px 40px").is_err());
 }
 
 #[test]
