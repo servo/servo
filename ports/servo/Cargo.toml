@@ -15,6 +15,7 @@ bench = false
 
 [dev-dependencies]
 compiletest_helper = {path = "../../tests/compiletest/helper"}
+constellation_tests = {path = "../../tests/unit/constellation"}
 gfx_tests = {path = "../../tests/unit/gfx"}
 layout_tests = {path = "../../tests/unit/layout"}
 net_tests = {path = "../../tests/unit/net"}
