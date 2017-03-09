@@ -4,9 +4,10 @@
 
 //! Rust helpers to interact with Gecko's StyleComplexColor.
 
-use cssparser::Color;
+use cssparser;
 use gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use gecko_bindings::structs::{nscolor, StyleComplexColor};
+use values;
 
 impl From<nscolor> for StyleComplexColor {
     fn from(other: nscolor) -> Self {
@@ -38,8 +39,10 @@ impl StyleComplexColor {
     }
 }
 
-impl From<Color> for StyleComplexColor {
-    fn from(other: Color) -> Self {
+impl From<cssparser::Color> for StyleComplexColor {
+    fn from(other: cssparser::Color) -> Self {
+        use cssparser::Color;
+
         match other {
             Color::RGBA(rgba) => convert_rgba_to_nscolor(&rgba).into(),
             Color::CurrentColor => StyleComplexColor::current_color(),
@@ -47,8 +50,22 @@ impl From<Color> for StyleComplexColor {
     }
 }
 
-impl From<StyleComplexColor> for Color {
+impl From<StyleComplexColor> for values::computed::ColorOrAuto {
+    fn from(color: StyleComplexColor) -> Self {
+        use values::{Auto, Either};
+
+        if color.mIsAuto {
+            return Either::Second(Auto);
+        }
+
+        Either::First(color.into())
+    }
+}
+
+impl From<StyleComplexColor> for cssparser::Color {
     fn from(other: StyleComplexColor) -> Self {
+        use cssparser::Color;
+
         if other.mForegroundRatio == 0 {
             Color::RGBA(convert_nscolor_to_rgba(other.mColor))
         } else if other.mForegroundRatio == 255 {
