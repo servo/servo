@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use immeta::load_from_buf;
-use net_traits::{FetchResponseMsg, NetworkError};
+use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError};
 use net_traits::image::base::{Image, ImageMetadata, PixelFormat, load_from_memory};
 use net_traits::image_cache::{CanRequestImages, ImageCache, ImageResponder};
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse, ImageState};
@@ -196,13 +196,15 @@ enum CacheResult<'a> {
 struct CompletedLoad {
     image_response: ImageResponse,
     id: PendingImageId,
+    final_url: ServoUrl,
 }
 
 impl CompletedLoad {
-    fn new(image_response: ImageResponse, id: PendingImageId) -> CompletedLoad {
+    fn new(image_response: ImageResponse, id: PendingImageId, final_url: ServoUrl) -> CompletedLoad {
         CompletedLoad {
             image_response: image_response,
             id: id,
+            final_url: final_url,
         }
     }
 }
@@ -289,6 +291,8 @@ struct PendingLoad {
     // The url being loaded. Do not forget that this may be several Mb
     // if we are loading a data: url.
     url: ServoUrl,
+
+    final_url: Option<ServoUrl>,
 }
 
 impl PendingLoad {
@@ -299,6 +303,7 @@ impl PendingLoad {
             result: None,
             listeners: vec!(),
             url: url,
+            final_url: None,
         }
     }
 
@@ -362,7 +367,8 @@ impl ImageCacheStore {
             LoadResult::None => ImageResponse::None,
         };
 
-        let completed_load = CompletedLoad::new(image_response.clone(), key);
+        let url = pending_load.final_url.clone();
+        let completed_load = CompletedLoad::new(image_response.clone(), key, url.unwrap());
         self.completed_loads.insert(pending_load.url.into(), completed_load);
 
         for listener in pending_load.listeners {
@@ -384,7 +390,7 @@ impl ImageCacheStore {
                 }
                 (&ImageResponse::PlaceholderLoaded(_), UsePlaceholder::No) |
                 (&ImageResponse::None, _) |
-                (&ImageResponse::MetadataLoaded(_), _) => {
+                (&ImageResponse::MetadataLoaded(_, _), _) => {
                     Err(ImageState::LoadError)
                 }
             }
@@ -444,7 +450,8 @@ impl ImageCache for ImageCacheImpl {
                     }
                     (&None, &Some(ref meta)) => {
                         debug!("Metadata available for {} ({:?})", url, key);
-                        return Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))
+                        return Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone(),
+                            pl.final_url.clone().unwrap()))
                     }
                     (&Some(Err(_)), _) | (&None, &None) => {
                         debug!("{} ({:?}) is still pending", url, key);
@@ -479,7 +486,7 @@ impl ImageCache for ImageCacheImpl {
         let mut store = self.store.lock().unwrap();
         if let Some(load) = store.pending_loads.get_by_key_mut(&id) {
             if let Some(ref metadata) = load.metadata {
-                listener.respond(ImageResponse::MetadataLoaded(metadata.clone()));
+                listener.respond(ImageResponse::MetadataLoaded(metadata.clone(), load.final_url.clone().unwrap()));
             }
             load.add_listener(listener);
             return;
@@ -496,7 +503,21 @@ impl ImageCache for ImageCacheImpl {
         match (action, id) {
             (FetchResponseMsg::ProcessRequestBody, _) |
             (FetchResponseMsg::ProcessRequestEOF, _) => return,
-            (FetchResponseMsg::ProcessResponse(_response), _) => {}
+            (FetchResponseMsg::ProcessResponse(response), _) => {
+                let mut store = self.store.lock().unwrap();
+                let pending_load = store.pending_loads.get_by_key_mut(&id).unwrap();
+                let metadata = match response {
+                    Ok(meta) => {
+                        Some(match meta {
+                            FetchMetadata::Unfiltered(m) => m,
+                            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
+                        })
+                    },
+                    Err(_) => None,
+                };
+                let final_url = metadata.as_ref().map(|m| m.final_url.clone());
+                pending_load.final_url = final_url;
+            }
             (FetchResponseMsg::ProcessResponseChunk(data), _) => {
                 debug!("Got some data for {:?}", id);
                 let mut store = self.store.lock().unwrap();
@@ -509,7 +530,9 @@ impl ImageCache for ImageCacheImpl {
                         let img_metadata = ImageMetadata { width: dimensions.width,
                                                            height: dimensions.height };
                         for listener in &pending_load.listeners {
-                            listener.respond(ImageResponse::MetadataLoaded(img_metadata.clone()));
+                            listener.respond(
+                                ImageResponse::MetadataLoaded(img_metadata.clone(),
+                                    pending_load.final_url.clone().unwrap()));
                         }
                         pending_load.metadata = Some(img_metadata);
                     }
