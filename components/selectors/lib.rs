@@ -4,6 +4,7 @@
 
 #[macro_use] extern crate bitflags;
 #[macro_use] extern crate cssparser;
+#[macro_use] extern crate cssparser_macros;
 #[macro_use] extern crate matches;
 extern crate fnv;
 
