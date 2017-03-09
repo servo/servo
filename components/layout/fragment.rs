@@ -378,7 +378,7 @@ impl ImageFragmentInfo {
         });
 
         let (image, metadata) = match image_or_metadata {
-            Some(ImageOrMetadataAvailable::ImageAvailable(i)) => {
+            Some(ImageOrMetadataAvailable::ImageAvailable(i, _)) => {
                 (Some(i.clone()), Some(ImageMetadata { height: i.height, width: i.width } ))
             }
             Some(ImageOrMetadataAvailable::MetadataAvailable(m)) => {

@@ -25,7 +25,7 @@ pub enum CanRequestImages {
 /// Indicating either entire image or just metadata availability
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum ImageOrMetadataAvailable {
-    ImageAvailable(Arc<Image>),
+    ImageAvailable(Arc<Image>, ServoUrl),
     MetadataAvailable(ImageMetadata),
 }
 
@@ -63,11 +63,11 @@ impl ImageResponder {
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum ImageResponse {
     /// The requested image was loaded.
-    Loaded(Arc<Image>),
+    Loaded(Arc<Image>, ServoUrl),
     /// The request image metadata was loaded.
     MetadataLoaded(ImageMetadata),
     /// The requested image failed to load, so a placeholder was loaded instead.
-    PlaceholderLoaded(Arc<Image>),
+    PlaceholderLoaded(Arc<Image>, ServoUrl),
     /// Neither the requested image nor the placeholder could be loaded.
     None,
 }
