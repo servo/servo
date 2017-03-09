@@ -381,7 +381,7 @@ impl Window {
             node.dirty(NodeDamage::OtherNodeDamage);
         }
         match response.response {
-            ImageResponse::MetadataLoaded(_) => {}
+            ImageResponse::MetadataLoaded(_, _) => {}
             ImageResponse::Loaded(_) |
             ImageResponse::PlaceholderLoaded(_) |
             ImageResponse::None => { nodes.remove(); }

@@ -219,8 +219,8 @@ impl HTMLImageElement {
                 self.process_image_response(ImageResponse::Loaded(image));
             }
 
-            Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
-                self.process_image_response(ImageResponse::MetadataLoaded(m));
+            Ok(ImageOrMetadataAvailable::MetadataAvailable(m, img_url)) => {
+                self.process_image_response(ImageResponse::MetadataLoaded(m, img_url));
             }
 
             Err(ImageState::Pending(id)) => {
@@ -279,7 +279,7 @@ impl HTMLImageElement {
                  true,
                  false)
             }
-            ImageResponse::MetadataLoaded(meta) => {
+            ImageResponse::MetadataLoaded(meta, url) => {
                 (None, Some(meta), false, false)
             }
             ImageResponse::None => (None, None, false, true)

@@ -189,7 +189,7 @@ impl<'a> LayoutContext<'a> {
                     Some(image_info)
                 }
             }
-            None | Some(ImageOrMetadataAvailable::MetadataAvailable(_)) => None,
+            None | Some(ImageOrMetadataAvailable::MetadataAvailable(_, _)) => None,
         }
     }
 }
