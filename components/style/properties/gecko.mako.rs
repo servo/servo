@@ -612,12 +612,6 @@ impl Debug for ${style_struct.gecko_struct_name} {
     # These have unusual representations in gecko.
     force_stub += ["list-style-type"]
 
-    # These are part of shorthands so we must include them in stylo builds,
-    # but we haven't implemented the stylo glue for the longhand
-    # so we generate a stub
-    force_stub += ["flex-basis", # position
-                   ]
-
     # Types used with predefined_type()-defined properties that we can auto-generate.
     predefined_types = {
         "length::LengthOrAuto": impl_style_coord,
