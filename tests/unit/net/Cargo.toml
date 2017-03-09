@@ -10,7 +10,6 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-content-blocker = "0.2.3"
 cookie = "0.2"
 devtools_traits = {path = "../../../components/devtools_traits"}
 flate2 = "0.2.0"
