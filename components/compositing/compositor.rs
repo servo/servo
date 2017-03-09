@@ -12,7 +12,7 @@ use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use gfx_traits::{Epoch, FragmentType, ScrollRootId};
+use gfx_traits::{Epoch, ScrollRootId};
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -80,22 +80,6 @@ trait ConvertScrollRootIdFromWebRender {
 impl ConvertScrollRootIdFromWebRender for webrender_traits::ServoScrollRootId {
     fn from_webrender(&self) -> ScrollRootId {
         ScrollRootId(self.0)
-    }
-}
-
-trait ConvertFragmentTypeFromWebRender {
-    fn from_webrender(&self) -> FragmentType;
-}
-
-impl ConvertFragmentTypeFromWebRender for webrender_traits::FragmentType {
-    fn from_webrender(&self) -> FragmentType {
-        match *self {
-            webrender_traits::FragmentType::FragmentBody => FragmentType::FragmentBody,
-            webrender_traits::FragmentType::BeforePseudoContent => {
-                FragmentType::BeforePseudoContent
-            }
-            webrender_traits::FragmentType::AfterPseudoContent => FragmentType::AfterPseudoContent,
-        }
     }
 }
 
