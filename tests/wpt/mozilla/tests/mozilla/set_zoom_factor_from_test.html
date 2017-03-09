@@ -13,8 +13,6 @@
 <div></div>
 <script>
   window.onresize = function() {
-    // We do this in a timeout, so that the compositor has a chance
-    // to update the layer tree.
     setTimeout(function() {
       document.documentElement.classList.remove("reftest-wait");
     });
