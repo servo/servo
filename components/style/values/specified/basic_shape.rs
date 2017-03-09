@@ -768,22 +768,23 @@ impl Parse for BorderRadius {
     }
 }
 
-fn parse_one_set_of_border_values(_context: &ParserContext, mut input: &mut Parser)
+fn parse_one_set_of_border_values(context: &ParserContext, mut input: &mut Parser)
                                  -> Result<[LengthOrPercentage; 4], ()> {
-    let a = try!(LengthOrPercentage::parse_non_negative(input));
-    let b = if let Ok(b) = input.try(|i| LengthOrPercentage::parse_non_negative(i)) {
+    let a = try!(LengthOrPercentage::parse(context, input));
+
+    let b = if let Ok(b) = input.try(|i| LengthOrPercentage::parse(context, i)) {
         b
     } else {
         return Ok([a.clone(), a.clone(), a.clone(), a])
     };
 
-    let c = if let Ok(c) = input.try(|i| LengthOrPercentage::parse_non_negative(i)) {
+    let c = if let Ok(c) = input.try(|i| LengthOrPercentage::parse(context, i)) {
         c
     } else {
         return Ok([a.clone(), b.clone(), a, b])
     };
 
-    if let Ok(d) = input.try(|i| LengthOrPercentage::parse_non_negative(i)) {
+    if let Ok(d) = input.try(|i| LengthOrPercentage::parse(context, i)) {
         Ok([a, b, c, d])
     } else {
         Ok([a, b.clone(), c, b])

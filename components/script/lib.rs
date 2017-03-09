@@ -37,6 +37,7 @@ extern crate caseless;
 extern crate cookie as cookie_rs;
 extern crate core;
 #[macro_use] extern crate cssparser;
+#[macro_use] extern crate cssparser_macros;
 #[macro_use] extern crate deny_public_fields;
 extern crate devtools_traits;
 extern crate dom_struct;
