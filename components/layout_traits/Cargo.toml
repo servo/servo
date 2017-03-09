@@ -17,8 +17,4 @@ net_traits = {path = "../net_traits"}
 profile_traits = {path = "../profile_traits"}
 script_traits = {path = "../script_traits"}
 servo_url = {path = "../url"}
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["serde_derive", "ipc"]
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}

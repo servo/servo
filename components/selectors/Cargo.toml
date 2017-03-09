@@ -18,6 +18,5 @@ path = "lib.rs"
 [dependencies]
 bitflags = "0.7"
 matches = "0.1"
-cssparser = "0.11"
-cssparser-macros = "0.1.0"
+cssparser = "0.12"
 fnv = "1.0"

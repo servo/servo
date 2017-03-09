@@ -49,19 +49,11 @@ servo_geometry = {path = "../geometry"}
 servo_url = {path = "../url"}
 style = {path = "../style", features = ["servo"]}
 style_traits = {path = "../style_traits", features = ["servo"]}
+webrender = {git = "https://github.com/servo/webrender"}
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
+webdriver_server = {path = "../webdriver_server", optional = true}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
-webdriver_server = {path = "../webdriver_server", optional = true}
-
-[dependencies.webrender]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["serde_derive"]
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["serde_derive", "ipc"]
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}

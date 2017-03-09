@@ -34,8 +34,7 @@ byteorder = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
 cookie = "0.2.5"
-cssparser = {version = "0.11", features = ["heapsize", "serde"]}
-cssparser-macros = "0.1.0"
+cssparser = "0.12"
 deny_public_fields = {path = "../deny_public_fields"}
 devtools_traits = {path = "../devtools_traits"}
 dom_struct = {path = "../dom_struct"}
@@ -89,10 +88,6 @@ url = {version = "1.2", features = ["heap_size", "query_encoding"]}
 uuid = {version = "0.4", features = ["v4"]}
 websocket = "0.17"
 xml5ever = {version = "0.4", features = ["unstable"]}
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 webvr = {path = "../webvr"}
 webvr_traits = {path = "../webvr_traits"}
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["nightly", "serde_derive", "ipc"]

@@ -36,11 +36,7 @@ servo_rand = {path = "../rand"}
 servo_remutex = {path = "../remutex"}
 servo_url = {path = "../url", features = ["servo"]}
 webvr_traits = {path = "../webvr_traits"}
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender"
-default-features = false
-features = ["serde_derive", "ipc"]
+webrender_traits = {git = "https://github.com/servo/webrender", features = ["ipc"]}
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
