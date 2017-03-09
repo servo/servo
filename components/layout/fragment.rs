@@ -381,7 +381,7 @@ impl ImageFragmentInfo {
             Some(ImageOrMetadataAvailable::ImageAvailable(i)) => {
                 (Some(i.clone()), Some(ImageMetadata { height: i.height, width: i.width } ))
             }
-            Some(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
+            Some(ImageOrMetadataAvailable::MetadataAvailable(m, _url)) => {
                 (None, Some(m))
             }
             None => {

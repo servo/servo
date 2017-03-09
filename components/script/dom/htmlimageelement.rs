@@ -48,6 +48,7 @@ use network_listener::{NetworkListener, PreInvoke};
 use num_traits::ToPrimitive;
 use script_thread::Runnable;
 use servo_url::ServoUrl;
+use servo_url::origin::ImmutableOrigin;
 use std::cell::Cell;
 use std::default::Default;
 use std::i32;
@@ -73,6 +74,7 @@ struct ImageRequest {
     #[ignore_heap_size_of = "Arc"]
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
+    final_url: Option<ServoUrl>,
 }
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -219,8 +221,8 @@ impl HTMLImageElement {
                 self.process_image_response(ImageResponse::Loaded(image));
             }
 
-            Ok(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
-                self.process_image_response(ImageResponse::MetadataLoaded(m));
+            Ok(ImageOrMetadataAvailable::MetadataAvailable(m, img_url)) => {
+                self.process_image_response(ImageResponse::MetadataLoaded(m, img_url));
             }
 
             Err(ImageState::Pending(id)) => {
@@ -279,7 +281,8 @@ impl HTMLImageElement {
                  true,
                  false)
             }
-            ImageResponse::MetadataLoaded(meta) => {
+            ImageResponse::MetadataLoaded(meta, url) => {
+                self.current_request.borrow_mut().final_url = Some(url);
                 (None, Some(meta), false, false)
             }
             ImageResponse::None => (None, None, false, true)
@@ -378,6 +381,7 @@ impl HTMLImageElement {
                 image: None,
                 metadata: None,
                 blocker: None,
+                final_url: None,
             }),
             pending_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
@@ -386,6 +390,7 @@ impl HTMLImageElement {
                 image: None,
                 metadata: None,
                 blocker: None,
+                final_url: None,
             }),
             form_owner: Default::default(),
             generation: Default::default(),
@@ -441,6 +446,14 @@ impl HTMLImageElement {
 
         useMapElements.map(|mapElem| mapElem.get_area_elements())
     }
+
+    pub fn get_origin(&self) -> Option<ImmutableOrigin> {
+        match self.current_request.borrow_mut().final_url {
+            Some(ref url) => Some(url.origin()),
+            None => None
+        }
+    }
+
 }
 
 pub trait LayoutHTMLImageElementHelpers {
