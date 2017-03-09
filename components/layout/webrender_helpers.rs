@@ -405,7 +405,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 builder.push_scroll_layer(clip,
                                           item.scroll_root.size.to_sizef(),
-                                          item.scroll_root.id.convert_to_webrender());
+                                          Some(item.scroll_root.id.convert_to_webrender()));
             }
             DisplayItem::PopScrollRoot(_) => builder.pop_scroll_layer(),
         }
