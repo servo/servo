@@ -112,6 +112,47 @@ mod shorthand_serialization {
         }
     }
 
+    mod text {
+        use style::properties::longhands::text_decoration_line as TextDecorationLine;
+        use style::properties::longhands::text_decoration_style::SpecifiedValue as TextDecorationStyle;
+        use super::*;
+
+        #[test]
+        fn text_decoration_should_show_all_properties_when_set() {
+            let mut properties = Vec::new();
+
+            let line = DeclaredValue::Value(TextDecorationLine::OVERLINE);
+            let style = DeclaredValue::Value(TextDecorationStyle::dotted);
+            let color = DeclaredValue::Value(CSSColor {
+                parsed: ComputedColor::RGBA(RGBA::new(128, 0, 128, 255)),
+                authored: None
+            });
+
+            properties.push(PropertyDeclaration::TextDecorationLine(line));
+            properties.push(PropertyDeclaration::TextDecorationStyle(style));
+            properties.push(PropertyDeclaration::TextDecorationColor(color));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(serialization, "text-decoration: overline dotted rgb(128, 0, 128);");
+        }
+
+        #[test]
+        fn text_decoration_should_not_serialize_initial_style_value() {
+            let mut properties = Vec::new();
+
+            let line = DeclaredValue::Value(TextDecorationLine::UNDERLINE);
+            let style = DeclaredValue::Value(TextDecorationStyle::solid);
+            let color = DeclaredValue::Value(CSSColor::currentcolor());
+
+            properties.push(PropertyDeclaration::TextDecorationLine(line));
+            properties.push(PropertyDeclaration::TextDecorationStyle(style));
+            properties.push(PropertyDeclaration::TextDecorationColor(color));
+
+            let serialization = shorthand_properties_to_string(properties);
+            assert_eq!(serialization, "text-decoration: underline;");
+        }
+    }
+
     mod four_sides_shorthands {
         pub use super::*;
 

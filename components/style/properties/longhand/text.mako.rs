@@ -101,10 +101,9 @@ ${helpers.single_keyword("unicode-bidi",
                          spec="https://drafts.csswg.org/css-writing-modes/#propdef-unicode-bidi")}
 
 // FIXME: This prop should be animatable.
-<%helpers:longhand name="${'text-decoration' if product == 'servo' else 'text-decoration-line'}"
+<%helpers:longhand name="text-decoration-line"
                    custom_cascade="${product == 'servo'}"
                    animatable="False"
-                   disable_when_testing="True",
                    spec="https://drafts.csswg.org/css-text-decor/#propdef-text-decoration-line">
     use std::fmt;
     use style_traits::ToCss;
@@ -138,6 +137,7 @@ ${helpers.single_keyword("unicode-bidi",
     impl ToCss for SpecifiedValue {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             let mut has_any = false;
+
             macro_rules! write_value {
                 ($line:ident => $css:expr) => {
                     if self.contains($line) {
@@ -156,6 +156,7 @@ ${helpers.single_keyword("unicode-bidi",
             if !has_any {
                 dest.write_str("none")?;
             }
+
             Ok(())
         }
     }

@@ -1306,23 +1306,22 @@ pub mod style_structs {
                     self.outline_width != ::app_units::Au(0)
                 }
             % elif style_struct.name == "Text":
-                <% text_decoration_field = 'text_decoration' if product == 'servo' else 'text_decoration_line' %>
                 /// Whether the text decoration has an underline.
                 #[inline]
                 pub fn has_underline(&self) -> bool {
-                    self.${text_decoration_field}.contains(longhands::${text_decoration_field}::UNDERLINE)
+                    self.text_decoration_line.contains(longhands::text_decoration_line::UNDERLINE)
                 }
 
                 /// Whether the text decoration has an overline.
                 #[inline]
                 pub fn has_overline(&self) -> bool {
-                    self.${text_decoration_field}.contains(longhands::${text_decoration_field}::OVERLINE)
+                    self.text_decoration_line.contains(longhands::text_decoration_line::OVERLINE)
                 }
 
                 /// Whether the text decoration has a line through.
                 #[inline]
                 pub fn has_line_through(&self) -> bool {
-                    self.${text_decoration_field}.contains(longhands::${text_decoration_field}::LINE_THROUGH)
+                    self.text_decoration_line.contains(longhands::text_decoration_line::LINE_THROUGH)
                 }
             % endif
         }
@@ -1953,7 +1952,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                 PropertyDeclaration::Color(_) |
                 PropertyDeclaration::Position(_) |
                 PropertyDeclaration::Float(_) |
-                PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_) |
+                PropertyDeclaration::TextDecorationLine(_) |
                 PropertyDeclaration::WritingMode(_) |
                 PropertyDeclaration::Direction(_)
                 % if product == 'gecko':
