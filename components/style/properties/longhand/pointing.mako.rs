@@ -170,3 +170,10 @@ ${helpers.single_keyword("-moz-user-focus",
                          gecko_inexhaustive=True,
                          animatable=False,
                          spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-focus)")}
+
+${helpers.predefined_type("caret-color",
+                          "ColorOrAuto",
+                          "Either::Second(Auto)",
+                          spec="https://drafts.csswg.org/css-ui/#caret-color",
+                          animatable="True",
+                          products="gecko")}
