@@ -31256,7 +31256,7 @@
    "support"
   ],
   "mozilla/webgl/tex_image_2d_mipmap.html": [
-   "80f79d8804ee9cdb2b12c02223bf1e15854122d7",
+   "b4d54f0f58f75ff622a9c3f9bab3f59d9f1fb0e7",
    "reftest"
   ],
   "mozilla/webgl/tex_image_2d_mipmap_ref.html": [
@@ -31264,7 +31264,7 @@
    "support"
   ],
   "mozilla/webgl/tex_image_2d_simple.html": [
-   "636673ea0aa2a16f4aec362ca40cd82e78ff3396",
+   "1811000d21dcdb5d27c67afbf22e77a83c6820d6",
    "reftest"
   ],
   "mozilla/webgl/tex_image_2d_simple_ref.html": [
