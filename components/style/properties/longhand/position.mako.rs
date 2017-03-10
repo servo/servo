@@ -195,13 +195,16 @@ ${helpers.predefined_type("flex-shrink", "Number",
     }
 </%helpers:longhand>
 
+// FIXME: Gecko doesn't support content value yet.
 // FIXME: This property should be animatable.
 ${helpers.predefined_type("flex-basis",
+                          "LengthOrPercentageOrAuto" if product == "gecko" else
                           "LengthOrPercentageOrAutoOrContent",
+                          "computed::LengthOrPercentageOrAuto::Auto" if product == "gecko" else
                           "computed::LengthOrPercentageOrAutoOrContent::Auto",
                           spec="https://drafts.csswg.org/css-flexbox/#flex-basis-property",
                           extra_prefixes="webkit",
-                          animatable=False)}
+                          animatable=True if product == "gecko" else False)}
 
 % for (size, logical) in ALL_SIZES:
     <%

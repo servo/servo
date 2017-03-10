@@ -49,7 +49,12 @@
 <%helpers:shorthand name="flex" sub_properties="flex-grow flex-shrink flex-basis" extra_prefixes="webkit"
                     spec="https://drafts.csswg.org/css-flexbox/#flex-property">
     use parser::Parse;
-    use values::specified::{Number, NoCalcLength, LengthOrPercentageOrAutoOrContent};
+    use values::specified::{Number, NoCalcLength};
+    % if product == "gecko":
+        use values::specified::LengthOrPercentageOrAuto;
+    % else:
+        use values::specified::LengthOrPercentageOrAutoOrContent;
+    % endif
 
     pub fn parse_flexibility(input: &mut Parser)
                              -> Result<(Number, Option<Number>),()> {
@@ -67,7 +72,12 @@
             return Ok(Longhands {
                 flex_grow: Number(0.0),
                 flex_shrink: Number(0.0),
-                flex_basis: LengthOrPercentageOrAutoOrContent::Auto
+                % if product == "gecko":
+                    flex_basis: LengthOrPercentageOrAuto::Auto
+                % else:
+                    flex_basis: LengthOrPercentageOrAutoOrContent::Auto
+                % endif
+
             })
         }
         loop {
@@ -79,7 +89,11 @@
                 }
             }
             if basis.is_none() {
-                if let Ok(value) = input.try(|i| LengthOrPercentageOrAutoOrContent::parse(context, i)) {
+                % if product == "gecko":
+                    if let Ok(value) = input.try(|i| LengthOrPercentageOrAuto::parse(context, i)) {
+                % else:
+                    if let Ok(value) = input.try(|i| LengthOrPercentageOrAutoOrContent::parse(context, i)) {
+                % endif
                     basis = Some(value);
                     continue
                 }
@@ -93,7 +107,11 @@
         Ok(Longhands {
             flex_grow: grow.unwrap_or(Number(1.0)),
             flex_shrink: shrink.unwrap_or(Number(1.0)),
-            flex_basis: basis.unwrap_or(LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero()))
+            % if product == "gecko":
+                flex_basis: basis.unwrap_or(LengthOrPercentageOrAuto::Length(NoCalcLength::zero()))
+            % else:
+                flex_basis: basis.unwrap_or(LengthOrPercentageOrAutoOrContent::Length(NoCalcLength::zero()))
+            % endif
         })
     }
 
