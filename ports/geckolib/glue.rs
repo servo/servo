@@ -162,8 +162,6 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
         ThreadLocalStyleContextCreationInfo::new(per_doc_data.new_animations_sender.clone());
 
     SharedStyleContext {
-        // FIXME (bug 1303229): Use the actual viewport size here
-        viewport_size: Size2D::new(Au(0), Au(0)),
         stylist: per_doc_data.stylist.clone(),
         running_animations: per_doc_data.running_animations.clone(),
         expired_animations: per_doc_data.expired_animations.clone(),
@@ -1348,7 +1346,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
 
     let context = Context {
         is_root_element: false,
-        // FIXME (bug 1303229): Use the actual viewport size here
+        // FIXME (bug 1303229): Use the actual viewport size here.
         viewport_size: Size2D::new(Au(0), Au(0)),
         inherited_style: parent_style.unwrap_or(&init),
         layout_parent_style: parent_style.unwrap_or(&init),

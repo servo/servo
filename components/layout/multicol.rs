@@ -140,7 +140,7 @@ impl Flow for MulticolFlow {
                     // FIXME: (until column balancing) substract margins/borders/padding
                     LogicalSize::from_physical(
                         self.block_flow.base.writing_mode,
-                        ctx.shared_context().viewport_size,
+                        ctx.shared_context().viewport_size(),
                     ).block
                 }
             }

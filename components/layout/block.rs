@@ -713,7 +713,7 @@ impl BlockFlow {
         // infrastructure to make it scrollable.
         let viewport_size =
             LogicalSize::from_physical(self.fragment.style.writing_mode,
-                                       shared_context.viewport_size);
+                                       shared_context.viewport_size());
         let block_size = max(viewport_size.block,
                              self.fragment.border_box.size.block + block_start_margin_value +
                              block_end_margin_value);
@@ -990,7 +990,7 @@ impl BlockFlow {
                 if is_root {
                     let viewport_size =
                         LogicalSize::from_physical(self.fragment.style.writing_mode,
-                                                   layout_context.shared_context().viewport_size);
+                                                   layout_context.shared_context().viewport_size());
                     block_size = max(viewport_size.block, block_size)
                 }
 
@@ -1154,7 +1154,7 @@ impl BlockFlow {
     pub fn explicit_block_containing_size(&self, shared_context: &SharedStyleContext) -> Option<Au> {
         if self.is_root() || self.is_fixed() {
             let viewport_size = LogicalSize::from_physical(self.fragment.style.writing_mode,
-                                                           shared_context.viewport_size);
+                                                           shared_context.viewport_size());
             Some(viewport_size.block)
         } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                   self.base.block_container_explicit_block_size.is_none() {
@@ -1220,7 +1220,7 @@ impl BlockFlow {
     fn calculate_absolute_block_size_and_margins(&mut self, shared_context: &SharedStyleContext) {
         let opaque_self = OpaqueFlow::from_flow(self);
         let containing_block_block_size =
-            self.containing_block_size(&shared_context.viewport_size, opaque_self).block;
+            self.containing_block_size(&shared_context.viewport_size(), opaque_self).block;
 
         // This is the stored content block-size value from assign-block-size
         let content_block_size = self.fragment.border_box.size.block;
@@ -1354,7 +1354,7 @@ impl BlockFlow {
         if self.is_root() { explicit_content_size = max(parent_container_size, explicit_content_size); }
         // Calculate containing block inline size.
         let containing_block_size = if flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            self.containing_block_size(&shared_context.viewport_size, opaque_self).inline
+            self.containing_block_size(&shared_context.viewport_size(), opaque_self).inline
         } else {
             content_inline_size
         };
@@ -1718,7 +1718,7 @@ impl BlockFlow {
             debug!("Setting root position");
             self.base.position.start = LogicalPoint::zero(self.base.writing_mode);
             self.base.block_container_inline_size = LogicalSize::from_physical(
-                self.base.writing_mode, shared_context.viewport_size).inline;
+                self.base.writing_mode, shared_context.viewport_size()).inline;
             self.base.block_container_writing_mode = self.base.writing_mode;
         }
     }
@@ -2820,7 +2820,7 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
                                     shared_context: &SharedStyleContext)
                                     -> Au {
         let opaque_block = OpaqueFlow::from_flow(block);
-        block.containing_block_size(&shared_context.viewport_size, opaque_block).inline
+        block.containing_block_size(&shared_context.viewport_size(), opaque_block).inline
     }
 
     fn set_inline_position_of_flow_if_necessary(&self,
@@ -2932,7 +2932,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
                                     -> MaybeAuto {
         let opaque_block = OpaqueFlow::from_flow(block);
         let containing_block_inline_size =
-            block.containing_block_size(&shared_context.viewport_size, opaque_block).inline;
+            block.containing_block_size(&shared_context.viewport_size(), opaque_block).inline;
         let container_block_size = block.explicit_block_containing_size(shared_context);
         let fragment = block.fragment();
         fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size, container_block_size);
@@ -2947,7 +2947,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
                                     shared_context: &SharedStyleContext)
                                     -> Au {
         let opaque_block = OpaqueFlow::from_flow(block);
-        block.containing_block_size(&shared_context.viewport_size, opaque_block).inline
+        block.containing_block_size(&shared_context.viewport_size(), opaque_block).inline
     }
 
     fn set_inline_position_of_flow_if_necessary(&self,

@@ -503,7 +503,6 @@ impl LayoutThread {
 
         LayoutContext {
             style_context: SharedStyleContext {
-                viewport_size: self.viewport_size.clone(),
                 stylist: rw_data.stylist.clone(),
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
