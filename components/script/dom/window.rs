@@ -319,8 +319,13 @@ impl Window {
         &self.image_cache_thread
     }
 
+    /// Retrieve unsafely the browsing context
     pub fn browsing_context(&self) -> Root<BrowsingContext> {
         self.browsing_context.get().unwrap()
+    }
+
+    pub fn safe_browsing_context(&self) -> Option<Root<BrowsingContext>> {
+        self.browsing_context.get()
     }
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothRequest> {
@@ -608,7 +613,7 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-parent
     fn GetParent(&self) -> Option<Root<BrowsingContext>> {
         // Steps 1. and 2.
-        if self.browsing_context().is_discarded() {
+        if self.safe_browsing_context().map_or(true, |c| c.is_discarded()) {
             return None;
         }
         match self.parent() {
@@ -622,7 +627,7 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-top
     fn GetTop(&self) -> Option<Root<BrowsingContext>> {
         // Steps 1. and 2.
-        if self.browsing_context().is_discarded() {
+        if self.safe_browsing_context().map_or(true, |c| c.is_discarded()) {
             return None;
         }
         // Step 5.
