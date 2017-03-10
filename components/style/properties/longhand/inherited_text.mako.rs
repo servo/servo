@@ -233,6 +233,13 @@ ${helpers.single_keyword("word-break",
     }
 </%helpers:single_keyword_computed>
 
+${helpers.single_keyword("text-align-last",
+                         "auto start end left right center justify",
+                         products="gecko",
+                         gecko_constant_prefix="NS_STYLE_TEXT_ALIGN",
+                         animatable=False,
+                         spec="https://drafts.csswg.org/css-text/#propdef-text-align-last")}
+
 // TODO make this a shorthand and implement text-align-last/text-align-all
 <%helpers:longhand name="text-align" animatable="False" spec="https://drafts.csswg.org/css-text/#propdef-text-align">
     pub use self::computed_value::T as SpecifiedValue;
