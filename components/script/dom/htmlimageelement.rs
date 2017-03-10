@@ -12,6 +12,7 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementBinding::ElementMet
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
@@ -433,15 +434,21 @@ impl HTMLImageElement {
         };
 
         let map = self.upcast::<Node>()
-                      .following_siblings()
+                      .GetRootNode()
+                      .traverse_preorder()
                       .filter_map(Root::downcast::<HTMLMapElement>)
                       .find(|n| n.upcast::<Element>().get_string_attribute(&LocalName::from("name")) == last);
 
-        let elements: Vec<Root<HTMLAreaElement>> = map.unwrap().upcast::<Node>()
-                      .children()
+        match map {
+            None => None,
+            Some(mapElem) => {
+                let elements: Vec<Root<HTMLAreaElement>> = mapElem.upcast::<Node>()
+                      .traverse_preorder()
                       .filter_map(Root::downcast::<HTMLAreaElement>)
                       .collect();
-        Some(elements)
+                Some(elements)
+            }
+        }
     }
 }
 
