@@ -1789,7 +1789,7 @@ impl InlineFragmentContext {
             return false
         }
         for (this_node, other_node) in self.nodes.iter().zip(&other.nodes) {
-            if !arc_ptr_eq(&this_node.style, &other_node.style) {
+            if this_node.address != other_node.address {
                 return false
             }
         }
