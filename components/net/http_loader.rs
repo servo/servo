@@ -22,6 +22,7 @@ use hyper::header::{Authorization, Basic, CacheControl, CacheDirective, ContentE
 use hyper::header::{ContentLength, Encoding, Header, Headers, Host, IfMatch, IfRange};
 use hyper::header::{IfUnmodifiedSince, IfModifiedSince, IfNoneMatch, Location, Pragma, Quality};
 use hyper::header::{QualityItem, Referer, SetCookie, UserAgent, qitem};
+use hyper::header::Origin as HyperOrigin;
 use hyper::method::Method;
 use hyper::net::Fresh;
 use hyper::status::StatusCode;
@@ -785,6 +786,15 @@ fn http_redirect_fetch(request: Rc<Request>,
     main_fetch(request, cache, cors_flag, true, target, done_chan, context)
 }
 
+fn try_immutable_origin_to_hyper_origin(url_origin: &ImmutableOrigin) -> Option<HyperOrigin> {
+    match *url_origin {
+        // TODO (servo/servo#15569) Set "Origin: null" when hyper supports it
+        ImmutableOrigin::Opaque(_) => None,
+        ImmutableOrigin::Tuple(ref scheme, ref host, ref port) =>
+            Some(HyperOrigin::new(scheme.clone(), host.to_string(), Some(port.clone())))
+    }
+}
+
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
 fn http_network_or_cache_fetch(request: Rc<Request>,
                                authentication_fetch_flag: bool,
@@ -843,10 +853,16 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     };
 
     // Step 9
-    if cors_flag ||
-      (*http_request.method.borrow() != Method::Get && *http_request.method.borrow() != Method::Head) {
-        // TODO update this when https://github.com/hyperium/hyper/pull/691 is finished
-        // http_request.headers.borrow_mut().set_raw("origin", origin);
+    if !http_request.omit_origin_header.get() {
+        let method = http_request.method.borrow();
+        if cors_flag || (*method != Method::Get && *method != Method::Head) {
+            debug_assert!(*http_request.origin.borrow() != Origin::Client);
+            if let Origin::Origin(ref url_origin) = *http_request.origin.borrow() {
+                if let Some(hyper_origin) = try_immutable_origin_to_hyper_origin(url_origin) {
+                    http_request.headers.borrow_mut().set(hyper_origin)
+                }
+            }
+        }
     }
 
     // Step 10
