@@ -11,7 +11,7 @@
 
 // TODO spec says that UAs should not support this
 // we should probably remove from gecko (https://bugzilla.mozilla.org/show_bug.cgi?id=1328331)
-${helpers.single_keyword("ime-mode", "normal auto active disabled inactive",
+${helpers.single_keyword("ime-mode", "auto normal active disabled inactive",
                          products="gecko", gecko_ffi_name="mIMEMode",
                          animatable=False,
                          spec="https://drafts.csswg.org/css-ui/#input-method-editor")}

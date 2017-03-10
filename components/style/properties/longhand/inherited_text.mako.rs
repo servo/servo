@@ -164,7 +164,7 @@ ${helpers.single_keyword("text-transform",
                          animatable=False,
                          spec="https://drafts.csswg.org/css-text/#propdef-text-transform")}
 
-${helpers.single_keyword("hyphens", "none manual auto",
+${helpers.single_keyword("hyphens", "manual none auto",
                          gecko_enum_prefix="StyleHyphens",
                          products="gecko", animatable=False, extra_prefixes="moz",
                          spec="https://drafts.csswg.org/css-text/#propdef-hyphens")}
@@ -1133,7 +1133,7 @@ ${helpers.predefined_type(
 
 // CSS Ruby Layout Module Level 1
 // https://drafts.csswg.org/css-ruby/
-${helpers.single_keyword("ruby-align", "start center space-between space-around",
+${helpers.single_keyword("ruby-align", "space-around start center space-between",
                          products="gecko", animatable=False,
                          spec="https://drafts.csswg.org/css-ruby/#ruby-align-property")}
 
