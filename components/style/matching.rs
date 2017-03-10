@@ -562,7 +562,6 @@ trait PrivateMatchMethods: TElement {
                                      possibly_expired_animations: &mut Vec<PropertyAnimation>,
                                      booleans: CascadeBooleans) {
         // Collect some values.
-        let shared_context = context.shared;
         let (mut styles, restyle) = data.styles_and_restyle_mut();
         let mut primary_style = &mut styles.primary;
         let pseudos = &mut styles.pseudos;
@@ -575,31 +574,12 @@ trait PrivateMatchMethods: TElement {
                                                    &mut pseudo_style, &booleans);
 
         // Handle animations.
-        if booleans.animate && cfg!(feature = "servo") {
-            if let Some(ref mut old) = old_values {
-                self.update_animations_for_cascade(shared_context, old,
-                                                   possibly_expired_animations);
-            }
-
-            let new_animations_sender = &context.thread_local.new_animations_sender;
-            let this_opaque = self.as_node().opaque();
-            // Trigger any present animations if necessary.
-            animation::maybe_start_animations(&shared_context,
-                                              new_animations_sender,
-                                              this_opaque, &new_values);
-
-            // Trigger transitions if necessary. This will reset `new_values` back
-            // to its old value if it did trigger a transition.
-            if let Some(ref values) = old_values {
-                animation::start_transitions_if_applicable(
-                    new_animations_sender,
-                    this_opaque,
-                    self.as_node().to_unsafe(),
-                    &**values,
-                    &mut new_values,
-                    &shared_context.timer,
-                    &possibly_expired_animations);
-            }
+        if booleans.animate {
+            self.process_animations(&context,
+                                    &mut old_values,
+                                    &mut new_values,
+                                    pseudo,
+                                    possibly_expired_animations);
         }
 
         // Accumulate restyle damage.
@@ -612,6 +592,49 @@ trait PrivateMatchMethods: TElement {
             style.values = Some(new_values);
         } else {
             primary_style.values = Some(new_values);
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    fn process_animations(&self,
+                          _context: &StyleContext<Self>,
+                          _old_values: &mut Option<Arc<ComputedValues>>,
+                          _new_values: &mut Arc<ComputedValues>,
+                          _pseudo: Option<&PseudoElement>,
+                          _possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+    }
+
+    #[cfg(feature = "servo")]
+    fn process_animations(&self,
+                          context: &StyleContext<Self>,
+                          old_values: &mut Option<Arc<ComputedValues>>,
+                          new_values: &mut Arc<ComputedValues>,
+                          _pseudo: Option<&PseudoElement>,
+                          possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+        let shared_context = context.shared;
+        if let Some(ref mut old) = *old_values {
+            self.update_animations_for_cascade(shared_context, old,
+                                               possibly_expired_animations);
+        }
+
+        let new_animations_sender = &context.thread_local.new_animations_sender;
+        let this_opaque = self.as_node().opaque();
+        // Trigger any present animations if necessary.
+        animation::maybe_start_animations(&shared_context,
+                                          new_animations_sender,
+                                          this_opaque, &new_values);
+
+        // Trigger transitions if necessary. This will reset `new_values` back
+        // to its old value if it did trigger a transition.
+        if let Some(ref values) = *old_values {
+            animation::start_transitions_if_applicable(
+                new_animations_sender,
+                this_opaque,
+                self.as_node().to_unsafe(),
+                &**values,
+                new_values,
+                &shared_context.timer,
+                &possibly_expired_animations);
         }
     }
 
