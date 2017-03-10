@@ -658,7 +658,7 @@ impl VirtualMethods for HTMLImageElement {
     }
 
     fn handle_event(&self, event: &Event) {
-       if (event.type_() == atom!("click")) {
+       if event.type_() == atom!("click") {
            let area_elements = self.areas();
            let elements = if let Some(x) = area_elements {
                x
@@ -673,23 +673,24 @@ impl VirtualMethods for HTMLImageElement {
                return;
            };
 
-           let point = Point2D::new(mouse_event.ClientX().to_f32().unwrap(), mouse_event.ClientY().to_f32().unwrap());
+           let point = Point2D::new(mouse_event.ClientX().to_f32().unwrap(),
+                                    mouse_event.ClientY().to_f32().unwrap());
+
            // Walk HTMLAreaElements
-           let mut index = 0;
-           while index < elements.len() {
-               let shape = elements[index].get_shape_from_coords();
+           for element in elements {
+               let shape = element.get_shape_from_coords();
                let p = Point2D::new(self.upcast::<Element>().GetBoundingClientRect().X() as f32,
-               self.upcast::<Element>().GetBoundingClientRect().Y() as f32);
+                                    self.upcast::<Element>().GetBoundingClientRect().Y() as f32);
+
                let shp = if let Some(x) = shape {
                    x.absolute_coords(p)
                } else {
                    return
                };
                if shp.hit_test(point) {
-                   elements[index].activation_behavior(event, self.upcast());
+                   element.activation_behavior(event, self.upcast());
                    return
                }
-               index += 1;
            }
        }
     }
