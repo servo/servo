@@ -416,7 +416,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn get_animation_rules(&self, pseudo: Option<&PseudoElement>) -> AnimationRules {
-        let atom_ptr = pseudo.map(|p| p.as_atom().as_ptr()).unwrap_or(ptr::null_mut());
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
         unsafe {
             AnimationRules(
                 Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Animations).into_arc_opt(),
@@ -454,9 +454,8 @@ impl<'le> TElement for GeckoElement<'le> {
                                              _existing_values: &'a Arc<ComputedValues>,
                                              pseudo: Option<&PseudoElement>)
                                              -> Option<&'a nsStyleContext> {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
         unsafe {
-            let atom_ptr = pseudo.map(|p| p.as_atom().as_ptr())
-                                 .unwrap_or(ptr::null_mut());
             let context_ptr = Gecko_GetStyleContext(self.as_node().0, atom_ptr);
             context_ptr.as_ref()
         }
