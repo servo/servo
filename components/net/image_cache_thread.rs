@@ -336,6 +336,21 @@ fn get_placeholder_image(webrender_api: &webrender_traits::RenderApi) -> io::Res
     Ok(Arc::new(image))
 }
 
+fn premultiply(data: &mut [u8]) {
+    let length = data.len();
+
+    for i in (0..length).step_by(4) {
+        let b = data[i + 0] as u32;
+        let g = data[i + 1] as u32;
+        let r = data[i + 2] as u32;
+        let a = data[i + 3] as u32;
+
+        data[i + 0] = (b * a / 255) as u8;
+        data[i + 1] = (g * a / 255) as u8;
+        data[i + 2] = (r * a / 255) as u8;
+    }
+}
+
 impl ImageCache {
     fn run(webrender_api: webrender_traits::RenderApi,
            ipc_command_receiver: IpcReceiver<ImageCacheCommand>) {
@@ -484,6 +499,9 @@ impl ImageCache {
                 let format = convert_format(image.format);
                 let mut bytes = Vec::new();
                 bytes.extend_from_slice(&*image.bytes);
+                if format == webrender_traits::ImageFormat::RGBA8 {
+                    premultiply(bytes.as_mut_slice());
+                }
                 let descriptor = webrender_traits::ImageDescriptor {
                     width: image.width,
                     height: image.height,

@@ -5,6 +5,7 @@
 #![deny(unsafe_code)]
 #![feature(box_syntax)]
 #![feature(mpsc_select)]
+#![feature(step_by)]
 
 extern crate brotli;
 extern crate cookie as cookie_rs;

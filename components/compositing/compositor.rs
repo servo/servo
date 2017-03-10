@@ -1327,7 +1327,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn update_page_zoom_for_webrender(&mut self) {
-        let page_zoom = webrender_traits::PageZoomFactor::new(self.page_zoom.get());
+        let page_zoom = webrender_traits::ZoomFactor::new(self.page_zoom.get());
         self.webrender_api.set_page_zoom(page_zoom);
     }
 
