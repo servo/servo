@@ -22,12 +22,12 @@ ${helpers.single_keyword("text-anchor",
 
 // Section 11 - Painting: Filling, Stroking and Marker Symbols
 ${helpers.single_keyword("color-interpolation",
-                         "auto srgb linearrgb",
+                         "srgb auto linearrgb",
                          products="gecko",
                          animatable=False,
                          spec="https://www.w3.org/TR/SVG11/painting.html#ColorInterpolationProperty")}
 
-${helpers.single_keyword("color-interpolation-filters", "auto srgb linearrgb",
+${helpers.single_keyword("color-interpolation-filters", "linearrgb auto srgb",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_COLOR_INTERPOLATION",
                          animatable=False,

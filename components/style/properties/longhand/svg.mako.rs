@@ -87,7 +87,7 @@ ${helpers.single_keyword("mask-type", "luminance alpha",
 </%helpers:longhand>
 
 ${helpers.single_keyword("mask-mode",
-                         "alpha luminance match-source",
+                         "match-source alpha luminance",
                          vector=True,
                          products="gecko",
                          animatable=False,
@@ -146,7 +146,7 @@ ${helpers.single_keyword("mask-repeat",
 </%helpers:vector_longhand>
 
 ${helpers.single_keyword("mask-clip",
-                         "content-box padding-box border-box",
+                         "border-box content-box padding-box",
                          extra_gecko_values="fill-box stroke-box view-box no-clip",
                          vector=True,
                          products="gecko",
@@ -155,7 +155,7 @@ ${helpers.single_keyword("mask-clip",
                          spec="https://drafts.fxtf.org/css-masking/#propdef-mask-clip")}
 
 ${helpers.single_keyword("mask-origin",
-                         "content-box padding-box border-box",
+                         "border-box content-box padding-box",
                          extra_gecko_values="fill-box stroke-box view-box",
                          vector=True,
                          products="gecko",

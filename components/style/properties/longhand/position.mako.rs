@@ -86,7 +86,7 @@ ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse",
 
 % if product == "servo":
     // FIXME: Update Servo to support the same Syntax as Gecko.
-    ${helpers.single_keyword("justify-content", "stretch flex-start flex-end center space-between space-around",
+    ${helpers.single_keyword("justify-content", "flex-start stretch flex-end center space-between space-around",
                              extra_prefixes="webkit",
                              spec="https://drafts.csswg.org/css-align/#propdef-justify-content",
                              animatable=False)}

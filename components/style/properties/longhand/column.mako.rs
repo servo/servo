@@ -114,9 +114,9 @@ ${helpers.predefined_type("column-gap",
                           animatable=False,
                           spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
 
-${helpers.single_keyword("column-fill", "auto balance", extra_prefixes="moz",
+${helpers.single_keyword("column-fill", "balance auto", extra_prefixes="moz",
                          products="gecko", animatable=False,
-                         spec="https://drafts.csswg.org/css-multicol/#propdef-column-gap")}
+                         spec="https://drafts.csswg.org/css-multicol/#propdef-column-fill")}
 
 // https://drafts.csswg.org/css-multicol-1/#propdef-column-rule-width
 <%helpers:longhand name="column-rule-width" products="gecko" animatable="True" extra_prefixes="moz"
