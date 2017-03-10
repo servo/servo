@@ -539,6 +539,7 @@ mod bindings {
             "RawServoDeclarationBlock",
             "RawGeckoPresContext",
             "RawGeckoPresContextOwned",
+            "RawGeckoStyleAnimationList",
             "GeckoParserExtraData",
             "RefPtr",
             "ThreadSafeURIHolder",
@@ -636,6 +637,7 @@ mod bindings {
             "RawGeckoDocument",
             "RawServoDeclarationBlockStrong",
             "RawGeckoPresContext",
+            "RawGeckoStyleAnimationList",
         ];
         let servo_borrow_types = [
             "nsCSSValue",

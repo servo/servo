@@ -24848,6 +24848,8 @@ pub mod root {
         root::nsTArray<root::mozilla::PropertyStyleAnimationValuePair>;
     pub type RawServoAnimationValueBorrowedList =
         root::nsTArray<*const root::RawServoAnimationValue>;
+    pub type RawGeckoStyleAnimationList =
+        root::nsStyleAutoArray<root::mozilla::StyleAnimation>;
     pub type RawGeckoNodeBorrowed = *const root::RawGeckoNode;
     pub type RawGeckoNodeBorrowedOrNull = *const root::RawGeckoNode;
     pub type RawGeckoElementBorrowed = *const root::RawGeckoElement;
@@ -24866,6 +24868,8 @@ pub mod root {
     pub type RawGeckoKeyframeListBorrowed = *const root::RawGeckoKeyframeList;
     pub type RawGeckoComputedKeyframeValuesListBorrowedMut =
         *mut root::RawGeckoComputedKeyframeValuesList;
+    pub type RawGeckoStyleAnimationListBorrowed =
+        *const root::RawGeckoStyleAnimationList;
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct ElementRuleProcessorData([u8; 0]);
