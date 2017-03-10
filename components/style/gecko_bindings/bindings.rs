@@ -550,6 +550,11 @@ extern "C" {
                                       ServoComputedValuesBorrowedOrNull);
 }
 extern "C" {
+    pub fn Gecko_ElementHasCSSAnimations(aElement: RawGeckoElementBorrowed,
+                                         aPseudoTagOrNull: *mut nsIAtom)
+     -> bool;
+}
+extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
      -> *mut nsIAtom;
 }

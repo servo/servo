@@ -29,6 +29,7 @@ use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_MatchesE
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko_Namespace};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
+use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
@@ -525,6 +526,11 @@ impl<'le> TElement for GeckoElement<'le> {
                                    HasArcFFI::arc_as_borrowed(&computed_values),
                                    parent_values_opt);
         }
+    }
+
+    fn has_css_animations(&self, pseudo: Option<&PseudoElement>) -> bool {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+        unsafe { Gecko_ElementHasCSSAnimations(self.0, atom_ptr) }
     }
 }
 

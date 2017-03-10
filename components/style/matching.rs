@@ -605,21 +605,21 @@ trait PrivateMatchMethods: TElement {
         let ref new_box_style = new_values.get_box();
         let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
                                       new_box_style.animation_name_at(0).0.len() != 0;
+        let has_animations = self.has_css_animations(pseudo);
+
         let needs_update_animations =
             old_values.as_ref().map_or(has_new_animation_style, |ref old| {
                 let ref old_box_style = old.get_box();
                 let old_display_style = old_box_style.clone_display();
                 let new_display_style = new_box_style.clone_display();
-                // FIXME: If we know that the element has no running CSS animations,
-                // we can also skip the case with checking no_animations.
-                //
                 // FIXME: Bug 1344581: We still need to compare keyframe rules.
                 !old_box_style.animations_equals(&new_box_style) ||
                  (old_display_style == display::T::none &&
                   new_display_style != display::T::none &&
                   has_new_animation_style) ||
                  (old_display_style != display::T::none &&
-                  new_display_style == display::T::none)
+                  new_display_style == display::T::none &&
+                  has_animations)
             });
         if needs_update_animations {
             let task = SequentialTask::update_animations(self.as_node().as_element().unwrap(),
