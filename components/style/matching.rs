@@ -556,7 +556,7 @@ trait PrivateMatchMethods: TElement {
     /// Computes values and damage for the primary or pseudo style of an element,
     /// setting them on the ElementData.
     fn cascade_primary_or_pseudo<'a>(&self,
-                                     context: &StyleContext<Self>,
+                                     context: &mut StyleContext<Self>,
                                      data: &mut ElementData,
                                      pseudo: Option<&PseudoElement>,
                                      possibly_expired_animations: &mut Vec<PropertyAnimation>,
@@ -575,7 +575,7 @@ trait PrivateMatchMethods: TElement {
 
         // Handle animations.
         if booleans.animate {
-            self.process_animations(&context,
+            self.process_animations(context,
                                     &mut old_values,
                                     &mut new_values,
                                     pseudo,
@@ -597,16 +597,40 @@ trait PrivateMatchMethods: TElement {
 
     #[cfg(feature = "gecko")]
     fn process_animations(&self,
-                          _context: &StyleContext<Self>,
-                          _old_values: &mut Option<Arc<ComputedValues>>,
-                          _new_values: &mut Arc<ComputedValues>,
-                          _pseudo: Option<&PseudoElement>,
+                          context: &mut StyleContext<Self>,
+                          old_values: &mut Option<Arc<ComputedValues>>,
+                          new_values: &mut Arc<ComputedValues>,
+                          pseudo: Option<&PseudoElement>,
                           _possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+        let ref new_box_style = new_values.get_box();
+        let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
+                                      new_box_style.animation_name_at(0).0.len() != 0;
+        let needs_update_animations =
+            old_values.as_ref().map_or(has_new_animation_style, |ref old| {
+                let ref old_box_style = old.get_box();
+                let old_display_style = old_box_style.clone_display();
+                let new_display_style = new_box_style.clone_display();
+                // FIXME: If we know that the element has no running CSS animations,
+                // we can also skip the case with checking no_animations.
+                //
+                // FIXME: Bug 1344581: We still need to compare keyframe rules.
+                !old_box_style.animations_equals(&new_box_style) ||
+                 (old_display_style == display::T::none &&
+                  new_display_style != display::T::none &&
+                  has_new_animation_style) ||
+                 (old_display_style != display::T::none &&
+                  new_display_style == display::T::none)
+            });
+        if needs_update_animations {
+            let task = SequentialTask::update_animations(self.as_node().as_element().unwrap(),
+                                                         pseudo.cloned());
+            context.thread_local.tasks.push(task);
+        }
     }
 
     #[cfg(feature = "servo")]
     fn process_animations(&self,
-                          context: &StyleContext<Self>,
+                          context: &mut StyleContext<Self>,
                           old_values: &mut Option<Arc<ComputedValues>>,
                           new_values: &mut Arc<ComputedValues>,
                           _pseudo: Option<&PseudoElement>,
@@ -1033,7 +1057,7 @@ pub trait MatchMethods : TElement {
     /// Run the CSS cascade and compute values for the element, potentially
     /// starting any new transitions or animations.
     fn cascade_element(&self,
-                       context: &StyleContext<Self>,
+                       context: &mut StyleContext<Self>,
                        mut data: &mut AtomicRefMut<ElementData>,
                        primary_is_shareable: bool)
     {

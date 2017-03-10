@@ -15,6 +15,7 @@ use euclid::Size2D;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
 use properties::ComputedValues;
+use selector_parser::PseudoElement;
 use selectors::matching::ElementSelectorFlags;
 use servo_config::opts;
 use std::collections::HashMap;
@@ -181,6 +182,10 @@ pub enum SequentialTask<E: TElement> {
     /// Sets selector flags. This is used when we need to set flags on an
     /// element that we don't have exclusive access to (i.e. the parent).
     SetSelectorFlags(SendElement<E>, ElementSelectorFlags),
+
+    /// Marks that we need to create/remove/update CSS animations after the
+    /// first traversal.
+    UpdateAnimations(SendElement<E>, Option<PseudoElement>),
 }
 
 impl<E: TElement> SequentialTask<E> {
@@ -192,6 +197,9 @@ impl<E: TElement> SequentialTask<E> {
             SetSelectorFlags(el, flags) => {
                 unsafe { el.set_selector_flags(flags) };
             }
+            UpdateAnimations(el, pseudo) => {
+                unsafe { el.update_animations(pseudo.as_ref()) };
+            }
         }
     }
 
@@ -199,6 +207,12 @@ impl<E: TElement> SequentialTask<E> {
     pub fn set_selector_flags(el: E, flags: ElementSelectorFlags) -> Self {
         use self::SequentialTask::*;
         SetSelectorFlags(unsafe { SendElement::new(el) }, flags)
+    }
+
+    /// Creates a task to update CSS Animations on a given (pseudo-)element.
+    pub fn update_animations(el: E, pseudo: Option<PseudoElement>) -> Self {
+        use self::SequentialTask::*;
+        UpdateAnimations(unsafe { SendElement::new(el) }, pseudo)
     }
 }
 

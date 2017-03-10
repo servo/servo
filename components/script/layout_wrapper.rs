@@ -446,6 +446,10 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
         self.element.has_selector_flags(flags)
     }
+
+    fn update_animations(&self, _pseudo: Option<&PseudoElement>) {
+        panic!("this should be only called on gecko");
+    }
 }
 
 impl<'le> PartialEq for ServoLayoutElement<'le> {

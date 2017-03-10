@@ -33,12 +33,14 @@ use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
+use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+use gecko_bindings::sugar::ownership::HasArcFFI;
 use parking_lot::RwLock;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
@@ -503,6 +505,26 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
         let node_flags = selector_flags_to_node_flags(flags);
         (self.flags() & node_flags) == node_flags
+    }
+
+    fn update_animations(&self, pseudo: Option<&PseudoElement>) {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+
+        let computed_data = self.borrow_data().unwrap();
+        let computed_values = computed_data.styles().primary.values();
+
+        let parent_element = self.parent_element();
+        let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
+        let parent_values = parent_data.as_ref().map(|d| d.styles().primary.values());
+        let parent_values_opt = parent_values.map(|v|
+            *HasArcFFI::arc_as_borrowed(v)
+        );
+
+        unsafe {
+            Gecko_UpdateAnimations(self.0, atom_ptr,
+                                   HasArcFFI::arc_as_borrowed(&computed_values),
+                                   parent_values_opt);
+        }
     }
 }
 

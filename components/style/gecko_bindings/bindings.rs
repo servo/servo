@@ -542,6 +542,14 @@ extern "C" {
      -> bool;
 }
 extern "C" {
+    pub fn Gecko_UpdateAnimations(aElement: RawGeckoElementBorrowed,
+                                  aPseudoTagOrNull: *mut nsIAtom,
+                                  aComputedValues:
+                                      ServoComputedValuesBorrowed,
+                                  aParentComputedValues:
+                                      ServoComputedValuesBorrowedOrNull);
+}
+extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
      -> *mut nsIAtom;
 }
