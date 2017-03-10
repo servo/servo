@@ -545,7 +545,7 @@ extern "C" {
     pub fn Gecko_UpdateAnimations(aElement: RawGeckoElementBorrowed,
                                   aPseudoTagOrNull: *mut nsIAtom,
                                   aComputedValues:
-                                      ServoComputedValuesBorrowed,
+                                      ServoComputedValuesBorrowedOrNull,
                                   aParentComputedValues:
                                       ServoComputedValuesBorrowedOrNull);
 }
