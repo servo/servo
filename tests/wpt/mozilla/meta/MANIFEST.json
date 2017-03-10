@@ -12960,9 +12960,21 @@
      {}
     ]
    ],
+   "mozilla/img_find_non_sibling_map.html": [
+    [
+     "/_mozilla/mozilla/img_find_non_sibling_map.html",
+     {}
+    ]
+   ],
    "mozilla/img_multiple_request.html": [
     [
      "/_mozilla/mozilla/img_multiple_request.html",
+     {}
+    ]
+   ],
+   "mozilla/img_no_panic_on_no_map.html": [
+    [
+     "/_mozilla/mozilla/img_no_panic_on_no_map.html",
      {}
     ]
    ],
@@ -25489,8 +25501,16 @@
    "3c4f36abed83367c851d943b1f25b8394de6fe75",
    "testharness"
   ],
+  "mozilla/img_find_non_sibling_map.html": [
+   "d34100c4cc22adcaa1014095ba4b7b929b8e079d",
+   "testharness"
+  ],
   "mozilla/img_multiple_request.html": [
    "0a6263ad87c9b3307f2dc694747b094a0517b79b",
+   "testharness"
+  ],
+  "mozilla/img_no_panic_on_no_map.html": [
+   "be2ae22f4664b4577224ba6c7f3c4df8589c160a",
    "testharness"
   ],
   "mozilla/img_width_height.html": [
