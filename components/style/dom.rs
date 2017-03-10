@@ -335,6 +335,13 @@ pub trait TElement : PartialEq + Debug + Sized + Copy + Clone + ElementExt + Pre
 
     /// Returns true if the element has all the specified selector flags.
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool;
+
+    /// Creates a task to update CSS Animations on a given (pseudo-)element.
+    /// Note: Gecko only.
+    fn update_animations(&self, _pseudo: Option<&PseudoElement>);
+
+    /// Returns true if the element has a CSS animation.
+    fn has_css_animations(&self, _pseudo: Option<&PseudoElement>) -> bool;
 }
 
 /// TNode and TElement aren't Send because we want to be careful and explicit

@@ -1795,6 +1795,10 @@ fn static_assert() {
     }
     ${impl_transition_count('property', 'Property')}
 
+    pub fn animations_equals(&self, other: &Self) -> bool {
+        unsafe { bindings::Gecko_StyleAnimationsEquals(&self.gecko.mAnimations, &other.gecko.mAnimations) }
+    }
+
     pub fn set_animation_name(&mut self, v: longhands::animation_name::computed_value::T) {
         use nsstring::nsCString;
 

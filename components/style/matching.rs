@@ -556,13 +556,12 @@ trait PrivateMatchMethods: TElement {
     /// Computes values and damage for the primary or pseudo style of an element,
     /// setting them on the ElementData.
     fn cascade_primary_or_pseudo<'a>(&self,
-                                     context: &StyleContext<Self>,
+                                     context: &mut StyleContext<Self>,
                                      data: &mut ElementData,
                                      pseudo: Option<&PseudoElement>,
                                      possibly_expired_animations: &mut Vec<PropertyAnimation>,
                                      booleans: CascadeBooleans) {
         // Collect some values.
-        let shared_context = context.shared;
         let (mut styles, restyle) = data.styles_and_restyle_mut();
         let mut primary_style = &mut styles.primary;
         let pseudos = &mut styles.pseudos;
@@ -575,31 +574,12 @@ trait PrivateMatchMethods: TElement {
                                                    &mut pseudo_style, &booleans);
 
         // Handle animations.
-        if booleans.animate && cfg!(feature = "servo") {
-            if let Some(ref mut old) = old_values {
-                self.update_animations_for_cascade(shared_context, old,
-                                                   possibly_expired_animations);
-            }
-
-            let new_animations_sender = &context.thread_local.new_animations_sender;
-            let this_opaque = self.as_node().opaque();
-            // Trigger any present animations if necessary.
-            animation::maybe_start_animations(&shared_context,
-                                              new_animations_sender,
-                                              this_opaque, &new_values);
-
-            // Trigger transitions if necessary. This will reset `new_values` back
-            // to its old value if it did trigger a transition.
-            if let Some(ref values) = old_values {
-                animation::start_transitions_if_applicable(
-                    new_animations_sender,
-                    this_opaque,
-                    self.as_node().to_unsafe(),
-                    &**values,
-                    &mut new_values,
-                    &shared_context.timer,
-                    &possibly_expired_animations);
-            }
+        if booleans.animate {
+            self.process_animations(context,
+                                    &mut old_values,
+                                    &mut new_values,
+                                    pseudo,
+                                    possibly_expired_animations);
         }
 
         // Accumulate restyle damage.
@@ -612,6 +592,73 @@ trait PrivateMatchMethods: TElement {
             style.values = Some(new_values);
         } else {
             primary_style.values = Some(new_values);
+        }
+    }
+
+    #[cfg(feature = "gecko")]
+    fn process_animations(&self,
+                          context: &mut StyleContext<Self>,
+                          old_values: &mut Option<Arc<ComputedValues>>,
+                          new_values: &mut Arc<ComputedValues>,
+                          pseudo: Option<&PseudoElement>,
+                          _possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+        let ref new_box_style = new_values.get_box();
+        let has_new_animation_style = new_box_style.animation_name_count() >= 1 &&
+                                      new_box_style.animation_name_at(0).0.len() != 0;
+        let has_animations = self.has_css_animations(pseudo);
+
+        let needs_update_animations =
+            old_values.as_ref().map_or(has_new_animation_style, |ref old| {
+                let ref old_box_style = old.get_box();
+                let old_display_style = old_box_style.clone_display();
+                let new_display_style = new_box_style.clone_display();
+                // FIXME: Bug 1344581: We still need to compare keyframe rules.
+                !old_box_style.animations_equals(&new_box_style) ||
+                 (old_display_style == display::T::none &&
+                  new_display_style != display::T::none &&
+                  has_new_animation_style) ||
+                 (old_display_style != display::T::none &&
+                  new_display_style == display::T::none &&
+                  has_animations)
+            });
+        if needs_update_animations {
+            let task = SequentialTask::update_animations(self.as_node().as_element().unwrap(),
+                                                         pseudo.cloned());
+            context.thread_local.tasks.push(task);
+        }
+    }
+
+    #[cfg(feature = "servo")]
+    fn process_animations(&self,
+                          context: &mut StyleContext<Self>,
+                          old_values: &mut Option<Arc<ComputedValues>>,
+                          new_values: &mut Arc<ComputedValues>,
+                          _pseudo: Option<&PseudoElement>,
+                          possibly_expired_animations: &mut Vec<PropertyAnimation>) {
+        let shared_context = context.shared;
+        if let Some(ref mut old) = *old_values {
+            self.update_animations_for_cascade(shared_context, old,
+                                               possibly_expired_animations);
+        }
+
+        let new_animations_sender = &context.thread_local.new_animations_sender;
+        let this_opaque = self.as_node().opaque();
+        // Trigger any present animations if necessary.
+        animation::maybe_start_animations(&shared_context,
+                                          new_animations_sender,
+                                          this_opaque, &new_values);
+
+        // Trigger transitions if necessary. This will reset `new_values` back
+        // to its old value if it did trigger a transition.
+        if let Some(ref values) = *old_values {
+            animation::start_transitions_if_applicable(
+                new_animations_sender,
+                this_opaque,
+                self.as_node().to_unsafe(),
+                &**values,
+                new_values,
+                &shared_context.timer,
+                &possibly_expired_animations);
         }
     }
 
@@ -1010,7 +1057,7 @@ pub trait MatchMethods : TElement {
     /// Run the CSS cascade and compute values for the element, potentially
     /// starting any new transitions or animations.
     fn cascade_element(&self,
-                       context: &StyleContext<Self>,
+                       context: &mut StyleContext<Self>,
                        mut data: &mut AtomicRefMut<ElementData>,
                        primary_is_shareable: bool)
     {

@@ -1431,7 +1431,7 @@ pub extern "C" fn Servo_StyleSet_FillKeyframesForName(raw_data: RawServoStyleSet
     use style::gecko_bindings::structs::Keyframe;
     use style::properties::LonghandIdSet;
 
-    let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
     let name = unsafe { Atom::from(name.as_ref().unwrap().as_str_unchecked()) };
     let style_timing_function = unsafe { timing_function.as_ref().unwrap() };
     let style = ComputedValues::as_arc(&style);

@@ -29,16 +29,19 @@ use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_MatchesE
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink, Gecko_Namespace};
 use gecko_bindings::bindings::{Gecko_SetNodeFlags, Gecko_UnsetNodeFlags};
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
+use gecko_bindings::bindings::Gecko_ElementHasCSSAnimations;
 use gecko_bindings::bindings::Gecko_GetAnimationRule;
 use gecko_bindings::bindings::Gecko_GetHTMLPresentationAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleAttrDeclarationBlock;
 use gecko_bindings::bindings::Gecko_GetStyleContext;
+use gecko_bindings::bindings::Gecko_UpdateAnimations;
 use gecko_bindings::structs;
 use gecko_bindings::structs::{RawGeckoElement, RawGeckoNode};
 use gecko_bindings::structs::{nsIAtom, nsIContent, nsStyleContext};
 use gecko_bindings::structs::EffectCompositor_CascadeLevel as CascadeLevel;
 use gecko_bindings::structs::NODE_HAS_DIRTY_DESCENDANTS_FOR_SERVO;
 use gecko_bindings::structs::NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE;
+use gecko_bindings::sugar::ownership::HasArcFFI;
 use parking_lot::RwLock;
 use parser::ParserContextExtraData;
 use properties::{ComputedValues, parse_style_attribute};
@@ -416,7 +419,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn get_animation_rules(&self, pseudo: Option<&PseudoElement>) -> AnimationRules {
-        let atom_ptr = pseudo.map(|p| p.as_atom().as_ptr()).unwrap_or(ptr::null_mut());
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
         unsafe {
             AnimationRules(
                 Gecko_GetAnimationRule(self.0, atom_ptr, CascadeLevel::Animations).into_arc_opt(),
@@ -454,9 +457,8 @@ impl<'le> TElement for GeckoElement<'le> {
                                              _existing_values: &'a Arc<ComputedValues>,
                                              pseudo: Option<&PseudoElement>)
                                              -> Option<&'a nsStyleContext> {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
         unsafe {
-            let atom_ptr = pseudo.map(|p| p.as_atom().as_ptr())
-                                 .unwrap_or(ptr::null_mut());
             let context_ptr = Gecko_GetStyleContext(self.as_node().0, atom_ptr);
             context_ptr.as_ref()
         }
@@ -504,6 +506,37 @@ impl<'le> TElement for GeckoElement<'le> {
     fn has_selector_flags(&self, flags: ElementSelectorFlags) -> bool {
         let node_flags = selector_flags_to_node_flags(flags);
         (self.flags() & node_flags) == node_flags
+    }
+
+    fn update_animations(&self, pseudo: Option<&PseudoElement>) {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+
+        // We have to update animations even if the element has no computed style
+        // since it means the element is in a display:none subtree, we should destroy
+        // all CSS animations in display:none subtree.
+        let computed_data = self.borrow_data();
+        let computed_values = computed_data.as_ref().map(|d| d.styles().primary.values());
+        let computed_values_opt = computed_values.map(|v|
+            *HasArcFFI::arc_as_borrowed(v)
+        );
+
+        let parent_element = self.parent_element();
+        let parent_data = parent_element.as_ref().and_then(|e| e.borrow_data());
+        let parent_values = parent_data.as_ref().map(|d| d.styles().primary.values());
+        let parent_values_opt = parent_values.map(|v|
+            *HasArcFFI::arc_as_borrowed(v)
+        );
+
+        unsafe {
+            Gecko_UpdateAnimations(self.0, atom_ptr,
+                                   computed_values_opt,
+                                   parent_values_opt);
+        }
+    }
+
+    fn has_css_animations(&self, pseudo: Option<&PseudoElement>) -> bool {
+        let atom_ptr = PseudoElement::ns_atom_or_null_from_opt(pseudo);
+        unsafe { Gecko_ElementHasCSSAnimations(self.0, atom_ptr) }
     }
 }
 

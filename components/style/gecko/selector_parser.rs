@@ -7,11 +7,13 @@
 use cssparser::ToCss;
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
+use gecko_bindings::structs::nsIAtom;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
 use selector_parser::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
 use selectors::parser::AttrSelector;
 use std::borrow::Cow;
 use std::fmt;
+use std::ptr;
 use string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 
 /// A representation of a CSS pseudo-element.
@@ -110,6 +112,12 @@ impl PseudoElement {
         include!("generated/gecko_pseudo_element_helper.rs");
 
         None
+    }
+
+    /// Returns null or nsIAtom pointer corresponding to a given PseudoElement.
+    #[inline]
+    pub fn ns_atom_or_null_from_opt(pseudo: Option<&PseudoElement>) -> *mut nsIAtom {
+        pseudo.map(|p| p.as_atom().as_ptr()).unwrap_or(ptr::null_mut())
     }
 }
 

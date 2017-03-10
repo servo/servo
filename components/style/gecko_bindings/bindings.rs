@@ -14,6 +14,7 @@ use gecko_bindings::structs::RawServoAnimationValue;
 use gecko_bindings::structs::RawServoDeclarationBlock;
 use gecko_bindings::structs::RawGeckoPresContext;
 use gecko_bindings::structs::RawGeckoPresContextOwned;
+use gecko_bindings::structs::RawGeckoStyleAnimationList;
 use gecko_bindings::structs::GeckoParserExtraData;
 use gecko_bindings::structs::RefPtr;
 use gecko_bindings::structs::ThreadSafeURIHolder;
@@ -232,6 +233,8 @@ pub type RawServoDeclarationBlockStrongBorrowed<'a> = &'a RawServoDeclarationBlo
 pub type RawServoDeclarationBlockStrongBorrowedOrNull<'a> = Option<&'a RawServoDeclarationBlockStrong>;
 pub type RawGeckoPresContextBorrowed<'a> = &'a RawGeckoPresContext;
 pub type RawGeckoPresContextBorrowedOrNull<'a> = Option<&'a RawGeckoPresContext>;
+pub type RawGeckoStyleAnimationListBorrowed<'a> = &'a RawGeckoStyleAnimationList;
+pub type RawGeckoStyleAnimationListBorrowedOrNull<'a> = Option<&'a RawGeckoStyleAnimationList>;
 pub type nsCSSValueBorrowed<'a> = &'a nsCSSValue;
 pub type nsCSSValueBorrowedOrNull<'a> = Option<&'a nsCSSValue>;
 pub type nsCSSValueBorrowedMut<'a> = &'a mut nsCSSValue;
@@ -530,6 +533,26 @@ extern "C" {
                                   aCascadeLevel:
                                       EffectCompositor_CascadeLevel)
      -> RawServoDeclarationBlockStrong;
+}
+extern "C" {
+    pub fn Gecko_StyleAnimationsEquals(arg1:
+                                           RawGeckoStyleAnimationListBorrowed,
+                                       arg2:
+                                           RawGeckoStyleAnimationListBorrowed)
+     -> bool;
+}
+extern "C" {
+    pub fn Gecko_UpdateAnimations(aElement: RawGeckoElementBorrowed,
+                                  aPseudoTagOrNull: *mut nsIAtom,
+                                  aComputedValues:
+                                      ServoComputedValuesBorrowedOrNull,
+                                  aParentComputedValues:
+                                      ServoComputedValuesBorrowedOrNull);
+}
+extern "C" {
+    pub fn Gecko_ElementHasCSSAnimations(aElement: RawGeckoElementBorrowed,
+                                         aPseudoTagOrNull: *mut nsIAtom)
+     -> bool;
 }
 extern "C" {
     pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
