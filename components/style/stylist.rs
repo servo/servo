@@ -14,7 +14,9 @@ use keyframes::KeyframesAnimation;
 use media_queries::Device;
 use parking_lot::RwLock;
 use pdqsort::sort_by;
-use properties::{self, CascadeFlags, ComputedValues, INHERIT_ALL};
+use properties::{self, CascadeFlags, ComputedValues};
+#[cfg(feature = "servo")]
+use properties::INHERIT_ALL;
 use properties::PropertyDeclarationBlock;
 use restyle_hints::{RestyleHint, DependencySet};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
@@ -294,7 +296,7 @@ impl Stylist {
                                          pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>,
                                          default: &Arc<ComputedValues>,
-                                         inherit_all: bool)
+                                         cascade_flags: CascadeFlags)
                                          -> ComputedStyle {
         debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
 
@@ -307,11 +309,6 @@ impl Stylist {
             }
             None => self.rule_tree.root(),
         };
-
-        let mut flags = CascadeFlags::empty();
-        if inherit_all {
-            flags.insert(INHERIT_ALL)
-        }
 
         // NOTE(emilio): We skip calculating the proper layout parent style
         // here.
@@ -335,7 +332,7 @@ impl Stylist {
                                 default,
                                 None,
                                 Box::new(StdoutErrorReporter),
-                                flags);
+                                cascade_flags);
         ComputedStyle::new(rule_node, Arc::new(computed))
     }
 
@@ -363,7 +360,11 @@ impl Stylist {
                 unreachable!("That pseudo doesn't represent an anonymous box!")
             }
         };
-        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), default_style, inherit_all)
+        let mut cascade_flags = CascadeFlags::empty();
+        if inherit_all {
+            cascade_flags.insert(INHERIT_ALL);
+        }
+        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), default_style, cascade_flags)
             .values.unwrap()
     }
 
