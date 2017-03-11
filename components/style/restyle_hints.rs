@@ -41,7 +41,7 @@ bitflags! {
         ///
         /// NB: In Gecko, we have RESTYLE_SUBTREE which is inclusive of self,
         /// but heycam isn't aware of a good reason for that.
-        const RESTYLE_DESCENDANTS = 0x02,
+        const RESTYLE_DESCENDANTS = 0x04,
 
         /// Rerun selector matching on all later siblings of the element and all
         /// of their descendants.
@@ -75,13 +75,11 @@ pub fn assert_restyle_hints_match() {
 
     check_restyle_hints! {
         nsRestyleHint_eRestyle_Self => RESTYLE_SELF,
-        // XXX This for Servo actually means something like an hypothetical
-        // Restyle_AllDescendants (but without running selector matching on the
-        // element). ServoRestyleManager interprets it like that, but in practice we
-        // should align the behavior with Gecko adding a new restyle hint, maybe?
-        //
-        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1291786
-        nsRestyleHint_eRestyle_SomeDescendants => RESTYLE_DESCENDANTS,
+        // Note that eRestyle_Subtree means "self and descendants", while
+        // RESTYLE_DESCENDANTS means descendants only.  The From impl
+        // below handles converting eRestyle_Subtree into
+        // (RESTYLE_SELF | RESTYLE_DESCENDANTS).
+        nsRestyleHint_eRestyle_Subtree => RESTYLE_DESCENDANTS,
         nsRestyleHint_eRestyle_LaterSiblings => RESTYLE_LATER_SIBLINGS,
         nsRestyleHint_eRestyle_StyleAttribute => RESTYLE_STYLE_ATTRIBUTE,
     }
@@ -106,7 +104,14 @@ impl From<nsRestyleHint> for RestyleHint {
             warn!("stylo: dropping unsupported restyle hint bits");
         }
 
-        Self::from_bits_truncate(raw_bits)
+        let mut bits = Self::from_bits_truncate(raw_bits);
+
+        // eRestyle_Subtree converts to (RESTYLE_SELF | RESTYLE_DESCENDANTS).
+        if bits.contains(RESTYLE_DESCENDANTS) {
+            bits |= RESTYLE_SELF;
+        }
+
+        bits
     }
 }
 
