@@ -1415,7 +1415,9 @@ extern "C" {
      -> bool;
 }
 extern "C" {
-    pub fn Servo_ParseStyleAttribute(data: *const nsACString_internal)
+    pub fn Servo_ParseStyleAttribute(data: *const nsACString_internal,
+                                     base: *const nsACString_internal,
+                                     extraData: *const GeckoParserExtraData)
      -> RawServoDeclarationBlockStrong;
 }
 extern "C" {
