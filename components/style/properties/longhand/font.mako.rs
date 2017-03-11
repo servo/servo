@@ -57,9 +57,6 @@
                     atom!("sans-serif") |
                     atom!("cursive") |
                     atom!("fantasy") |
-                    % if product == "gecko":
-                        atom!("-moz-fixed") |
-                    % endif
                     atom!("monospace") => {
                         return FontFamily::Generic(input)
                     }
@@ -70,9 +67,6 @@
                     "sans-serif" => return FontFamily::Generic(atom!("sans-serif")),
                     "cursive" => return FontFamily::Generic(atom!("cursive")),
                     "fantasy" => return FontFamily::Generic(atom!("fantasy")),
-                    % if product == "gecko":
-                        "-moz-fixed" => return FontFamily::Generic(atom!("-moz-fixed")),
-                    % endif
                     "monospace" => return FontFamily::Generic(atom!("monospace")),
                     _ => {}
                 }
@@ -150,10 +144,9 @@
                             if name == &atom!("-moz-fixed") {
                                 return write!(dest, "monospace");
                             }
-                            write!(dest, "{}", name)
-                        % else:
-                            write!(dest, "{}", name)
                         % endif
+
+                        write!(dest, "{}", name)
                     },
                 }
             }
