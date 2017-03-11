@@ -13,11 +13,9 @@ crate-type = ["staticlib", "rlib"]
 bindgen = ["style/use_bindgen"]
 
 [dependencies]
-app_units = "0.4"
 atomic_refcell = "0.1"
 cssparser = "0.12"
 env_logger = {version = "0.4", default-features = false} # disable `regex` to reduce code size
-euclid = "0.11"
 lazy_static = "0.2"
 libc = "0.2"
 log = {version = "0.3.5", features = ["release_max_level_info"]}

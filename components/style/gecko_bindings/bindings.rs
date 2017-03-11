@@ -1373,8 +1373,7 @@ extern "C" {
                                            style: ServoComputedValuesBorrowed,
                                            parent_style:
                                                ServoComputedValuesBorrowedOrNull,
-                                           pres_context:
-                                               RawGeckoPresContextBorrowed,
+                                           set: RawServoStyleSetBorrowed,
                                            result:
                                                RawGeckoComputedKeyframeValuesListBorrowedMut);
 }

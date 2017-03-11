@@ -426,7 +426,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
             };
 
             let computed =
-                properties::apply_declarations(context.viewport_size,
+                properties::apply_declarations(context.viewport_size(),
                                                /* is_root = */ false,
                                                iter,
                                                previous_style,

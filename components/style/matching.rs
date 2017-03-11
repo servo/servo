@@ -539,7 +539,7 @@ trait PrivateMatchMethods: TElement {
 
         // Invoke the cascade algorithm.
         let values =
-            Arc::new(cascade(shared_context.viewport_size,
+            Arc::new(cascade(shared_context.viewport_size(),
                              rule_node,
                              inherited_values,
                              layout_parent_style,

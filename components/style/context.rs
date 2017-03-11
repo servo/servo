@@ -63,9 +63,6 @@ pub enum QuirksMode {
 /// There's exactly one of these during a given restyle traversal, and it's
 /// shared among the worker threads.
 pub struct SharedStyleContext {
-    /// The current viewport size.
-    pub viewport_size: Size2D<Au>,
-
     /// The CSS selector stylist.
     pub stylist: Arc<Stylist>,
 
@@ -91,6 +88,13 @@ pub struct SharedStyleContext {
     /// The default computed values to use for elements with no rules
     /// applying to them.
     pub default_computed_values: Arc<ComputedValues>,
+}
+
+impl SharedStyleContext {
+    /// Return a suitable viewport size in order to be used for viewport units.
+    pub fn viewport_size(&self) -> Size2D<Au> {
+        self.stylist.device.au_viewport_size()
+    }
 }
 
 /// Information about the current element being processed. We group this together

@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use atomic_refcell::AtomicRefMut;
 use cssparser::Parser;
 use cssparser::ToCss as ParserToCss;
 use env_logger::LogBuilder;
-use euclid::Size2D;
 use num_cpus;
 use parking_lot::RwLock;
 use rayon;
@@ -43,7 +41,6 @@ use style::gecko_bindings::bindings::{nsACString, nsAString};
 use style::gecko_bindings::bindings::Gecko_AnimationAppendKeyframe;
 use style::gecko_bindings::bindings::RawGeckoComputedKeyframeValuesListBorrowedMut;
 use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
-use style::gecko_bindings::bindings::RawGeckoPresContextBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
@@ -162,8 +159,6 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
         ThreadLocalStyleContextCreationInfo::new(per_doc_data.new_animations_sender.clone());
 
     SharedStyleContext {
-        // FIXME (bug 1303229): Use the actual viewport size here
-        viewport_size: Size2D::new(Au(0), Au(0)),
         stylist: per_doc_data.stylist.clone(),
         running_animations: per_doc_data.running_animations.clone(),
         expired_animations: per_doc_data.expired_animations.clone(),
@@ -1335,23 +1330,24 @@ pub extern "C" fn Servo_ResolveStyleLazily(element: RawGeckoElementBorrowed,
 pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeListBorrowed,
                                                   style: ServoComputedValuesBorrowed,
                                                   parent_style: ServoComputedValuesBorrowedOrNull,
-                                                  pres_context: RawGeckoPresContextBorrowed,
+                                                  raw_data: RawServoStyleSetBorrowed,
                                                   computed_keyframes: RawGeckoComputedKeyframeValuesListBorrowedMut)
 {
     use style::properties::LonghandIdSet;
     use style::properties::declaration_block::Importance;
     use style::values::computed::Context;
+    let data = PerDocumentStyleData::from_ffi(raw_data).borrow();
 
     let style = ComputedValues::as_arc(&style);
     let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
-    let init = ComputedValues::default_values(pres_context);
+
+    let default_values = data.stylist.device.default_values();
 
     let context = Context {
         is_root_element: false,
-        // FIXME (bug 1303229): Use the actual viewport size here
-        viewport_size: Size2D::new(Au(0), Au(0)),
-        inherited_style: parent_style.unwrap_or(&init),
-        layout_parent_style: parent_style.unwrap_or(&init),
+        viewport_size: data.stylist.device.au_viewport_size(),
+        inherited_style: parent_style.unwrap_or(default_values),
+        layout_parent_style: parent_style.unwrap_or(default_values),
         style: (**style).clone(),
         font_metrics_provider: None,
     };
@@ -1374,7 +1370,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
                             .filter_map(|&(ref decl, imp)| {
                                 if imp == Importance::Normal {
                                     let property = TransitionProperty::from_declaration(decl);
-                                    let animation = AnimationValue::from_declaration(decl, &context, &init);
+                                    let animation = AnimationValue::from_declaration(decl, &context, default_values);
                                     debug_assert!(property.is_none() == animation.is_none(),
                                                   "The failure condition of TransitionProperty::from_declaration \
                                                    and AnimationValue::from_declaration should be the same");

@@ -94,10 +94,10 @@ impl Device {
         self.viewport_override.as_ref().map(|v| {
             Size2D::new(Au::from_f32_px(v.size.width),
                         Au::from_f32_px(v.size.height))
-        }).unwrap_or_else(|| {
-            // TODO(emilio): Grab from pres context.
-            Size2D::new(Au::from_f32_px(1024.0),
-                        Au::from_f32_px(768.0))
+        }).unwrap_or_else(|| unsafe {
+            // TODO(emilio): Need to take into account scrollbars.
+            Size2D::new(Au((*self.pres_context).mVisibleArea.width),
+                        Au((*self.pres_context).mVisibleArea.height))
         })
     }
 }
