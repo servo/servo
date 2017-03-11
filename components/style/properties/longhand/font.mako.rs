@@ -57,6 +57,9 @@
                     atom!("sans-serif") |
                     atom!("cursive") |
                     atom!("fantasy") |
+                    % if product == "gecko":
+                        atom!("-moz-fixed") |
+                    % endif
                     atom!("monospace") => {
                         return FontFamily::Generic(input)
                     }
@@ -67,6 +70,9 @@
                     "sans-serif" => return FontFamily::Generic(atom!("sans-serif")),
                     "cursive" => return FontFamily::Generic(atom!("cursive")),
                     "fantasy" => return FontFamily::Generic(atom!("fantasy")),
+                    % if product == "gecko":
+                        "-moz-fixed" => return FontFamily::Generic(atom!("-moz-fixed")),
+                    % endif
                     "monospace" => return FontFamily::Generic(atom!("monospace")),
                     _ => {}
                 }
@@ -90,6 +96,9 @@
                     "cursive" => return Ok(FontFamily::Generic(atom!("cursive"))),
                     "fantasy" => return Ok(FontFamily::Generic(atom!("fantasy"))),
                     "monospace" => return Ok(FontFamily::Generic(atom!("monospace"))),
+                    % if product == "gecko":
+                        "-moz-fixed" => return Ok(FontFamily::Generic(atom!("-moz-fixed"))),
+                    % endif
 
                     // https://drafts.csswg.org/css-fonts/#propdef-font-family
                     // "Font family names that happen to be the same as a keyword value
@@ -135,7 +144,17 @@
                     FontFamily::FamilyName(ref name) => name.to_css(dest),
 
                     // All generic values accepted by the parser are known to not require escaping.
-                    FontFamily::Generic(ref name) => write!(dest, "{}", name),
+                    FontFamily::Generic(ref name) => {
+                        % if product == "gecko":
+                            // We should treat -moz-fixed as monospace
+                            if name == &atom!("-moz-fixed") {
+                                return write!(dest, "monospace");
+                            }
+                            write!(dest, "{}", name)
+                        % else:
+                            write!(dest, "{}", name)
+                        % endif
+                    },
                 }
             }
         }

@@ -4296,6 +4296,8 @@ cfg_if! {
             pub static nsGkAtoms_fantasy: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms9monospaceE"]
             pub static nsGkAtoms_monospace: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms8mozfixedE"]
+            pub static nsGkAtoms_mozfixed: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6RemoteE"]
             pub static nsGkAtoms_Remote: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms8RemoteIdE"]
@@ -9221,6 +9223,8 @@ cfg_if! {
             pub static nsGkAtoms_fantasy: *mut nsIAtom;
             #[link_name = "?monospace@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_monospace: *mut nsIAtom;
+            #[link_name = "?mozfixed@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_mozfixed: *mut nsIAtom;
             #[link_name = "?Remote@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_Remote: *mut nsIAtom;
             #[link_name = "?RemoteId@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -14146,6 +14150,8 @@ cfg_if! {
             pub static nsGkAtoms_fantasy: *mut nsIAtom;
             #[link_name = "\x01?monospace@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_monospace: *mut nsIAtom;
+            #[link_name = "\x01?mozfixed@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_mozfixed: *mut nsIAtom;
             #[link_name = "\x01?Remote@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_Remote: *mut nsIAtom;
             #[link_name = "\x01?RemoteId@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -19074,6 +19080,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_fantasy as *mut _) } };
 ("monospace") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_monospace as *mut _) } };
+("-moz-fixed") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_mozfixed as *mut _) } };
 ("remote") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_Remote as *mut _) } };
 ("_remote_id") =>

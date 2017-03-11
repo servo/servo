@@ -1183,6 +1183,7 @@ fn static_assert() {
                         else if name == &atom!("cursive") { FontFamilyType::eFamily_cursive }
                         else if name == &atom!("fantasy") { FontFamilyType::eFamily_fantasy }
                         else if name == &atom!("monospace") { FontFamilyType::eFamily_monospace }
+                        else if name == &atom!("-moz-fixed") { FontFamilyType::eFamily_moz_fixed }
                         else { panic!("Unknown generic font family") };
                     unsafe { Gecko_FontFamilyList_AppendGeneric(list, family_type); }
                 }
