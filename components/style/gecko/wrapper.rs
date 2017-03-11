@@ -296,13 +296,10 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 
 impl<'le> GeckoElement<'le> {
     /// Parse the style attribute of an element.
-    pub fn parse_style_attribute(value: &str) -> PropertyDeclarationBlock {
-        // FIXME(bholley): Real base URL and error reporter.
-        let base_url = &*DUMMY_BASE_URL;
-        // FIXME(heycam): Needs real ParserContextExtraData so that URLs parse
-        // properly.
-        let extra_data = ParserContextExtraData::default();
-        parse_style_attribute(value, &base_url, Box::new(StdoutErrorReporter), extra_data)
+    pub fn parse_style_attribute(value: &str,
+                                 base_url: &ServoUrl,
+                                 extra_data: ParserContextExtraData) -> PropertyDeclarationBlock {
+        parse_style_attribute(value, base_url, Box::new(StdoutErrorReporter), extra_data)
     }
 
     fn flags(&self) -> u32 {

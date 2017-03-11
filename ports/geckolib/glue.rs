@@ -718,9 +718,13 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ParseStyleAttribute(data: *const nsACString) -> RawServoDeclarationBlockStrong {
+pub extern "C" fn Servo_ParseStyleAttribute(data: *const nsACString,
+                                            base: *const nsACString,
+                                            raw_extra_data: *const structs::GeckoParserExtraData)
+                                            -> RawServoDeclarationBlockStrong {
     let value = unsafe { data.as_ref().unwrap().as_str_unchecked() };
-    Arc::new(RwLock::new(GeckoElement::parse_style_attribute(value))).into_strong()
+    make_context!((base, raw_extra_data) => (base_url, extra_data));
+    Arc::new(RwLock::new(GeckoElement::parse_style_attribute(value, &base_url, extra_data))).into_strong()
 }
 
 #[no_mangle]
