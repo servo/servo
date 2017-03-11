@@ -12904,6 +12904,12 @@
      {}
     ]
    ],
+   "mozilla/img_usemap.html": [
+    [
+     "/_mozilla/mozilla/img_usemap.html",
+     {}
+    ]
+   ],
    "mozilla/img_width_height.html": [
     [
      "/_mozilla/mozilla/img_width_height.html",
@@ -25393,6 +25399,10 @@
   ],
   "mozilla/img_multiple_request.html": [
    "0a6263ad87c9b3307f2dc694747b094a0517b79b",
+   "testharness"
+  ],
+  "mozilla/img_usemap.html": [
+   "b4477c129d1a00f7d65bf298bedc976e0a42a622",
    "testharness"
   ],
   "mozilla/img_width_height.html": [
