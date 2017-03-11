@@ -266,7 +266,9 @@ impl LineBreaker {
     }
 
     /// Reflows fragments for the given inline flow.
-    fn scan_for_lines(&mut self, flow: &mut InlineFlow, layout_context: &LayoutContext) {
+    fn scan_for_lines(&mut self,
+                      flow: &mut InlineFlow,
+                      layout_context: &LayoutContext) {
         self.reset_scanner();
 
         // Create our fragment iterator.
@@ -274,10 +276,11 @@ impl LineBreaker {
         let mut old_fragments = mem::replace(&mut flow.fragments, InlineFragments::new());
         let old_fragment_iter = old_fragments.fragments.into_iter();
 
-        // TODO(pcwalton): This would likely be better as a list of dirty line indices. That way we
-        // could resynchronize if we discover during reflow that all subsequent fragments must have
-        // the same position as they had in the previous reflow. I don't know how common this case
-        // really is in practice, but it's probably worth handling.
+        // TODO(pcwalton): This would likely be better as a list of dirty line
+        // indices. That way we could resynchronize if we discover during reflow
+        // that all subsequent fragments must have the same position as they had
+        // in the previous reflow. I don't know how common this case really is
+        // in practice, but it's probably worth handling.
         self.lines = Vec::new();
 
         // Do the reflow.
@@ -286,9 +289,10 @@ impl LineBreaker {
         // Perform unicode bidirectional layout.
         let para_level = flow.base.writing_mode.to_bidi_level();
 
-        // The text within a fragment is at a single bidi embedding level (because we split
-        // fragments on level run boundaries during flow construction), so we can build a level
-        // array with just one entry per fragment.
+        // The text within a fragment is at a single bidi embedding level
+        // (because we split fragments on level run boundaries during flow
+        // construction), so we can build a level array with just one entry per
+        // fragment.
         let levels: Vec<u8> = self.new_fragments.iter().map(|fragment| match fragment.specific {
             SpecificFragmentInfo::ScannedText(ref info) => info.run.bidi_level,
             _ => para_level
@@ -300,7 +304,8 @@ impl LineBreaker {
         let has_rtl = levels.iter().cloned().any(unicode_bidi::is_rtl);
 
         if has_rtl {
-            // Compute and store the visual ordering of the fragments within the line.
+            // Compute and store the visual ordering of the fragments within the
+            // line.
             for line in &mut lines {
                 let range = line.range.begin().to_usize()..line.range.end().to_usize();
                 let runs = unicode_bidi::visual_runs(range, &levels);
@@ -323,7 +328,8 @@ impl LineBreaker {
                                mut old_fragment_iter: I,
                                flow: &'a InlineFlow,
                                layout_context: &LayoutContext)
-                               where I: Iterator<Item=Fragment> {
+        where I: Iterator<Item=Fragment>,
+    {
         loop {
             // Acquire the next fragment to lay out from the work list or fragment list, as
             // appropriate.
@@ -355,17 +361,24 @@ impl LineBreaker {
     /// Acquires a new fragment to lay out from the work list or fragment list as appropriate.
     /// Note that you probably don't want to call this method directly in order to be incremental-
     /// reflow-safe; try `next_unbroken_fragment` instead.
-    fn next_fragment<I>(&mut self, old_fragment_iter: &mut I) -> Option<Fragment>
-                        where I: Iterator<Item=Fragment> {
+    fn next_fragment<I>(&mut self,
+                        old_fragment_iter: &mut I)
+                        -> Option<Fragment>
+        where I: Iterator<Item=Fragment>,
+    {
         self.work_list.pop_front().or_else(|| old_fragment_iter.next())
     }
 
-    /// Acquires a new fragment to lay out from the work list or fragment list, merging it with any
-    /// subsequent fragments as appropriate. In effect, what this method does is to return the next
-    /// fragment to lay out, undoing line break operations that any previous reflows may have
-    /// performed. You probably want to be using this method instead of `next_fragment`.
-    fn next_unbroken_fragment<I>(&mut self, old_fragment_iter: &mut I) -> Option<Fragment>
-                                 where I: Iterator<Item=Fragment> {
+    /// Acquires a new fragment to lay out from the work list or fragment list,
+    /// merging it with any subsequent fragments as appropriate. In effect, what
+    /// this method does is to return the next fragment to lay out, undoing line
+    /// break operations that any previous reflows may have performed. You
+    /// probably want to be using this method instead of `next_fragment`.
+    fn next_unbroken_fragment<I>(&mut self,
+                                 old_fragment_iter: &mut I)
+                                 -> Option<Fragment>
+        where I: Iterator<Item=Fragment>,
+    {
         let mut result = match self.next_fragment(old_fragment_iter) {
             None => return None,
             Some(fragment) => fragment,
@@ -536,7 +549,8 @@ impl LineBreaker {
 
         // Determine initial placement for the fragment if we need to.
         //
-        // Also, determine whether we can legally break the line before, or inside, this fragment.
+        // Also, determine whether we can legally break the line before, or
+        // inside, this fragment.
         let fragment_is_line_break_opportunity = if self.pending_line_is_empty() {
             fragment.strip_leading_whitespace_if_necessary();
             let (line_bounds, _) = self.initial_line_placement(flow, &fragment, self.cur_b);
@@ -547,15 +561,16 @@ impl LineBreaker {
             fragment.white_space().allow_wrap()
         };
 
-        debug!("LineBreaker: trying to append to line {} (fragment size: {:?}, green zone: {:?}): \
-               {:?}",
+        debug!("LineBreaker: trying to append to line {} \
+                (fragment size: {:?}, green zone: {:?}): {:?}",
                self.lines.len(),
                fragment.border_box.size,
                self.pending_line.green_zone,
                fragment);
 
-        // NB: At this point, if `green_zone.inline < self.pending_line.bounds.size.inline` or
-        // `green_zone.block < self.pending_line.bounds.size.block`, then we committed a line that
+        // NB: At this point, if `green_zone.inline <
+        // self.pending_line.bounds.size.inline` or `green_zone.block <
+        // self.pending_line.bounds.size.block`, then we committed a line that
         // overlaps with floats.
         let green_zone = self.pending_line.green_zone;
         let new_line_metrics = self.pending_line.new_metrics_for_fragment(&fragment,
@@ -1263,7 +1278,8 @@ impl Flow for InlineFlow {
     fn bubble_inline_sizes(&mut self) {
         self.update_restyle_damage();
 
-        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:x}", self.base.debug_id());
+        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:x}",
+                                         self.base.debug_id());
 
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter_mut() {
@@ -1386,15 +1402,18 @@ impl Flow for InlineFlow {
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("inline::assign_block_size {:x}", self.base.debug_id());
+        let _scope = layout_debug_scope!("inline::assign_block_size {:x}",
+                                         self.base.debug_id());
 
         // Divide the fragments into lines.
         //
-        // TODO(pcwalton, #226): Get the CSS `line-height` property from the style of the
-        // containing block to determine the minimum line block size.
+        // TODO(pcwalton, #226): Get the CSS `line-height` property from the
+        // style of the containing block to determine the minimum line block
+        // size.
         //
-        // TODO(pcwalton, #226): Get the CSS `line-height` property from each non-replaced inline
-        // element to determine its block-size for computing the line's own block-size.
+        // TODO(pcwalton, #226): Get the CSS `line-height` property from each
+        // non-replaced inline element to determine its block-size for computing
+        // the line's own block-size.
         //
         // TODO(pcwalton): Cache the line scanner?
         debug!("assign_block_size_inline: floats in: {:?}", self.base.floats);
@@ -1426,7 +1445,8 @@ impl Flow for InlineFlow {
         // Now, go through each line and lay out the fragments inside.
         let line_count = self.lines.len();
         for (line_index, line) in self.lines.iter_mut().enumerate() {
-            // Lay out fragments in the inline direction, and justify them if necessary.
+            // Lay out fragments in the inline direction, and justify them if
+            // necessary.
             InlineFlow::set_inline_fragment_positions(&mut self.fragments,
                                                       line,
                                                       self.base.flags.text_align(),
@@ -1439,8 +1459,9 @@ impl Flow for InlineFlow {
                                                      &self.minimum_line_metrics,
                                                      layout_context);
 
-            // This is used to set the block-start position of the next line in the next iteration
-            // of the loop. We're no longer on the first line, so set indentation to zero.
+            // This is used to set the block-start position of the next line in
+            // the next iteration of the loop. We're no longer on the first
+            // line, so set indentation to zero.
             indentation = Au(0)
         }
 
@@ -1768,7 +1789,7 @@ impl InlineFragmentContext {
             return false
         }
         for (this_node, other_node) in self.nodes.iter().zip(&other.nodes) {
-            if !arc_ptr_eq(&this_node.style, &other_node.style) {
+            if this_node.address != other_node.address {
                 return false
             }
         }

@@ -1222,7 +1222,11 @@ impl fmt::Debug for DisplayItem {
                             solid_color.color.g,
                             solid_color.color.b,
                             solid_color.color.a),
-                DisplayItem::Text(_) => "Text".to_owned(),
+                DisplayItem::Text(ref text) => {
+                    format!("Text ({:?})",
+                            &text.text_run.text[
+                                text.range.begin().0 as usize..(text.range.begin().0 + text.range.length().0) as usize])
+                }
                 DisplayItem::Image(_) => "Image".to_owned(),
                 DisplayItem::WebGL(_) => "WebGL".to_owned(),
                 DisplayItem::Border(_) => "Border".to_owned(),
