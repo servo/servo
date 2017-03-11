@@ -408,6 +408,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                     &style_pseudo,
                                     Some(data.styles().primary.values()),
                                     &context.default_computed_values,
+                                    false,
                                     false);
                             data.styles_mut().pseudos
                                 .insert(style_pseudo.clone(), new_style);

@@ -14,7 +14,7 @@ use keyframes::KeyframesAnimation;
 use media_queries::Device;
 use parking_lot::RwLock;
 use pdqsort::sort_by;
-use properties::{self, CascadeFlags, ComputedValues, INHERIT_ALL};
+use properties::{self, CascadeFlags, ComputedValues, INHERIT_ALL, SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP};
 use properties::PropertyDeclarationBlock;
 use restyle_hints::{RestyleHint, DependencySet};
 use rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
@@ -294,7 +294,8 @@ impl Stylist {
                                          pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>,
                                          default: &Arc<ComputedValues>,
-                                         inherit_all: bool)
+                                         inherit_all: bool,
+                                         skip_root_and_item_based_display_fixup: bool)
                                          -> ComputedStyle {
         debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
 
@@ -311,6 +312,9 @@ impl Stylist {
         let mut flags = CascadeFlags::empty();
         if inherit_all {
             flags.insert(INHERIT_ALL)
+        }
+        if skip_root_and_item_based_display_fixup {
+            flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
         }
 
         // NOTE(emilio): We skip calculating the proper layout parent style
@@ -363,7 +367,7 @@ impl Stylist {
                 unreachable!("That pseudo doesn't represent an anonymous box!")
             }
         };
-        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), default_style, inherit_all)
+        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), default_style, inherit_all, false)
             .values.unwrap()
     }
 
