@@ -7,6 +7,7 @@
 
 use dom::bindings::conversions::root_from_handleobject;
 use dom::bindings::error::{Error, Fallible};
+use dom::bindings::js::Root;
 use dom::bindings::reflector::DomObject;
 use dom::blob::{Blob, BlobImpl};
 use dom::globalscope::GlobalScope;
@@ -46,6 +47,20 @@ unsafe extern "C" fn read_blob(cx: *mut JSContext,
     return blob.reflector().get_jsobject().get()
 }
 
+unsafe extern "C" fn write_blob(blob: Root<Blob>,
+                                w: *mut JSStructuredCloneWriter) -> bool {
+    if let Ok(mut blob_vec) = blob.get_bytes() {
+        blob_vec.shrink_to_fit();
+        let length = blob_vec.len();
+        assert!(JS_WriteUint32Pair(w,
+                                   StructuredCloneTags::DomBlob as u32,
+                                   length as u32));
+        assert!(JS_WriteBytes(w, blob_vec.as_ptr() as *const raw::c_void, length));
+        return true
+    }
+    return false
+}
+
 #[allow(dead_code)]
 unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    r: *mut JSStructuredCloneReader,
@@ -64,15 +79,7 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     obj: HandleObject,
                                     _closure: *mut raw::c_void) -> bool {
     if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
-        if let Ok(mut blob_vec) = blob.get_bytes() {
-            blob_vec.shrink_to_fit();
-            let length = blob_vec.len();
-            if JS_WriteUint32Pair(w,
-                                  StructuredCloneTags::DomBlob as u32,
-                                  length as u32) {
-                return JS_WriteBytes(w, blob_vec.as_ptr() as *const raw::c_void, length)
-            }
-        }
+        return write_blob(blob, w)
     }
     return false
 }
