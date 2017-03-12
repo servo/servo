@@ -29,10 +29,10 @@ use std::slice;
 #[allow(dead_code)]
 #[repr(u32)]
 enum StructuredCloneTags {
-    ScTagMin = 0xFFFF8000,
-    ScTagDomBlob = 0xFFFF8001,
+    Min = 0xFFFF8000,
+    DomBlob = 0xFFFF8001,
     ///NOTE: To support additional types, add new tags here.
-    ScTagMax = 0xFFFFFFFF,
+    Max = 0xFFFFFFFF,
 }
 
 #[allow(dead_code)]
@@ -41,7 +41,7 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    tag: u32,
                                    data: u32,
                                    _closure: *mut raw::c_void) -> *mut JSObject {
-    if tag == StructuredCloneTags::ScTagDomBlob as u32 {
+    if tag == StructuredCloneTags::DomBlob as u32 {
         let mut empty_vec: Vec<u8> = Vec::with_capacity(data as usize);
         let vec_mut_ptr: *mut raw::c_void = empty_vec.as_mut_ptr() as *mut _ as *mut raw::c_void;
         mem::forget(empty_vec);
@@ -68,7 +68,7 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
             blob_vec_copy.shrink_to_fit();
             let blob_vec_copy_len = blob_vec_copy.len();
             if JS_WriteUint32Pair(w,
-                                  StructuredCloneTags::ScTagDomBlob as u32,
+                                  StructuredCloneTags::DomBlob as u32,
                                   blob_vec_copy_len as u32) {
                 let blob_vec_ptr: *const raw::c_void = blob_vec_copy.as_ptr() as *const _ as *const raw::c_void;
                 mem::forget(blob_vec_copy);
