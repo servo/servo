@@ -44,11 +44,11 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
         let length = data as usize;
         let mut buffer = vec![0u8; length];
         if JS_ReadBytes(r, buffer.as_mut_ptr() as *mut raw::c_void, length) {
-            let js_context = GlobalScope::from_context(cx);
+            let target_global = GlobalScope::from_context(cx);
             /// NOTE: missing the content-type string here.
             /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
-            let root = Blob::new(&js_context, BlobImpl::new_from_bytes(buffer), "".to_string());
-            return *root.reflector().get_jsobject().ptr
+            let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(buffer), "".to_string());
+            return blob.reflector().get_jsobject().get()
         }
     }
     return Heap::default().get()
