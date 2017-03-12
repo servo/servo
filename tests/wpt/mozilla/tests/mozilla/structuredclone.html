@@ -16,14 +16,14 @@ async_test(function(t) {
       var reader = new FileReader();
       reader.addEventListener("loadend", this.step_func(function() {
           original_content = reader.result;
+          var reader2 = new FileReader();
+          reader2.addEventListener("loadend", this.step_func_done(function() {
+              cloned_content = reader2.result;
+              assert_equals(cloned_content, original_content);
+          }));
+          reader2.readAsText(msg.data);
       }));
       reader.readAsText(blob);
-      var reader2 = new FileReader();
-      reader2.addEventListener("loadend", this.step_func_done(function() {
-          cloned_content = reader2.result;
-          assert_equals(cloned_content, original_content);
-      }));
-      reader2.readAsText(msg.data);
   }), false);
   window.postMessage(blob, '*');
 }, "test cloning blobs");

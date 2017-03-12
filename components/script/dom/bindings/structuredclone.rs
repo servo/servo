@@ -18,7 +18,6 @@ use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
 use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone, JS_WriteUint32Pair};
 use js::jsapi::{MutableHandleObject, TransferableOwnership};
 use libc::size_t;
-use std::mem;
 use std::os::raw;
 use std::ptr;
 use std::slice;
@@ -42,15 +41,13 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    data: u32,
                                    _closure: *mut raw::c_void) -> *mut JSObject {
     if tag == StructuredCloneTags::DomBlob as u32 {
-        let mut empty_vec: Vec<u8> = Vec::with_capacity(data as usize);
-        let vec_mut_ptr: *mut raw::c_void = empty_vec.as_mut_ptr() as *mut _ as *mut raw::c_void;
-        mem::forget(empty_vec);
-        if JS_ReadBytes(r, vec_mut_ptr, data as usize) {
-            let blob_bytes: Vec<u8> = Vec::from_raw_parts(vec_mut_ptr as *mut u8, data as usize, data as usize);
+        let length = data as usize;
+        let mut buffer = vec![0u8; length];
+        if JS_ReadBytes(r, buffer.as_mut_ptr() as *mut raw::c_void, length) {
             let js_context = GlobalScope::from_context(cx);
             /// NOTE: missing the content-type string here.
             /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
-            let root = Blob::new(&js_context, BlobImpl::new_from_bytes(blob_bytes), "".to_string());
+            let root = Blob::new(&js_context, BlobImpl::new_from_bytes(buffer), "".to_string());
             return *root.reflector().get_jsobject().ptr
         }
     }
@@ -63,16 +60,13 @@ unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     obj: HandleObject,
                                     _closure: *mut raw::c_void) -> bool {
     if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
-        if let Ok(blob_vec) = blob.get_bytes() {
-            let mut blob_vec_copy = blob_vec.to_vec();
-            blob_vec_copy.shrink_to_fit();
-            let blob_vec_copy_len = blob_vec_copy.len();
+        if let Ok(mut blob_vec) = blob.get_bytes() {
+            blob_vec.shrink_to_fit();
+            let length = blob_vec.len();
             if JS_WriteUint32Pair(w,
                                   StructuredCloneTags::DomBlob as u32,
-                                  blob_vec_copy_len as u32) {
-                let blob_vec_ptr: *const raw::c_void = blob_vec_copy.as_ptr() as *const _ as *const raw::c_void;
-                mem::forget(blob_vec_copy);
-                return JS_WriteBytes(w, blob_vec_ptr, blob_vec_copy_len)
+                                  length as u32) {
+                return JS_WriteBytes(w, blob_vec.as_ptr() as *const raw::c_void, length)
             }
         }
     }
