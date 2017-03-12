@@ -1174,7 +1174,9 @@ impl PropertyDeclaration {
     pub fn value_is_unparsed(&self) -> bool {
       match *self {
           PropertyDeclaration::WithVariables(..) => true,
-          PropertyDeclaration::Custom(..) => true,
+          PropertyDeclaration::Custom(_, ref value) => {
+            !matches!(value.borrow(), DeclaredValue::CSSWideKeyword(..))
+          }
           _ => false,
       }
     }
