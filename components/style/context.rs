@@ -171,11 +171,7 @@ lazy_static! {
 impl TraversalStatistics {
     /// Returns whether statistics dumping is enabled.
     pub fn should_dump() -> bool {
-<<<<<<< Updated upstream
-        *DUMP_STYLE_STATISTICS || opts::get().style_sharing_stats
-=======
         *DUMP_STYLE_STATISTICS || servo_config_facade::style_sharing_stats_enabled()
->>>>>>> Stashed changes
     }
 
     /// Computes the traversal time given the start time in seconds.
