@@ -33,6 +33,19 @@ enum StructuredCloneTags {
     Max = 0xFFFFFFFF,
 }
 
+unsafe extern "C" fn read_blob(cx: *mut JSContext,
+                               r: *mut JSStructuredCloneReader,
+                               data: u32) -> *mut JSObject {
+    let length = data as usize;
+    let mut buffer = vec![0u8; length];
+    assert!(JS_ReadBytes(r, buffer.as_mut_ptr() as *mut raw::c_void, length));
+    let target_global = GlobalScope::from_context(cx);
+    /// NOTE: missing the content-type string here.
+    /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
+    let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(buffer), "".to_string());
+    return blob.reflector().get_jsobject().get()
+}
+
 #[allow(dead_code)]
 unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    r: *mut JSStructuredCloneReader,
@@ -40,15 +53,7 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    data: u32,
                                    _closure: *mut raw::c_void) -> *mut JSObject {
     if tag == StructuredCloneTags::DomBlob as u32 {
-        let length = data as usize;
-        let mut buffer = vec![0u8; length];
-        if JS_ReadBytes(r, buffer.as_mut_ptr() as *mut raw::c_void, length) {
-            let target_global = GlobalScope::from_context(cx);
-            /// NOTE: missing the content-type string here.
-            /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
-            let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(buffer), "".to_string());
-            return blob.reflector().get_jsobject().get()
-        }
+        return read_blob(cx, r, data)
     }
     return ptr::null_mut()
 }
