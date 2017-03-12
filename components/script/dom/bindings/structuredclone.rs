@@ -10,8 +10,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::DomObject;
 use dom::blob::{Blob, BlobImpl};
 use dom::globalscope::GlobalScope;
-use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue};
-use js::jsapi::{Heap, JSContext};
+use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue, JSContext};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
 use js::jsapi::{JS_ClearPendingException, JSObject, JS_ReadStructuredClone};
 use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
@@ -51,7 +50,7 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
             return blob.reflector().get_jsobject().get()
         }
     }
-    return Heap::default().get()
+    return ptr::null_mut()
 }
 
 #[allow(dead_code)]
