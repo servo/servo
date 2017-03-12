@@ -1141,7 +1141,10 @@ impl PropertyDeclaration {
                   matches!(*value, DeclaredValue::WithVariables(_))
               },
           % endfor
-          PropertyDeclaration::Custom(..) => true
+          PropertyDeclaration::Custom(_, ref value) => match *value {
+              DeclaredValue::CSSWideKeyword(_) => false,
+              _ => true,
+          }
       }
     }
 
