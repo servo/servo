@@ -3190,6 +3190,7 @@ clip-path
     pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
         use properties::longhands::content::computed_value::T;
         use properties::longhands::content::computed_value::ContentItem;
+        use style_traits::ToCss;
         use gecko_bindings::structs::nsStyleContentType::*;
         use gecko_bindings::bindings::Gecko_ClearAndResizeStyleContents;
 
@@ -3219,7 +3220,6 @@ clip-path
                                                       items.len() as u32);
                 }
                 for (i, item) in items.into_iter().enumerate() {
-                    // TODO: Servo lacks support for attr(), and URIs.
                     // NB: Gecko compares the mString value if type is not image
                     // or URI independently of whatever gets there. In the quote
                     // cases, they set it to null, so do the same here.
@@ -3235,6 +3235,19 @@ clip-path
                                     as_utf16_and_forget(&value);
                             }
                         }
+                        ContentItem::Attr(ns, val) => {
+                            self.gecko.mContents[i].mType = eStyleContentType_Attr;
+                            let s = if let Some(ns) = ns {
+                                format!("{}|{}", ns, val)
+                            } else {
+                                val
+                            };
+                            unsafe {
+                                // NB: we share allocators, so doing this is fine.
+                                *self.gecko.mContents[i].mContent.mString.as_mut() =
+                                    as_utf16_and_forget(&s);
+                            }
+                        }
                         ContentItem::OpenQuote
                             => self.gecko.mContents[i].mType = eStyleContentType_OpenQuote,
                         ContentItem::CloseQuote
@@ -3245,9 +3258,30 @@ clip-path
                             => self.gecko.mContents[i].mType = eStyleContentType_NoCloseQuote,
                         ContentItem::MozAltContent
                             => self.gecko.mContents[i].mType = eStyleContentType_AltContent,
-                        ContentItem::Counter(..) |
-                        ContentItem::Counters(..)
-                            => self.gecko.mContents[i].mType = eStyleContentType_Uninitialized,
+                        ContentItem::Counter(name, style) => {
+                            unsafe {
+                                bindings::Gecko_SetContentDataArray(&mut self.gecko.mContents[i],
+                                                                    eStyleContentType_Counter, 2)
+                            }
+                            let mut array = unsafe { &mut **self.gecko.mContents[i].mContent.mCounters.as_mut() };
+                            array[0].set_string(&name);
+                            // When we support <custom-ident> values for list-style-type this will need to be updated
+                            array[1].set_ident(&style.to_css_string());
+                        }
+                        ContentItem::Counters(name, sep, style) => {
+                            unsafe {
+                                bindings::Gecko_SetContentDataArray(&mut self.gecko.mContents[i],
+                                                                    eStyleContentType_Counters, 3)
+                            }
+                            let mut array = unsafe { &mut **self.gecko.mContents[i].mContent.mCounters.as_mut() };
+                            array[0].set_string(&name);
+                            array[1].set_string(&sep);
+                            // When we support <custom-ident> values for list-style-type this will need to be updated
+                            array[2].set_ident(&style.to_css_string());
+                        }
+                        ContentItem::Url(url) => {
+                            unsafe { bindings::Gecko_SetContentDataImage(&mut self.gecko.mContents[i], url.for_ffi()) }
+                        }
                     }
                 }
             }
