@@ -10,7 +10,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::reflector::DomObject;
 use dom::blob::{Blob, BlobImpl};
 use dom::globalscope::GlobalScope;
-use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue, JSContext};
+use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue, JSAutoCompartment, JSContext};
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
 use js::jsapi::{JS_ClearPendingException, JSObject, JS_ReadStructuredClone};
 use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
@@ -166,8 +166,11 @@ impl StructuredCloneData {
                   data: *mut u64,
                   nbytes: size_t,
                   rval: MutableHandleValue) {
+        let cx = global.get_cx();
+        let globalhandle = global.reflector().get_jsobject();
+        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
         unsafe {
-            assert!(JS_ReadStructuredClone(global.get_cx(),
+            assert!(JS_ReadStructuredClone(cx,
                                            data,
                                            nbytes,
                                            JS_STRUCTURED_CLONE_VERSION,
