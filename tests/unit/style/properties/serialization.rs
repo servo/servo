@@ -656,10 +656,7 @@ mod shorthand_serialization {
                     Importance::Normal),
             ];
 
-            let block = PropertyDeclarationBlock {
-                declarations: declarations,
-                important_count: 0
-            };
+            let block = block_from(declarations);
 
             let mut s = String::new();
             let id = PropertyId::parse("font".into()).unwrap();
