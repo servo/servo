@@ -295,7 +295,6 @@ impl Stylist {
     pub fn precomputed_values_for_pseudo(&self,
                                          pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>,
-                                         default: &ComputedValues,
                                          cascade_flags: CascadeFlags)
                                          -> ComputedStyle {
         debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
@@ -325,13 +324,12 @@ impl Stylist {
         // the actual used value, and the computed value of it would need
         // blockification.
         let computed =
-            properties::cascade(self.device.au_viewport_size(),
+            properties::cascade(&self.device,
                                 &rule_node,
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
-                                default,
                                 None,
-                                Box::new(StdoutErrorReporter),
+                                &StdoutErrorReporter,
                                 cascade_flags);
         ComputedStyle::new(rule_node, Arc::new(computed))
     }
@@ -340,8 +338,7 @@ impl Stylist {
     #[cfg(feature = "servo")]
     pub fn style_for_anonymous_box(&self,
                                    pseudo: &PseudoElement,
-                                   parent_style: &Arc<ComputedValues>,
-                                   default_style: &ComputedValues)
+                                   parent_style: &Arc<ComputedValues>)
                                    -> Arc<ComputedValues> {
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
         let inherit_all = match *pseudo {
@@ -364,7 +361,7 @@ impl Stylist {
         if inherit_all {
             cascade_flags.insert(INHERIT_ALL);
         }
-        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), default_style, cascade_flags)
+        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), cascade_flags)
             .values.unwrap()
     }
 
@@ -378,8 +375,7 @@ impl Stylist {
     pub fn lazily_compute_pseudo_element_style<E>(&self,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
-                                                  parent: &Arc<ComputedValues>,
-                                                  default: &Arc<ComputedValues>)
+                                                  parent: &Arc<ComputedValues>)
                                                   -> Option<ComputedStyle>
         where E: TElement +
                  fmt::Debug +
@@ -410,13 +406,12 @@ impl Stylist {
         // (tl;dr: It doesn't apply for replaced elements and such, but the
         // computed value is still "contents").
         let computed =
-            properties::cascade(self.device.au_viewport_size(),
+            properties::cascade(&self.device,
                                 &rule_node,
                                 Some(&**parent),
                                 Some(&**parent),
-                                default,
                                 None,
-                                Box::new(StdoutErrorReporter),
+                                &StdoutErrorReporter,
                                 CascadeFlags::empty());
 
         // Apply the selector flags. We should be in sequential mode already,

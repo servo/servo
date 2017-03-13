@@ -27,7 +27,8 @@ fn test_moz_user_select() {
     assert_roundtrip_with_context!(_moz_user_select::parse, "-moz-text");
 
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
 
     let mut negative = Parser::new("potato");
     assert!(_moz_user_select::parse(&context, &mut negative).is_err());

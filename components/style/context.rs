@@ -14,7 +14,6 @@ use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
-use properties::ComputedValues;
 use selector_parser::PseudoElement;
 use selectors::matching::ElementSelectorFlags;
 use servo_config::opts;
@@ -73,7 +72,7 @@ pub struct SharedStyleContext {
     pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
     ///The CSS error reporter for all CSS loaded in this layout thread
-    pub error_reporter: Box<ParseErrorReporter + Sync>,
+    pub error_reporter: Box<ParseErrorReporter>,
 
     /// Data needed to create the thread-local style context from the shared one.
     pub local_context_creation_data: Mutex<ThreadLocalStyleContextCreationInfo>,
@@ -84,10 +83,6 @@ pub struct SharedStyleContext {
 
     /// The QuirksMode state which the document needs to be rendered with
     pub quirks_mode: QuirksMode,
-
-    /// The default computed values to use for elements with no rules
-    /// applying to them.
-    pub default_computed_values: Arc<ComputedValues>,
 }
 
 impl SharedStyleContext {

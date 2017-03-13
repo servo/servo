@@ -15,7 +15,8 @@ use style::stylesheets::Origin;
 #[test]
 fn background_shorthand_should_parse_all_available_properties_when_specified() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("url(\"http://servo/test.png\") top center / 200px 200px repeat-x fixed padding-box \
         content-box red");
     let result = background::parse_value(&context, &mut parser).unwrap();
@@ -34,7 +35,8 @@ fn background_shorthand_should_parse_all_available_properties_when_specified() {
 #[test]
 fn background_shorthand_should_parse_when_some_fields_set() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("14px 40px repeat-y");
     let result = background::parse_value(&context, &mut parser).unwrap();
 
@@ -64,7 +66,8 @@ fn background_shorthand_should_parse_when_some_fields_set() {
 #[test]
 fn background_shorthand_should_parse_comma_separated_declarations() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("url(\"http://servo/test.png\") top left no-repeat, url(\"http://servo/test.png\") \
         center / 100% 100% no-repeat, white");
     let result = background::parse_value(&context, &mut parser).unwrap();
@@ -85,7 +88,8 @@ fn background_shorthand_should_parse_comma_separated_declarations() {
 #[test]
 fn background_shorthand_should_parse_position_and_size_correctly() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("7px 4px");
     let result = background::parse_value(&context, &mut parser).unwrap();
 
@@ -109,7 +113,8 @@ fn background_shorthand_should_parse_position_and_size_correctly() {
 #[test]
 fn background_shorthand_should_parse_origin_and_clip_correctly() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("padding-box content-box");
     let result = background::parse_value(&context, &mut parser).unwrap();
 

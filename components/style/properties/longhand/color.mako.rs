@@ -8,28 +8,24 @@
 
 <%helpers:longhand name="color" need_clone="True" animatable="True"
                    spec="https://drafts.csswg.org/css-color/#color">
-    use cssparser::Color as CSSParserColor;
     use cssparser::RGBA;
     use std::fmt;
     use style_traits::ToCss;
     use values::HasViewportPercentage;
-    use values::specified::{CSSColor, CSSRGBA};
+    use values::specified::{Color, CSSColor, CSSRGBA};
 
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 
         #[inline]
         fn to_computed_value(&self, context: &Context) -> computed_value::T {
-            match self.0.parsed {
-                CSSParserColor::RGBA(rgba) => rgba,
-                CSSParserColor::CurrentColor => context.inherited_style.get_color().clone_color(),
-            }
+            self.0.parsed.to_computed_value(context)
         }
 
         #[inline]
         fn from_computed_value(computed: &computed_value::T) -> Self {
             SpecifiedValue(CSSColor {
-                parsed: CSSParserColor::RGBA(*computed),
+                parsed: Color::RGBA(*computed),
                 authored: None,
             })
         }

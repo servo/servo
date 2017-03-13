@@ -299,7 +299,7 @@ impl<'le> GeckoElement<'le> {
     pub fn parse_style_attribute(value: &str,
                                  base_url: &ServoUrl,
                                  extra_data: ParserContextExtraData) -> PropertyDeclarationBlock {
-        parse_style_attribute(value, base_url, Box::new(StdoutErrorReporter), extra_data)
+        parse_style_attribute(value, base_url, &StdoutErrorReporter, extra_data)
     }
 
     fn flags(&self) -> u32 {

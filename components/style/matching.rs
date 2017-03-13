@@ -539,13 +539,12 @@ trait PrivateMatchMethods: TElement {
 
         // Invoke the cascade algorithm.
         let values =
-            Arc::new(cascade(shared_context.viewport_size(),
+            Arc::new(cascade(&shared_context.stylist.device,
                              rule_node,
                              inherited_values,
                              layout_parent_style,
-                             &shared_context.default_computed_values,
                              Some(&mut cascade_info),
-                             shared_context.error_reporter.clone(),
+                             &*shared_context.error_reporter,
                              cascade_flags));
 
         cascade_info.finish(&self.as_node());

@@ -11,7 +11,6 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 use std::borrow::Cow;
-use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
@@ -21,13 +20,13 @@ use app_units::Au;
 use cssparser::{Parser, TokenSerializationType};
 use error_reporting::ParseErrorReporter;
 #[cfg(feature = "servo")] use euclid::side_offsets::SideOffsets2D;
-use euclid::size::Size2D;
 use computed_values;
 use font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")] use gecko_bindings::bindings;
 #[cfg(feature = "gecko")] use gecko_bindings::structs::{self, nsCSSPropertyID};
 #[cfg(feature = "servo")] use logical_geometry::{LogicalMargin, PhysicalSide};
 use logical_geometry::WritingMode;
+use media_queries::Device;
 use parser::{Parse, ParserContext, ParserContextExtraData};
 use properties::animated_properties::TransitionProperty;
 #[cfg(feature = "servo")] use servo_config::prefs::PREFS;
@@ -288,7 +287,7 @@ impl PropertyDeclarationIdSet {
             % endif
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
             f: F,
-            error_reporter: &mut StdBox<ParseErrorReporter + Send>)
+            error_reporter: &ParseErrorReporter)
             % if property.boxed:
                 where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
             % else:
@@ -322,7 +321,7 @@ impl PropertyDeclarationIdSet {
                 from_shorthand: Option<ShorthandId>,
                 custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
                 f: F,
-                error_reporter: &mut StdBox<ParseErrorReporter + Send>,
+                error_reporter: &ParseErrorReporter,
                 extra_data: ParserContextExtraData)
                 % if property.boxed:
                     where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
@@ -338,7 +337,7 @@ impl PropertyDeclarationIdSet {
                     // FIXME(pcwalton): Cloning the error reporter is slow! But so are custom
                     // properties, so whatever...
                     let context = ParserContext::new_with_extra_data(
-                        ::stylesheets::Origin::Author, base_url, (*error_reporter).clone(),
+                        ::stylesheets::Origin::Author, base_url, error_reporter,
                         extra_data);
                     Parser::new(&css).parse_entirely(|input| {
                         match from_shorthand {
@@ -1764,7 +1763,7 @@ pub type CascadePropertyFn =
                      context: &mut computed::Context,
                      cacheable: &mut bool,
                      cascade_info: &mut Option<<&mut CascadeInfo>,
-                     error_reporter: &mut StdBox<ParseErrorReporter + Send>);
+                     error_reporter: &ParseErrorReporter);
 
 /// A per-longhand array of functions to perform the CSS cascade on each of
 /// them, effectively doing virtual dispatch.
@@ -1793,7 +1792,7 @@ bitflags! {
 ///
 /// The arguments are:
 ///
-///   * `viewport_size`: The size of the initial viewport.
+///   * `device`: Used to get the initial viewport and other external state.
 ///
 ///   * `rule_node`: The rule node in the tree that represent the CSS rules that
 ///   matched.
@@ -1803,20 +1802,28 @@ bitflags! {
 /// Returns the computed values.
 ///   * `flags`: Various flags.
 ///
-pub fn cascade(viewport_size: Size2D<Au>,
+pub fn cascade(device: &Device,
                rule_node: &StrongRuleNode,
                parent_style: Option<<&ComputedValues>,
                layout_parent_style: Option<<&ComputedValues>,
-               default_style: &ComputedValues,
                cascade_info: Option<<&mut CascadeInfo>,
-               error_reporter: StdBox<ParseErrorReporter + Send>,
+               error_reporter: &ParseErrorReporter,
                flags: CascadeFlags)
                -> ComputedValues {
     debug_assert_eq!(parent_style.is_some(), layout_parent_style.is_some());
     let (is_root_element, inherited_style, layout_parent_style) = match parent_style {
-        Some(parent_style) => (false, parent_style, layout_parent_style.unwrap()),
-        None => (true, &*default_style, &*default_style),
+        Some(parent_style) => {
+            (false,
+             parent_style,
+             layout_parent_style.unwrap())
+        },
+        None => {
+            (true,
+             device.default_computed_values(),
+             device.default_computed_values())
+        }
     };
+
     // Hold locks until after the apply_declarations() call returns.
     // Use filter_map because the root node has no style source.
     let lock_guards = rule_node.self_and_ancestors().filter_map(|node| {
@@ -1836,12 +1843,11 @@ pub fn cascade(viewport_size: Size2D<Au>,
             })
         })
     };
-    apply_declarations(viewport_size,
+    apply_declarations(device,
                        is_root_element,
                        iter_declarations,
                        inherited_style,
                        layout_parent_style,
-                       default_style,
                        cascade_info,
                        error_reporter,
                        None,
@@ -1850,20 +1856,20 @@ pub fn cascade(viewport_size: Size2D<Au>,
 
 /// NOTE: This function expects the declaration with more priority to appear
 /// first.
-pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
+pub fn apply_declarations<'a, F, I>(device: &Device,
                                     is_root_element: bool,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
                                     layout_parent_style: &ComputedValues,
-                                    default_style: &ComputedValues,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
-                                    mut error_reporter: StdBox<ParseErrorReporter + Send>,
+                                    error_reporter: &ParseErrorReporter,
                                     font_metrics_provider: Option<<&FontMetricsProvider>,
                                     flags: CascadeFlags)
                                     -> ComputedValues
     where F: Fn() -> I,
           I: Iterator<Item = &'a PropertyDeclaration>,
 {
+    let default_style = device.default_computed_values();
     let inherited_custom_properties = inherited_style.custom_properties();
     let mut custom_properties = None;
     let mut seen_custom = HashSet::new();
@@ -1905,7 +1911,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
 
     let mut context = computed::Context {
         is_root_element: is_root_element,
-        viewport_size: viewport_size,
+        device: device,
         inherited_style: inherited_style,
         layout_parent_style: layout_parent_style,
         style: starting_style,
@@ -1984,7 +1990,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                                              &mut context,
                                              &mut cacheable,
                                              &mut cascade_info,
-                                             &mut error_reporter);
+                                             error_reporter);
         }
         % if category_to_cascade_now == "early":
             let writing_mode = get_writing_mode(context.style.get_inheritedbox());

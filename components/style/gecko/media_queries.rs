@@ -29,7 +29,7 @@ pub struct Device {
     /// NB: The pres context lifetime is tied to the styleset, who owns the
     /// stylist, and thus the `Device`, so having a raw pres context pointer
     /// here is fine.
-    pres_context: RawGeckoPresContextOwned,
+    pub pres_context: RawGeckoPresContextOwned,
     default_values: Arc<ComputedValues>,
     viewport_override: Option<ViewportConstraints>,
 }
@@ -54,8 +54,14 @@ impl Device {
 
     /// Returns the default computed values as a reference, in order to match
     /// Servo.
-    pub fn default_values(&self) -> &ComputedValues {
+    pub fn default_computed_values(&self) -> &ComputedValues {
         &*self.default_values
+    }
+
+    /// Returns the default computed values, but wrapped in an arc for cheap
+    /// cloning.
+    pub fn default_computed_values_arc(&self) -> &Arc<ComputedValues> {
+        &self.default_values
     }
 
     /// Returns the default computed values as an `Arc`, in order to avoid
@@ -491,19 +497,19 @@ impl Expression {
                       self.feature.mRangeType == nsMediaFeature_RangeType::eMinMaxAllowed,
                       "Whoops, wrong range");
 
-        let default_values = device.default_values();
+        let default_values = device.default_computed_values();
 
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
         let context = computed::Context {
             is_root_element: false,
-            viewport_size: device.au_viewport_size(),
+            device: device,
             inherited_style: default_values,
             layout_parent_style: default_values,
             // This cloning business is kind of dumb.... It's because Context
             // insists on having an actual ComputedValues inside itself.
             style: default_values.clone(),
-            font_metrics_provider: None
+            font_metrics_provider: None,
         };
 
         let required_value = match self.value {

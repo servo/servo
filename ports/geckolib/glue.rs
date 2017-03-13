@@ -166,12 +166,12 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
         stylist: per_doc_data.stylist.clone(),
         running_animations: per_doc_data.running_animations.clone(),
         expired_animations: per_doc_data.expired_animations.clone(),
+        // FIXME(emilio): Stop boxing here.
         error_reporter: Box::new(StdoutErrorReporter),
         local_context_creation_data: Mutex::new(local_context_data),
         timer: Timer::new(),
         // FIXME Find the real QuirksMode information for this document
         quirks_mode: QuirksMode::NoQuirks,
-        default_computed_values: per_doc_data.default_computed_values().clone(),
     }
 }
 
@@ -337,7 +337,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     };
     Arc::new(Stylesheet::from_str(
         "", url, origin, Default::default(), None,
-        Box::new(StdoutErrorReporter), extra_data)
+        &StdoutErrorReporter, extra_data)
     ).into_strong()
 }
 
@@ -380,7 +380,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
 
     Arc::new(Stylesheet::from_str(
         input, url, origin, Default::default(), loader,
-        Box::new(StdoutErrorReporter), extra_data)
+        &StdoutErrorReporter, extra_data)
     ).into_strong()
 }
 
@@ -416,7 +416,7 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
     sheet.rules.write().0.clear();
 
     Stylesheet::update_from_str(&sheet, input, loader,
-                                Box::new(StdoutErrorReporter), extra_data);
+                                &StdoutErrorReporter, extra_data);
 }
 
 #[no_mangle]
@@ -634,7 +634,6 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
         cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
     }
     data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent,
-                                               data.default_computed_values(),
                                                cascade_flags)
         .values.unwrap()
         .into_strong()
@@ -680,8 +679,7 @@ fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
             let base = styles.primary.values();
             d.stylist.lazily_compute_pseudo_element_style(&element,
                                                           &pseudo,
-                                                          base,
-                                                          &d.default_computed_values())
+                                                          base)
                      .map(|s| s.values().clone())
         },
     }
@@ -749,9 +747,10 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 
     make_context!((base, data) => (base_url, extra_data));
 
+    let reporter = StdoutErrorReporter;
     let context = ParserContext::new_with_extra_data(Origin::Author,
                                                      &base_url,
-                                                     Box::new(StdoutErrorReporter),
+                                                     &reporter,
                                                      extra_data);
 
     match ParsedDeclaration::parse(id, &context, &mut Parser::new(value), false) {
@@ -877,7 +876,7 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
 
     make_context!((base, data) => (base_url, extra_data));
     if let Ok(parsed) = parse_one_declaration(property_id, value, &base_url,
-                                              Box::new(StdoutErrorReporter), extra_data) {
+                                              &StdoutErrorReporter, extra_data) {
         let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
         let importance = if is_important { Importance::Important } else { Importance::Normal };
         let mut changed = false;
@@ -1173,9 +1172,8 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(declarations:
 pub extern "C" fn Servo_DeclarationBlock_SetCurrentColor(declarations:
                                                          RawServoDeclarationBlockBorrowed,
                                                          property: nsCSSPropertyID) {
-    use cssparser::Color;
     use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
-    use style::values::specified::CSSColor;
+    use style::values::specified::{Color, CSSColor};
 
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     let long = get_longhand_from_id!(property);
@@ -1195,11 +1193,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetColorValue(declarations:
                                                        RawServoDeclarationBlockBorrowed,
                                                        property: nsCSSPropertyID,
                                                        value: structs::nscolor) {
-    use cssparser::Color;
     use style::gecko::values::convert_nscolor_to_rgba;
     use style::properties::{DeclaredValue, PropertyDeclaration, LonghandId};
     use style::properties::longhands;
-    use style::values::specified::CSSColor;
+    use style::values::specified::{Color, CSSColor};
 
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     let long = get_longhand_from_id!(property);
@@ -1262,7 +1259,7 @@ pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const 
     let base_url = &*DUMMY_BASE_URL;
     let extra_data = ParserContextExtraData::default();
 
-    parse_one_declaration(id, &value, &base_url, Box::new(StdoutErrorReporter), extra_data).is_ok()
+    parse_one_declaration(id, &value, &base_url, &StdoutErrorReporter, extra_data).is_ok()
 }
 
 #[no_mangle]
@@ -1272,7 +1269,8 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     let cond = parse_condition_or_declaration(&mut input);
     if let Ok(cond) = cond {
         let url = ServoUrl::parse("about:blank").unwrap();
-        let context = ParserContext::new_for_cssom(&url);
+        let reporter = StdoutErrorReporter;
+        let context = ParserContext::new_for_cssom(&url, &reporter);
         cond.eval(&context)
     } else {
         false
@@ -1440,11 +1438,11 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     let style = ComputedValues::as_arc(&style);
     let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
 
-    let default_values = data.stylist.device.default_values();
+    let default_values = data.default_computed_values();
 
     let context = Context {
         is_root_element: false,
-        viewport_size: data.stylist.device.au_viewport_size(),
+        device: &data.stylist.device,
         inherited_style: parent_style.unwrap_or(default_values),
         layout_parent_style: parent_style.unwrap_or(default_values),
         style: (**style).clone(),

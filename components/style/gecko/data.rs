@@ -103,7 +103,7 @@ impl PerDocumentStyleDataImpl {
 
     /// Get the default computed values for this document.
     pub fn default_computed_values(&self) -> &Arc<ComputedValues> {
-        self.stylist.device.default_values_arc()
+        self.stylist.device.default_computed_values_arc()
     }
 }
 

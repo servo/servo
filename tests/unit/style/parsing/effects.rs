@@ -38,7 +38,8 @@ fn test_clip() {
 #[test]
 fn test_longhands_parse_origin() {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
 
     let mut parser = Parser::new("1px some-rubbish");
     let parsed = longhands::parse_origin(&context, &mut parser);
