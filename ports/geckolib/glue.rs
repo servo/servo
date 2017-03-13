@@ -32,6 +32,8 @@ use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
+use style::gecko_bindings::bindings::{RawServoMediaListBorrowed, RawServoMediaListStrong};
+use style::gecko_bindings::bindings::{RawServoMediaRuleBorrowed, RawServoMediaRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleRuleBorrowed, RawServoStyleRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
@@ -62,6 +64,7 @@ use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use style::gecko_properties::{self, style_structs};
 use style::keyframes::KeyframesStepValue;
+use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{ComputedValues, Importance, ParsedDeclaration};
@@ -72,7 +75,7 @@ use style::restyle_hints::{self, RestyleHint};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
-use style::stylesheets::{CssRule, CssRules, Origin, Stylesheet, StyleRule, ImportRule};
+use style::stylesheets::{CssRule, CssRules, ImportRule, MediaRule, Origin, Stylesheet, StyleRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
@@ -519,6 +522,18 @@ pub extern "C" fn Servo_CssRules_GetStyleRuleAt(rules: ServoCssRulesBorrowed, in
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_CssRules_GetMediaRuleAt(rules: ServoCssRulesBorrowed, index: u32)
+                                                -> RawServoMediaRuleStrong {
+    let rules = RwLock::<CssRules>::as_arc(&rules).read();
+    match rules.0[index as usize] {
+        CssRule::Media(ref rule) => rule.clone().into_strong(),
+        _ => {
+            unreachable!("GetMediaRuleAt should only be called on a media rule");
+        }
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed, sheet: RawServoStyleSheetBorrowed,
                                             rule: *const nsACString, index: u32, nested: bool,
                                             rule_type: *mut u16) -> nsresult {
@@ -574,6 +589,31 @@ pub extern "C" fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed, re
 pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) -> () {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
     rule.read().selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaRule_Debug(rule: RawServoMediaRuleBorrowed, result: *mut nsACString) -> () {
+    let rule = RwLock::<MediaRule>::as_arc(&rule);
+    let result = unsafe { result.as_mut().unwrap() };
+    write!(result, "{:?}", *rule.read()).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaRule_GetMedia(rule: RawServoMediaRuleBorrowed) -> RawServoMediaListStrong {
+    let rule = RwLock::<MediaRule>::as_arc(&rule);
+    rule.read().media_queries.clone().into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaRule_GetRules(rule: RawServoMediaRuleBorrowed) -> ServoCssRulesStrong {
+    let rule = RwLock::<MediaRule>::as_arc(&rule);
+    rule.read().rules.clone().into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaRule_GetCssText(rule: RawServoMediaRuleBorrowed, result: *mut nsAString) -> () {
+    let rule = RwLock::<MediaRule>::as_arc(&rule);
+    rule.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
@@ -878,6 +918,54 @@ pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDe
 pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawServoDeclarationBlockBorrowed,
                                                             property: nsCSSPropertyID) {
     remove_property(declarations, get_property_id_from_nscsspropertyid!(property, ()))
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed, result: *mut nsAString) {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    list.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text: *const nsACString) {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    let text = unsafe { text.as_ref().unwrap().as_str_unchecked() };
+    let mut parser = Parser::new(&text);
+    *list.write() = parse_media_query_list(&mut parser);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_GetLength(list: RawServoMediaListBorrowed) -> u32 {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    list.read().media_queries.len() as u32
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed, index: u32,
+                                              result: *mut nsAString) -> bool {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    if let Some(media_query) = list.read().media_queries.get(index as usize) {
+        media_query.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+        true
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
+                                               new_medium: *const nsACString) {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
+    list.write().append_medium(new_medium);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
+                                               old_medium: *const nsACString) -> bool {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
+    list.write().delete_medium(old_medium)
 }
 
 macro_rules! get_longhand_from_id {

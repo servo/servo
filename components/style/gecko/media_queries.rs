@@ -137,8 +137,15 @@ impl ToCss for Expression {
     }
 }
 
+impl PartialEq for Expression {
+    fn eq(&self, other: &Expression) -> bool {
+        self.feature.mName == other.feature.mName &&
+            self.value == other.value && self.range == other.range
+    }
+}
+
 /// A resolution.
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Resolution {
     /// Dots per inch.
     Dpi(CSSFloat),
@@ -200,7 +207,7 @@ unsafe fn string_from_ns_string_buffer(buffer: *const nsStringBuffer) -> String 
 }
 
 /// A value found or expected in a media expression.
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum MediaExpressionValue {
     /// A length.
     Length(specified::Length),

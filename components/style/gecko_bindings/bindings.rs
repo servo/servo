@@ -4,6 +4,16 @@ pub use nsstring::{nsACString, nsAString, nsString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
 use gecko_bindings::structs::mozilla::css::URLValue;
+pub type RawServoMediaListStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoMediaList>;
+pub type RawServoMediaListBorrowedOrNull<'a> = Option<&'a RawServoMediaList>;
+pub type RawServoMediaListBorrowed<'a> = &'a RawServoMediaList;
+enum RawServoMediaListVoid{ }
+pub struct RawServoMediaList(RawServoMediaListVoid);
+pub type RawServoMediaRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoMediaRule>;
+pub type RawServoMediaRuleBorrowedOrNull<'a> = Option<&'a RawServoMediaRule>;
+pub type RawServoMediaRuleBorrowed<'a> = &'a RawServoMediaRule;
+enum RawServoMediaRuleVoid{ }
+pub struct RawServoMediaRule(RawServoMediaRuleVoid);
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
@@ -287,10 +297,22 @@ extern "C" {
                                               RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
+    pub fn Servo_MediaList_AddRef(ptr: RawServoMediaListBorrowed);
+}
+extern "C" {
+    pub fn Servo_MediaList_Release(ptr: RawServoMediaListBorrowed);
+}
+extern "C" {
     pub fn Servo_StyleRule_AddRef(ptr: RawServoStyleRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleRule_Release(ptr: RawServoStyleRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_MediaRule_AddRef(ptr: RawServoMediaRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_MediaRule_Release(ptr: RawServoMediaRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_ImportRule_AddRef(ptr: RawServoImportRuleBorrowed);
@@ -1329,6 +1351,11 @@ extern "C" {
      -> RawServoStyleRuleStrong;
 }
 extern "C" {
+    pub fn Servo_CssRules_GetMediaRuleAt(rules: ServoCssRulesBorrowed,
+                                         index: u32)
+     -> RawServoMediaRuleStrong;
+}
+extern "C" {
     pub fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed,
                                      sheet: RawServoStyleSheetBorrowed,
                                      rule: *const nsACString_internal,
@@ -1359,6 +1386,22 @@ extern "C" {
 extern "C" {
     pub fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed,
                                            result: *mut nsAString_internal);
+}
+extern "C" {
+    pub fn Servo_MediaRule_Debug(rule: RawServoMediaRuleBorrowed,
+                                 result: *mut nsACString_internal);
+}
+extern "C" {
+    pub fn Servo_MediaRule_GetMedia(rule: RawServoMediaRuleBorrowed)
+     -> RawServoMediaListStrong;
+}
+extern "C" {
+    pub fn Servo_MediaRule_GetRules(rule: RawServoMediaRuleBorrowed)
+     -> ServoCssRulesStrong;
+}
+extern "C" {
+    pub fn Servo_MediaRule_GetCssText(rule: RawServoMediaRuleBorrowed,
+                                      result: *mut nsAString_internal);
 }
 extern "C" {
     pub fn Servo_ParseProperty(property: *const nsACString_internal,
@@ -1583,6 +1626,34 @@ extern "C" {
 extern "C" {
     pub fn Servo_DeclarationBlock_SetTextDecorationColorOverride(declarations:
                                                                      RawServoDeclarationBlockBorrowed);
+}
+extern "C" {
+    pub fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed,
+                                   result: *mut nsAString_internal);
+}
+extern "C" {
+    pub fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed,
+                                   text: *const nsACString_internal);
+}
+extern "C" {
+    pub fn Servo_MediaList_GetLength(list: RawServoMediaListBorrowed) -> u32;
+}
+extern "C" {
+    pub fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed,
+                                       index: u32,
+                                       result: *mut nsAString_internal)
+     -> bool;
+}
+extern "C" {
+    pub fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
+                                        new_medium:
+                                            *const nsACString_internal);
+}
+extern "C" {
+    pub fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
+                                        old_medium:
+                                            *const nsACString_internal)
+     -> bool;
 }
 extern "C" {
     pub fn Servo_CSSSupports2(name: *const nsACString_internal,
