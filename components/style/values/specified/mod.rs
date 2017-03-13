@@ -681,6 +681,7 @@ impl Shadow {
             return Err(())
         }
 
+        debug_assert!(!disable_spread_and_inset || lengths[3] == Length::zero());
         Ok(Shadow {
             offset_x: lengths[0].take(),
             offset_y: lengths[1].take(),
