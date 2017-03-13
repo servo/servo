@@ -1312,18 +1312,19 @@ fn static_assert() {
     #[allow(non_snake_case)]
     pub fn set_${type}_${ident}(&mut self, v: longhands::${type}_${ident}::computed_value::T) {
         debug_assert!(!v.0.is_empty());
-        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(v.0.len()) };
+        let input_len = v.0.len();
+        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(input_len) };
 
-        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = v.0.len() as u32;
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.m${type.capitalize()}s.iter_mut()) {
-            gecko.m${gecko_ffi_name} = servo.seconds() * 1000.;
+        self.gecko.m${type.capitalize()}${gecko_ffi_name}Count = input_len as u32;
+        for (i, gecko) in self.gecko.m${type.capitalize()}s.iter_mut().enumerate() {
+            gecko.m${gecko_ffi_name} = v.0[i % input_len].seconds() * 1000.;
         }
     }
     #[allow(non_snake_case)]
     pub fn ${type}_${ident}_at(&self, index: usize)
         -> longhands::${type}_${ident}::computed_value::SingleComputedValue {
         use values::specified::Time;
-        Time(self.gecko.mAnimations[index].m${gecko_ffi_name} / 1000.)
+        Time(self.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name} / 1000.)
     }
     ${impl_animation_or_transition_count(type, ident, gecko_ffi_name)}
     ${impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)}
@@ -1332,11 +1333,12 @@ fn static_assert() {
 <%def name="impl_animation_or_transition_timing_function(type)">
     pub fn set_${type}_timing_function(&mut self, v: longhands::${type}_timing_function::computed_value::T) {
         debug_assert!(!v.0.is_empty());
-        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(v.0.len()) };
+        let input_len = v.0.len();
+        unsafe { self.gecko.m${type.capitalize()}s.ensure_len(input_len) };
 
-        self.gecko.m${type.capitalize()}TimingFunctionCount = v.0.len() as u32;
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.m${type.capitalize()}s.iter_mut()) {
-            gecko.mTimingFunction = servo.into();
+        self.gecko.m${type.capitalize()}TimingFunctionCount = input_len as u32;
+        for (i, gecko) in self.gecko.m${type.capitalize()}s.iter_mut().enumerate() {
+            gecko.mTimingFunction = v.0[i % input_len].into();
         }
     }
     ${impl_animation_or_transition_count(type, 'timing_function', 'TimingFunction')}
@@ -1382,12 +1384,13 @@ fn static_assert() {
         use gecko_bindings::structs;
 
         debug_assert!(!v.0.is_empty());
-        unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+        let input_len = v.0.len();
+        unsafe { self.gecko.mAnimations.ensure_len(input_len) };
 
-        self.gecko.mAnimation${gecko_ffi_name}Count = v.0.len() as u32;
+        self.gecko.mAnimation${gecko_ffi_name}Count = input_len as u32;
 
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
-            let result = match servo {
+        for (i, gecko) in self.gecko.mAnimations.iter_mut().enumerate() {
+            let result = match v.0[i % input_len] {
                 % for value in keyword.gecko_values():
                     Keyword::${to_rust_ident(value)} =>
                         structs::${keyword.gecko_constant(value)} ${keyword.maybe_cast(cast_type)},
@@ -1848,11 +1851,12 @@ fn static_assert() {
         use properties::longhands::animation_iteration_count::single_value::SpecifiedValue as AnimationIterationCount;
 
         debug_assert!(!v.0.is_empty());
-        unsafe { self.gecko.mAnimations.ensure_len(v.0.len()) };
+        let input_len = v.0.len();
+        unsafe { self.gecko.mAnimations.ensure_len(input_len) };
 
-        self.gecko.mAnimationIterationCountCount = v.0.len() as u32;
-        for (servo, gecko) in v.0.into_iter().zip(self.gecko.mAnimations.iter_mut()) {
-            match servo {
+        self.gecko.mAnimationIterationCountCount = input_len as u32;
+        for (i, gecko) in self.gecko.mAnimations.iter_mut().enumerate() {
+            match v.0[i % input_len] {
                 AnimationIterationCount::Number(n) => gecko.mIterationCount = n,
                 AnimationIterationCount::Infinite => gecko.mIterationCount = f32::INFINITY,
             }

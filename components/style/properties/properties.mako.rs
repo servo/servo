@@ -1957,6 +1957,8 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                 PropertyDeclaration::Direction(_)
                 % if product == 'gecko':
                     | PropertyDeclaration::TextOrientation(_)
+                    | PropertyDeclaration::AnimationName(_)
+                    | PropertyDeclaration::TransitionProperty(_)
                 % endif
             );
             if
