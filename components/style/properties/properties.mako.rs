@@ -1760,7 +1760,7 @@ mod lazy_static_module {
 pub type CascadePropertyFn =
     extern "Rust" fn(declaration: &PropertyDeclaration,
                      inherited_style: &ComputedValues,
-                     default_style: &Arc<ComputedValues>,
+                     default_style: &ComputedValues,
                      context: &mut computed::Context,
                      cacheable: &mut bool,
                      cascade_info: &mut Option<<&mut CascadeInfo>,
@@ -1807,7 +1807,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
                rule_node: &StrongRuleNode,
                parent_style: Option<<&ComputedValues>,
                layout_parent_style: Option<<&ComputedValues>,
-               default_style: &Arc<ComputedValues>,
+               default_style: &ComputedValues,
                cascade_info: Option<<&mut CascadeInfo>,
                error_reporter: StdBox<ParseErrorReporter + Send>,
                flags: CascadeFlags)
@@ -1815,7 +1815,7 @@ pub fn cascade(viewport_size: Size2D<Au>,
     debug_assert_eq!(parent_style.is_some(), layout_parent_style.is_some());
     let (is_root_element, inherited_style, layout_parent_style) = match parent_style {
         Some(parent_style) => (false, parent_style, layout_parent_style.unwrap()),
-        None => (true, &**default_style, &**default_style),
+        None => (true, &*default_style, &*default_style),
     };
     // Hold locks until after the apply_declarations() call returns.
     // Use filter_map because the root node has no style source.
@@ -1855,7 +1855,7 @@ pub fn apply_declarations<'a, F, I>(viewport_size: Size2D<Au>,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
                                     layout_parent_style: &ComputedValues,
-                                    default_style: &Arc<ComputedValues>,
+                                    default_style: &ComputedValues,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
                                     mut error_reporter: StdBox<ParseErrorReporter + Send>,
                                     font_metrics_provider: Option<<&FontMetricsProvider>,

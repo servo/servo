@@ -229,7 +229,7 @@
         #[allow(unused_variables)]
         pub fn cascade_property(declaration: &PropertyDeclaration,
                                 inherited_style: &ComputedValues,
-                                default_style: &Arc<ComputedValues>,
+                                default_style: &ComputedValues,
                                 context: &mut computed::Context,
                                 cacheable: &mut bool,
                                 cascade_info: &mut Option<<&mut CascadeInfo>,
