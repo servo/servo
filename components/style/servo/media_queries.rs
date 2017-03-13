@@ -39,7 +39,10 @@ impl Device {
     }
 
     /// Return the default computed values for this device.
-    pub fn default_values(&self) -> &ComputedValues {
+    pub fn default_computed_values(&self) -> &ComputedValues {
+        // FIXME(bz): This isn't really right, but it's no more wrong
+        // than what we used to do.  See
+        // https://github.com/servo/servo/issues/14773 for fixing it properly.
         ComputedValues::initial_values()
     }
 
@@ -171,7 +174,7 @@ pub enum Range<T> {
 
 impl Range<specified::Length> {
     fn to_computed_range(&self, device: &Device) -> Range<Au> {
-        let default_values = device.default_values();
+        let default_values = device.default_computed_values();
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
         let context = computed::Context {

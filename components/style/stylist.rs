@@ -295,7 +295,6 @@ impl Stylist {
     pub fn precomputed_values_for_pseudo(&self,
                                          pseudo: &PseudoElement,
                                          parent: Option<&Arc<ComputedValues>>,
-                                         default: &ComputedValues,
                                          cascade_flags: CascadeFlags)
                                          -> ComputedStyle {
         debug_assert!(SelectorImpl::pseudo_element_cascade_type(pseudo).is_precomputed());
@@ -329,7 +328,6 @@ impl Stylist {
                                 &rule_node,
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
-                                default,
                                 None,
                                 Box::new(StdoutErrorReporter),
                                 cascade_flags);
@@ -340,8 +338,7 @@ impl Stylist {
     #[cfg(feature = "servo")]
     pub fn style_for_anonymous_box(&self,
                                    pseudo: &PseudoElement,
-                                   parent_style: &Arc<ComputedValues>,
-                                   default_style: &ComputedValues)
+                                   parent_style: &Arc<ComputedValues>)
                                    -> Arc<ComputedValues> {
         // For most (but not all) pseudo-elements, we inherit all values from the parent.
         let inherit_all = match *pseudo {
@@ -364,7 +361,7 @@ impl Stylist {
         if inherit_all {
             cascade_flags.insert(INHERIT_ALL);
         }
-        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), default_style, cascade_flags)
+        self.precomputed_values_for_pseudo(&pseudo, Some(parent_style), cascade_flags)
             .values.unwrap()
     }
 
@@ -378,8 +375,7 @@ impl Stylist {
     pub fn lazily_compute_pseudo_element_style<E>(&self,
                                                   element: &E,
                                                   pseudo: &PseudoElement,
-                                                  parent: &Arc<ComputedValues>,
-                                                  default: &Arc<ComputedValues>)
+                                                  parent: &Arc<ComputedValues>)
                                                   -> Option<ComputedStyle>
         where E: TElement +
                  fmt::Debug +
@@ -414,7 +410,6 @@ impl Stylist {
                                 &rule_node,
                                 Some(&**parent),
                                 Some(&**parent),
-                                default,
                                 None,
                                 Box::new(StdoutErrorReporter),
                                 CascadeFlags::empty());

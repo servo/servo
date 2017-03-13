@@ -114,7 +114,6 @@ use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContextExtraData;
-use style::properties::ComputedValues;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::Stylist;
@@ -510,11 +509,6 @@ impl LayoutThread {
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 quirks_mode: self.quirks_mode.unwrap(),
-                // FIXME(bz): This isn't really right, but it's no more wrong
-                // than what we used to do.  See
-                // https://github.com/servo/servo/issues/14773 for fixing it
-                // properly.
-                default_computed_values: Arc::new(ComputedValues::initial_values().clone()),
             },
             image_cache_thread: Mutex::new(self.image_cache_thread.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),

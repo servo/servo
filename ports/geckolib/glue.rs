@@ -171,7 +171,6 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
         timer: Timer::new(),
         // FIXME Find the real QuirksMode information for this document
         quirks_mode: QuirksMode::NoQuirks,
-        default_computed_values: per_doc_data.default_computed_values().clone(),
     }
 }
 
@@ -634,7 +633,6 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
         cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
     }
     data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent,
-                                               data.default_computed_values(),
                                                cascade_flags)
         .values.unwrap()
         .into_strong()
@@ -680,8 +678,7 @@ fn get_pseudo_style(element: GeckoElement, pseudo_tag: *mut nsIAtom,
             let base = styles.primary.values();
             d.stylist.lazily_compute_pseudo_element_style(&element,
                                                           &pseudo,
-                                                          base,
-                                                          &d.default_computed_values())
+                                                          base)
                      .map(|s| s.values().clone())
         },
     }
@@ -1438,7 +1435,7 @@ pub extern "C" fn Servo_GetComputedKeyframeValues(keyframes: RawGeckoKeyframeLis
     let style = ComputedValues::as_arc(&style);
     let parent_style = parent_style.as_ref().map(|r| &**ComputedValues::as_arc(&r));
 
-    let default_values = data.stylist.device.default_values();
+    let default_values = data.default_computed_values();
 
     let context = Context {
         is_root_element: false,

@@ -688,9 +688,9 @@ impl MaybeNew for ViewportConstraints {
         let context = Context {
             is_root_element: false,
             device: device,
-            inherited_style: device.default_values(),
-            layout_parent_style: device.default_values(),
-            style: device.default_values().clone(),
+            inherited_style: device.default_computed_values(),
+            layout_parent_style: device.default_computed_values(),
+            style: device.default_computed_values().clone(),
             font_metrics_provider: None, // TODO: Should have!
         };
 

@@ -54,8 +54,14 @@ impl Device {
 
     /// Returns the default computed values as a reference, in order to match
     /// Servo.
-    pub fn default_values(&self) -> &ComputedValues {
+    pub fn default_computed_values(&self) -> &ComputedValues {
         &*self.default_values
+    }
+
+    /// Returns the default computed values, but wrapped in an arc for cheap
+    /// cloning.
+    pub fn default_computed_values_arc(&self) -> &Arc<ComputedValues> {
+        &self.default_values
     }
 
     /// Returns the default computed values as an `Arc`, in order to avoid
@@ -491,7 +497,7 @@ impl Expression {
                       self.feature.mRangeType == nsMediaFeature_RangeType::eMinMaxAllowed,
                       "Whoops, wrong range");
 
-        let default_values = device.default_values();
+        let default_values = device.default_computed_values();
 
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.

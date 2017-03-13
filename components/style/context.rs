@@ -14,7 +14,6 @@ use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
 use matching::StyleSharingCandidateCache;
 use parking_lot::RwLock;
-use properties::ComputedValues;
 use selector_parser::PseudoElement;
 use selectors::matching::ElementSelectorFlags;
 use servo_config::opts;
@@ -84,10 +83,6 @@ pub struct SharedStyleContext {
 
     /// The QuirksMode state which the document needs to be rendered with
     pub quirks_mode: QuirksMode,
-
-    /// The default computed values to use for elements with no rules
-    /// applying to them.
-    pub default_computed_values: Arc<ComputedValues>,
 }
 
 impl SharedStyleContext {

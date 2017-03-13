@@ -662,8 +662,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             if node_is_input_or_text_area {
                 style = self.style_context()
                             .stylist
-                            .style_for_anonymous_box(&PseudoElement::ServoInputText, &style,
-                                                     &self.style_context().default_computed_values)
+                            .style_for_anonymous_box(&PseudoElement::ServoInputText,
+                                                     &style)
             }
 
             self.create_fragments_for_node_text_content(&mut initial_fragments, node, &style)
@@ -1100,7 +1100,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let wrapper_style = self.style_context()
                                 .stylist
                                 .style_for_anonymous_box(&PseudoElement::ServoTableWrapper,
-                                                         &table_style, &self.style_context().default_computed_values);
+                                                         &table_style);
         let wrapper_fragment =
             Fragment::from_opaque_node_and_style(node.opaque(),
                                                  PseudoElementType::Normal,
@@ -2080,7 +2080,8 @@ impl Legalizer {
         let reference_block = reference.as_block();
         let mut new_style = reference_block.fragment.style.clone();
         for pseudo in pseudos {
-            new_style = context.stylist.style_for_anonymous_box(pseudo, &new_style, &context.default_computed_values)
+            new_style = context.stylist.style_for_anonymous_box(pseudo,
+                                                                &new_style)
         }
         let fragment = reference_block.fragment
                                       .create_similar_anonymous_fragment(new_style,

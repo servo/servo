@@ -1807,16 +1807,24 @@ pub fn cascade(device: &Device,
                rule_node: &StrongRuleNode,
                parent_style: Option<<&ComputedValues>,
                layout_parent_style: Option<<&ComputedValues>,
-               default_style: &ComputedValues,
                cascade_info: Option<<&mut CascadeInfo>,
                error_reporter: StdBox<ParseErrorReporter + Send>,
                flags: CascadeFlags)
                -> ComputedValues {
     debug_assert_eq!(parent_style.is_some(), layout_parent_style.is_some());
     let (is_root_element, inherited_style, layout_parent_style) = match parent_style {
-        Some(parent_style) => (false, parent_style, layout_parent_style.unwrap()),
-        None => (true, &*default_style, &*default_style),
+        Some(parent_style) => {
+            (false,
+             parent_style,
+             layout_parent_style.unwrap())
+        },
+        None => {
+            (true,
+             device.default_computed_values(),
+             device.default_computed_values())
+        }
     };
+
     // Hold locks until after the apply_declarations() call returns.
     // Use filter_map because the root node has no style source.
     let lock_guards = rule_node.self_and_ancestors().filter_map(|node| {
@@ -1841,7 +1849,6 @@ pub fn cascade(device: &Device,
                        iter_declarations,
                        inherited_style,
                        layout_parent_style,
-                       default_style,
                        cascade_info,
                        error_reporter,
                        None,
@@ -1855,7 +1862,6 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                     iter_declarations: F,
                                     inherited_style: &ComputedValues,
                                     layout_parent_style: &ComputedValues,
-                                    default_style: &ComputedValues,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
                                     mut error_reporter: StdBox<ParseErrorReporter + Send>,
                                     font_metrics_provider: Option<<&FontMetricsProvider>,
@@ -1864,6 +1870,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     where F: Fn() -> I,
           I: Iterator<Item = &'a PropertyDeclaration>,
 {
+    let default_style = device.default_computed_values();
     let inherited_custom_properties = inherited_style.custom_properties();
     let mut custom_properties = None;
     let mut seen_custom = HashSet::new();

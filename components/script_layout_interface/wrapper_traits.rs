@@ -407,7 +407,6 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                 context.stylist.precomputed_values_for_pseudo(
                                     &style_pseudo,
                                     Some(data.styles().primary.values()),
-                                    &context.default_computed_values,
                                     CascadeFlags::empty());
                             data.styles_mut().pseudos
                                 .insert(style_pseudo.clone(), new_style);
@@ -424,8 +423,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                        .lazily_compute_pseudo_element_style(
                                            unsafe { &self.unsafe_get() },
                                            &style_pseudo,
-                                           data.styles().primary.values(),
-                                           &context.default_computed_values);
+                                           data.styles().primary.values());
                             data.styles_mut().pseudos
                                 .insert(style_pseudo.clone(), new_style.unwrap());
                         }

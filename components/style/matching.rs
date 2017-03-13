@@ -543,7 +543,6 @@ trait PrivateMatchMethods: TElement {
                              rule_node,
                              inherited_values,
                              layout_parent_style,
-                             &shared_context.default_computed_values,
                              Some(&mut cascade_info),
                              shared_context.error_reporter.clone(),
                              cascade_flags));
