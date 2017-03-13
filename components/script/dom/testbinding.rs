@@ -247,8 +247,8 @@ impl TestBindingMethods for TestBinding {
         Some(ByteStringOrLong::ByteString(ByteString::new(vec!())))
     }
     fn SetUnion6AttributeNullable(&self, _: Option<ByteStringOrLong>) {}
-    fn BinaryRenamedMethod(&self) -> () {}
-    fn ReceiveVoid(&self) -> () {}
+    fn BinaryRenamedMethod(&self) {}
+    fn ReceiveVoid(&self) {}
     fn ReceiveBoolean(&self) -> bool { false }
     fn ReceiveByte(&self) -> i8 { 0 }
     fn ReceiveOctet(&self) -> u8 { 0 }

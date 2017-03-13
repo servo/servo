@@ -132,7 +132,7 @@ lazy_static! {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_Initialize() -> () {
+pub extern "C" fn Servo_Initialize() {
     // Initialize logging.
     let mut builder = LogBuilder::new();
     let default_level = if cfg!(debug_assertions) { "warn" } else { "error" };
@@ -152,7 +152,7 @@ pub extern "C" fn Servo_Initialize() -> () {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_Shutdown() -> () {
+pub extern "C" fn Servo_Shutdown() {
     // Clear some static data to avoid shutdown leaks.
     gecko_properties::shutdown();
 }
@@ -321,7 +321,7 @@ pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) -> () {
+pub extern "C" fn Servo_Element_ClearData(element: RawGeckoElementBorrowed) {
     GeckoElement(element).clear_data();
 }
 
@@ -500,7 +500,7 @@ pub extern "C" fn Servo_StyleSheet_GetRules(sheet: RawServoStyleSheetBorrowed) -
 
 #[no_mangle]
 pub extern "C" fn Servo_CssRules_ListTypes(rules: ServoCssRulesBorrowed,
-                                           result: nsTArrayBorrowed_uintptr_t) -> () {
+                                           result: nsTArrayBorrowed_uintptr_t) {
     let rules = RwLock::<CssRules>::as_arc(&rules).read();
     let iter = rules.0.iter().map(|rule| rule.rule_type() as usize);
     let (size, upper) = iter.size_hint();
@@ -559,7 +559,7 @@ pub extern "C" fn Servo_CssRules_DeleteRule(rules: ServoCssRulesBorrowed, index:
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleRule_Debug(rule: RawServoStyleRuleBorrowed, result: *mut nsACString) -> () {
+pub extern "C" fn Servo_StyleRule_Debug(rule: RawServoStyleRuleBorrowed, result: *mut nsACString) {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
     let result = unsafe { result.as_mut().unwrap() };
     write!(result, "{:?}", *rule.read()).unwrap();
@@ -573,26 +573,26 @@ pub extern "C" fn Servo_StyleRule_GetStyle(rule: RawServoStyleRuleBorrowed) -> R
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleRule_SetStyle(rule: RawServoStyleRuleBorrowed,
-                                           declarations: RawServoDeclarationBlockBorrowed) -> () {
+                                           declarations: RawServoDeclarationBlockBorrowed) {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
     let declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations);
     rule.write().block = declarations.clone();
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) -> () {
+pub extern "C" fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
     rule.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) -> () {
+pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
     rule.read().selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_MediaRule_Debug(rule: RawServoMediaRuleBorrowed, result: *mut nsACString) -> () {
+pub extern "C" fn Servo_MediaRule_Debug(rule: RawServoMediaRuleBorrowed, result: *mut nsACString) {
     let rule = RwLock::<MediaRule>::as_arc(&rule);
     let result = unsafe { result.as_mut().unwrap() };
     write!(result, "{:?}", *rule.read()).unwrap();
@@ -611,7 +611,7 @@ pub extern "C" fn Servo_MediaRule_GetRules(rule: RawServoMediaRuleBorrowed) -> S
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_MediaRule_GetCssText(rule: RawServoMediaRuleBorrowed, result: *mut nsAString) -> () {
+pub extern "C" fn Servo_MediaRule_GetCssText(rule: RawServoMediaRuleBorrowed, result: *mut nsAString) {
     let rule = RwLock::<MediaRule>::as_arc(&rule);
     rule.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
@@ -712,7 +712,7 @@ pub extern "C" fn Servo_StyleSet_RebuildData(raw_data: RawServoStyleSetBorrowed)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) -> () {
+pub extern "C" fn Servo_StyleSet_Drop(data: RawServoStyleSetOwned) {
     let _ = data.into_box::<PerDocumentStyleData>();
 }
 

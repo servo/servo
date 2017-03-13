@@ -288,7 +288,7 @@ impl Emitter {
         }
     }
 
-    fn send(&mut self, markers: Vec<TimelineMarkerReply>) -> () {
+    fn send(&mut self, markers: Vec<TimelineMarkerReply>) {
         let end_time = PreciseTime::now();
         let reply = MarkersEmitterReply {
             type_: "markers".to_owned(),
