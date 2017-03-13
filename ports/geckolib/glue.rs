@@ -32,6 +32,7 @@ use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
+use style::gecko_bindings::bindings::{RawServoMediaRuleBorrowed, RawServoMediaRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleRuleBorrowed, RawServoStyleRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
 use style::gecko_bindings::bindings::{RawServoStyleSheetBorrowed, ServoComputedValuesBorrowed};
@@ -44,6 +45,7 @@ use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
+use style::gecko_bindings::bindings::RawServoMediaListStrong;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs;
@@ -72,7 +74,7 @@ use style::restyle_hints::{self, RestyleHint};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
 use style::string_cache::Atom;
-use style::stylesheets::{CssRule, CssRules, Origin, Stylesheet, StyleRule, ImportRule};
+use style::stylesheets::{CssRule, CssRules, ImportRule, MediaRule, Origin, Stylesheet, StyleRule};
 use style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use style::supports::parse_condition_or_declaration;
 use style::thread_state;
@@ -519,6 +521,18 @@ pub extern "C" fn Servo_CssRules_GetStyleRuleAt(rules: ServoCssRulesBorrowed, in
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_CssRules_GetMediaRuleAt(rules: ServoCssRulesBorrowed, index: u32)
+                                                -> RawServoMediaRuleStrong {
+    let rules = RwLock::<CssRules>::as_arc(&rules).read();
+    match rules.0[index as usize] {
+        CssRule::Media(ref rule) => rule.clone().into_strong(),
+        _ => {
+            unreachable!("GetMediaRuleAt should only be called on a media rule");
+        }
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_CssRules_InsertRule(rules: ServoCssRulesBorrowed, sheet: RawServoStyleSheetBorrowed,
                                             rule: *const nsACString, index: u32, nested: bool,
                                             rule_type: *mut u16) -> nsresult {
@@ -574,6 +588,31 @@ pub extern "C" fn Servo_StyleRule_GetCssText(rule: RawServoStyleRuleBorrowed, re
 pub extern "C" fn Servo_StyleRule_GetSelectorText(rule: RawServoStyleRuleBorrowed, result: *mut nsAString) -> () {
     let rule = RwLock::<StyleRule>::as_arc(&rule);
     rule.read().selectors.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaRule_Debug(rule: RawServoMediaRuleBorrowed, result: *mut nsACString) -> () {
+    let rule = RwLock::<MediaRule>::as_arc(&rule);
+    let result = unsafe { result.as_mut().unwrap() };
+    write!(result, "{:?}", *rule.read()).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaRule_GetMedia(rule: RawServoMediaRuleBorrowed) -> RawServoMediaListStrong {
+    let rule = RwLock::<MediaRule>::as_arc(&rule);
+    rule.read().media_queries.clone().into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaRule_GetRules(rule: RawServoMediaRuleBorrowed) -> ServoCssRulesStrong {
+    let rule = RwLock::<MediaRule>::as_arc(&rule);
+    rule.read().rules.clone().into_strong()
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaRule_GetCssText(rule: RawServoMediaRuleBorrowed, result: *mut nsAString) -> () {
+    let rule = RwLock::<MediaRule>::as_arc(&rule);
+    rule.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
 }
 
 #[no_mangle]
