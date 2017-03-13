@@ -128,7 +128,7 @@ impl Expression {
         let value = viewport_size.width;
         match self.0 {
             ExpressionKind::Width(ref range) => {
-                match range.to_computed_range(viewport_size, device.default_values()) {
+                match range.to_computed_range(device) {
                     Range::Min(ref width) => { value >= *width },
                     Range::Max(ref width) => { value <= *width },
                     Range::Eq(ref width) => { value == *width },
@@ -170,15 +170,13 @@ pub enum Range<T> {
 }
 
 impl Range<specified::Length> {
-    fn to_computed_range(&self,
-                         viewport_size: Size2D<Au>,
-                         default_values: &ComputedValues)
-                         -> Range<Au> {
+    fn to_computed_range(&self, device: &Device) -> Range<Au> {
+        let default_values = device.default_values();
         // http://dev.w3.org/csswg/mediaqueries3/#units
         // em units are relative to the initial font-size.
         let context = computed::Context {
             is_root_element: false,
-            viewport_size: viewport_size,
+            device: device,
             inherited_style: default_values,
             layout_parent_style: default_values,
             // This cloning business is kind of dumb.... It's because Context
