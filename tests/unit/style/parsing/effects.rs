@@ -108,7 +108,10 @@ fn test_parse_factor() {
     assert!(parse(filter::parse, "saturate(-1)").is_err());
 }
 
+#[test]
 fn blur_radius_should_not_accept_negavite_values() {
     use style::properties::longhands::box_shadow;
-    assert!(parse(box_shadow::parse, "1px 1px -1px").is_err());
+    assert!(parse(box_shadow::parse, "1px 1px -1px").is_err());// for -ve values
+    assert!(parse(box_shadow::parse, "1px 1px 0").is_ok());// for zero
+    assert!(parse(box_shadow::parse, "1px 1px 1px").is_ok());// for +ve value
 }

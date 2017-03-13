@@ -685,7 +685,7 @@ impl Shadow {
             offset_x: lengths[0].take(),
             offset_y: lengths[1].take(),
             blur_radius: lengths[2].take(),
-            spread_radius: if disable_spread_and_inset { Length::zero() } else { lengths[3].take() },
+            spread_radius: lengths[3].take(),
             color: color,
             inset: inset,
         })
