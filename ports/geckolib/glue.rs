@@ -67,8 +67,9 @@ use style::keyframes::KeyframesStepValue;
 use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
-use style::properties::{ComputedValues, Importance, ParsedDeclaration};
+use style::properties::{CascadeFlags, ComputedValues, Importance, ParsedDeclaration};
 use style::properties::{PropertyDeclarationBlock, PropertyId};
+use style::properties::SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP;
 use style::properties::animated_properties::{AnimationValue, Interpolate, TransitionProperty};
 use style::properties::parse_one_declaration;
 use style::restyle_hints::{self, RestyleHint};
@@ -618,8 +619,9 @@ pub extern "C" fn Servo_MediaRule_GetCssText(rule: RawServoMediaRuleBorrowed, re
 
 #[no_mangle]
 pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: ServoComputedValuesBorrowedOrNull,
-                                                         pseudo_tag: *mut nsIAtom,
-                                                         raw_data: RawServoStyleSetBorrowed)
+                                                          pseudo_tag: *mut nsIAtom,
+                                                          skip_display_fixup: bool,
+                                                          raw_data: RawServoStyleSetBorrowed)
      -> ServoComputedValuesStrong {
     let data = PerDocumentStyleData::from_ffi(raw_data).borrow_mut();
     let atom = Atom::from(pseudo_tag);
@@ -627,8 +629,13 @@ pub extern "C" fn Servo_ComputedValues_GetForAnonymousBox(parent_style_or_null: 
 
 
     let maybe_parent = ComputedValues::arc_from_borrowed(&parent_style_or_null);
+    let mut cascade_flags = CascadeFlags::empty();
+    if skip_display_fixup {
+        cascade_flags.insert(SKIP_ROOT_AND_ITEM_BASED_DISPLAY_FIXUP);
+    }
     data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent,
-                                               data.default_computed_values(), false)
+                                               data.default_computed_values(),
+                                               cascade_flags)
         .values.unwrap()
         .into_strong()
 }

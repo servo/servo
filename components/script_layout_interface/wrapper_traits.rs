@@ -21,7 +21,7 @@ use style::context::SharedStyleContext;
 use style::data::ElementData;
 use style::dom::{LayoutIterator, NodeInfo, PresentationalHintsSynthetizer, TNode};
 use style::dom::OpaqueNode;
-use style::properties::ServoComputedValues;
+use style::properties::{CascadeFlags, ServoComputedValues};
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
 
 #[derive(Copy, PartialEq, Clone, Debug)]
@@ -408,7 +408,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized + Debug +
                                     &style_pseudo,
                                     Some(data.styles().primary.values()),
                                     &context.default_computed_values,
-                                    false);
+                                    CascadeFlags::empty());
                             data.styles_mut().pseudos
                                 .insert(style_pseudo.clone(), new_style);
                         }
