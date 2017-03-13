@@ -1323,7 +1323,7 @@ fn static_assert() {
     pub fn ${type}_${ident}_at(&self, index: usize)
         -> longhands::${type}_${ident}::computed_value::SingleComputedValue {
         use values::specified::Time;
-        Time(self.gecko.mAnimations[index].m${gecko_ffi_name} / 1000.)
+        Time(self.gecko.m${type.capitalize()}s[index].m${gecko_ffi_name} / 1000.)
     }
     ${impl_animation_or_transition_count(type, ident, gecko_ffi_name)}
     ${impl_copy_animation_or_transition_value(type, ident, gecko_ffi_name)}
