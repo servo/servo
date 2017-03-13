@@ -755,6 +755,18 @@
      {}
     ]
    ],
+   "css/border-image-linear-gradient.html": [
+    [
+     "/_mozilla/css/border-image-linear-gradient.html",
+     [
+      [
+       "/_mozilla/css/border-image-linear-gradient-ref.html",
+       "=="
+      ]
+     ],
+     {}
+    ]
+   ],
    "css/border_black_ridge_a.html": [
     [
      "/_mozilla/css/border_black_ridge_a.html",
@@ -6989,6 +7001,11 @@
     ]
    ],
    "css/blur_ref.html": [
+    [
+     {}
+    ]
+   ],
+   "css/border-image-linear-gradient-ref.html": [
     [
      {}
     ]
@@ -20322,6 +20339,14 @@
   "css/blur_ref.html": [
    "d0bf8fafec5ff2c0cfde8f0d47083ca23b745588",
    "support"
+  ],
+  "css/border-image-linear-gradient-ref.html": [
+   "3c1b61477c8a3cb7befc3ab81b80a128b142e3f1",
+   "support"
+  ],
+  "css/border-image-linear-gradient.html": [
+   "40ea388a8a920eaecb2d0d12f998ed60ac3b56e8",
+   "reftest"
   ],
   "css/border_black_groove.html": [
    "42912352ee8f09ae0ddbac3dce35294dc8608bbe",
