@@ -255,9 +255,6 @@ impl ParseErrorReporter for MemoryHoleReporter {
             _: &ServoUrl) {
         // do nothing
     }
-    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-        Box::new(MemoryHoleReporter)
-    }
 }
 
 #[allow(missing_docs)]
@@ -341,11 +338,11 @@ impl CssRule {
                  extra_data: ParserContextExtraData,
                  state: Option<State>)
                  -> Result<(Self, State), SingleRuleParseError> {
-        let error_reporter = Box::new(MemoryHoleReporter);
+        let error_reporter = MemoryHoleReporter;
         let mut namespaces = parent_stylesheet.namespaces.write();
         let context = ParserContext::new_with_extra_data(parent_stylesheet.origin,
                                                          &parent_stylesheet.base_url,
-                                                         error_reporter.clone(),
+                                                         &error_reporter,
                                                          extra_data);
         let mut input = Parser::new(css);
 
@@ -583,7 +580,7 @@ impl Stylesheet {
                       origin: Origin,
                       media: MediaList,
                       stylesheet_loader: Option<&StylesheetLoader>,
-                      error_reporter: Box<ParseErrorReporter + Send>,
+                      error_reporter: &ParseErrorReporter,
                       extra_data: ParserContextExtraData)
                       -> Stylesheet {
         let (string, _) = decode_stylesheet_bytes(
@@ -604,7 +601,7 @@ impl Stylesheet {
                              protocol_encoding_label: Option<&str>,
                              environment_encoding: Option<EncodingRef>,
                              stylesheet_loader: Option<&StylesheetLoader>,
-                             error_reporter: Box<ParseErrorReporter + Send>,
+                             error_reporter: &ParseErrorReporter,
                              extra_data: ParserContextExtraData) {
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
@@ -619,7 +616,7 @@ impl Stylesheet {
     pub fn update_from_str(existing: &Stylesheet,
                            css: &str,
                            stylesheet_loader: Option<&StylesheetLoader>,
-                           error_reporter: Box<ParseErrorReporter + Send>,
+                           error_reporter: &ParseErrorReporter,
                            extra_data: ParserContextExtraData) {
         let mut rules = existing.rules.write();
         let mut namespaces = existing.namespaces.write();
@@ -668,7 +665,7 @@ impl Stylesheet {
                     origin: Origin,
                     media: MediaList,
                     stylesheet_loader: Option<&StylesheetLoader>,
-                    error_reporter: Box<ParseErrorReporter + Send>,
+                    error_reporter: &ParseErrorReporter,
                     extra_data: ParserContextExtraData) -> Stylesheet {
         let s = Stylesheet {
             origin: origin,

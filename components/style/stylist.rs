@@ -329,7 +329,7 @@ impl Stylist {
                                 parent.map(|p| &**p),
                                 parent.map(|p| &**p),
                                 None,
-                                Box::new(StdoutErrorReporter),
+                                &StdoutErrorReporter,
                                 cascade_flags);
         ComputedStyle::new(rule_node, Arc::new(computed))
     }
@@ -411,7 +411,7 @@ impl Stylist {
                                 Some(&**parent),
                                 Some(&**parent),
                                 None,
-                                Box::new(StdoutErrorReporter),
+                                &StdoutErrorReporter,
                                 CascadeFlags::empty());
 
         // Apply the selector flags. We should be in sequential mode already,

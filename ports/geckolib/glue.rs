@@ -166,6 +166,7 @@ fn create_shared_context(per_doc_data: &PerDocumentStyleDataImpl) -> SharedStyle
         stylist: per_doc_data.stylist.clone(),
         running_animations: per_doc_data.running_animations.clone(),
         expired_animations: per_doc_data.expired_animations.clone(),
+        // FIXME(emilio): Stop boxing here.
         error_reporter: Box::new(StdoutErrorReporter),
         local_context_creation_data: Mutex::new(local_context_data),
         timer: Timer::new(),
@@ -336,7 +337,7 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
     };
     Arc::new(Stylesheet::from_str(
         "", url, origin, Default::default(), None,
-        Box::new(StdoutErrorReporter), extra_data)
+        &StdoutErrorReporter, extra_data)
     ).into_strong()
 }
 
@@ -379,7 +380,7 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
 
     Arc::new(Stylesheet::from_str(
         input, url, origin, Default::default(), loader,
-        Box::new(StdoutErrorReporter), extra_data)
+        &StdoutErrorReporter, extra_data)
     ).into_strong()
 }
 
@@ -415,7 +416,7 @@ pub extern "C" fn Servo_StyleSheet_ClearAndUpdate(stylesheet: RawServoStyleSheet
     sheet.rules.write().0.clear();
 
     Stylesheet::update_from_str(&sheet, input, loader,
-                                Box::new(StdoutErrorReporter), extra_data);
+                                &StdoutErrorReporter, extra_data);
 }
 
 #[no_mangle]
@@ -746,9 +747,10 @@ pub extern "C" fn Servo_ParseProperty(property: *const nsACString, value: *const
 
     make_context!((base, data) => (base_url, extra_data));
 
+    let reporter = StdoutErrorReporter;
     let context = ParserContext::new_with_extra_data(Origin::Author,
                                                      &base_url,
-                                                     Box::new(StdoutErrorReporter),
+                                                     &reporter,
                                                      extra_data);
 
     match ParsedDeclaration::parse(id, &context, &mut Parser::new(value), false) {
@@ -874,7 +876,7 @@ fn set_property(declarations: RawServoDeclarationBlockBorrowed, property_id: Pro
 
     make_context!((base, data) => (base_url, extra_data));
     if let Ok(parsed) = parse_one_declaration(property_id, value, &base_url,
-                                              Box::new(StdoutErrorReporter), extra_data) {
+                                              &StdoutErrorReporter, extra_data) {
         let mut declarations = RwLock::<PropertyDeclarationBlock>::as_arc(&declarations).write();
         let importance = if is_important { Importance::Important } else { Importance::Normal };
         let mut changed = false;
@@ -1257,7 +1259,7 @@ pub extern "C" fn Servo_CSSSupports2(property: *const nsACString, value: *const 
     let base_url = &*DUMMY_BASE_URL;
     let extra_data = ParserContextExtraData::default();
 
-    parse_one_declaration(id, &value, &base_url, Box::new(StdoutErrorReporter), extra_data).is_ok()
+    parse_one_declaration(id, &value, &base_url, &StdoutErrorReporter, extra_data).is_ok()
 }
 
 #[no_mangle]
@@ -1267,7 +1269,8 @@ pub extern "C" fn Servo_CSSSupports(cond: *const nsACString) -> bool {
     let cond = parse_condition_or_declaration(&mut input);
     if let Ok(cond) = cond {
         let url = ServoUrl::parse("about:blank").unwrap();
-        let context = ParserContext::new_for_cssom(&url);
+        let reporter = StdoutErrorReporter;
+        let context = ParserContext::new_for_cssom(&url, &reporter);
         cond.eval(&context)
     } else {
         false

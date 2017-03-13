@@ -110,7 +110,7 @@ use style::animation::Animation;
 use style::context::{QuirksMode, ReflowGoal, SharedStyleContext, ThreadLocalStyleContextCreationInfo};
 use style::data::StoredRestyleHint;
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
-use style::error_reporting::{ParseErrorReporter, StdoutErrorReporter};
+use style::error_reporting::StdoutErrorReporter;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContextExtraData;
@@ -505,7 +505,7 @@ impl LayoutThread {
                 stylist: rw_data.stylist.clone(),
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
-                error_reporter: self.error_reporter.clone(),
+                error_reporter: Box::new(self.error_reporter.clone()),
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 quirks_mode: self.quirks_mode.unwrap(),
@@ -1563,7 +1563,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             Origin::UserAgent,
             Default::default(),
             None,
-            Box::new(StdoutErrorReporter),
+            &StdoutErrorReporter,
             ParserContextExtraData::default()))
     }
 
@@ -1576,8 +1576,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
             &contents, url.clone(), None, None, Origin::User, Default::default(),
-            None, Box::new(StdoutErrorReporter),
-            ParserContextExtraData::default()));
+            None, &StdoutErrorReporter, ParserContextExtraData::default()));
     }
 
     let quirks_mode_stylesheet = try!(parse_ua_stylesheet("quirks-mode.css"));

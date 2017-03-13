@@ -432,7 +432,7 @@ fn compute_style_for_animation_step(context: &SharedStyleContext,
                                                previous_style,
                                                previous_style,
                                                /* cascade_info = */ None,
-                                               context.error_reporter.clone(),
+                                               &*context.error_reporter,
                                                /* Metrics provider */ None,
                                                CascadeFlags::empty());
             computed

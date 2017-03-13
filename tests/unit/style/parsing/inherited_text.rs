@@ -111,7 +111,8 @@ fn webkit_text_stroke_shorthand_should_parse_properly() {
     use style::properties::shorthands::_webkit_text_stroke;
 
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
 
     let mut parser = Parser::new("thin red");
     let result = _webkit_text_stroke::parse_value(&context, &mut parser).unwrap();
@@ -132,7 +133,8 @@ fn line_height_should_return_number_on_plain_zero() {
     use style::properties::longhands::line_height;
 
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("0");
     let result = line_height::parse(&context, &mut parser);
     assert_eq!(result.unwrap(), parse_longhand!(line_height, "0"));
@@ -145,7 +147,8 @@ fn line_height_should_return_length_on_length_zero() {
     use style::properties::longhands::line_height;
 
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new("0px");
     let result = line_height::parse(&context, &mut parser);
     assert_eq!(result.unwrap(), parse_longhand!(line_height, "0px"));

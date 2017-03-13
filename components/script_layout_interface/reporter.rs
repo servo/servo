@@ -11,7 +11,7 @@ use servo_url::ServoUrl;
 use std::sync::{Mutex, Arc};
 use style::error_reporting::ParseErrorReporter;
 
-#[derive(HeapSizeOf)]
+#[derive(HeapSizeOf, Clone)]
 pub struct CSSErrorReporter {
     pub pipelineid: PipelineId,
     // Arc+Mutex combo is necessary to make this struct Sync,
@@ -22,11 +22,18 @@ pub struct CSSErrorReporter {
 }
 
 impl ParseErrorReporter for CSSErrorReporter {
-     fn report_error(&self, input: &mut Parser, position: SourcePosition, message: &str,
-        url: &ServoUrl) {
+     fn report_error(&self,
+                     input: &mut Parser,
+                     position: SourcePosition,
+                     message: &str,
+                     url: &ServoUrl) {
         let location = input.source_location(position);
         if log_enabled!(log::LogLevel::Info) {
-             info!("Url:\t{}\n{}:{} {}", url.as_str(), location.line, location.column, message)
+             info!("Url:\t{}\n{}:{} {}",
+                   url.as_str(),
+                   location.line,
+                   location.column,
+                   message)
         }
 
          //TODO: report a real filename
@@ -36,12 +43,5 @@ impl ParseErrorReporter for CSSErrorReporter {
                                                      location.line,
                                                      location.column,
                                                      message.to_owned()));
-     }
-
-     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-         box CSSErrorReporter {
-             pipelineid: self.pipelineid,
-             script_chan: self.script_chan.clone(),
-         }
      }
 }

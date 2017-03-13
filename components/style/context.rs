@@ -72,7 +72,7 @@ pub struct SharedStyleContext {
     pub expired_animations: Arc<RwLock<HashMap<OpaqueNode, Vec<Animation>>>>,
 
     ///The CSS error reporter for all CSS loaded in this layout thread
-    pub error_reporter: Box<ParseErrorReporter + Sync>,
+    pub error_reporter: Box<ParseErrorReporter>,
 
     /// Data needed to create the thread-local style context from the shared one.
     pub local_context_creation_data: Mutex<ThreadLocalStyleContextCreationInfo>,

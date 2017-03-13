@@ -11,7 +11,6 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 use std::borrow::Cow;
-use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt;
 use std::sync::Arc;
@@ -288,7 +287,7 @@ impl PropertyDeclarationIdSet {
             % endif
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
             f: F,
-            error_reporter: &mut StdBox<ParseErrorReporter + Send>)
+            error_reporter: &ParseErrorReporter)
             % if property.boxed:
                 where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
             % else:
@@ -322,7 +321,7 @@ impl PropertyDeclarationIdSet {
                 from_shorthand: Option<ShorthandId>,
                 custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
                 f: F,
-                error_reporter: &mut StdBox<ParseErrorReporter + Send>,
+                error_reporter: &ParseErrorReporter,
                 extra_data: ParserContextExtraData)
                 % if property.boxed:
                     where F: FnOnce(&DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>)
@@ -338,7 +337,7 @@ impl PropertyDeclarationIdSet {
                     // FIXME(pcwalton): Cloning the error reporter is slow! But so are custom
                     // properties, so whatever...
                     let context = ParserContext::new_with_extra_data(
-                        ::stylesheets::Origin::Author, base_url, (*error_reporter).clone(),
+                        ::stylesheets::Origin::Author, base_url, error_reporter,
                         extra_data);
                     Parser::new(&css).parse_entirely(|input| {
                         match from_shorthand {
@@ -1764,7 +1763,7 @@ pub type CascadePropertyFn =
                      context: &mut computed::Context,
                      cacheable: &mut bool,
                      cascade_info: &mut Option<<&mut CascadeInfo>,
-                     error_reporter: &mut StdBox<ParseErrorReporter + Send>);
+                     error_reporter: &ParseErrorReporter);
 
 /// A per-longhand array of functions to perform the CSS cascade on each of
 /// them, effectively doing virtual dispatch.
@@ -1808,7 +1807,7 @@ pub fn cascade(device: &Device,
                parent_style: Option<<&ComputedValues>,
                layout_parent_style: Option<<&ComputedValues>,
                cascade_info: Option<<&mut CascadeInfo>,
-               error_reporter: StdBox<ParseErrorReporter + Send>,
+               error_reporter: &ParseErrorReporter,
                flags: CascadeFlags)
                -> ComputedValues {
     debug_assert_eq!(parent_style.is_some(), layout_parent_style.is_some());
@@ -1863,7 +1862,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                     inherited_style: &ComputedValues,
                                     layout_parent_style: &ComputedValues,
                                     mut cascade_info: Option<<&mut CascadeInfo>,
-                                    mut error_reporter: StdBox<ParseErrorReporter + Send>,
+                                    error_reporter: &ParseErrorReporter,
                                     font_metrics_provider: Option<<&FontMetricsProvider>,
                                     flags: CascadeFlags)
                                     -> ComputedValues
@@ -1991,7 +1990,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
                                              &mut context,
                                              &mut cacheable,
                                              &mut cascade_info,
-                                             &mut error_reporter);
+                                             error_reporter);
         }
         % if category_to_cascade_now == "early":
             let writing_mode = get_writing_mode(context.style.get_inheritedbox());

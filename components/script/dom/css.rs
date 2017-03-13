@@ -29,7 +29,7 @@ impl CSS {
     pub fn Supports(win: &Window, property: DOMString, value: DOMString) -> bool {
         let decl = Declaration { prop: property.into(), val: value.into() };
         let url = win.Document().url();
-        let context = ParserContext::new_for_cssom(&url);
+        let context = ParserContext::new_for_cssom(&url, win.css_error_reporter());
         decl.eval(&context)
     }
 
@@ -39,7 +39,7 @@ impl CSS {
         let cond = parse_condition_or_declaration(&mut input);
         if let Ok(cond) = cond {
             let url = win.Document().url();
-            let context = ParserContext::new_for_cssom(&url);
+            let context = ParserContext::new_for_cssom(&url, win.css_error_reporter());
             cond.eval(&context)
         } else {
             false

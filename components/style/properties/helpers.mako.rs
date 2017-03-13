@@ -233,7 +233,7 @@
                                 context: &mut computed::Context,
                                 cacheable: &mut bool,
                                 cascade_info: &mut Option<<&mut CascadeInfo>,
-                                error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
+                                error_reporter: &ParseErrorReporter) {
             let declared_value = match *declaration {
                 PropertyDeclaration::${property.camel_case}(ref declared_value) => {
                     declared_value

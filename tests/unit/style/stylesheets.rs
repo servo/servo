@@ -63,7 +63,7 @@ fn test_parse_stylesheet() {
     let url = ServoUrl::parse("about::test").unwrap();
     let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
                                           None,
-                                          Box::new(CSSErrorReporterTest),
+                                          &CSSErrorReporterTest,
                                           ParserContextExtraData::default());
     let mut namespaces = Namespaces::default();
     namespaces.default = Some(ns!(html));
@@ -289,13 +289,15 @@ impl CSSInvalidErrorReporterTest {
 }
 
 impl ParseErrorReporter for CSSInvalidErrorReporterTest {
-    fn report_error(&self, input: &mut CssParser, position: SourcePosition, message: &str,
-        url: &ServoUrl) {
+    fn report_error(&self,
+                    input: &mut CssParser,
+                    position: SourcePosition,
+                    message: &str,
+                    url: &ServoUrl) {
 
         let location = input.source_location(position);
 
-        let errors = self.errors.clone();
-        let mut errors = errors.lock().unwrap();
+        let mut errors = self.errors.lock().unwrap();
 
         errors.push(
             CSSError{
@@ -303,14 +305,6 @@ impl ParseErrorReporter for CSSInvalidErrorReporterTest {
                 line: location.line,
                 column: location.column,
                 message: message.to_owned()
-            }
-        );
-    }
-
-    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-        return Box::new(
-            CSSInvalidErrorReporterTest{
-                errors: self.errors.clone()
             }
         );
     }
@@ -327,13 +321,13 @@ fn test_report_error_stylesheet() {
     }
     ";
     let url = ServoUrl::parse("about::test").unwrap();
-    let error_reporter = Box::new(CSSInvalidErrorReporterTest::new());
+    let error_reporter = CSSInvalidErrorReporterTest::new();
 
     let errors = error_reporter.errors.clone();
 
     Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
                          None,
-                         error_reporter,
+                         &error_reporter,
                          ParserContextExtraData::default());
 
     let mut errors = errors.lock().unwrap();

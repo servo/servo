@@ -21,10 +21,6 @@ impl ParseErrorReporter for ErrorringErrorReporter {
         url: &ServoUrl) {
         panic!("CSS error: {}\t\n{:?} {}", url.as_str(), position, message);
     }
-
-    fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-        Box::new(ErrorringErrorReporter)
-    }
 }
 
 struct AutoGCRuleTree<'a>(&'a RuleTree);
@@ -49,7 +45,7 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
                                      media_queries: vec![],
                                  },
                                  None,
-                                 Box::new(ErrorringErrorReporter),
+                                 &ErrorringErrorReporter,
                                  ParserContextExtraData {});
     let rules = s.rules.read();
     rules.0.iter().filter_map(|rule| {

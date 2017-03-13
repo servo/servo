@@ -126,10 +126,10 @@ impl Keyframe {
                  parent_stylesheet: &Stylesheet,
                  extra_data: ParserContextExtraData)
                  -> Result<Arc<RwLock<Self>>, ()> {
-        let error_reporter = Box::new(MemoryHoleReporter);
+        let error_reporter = MemoryHoleReporter;
         let context = ParserContext::new_with_extra_data(parent_stylesheet.origin,
                                                          &parent_stylesheet.base_url,
-                                                         error_reporter,
+                                                         &error_reporter,
                                                          extra_data);
         let mut input = Parser::new(css);
 

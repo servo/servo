@@ -210,7 +210,7 @@ ${helpers.single_keyword("unicode-bidi",
                                    _inherited_style: &ComputedValues,
                                    context: &mut computed::Context,
                                    _cacheable: &mut bool,
-                                   _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
+                                   _error_reporter: &ParseErrorReporter) {
                 longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
         }
     % endif

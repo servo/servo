@@ -21,7 +21,8 @@ use stylesheets::block_from;
 
 fn parse_declaration_block(css_properties: &str) -> PropertyDeclarationBlock {
     let url = ServoUrl::parse("http://localhost").unwrap();
-    let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+    let reporter = CSSErrorReporterTest;
+    let context = ParserContext::new(Origin::Author, &url, &reporter);
     let mut parser = Parser::new(css_properties);
     parse_property_declaration_list(&context, &mut parser)
 }
@@ -963,7 +964,8 @@ mod shorthand_serialization {
 
             let mut s = String::new();
             let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-            let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+            let reporter = CSSErrorReporterTest;
+            let context = ParserContext::new(Origin::Author, &url, &reporter);
 
             let parsed = transform::parse(&context, &mut Parser::new("none")).unwrap();
             let try_serialize = parsed.to_css(&mut s);
@@ -986,7 +988,8 @@ mod shorthand_serialization {
 
             let mut s = String::new();
             let url = ::servo_url::ServoUrl::parse("http://localhost").unwrap();
-            let context = ParserContext::new(Origin::Author, &url, Box::new(CSSErrorReporterTest));
+            let reporter = CSSErrorReporterTest;
+            let context = ParserContext::new(Origin::Author, &url, &reporter);
 
             let parsed = quotes::parse(&context, &mut Parser::new("none")).unwrap();
             let try_serialize = parsed.to_css(&mut s);

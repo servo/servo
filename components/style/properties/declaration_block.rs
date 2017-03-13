@@ -11,7 +11,6 @@ use cssparser::{Parser, AtRuleParser, DeclarationParser, Delimiter};
 use error_reporting::ParseErrorReporter;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use servo_url::ServoUrl;
-use std::boxed::Box as StdBox;
 use std::fmt;
 use style_traits::ToCss;
 use stylesheets::Origin;
@@ -570,10 +569,13 @@ pub fn append_serialization<'a, W, I, N>(dest: &mut W,
 /// shared between Servo and Gecko.
 pub fn parse_style_attribute(input: &str,
                              base_url: &ServoUrl,
-                             error_reporter: StdBox<ParseErrorReporter + Send>,
+                             error_reporter: &ParseErrorReporter,
                              extra_data: ParserContextExtraData)
                              -> PropertyDeclarationBlock {
-    let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
+    let context = ParserContext::new_with_extra_data(Origin::Author,
+                                                     base_url,
+                                                     error_reporter,
+                                                     extra_data);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
@@ -585,10 +587,13 @@ pub fn parse_style_attribute(input: &str,
 pub fn parse_one_declaration(id: PropertyId,
                              input: &str,
                              base_url: &ServoUrl,
-                             error_reporter: StdBox<ParseErrorReporter + Send>,
+                             error_reporter: &ParseErrorReporter,
                              extra_data: ParserContextExtraData)
                              -> Result<ParsedDeclaration, ()> {
-    let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
+    let context = ParserContext::new_with_extra_data(Origin::Author,
+                                                     base_url,
+                                                     error_reporter,
+                                                     extra_data);
     Parser::new(input).parse_entirely(|parser| {
         ParsedDeclaration::parse(id, &context, parser, false)
             .map_err(|_| ())

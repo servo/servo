@@ -21,10 +21,6 @@ impl ParseErrorReporter for CSSErrorReporterTest {
     fn report_error(&self, _input: &mut Parser, _position: SourcePosition, _message: &str,
         _url: &ServoUrl) {
     }
-
-     fn clone(&self) -> Box<ParseErrorReporter + Send + Sync> {
-        Box::new(CSSErrorReporterTest)
-     }
 }
 
 fn test_media_rule<F>(css: &str, callback: F)
@@ -34,7 +30,7 @@ fn test_media_rule<F>(css: &str, callback: F)
     let css_str = css.to_owned();
     let stylesheet = Stylesheet::from_str(
         css, url, Origin::Author, Default::default(),
-        None, Box::new(CSSErrorReporterTest),
+        None, &CSSErrorReporterTest,
         ParserContextExtraData::default());
     let mut rule_count = 0;
     media_queries(&stylesheet.rules.read().0, &mut |mq| {
@@ -61,7 +57,7 @@ fn media_query_test(device: &Device, css: &str, expected_rule_count: usize) {
     let url = ServoUrl::parse("http://localhost").unwrap();
     let ss = Stylesheet::from_str(
         css, url, Origin::Author, Default::default(),
-        None, Box::new(CSSErrorReporterTest),
+        None, &CSSErrorReporterTest,
         ParserContextExtraData::default());
     let mut rule_count = 0;
     ss.effective_style_rules(device, |_| rule_count += 1);

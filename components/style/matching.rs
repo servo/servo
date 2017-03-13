@@ -544,7 +544,7 @@ trait PrivateMatchMethods: TElement {
                              inherited_values,
                              layout_parent_style,
                              Some(&mut cascade_info),
-                             shared_context.error_reporter.clone(),
+                             &*shared_context.error_reporter,
                              cascade_flags));
 
         cascade_info.finish(&self.as_node());

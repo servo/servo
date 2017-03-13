@@ -331,8 +331,8 @@ impl Window {
          &self.bluetooth_extra_permission_data
     }
 
-    pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
-        self.error_reporter.clone()
+    pub fn css_error_reporter(&self) -> &ParseErrorReporter {
+        &self.error_reporter
     }
 
     /// Sets a new list of scroll offsets.
