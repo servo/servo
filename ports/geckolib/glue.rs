@@ -32,6 +32,7 @@ use style::gecko::wrapper::GeckoElement;
 use style::gecko_bindings::bindings;
 use style::gecko_bindings::bindings::{RawGeckoKeyframeListBorrowed, RawGeckoKeyframeListBorrowedMut};
 use style::gecko_bindings::bindings::{RawServoDeclarationBlockBorrowed, RawServoDeclarationBlockStrong};
+use style::gecko_bindings::bindings::{RawServoMediaListBorrowed, RawServoMediaListStrong};
 use style::gecko_bindings::bindings::{RawServoMediaRuleBorrowed, RawServoMediaRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleRuleBorrowed, RawServoStyleRuleStrong};
 use style::gecko_bindings::bindings::{RawServoStyleSetBorrowed, RawServoStyleSetOwned};
@@ -45,7 +46,6 @@ use style::gecko_bindings::bindings::RawGeckoElementBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueBorrowed;
 use style::gecko_bindings::bindings::RawServoAnimationValueStrong;
 use style::gecko_bindings::bindings::RawServoImportRuleBorrowed;
-use style::gecko_bindings::bindings::RawServoMediaListStrong;
 use style::gecko_bindings::bindings::ServoComputedValuesBorrowedOrNull;
 use style::gecko_bindings::bindings::nsTArrayBorrowed_uintptr_t;
 use style::gecko_bindings::structs;
@@ -64,6 +64,7 @@ use style::gecko_bindings::sugar::ownership::{HasSimpleFFI, Strong};
 use style::gecko_bindings::sugar::refptr::{GeckoArcPrincipal, GeckoArcURI};
 use style::gecko_properties::{self, style_structs};
 use style::keyframes::KeyframesStepValue;
+use style::media_queries::{MediaList, parse_media_query_list};
 use style::parallel;
 use style::parser::{ParserContext, ParserContextExtraData};
 use style::properties::{ComputedValues, Importance, ParsedDeclaration};
@@ -917,6 +918,54 @@ pub extern "C" fn Servo_DeclarationBlock_RemoveProperty(declarations: RawServoDe
 pub extern "C" fn Servo_DeclarationBlock_RemovePropertyById(declarations: RawServoDeclarationBlockBorrowed,
                                                             property: nsCSSPropertyID) {
     remove_property(declarations, get_property_id_from_nscsspropertyid!(property, ()))
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed, result: *mut nsAString) {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    list.read().to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed, text: *const nsACString) {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    let text = unsafe { text.as_ref().unwrap().as_str_unchecked() };
+    let mut parser = Parser::new(&text);
+    *list.write() = parse_media_query_list(&mut parser);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_GetLength(list: RawServoMediaListBorrowed) -> u32 {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    list.read().media_queries.len() as u32
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed, index: u32,
+                                              result: *mut nsAString) -> bool {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    if let Some(media_query) = list.read().media_queries.get(index as usize) {
+        media_query.to_css(unsafe { result.as_mut().unwrap() }).unwrap();
+        true
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
+                                               new_medium: *const nsACString) {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    let new_medium = unsafe { new_medium.as_ref().unwrap().as_str_unchecked() };
+    list.write().append_medium(new_medium);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
+                                               old_medium: *const nsACString) -> bool {
+    let list = RwLock::<MediaList>::as_arc(&list);
+    let old_medium = unsafe { old_medium.as_ref().unwrap().as_str_unchecked() };
+    list.write().delete_medium(old_medium)
 }
 
 macro_rules! get_longhand_from_id {

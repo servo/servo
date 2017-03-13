@@ -1628,6 +1628,34 @@ extern "C" {
                                                                      RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
+    pub fn Servo_MediaList_GetText(list: RawServoMediaListBorrowed,
+                                   result: *mut nsAString_internal);
+}
+extern "C" {
+    pub fn Servo_MediaList_SetText(list: RawServoMediaListBorrowed,
+                                   text: *const nsACString_internal);
+}
+extern "C" {
+    pub fn Servo_MediaList_GetLength(list: RawServoMediaListBorrowed) -> u32;
+}
+extern "C" {
+    pub fn Servo_MediaList_GetMediumAt(list: RawServoMediaListBorrowed,
+                                       index: u32,
+                                       result: *mut nsAString_internal)
+     -> bool;
+}
+extern "C" {
+    pub fn Servo_MediaList_AppendMedium(list: RawServoMediaListBorrowed,
+                                        new_medium:
+                                            *const nsACString_internal);
+}
+extern "C" {
+    pub fn Servo_MediaList_DeleteMedium(list: RawServoMediaListBorrowed,
+                                        old_medium:
+                                            *const nsACString_internal)
+     -> bool;
+}
+extern "C" {
     pub fn Servo_CSSSupports2(name: *const nsACString_internal,
                               value: *const nsACString_internal) -> bool;
 }
