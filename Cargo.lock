@@ -232,10 +232,10 @@ dependencies = [
 
 [[package]]
 name = "blurz"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "dbus 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "dbus 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.22 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -541,11 +541,11 @@ dependencies = [
 
 [[package]]
 name = "dbus"
-version = "0.3.4"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.20 (registry+https://github.com/rust-lang/crates.io-index)",
- "pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "metadeps 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -596,7 +596,7 @@ source = "git+https://github.com/servo/devices#1bb5a200c7ae1f42ddf3c42b235b3db66
 dependencies = [
  "blurdroid 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "blurz 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blurz 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -3343,7 +3343,7 @@ dependencies = [
 "checksum block 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 "checksum blurdroid 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "f4a86fbb3818e7f850410e026bfac7742fe86cbf4acf49f5752936b32d1f7eb8"
 "checksum blurmock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "68dd72da3a3bb40f3d3bdd366c4cf8e2b1d208c366304f382c80cef8126ca8da"
-"checksum blurz 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "4d49796c8d5a1b5f6b2b8686e46ed4ab842987c477f765b69f1d3e8df6072608"
+"checksum blurz 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e73bda0f4c71c63a047351070097f3f507e6718e86b9ee525173371ef7b94b73"
 "checksum brotli 1.0.7 (registry+https://github.com/rust-lang/crates.io-index)" = "53c6bf6d5a852a221369ffb01ea08fdaf89d5cbd6e12a4b8802cdb322a93c6cd"
 "checksum browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)" = "<none>"
 "checksum byteorder 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c40977b0ee6b9885c9013cd41d9feffdd22deb3bb4dc3a71d901cc7a77de18c8"
@@ -3366,7 +3366,7 @@ dependencies = [
 "checksum cssparser 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)" = "35e3e110221f306501253d8d34857040de365ce2d92ac0abb2f06dedc845d9d0"
 "checksum cssparser-macros 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b8f0415de0bdbce823c0db204e00a62c8240fa2d3e04cd13ff7c6396e4446b95"
 "checksum dbghelp-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "97590ba53bcb8ac28279161ca943a924d1fd4a8fb3fa63302591647c4fc5b850"
-"checksum dbus 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "94d266a872aaf68b50d02083c429a3686935ab6ab54824290509cdc422673eaf"
+"checksum dbus 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "47f881971824401c27bc1ff9f641d54ac66e0f409631806fa7be8cad8e6be450"
 "checksum debug_unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)" = "9a032eac705ca39214d169f83e3d3da290af06d8d1d344d1baad2fd002dca4b3"
 "checksum deflate 0.7.4 (registry+https://github.com/rust-lang/crates.io-index)" = "24c5f3de3a8e183ab9a169654b652407e5e80bed40986bcca92c2b088b9bfa80"
 "checksum deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1614659040e711785ed8ea24219140654da1729f3ec8a47a9719d041112fe7bf"
