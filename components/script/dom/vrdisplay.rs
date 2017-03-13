@@ -203,7 +203,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-resetpose
-    fn ResetPose(&self) -> () {
+    fn ResetPose(&self) {
         let (sender, receiver) = ipc::channel().unwrap();
         self.webvr_thread().send(WebVRMsg::ResetPose(self.global().pipeline_id(),
                                                      self.get_display_id(),
@@ -220,7 +220,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-depthnear
-    fn SetDepthNear(&self, value: Finite<f64>) -> () {
+    fn SetDepthNear(&self, value: Finite<f64>) {
         self.depth_near.set(*value.deref());
     }
 
@@ -230,7 +230,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-depthfar
-    fn SetDepthFar(&self, value: Finite<f64>) -> () {
+    fn SetDepthFar(&self, value: Finite<f64>) {
         self.depth_far.set(*value.deref());
     }
 
@@ -249,7 +249,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-cancelanimationframe
-    fn CancelAnimationFrame(&self, handle: u32) -> () {
+    fn CancelAnimationFrame(&self, handle: u32) {
         if self.presenting.get() {
             let mut list = self.raf_callback_list.borrow_mut();
             if let Some(mut pair) = list.iter_mut().find(|pair| pair.0 == handle) {
@@ -364,7 +364,7 @@ impl VRDisplayMethods for VRDisplay {
     }
 
     // https://w3c.github.io/webvr/#dom-vrdisplay-submitframe
-    fn SubmitFrame(&self) -> () {
+    fn SubmitFrame(&self) {
         if !self.presenting.get() {
             warn!("VRDisplay not presenting");
             return;

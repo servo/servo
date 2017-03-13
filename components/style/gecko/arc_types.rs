@@ -27,12 +27,12 @@ macro_rules! impl_arc_ffi {
         unsafe impl HasArcFFI for $servo_type {}
 
         #[no_mangle]
-        pub unsafe extern "C" fn $addref(obj: &$gecko_type) -> () {
+        pub unsafe extern "C" fn $addref(obj: &$gecko_type) {
             <$servo_type>::addref(obj);
         }
 
         #[no_mangle]
-        pub unsafe extern "C" fn $release(obj: &$gecko_type) -> () {
+        pub unsafe extern "C" fn $release(obj: &$gecko_type) {
             <$servo_type>::release(obj);
         }
     }

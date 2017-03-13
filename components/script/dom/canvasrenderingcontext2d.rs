@@ -888,7 +888,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-imagesmoothingenabled
-    fn SetImageSmoothingEnabled(&self, value: bool) -> () {
+    fn SetImageSmoothingEnabled(&self, value: bool) {
         self.state.borrow_mut().image_smoothing_enabled = value;
     }
 

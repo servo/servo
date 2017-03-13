@@ -251,7 +251,7 @@ impl BluetoothDeviceMethods for BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements
-    fn UnwatchAdvertisements(&self) -> () {
+    fn UnwatchAdvertisements(&self) {
         // Step 1.
         self.watching_advertisements.set(false)
         // TODO: Step 2.

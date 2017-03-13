@@ -565,6 +565,8 @@ def check_rust(file_name, lines):
             # This particular pattern is not reentrant-safe in script_thread.rs
             (r"match self.documents.borrow", "use a separate variable for the match expression",
              lambda match, line: file_name.endswith('script_thread.rs')),
+            # -> () is unnecessary
+            (r"-> \(\)", "encountered function signature with -> ()", no_filter),
         ]
 
         for pattern, message, filter_func in regex_rules:
