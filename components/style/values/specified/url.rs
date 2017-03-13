@@ -150,6 +150,11 @@ impl SpecifiedUrl {
         }
     }
 
+    /// Check if it has a resolved URI
+    pub fn has_resolved(&self) -> bool {
+        self.resolved.is_some()
+    }
+
     /// Creates an already specified url value from an already resolved URL
     /// for insertion in the cascade.
     pub fn for_cascade(url: ServoUrl, extra_data: UrlExtraData) -> Self {
@@ -173,19 +178,20 @@ impl SpecifiedUrl {
     /// Create a bundled URI suitable for sending to Gecko
     /// to be constructed into a css::URLValue
     #[cfg(feature = "gecko")]
-    pub fn for_ffi(&self) -> Option<ServoBundledURI> {
+    pub fn for_ffi(&self) -> ServoBundledURI {
         let extra_data = self.extra_data();
         let (ptr, len) = match self.as_slice_components() {
             Ok(value) => value,
-            Err(_) => return None,
+            // we're okay with passing down the unresolved relative URI
+            Err(value) => value,
         };
-        Some(ServoBundledURI {
+        ServoBundledURI {
             mURLString: ptr,
             mURLStringLength: len as u32,
             mBaseURI: extra_data.base.get(),
             mReferrer: extra_data.referrer.get(),
             mPrincipal: extra_data.principal.get(),
-        })
+        }
     }
 }
 

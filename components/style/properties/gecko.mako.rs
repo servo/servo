@@ -394,11 +394,7 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
             }
             SVGPaintKind::PaintServer(url) => {
                 unsafe {
-                    if let Some(ffi) = url.for_ffi() {
-                        bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, ffi);
-                    } else {
-                        return;
-                    }
+                    bindings::Gecko_nsStyleSVGPaint_SetURLValue(paint, url.for_ffi());
                 }
             }
             SVGPaintKind::Color(color) => {
@@ -511,20 +507,26 @@ fn color_to_nscolor_zero_currentcolor(color: Color) -> structs::nscolor {
     % endif
 </%def>
 
-<%def name="impl_css_url(ident, gecko_ffi_name, need_clone=False)">
+<%def name="impl_css_url(ident, gecko_ffi_name, need_clone=False, only_resolved=False)">
     #[allow(non_snake_case)]
     pub fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use gecko_bindings::sugar::refptr::RefPtr;
         match v {
             Either::First(url) => {
                 let refptr = unsafe {
-                    if let Some(ffi) = url.for_ffi() {
-                        let ptr = bindings::Gecko_NewURLValue(ffi);
-                        RefPtr::from_addrefed(ptr)
-                    } else {
+                    % if only_resolved:
+                        // -moz-binding can't handle relative URIs
+                        if !url.has_resolved() {
+                            self.gecko.${gecko_ffi_name}.clear();
+                            return;
+                        }
+                    % endif
+                    let ptr = bindings::Gecko_NewURLValue(url.for_ffi());
+                    if ptr.is_null() {
                         self.gecko.${gecko_ffi_name}.clear();
                         return;
                     }
+                    RefPtr::from_addrefed(ptr)
                 };
                 self.gecko.${gecko_ffi_name}.set_move(refptr)
             }
@@ -1423,7 +1425,7 @@ fn static_assert() {
                           page-break-before page-break-after
                           scroll-snap-points-x scroll-snap-points-y transform
                           scroll-snap-type-y scroll-snap-coordinate
-                          perspective-origin transform-origin""" %>
+                          perspective-origin transform-origin -moz-binding""" %>
 <%self:impl_trait style_struct_name="Box" skip_longhands="${skip_box_longhands}">
 
     // We manually-implement the |display| property until we get general
@@ -1610,6 +1612,8 @@ fn static_assert() {
         let vec = self.gecko.mScrollSnapCoordinate.iter().map(|f| f.into()).collect();
         longhands::scroll_snap_coordinate::computed_value::T(vec)
     }
+
+    ${impl_css_url('_moz_binding', 'mBinding', only_resolved=True)}
 
     <%def name="transform_function_arm(name, keyword, items)">
         <%
@@ -2281,12 +2285,8 @@ fn static_assert() {
             }
             Either::First(ref url) => {
                 unsafe {
-                    if let Some(ffi) = url.for_ffi() {
-                        Gecko_SetListStyleImage(&mut self.gecko,
-                                            ffi);
-                    } else {
-                        Gecko_SetListStyleImageNone(&mut self.gecko);
-                    }
+                    Gecko_SetListStyleImage(&mut self.gecko,
+                                            url.for_ffi());
                 }
                 // We don't need to record this struct as uncacheable, like when setting
                 // background-image to a url() value, since only properties in reset structs
@@ -2575,9 +2575,7 @@ fn static_assert() {
                 }
                 Url(ref url) => {
                     unsafe {
-                        if let Some(ffi) = url.for_ffi() {
-                            bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, ffi);
-                        }
+                        bindings::Gecko_nsStyleFilter_SetURLValue(gecko_filter, url.for_ffi());
                     }
                 }
             }
@@ -2940,9 +2938,7 @@ clip-path
         match v {
             ShapeSource::Url(ref url) => {
                 unsafe {
-                    if let Some(ffi) = url.for_ffi() {
-                       bindings::Gecko_StyleClipPath_SetURLValue(clip_path, ffi);
-                    }
+                    bindings::Gecko_StyleClipPath_SetURLValue(clip_path, url.for_ffi());
                 }
             }
             ShapeSource::None => {} // don't change the type
@@ -3150,16 +3146,8 @@ clip-path
         }
         for i in 0..v.images.len() {
             let image = &v.images[i];
-            let extra_data = image.url.extra_data();
-            let (ptr, len) = match image.url.as_slice_components() {
-                Ok(value) | Err(value) => value,
-            };
             unsafe {
-                Gecko_SetCursorImage(&mut self.gecko.mCursorImages[i],
-                                     ptr, len as u32,
-                                     extra_data.base.get(),
-                                     extra_data.referrer.get(),
-                                     extra_data.principal.get());
+                Gecko_SetCursorImage(&mut self.gecko.mCursorImages[i], image.url.for_ffi());
             }
             // We don't need to record this struct as uncacheable, like when setting
             // background-image to a url() value, since only properties in reset structs

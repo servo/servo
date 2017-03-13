@@ -631,10 +631,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetUrlImageValue(image: *mut nsStyleImage,
-                                  url_bytes: *const u8, url_length: u32,
-                                  base_uri: *mut ThreadSafeURIHolder,
-                                  referrer: *mut ThreadSafeURIHolder,
-                                  principal: *mut ThreadSafePrincipalHolder);
+                                  uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_CopyImageValueFrom(image: *mut nsStyleImage,
@@ -662,10 +659,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetCursorImage(cursor: *mut nsCursorImage,
-                                string_bytes: *const u8, string_length: u32,
-                                base_uri: *mut ThreadSafeURIHolder,
-                                referrer: *mut ThreadSafeURIHolder,
-                                principal: *mut ThreadSafePrincipalHolder);
+                                uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_CopyCursorArrayFrom(dest: *mut nsStyleUserInterface,
