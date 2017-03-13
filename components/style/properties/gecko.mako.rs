@@ -3186,7 +3186,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Counters"
-                  skip_longhands="content">
+                  skip_longhands="content counter-increment counter-reset">
     pub fn set_content(&mut self, v: longhands::content::computed_value::T) {
         use properties::longhands::content::computed_value::T;
         use properties::longhands::content::computed_value::ContentItem;
@@ -3294,6 +3294,25 @@ clip-path
             Gecko_CopyStyleContentsFrom(&mut self.gecko, &other.gecko)
         }
     }
+
+    % for counter_property in ["Increment", "Reset"]:
+        pub fn set_counter_${counter_property.lower()}(&mut self, v: longhands::counter_increment::computed_value::T) {
+            unsafe {
+                bindings::Gecko_ClearAndResizeCounter${counter_property}s(&mut self.gecko,
+                                                                      v.0.len() as u32);
+                for (i, item) in v.0.into_iter().enumerate() {
+                    self.gecko.m${counter_property}s[i].mCounter.assign_utf8(&item.0);
+                    self.gecko.m${counter_property}s[i].mValue = item.1;
+                }
+            }
+        }
+
+        pub fn copy_counter_${counter_property.lower()}_from(&mut self, other: &Self) {
+            unsafe {
+                bindings::Gecko_CopyCounter${counter_property}sFrom(&mut self.gecko, &other.gecko)
+            }
+        }
+    % endfor
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="XUL"

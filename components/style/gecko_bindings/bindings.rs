@@ -718,8 +718,24 @@ extern "C" {
                                              how_many: u32);
 }
 extern "C" {
+    pub fn Gecko_ClearAndResizeCounterIncrements(content: *mut nsStyleContent,
+                                                 how_many: u32);
+}
+extern "C" {
+    pub fn Gecko_ClearAndResizeCounterResets(content: *mut nsStyleContent,
+                                             how_many: u32);
+}
+extern "C" {
     pub fn Gecko_CopyStyleContentsFrom(content: *mut nsStyleContent,
                                        other: *const nsStyleContent);
+}
+extern "C" {
+    pub fn Gecko_CopyCounterResetsFrom(content: *mut nsStyleContent,
+                                       other: *const nsStyleContent);
+}
+extern "C" {
+    pub fn Gecko_CopyCounterIncrementsFrom(content: *mut nsStyleContent,
+                                           other: *const nsStyleContent);
 }
 extern "C" {
     pub fn Gecko_EnsureImageLayersLength(layers: *mut nsStyleImageLayers,

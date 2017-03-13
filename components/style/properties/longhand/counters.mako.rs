@@ -239,7 +239,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-increment" products="servo" animatable="False"
+<%helpers:longhand name="counter-increment" animatable="False"
                    spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
     use std::fmt;
     use style_traits::ToCss;
@@ -313,7 +313,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-reset" products="servo" animatable="False"
+<%helpers:longhand name="counter-reset" animatable="False"
                    spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset">
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
     use super::counter_increment::{parse_common};
