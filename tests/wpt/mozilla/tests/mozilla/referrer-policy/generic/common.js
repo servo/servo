@@ -195,8 +195,8 @@ function queryAnchor(url, callback, referrer_policy) {
     var url_with_params = url + "&id=" + id + "&tagAttrs=" + JSON.stringify(referrer_policy);
     var iframe = appendIframeToBody(url_with_params);
     iframe.addEventListener("load", function listener() {
-      if ((iframe.contentWindow !== null) &&
-          (iframe.contentWindow.location.toString() === url_with_params)) {
+      if ((iframe.contentDocument !== null) &&
+          (iframe.contentDocument.location.toString() === url_with_params)) {
         return;
       }
 
