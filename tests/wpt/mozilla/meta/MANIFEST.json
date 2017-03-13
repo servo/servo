@@ -9583,6 +9583,11 @@
      {}
     ]
    ],
+   "mozilla/referrer-policy/generic/subresource/mozresource.pyc": [
+    [
+     {}
+    ]
+   ],
    "mozilla/referrer-policy/generic/subresource/stash.py": [
     [
      {}
@@ -25725,6 +25730,10 @@
   ],
   "mozilla/referrer-policy/generic/subresource/mozresource.py": [
    "333a80e3d4aec4a8be5566605fae5675a821085b",
+   "support"
+  ],
+  "mozilla/referrer-policy/generic/subresource/mozresource.pyc": [
+   "d4588e13a26732b38edb79fc11487a0542e87c40",
    "support"
   ],
   "mozilla/referrer-policy/generic/subresource/stash.py": [
