@@ -11066,6 +11066,12 @@
      {}
     ]
    ],
+   "css/media_bogus_query_sequence.html": [
+    [
+     "/_mozilla/css/media_bogus_query_sequence.html",
+     {}
+    ]
+   ],
    "css/media_calc_crash.html": [
     [
      "/_mozilla/css/media_calc_crash.html",
@@ -22294,6 +22300,10 @@
   "css/max_width_simple_b.html": [
    "477c77a8ca848cf57b440ea7d74cc0edc97aa2cb",
    "support"
+  ],
+  "css/media_bogus_query_sequence.html": [
+   "88fb8ef33c4870966a1691f1dd992362ebe5f24e",
+   "testharness"
   ],
   "css/media_calc_crash.html": [
    "14034fed9727ceb0c17b17b33fbc1552bc7c949e",
