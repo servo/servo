@@ -246,7 +246,12 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
                                 try!(input.expect_delim('/'));
                                 border_image_outset::parse(context, input)
                             }).ok();
-                            Ok((w, o))
+                            if w.is_none() && o.is_none() {
+                               Err(())
+                            }
+                            else {
+                               Ok((w, o))
+                            }
                         });
                         if let Ok((w, o)) = maybe_width_outset {
                             width = w;
