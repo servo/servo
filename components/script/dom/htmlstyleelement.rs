@@ -84,9 +84,10 @@ impl HTMLStyleElement {
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
         let mq = parse_media_query_list(&mut CssParser::new(&mq_str));
+        let shared_lock = node.owner_doc().style_shared_lock().clone();
         let loader = StylesheetLoader::for_element(self.upcast());
         let sheet = Stylesheet::from_str(&data, url, Origin::Author, mq,
-                                         Some(&loader),
+                                         shared_lock, Some(&loader),
                                          win.css_error_reporter(),
                                          ParserContextExtraData::default());
 

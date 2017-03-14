@@ -69,6 +69,7 @@ use style::dom::UnsafeNode;
 use style::element_state::*;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_parser::{NonTSPseudoClass, PseudoElement, SelectorImpl};
+use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::sink::Push;
 use style::str::is_whitespace;
 use style::stylist::ApplicableDeclarationBlock;
@@ -328,6 +329,10 @@ impl<'ld> ServoLayoutDocument<'ld> {
 
     pub fn quirks_mode(&self) -> QuirksMode {
         unsafe { self.document.quirks_mode() }
+    }
+
+    pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
+        unsafe { self.document.style_shared_lock() }
     }
 
     pub fn from_layout_js(doc: LayoutJS<Document>) -> ServoLayoutDocument<'ld> {
