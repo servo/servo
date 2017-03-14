@@ -115,6 +115,7 @@ use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parser::ParserContextExtraData;
 use style::servo::restyle_damage::{REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, REPOSITION, STORE_OVERFLOW};
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Origin, Stylesheet, UserAgentStylesheets};
 use style::stylist::Stylist;
 use style::thread_state;
@@ -937,6 +938,7 @@ impl LayoutThread {
                              possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
+        let style_guard = document.style_shared_lock().read();
         self.quirks_mode = Some(document.quirks_mode());
 
         // FIXME(pcwalton): Combine `ReflowGoal` and `ReflowQueryType`. Then remove this assert.
@@ -1013,7 +1015,8 @@ impl LayoutThread {
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         let device = Device::new(MediaType::Screen, initial_viewport);
-        Arc::get_mut(&mut rw_data.stylist).unwrap().set_device(device, &data.document_stylesheets);
+        Arc::get_mut(&mut rw_data.stylist).unwrap()
+            .set_device(device, &style_guard, &data.document_stylesheets);
 
         self.viewport_size =
             rw_data.stylist.viewport_constraints().map_or(current_screen_size, |constraints| {
@@ -1553,7 +1556,8 @@ fn get_root_flow_background_color(flow: &mut Flow) -> webrender_traits::ColorF {
 }
 
 fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
-    fn parse_ua_stylesheet(filename: &'static str) -> Result<Stylesheet, &'static str> {
+    fn parse_ua_stylesheet(shared_lock: &SharedRwLock, filename: &'static str)
+                           -> Result<Stylesheet, &'static str> {
         let res = try!(read_resource_file(filename).map_err(|_| filename));
         Ok(Stylesheet::from_bytes(
             &res,
@@ -1562,26 +1566,29 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
             None,
             Origin::UserAgent,
             Default::default(),
+            shared_lock.clone(),
             None,
             &StdoutErrorReporter,
             ParserContextExtraData::default()))
     }
 
+    let shared_lock = SharedRwLock::new();
     let mut user_or_user_agent_stylesheets = vec!();
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
     //        (Does it make a difference?)
     for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-        user_or_user_agent_stylesheets.push(try!(parse_ua_stylesheet(filename)));
+        user_or_user_agent_stylesheets.push(try!(parse_ua_stylesheet(&shared_lock, filename)));
     }
     for &(ref contents, ref url) in &opts::get().user_stylesheets {
         user_or_user_agent_stylesheets.push(Stylesheet::from_bytes(
             &contents, url.clone(), None, None, Origin::User, Default::default(),
-            None, &StdoutErrorReporter, ParserContextExtraData::default()));
+            shared_lock.clone(), None, &StdoutErrorReporter, ParserContextExtraData::default()));
     }
 
-    let quirks_mode_stylesheet = try!(parse_ua_stylesheet("quirks-mode.css"));
+    let quirks_mode_stylesheet = try!(parse_ua_stylesheet(&shared_lock, "quirks-mode.css"));
 
     Ok(UserAgentStylesheets {
+        shared_lock: shared_lock,
         user_or_user_agent_stylesheets: user_or_user_agent_stylesheets,
         quirks_mode_stylesheet: quirks_mode_stylesheet,
     })
