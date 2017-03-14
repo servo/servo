@@ -26,9 +26,8 @@ use std::slice;
 // TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
 // TODO: Determine for sure which value Min and Max should have.
 // NOTE: Current values found at https://dxr.mozilla.org/mozilla-central/source/js/public/StructuredClone.h#323
-#[allow(dead_code)]
 enum StructuredCloneTags {
-    /// To support additional types, add new tags after DomBlob.
+    /// To support additional types, add new tags with values incremented from the last one before Max.
     Min = 0xFFFF8000,
     DomBlob = 0xFFFF8001,
     Max = 0xFFFFFFFF,
@@ -72,6 +71,7 @@ unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    data: u32,
                                    _closure: *mut raw::c_void)
                                    -> *mut JSObject {
+    assert!(tag < StructuredCloneTags::Max as u32 && tag > StructuredCloneTags::Min as u32);
     if tag == StructuredCloneTags::DomBlob as u32 {
         return read_blob(cx, r, data)
     }
