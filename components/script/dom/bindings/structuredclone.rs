@@ -26,7 +26,6 @@ use std::slice;
 // TODO: Determine for sure which value Min and Max should have.
 // NOTE: Current values found at https://dxr.mozilla.org/mozilla-central/source/js/public/StructuredClone.h#323
 #[allow(dead_code)]
-#[repr(u32)]
 enum StructuredCloneTags {
     /// To support additional types, add new tags after DomBlob.
     Min = 0xFFFF8000,
@@ -36,7 +35,8 @@ enum StructuredCloneTags {
 
 unsafe extern "C" fn read_blob(cx: *mut JSContext,
                                r: *mut JSStructuredCloneReader,
-                               data: u32) -> *mut JSObject {
+                               data: u32)
+                               -> *mut JSObject {
     let length = data as usize;
     let mut buffer = vec![0u8; length];
     assert!(JS_ReadBytes(r, buffer.as_mut_ptr() as *mut raw::c_void, length));
@@ -48,7 +48,8 @@ unsafe extern "C" fn read_blob(cx: *mut JSContext,
 }
 
 unsafe extern "C" fn write_blob(blob: Root<Blob>,
-                                w: *mut JSStructuredCloneWriter) -> bool {
+                                w: *mut JSStructuredCloneWriter)
+                                -> bool {
     if let Ok(mut blob_vec) = blob.get_bytes() {
         blob_vec.shrink_to_fit();
         let length = blob_vec.len();
@@ -61,52 +62,51 @@ unsafe extern "C" fn write_blob(blob: Root<Blob>,
     return false
 }
 
-#[allow(dead_code)]
 unsafe extern "C" fn read_callback(cx: *mut JSContext,
                                    r: *mut JSStructuredCloneReader,
                                    tag: u32,
                                    data: u32,
-                                   _closure: *mut raw::c_void) -> *mut JSObject {
+                                   _closure: *mut raw::c_void)
+                                   -> *mut JSObject {
     if tag == StructuredCloneTags::DomBlob as u32 {
         return read_blob(cx, r, data)
     }
     return ptr::null_mut()
 }
 
-#[allow(dead_code)]
 unsafe extern "C" fn write_callback(_cx: *mut JSContext,
                                     w: *mut JSStructuredCloneWriter,
                                     obj: HandleObject,
-                                    _closure: *mut raw::c_void) -> bool {
+                                    _closure: *mut raw::c_void)
+                                    -> bool {
     if let Ok(blob) = root_from_handleobject::<Blob>(obj) {
         return write_blob(blob, w)
     }
     return false
 }
 
-#[allow(dead_code)]
 unsafe extern "C" fn read_transfer_callback(_cx: *mut JSContext,
                                             _r: *mut JSStructuredCloneReader,
                                             _tag: u32,
                                             _content: *mut raw::c_void,
                                             _extra_data: u64,
                                             _closure: *mut raw::c_void,
-                                            _return_object: MutableHandleObject) -> bool {
+                                            _return_object: MutableHandleObject)
+                                            -> bool {
     false
 }
 
-#[allow(dead_code)]
 unsafe extern "C" fn write_transfer_callback(_cx: *mut JSContext,
                                              _obj: Handle<*mut JSObject>,
                                              _closure: *mut raw::c_void,
                                              _tag: *mut u32,
                                              _ownership: *mut TransferableOwnership,
                                              _content:  *mut *mut raw::c_void,
-                                             _extra_data: *mut u64) -> bool {
+                                             _extra_data: *mut u64)
+                                             -> bool {
     false
 }
 
-#[allow(dead_code)]
 unsafe extern "C" fn free_transfer_callback(_tag: u32,
                                             _ownership: TransferableOwnership,
                                             _content: *mut raw::c_void,
@@ -114,11 +114,9 @@ unsafe extern "C" fn free_transfer_callback(_tag: u32,
                                             _closure: *mut raw::c_void) {
 }
 
-#[allow(dead_code)]
 unsafe extern "C" fn report_error_callback(_cx: *mut JSContext, _errorid: u32) {
 }
 
-#[allow(dead_code)]
 static STRUCTURED_CLONE_CALLBACKS: JSStructuredCloneCallbacks = JSStructuredCloneCallbacks {
     read: Some(read_callback),
     write: Some(write_callback),
