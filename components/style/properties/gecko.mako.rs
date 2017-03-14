@@ -3096,7 +3096,7 @@ clip-path
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Pointing"
-                  skip_longhands="cursor">
+                  skip_longhands="cursor caret-color">
     pub fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
         use properties::longhands::cursor::computed_value::Keyword;
         use style_traits::cursor::Cursor;
@@ -3170,6 +3170,23 @@ clip-path
         unsafe {
             Gecko_CopyCursorArrayFrom(&mut self.gecko, &other.gecko);
         }
+    }
+
+    pub fn set_caret_color(&mut self, v: longhands::caret_color::computed_value::T){        
+        use values::Either;
+
+        match v {
+            Either::First(color) => {
+                self.gecko.mCaretColor = color;
+            }
+            Either::Second(_auto) => {
+                self.gecko.mCaretColor.auto();
+            }
+        }
+    }
+
+    pub fn copy_caret_color_from(&mut self, other: &Self){
+        self.gecko.mCaretColor = other.gecko.mCaretColor;
     }
 </%self:impl_trait>
 
