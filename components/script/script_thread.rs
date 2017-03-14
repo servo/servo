@@ -72,6 +72,7 @@ use js::rust::Runtime;
 use layout_wrapper::ServoLayoutNode;
 use mem::heap_size_of_self_and_children;
 use microtask::{MicrotaskQueue, Microtask};
+use mopa;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId, PipelineNamespace};
 use net_traits::{CoreResourceMsg, FetchMetadata, FetchResponseListener};
 use net_traits::{IpcSend, Metadata, ReferrerPolicy, ResourceThreads};
@@ -96,6 +97,7 @@ use script_traits::webdriver_msg::WebDriverScriptCommand;
 use serviceworkerjob::{Job, JobQueue, AsyncJobHandler};
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
+use std::any::Any;
 use std::cell::Cell;
 use std::collections::{hash_map, HashMap, HashSet};
 use std::default::Default;
@@ -223,12 +225,22 @@ impl<T: Runnable + Send> Runnable for CancellableRunnable<T> {
     }
 }
 
-pub trait Runnable {
+pub trait AsBoxedAny {
+    fn as_boxed_any(self: Box<Self>) -> Box<Any + Send>;
+}
+
+impl<T: Any + Send> AsBoxedAny for T {
+    fn as_boxed_any(self: Box<Self>) -> Box<Any + Send> { self }
+}
+
+pub trait Runnable: mopa::Any + AsBoxedAny {
     fn is_cancelled(&self) -> bool { false }
     fn name(&self) -> &'static str { "generic runnable" }
     fn handler(self: Box<Self>) {}
     fn main_thread_handler(self: Box<Self>, _script_thread: &ScriptThread) { self.handler(); }
 }
+
+mopafy!(Runnable);
 
 enum MixedMessage {
     FromConstellation(ConstellationControlMsg),
@@ -665,6 +677,30 @@ impl ScriptThread {
             script_thread.browsing_contexts.borrow().get(&id)
                 .map(|context| Root::from_ref(&**context))
         }))
+    }
+
+    pub fn collect_message_port_tasks() -> Vec<Box<Runnable + Send>> {
+        SCRIPT_THREAD_ROOT.with(|root| root.get().map(|script_thread| {
+            let script_thread = unsafe { &*script_thread };
+            let (port_msgs, other_msgs): (Vec<MainThreadScriptMsg>, Vec<MainThreadScriptMsg>) =
+                script_thread.port.try_iter().partition(|msg| {
+                    if let MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(
+                        ScriptThreadEventCategory::PortMessage, _)) = *msg {
+                        return true;
+                    }
+                    false
+                });
+
+            for msg in other_msgs {
+                let _ = script_thread.chan.0.send(msg);
+            }
+            port_msgs.into_iter().map(|msg| {
+                if let MainThreadScriptMsg::Common(CommonScriptMsg::RunnableMsg(_, runnable)) = msg {
+                    return runnable;
+                }
+                unreachable!()
+            }).collect()
+        })).unwrap_or(vec![])
     }
 
     /// Creates a new script thread.

@@ -50,12 +50,15 @@ pub trait PreInvoke {
 }
 
 /// A runnable for moving the async network events between threads.
-struct ListenerRunnable<A: Action<Listener> + Send + 'static, Listener: PreInvoke + Send> {
+struct ListenerRunnable<A: Action<Listener> + Send + 'static, Listener: PreInvoke + Send + 'static> {
     context: Arc<Mutex<Listener>>,
     action: A,
 }
 
-impl<A: Action<Listener> + Send + 'static, Listener: PreInvoke + Send> Runnable for ListenerRunnable<A, Listener> {
+impl<A, Listener> Runnable for ListenerRunnable<A, Listener>
+    where A: Action<Listener> + Send + 'static,
+          Listener: PreInvoke + Send + 'static
+{
     fn handler(self: Box<ListenerRunnable<A, Listener>>) {
         let this = *self;
         let mut context = this.context.lock().unwrap();
