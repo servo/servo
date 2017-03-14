@@ -429,10 +429,10 @@ mod bindings {
             "mozilla::dom::Sequence",
             "mozilla::dom::Optional",
             "mozilla::dom::Nullable",
-            "nsAString_internal_char_traits",
-            "nsAString_internal_incompatible_char_type",
-            "nsACString_internal_char_traits",
-            "nsACString_internal_incompatible_char_type",
+            "nsACString_char_traits",
+            "nsACString_incompatible_char_type",
+            "nsAString_char_traits",
+            "nsAString_incompatible_char_type",
             "RefPtr_Proxy",
             "RefPtr_Proxy_member_function",
             "nsAutoPtr_Proxy",
@@ -520,11 +520,9 @@ mod bindings {
                 ..CodegenConfig::nothing()
             })
             .header(add_include("mozilla/ServoBindings.h"))
-            .hide_type("nsACString_internal")
-            .hide_type("nsAString_internal")
+            .hide_type("nsACString")
+            .hide_type("nsAString")
             .raw_line("pub use nsstring::{nsACString, nsAString, nsString};")
-            .raw_line("type nsACString_internal = nsACString;")
-            .raw_line("type nsAString_internal = nsAString;")
             .whitelisted_function("Servo_.*")
             .whitelisted_function("Gecko_.*");
         let structs_types = [
