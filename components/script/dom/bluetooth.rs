@@ -225,12 +225,12 @@ pub fn response_async<T: AsyncBluetoothListener + DomObject + 'static>(
         receiver: Trusted::new(receiver),
     }));
     ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-        struct ListenerRunnable<T: AsyncBluetoothListener + DomObject> {
+        struct ListenerRunnable<T: AsyncBluetoothListener + DomObject + 'static> {
             context: Arc<Mutex<BluetoothContext<T>>>,
             action: BluetoothResponseResult,
         }
 
-        impl<T: AsyncBluetoothListener + DomObject> Runnable for ListenerRunnable<T> {
+        impl<T: AsyncBluetoothListener + DomObject + 'static> Runnable for ListenerRunnable<T> {
             fn handler(self: Box<Self>) {
                 let this = *self;
                 let mut context = this.context.lock().unwrap();

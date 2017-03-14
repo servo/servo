@@ -5,16 +5,17 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::MessagePortBinding::{MessagePortMethods, Wrap};
-use dom::bindings::error::ErrorResult;
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutNullableJS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{DomObject, reflect_dom_object};
+use dom::bindings::transferable::Transferable;
 use dom::eventtarget::EventTarget;
 use dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use js::jsapi::{HandleValue, JSContext};
-use script_thread::Runnable;
+use script_thread::{Runnable, ScriptThread};
 use std::cell::Cell;
 use std::mem;
 use std::rc::Rc;
@@ -29,6 +30,64 @@ pub struct MessagePort {
     #[ignore_heap_size_of = "Defined in std"]
     entangled_port: MutNullableJS<MessagePort>,
     pending_port_messages: DOMRefCell<Vec<PortMessageRunnable>>,
+}
+
+impl Transferable for MessagePort {
+    // https://html.spec.whatwg.org/multipage/#message-ports:transfer-()
+    #[allow(unsafe_code)]
+    fn transfer(&self, target_global: &GlobalScope) -> Fallible<Root<MessagePort>> {
+        // Step 1
+        self.has_been_shipped.set(true);
+
+        // Step 2
+        let new = MessagePort::new(target_global);
+
+        // Step 3
+        new.has_been_shipped.set(true);
+
+        // Step 4
+        let trusted = Trusted::new(&*new);
+        *new.pending_port_messages.borrow_mut() = if self.enabled.get() {
+            ScriptThread::collect_message_port_tasks().into_iter().map(|task| {
+                let mut runnable = *task.as_boxed_any().downcast::<PortMessageRunnable>().unwrap();
+                runnable.target_port = trusted.clone();
+                runnable
+            }).collect()
+        } else {
+            let mut tasks = mem::replace(&mut *self.pending_port_messages.borrow_mut(), vec![]);
+            for runnable in &mut tasks {
+                runnable.target_port = trusted.clone();
+            }
+            tasks
+        };
+
+        // Step 5
+        if let Some(remote_port) = self.entangled_port.take() {
+            // Substep 2
+            remote_port.has_been_shipped.set(true);
+
+            // Substep 3
+            new.entangle(&remote_port);
+        }
+
+        // Step 6
+        self.detached.set(true);
+
+        // Step 7
+        Ok(new)
+    }
+
+    fn detached(&self) -> Option<bool> {
+        Some(self.detached.get())
+    }
+
+    fn set_detached(&self, value: bool) {
+        self.detached.set(value);
+    }
+
+    fn transferable(&self) -> bool {
+        !self.detached.get()
+    }
 }
 
 impl MessagePort {
