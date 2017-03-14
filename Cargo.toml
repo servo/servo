@@ -14,3 +14,15 @@ opt-level = 3
 # Uncomment to profile on Linux:
 # debug = true
 # lto = false
+
+[replace."html5ever:0.13.1"]
+git = "https://github.com/servo/html5ever.git"
+rev = "form-owner"
+
+[replace."html5ever-atoms:0.2.2"]
+git = "https://github.com/servo/html5ever.git"
+rev = "form-owner"
+
+[replace."xml5ever:0.4.2"]
+git = "https://github.com/servo/html5ever.git"
+rev = "form-owner"
