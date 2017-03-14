@@ -76,6 +76,7 @@ use style::properties::parse_one_declaration;
 use style::restyle_hints::{self, RestyleHint};
 use style::selector_parser::PseudoElementCascadeType;
 use style::sequential;
+use style::shared_lock::SharedRwLock;
 use style::string_cache::Atom;
 use style::stylesheets::{CssRule, CssRules, ImportRule, MediaRule, NamespaceRule};
 use style::stylesheets::{Origin, Stylesheet, StyleRule};
@@ -85,7 +86,7 @@ use style::thread_state;
 use style::timer::Timer;
 use style::traversal::{resolve_style, DomTraversal, TraversalDriver};
 use style_traits::ToCss;
-use stylesheet_loader::StylesheetLoader;
+use super::stylesheet_loader::StylesheetLoader;
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -95,12 +96,15 @@ use stylesheet_loader::StylesheetLoader;
  * depend on but good enough for our purposes.
  */
 
-struct GlobalStyleData {
+pub struct GlobalStyleData {
     // How many threads parallel styling can use.
     pub num_threads: usize,
 
     // The parallel styling thread pool.
     pub style_thread_pool: Option<rayon::ThreadPool>,
+
+    // Shared RWLock for CSSOM objects
+    pub shared_lock: SharedRwLock,
 }
 
 impl GlobalStyleData {
@@ -124,12 +128,13 @@ impl GlobalStyleData {
         GlobalStyleData {
             num_threads: num_threads,
             style_thread_pool: pool,
+            shared_lock: SharedRwLock::new(),
         }
     }
 }
 
 lazy_static! {
-    static ref GLOBAL_STYLE_DATA: GlobalStyleData = {
+    pub static ref GLOBAL_STYLE_DATA: GlobalStyleData = {
         GlobalStyleData::new()
     };
 }
@@ -335,8 +340,9 @@ pub extern "C" fn Servo_StyleSheet_Empty(mode: SheetParsingMode) -> RawServoStyl
         SheetParsingMode::eUserSheetFeatures => Origin::User,
         SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
     };
+    let shared_lock = GLOBAL_STYLE_DATA.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
-        "", url, origin, Default::default(), None,
+        "", url, origin, Default::default(), shared_lock, None,
         &StdoutErrorReporter, extra_data)
     ).into_strong()
 }
@@ -378,8 +384,9 @@ pub extern "C" fn Servo_StyleSheet_FromUTF8Bytes(loader: *mut Loader,
         Some(ref s) => Some(s),
     };
 
+    let shared_lock = GLOBAL_STYLE_DATA.shared_lock.clone();
     Arc::new(Stylesheet::from_str(
-        input, url, origin, Default::default(), loader,
+        input, url, origin, Default::default(), shared_lock, loader,
         &StdoutErrorReporter, extra_data)
     ).into_strong()
 }

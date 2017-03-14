@@ -134,6 +134,7 @@ use style::attr::AttrValue;
 use style::context::{QuirksMode, ReflowGoal};
 use style::restyle_hints::{RestyleHint, RESTYLE_STYLE_ATTRIBUTE};
 use style::selector_parser::{RestyleDamage, Snapshot};
+use style::shared_lock::SharedRwLock as StyleSharedRwLock;
 use style::str::{HTML_SPACE_CHARACTERS, split_html_space_chars, str_join};
 use style::stylesheets::Stylesheet;
 use task_source::TaskSource;
@@ -220,6 +221,9 @@ pub struct Document {
     scripts: MutNullableJS<HTMLCollection>,
     anchors: MutNullableJS<HTMLCollection>,
     applets: MutNullableJS<HTMLCollection>,
+    /// Lock use for style attributes and author-origin stylesheet objects in this document.
+    /// Can be acquired once for accessing many objects.
+    style_shared_lock: StyleSharedRwLock,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     stylesheets: DOMRefCell<Option<Vec<StylesheetInDocument>>>,
     /// Whether the list of stylesheets has changed since the last reflow was triggered.
@@ -1964,6 +1968,7 @@ pub trait LayoutDocumentHelpers {
     unsafe fn needs_paint_from_layout(&self);
     unsafe fn will_paint(&self);
     unsafe fn quirks_mode(&self) -> QuirksMode;
+    unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock;
 }
 
 #[allow(unsafe_code)]
@@ -1999,6 +2004,11 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     #[inline]
     unsafe fn quirks_mode(&self) -> QuirksMode {
         (*self.unsafe_get()).quirks_mode()
+    }
+
+    #[inline]
+    unsafe fn style_shared_lock(&self) -> &StyleSharedRwLock {
+        (*self.unsafe_get()).style_shared_lock()
     }
 }
 
@@ -2121,6 +2131,7 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
+            style_shared_lock: StyleSharedRwLock::new(),
             stylesheets: DOMRefCell::new(None),
             stylesheets_changed_since_reflow: Cell::new(false),
             stylesheet_list: MutNullableJS::new(None),
@@ -2248,6 +2259,11 @@ impl Document {
                 })
                 .collect());
         };
+    }
+
+    /// Return a reference to the per-document shared lock used in stylesheets.
+    pub fn style_shared_lock(&self) -> &StyleSharedRwLock {
+        &self.style_shared_lock
     }
 
     /// Returns the list of stylesheets associated with nodes in the document.

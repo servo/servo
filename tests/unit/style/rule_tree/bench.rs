@@ -12,6 +12,7 @@ use style::media_queries::MediaList;
 use style::parser::ParserContextExtraData;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Origin, Stylesheet, CssRule};
 use test::{self, Bencher};
 
@@ -44,6 +45,7 @@ fn parse_rules(css: &str) -> Vec<(StyleSource, CascadeLevel)> {
                                  MediaList {
                                      media_queries: vec![],
                                  },
+                                 SharedRwLock::new(),
                                  None,
                                  &ErrorringErrorReporter,
                                  ParserContextExtraData {});

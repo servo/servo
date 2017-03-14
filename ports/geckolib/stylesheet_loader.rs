@@ -9,6 +9,7 @@ use style::gecko_bindings::structs::{Loader, ServoStyleSheet};
 use style::gecko_bindings::sugar::ownership::HasArcFFI;
 use style::stylesheets::{ImportRule, StylesheetLoader as StyleStylesheetLoader};
 use style_traits::ToCss;
+use super::glue::GLOBAL_STYLE_DATA;
 
 pub struct StylesheetLoader(*mut Loader, *mut ServoStyleSheet);
 
@@ -20,6 +21,8 @@ impl StylesheetLoader {
 
 impl StyleStylesheetLoader for StylesheetLoader {
     fn request_stylesheet(&self, import_rule: &Arc<RwLock<ImportRule>>) {
+        let global_style_data = &*GLOBAL_STYLE_DATA;
+        let guard = global_style_data.shared_lock.read();
         let import = import_rule.read();
         let (spec_bytes, spec_len) = import.url.as_slice_components()
             .expect("Import only loads valid URLs");
@@ -32,7 +35,7 @@ impl StyleStylesheetLoader for StylesheetLoader {
         // evaluate them on the main thread.
         //
         // Meanwhile, this works.
-        let media = import.stylesheet.media.read().to_css_string();
+        let media = import.stylesheet.media.read_with(&guard).to_css_string();
 
         unsafe {
             Gecko_LoadStyleSheet(self.0,

@@ -28,6 +28,7 @@ use selectors::matching::{AFFECTED_BY_STYLE_ATTRIBUTE, AFFECTED_BY_PRESENTATIONA
 use selectors::matching::{ElementSelectorFlags, StyleRelations, matches_complex_selector};
 use selectors::parser::{Selector, SimpleSelector, LocalName as LocalNameSelector, ComplexSelector};
 use selectors::parser::SelectorMethods;
+#[cfg(feature = "servo")] use shared_lock::SharedRwLockReadGuard;
 use sink::Push;
 use smallvec::VecLike;
 use std::borrow::Borrow;
@@ -461,7 +462,8 @@ impl Stylist {
     /// FIXME(emilio): The semantics of the device for Servo and Gecko are
     /// different enough we may want to unify them.
     #[cfg(feature = "servo")]
-    pub fn set_device(&mut self, mut device: Device, stylesheets: &[Arc<Stylesheet>]) {
+    pub fn set_device(&mut self, mut device: Device, guard: &SharedRwLockReadGuard,
+                      stylesheets: &[Arc<Stylesheet>]) {
         let cascaded_rule = ViewportRule {
             declarations: viewport::Cascade::from_stylesheets(stylesheets, &device).finish(),
         };
@@ -473,15 +475,16 @@ impl Stylist {
             device.account_for_viewport_rule(constraints);
         }
 
-        fn mq_eval_changed(rules: &[CssRule], before: &Device, after: &Device) -> bool {
+        fn mq_eval_changed(guard: &SharedRwLockReadGuard, rules: &[CssRule],
+                           before: &Device, after: &Device) -> bool {
             for rule in rules {
-                let changed = rule.with_nested_rules_and_mq(|rules, mq| {
+                let changed = rule.with_nested_rules_and_mq(guard, |rules, mq| {
                     if let Some(mq) = mq {
                         if mq.evaluate(before) != mq.evaluate(after) {
                             return true
                         }
                     }
-                    mq_eval_changed(rules, before, after)
+                    mq_eval_changed(guard, rules, before, after)
                 });
                 if changed {
                     return true
@@ -490,12 +493,12 @@ impl Stylist {
             false
         }
         self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
-            let mq = stylesheet.media.read();
+            let mq = stylesheet.media.read_with(guard);
             if mq.evaluate(&self.device) != mq.evaluate(&device) {
                 return true
             }
 
-            mq_eval_changed(&stylesheet.rules.read().0, &self.device, &device)
+            mq_eval_changed(guard, &stylesheet.rules.read().0, &self.device, &device)
         });
 
         self.device = Arc::new(device);
