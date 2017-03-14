@@ -20,6 +20,7 @@ use style::properties::Importance;
 use style::properties::{CSSWideKeyword, DeclaredValueOwned, PropertyDeclaration, PropertyDeclarationBlock};
 use style::properties::longhands;
 use style::properties::longhands::animation_play_state;
+use style::shared_lock::SharedRwLock;
 use style::stylesheets::{Origin, Namespaces};
 use style::stylesheets::{Stylesheet, NamespaceRule, CssRule, CssRules, StyleRule, KeyframesRule};
 use style::values::specified::{LengthOrPercentageOrAuto, Percentage};
@@ -62,14 +63,15 @@ fn test_parse_stylesheet() {
         }";
     let url = ServoUrl::parse("about::test").unwrap();
     let stylesheet = Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
-                                          None,
+                                          SharedRwLock::new(), None,
                                           &CSSErrorReporterTest,
                                           ParserContextExtraData::default());
     let mut namespaces = Namespaces::default();
     namespaces.default = Some(ns!(html));
     let expected = Stylesheet {
         origin: Origin::UserAgent,
-        media: Default::default(),
+        media: Arc::new(stylesheet.shared_lock.wrap(Default::default())),
+        shared_lock: stylesheet.shared_lock.clone(),
         namespaces: RwLock::new(namespaces),
         base_url: url,
         dirty_on_viewport_size_change: AtomicBool::new(false),
@@ -324,7 +326,7 @@ fn test_report_error_stylesheet() {
     let errors = error_reporter.errors.clone();
 
     Stylesheet::from_str(css, url.clone(), Origin::UserAgent, Default::default(),
-                         None,
+                         SharedRwLock::new(), None,
                          &error_reporter,
                          ParserContextExtraData::default());
 

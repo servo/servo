@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use glue::GLOBAL_STYLE_DATA;
 use parking_lot::RwLock;
 use std::sync::Arc;
 use style::gecko_bindings::bindings::Gecko_LoadStyleSheet;
@@ -20,6 +21,8 @@ impl StylesheetLoader {
 
 impl StyleStylesheetLoader for StylesheetLoader {
     fn request_stylesheet(&self, import_rule: &Arc<RwLock<ImportRule>>) {
+        let global_style_data = &*GLOBAL_STYLE_DATA;
+        let guard = global_style_data.shared_lock.read();
         let import = import_rule.read();
         let (spec_bytes, spec_len) = import.url.as_slice_components()
             .expect("Import only loads valid URLs");
@@ -32,7 +35,7 @@ impl StyleStylesheetLoader for StylesheetLoader {
         // evaluate them on the main thread.
         //
         // Meanwhile, this works.
-        let media = import.stylesheet.media.read().to_css_string();
+        let media = import.stylesheet.media.read_with(&guard).to_css_string();
 
         unsafe {
             Gecko_LoadStyleSheet(self.0,
