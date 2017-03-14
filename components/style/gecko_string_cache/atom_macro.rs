@@ -2616,6 +2616,8 @@ cfg_if! {
             pub static nsGkAtoms_widget: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms5widthE"]
             pub static nsGkAtoms_width: *mut nsIAtom;
+            #[link_name = "_ZN9nsGkAtoms10willChangeE"]
+            pub static nsGkAtoms_willChange: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms6windowE"]
             pub static nsGkAtoms_window: *mut nsIAtom;
             #[link_name = "_ZN9nsGkAtoms18headerWindowTargetE"]
@@ -7543,6 +7545,8 @@ cfg_if! {
             pub static nsGkAtoms_widget: *mut nsIAtom;
             #[link_name = "?width@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_width: *mut nsIAtom;
+            #[link_name = "?willChange@nsGkAtoms@@2PEAVnsIAtom@@EA"]
+            pub static nsGkAtoms_willChange: *mut nsIAtom;
             #[link_name = "?window@nsGkAtoms@@2PEAVnsIAtom@@EA"]
             pub static nsGkAtoms_window: *mut nsIAtom;
             #[link_name = "?headerWindowTarget@nsGkAtoms@@2PEAVnsIAtom@@EA"]
@@ -12470,6 +12474,8 @@ cfg_if! {
             pub static nsGkAtoms_widget: *mut nsIAtom;
             #[link_name = "\x01?width@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_width: *mut nsIAtom;
+            #[link_name = "\x01?willChange@nsGkAtoms@@2PAVnsIAtom@@A"]
+            pub static nsGkAtoms_willChange: *mut nsIAtom;
             #[link_name = "\x01?window@nsGkAtoms@@2PAVnsIAtom@@A"]
             pub static nsGkAtoms_window: *mut nsIAtom;
             #[link_name = "\x01?headerWindowTarget@nsGkAtoms@@2PAVnsIAtom@@A"]
@@ -17400,6 +17406,8 @@ macro_rules! atom {
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_widget as *mut _) } };
 ("width") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_width as *mut _) } };
+("will-change") =>
+  { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_willChange as *mut _) } };
 ("window") =>
   { unsafe { $crate::string_cache::atom_macro::atom_from_static($crate::string_cache::atom_macro::nsGkAtoms_window as *mut _) } };
 ("window-target") =>
