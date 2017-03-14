@@ -22,15 +22,15 @@ use std::os::raw;
 use std::ptr;
 use std::slice;
 
-///TODO: Add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
-///TODO: Determine which value Min and Max should have.
-///NOTE: Current values found at https://dxr.mozilla.org/mozilla-central/source/js/public/StructuredClone.h#323
+// TODO: Should we add Min and Max const to https://github.com/servo/rust-mozjs/blob/master/src/consts.rs?
+// TODO: Determine for sure which value Min and Max should have.
+// NOTE: Current values found at https://dxr.mozilla.org/mozilla-central/source/js/public/StructuredClone.h#323
 #[allow(dead_code)]
 #[repr(u32)]
 enum StructuredCloneTags {
+    /// To support additional types, add new tags after DomBlob.
     Min = 0xFFFF8000,
     DomBlob = 0xFFFF8001,
-    ///NOTE: To support additional types, add new tags here.
     Max = 0xFFFFFFFF,
 }
 
@@ -41,8 +41,8 @@ unsafe extern "C" fn read_blob(cx: *mut JSContext,
     let mut buffer = vec![0u8; length];
     assert!(JS_ReadBytes(r, buffer.as_mut_ptr() as *mut raw::c_void, length));
     let target_global = GlobalScope::from_context(cx);
-    /// NOTE: missing the content-type string here.
-    /// Use JS_WriteString in write_callback? Make Blob.type_string pub?
+    // NOTE: missing the content-type string here.
+    // Use JS_WriteString in write_callback? Make Blob.type_string pub?
     let blob = Blob::new(&target_global, BlobImpl::new_from_bytes(buffer), "".to_string());
     return blob.reflector().get_jsobject().get()
 }
