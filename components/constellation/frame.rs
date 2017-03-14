@@ -4,7 +4,7 @@
 
 use msg::constellation_msg::{FrameId, PipelineId};
 use pipeline::Pipeline;
-use servo_url::ServoUrl;
+use script_traits::LoadData;
 use std::collections::HashMap;
 use std::iter::once;
 use std::mem::replace;
@@ -18,7 +18,6 @@ use std::time::Instant;
 /// chronologically, the future is sorted reverse chronologically:
 /// in particular prev.pop() is the latest past entry, and
 /// next.pop() is the earliest future entry.
-#[derive(Debug, Clone)]
 pub struct Frame {
     /// The frame id.
     pub id: FrameId,
@@ -29,8 +28,8 @@ pub struct Frame {
     /// The pipeline for the current session history entry
     pub pipeline_id: PipelineId,
 
-    /// The URL for the current session history entry
-    pub url: ServoUrl,
+    /// The load data for the current session history entry
+    pub load_data: LoadData,
 
     /// The past session history, ordered chronologically.
     pub prev: Vec<FrameState>,
@@ -42,12 +41,12 @@ pub struct Frame {
 impl Frame {
     /// Create a new frame.
     /// Note this just creates the frame, it doesn't add it to the frame tree.
-    pub fn new(id: FrameId, pipeline_id: PipelineId, url: ServoUrl) -> Frame {
+    pub fn new(id: FrameId, pipeline_id: PipelineId, load_data: LoadData) -> Frame {
         Frame {
             id: id,
             pipeline_id: pipeline_id,
             instant: Instant::now(),
-            url: url,
+            load_data: load_data,
             prev: vec!(),
             next: vec!(),
         }
@@ -59,17 +58,17 @@ impl Frame {
             instant: self.instant,
             frame_id: self.id,
             pipeline_id: Some(self.pipeline_id),
-            url: self.url.clone(),
+            load_data: self.load_data.clone(),
         }
     }
 
     /// Set the current frame entry, and push the current frame entry into the past.
-    pub fn load(&mut self, pipeline_id: PipelineId, url: ServoUrl) {
+    pub fn load(&mut self, pipeline_id: PipelineId, load_data: LoadData) {
         let current = self.current();
         self.prev.push(current);
         self.instant = Instant::now();
         self.pipeline_id = pipeline_id;
-        self.url = url;
+        self.load_data = load_data;
     }
 
     /// Set the future to be empty.
@@ -78,10 +77,10 @@ impl Frame {
     }
 
     /// Update the current entry of the Frame from an entry that has been traversed to.
-    pub fn update_current(&mut self, pipeline_id: PipelineId, entry: &FrameState) {
+    pub fn update_current(&mut self, pipeline_id: PipelineId, entry: FrameState) {
         self.pipeline_id = pipeline_id;
         self.instant = entry.instant;
-        self.url = entry.url.clone();
+        self.load_data = entry.load_data;
     }
 }
 
@@ -90,7 +89,7 @@ impl Frame {
 ///
 /// When we operate on the joint session history, entries are sorted chronologically,
 /// so we timestamp the entries by when the entry was added to the session history.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct FrameState {
     /// The timestamp for when the session history entry was created
     pub instant: Instant,
@@ -99,20 +98,11 @@ pub struct FrameState {
     /// None if the entry has been discarded
     pub pipeline_id: Option<PipelineId>,
 
-    /// The URL for this entry, used to reload the pipeline if it has been discarded
-    pub url: ServoUrl,
+    /// The load data for this entry, used to reload the pipeline if it has been discarded
+    pub load_data: LoadData,
 
     /// The frame that this session history entry is part of
     pub frame_id: FrameId,
-}
-
-impl FrameState {
-    /// Updates the entry's pipeline and url. This is used when navigating with replacement
-    /// enabled.
-    pub fn replace_pipeline(&mut self, pipeline_id: PipelineId, url: ServoUrl) {
-        self.pipeline_id = Some(pipeline_id);
-        self.url = url;
-    }
 }
 
 /// Represents a pending change in the frame tree, that will be applied
@@ -121,19 +111,16 @@ pub struct FrameChange {
     /// The frame to change.
     pub frame_id: FrameId,
 
-    /// The pipeline that was currently active at the time the change started.
-    /// TODO: can this field be removed?
-    pub old_pipeline_id: Option<PipelineId>,
-
     /// The pipeline for the document being loaded.
     pub new_pipeline_id: PipelineId,
 
-    /// The URL for the document being loaded.
-    pub url: ServoUrl,
+    /// The data for the document being loaded.
+    pub load_data: LoadData,
 
     /// Is the new document replacing the current document (e.g. a reload)
     /// or pushing it into the session history (e.g. a navigation)?
-    pub replace: Option<FrameState>,
+    /// If it is replacing an existing entry, we store its timestamp.
+    pub replace_instant: Option<Instant>,
 }
 
 /// An iterator over a frame tree, returning the fully active frames in

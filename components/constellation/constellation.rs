@@ -587,6 +587,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     frame_id: FrameId,
                     parent_info: Option<(PipelineId, FrameType)>,
                     initial_window_size: Option<TypedSize2D<f32, CSSPixel>>,
+                    // TODO: we have to provide ownership of the LoadData
+                    // here, because it will be send on an ipc channel,
+                    // and ipc channels take onership of their data.
+                    // https://github.com/servo/ipc-channel/issues/138
                     load_data: LoadData,
                     sandbox: IFrameSandboxState,
                     is_private: bool) {
@@ -747,8 +751,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     /// Create a new frame and update the internal bookkeeping.
-    fn new_frame(&mut self, frame_id: FrameId, pipeline_id: PipelineId, url: ServoUrl) {
-        let frame = Frame::new(frame_id, pipeline_id, url);
+    fn new_frame(&mut self, frame_id: FrameId, pipeline_id: PipelineId, load_data: LoadData) {
+        let frame = Frame::new(frame_id, pipeline_id, load_data);
         self.frames.insert(frame_id, frame);
 
         // If a child frame, add it to the parent pipeline.
@@ -1291,15 +1295,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         warn!("creating replacement pipeline for about:failure");
 
         let new_pipeline_id = PipelineId::new();
-        let load_data = LoadData::new(failure_url.clone(), None, None);
+        let load_data = LoadData::new(failure_url, None, None);
         let sandbox = IFrameSandboxState::IFrameSandboxed;
-        self.new_pipeline(new_pipeline_id, top_level_frame_id, parent_info, window_size, load_data, sandbox, false);
+        self.new_pipeline(new_pipeline_id, top_level_frame_id, parent_info,
+                          window_size, load_data.clone(), sandbox, false);
         self.pending_frames.push(FrameChange {
             frame_id: top_level_frame_id,
-            old_pipeline_id: pipeline_id,
             new_pipeline_id: new_pipeline_id,
-            url: failure_url,
-            replace: None,
+            load_data: load_data,
+            replace_instant: None,
         });
     }
 
@@ -1338,14 +1342,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let root_frame_id = self.root_frame_id;
         let load_data = LoadData::new(url.clone(), None, None);
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
-        self.new_pipeline(root_pipeline_id, root_frame_id, None, Some(window_size), load_data, sandbox, false);
+        self.new_pipeline(root_pipeline_id, root_frame_id, None, Some(window_size), load_data.clone(), sandbox, false);
         self.handle_load_start_msg(root_pipeline_id);
         self.pending_frames.push(FrameChange {
             frame_id: self.root_frame_id,
-            old_pipeline_id: None,
             new_pipeline_id: root_pipeline_id,
-            url: url.clone(),
-            replace: None,
+            load_data: load_data,
+            replace_instant: None,
         });
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
     }
@@ -1431,8 +1434,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             (load_data, window_size, is_private)
         };
 
-        let replace = if load_info.info.replace {
-            self.frames.get(&load_info.info.frame_id).map(|frame| frame.current())
+        let replace_instant = if load_info.info.replace {
+            self.frames.get(&load_info.info.frame_id).map(|frame| frame.instant)
         } else {
             None
         };
@@ -1440,10 +1443,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Create the new pipeline, attached to the parent and push to pending frames
         self.pending_frames.push(FrameChange {
             frame_id: load_info.info.frame_id,
-            old_pipeline_id: load_info.old_pipeline_id,
             new_pipeline_id: load_info.info.new_pipeline_id,
-            url: load_data.url.clone(),
-            replace: replace,
+            load_data: load_data.clone(),
+            replace_instant: replace_instant,
         });
 
         self.new_pipeline(load_info.info.new_pipeline_id,
@@ -1489,8 +1491,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           parent_pipeline.visible)
         };
 
-        let replace = if replace {
-            self.frames.get(&frame_id).map(|frame| frame.current())
+        // TODO: Referrer?
+        let load_data = LoadData::new(url, None, None);
+
+        let replace_instant = if replace {
+            self.frames.get(&frame_id).map(|frame| frame.instant)
         } else {
             None
         };
@@ -1500,10 +1505,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         self.pending_frames.push(FrameChange {
             frame_id: frame_id,
-            old_pipeline_id: None,
             new_pipeline_id: new_pipeline_id,
-            url: url,
-            replace: replace,
+            load_data: load_data,
+            replace_instant: replace_instant,
         });
     }
 
@@ -1615,9 +1619,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 Some(source_id)
             }
             None => {
+                let root_frame_id = self.root_frame_id;
+
                 // Make sure no pending page would be overridden.
                 for frame_change in &self.pending_frames {
-                    if frame_change.old_pipeline_id == Some(source_id) {
+                    if frame_change.frame_id == root_frame_id {
                         // id that sent load msg is being changed already; abort
                         return None;
                     }
@@ -1638,19 +1644,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // Create the new pipeline
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
-                let root_frame_id = self.root_frame_id;
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
-                let replace = if replace {
-                    self.frames.get(&frame_id).map(|frame| frame.current())
+                let replace_instant = if replace {
+                    self.frames.get(&frame_id).map(|frame| frame.instant)
                 } else {
                     None
                 };
                 self.pending_frames.push(FrameChange {
                     frame_id: root_frame_id,
-                    old_pipeline_id: Some(source_id),
                     new_pipeline_id: new_pipeline_id,
-                    url: load_data.url.clone(),
-                    replace: replace,
+                    load_data: load_data.clone(),
+                    replace_instant: replace_instant,
                 });
                 self.new_pipeline(new_pipeline_id, root_frame_id, None, window_size, load_data, sandbox, false);
 
@@ -1811,7 +1815,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let current_pipeline_id = self.frames.get(&frame_id)
             .map(|frame| frame.pipeline_id);
         let pipeline_id_loaded = self.pending_frames.iter().rev()
-            .find(|x| x.old_pipeline_id == current_pipeline_id)
+            .find(|x| x.frame_id == frame_id)
             .map(|x| x.new_pipeline_id)
             .or(current_pipeline_id);
         if let Err(e) = resp_chan.send(pipeline_id_loaded) {
@@ -2001,26 +2005,25 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // entry has been discarded, so we navigate to the entry
                 // URL instead. When the document has activated, it will
                 // traverse to the entry, but with the new pipeline id.
-                debug!("Reloading document {} for frame {}.", entry.url, frame_id);
-                // TODO: referrer?
-                let load_data = LoadData::new(entry.url.clone(), None, None);
+                debug!("Reloading document {} for frame {}.", entry.load_data.url, entry.frame_id);
                 // TODO: save the sandbox state so it can be restored here.
                 let sandbox = IFrameSandboxState::IFrameUnsandboxed;
                 let new_pipeline_id = PipelineId::new();
-                let (old_pipeline_id, parent_info, window_size, is_private) = match self.frames.get(&frame_id) {
+                let load_data = entry.load_data;
+                let (parent_info, window_size, is_private) = match self.frames.get(&frame_id) {
                     Some(frame) => match self.pipelines.get(&frame.pipeline_id) {
-                        Some(pipeline) => (frame.pipeline_id, pipeline.parent_info, pipeline.size, pipeline.is_private),
-                        None => (frame.pipeline_id, None, None, false),
+                        Some(pipeline) => (pipeline.parent_info, pipeline.size, pipeline.is_private),
+                        None => (None, None, false),
                     },
                     None => return warn!("no frame to traverse"),
                 };
-                self.new_pipeline(new_pipeline_id, frame_id, parent_info, window_size, load_data, sandbox, is_private);
+                self.new_pipeline(new_pipeline_id, frame_id, parent_info,
+                                  window_size, load_data.clone(), sandbox, is_private);
                 self.pending_frames.push(FrameChange {
                     frame_id: frame_id,
-                    old_pipeline_id: Some(old_pipeline_id),
                     new_pipeline_id: new_pipeline_id,
-                    url: entry.url.clone(),
-                    replace: Some(entry),
+                    load_data: load_data,
+                    replace_instant: Some(entry.instant),
                 });
                 return;
             }
@@ -2031,7 +2034,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // frame tree is modified below.
         let update_focus_pipeline = self.focused_pipeline_in_tree(entry.frame_id);
 
-        let old_pipeline_id = match self.frames.get_mut(&frame_id) {
+        let (old_pipeline_id, replaced_pipeline_id) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
                 let old_pipeline_id = frame.pipeline_id;
                 let mut curr_entry = frame.current();
@@ -2054,9 +2057,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
                 debug_assert_eq!(entry.instant, curr_entry.instant);
 
-                frame.update_current(pipeline_id, &entry);
+                let replaced_pipeline_id = curr_entry.pipeline_id;
 
-                old_pipeline_id
+                frame.update_current(pipeline_id, entry);
+
+                (old_pipeline_id, replaced_pipeline_id)
             },
             None => return warn!("no frame to traverse"),
         };
@@ -2069,6 +2074,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // the replacement.
         if update_focus_pipeline {
             self.focus_pipeline_id = Some(pipeline_id);
+        }
+
+        // If we replaced a pipeline, close it.
+        if let Some(replaced_pipeline_id) = replaced_pipeline_id {
+            if replaced_pipeline_id != pipeline_id {
+                self.close_pipeline(replaced_pipeline_id, DiscardBrowsingContext::No, ExitPipelineMode::Normal);
+            }
         }
 
         // Deactivate the old pipeline, and activate the new one.
@@ -2134,24 +2146,24 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // If the currently focused pipeline is the one being changed (or a child
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
-        if let Some(old_pipeline_id) = frame_change.old_pipeline_id {
-            if let Some(old_frame_id) = self.pipelines.get(&old_pipeline_id).map(|pipeline| pipeline.frame_id) {
-                if self.focused_pipeline_in_tree(old_frame_id) {
-                    self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
-                }
-            }
+        if self.focused_pipeline_in_tree(frame_change.frame_id) {
+            self.focus_pipeline_id = Some(frame_change.new_pipeline_id);
         }
 
-        let (evicted_id, new_frame, navigated, location_changed) = if let Some(mut entry) = frame_change.replace {
-            debug!("Replacing pipeline in existing frame.");
-            let evicted_id = entry.pipeline_id;
-            entry.replace_pipeline(frame_change.new_pipeline_id, frame_change.url.clone());
+        let (evicted_id, new_frame, navigated, location_changed) = if let Some(instant) = frame_change.replace_instant {
+            debug!("Replacing pipeline in existing frame with timestamp {:?}.", instant);
+            let entry = FrameState {
+                frame_id: frame_change.frame_id,
+                pipeline_id: Some(frame_change.new_pipeline_id),
+                load_data: frame_change.load_data.clone(),
+                instant: instant,
+            };
             self.traverse_to_entry(entry);
-            (evicted_id, false, None, false)
+            (None, false, None, false)
         } else if let Some(frame) = self.frames.get_mut(&frame_change.frame_id) {
             debug!("Adding pipeline to existing frame.");
             let old_pipeline_id = frame.pipeline_id;
-            frame.load(frame_change.new_pipeline_id, frame_change.url.clone());
+            frame.load(frame_change.new_pipeline_id, frame_change.load_data.clone());
             let evicted_id = frame.prev.len()
                 .checked_sub(PREFS.get("session-history.max-length").as_u64().unwrap_or(20) as usize)
                 .and_then(|index| frame.prev.get_mut(index))
@@ -2167,7 +2179,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         if new_frame {
-            self.new_frame(frame_change.frame_id, frame_change.new_pipeline_id, frame_change.url);
+            self.new_frame(frame_change.frame_id, frame_change.new_pipeline_id, frame_change.load_data);
             self.update_activity(frame_change.new_pipeline_id);
         };
 
