@@ -246,7 +246,6 @@ pub fn parse_border(context: &ParserContext, input: &mut Parser)
                                 try!(input.expect_delim('/'));
                                 border_image_outset::parse(context, input)
                             }).ok();
-                            
                             if w.is_none() && o.is_none() {
                                Err(())
                             }
