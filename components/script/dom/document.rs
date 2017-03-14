@@ -1990,16 +1990,18 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 }
 
 // https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
-fn is_a_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, original_host: Host) -> bool {
+// The spec says to return a bool, we actually return an Option<Host> containing
+// the parsed host in the successful case, to avoid having to re-parse the host.
+fn is_a_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, original_host: Host) -> Option<Host> {
     // Step 1
     if host_suffix_string.is_empty() {
-        return false;
+        return None;
     }
 
     // Step 2-3.
     let host = match Host::parse(host_suffix_string) {
         Ok(host) => host,
-        Err(_) => return false,
+        Err(_) => return None,
     };
 
     // Step 4.
@@ -2007,33 +2009,33 @@ fn is_a_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, or
         // Step 4.1
         let host = match host {
             Host::Domain(ref host) => host,
-            _ => return false,
+            _ => return None,
         };
         let original_host = match original_host {
             Host::Domain(ref original_host) => original_host,
-            _ => return false,
+            _ => return None,
         };
 
         // Step 4.2
         let (prefix, suffix) = match original_host.len().checked_sub(host.len()) {
             Some(index) => original_host.split_at(index),
-            None => return false,
+            None => return None,
         };
         if !prefix.ends_with(".") {
-            return false;
+            return None;
         }
         if suffix != host {
-            return false;
+            return None;
         }
 
         // Step 4.3
         if is_pub_domain(host) {
-            return false;
+            return None;
         }
     }
 
     // Step 5
-    return true;
+    Some(host)
 }
 
 /// https://url.spec.whatwg.org/#network-scheme
@@ -2520,7 +2522,7 @@ impl DocumentMethods for Document {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
+    // https://html.spec.whatwg.org/multipage/#dom-document-domain
     fn Domain(&self) -> DOMString {
         // Step 1.
         if !self.has_browsing_context {
@@ -2537,7 +2539,7 @@ impl DocumentMethods for Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
+    // https://html.spec.whatwg.org/multipage/#dom-document-domain
     fn SetDomain(&self, value: DOMString) -> ErrorResult {
         // Step 1.
         if !self.has_browsing_context {
@@ -2548,23 +2550,20 @@ impl DocumentMethods for Document {
         // flag set has its sandboxed document.domain browsing context
         // flag set, then throw a "SecurityError" DOMException."
 
-        // Step 3-4.
+        // Steps 3-4.
         let effective_domain = match self.origin.effective_domain() {
             Some(effective_domain) => effective_domain,
             None => return Err(Error::Security),
         };
 
         // Step 5
-        if !is_a_registrable_domain_suffix_of_or_is_equal_to(&*value, effective_domain) {
-            return Err(Error::Security);
-        }
+        let host = match is_a_registrable_domain_suffix_of_or_is_equal_to(&*value, effective_domain) {
+            None => return Err(Error::Security),
+            Some(host) => host,
+        };
 
         // Step 6
-        // Slightly annoying to have to parse twice.
-        match Host::parse(&*value) {
-            Ok(host) => self.origin.set_domain(host),
-            Err(_) => return Err(Error::Security),
-        };
+        self.origin.set_domain(host);
 
         Ok(())
     }

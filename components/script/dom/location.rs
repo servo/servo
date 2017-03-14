@@ -65,7 +65,7 @@ impl Location {
 impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-assign
     fn Assign(&self, url: USVString) -> ErrorResult {
-        // Note: no call to self.check_same_origin_domain()
+        try!(self.check_same_origin_domain());
         // TODO: per spec, we should use the _API base URL_ specified by the
         //       _entry settings object_.
         let base_url = self.window.get_url();
