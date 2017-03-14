@@ -15,7 +15,8 @@ use js::jsapi::{Handle, HandleObject, HandleValue, MutableHandleValue, JSAutoCom
 use js::jsapi::{JSStructuredCloneCallbacks, JSStructuredCloneReader, JSStructuredCloneWriter};
 use js::jsapi::{JS_ClearPendingException, JSObject, JS_ReadStructuredClone};
 use js::jsapi::{JS_ReadBytes, JS_WriteBytes};
-use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone, JS_WriteUint32Pair};
+use js::jsapi::{JS_ReadUint32Pair, JS_WriteUint32Pair};
+use js::jsapi::{JS_STRUCTURED_CLONE_VERSION, JS_WriteStructuredClone};
 use js::jsapi::{MutableHandleObject, TransferableOwnership};
 use libc::size_t;
 use std::os::raw;
@@ -35,9 +36,12 @@ enum StructuredCloneTags {
 
 unsafe extern "C" fn read_blob(cx: *mut JSContext,
                                r: *mut JSStructuredCloneReader,
-                               data: u32)
+                               _data: u32)
                                -> *mut JSObject {
-    let length = data as usize;
+    let mut high: u32 = 0;
+    let mut low: u32 = 0;
+    assert!(JS_ReadUint32Pair(r, &mut high as *mut u32, &mut low as *mut u32));
+    let length = (low << high) as usize;
     let mut buffer = vec![0u8; length];
     assert!(JS_ReadBytes(r, buffer.as_mut_ptr() as *mut raw::c_void, length));
     let target_global = GlobalScope::from_context(cx);
@@ -50,12 +54,12 @@ unsafe extern "C" fn read_blob(cx: *mut JSContext,
 unsafe extern "C" fn write_blob(blob: Root<Blob>,
                                 w: *mut JSStructuredCloneWriter)
                                 -> bool {
-    if let Ok(mut blob_vec) = blob.get_bytes() {
-        blob_vec.shrink_to_fit();
+    if let Ok(blob_vec) = blob.get_bytes() {
         let length = blob_vec.len();
-        assert!(JS_WriteUint32Pair(w,
-                                   StructuredCloneTags::DomBlob as u32,
-                                   length as u32));
+        let high: u32 = (length >> 32) as u32;
+        let low: u32 = length as u32;
+        assert!(JS_WriteUint32Pair(w, StructuredCloneTags::DomBlob as u32, 0));
+        assert!(JS_WriteUint32Pair(w, high, low));
         assert!(JS_WriteBytes(w, blob_vec.as_ptr() as *const raw::c_void, length));
         return true
     }
