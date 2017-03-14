@@ -4,16 +4,6 @@ pub use nsstring::{nsACString, nsAString, nsString};
 type nsACString_internal = nsACString;
 type nsAString_internal = nsAString;
 use gecko_bindings::structs::mozilla::css::URLValue;
-pub type RawServoMediaListStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoMediaList>;
-pub type RawServoMediaListBorrowedOrNull<'a> = Option<&'a RawServoMediaList>;
-pub type RawServoMediaListBorrowed<'a> = &'a RawServoMediaList;
-enum RawServoMediaListVoid{ }
-pub struct RawServoMediaList(RawServoMediaListVoid);
-pub type RawServoMediaRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoMediaRule>;
-pub type RawServoMediaRuleBorrowedOrNull<'a> = Option<&'a RawServoMediaRule>;
-pub type RawServoMediaRuleBorrowed<'a> = &'a RawServoMediaRule;
-enum RawServoMediaRuleVoid{ }
-pub struct RawServoMediaRule(RawServoMediaRuleVoid);
 use gecko_bindings::structs::RawGeckoDocument;
 use gecko_bindings::structs::RawGeckoElement;
 use gecko_bindings::structs::RawGeckoKeyframeList;
@@ -211,6 +201,16 @@ pub struct RawServoImportRule(RawServoImportRuleVoid);
 pub type RawServoAnimationValueStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoAnimationValue>;
 pub type RawServoAnimationValueBorrowed<'a> = &'a RawServoAnimationValue;
 pub type RawServoAnimationValueBorrowedOrNull<'a> = Option<&'a RawServoAnimationValue>;
+pub type RawServoMediaListStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoMediaList>;
+pub type RawServoMediaListBorrowed<'a> = &'a RawServoMediaList;
+pub type RawServoMediaListBorrowedOrNull<'a> = Option<&'a RawServoMediaList>;
+enum RawServoMediaListVoid { }
+pub struct RawServoMediaList(RawServoMediaListVoid);
+pub type RawServoMediaRuleStrong = ::gecko_bindings::sugar::ownership::Strong<RawServoMediaRule>;
+pub type RawServoMediaRuleBorrowed<'a> = &'a RawServoMediaRule;
+pub type RawServoMediaRuleBorrowedOrNull<'a> = Option<&'a RawServoMediaRule>;
+enum RawServoMediaRuleVoid { }
+pub struct RawServoMediaRule(RawServoMediaRuleVoid);
 pub type RawServoStyleSetOwned = ::gecko_bindings::sugar::ownership::Owned<RawServoStyleSet>;
 pub type RawServoStyleSetOwnedOrNull = ::gecko_bindings::sugar::ownership::OwnedOrNull<RawServoStyleSet>;
 pub type RawServoStyleSetBorrowed<'a> = &'a RawServoStyleSet;
@@ -297,22 +297,10 @@ extern "C" {
                                               RawServoDeclarationBlockBorrowed);
 }
 extern "C" {
-    pub fn Servo_MediaList_AddRef(ptr: RawServoMediaListBorrowed);
-}
-extern "C" {
-    pub fn Servo_MediaList_Release(ptr: RawServoMediaListBorrowed);
-}
-extern "C" {
     pub fn Servo_StyleRule_AddRef(ptr: RawServoStyleRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleRule_Release(ptr: RawServoStyleRuleBorrowed);
-}
-extern "C" {
-    pub fn Servo_MediaRule_AddRef(ptr: RawServoMediaRuleBorrowed);
-}
-extern "C" {
-    pub fn Servo_MediaRule_Release(ptr: RawServoMediaRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_ImportRule_AddRef(ptr: RawServoImportRuleBorrowed);
@@ -325,6 +313,18 @@ extern "C" {
 }
 extern "C" {
     pub fn Servo_AnimationValue_Release(ptr: RawServoAnimationValueBorrowed);
+}
+extern "C" {
+    pub fn Servo_MediaList_AddRef(ptr: RawServoMediaListBorrowed);
+}
+extern "C" {
+    pub fn Servo_MediaList_Release(ptr: RawServoMediaListBorrowed);
+}
+extern "C" {
+    pub fn Servo_MediaRule_AddRef(ptr: RawServoMediaRuleBorrowed);
+}
+extern "C" {
+    pub fn Servo_MediaRule_Release(ptr: RawServoMediaRuleBorrowed);
 }
 extern "C" {
     pub fn Servo_StyleSet_Drop(ptr: RawServoStyleSetOwned);
