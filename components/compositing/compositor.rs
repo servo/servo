@@ -544,6 +544,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.load_end(back, forward, root);
             }
 
+            (Msg::AllowNavigation(url, response_chan), ShutdownState::NotShuttingDown) => {
+                let allow = self.window.allow_navigation(url);
+                if let Err(e) = response_chan.send(allow) {
+                    warn!("Failed to send allow_navigation result ({}).", e);
+                }
+            }
+
             (Msg::DelayedCompositionTimeout(timestamp), ShutdownState::NotShuttingDown) => {
                 if let CompositionRequest::DelayedComposite(this_timestamp) =
                     self.composition_request {

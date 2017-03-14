@@ -484,6 +484,10 @@ impl WindowMethods for Window {
         }
     }
 
+    fn allow_navigation(&self, _: ServoUrl) -> bool {
+        true
+    }
+
     fn supports_clipboard(&self) -> bool {
         false
     }

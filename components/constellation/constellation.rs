@@ -1575,6 +1575,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn load_url(&mut self, source_id: PipelineId, load_data: LoadData, replace: bool) -> Option<PipelineId> {
+        // Allow the embedder to handle the url itself
+        let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
+        self.compositor_proxy.send(ToCompositorMsg::AllowNavigation(load_data.url.clone(), chan));
+        if let Ok(false) = port.recv() {
+            return None;
+        }
+
         debug!("Loading {} in pipeline {}.", load_data.url, source_id);
         // If this load targets an iframe, its framing element may exist
         // in a separate script thread than the framed document that initiated

@@ -137,6 +137,8 @@ pub trait WindowMethods {
     fn load_end(&self, back: bool, forward: bool, root: bool);
     /// Called when the browser encounters an error while loading a URL
     fn load_error(&self, code: NetError, url: String);
+    /// Wether or not to follow a link
+    fn allow_navigation(&self, url: ServoUrl) -> bool;
     /// Called when the <head> tag has finished parsing
     fn head_parsed(&self);
 
