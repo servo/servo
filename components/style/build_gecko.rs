@@ -574,6 +574,8 @@ mod bindings {
             "nsStyleColor",
             "nsStyleColumn",
             "nsStyleContent",
+            "nsStyleContentData",
+            "nsStyleContentType",
             "nsStyleContext",
             "nsStyleCoord",
             "nsStyleCoord_Calc",

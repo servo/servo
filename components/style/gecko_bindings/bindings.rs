@@ -56,6 +56,12 @@ unsafe impl Sync for nsStyleColumn {}
 use gecko_bindings::structs::nsStyleContent;
 unsafe impl Send for nsStyleContent {}
 unsafe impl Sync for nsStyleContent {}
+use gecko_bindings::structs::nsStyleContentData;
+unsafe impl Send for nsStyleContentData {}
+unsafe impl Sync for nsStyleContentData {}
+use gecko_bindings::structs::nsStyleContentType;
+unsafe impl Send for nsStyleContentType {}
+unsafe impl Sync for nsStyleContentType {}
 use gecko_bindings::structs::nsStyleContext;
 unsafe impl Send for nsStyleContext {}
 unsafe impl Sync for nsStyleContext {}
@@ -631,10 +637,7 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetUrlImageValue(image: *mut nsStyleImage,
-                                  url_bytes: *const u8, url_length: u32,
-                                  base_uri: *mut ThreadSafeURIHolder,
-                                  referrer: *mut ThreadSafeURIHolder,
-                                  principal: *mut ThreadSafePrincipalHolder);
+                                  uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_CopyImageValueFrom(image: *mut nsStyleImage,
@@ -662,14 +665,19 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_SetCursorImage(cursor: *mut nsCursorImage,
-                                string_bytes: *const u8, string_length: u32,
-                                base_uri: *mut ThreadSafeURIHolder,
-                                referrer: *mut ThreadSafeURIHolder,
-                                principal: *mut ThreadSafePrincipalHolder);
+                                uri: ServoBundledURI);
 }
 extern "C" {
     pub fn Gecko_CopyCursorArrayFrom(dest: *mut nsStyleUserInterface,
                                      src: *const nsStyleUserInterface);
+}
+extern "C" {
+    pub fn Gecko_SetContentDataImage(content_data: *mut nsStyleContentData,
+                                     uri: ServoBundledURI);
+}
+extern "C" {
+    pub fn Gecko_SetContentDataArray(content_data: *mut nsStyleContentData,
+                                     type_: nsStyleContentType, len: u32);
 }
 extern "C" {
     pub fn Gecko_GetNodeFlags(node: RawGeckoNodeBorrowed) -> u32;
@@ -710,8 +718,24 @@ extern "C" {
                                              how_many: u32);
 }
 extern "C" {
+    pub fn Gecko_ClearAndResizeCounterIncrements(content: *mut nsStyleContent,
+                                                 how_many: u32);
+}
+extern "C" {
+    pub fn Gecko_ClearAndResizeCounterResets(content: *mut nsStyleContent,
+                                             how_many: u32);
+}
+extern "C" {
     pub fn Gecko_CopyStyleContentsFrom(content: *mut nsStyleContent,
                                        other: *const nsStyleContent);
+}
+extern "C" {
+    pub fn Gecko_CopyCounterResetsFrom(content: *mut nsStyleContent,
+                                       other: *const nsStyleContent);
+}
+extern "C" {
+    pub fn Gecko_CopyCounterIncrementsFrom(content: *mut nsStyleContent,
+                                           other: *const nsStyleContent);
 }
 extern "C" {
     pub fn Gecko_EnsureImageLayersLength(layers: *mut nsStyleImageLayers,
@@ -898,7 +922,11 @@ extern "C" {
 }
 extern "C" {
     pub fn Gecko_CSSValue_SetString(css_value: nsCSSValueBorrowedMut,
-                                    string: nsString);
+                                    string: *const u8, len: u32);
+}
+extern "C" {
+    pub fn Gecko_CSSValue_SetIdent(css_value: nsCSSValueBorrowedMut,
+                                   string: *const u8, len: u32);
 }
 extern "C" {
     pub fn Gecko_CSSValue_SetArray(css_value: nsCSSValueBorrowedMut,

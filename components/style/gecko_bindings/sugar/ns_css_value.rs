@@ -5,18 +5,13 @@
 //! Little helpers for `nsCSSValue`.
 
 use app_units::Au;
-use gecko_bindings::bindings::Gecko_CSSValue_Drop;
-use gecko_bindings::bindings::Gecko_CSSValue_GetAbsoluteLength;
-use gecko_bindings::bindings::Gecko_CSSValue_GetCalc;
-use gecko_bindings::bindings::Gecko_CSSValue_GetPercentage;
-use gecko_bindings::bindings::Gecko_CSSValue_SetAbsoluteLength;
-use gecko_bindings::bindings::Gecko_CSSValue_SetCalc;
-use gecko_bindings::bindings::Gecko_CSSValue_SetPercentage;
+use gecko_bindings::bindings;
 use gecko_bindings::structs::{nsCSSValue, nsCSSUnit, nsCSSValue_Array, nscolor};
 use std::mem;
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 use std::slice;
 use values::computed::LengthOrPercentage;
+use values::specified::url::SpecifiedUrl;
 
 impl nsCSSValue {
     /// Create a CSSValue with null unit, useful to be used as a return value.
@@ -77,13 +72,13 @@ impl nsCSSValue {
     pub unsafe fn set_lop(&mut self, lop: LengthOrPercentage) {
         match lop {
             LengthOrPercentage::Length(au) => {
-                Gecko_CSSValue_SetAbsoluteLength(self, au.0)
+                bindings::Gecko_CSSValue_SetAbsoluteLength(self, au.0)
             }
             LengthOrPercentage::Percentage(pc) => {
-                Gecko_CSSValue_SetPercentage(self, pc)
+                bindings::Gecko_CSSValue_SetPercentage(self, pc)
             }
             LengthOrPercentage::Calc(calc) => {
-                Gecko_CSSValue_SetCalc(self, calc.into())
+                bindings::Gecko_CSSValue_SetCalc(self, calc.into())
             }
         }
     }
@@ -92,27 +87,47 @@ impl nsCSSValue {
     pub unsafe fn get_lop(&self) -> LengthOrPercentage {
         match self.mUnit {
             nsCSSUnit::eCSSUnit_Pixel => {
-                LengthOrPercentage::Length(Au(Gecko_CSSValue_GetAbsoluteLength(self)))
+                LengthOrPercentage::Length(Au(bindings::Gecko_CSSValue_GetAbsoluteLength(self)))
             },
             nsCSSUnit::eCSSUnit_Percent => {
-                LengthOrPercentage::Percentage(Gecko_CSSValue_GetPercentage(self))
+                LengthOrPercentage::Percentage(bindings::Gecko_CSSValue_GetPercentage(self))
             },
             nsCSSUnit::eCSSUnit_Calc => {
-                LengthOrPercentage::Calc(Gecko_CSSValue_GetCalc(self).into())
+                LengthOrPercentage::Calc(bindings::Gecko_CSSValue_GetCalc(self).into())
             },
             x => panic!("The unit should not be {:?}", x),
         }
+    }
+
+    /// Set to a string value
+    pub fn set_string(&mut self, s: &str) {
+        unsafe { bindings::Gecko_CSSValue_SetString(self, s.as_ptr(), s.len() as u32) }
+    }
+
+    /// Set to an identifier value
+    pub fn set_ident(&mut self, s: &str) {
+        unsafe { bindings::Gecko_CSSValue_SetIdent(self, s.as_ptr(), s.len() as u32) }
+    }
+
+    /// Set to a url value
+    pub fn set_url(&mut self, url: &SpecifiedUrl) {
+        unsafe { bindings::Gecko_CSSValue_SetURL(self, url.for_ffi()) }
+    }
+
+    /// Set to an array of given length
+    pub fn set_array(&mut self, len: i32) {
+        unsafe { bindings::Gecko_CSSValue_SetArray(self, len) }
     }
 }
 
 impl Drop for nsCSSValue {
     fn drop(&mut self) {
-        unsafe { Gecko_CSSValue_Drop(self) };
+        unsafe { bindings::Gecko_CSSValue_Drop(self) };
     }
 }
 
 impl nsCSSValue_Array {
-    /// Return the length of this `nsCSSShadowArray`
+    /// Return the length of this `nsCSSValue::Array`
     #[inline]
     pub fn len(&self) -> usize {
         self.mCount
@@ -128,6 +143,12 @@ impl nsCSSValue_Array {
     pub fn as_slice(&self) -> &[nsCSSValue] {
         unsafe { slice::from_raw_parts(self.buffer(), self.len()) }
     }
+
+    /// Get the array as a mutable slice of nsCSSValues.
+    #[inline]
+    pub fn as_mut_slice(&mut self) -> &mut [nsCSSValue] {
+        unsafe { slice::from_raw_parts_mut(self.buffer() as *mut _, self.len()) }
+    }
 }
 
 impl Index<usize> for nsCSSValue_Array {
@@ -137,3 +158,11 @@ impl Index<usize> for nsCSSValue_Array {
         &self.as_slice()[i]
     }
 }
+
+impl IndexMut<usize> for nsCSSValue_Array {
+    #[inline]
+    fn index_mut(&mut self, i: usize) -> &mut nsCSSValue {
+        &mut self.as_mut_slice()[i]
+    }
+}
+

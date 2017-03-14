@@ -10,6 +10,7 @@
     use cssparser::Token;
     use std::ascii::AsciiExt;
     use values::computed::ComputedValueAsSpecified;
+    use values::specified::url::SpecifiedUrl;
     use values::HasViewportPercentage;
 
     use super::list_style_type;
@@ -26,6 +27,7 @@
         use cssparser;
         use std::fmt;
         use style_traits::ToCss;
+        use values::specified::url::SpecifiedUrl;
 
         #[derive(Debug, PartialEq, Eq, Clone)]
         #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
@@ -48,6 +50,10 @@
             % if product == "gecko":
                 /// `-moz-alt-content`
                 MozAltContent,
+                /// `attr([namespace? `|`]? ident)`
+                Attr(Option<String>, String),
+                /// `url(url)`
+                Url(SpecifiedUrl),
             % endif
         }
 
@@ -80,6 +86,16 @@
 
                     % if product == "gecko":
                         ContentItem::MozAltContent => dest.write_str("-moz-alt-content"),
+                        ContentItem::Attr(ref ns, ref attr) => {
+                            dest.write_str("attr(")?;
+                            if let Some(ref ns) = *ns {
+                                cssparser::Token::Ident((&**ns).into()).to_css(dest)?;
+                                dest.write_str("|")?;
+                            }
+                            cssparser::Token::Ident((&**attr).into()).to_css(dest)?;
+                            dest.write_str(")")
+                        }
+                        ContentItem::Url(ref url) => url.to_css(dest),
                     % endif
                 }
             }
@@ -135,6 +151,12 @@
         }
         let mut content = vec![];
         loop {
+            % if product == "gecko":
+                if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+                    content.push(ContentItem::Url(url));
+                    continue;
+                }
+            % endif
             match input.next() {
                 Ok(Token::QuotedString(value)) => {
                     content.push(ContentItem::String(value.into_owned()))
@@ -159,6 +181,35 @@
                             }).unwrap_or(list_style_type::computed_value::T::decimal);
                             Ok(ContentItem::Counters(name, separator, style))
                         }),
+                        % if product == "gecko":
+                            "attr" => input.parse_nested_block(|input| {
+                                // Syntax is `[namespace? `|`]? ident`
+                                // no spaces allowed
+                                // FIXME (bug 1346693) we should be checking that
+                                // this is a valid namespace and encoding it as a namespace
+                                // number from the map
+                                let first = input.try(|i| i.expect_ident()).ok().map(|i| i.into_owned());
+                                if let Ok(token) = input.try(|i| i.next_including_whitespace()) {
+                                    match token {
+                                        Token::Delim('|') => {
+                                            // must be followed by an ident
+                                            let tok2 = input.next_including_whitespace()?;
+                                            if let Token::Ident(second) = tok2 {
+                                                return Ok(ContentItem::Attr(first, second.into_owned()))
+                                            } else {
+                                                return Err(())
+                                            }
+                                        }
+                                        _ => return Err(())
+                                    }
+                                }
+                                if let Some(first) = first {
+                                    Ok(ContentItem::Attr(None, first))
+                                } else {
+                                    Err(())
+                                }
+                            }),
+                        % endif
                         _ => return Err(())
                     }));
                 }
@@ -188,7 +239,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-increment" products="servo" animatable="False"
+<%helpers:longhand name="counter-increment" animatable="False"
                    spec="https://drafts.csswg.org/css-lists/#propdef-counter-increment">
     use std::fmt;
     use style_traits::ToCss;
@@ -262,7 +313,7 @@
     }
 </%helpers:longhand>
 
-<%helpers:longhand name="counter-reset" products="servo" animatable="False"
+<%helpers:longhand name="counter-reset" animatable="False"
                    spec="https://drafts.csswg.org/css-lists-3/#propdef-counter-reset">
     pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
     use super::counter_increment::{parse_common};
