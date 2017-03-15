@@ -653,7 +653,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::PlaceholderShown |
-            NonTSPseudoClass::Target => {
+            NonTSPseudoClass::Target |
+            NonTSPseudoClass::Valid |
+            NonTSPseudoClass::Invalid |
+            NonTSPseudoClass::MozUIValid => {
                 self.get_state().contains(pseudo_class.state_flag())
             },
             NonTSPseudoClass::ReadOnly => {
