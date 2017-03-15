@@ -211,11 +211,13 @@ class PropertiesData(object):
 
         In this situation, the `product` value is ignored while choosing
         which shorthands and longhands to generate; and instead all properties for
-        which code exists for either servo or stylo are generated.
+        which code exists for either servo or stylo are generated. Note that we skip
+        this behavior when the style crate is being built in gecko mode, because we
+        need manual glue for such properties and we don't have it.
     """
     def __init__(self, product, testing):
         self.product = product
-        self.testing = testing
+        self.testing = testing and product != "gecko"
         self.style_structs = []
         self.current_style_struct = None
         self.longhands = []

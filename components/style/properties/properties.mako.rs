@@ -2387,17 +2387,62 @@ macro_rules! longhand_properties_idents {
     }
 }
 
-/// Retuns all longhands SpecifiedValue sizes. This is used in unit tests.
+/// Testing function to check the size of a PropertyDeclaration. We implement
+/// this here so that the code can be used by both servo and stylo unit tests.
+/// This is important because structs can have different sizes in stylo and
+/// servo.
 #[cfg(feature = "testing")]
-pub fn specified_value_sizes() -> Vec<(&'static str, usize, bool)> {
+pub fn test_size_of_property_declaration() {
     use std::mem::size_of;
-    let mut sizes = vec![];
 
+    let old = 48;
+    let new = size_of::<PropertyDeclaration>();
+    if new < old {
+        panic!("Your changes have decreased the stack size of PropertyDeclaration enum from {} to {}. \
+                Good work! Please update the size in components/style/properties/properties.mako.rs.",
+                old, new)
+    } else if new > old {
+        panic!("Your changes have increased the stack size of PropertyDeclaration enum from {} to {}. \
+                These enum is present in large quantities in the style, and increasing the size \
+                may negatively affect style system performance. Please consider using `boxed=\"True\"` in \
+                the longhand If you feel that the increase is necessary, update to the new size in \
+                components/style/properties/properties.mako.rs.",
+                old, new)
+    }
+}
+
+/// Testing function to check the size of all SpecifiedValues.
+#[cfg(feature = "testing")]
+pub fn test_size_of_specified_values() {
+    use std::mem::size_of;
+    let threshold = 32;
+
+    let mut longhands = vec![];
     % for property in data.longhands:
-        sizes.push(("${property.name}",
-                    size_of::<longhands::${property.ident}::SpecifiedValue>(),
-                    ${"true" if property.boxed else "false"}));
+        longhands.push(("${property.name}",
+                       size_of::<longhands::${property.ident}::SpecifiedValue>(),
+                       ${"true" if property.boxed else "false"}));
     % endfor
 
-    sizes
+    let mut failing_messages = vec![];
+
+    for specified_value in longhands {
+        if specified_value.1 > threshold && !specified_value.2 {
+            failing_messages.push(
+                format!("Your changes have increased the size of {} SpecifiedValue to {}. The threshold is \
+                        currently {}. SpecifiedValues affect size of PropertyDeclaration enum and \
+                        increasing the size may negative affect style system performance. Please consider \
+                        using `boxed=\"True\"` in this longhand.",
+                        specified_value.0, specified_value.1, threshold));
+        } else if specified_value.1 <= threshold && specified_value.2 {
+            failing_messages.push(
+                format!("Your changes have decreased the size of {} SpecifiedValue to {}. Good work! \
+                        The threshold is currently {}. Please consider removing `boxed=\"True\"` from this longhand.",
+                        specified_value.0, specified_value.1, threshold));
+        }
+    }
+
+    if !failing_messages.is_empty() {
+        panic!("{}", failing_messages.join("\n\n"));
+    }
 }
