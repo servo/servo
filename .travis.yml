@@ -26,7 +26,9 @@ matrix:
           - .cargo
           - .servo
           - $HOME/.ccache
-      env: CCACHE=/usr/bin/ccache
+      env:
+        - CCACHE=/usr/bin/ccache
+        - SERVO_DISABLE_INCREMENTAL_COMPILATION=1
       addons:
         apt:
           packages:
