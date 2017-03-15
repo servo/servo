@@ -14,7 +14,8 @@ use restyle_hints::ElementSnapshot;
 use selector_parser::{ElementExt, PseudoElementCascadeType, SelectorParser};
 use selector_parser::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
 use selectors::{Element, MatchAttrGeneric};
-use selectors::parser::AttrSelector;
+use selectors::matching::{ElementSelectorFlags, StyleRelations};
+use selectors::parser::{AttrSelector, SelectorMethods};
 use std::borrow::Cow;
 use std::fmt;
 use std::fmt::Debug;
@@ -59,7 +60,6 @@ impl ToCss for PseudoElement {
         })
     }
 }
-
 
 impl PseudoElement {
     /// Whether the current pseudo element is :before or :after.
@@ -148,6 +148,13 @@ impl ToCss for NonTSPseudoClass {
             Visited => ":visited",
         })
     }
+}
+
+impl SelectorMethods for NonTSPseudoClass {
+    #[inline]
+    fn affects_siblings(&self) -> bool { false }
+    #[inline]
+    fn matches_non_common_style_affecting_attribute(&self) -> bool { false }
 }
 
 impl NonTSPseudoClass {
@@ -450,7 +457,9 @@ impl MatchAttrGeneric for ServoElementSnapshot {
 
 impl<E: Element<Impl=SelectorImpl> + Debug> ElementExt for E {
     fn is_link(&self) -> bool {
-        self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink)
+        self.match_non_ts_pseudo_class(&NonTSPseudoClass::AnyLink,
+                                       &mut StyleRelations::empty(),
+                                       &mut ElementSelectorFlags::empty())
     }
 
     #[inline]

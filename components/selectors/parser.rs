@@ -49,7 +49,7 @@ macro_rules! with_all_bounds {
 
             /// non tree-structural pseudo-classes
             /// (see: https://drafts.csswg.org/selectors/#structural-pseudos)
-            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss;
+            type NonTSPseudoClass: $($CommonBounds)* + Sized + ToCss + SelectorMethods;
 
             /// pseudo-elements
             type PseudoElement: $($CommonBounds)* + Sized + ToCss;
@@ -120,7 +120,7 @@ pub trait Parser {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct SelectorList<Impl: SelectorImpl>(pub Vec<Selector<Impl>>);
 
 impl<Impl: SelectorImpl> SelectorList<Impl> {
@@ -135,7 +135,7 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct Selector<Impl: SelectorImpl> {
     pub complex_selector: Arc<ComplexSelector<Impl>>,
     pub pseudo_element: Option<Impl::PseudoElement>,
@@ -159,6 +159,8 @@ fn affects_sibling<Impl: SelectorImpl>(simple_selector: &SimpleSelector<Impl>) -
         SimpleSelector::LastOfType |
         SimpleSelector::OnlyOfType => true,
 
+        SimpleSelector::NonTSPseudoClass(ref pseudo_class) => pseudo_class.affects_siblings(),
+
         _ => false,
     }
 }
@@ -180,28 +182,36 @@ fn matches_non_common_style_affecting_attribute<Impl: SelectorImpl>(simple_selec
         SimpleSelector::AttrSuffixMatch(..) |
         SimpleSelector::AttrSubstringMatch(..) => true,
 
+        SimpleSelector::NonTSPseudoClass(ref pseudo_class) =>
+            pseudo_class.matches_non_common_style_affecting_attribute(),
+
         // This deliberately includes Attr*NeverMatch
         // which never match regardless of element attributes.
         _ => false,
     }
 }
 
-impl<Impl: SelectorImpl> Selector<Impl> {
+pub trait SelectorMethods {
+    fn affects_siblings(&self) -> bool;
+    fn matches_non_common_style_affecting_attribute(&self) -> bool;
+}
+
+impl<Impl: SelectorImpl> SelectorMethods for Selector<Impl> {
     /// Whether this selector, if matching on a set of siblings, could affect
     /// other sibling's style.
-    pub fn affects_siblings(&self) -> bool {
+    fn affects_siblings(&self) -> bool {
         self.complex_selector.affects_siblings()
     }
 
-    pub fn matches_non_common_style_affecting_attribute(&self) -> bool {
+    fn matches_non_common_style_affecting_attribute(&self) -> bool {
         self.complex_selector.matches_non_common_style_affecting_attribute()
     }
 }
 
-impl<Impl: SelectorImpl> ComplexSelector<Impl> {
+impl<Impl: SelectorImpl> SelectorMethods for ComplexSelector<Impl> {
     /// Whether this complex selector, if matching on a set of siblings,
     /// could affect other sibling's style.
-    pub fn affects_siblings(&self) -> bool {
+    fn affects_siblings(&self) -> bool {
         match self.next {
             Some((_, Combinator::NextSibling)) |
             Some((_, Combinator::LaterSibling)) => return true,
@@ -214,7 +224,7 @@ impl<Impl: SelectorImpl> ComplexSelector<Impl> {
         }
     }
 
-    pub fn matches_non_common_style_affecting_attribute(&self) -> bool {
+    fn matches_non_common_style_affecting_attribute(&self) -> bool {
         match self.compound_selector.last() {
             Some(ref selector) => matches_non_common_style_affecting_attribute(selector),
             None => false,
@@ -714,18 +724,18 @@ fn parse_complex_selector_and_pseudo_element<P, Impl>(
     Ok((complex, pseudo_element))
 }
 
-fn parse_complex_selector<P, Impl>(
-        parser: &P,
-        input: &mut CssParser)
-        -> Result<ComplexSelector<Impl>, ()>
-    where P: Parser<Impl=Impl>, Impl: SelectorImpl
-{
-    let (complex, pseudo_element) =
-        parse_complex_selector_and_pseudo_element(parser, input)?;
-    if pseudo_element.is_some() {
-        return Err(())
+impl<Impl: SelectorImpl> ComplexSelector<Impl> {
+    /// Parse a complex selector.
+    pub fn parse<P>(parser: &P, input: &mut CssParser) -> Result<Self, ()>
+        where P: Parser<Impl=Impl>
+    {
+        let (complex, pseudo_element) =
+            parse_complex_selector_and_pseudo_element(parser, input)?;
+        if pseudo_element.is_some() {
+            return Err(())
+        }
+        Ok(complex)
     }
-    Ok(complex)
 }
 
 /// * `Err(())`: Invalid selector, abort
@@ -934,7 +944,7 @@ fn parse_negation<P, Impl>(parser: &P,
                            -> Result<SimpleSelector<Impl>, ()>
     where P: Parser<Impl=Impl>, Impl: SelectorImpl
 {
-    input.parse_comma_separated(|input| parse_complex_selector(parser, input).map(Arc::new))
+    input.parse_comma_separated(|input| ComplexSelector::parse(parser, input).map(Arc::new))
          .map(SimpleSelector::Negation)
 }
 
@@ -1162,6 +1172,11 @@ pub mod tests {
                 PseudoElement::After => dest.write_str("::after"),
             }
         }
+    }
+
+    impl SelectorMethods for PseudoClass {
+        fn affects_siblings(&self) -> bool { false }
+        fn matches_non_common_style_affecting_attribute(&self) -> bool { false }
     }
 
     #[derive(PartialEq, Debug)]
