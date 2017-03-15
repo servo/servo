@@ -46,7 +46,7 @@ use gfx_traits::print_tree::PrintTree;
 use incremental::RelayoutMode;
 use layout_debug;
 use model::{AdjoiningMargins, CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo, MaybeAuto};
-use model::{specified, specified_or_auto, specified_or_none};
+use model::{specified, specified_or_none, style_length};
 use sequential;
 use serde::{Serialize, Serializer};
 use servo_geometry::max_rect;
@@ -342,16 +342,9 @@ impl CandidateBSizeIterator {
             (LengthOrPercentageOrNone::None, _) => None,
             (LengthOrPercentageOrNone::Length(length), _) => Some(length),
         };
-        let min_block_size = match (fragment.style.min_block_size(), block_container_block_size) {
-            (LengthOrPercentageOrAuto::Percentage(percent), Some(block_container_block_size)) => {
-                block_container_block_size.scale_by(percent)
-            }
-            (LengthOrPercentageOrAuto::Calc(calc), _) =>
-                calc.to_computed(block_container_block_size).unwrap_or(Au(0)),
-            (LengthOrPercentageOrAuto::Percentage(_), None) => Au(0),
-            (LengthOrPercentageOrAuto::Length(length), _) => length,
-            (LengthOrPercentageOrAuto::Auto, _) => Au(0),
-        };
+        let min_block_size =
+            style_length(fragment.style.min_block_size(), block_container_block_size)
+            .specified_or_zero();
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
         let adjustment_for_box_sizing = match fragment.style.get_position().box_sizing {
@@ -1515,10 +1508,9 @@ impl BlockFlow {
             self.fragment.style().max_inline_size(),
             self.base.block_container_inline_size
         ).unwrap_or(MAX_AU);
-        let min_inline_size = specified_or_auto(
-            self.fragment.style().min_inline_size(),
-            self.base.block_container_inline_size
-        );
+        let min_inline_size =
+            MaybeAuto::from_style(self.fragment.style().min_inline_size(),
+                                  self.base.block_container_inline_size).specified_or_zero();
         let specified_inline_size = self.fragment.style().content_inline_size();
         let container_size = self.base.block_container_inline_size;
         let inline_size =
@@ -2424,8 +2416,9 @@ pub trait ISizeAndMarginsComputer {
         // If the resulting inline-size is smaller than 'min-inline-size', inline-size should be
         // recalculated, but this time using the value of 'min-inline-size' as the computed value
         // for 'inline-size'.
-        let computed_min_inline_size = specified_or_auto(block.fragment().style().min_inline_size(),
-                                                 containing_block_inline_size);
+        let computed_min_inline_size =
+            MaybeAuto::from_style(block.fragment().style().min_inline_size(),
+                                  containing_block_inline_size).specified_or_zero();
         if computed_min_inline_size > solution.inline_size {
             input.computed_inline_size = MaybeAuto::Specified(computed_min_inline_size);
             solution = self.solve_inline_size_constraints(block, &input);

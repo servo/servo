@@ -12,7 +12,6 @@ use properties::longhands::float::computed_value::T as float;
 use properties::longhands::overflow_x::computed_value::T as overflow;
 use properties::longhands::position::computed_value::T as position;
 
-
 /// An unsized struct that implements all the adjustment methods.
 pub struct StyleAdjuster<'a, 'b: 'a> {
     style: &'a mut StyleBuilder<'b>,
@@ -259,6 +258,12 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    #[cfg(feature = "servo")]
+    fn adjust_for_auto_minsize(&mut self, layout_parent_style: &ComputedValues) {
+        let is_item = layout_parent_style.get_box().clone_display().is_item_container();
+        properties::adjust_auto_minsize(self.style, is_item);
+    }
+
     /// Adjusts the style to account for various fixups that don't fit naturally
     /// into the cascade.
     ///
@@ -279,6 +284,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "servo")]
         {
             self.adjust_for_alignment(layout_parent_style);
+            self.adjust_for_auto_minsize(layout_parent_style);
         }
         self.adjust_for_border_width();
         self.adjust_for_outline();

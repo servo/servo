@@ -2571,6 +2571,9 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         }
     % endif
 
+    % if product == "servo":
+    % endif
+
     if is_root_element {
         let s = style.get_font().clone_font_size();
         style.root_font_size = s;
@@ -2588,6 +2591,20 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
     style.build()
 }
 
+/// See StyleAdjuster::adjust_for_auto_minsize.
+% if product == "servo":
+pub fn adjust_auto_minsize(style: &mut StyleBuilder, is_item: bool) {
+    % for direction in ["width", "height"]:
+        // Like calling to_computed_value, which wouldn't type check.
+        if style.get_position().clone_min_${direction}() == computed::LengthOrPercentageOrAuto::Auto
+            && !is_item {
+                style.mutate_position().set_min_${direction}(
+                    computed::LengthOrPercentageOrAuto::Length(Au(0))
+                );
+            }
+    % endfor
+}
+% endif
 
 /// See StyleAdjuster::adjust_for_border_width.
 pub fn adjust_border_width(style: &mut StyleBuilder) {

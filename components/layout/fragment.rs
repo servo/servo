@@ -36,7 +36,7 @@ use serde::ser::{Serialize, SerializeStruct, Serializer};
 use servo_url::ServoUrl;
 use std::{f32, fmt};
 use std::borrow::ToOwned;
-use std::cmp::{Ordering, max, min};
+use std::cmp::{Ordering, max};
 use std::collections::LinkedList;
 use std::sync::{Arc, Mutex};
 use style::arc_ptr_eq;
@@ -929,13 +929,15 @@ impl Fragment {
 
         let mut specified = Au(0);
         if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
-            specified = MaybeAuto::from_style(style.content_inline_size(),
-                                              Au(0)).specified_or_zero();
-            specified = max(model::specified_or_auto(style.min_inline_size(), Au(0)), specified);
-            if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
-                specified = min(specified, max)
-            }
+            let constraint = model::SizeConstraint::new(None,
+                                                        style.min_inline_size(),
+                                                        style.max_inline_size(),
+                                                        None);
+            specified = MaybeAuto::from_style(style.content_inline_size(), Au(0))
+                .specified_or_zero();
 
+            specified = constraint.clamp(specified);
+            // FIXME(stshine): find a clean way to handle this inside SizeConstraint.
             if self.style.get_position().box_sizing == box_sizing::T::border_box {
                 specified = max(Au(0), specified - border_padding);
             }
@@ -1502,7 +1504,7 @@ impl Fragment {
                     LengthOrPercentageOrAuto::Length(length) => length,
                     LengthOrPercentageOrAuto::Calc(calc) => calc.length(),
                 };
-                
+
                 let size_constraint = self.size_constraint(None, Direction::Inline);
                 inline_size = size_constraint.clamp(inline_size);
 

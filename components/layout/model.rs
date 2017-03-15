@@ -452,13 +452,17 @@ impl MaybeAuto {
 /// `style_length`: content size as given in the CSS.
 pub fn style_length(style_length: LengthOrPercentageOrAuto,
                     container_size: Option<Au>) -> MaybeAuto {
-    match container_size {
-        Some(length) => MaybeAuto::from_style(style_length, length),
-        None => if let LengthOrPercentageOrAuto::Length(length) = style_length {
-            MaybeAuto::Specified(length)
-        } else {
+    match (style_length, container_size) {
+        (LengthOrPercentageOrAuto::Length(length) , _) =>
+            MaybeAuto::Specified(length),
+        (LengthOrPercentageOrAuto::Calc(calc), _) =>
+            MaybeAuto::from_option(calc.to_computed(container_size)),
+        (LengthOrPercentageOrAuto::Percentage(percent) , Some(size)) =>
+            MaybeAuto::Specified(size.scale_by(percent)),
+        (LengthOrPercentageOrAuto::Percentage(_) , None) =>
+            MaybeAuto::Auto,
+        (LengthOrPercentageOrAuto::Auto , _) =>
             MaybeAuto::Auto
-        }
     }
 }
 
@@ -468,16 +472,6 @@ pub fn specified_or_none(length: LengthOrPercentageOrNone, containing_length: Au
         LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
         LengthOrPercentageOrNone::Calc(calc) => calc.to_computed(Some(containing_length)),
         LengthOrPercentageOrNone::Length(length) => Some(length),
-    }
-}
-
-pub fn specified_or_auto(length: LengthOrPercentageOrAuto, containing_length: Au) -> Au {
-    match length {
-        LengthOrPercentageOrAuto::Length(length) => length,
-        LengthOrPercentageOrAuto::Percentage(p) => containing_length.scale_by(p),
-        LengthOrPercentageOrAuto::Calc(calc) =>
-            containing_length.scale_by(calc.percentage()) + calc.length(),
-        LengthOrPercentageOrAuto::Auto => Au(0),
     }
 }
 
@@ -555,16 +549,7 @@ impl SizeConstraint {
                min_size: LengthOrPercentageOrAuto,
                max_size: LengthOrPercentageOrNone,
                border: Option<Au>) -> SizeConstraint {
-        let mut min_size = match container_size {
-            Some(container_size) => specified_or_auto(min_size, container_size),
-            None => if let LengthOrPercentage::Length(length) = min_size {
-                length
-            } else {
-                Au(0)
-            }
-            LengthOrPercentageOrAuto::Auto => Au(0), // FIXME: auto min-size
-        };
-
+        let mut min_size = style_length(min_size, container_size).specified_or_zero();
         let mut max_size = match container_size {
             Some(container_size) => specified_or_none(max_size, container_size),
             None => if let LengthOrPercentageOrNone::Length(length) = max_size {
