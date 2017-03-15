@@ -7,6 +7,7 @@ use mime_guess::guess_mime_type_opt;
 use net_traits::blob_url_store::{BlobBuf, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadMsg, FileOrigin, FilterPattern};
 use net_traits::filemanager_thread::{FileManagerThreadError, ReadFileProgress, RelativePos, SelectedFile};
+use servo_config::opts;
 use servo_config::prefs::PREFS;
 use std::collections::HashMap;
 use std::fs::File;
@@ -557,7 +558,8 @@ impl FileManagerStore {
 
 fn select_files_pref_enabled() -> bool {
     PREFS.get("dom.testing.htmlinputelement.select_files.enabled")
-         .as_boolean().unwrap_or(false)
+         .as_boolean().unwrap_or(false) &&
+         !opts::get().headless
 }
 
 const CHUNK_SIZE: usize = 8192;

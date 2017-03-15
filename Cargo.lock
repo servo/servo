@@ -201,6 +201,7 @@ dependencies = [
  "bluetooth_traits 0.0.1",
  "device 0.0.1 (git+https://github.com/servo/devices)",
  "ipc-channel 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo_config 0.0.1",
  "servo_rand 0.0.1",
  "tinyfiledialogs 2.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",

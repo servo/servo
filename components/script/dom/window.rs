@@ -379,7 +379,9 @@ impl Window {
 
 #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
 fn display_alert_dialog(message: &str) {
-    tinyfiledialogs::message_box_ok("Alert!", message, MessageBoxIcon::Warning);
+    if !opts::get().headless {
+        tinyfiledialogs::message_box_ok("Alert!", message, MessageBoxIcon::Warning);
+    }
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
