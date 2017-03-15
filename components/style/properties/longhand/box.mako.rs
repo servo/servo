@@ -1926,6 +1926,113 @@ ${helpers.single_keyword("transform-style",
     }
 </%helpers:longhand>
 
+<%helpers:longhand name="contain" animatable="False" products="gecko"
+                   spec="https://drafts.csswg.org/css-contain/#contain-property">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        pub type T = super::SpecifiedValue;
+    }
+
+    bitflags! {
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub flags SpecifiedValue: u8 {
+            const SIZE = 0x01,
+            const LAYOUT = 0x02,
+            const STYLE = 0x04,
+            const PAINT = 0x08,
+            const STRICT = SIZE.bits | LAYOUT.bits | STYLE.bits | PAINT.bits,
+            const CONTENT = LAYOUT.bits | STYLE.bits | PAINT.bits,
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if self.is_empty() {
+                return dest.write_str("none")
+            } else if self.contains(STRICT) {
+                return dest.write_str("strict")
+            } else if self.contains(CONTENT) {
+                return dest.write_str("content")
+            }
+
+            let mut has_any = false;
+            macro_rules! maybe_write_value {
+                ($ident:ident => $str:expr) => {
+                    if self.contains($ident) {
+                        if has_any {
+                            try!(dest.write_str(" "));
+                        }
+                        has_any = true;
+                        try!(dest.write_str($str));
+                    }
+                }
+            }
+            maybe_write_value!(SIZE => "size");
+            maybe_write_value!(LAYOUT => "layout");
+            maybe_write_value!(STYLE => "style");
+            maybe_write_value!(PAINT => "paint");
+
+            if has_any {
+                Ok(())
+            } else {
+                Err(fmt::Error)
+            }
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T::empty()
+    }
+
+    /// none | strict | content | [ size || layout || style || paint ]
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let mut result = SpecifiedValue::empty();
+
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(result);
+        } else if input.try(|input| input.expect_ident_matching("strict")).is_ok() {
+            result.insert(STRICT);
+            return Ok(result);
+        } else if input.try(|input| input.expect_ident_matching("content")).is_ok() {
+            result.insert(CONTENT);
+            return Ok(result);
+        }
+
+        loop {
+            let name = match input.expect_ident() {
+                Ok(name) => name,
+                Err(_) => break,
+            };
+            match_ignore_ascii_case! {
+                &name,
+                "size" => if result.contains(SIZE) { return Err(()) }
+                          else { result.insert(SIZE); },
+                "layout" => if result.contains(LAYOUT) { return Err(()) }
+                            else { result.insert(LAYOUT); },
+                "style" => if result.contains(STYLE) { return Err(()) }
+                          else { result.insert(STYLE); },
+                "paint" => if result.contains(PAINT) { return Err(()) }
+                          else { result.insert(PAINT); },
+                _ => return Err(())
+            }
+        }
+
+        if !result.is_empty() {
+            Ok(result)
+        } else {
+            Err(())
+        }
+    }
+</%helpers:longhand>
+
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
