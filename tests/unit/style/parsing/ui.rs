@@ -21,7 +21,7 @@ fn test_moz_user_select() {
     assert_roundtrip_with_context!(_moz_user_select::parse, "element");
     assert_roundtrip_with_context!(_moz_user_select::parse, "elements");
     assert_roundtrip_with_context!(_moz_user_select::parse, "toggle");
-    assert_roundtrip_with_context!(_moz_user_select::parse, "tri_state");
+    assert_roundtrip_with_context!(_moz_user_select::parse, "tri-state");
     assert_roundtrip_with_context!(_moz_user_select::parse, "-moz-all");
     assert_roundtrip_with_context!(_moz_user_select::parse, "-moz-none");
     assert_roundtrip_with_context!(_moz_user_select::parse, "-moz-text");
