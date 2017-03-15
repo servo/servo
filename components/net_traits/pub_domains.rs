@@ -15,7 +15,7 @@
 //! those cases are not present.
 
 use servo_config::resource_files::read_resource_file;
-use servo_url::{Host, ImmutableOrigin, ServoUrl};
+use servo_url::{Host, ImmutableOrigin, HostOrOpaqueOrigin};
 use std::collections::HashSet;
 use std::iter::FromIterator;
 use std::str::from_utf8;
@@ -142,15 +142,16 @@ pub fn is_reg_domain(domain: &str) -> bool {
     PUB_DOMAINS.is_registrable_suffix(domain)
 }
 
-/// The registered domain name (aka eTLD+1) for a URL.
-/// Returns None if the URL has no host name.
+/// The registered domain name (aka eTLD+1) for an origin.
+/// Returns the opaque origin if the URL has no host name.
 /// Returns the registered suffix for the host name if it is a domain.
 /// Leaves the host name alone if it is an IP address.
-pub fn reg_host<'a>(url: &'a ServoUrl) -> Option<Host> {
-    match url.origin() {
-        ImmutableOrigin::Tuple(_, Host::Domain(domain), _) => Some(Host::Domain(String::from(reg_suffix(&*domain)))),
-        ImmutableOrigin::Tuple(_, Host::Ipv4(address), _) => Some(Host::Ipv4(address)),
-        ImmutableOrigin::Tuple(_, Host::Ipv6(address), _) => Some(Host::Ipv6(address)),
-        ImmutableOrigin::Opaque(_) => None,
+pub fn reg_host<'a>(origin: ImmutableOrigin) -> HostOrOpaqueOrigin {
+    match origin {
+        ImmutableOrigin::Tuple(_, Host::Domain(domain), _) =>
+            HostOrOpaqueOrigin::Host(Host::Domain(String::from(reg_suffix(&*domain)))),
+        ImmutableOrigin::Tuple(_, Host::Ipv4(address), _) => HostOrOpaqueOrigin::Host(Host::Ipv4(address)),
+        ImmutableOrigin::Tuple(_, Host::Ipv6(address), _) => HostOrOpaqueOrigin::Host(Host::Ipv6(address)),
+        ImmutableOrigin::Opaque(opaque) => HostOrOpaqueOrigin::OpaqueOrigin(opaque),
     }
 }
