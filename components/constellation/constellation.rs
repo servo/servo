@@ -1467,6 +1467,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             replace,
             frame_id,
             is_private,
+            content_blocker_enabled,
         } = load_info;
 
         let url = ServoUrl::parse("about:blank").expect("infallible");

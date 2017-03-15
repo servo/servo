@@ -136,7 +136,8 @@ impl HTMLIFrameElement {
 
         let window = window_from_node(self);
         let (old_pipeline_id, new_pipeline_id) = self.generate_new_pipeline_id();
-        let private_iframe = self.privatebrowsing();
+        let private_iframe = self.get_mozbrowser_attribute("mozprivatebrowsing");
+        let content_blocker_enabled = self.get_mozbrowser_attribute("mozcontentblocker");
         let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
         let global_scope = window.upcast::<GlobalScope>();
@@ -147,6 +148,7 @@ impl HTMLIFrameElement {
             is_private: private_iframe,
             frame_type: frame_type,
             replace: replace,
+            content_blocker_enabled: content_blocker_enabled
         };
 
         if load_data.as_ref().map_or(false, |d| d.url.as_str() == "about:blank") {
@@ -318,16 +320,6 @@ impl HTMLIFrameElement {
                       ReflowReason::IFrameLoadEvent);
     }
 
-    /// Check whether the iframe has the mozprivatebrowsing attribute set
-    pub fn privatebrowsing(&self) -> bool {
-        if self.Mozbrowser() {
-            let element = self.upcast::<Element>();
-            element.has_attribute(&LocalName::from("mozprivatebrowsing"))
-        } else {
-            false
-        }
-    }
-
     pub fn get_content_window(&self) -> Option<Root<Window>> {
         self.pipeline_id.get()
             .and_then(|pipeline_id| ScriptThread::find_document(pipeline_id))
@@ -340,6 +332,20 @@ impl HTMLIFrameElement {
                     None
                 }
             })
+    }
+
+    fn set_mozbrowser_attribute(&self, attribute: &str, value: bool) {
+        let element = self.upcast::<Element>();
+        element.set_bool_attribute(&LocalName::from(attribute), value);
+    }
+
+    fn get_mozbrowser_attribute(&self, attribute: &str) -> bool {
+        if self.Mozbrowser() {
+            let element = self.upcast::<Element>();
+            element.has_attribute(&LocalName::from(attribute))
+        } else {
+            false
+        }
     }
 }
 
@@ -617,17 +623,19 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // check-tidy: no specs after this line
     fn SetMozprivatebrowsing(&self, value: bool) {
-        let element = self.upcast::<Element>();
-        element.set_bool_attribute(&LocalName::from("mozprivatebrowsing"), value);
+        self.set_mozbrowser_attribute("mozprivatebrowsing", value);
     }
 
     fn Mozprivatebrowsing(&self) -> bool {
-        if window_from_node(self).is_mozbrowser() {
-            let element = self.upcast::<Element>();
-            element.has_attribute(&LocalName::from("mozprivatebrowsing"))
-        } else {
-            false
-        }
+        self.get_mozbrowser_attribute("mozprivatebrowsing")
+    }
+
+    fn SetMozcontentblocker(&self, value: bool) {
+        self.set_mozbrowser_attribute("mozcontentblocker", value);
+    }
+
+    fn Mozcontentblocker(&self) -> bool {
+        self.get_mozbrowser_attribute("mozcontentblocker")
     }
 }
 
