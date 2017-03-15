@@ -44,6 +44,8 @@ macro_rules! apply_non_ts_list {
                 ("disabled", Disabled, disabled, IN_DISABLED_STATE, _),
                 ("checked", Checked, checked, IN_CHECKED_STATE, _),
                 ("indeterminate", Indeterminate, indeterminate, IN_INDETERMINATE_STATE, _),
+                ("placeholder-shown", PlaceholderShown, placeholderShown, IN_PLACEHOLDER_SHOWN_STATE, _),
+                ("target", Target, target, IN_TARGET_STATE, _),
                 ("read-write", ReadWrite, _, IN_READ_WRITE_STATE, _),
                 ("read-only", ReadOnly, _, IN_READ_WRITE_STATE, _),
 
