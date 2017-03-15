@@ -36,6 +36,10 @@ pub struct TFDProvider;
 impl UIProvider for TFDProvider {
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     fn open_file_dialog(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<String> {
+        if opts::get().headless {
+            return None;
+        }
+
         let mut filter = vec![];
         for p in patterns {
             let s = "*.".to_string() + &p.0;
@@ -51,6 +55,10 @@ impl UIProvider for TFDProvider {
 
     #[cfg(any(target_os = "macos", target_os = "linux", target_os = "windows"))]
     fn open_file_dialog_multi(&self, path: &str, patterns: Vec<FilterPattern>) -> Option<Vec<String>> {
+        if opts::get().headless {
+            return None;
+        }
+
         let mut filter = vec![];
         for p in patterns {
             let s = "*.".to_string() + &p.0;
@@ -558,8 +566,7 @@ impl FileManagerStore {
 
 fn select_files_pref_enabled() -> bool {
     PREFS.get("dom.testing.htmlinputelement.select_files.enabled")
-         .as_boolean().unwrap_or(false) ||
-         opts::get().headless
+         .as_boolean().unwrap_or(false)
 }
 
 const CHUNK_SIZE: usize = 8192;
