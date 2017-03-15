@@ -103,6 +103,7 @@ use msg::constellation_msg::{FrameId, Key, KeyModifiers, KeyState};
 use net_traits::{FetchResponseMsg, IpcSend, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
+use net_traits::pub_domains::is_pub_domain;
 use net_traits::request::RequestInit;
 use net_traits::response::HttpsState;
 use num_traits::ToPrimitive;
@@ -1988,6 +1989,55 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     }
 }
 
+// https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
+// The spec says to return a bool, we actually return an Option<Host> containing
+// the parsed host in the successful case, to avoid having to re-parse the host.
+fn get_registrable_domain_suffix_of_or_is_equal_to(host_suffix_string: &str, original_host: Host) -> Option<Host> {
+    // Step 1
+    if host_suffix_string.is_empty() {
+        return None;
+    }
+
+    // Step 2-3.
+    let host = match Host::parse(host_suffix_string) {
+        Ok(host) => host,
+        Err(_) => return None,
+    };
+
+    // Step 4.
+    if host != original_host {
+        // Step 4.1
+        let host = match host {
+            Host::Domain(ref host) => host,
+            _ => return None,
+        };
+        let original_host = match original_host {
+            Host::Domain(ref original_host) => original_host,
+            _ => return None,
+        };
+
+        // Step 4.2
+        let (prefix, suffix) = match original_host.len().checked_sub(host.len()) {
+            Some(index) => original_host.split_at(index),
+            None => return None,
+        };
+        if !prefix.ends_with(".") {
+            return None;
+        }
+        if suffix != host {
+            return None;
+        }
+
+        // Step 4.3
+        if is_pub_domain(host) {
+            return None;
+        }
+    }
+
+    // Step 5
+    Some(host)
+}
+
 /// https://url.spec.whatwg.org/#network-scheme
 fn url_has_network_scheme(url: &ServoUrl) -> bool {
     match url.scheme() {
@@ -2472,7 +2522,7 @@ impl DocumentMethods for Document {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
+    // https://html.spec.whatwg.org/multipage/#dom-document-domain
     fn Domain(&self) -> DOMString {
         // Step 1.
         if !self.has_browsing_context {
@@ -2487,6 +2537,35 @@ impl DocumentMethods for Document {
             Some(Host::Domain(domain)) => DOMString::from(domain),
             Some(host) => DOMString::from(host.to_string()),
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-domain
+    fn SetDomain(&self, value: DOMString) -> ErrorResult {
+        // Step 1.
+        if !self.has_browsing_context {
+            return Err(Error::Security);
+        }
+
+        // TODO: Step 2. "If this Document object's active sandboxing
+        // flag set has its sandboxed document.domain browsing context
+        // flag set, then throw a "SecurityError" DOMException."
+
+        // Steps 3-4.
+        let effective_domain = match self.origin.effective_domain() {
+            Some(effective_domain) => effective_domain,
+            None => return Err(Error::Security),
+        };
+
+        // Step 5
+        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&*value, effective_domain) {
+            None => return Err(Error::Security),
+            Some(host) => host,
+        };
+
+        // Step 6
+        self.origin.set_domain(host);
+
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-referrer
@@ -3396,6 +3475,9 @@ impl DocumentMethods for Document {
 
         let entry_responsible_document = GlobalScope::entry().as_window().Document();
 
+        // This check is same-origin not same-origin-domain.
+        // https://github.com/whatwg/html/issues/2282
+        // https://github.com/whatwg/html/pull/2288
         if !self.origin.same_origin(&entry_responsible_document.origin) {
             // Step 4.
             return Err(Error::Security);

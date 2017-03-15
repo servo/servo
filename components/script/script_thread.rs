@@ -27,7 +27,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventInit;
-use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ConversionResult, FromJSValConvertible, StringificationBehavior};
@@ -641,6 +640,14 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
             let script_thread = unsafe { &*script_thread };
             script_thread.documents.borrow().find_document(id)
+        }))
+    }
+
+    pub fn find_browsing_context(id: FrameId) -> Option<Root<BrowsingContext>> {
+        SCRIPT_THREAD_ROOT.with(|root| root.get().and_then(|script_thread| {
+            let script_thread = unsafe { &*script_thread };
+            script_thread.browsing_contexts.borrow().get(&id)
+                .map(|context| Root::from_ref(&**context))
         }))
     }
 
@@ -1348,7 +1355,7 @@ impl ScriptThread {
 
     /// Handles activity change message
     fn handle_set_document_activity_msg(&self, id: PipelineId, activity: DocumentActivity) {
-        debug!("Setting activity of {} to be {:?}.", id, activity);
+        debug!("Setting activity of {} to be {:?} in {:?}.", id, activity, thread::current().name());
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
             document.set_activity(activity);
@@ -2101,7 +2108,7 @@ impl ScriptThread {
     fn handle_reload(&self, pipeline_id: PipelineId) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            window.Location().Reload();
+            window.Location().reload_without_origin_check();
         }
     }
 

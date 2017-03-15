@@ -4,8 +4,9 @@
 
 use dom::bindings::codegen::Bindings::HistoryBinding;
 use dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
-use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
+use dom::bindings::codegen::Bindings::LocationBinding::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::error::Fallible;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -59,17 +60,17 @@ impl HistoryMethods for History {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-go
-    fn Go(&self, delta: i32) {
+    fn Go(&self, delta: i32) -> Fallible<()> {
         let direction = if delta > 0 {
             TraversalDirection::Forward(delta as usize)
         } else if delta < 0 {
             TraversalDirection::Back(-delta as usize)
         } else {
-            self.window.Location().Reload();
-            return;
+            return self.window.Location().Reload();
         };
 
         self.traverse_history(direction);
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-back
