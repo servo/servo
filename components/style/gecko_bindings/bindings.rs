@@ -975,6 +975,12 @@ extern "C" {
     pub fn Gecko_GetMediaFeatures() -> *const nsMediaFeature;
 }
 extern "C" {
+    pub fn Gecko_GetLookAndFeelSystemColor(color_id: i32,
+                                           pres_context:
+                                               RawGeckoPresContextBorrowed)
+     -> nscolor;
+}
+extern "C" {
     pub fn Gecko_Construct_Default_nsStyleFont(ptr: *mut nsStyleFont,
                                                pres_context:
                                                    RawGeckoPresContextBorrowed);

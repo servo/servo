@@ -7295,6 +7295,288 @@ pub mod root {
         #[derive(Debug, Copy, Clone)]
         pub struct ContainerLayerParameters([u8; 0]);
         #[repr(C)]
+        #[derive(Debug, Copy)]
+        pub struct LookAndFeel {
+            pub _address: u8,
+        }
+        #[repr(u8)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LookAndFeel_ColorID {
+            eColorID_WindowBackground = 0,
+            eColorID_WindowForeground = 1,
+            eColorID_WidgetBackground = 2,
+            eColorID_WidgetForeground = 3,
+            eColorID_WidgetSelectBackground = 4,
+            eColorID_WidgetSelectForeground = 5,
+            eColorID_Widget3DHighlight = 6,
+            eColorID_Widget3DShadow = 7,
+            eColorID_TextBackground = 8,
+            eColorID_TextForeground = 9,
+            eColorID_TextSelectBackground = 10,
+            eColorID_TextSelectForeground = 11,
+            eColorID_TextSelectForegroundCustom = 12,
+            eColorID_TextSelectBackgroundDisabled = 13,
+            eColorID_TextSelectBackgroundAttention = 14,
+            eColorID_TextHighlightBackground = 15,
+            eColorID_TextHighlightForeground = 16,
+            eColorID_IMERawInputBackground = 17,
+            eColorID_IMERawInputForeground = 18,
+            eColorID_IMERawInputUnderline = 19,
+            eColorID_IMESelectedRawTextBackground = 20,
+            eColorID_IMESelectedRawTextForeground = 21,
+            eColorID_IMESelectedRawTextUnderline = 22,
+            eColorID_IMEConvertedTextBackground = 23,
+            eColorID_IMEConvertedTextForeground = 24,
+            eColorID_IMEConvertedTextUnderline = 25,
+            eColorID_IMESelectedConvertedTextBackground = 26,
+            eColorID_IMESelectedConvertedTextForeground = 27,
+            eColorID_IMESelectedConvertedTextUnderline = 28,
+            eColorID_SpellCheckerUnderline = 29,
+            eColorID_activeborder = 30,
+            eColorID_activecaption = 31,
+            eColorID_appworkspace = 32,
+            eColorID_background = 33,
+            eColorID_buttonface = 34,
+            eColorID_buttonhighlight = 35,
+            eColorID_buttonshadow = 36,
+            eColorID_buttontext = 37,
+            eColorID_captiontext = 38,
+            eColorID_graytext = 39,
+            eColorID_highlight = 40,
+            eColorID_highlighttext = 41,
+            eColorID_inactiveborder = 42,
+            eColorID_inactivecaption = 43,
+            eColorID_inactivecaptiontext = 44,
+            eColorID_infobackground = 45,
+            eColorID_infotext = 46,
+            eColorID_menu = 47,
+            eColorID_menutext = 48,
+            eColorID_scrollbar = 49,
+            eColorID_threeddarkshadow = 50,
+            eColorID_threedface = 51,
+            eColorID_threedhighlight = 52,
+            eColorID_threedlightshadow = 53,
+            eColorID_threedshadow = 54,
+            eColorID_window = 55,
+            eColorID_windowframe = 56,
+            eColorID_windowtext = 57,
+            eColorID__moz_buttondefault = 58,
+            eColorID__moz_field = 59,
+            eColorID__moz_fieldtext = 60,
+            eColorID__moz_dialog = 61,
+            eColorID__moz_dialogtext = 62,
+            eColorID__moz_dragtargetzone = 63,
+            eColorID__moz_cellhighlight = 64,
+            eColorID__moz_cellhighlighttext = 65,
+            eColorID__moz_html_cellhighlight = 66,
+            eColorID__moz_html_cellhighlighttext = 67,
+            eColorID__moz_buttonhoverface = 68,
+            eColorID__moz_buttonhovertext = 69,
+            eColorID__moz_menuhover = 70,
+            eColorID__moz_menuhovertext = 71,
+            eColorID__moz_menubartext = 72,
+            eColorID__moz_menubarhovertext = 73,
+            eColorID__moz_eventreerow = 74,
+            eColorID__moz_oddtreerow = 75,
+            eColorID__moz_mac_buttonactivetext = 76,
+            eColorID__moz_mac_chrome_active = 77,
+            eColorID__moz_mac_chrome_inactive = 78,
+            eColorID__moz_mac_defaultbuttontext = 79,
+            eColorID__moz_mac_focusring = 80,
+            eColorID__moz_mac_menuselect = 81,
+            eColorID__moz_mac_menushadow = 82,
+            eColorID__moz_mac_menutextdisable = 83,
+            eColorID__moz_mac_menutextselect = 84,
+            eColorID__moz_mac_disabledtoolbartext = 85,
+            eColorID__moz_mac_secondaryhighlight = 86,
+            eColorID__moz_win_mediatext = 87,
+            eColorID__moz_win_communicationstext = 88,
+            eColorID__moz_nativehyperlinktext = 89,
+            eColorID__moz_comboboxtext = 90,
+            eColorID__moz_combobox = 91,
+            eColorID__moz_gtk_info_bar_text = 92,
+            eColorID_LAST_COLOR = 93,
+        }
+        #[repr(u32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LookAndFeel_IntID {
+            eIntID_CaretBlinkTime = 0,
+            eIntID_CaretWidth = 1,
+            eIntID_ShowCaretDuringSelection = 2,
+            eIntID_SelectTextfieldsOnKeyFocus = 3,
+            eIntID_SubmenuDelay = 4,
+            eIntID_MenusCanOverlapOSBar = 5,
+            eIntID_UseOverlayScrollbars = 6,
+            eIntID_AllowOverlayScrollbarsOverlap = 7,
+            eIntID_ShowHideScrollbars = 8,
+            eIntID_SkipNavigatingDisabledMenuItem = 9,
+            eIntID_DragThresholdX = 10,
+            eIntID_DragThresholdY = 11,
+            eIntID_UseAccessibilityTheme = 12,
+            eIntID_ScrollArrowStyle = 13,
+            eIntID_ScrollSliderStyle = 14,
+            eIntID_ScrollButtonLeftMouseButtonAction = 15,
+            eIntID_ScrollButtonMiddleMouseButtonAction = 16,
+            eIntID_ScrollButtonRightMouseButtonAction = 17,
+            eIntID_TreeOpenDelay = 18,
+            eIntID_TreeCloseDelay = 19,
+            eIntID_TreeLazyScrollDelay = 20,
+            eIntID_TreeScrollDelay = 21,
+            eIntID_TreeScrollLinesMax = 22,
+            eIntID_TabFocusModel = 23,
+            eIntID_ChosenMenuItemsShouldBlink = 24,
+            eIntID_WindowsDefaultTheme = 25,
+            eIntID_DWMCompositor = 26,
+            eIntID_WindowsClassic = 27,
+            eIntID_WindowsGlass = 28,
+            eIntID_TouchEnabled = 29,
+            eIntID_MacGraphiteTheme = 30,
+            eIntID_MacYosemiteTheme = 31,
+            eIntID_AlertNotificationOrigin = 32,
+            eIntID_ScrollToClick = 33,
+            eIntID_IMERawInputUnderlineStyle = 34,
+            eIntID_IMESelectedRawTextUnderlineStyle = 35,
+            eIntID_IMEConvertedTextUnderlineStyle = 36,
+            eIntID_IMESelectedConvertedTextUnderline = 37,
+            eIntID_SpellCheckerUnderlineStyle = 38,
+            eIntID_MenuBarDrag = 39,
+            eIntID_WindowsThemeIdentifier = 40,
+            eIntID_OperatingSystemVersionIdentifier = 41,
+            eIntID_ScrollbarButtonAutoRepeatBehavior = 42,
+            eIntID_TooltipDelay = 43,
+            eIntID_SwipeAnimationEnabled = 44,
+            eIntID_ColorPickerAvailable = 45,
+            eIntID_PhysicalHomeButton = 46,
+            eIntID_ScrollbarDisplayOnMouseMove = 47,
+            eIntID_ScrollbarFadeBeginDelay = 48,
+            eIntID_ScrollbarFadeDuration = 49,
+            eIntID_ContextMenuOffsetVertical = 50,
+            eIntID_ContextMenuOffsetHorizontal = 51,
+        }
+        #[repr(u32)]
+        /**
+   * Windows themes we currently detect.
+   */
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LookAndFeel_WindowsTheme {
+            eWindowsTheme_Generic = 0,
+            eWindowsTheme_Classic = 1,
+            eWindowsTheme_Aero = 2,
+            eWindowsTheme_LunaBlue = 3,
+            eWindowsTheme_LunaOlive = 4,
+            eWindowsTheme_LunaSilver = 5,
+            eWindowsTheme_Royale = 6,
+            eWindowsTheme_Zune = 7,
+            eWindowsTheme_AeroLite = 8,
+        }
+        #[repr(u32)]
+        /**
+   * Operating system versions.
+   */
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LookAndFeel_OperatingSystemVersion {
+            eOperatingSystemVersion_Windows7 = 2,
+            eOperatingSystemVersion_Windows8 = 3,
+            eOperatingSystemVersion_Windows10 = 4,
+            eOperatingSystemVersion_Unknown = 5,
+        }
+        pub const LookAndFeel_eScrollArrow_None:
+                  root::mozilla::LookAndFeel__bindgen_ty_1 =
+            LookAndFeel__bindgen_ty_1::eScrollArrow_None;
+        pub const LookAndFeel_eScrollArrow_StartBackward:
+                  root::mozilla::LookAndFeel__bindgen_ty_1 =
+            LookAndFeel__bindgen_ty_1::eScrollArrow_StartBackward;
+        pub const LookAndFeel_eScrollArrow_StartForward:
+                  root::mozilla::LookAndFeel__bindgen_ty_1 =
+            LookAndFeel__bindgen_ty_1::eScrollArrow_StartForward;
+        pub const LookAndFeel_eScrollArrow_EndBackward:
+                  root::mozilla::LookAndFeel__bindgen_ty_1 =
+            LookAndFeel__bindgen_ty_1::eScrollArrow_EndBackward;
+        pub const LookAndFeel_eScrollArrow_EndForward:
+                  root::mozilla::LookAndFeel__bindgen_ty_1 =
+            LookAndFeel__bindgen_ty_1::eScrollArrow_EndForward;
+        #[repr(u32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LookAndFeel__bindgen_ty_1 {
+            eScrollArrow_None = 0,
+            eScrollArrow_StartBackward = 4096,
+            eScrollArrow_StartForward = 256,
+            eScrollArrow_EndBackward = 16,
+            eScrollArrow_EndForward = 1,
+        }
+        pub const LookAndFeel_eScrollArrowStyle_Single:
+                  root::mozilla::LookAndFeel__bindgen_ty_2 =
+            LookAndFeel__bindgen_ty_2::eScrollArrowStyle_Single;
+        pub const LookAndFeel_eScrollArrowStyle_BothAtBottom:
+                  root::mozilla::LookAndFeel__bindgen_ty_2 =
+            LookAndFeel__bindgen_ty_2::eScrollArrowStyle_BothAtBottom;
+        pub const LookAndFeel_eScrollArrowStyle_BothAtEachEnd:
+                  root::mozilla::LookAndFeel__bindgen_ty_2 =
+            LookAndFeel__bindgen_ty_2::eScrollArrowStyle_BothAtEachEnd;
+        pub const LookAndFeel_eScrollArrowStyle_BothAtTop:
+                  root::mozilla::LookAndFeel__bindgen_ty_2 =
+            LookAndFeel__bindgen_ty_2::eScrollArrowStyle_BothAtTop;
+        #[repr(u32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LookAndFeel__bindgen_ty_2 {
+            eScrollArrowStyle_Single = 4097,
+            eScrollArrowStyle_BothAtBottom = 17,
+            eScrollArrowStyle_BothAtEachEnd = 4369,
+            eScrollArrowStyle_BothAtTop = 4352,
+        }
+        pub const LookAndFeel_eScrollThumbStyle_Normal:
+                  root::mozilla::LookAndFeel__bindgen_ty_3 =
+            LookAndFeel__bindgen_ty_3::eScrollThumbStyle_Normal;
+        pub const LookAndFeel_eScrollThumbStyle_Proportional:
+                  root::mozilla::LookAndFeel__bindgen_ty_3 =
+            LookAndFeel__bindgen_ty_3::eScrollThumbStyle_Proportional;
+        #[repr(u32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LookAndFeel__bindgen_ty_3 {
+            eScrollThumbStyle_Normal = 0,
+            eScrollThumbStyle_Proportional = 1,
+        }
+        #[repr(u32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LookAndFeel_FloatID {
+            eFloatID_IMEUnderlineRelativeSize = 0,
+            eFloatID_SpellCheckerUnderlineRelativeSize = 1,
+            eFloatID_CaretAspectRatio = 2,
+        }
+        #[repr(u32)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        pub enum LookAndFeel_FontID {
+            eFont_Caption = 1,
+            eFont_Icon = 2,
+            eFont_Menu = 3,
+            eFont_MessageBox = 4,
+            eFont_SmallCaption = 5,
+            eFont_StatusBar = 6,
+            eFont_Window = 7,
+            eFont_Document = 8,
+            eFont_Workspace = 9,
+            eFont_Desktop = 10,
+            eFont_Info = 11,
+            eFont_Dialog = 12,
+            eFont_Button = 13,
+            eFont_PullDownMenu = 14,
+            eFont_List = 15,
+            eFont_Field = 16,
+            eFont_Tooltips = 17,
+            eFont_Widget = 18,
+        }
+        #[test]
+        fn bindgen_test_layout_LookAndFeel() {
+            assert_eq!(::std::mem::size_of::<LookAndFeel>() , 1usize , concat
+                       ! ( "Size of: " , stringify ! ( LookAndFeel ) ));
+            assert_eq! (::std::mem::align_of::<LookAndFeel>() , 1usize ,
+                        concat ! (
+                        "Alignment of " , stringify ! ( LookAndFeel ) ));
+        }
+        impl Clone for LookAndFeel {
+            fn clone(&self) -> Self { *self }
+        }
+        #[repr(C)]
         #[derive(Debug)]
         pub struct PropertyStyleAnimationValuePair {
             pub mProperty: root::nsCSSPropertyID,
@@ -24907,6 +25189,32 @@ pub mod root {
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct nsAttrValueOrString([u8; 0]);
+    #[repr(C)]
+    #[derive(Debug, Copy)]
+    pub struct LookAndFeelInt {
+        pub id: i32,
+        pub value: i32,
+    }
+    #[test]
+    fn bindgen_test_layout_LookAndFeelInt() {
+        assert_eq!(::std::mem::size_of::<LookAndFeelInt>() , 8usize , concat !
+                   ( "Size of: " , stringify ! ( LookAndFeelInt ) ));
+        assert_eq! (::std::mem::align_of::<LookAndFeelInt>() , 4usize , concat
+                    ! ( "Alignment of " , stringify ! ( LookAndFeelInt ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const LookAndFeelInt ) ) . id as * const _
+                    as usize } , 0usize , concat ! (
+                    "Alignment of field: " , stringify ! ( LookAndFeelInt ) ,
+                    "::" , stringify ! ( id ) ));
+        assert_eq! (unsafe {
+                    & ( * ( 0 as * const LookAndFeelInt ) ) . value as * const
+                    _ as usize } , 4usize , concat ! (
+                    "Alignment of field: " , stringify ! ( LookAndFeelInt ) ,
+                    "::" , stringify ! ( value ) ));
+    }
+    impl Clone for LookAndFeelInt {
+        fn clone(&self) -> Self { *self }
+    }
     #[repr(C)]
     #[derive(Debug, Copy, Clone)]
     pub struct RawServoAnimationValue([u8; 0]);
