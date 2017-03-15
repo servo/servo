@@ -63,6 +63,7 @@ use std::cmp;
 use values::computed::ToComputedValue;
 use values::{Either, Auto};
 use computed_values::border_style;
+use gecko_bindings::structs::{nscolor, StyleComplexColor};
 
 pub mod style_structs {
     % for style_struct in data.style_structs:
@@ -3177,10 +3178,10 @@ clip-path
 
         match v {
             Either::First(color) => {
-                self.gecko.mCaretColor = color;
+                self.gecko.mCaretColor = StyleComplexColor::from(color);
             }
             Either::Second(_auto) => {
-                self.gecko.mCaretColor.auto();
+                self.gecko.mCaretColor = StyleComplexColor::auto();
             }
         }
     }
