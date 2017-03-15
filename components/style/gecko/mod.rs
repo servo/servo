@@ -4,6 +4,9 @@
 
 //! Gecko-specific style-system bits.
 
+#[macro_use]
+mod non_ts_pseudo_class_list;
+
 pub mod arc_types;
 pub mod conversions;
 pub mod data;
