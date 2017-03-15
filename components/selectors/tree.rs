@@ -5,6 +5,7 @@
 //! Traits that nodes must implement. Breaks the otherwise-cyclic dependency between layout and
 //! style.
 
+use matching::{ElementSelectorFlags, StyleRelations};
 use parser::{AttrSelector, SelectorImpl};
 use std::ascii::AsciiExt;
 
@@ -138,7 +139,10 @@ pub trait Element: MatchAttr + Sized {
     fn get_local_name(&self) -> &<Self::Impl as SelectorImpl>::BorrowedLocalName;
     fn get_namespace(&self) -> &<Self::Impl as SelectorImpl>::BorrowedNamespaceUrl;
 
-    fn match_non_ts_pseudo_class(&self, pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass) -> bool;
+    fn match_non_ts_pseudo_class(&self,
+                                 pc: &<Self::Impl as SelectorImpl>::NonTSPseudoClass,
+                                 relations: &mut StyleRelations,
+                                 flags: &mut ElementSelectorFlags) -> bool;
 
     fn get_id(&self) -> Option<<Self::Impl as SelectorImpl>::Identifier>;
     fn has_class(&self, name: &<Self::Impl as SelectorImpl>::ClassName) -> bool;
