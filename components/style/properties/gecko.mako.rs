@@ -3189,6 +3189,9 @@ clip-path
     pub fn copy_caret_color_from(&mut self, other: &Self){
         self.gecko.mCaretColor = other.gecko.mCaretColor;
     }
+
+    <%call expr="impl_color_clone('caret_color', 'mCaretColor')"></%call>
+
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"
