@@ -97,7 +97,7 @@ impl ImmutableOrigin {
 }
 
 /// Opaque identifier for URLs that have file or other schemes
-#[derive(Eq, PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug, Hash)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 pub struct OpaqueOrigin(Uuid);
 
@@ -169,4 +169,15 @@ impl MutableOrigin {
         self.immutable().host()
             .map(|host| self.domain().unwrap_or_else(|| host.clone()))
     }
+}
+
+/// The host of an origin or an opaque origin
+#[derive(PartialEq, Eq, Clone, Debug, Hash)]
+#[cfg_attr(feature = "servo", derive(HeapSizeOf, Deserialize, Serialize))]
+pub enum HostOrOpaqueOrigin {
+    Host(
+        #[cfg_attr(feature = "servo",
+                   serde(deserialize_with = "url_serde::deserialize", serialize_with = "url_serde::serialize"))]
+        Host),
+    OpaqueOrigin(OpaqueOrigin),
 }

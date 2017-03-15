@@ -167,18 +167,21 @@ impl HTMLIFrameElement {
                     .send(ConstellationMsg::ScriptLoadedAboutBlankInIFrame(load_info, pipeline_sender))
                     .unwrap();
 
+                let mut new_load_data = load_data.unwrap().clone();
+                new_load_data.origin = document.origin().immutable().clone();
+
                 let new_layout_info = NewLayoutInfo {
                     parent_info: Some((global_scope.pipeline_id(), frame_type)),
                     new_pipeline_id: new_pipeline_id,
                     frame_id: self.frame_id,
-                    load_data: load_data.unwrap(),
+                    load_data: new_load_data,
                     pipeline_port: pipeline_receiver,
                     content_process_shutdown_chan: None,
                     window_size: None,
                     layout_threads: PREFS.get("layout.threads").as_u64().expect("count") as usize,
                 };
 
-                ScriptThread::process_attach_layout(new_layout_info, document.origin().alias());
+                ScriptThread::process_attach_layout(new_layout_info);
             },
             NavigationType::Normal => {
                 self.cancel_initial_load_event.set(true);

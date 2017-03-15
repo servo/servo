@@ -63,7 +63,7 @@ use net_traits::storage_thread::StorageType;
 use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::mpsc::{Receiver, Sender};
@@ -131,6 +131,8 @@ pub enum LayoutControlMsg {
 pub struct LoadData {
     /// The URL.
     pub url: ServoUrl,
+    /// The Origin.
+    pub origin: ImmutableOrigin,
     /// The method.
     #[serde(deserialize_with = "::hyper_serde::deserialize",
             serialize_with = "::hyper_serde::serialize")]
@@ -150,8 +152,10 @@ pub struct LoadData {
 impl LoadData {
     /// Create a new `LoadData` object.
     pub fn new(url: ServoUrl, referrer_policy: Option<ReferrerPolicy>, referrer_url: Option<ServoUrl>) -> LoadData {
+        let origin = url.origin();
         LoadData {
             url: url,
+            origin: origin,
             method: Method::Get,
             headers: Headers::new(),
             data: None,

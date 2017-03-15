@@ -19,7 +19,7 @@ extern crate uuid;
 
 pub mod origin;
 
-pub use origin::{OpaqueOrigin, ImmutableOrigin, MutableOrigin};
+pub use origin::{OpaqueOrigin, HostOrOpaqueOrigin, ImmutableOrigin, MutableOrigin};
 
 use std::fmt;
 use std::net::IpAddr;
@@ -27,6 +27,8 @@ use std::ops::{Range, RangeFrom, RangeTo, RangeFull, Index};
 use std::path::Path;
 use std::sync::Arc;
 use url::{Url, Position};
+
+pub use url::Host;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
