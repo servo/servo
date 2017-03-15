@@ -11,7 +11,7 @@ use cssparser::{DeclarationListParser, DeclarationParser, parse_one_rule};
 use parking_lot::RwLock;
 use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock, PropertyId};
-use properties::{PropertyDeclarationId, LonghandId, DeclaredValue, ParsedDeclaration};
+use properties::{PropertyDeclarationId, LonghandId, ParsedDeclaration};
 use properties::LonghandIdSet;
 use properties::animated_properties::TransitionProperty;
 use properties::longhands::transition_timing_function::single_value::SpecifiedValue as SpecifiedTimingFunction;
@@ -210,14 +210,11 @@ impl KeyframesStep {
                     guard.get(PropertyDeclarationId::Longhand(LonghandId::AnimationTimingFunction)).unwrap();
                 match *declaration {
                     PropertyDeclaration::AnimationTimingFunction(ref value) => {
-                        match *value {
-                            DeclaredValue::Value(ref value) => {
-                                // Use the first value.
-                                Some(value.0[0])
-                            },
-                            _ => None,
-                        }
+                        // Use the first value.
+                        Some(value.0[0])
                     },
+                    PropertyDeclaration::CSSWideKeyword(..) => None,
+                    PropertyDeclaration::WithVariables(..) => None,
                     _ => panic!(),
                 }
             },

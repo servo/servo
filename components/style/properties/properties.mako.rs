@@ -342,7 +342,8 @@ impl PropertyDeclarationIdSet {
                     Parser::new(&css).parse_entirely(|input| {
                         match from_shorthand {
                             None => {
-                                longhands::${property.ident}::parse_specified(&context, input)
+                                longhands::${property.ident}
+                                         ::parse_specified(&context, input).map(DeclaredValueOwned::Value)
                             }
                             % for shorthand in data.shorthands:
                                 % if property in shorthand.sub_properties:
@@ -350,9 +351,9 @@ impl PropertyDeclarationIdSet {
                                         shorthands::${shorthand.ident}::parse_value(&context, input)
                                         .map(|result| {
                                             % if property.boxed:
-                                                DeclaredValue::Value(Box::new(result.${property.ident}))
+                                                DeclaredValueOwned::Value(Box::new(result.${property.ident}))
                                             % else:
-                                                DeclaredValue::Value(result.${property.ident})
+                                                DeclaredValueOwned::Value(result.${property.ident})
                                             % endif
                                         })
                                     }
@@ -364,14 +365,14 @@ impl PropertyDeclarationIdSet {
                 })
                 .unwrap_or(
                     // Invalid at computed-value time.
-                    DeclaredValue::CSSWideKeyword(
+                    DeclaredValueOwned::CSSWideKeyword(
                         % if property.style_struct.inherited:
                             CSSWideKeyword::Inherit
                         % else:
                             CSSWideKeyword::Initial
                         % endif
                     )
-                )
+                ).borrow()
             );
         }
     % endif
@@ -570,13 +571,38 @@ impl ShorthandId {
 /// Servo's representation of a declared value for a given `T`, which is the
 /// declared value for that property.
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum DeclaredValue<T> {
+pub enum DeclaredValue<'a, T: 'a> {
+    /// A known specified value from the stylesheet.
+    Value(&'a T),
+    /// An unparsed value that contains `var()` functions.
+    WithVariables(&'a Arc<UnparsedValue>),
+    /// An CSS-wide keyword.
+    CSSWideKeyword(CSSWideKeyword),
+}
+
+/// A variant of DeclaredValue that owns its data. This separation exists so
+/// that PropertyDeclaration can avoid embedding a DeclaredValue (and its
+/// extra discriminant word) and synthesize dependent DeclaredValues for
+/// PropertyDeclaration instances as needed.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum DeclaredValueOwned<T> {
     /// A known specified value from the stylesheet.
     Value(T),
     /// An unparsed value that contains `var()` functions.
     WithVariables(Arc<UnparsedValue>),
     /// An CSS-wide keyword.
     CSSWideKeyword(CSSWideKeyword),
+}
+
+impl<T> DeclaredValueOwned<T> {
+    /// Creates a dependent DeclaredValue from this DeclaredValueOwned.
+    fn borrow(&self) -> DeclaredValue<T> {
+        match *self {
+            DeclaredValueOwned::Value(ref v) => DeclaredValue::Value(v),
+            DeclaredValueOwned::WithVariables(ref v) => DeclaredValue::WithVariables(v),
+            DeclaredValueOwned::CSSWideKeyword(v) => DeclaredValue::CSSWideKeyword(v),
+        }
+    }
 }
 
 /// An unparsed property value that contains `var()` functions.
@@ -592,7 +618,7 @@ pub struct UnparsedValue {
     from_shorthand: Option<ShorthandId>,
 }
 
-impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
+impl<'a, T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<'a, T> {
     fn has_viewport_percentage(&self) -> bool {
         match *self {
             DeclaredValue::Value(ref v) => v.has_viewport_percentage(),
@@ -605,7 +631,7 @@ impl<T: HasViewportPercentage> HasViewportPercentage for DeclaredValue<T> {
     }
 }
 
-impl<T: ToCss> ToCss for DeclaredValue<T> {
+impl<'a, T: ToCss> ToCss for DeclaredValue<'a, T> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
         where W: fmt::Write,
     {
@@ -835,29 +861,25 @@ impl ParsedDeclaration {
                     % for sub_property in shorthand.sub_properties:
                         push(PropertyDeclaration::${sub_property.camel_case}(
                             % if sub_property.boxed:
-                                DeclaredValue::Value(Box::new(${sub_property.ident}))
+                                Box::new(${sub_property.ident})
                             % else:
-                                DeclaredValue::Value(${sub_property.ident})
+                                ${sub_property.ident}
                             % endif
                         ));
                     % endfor
-                }
+                },
                 ParsedDeclaration::${shorthand.camel_case}CSSWideKeyword(keyword) => {
                     % for sub_property in shorthand.sub_properties:
-                        push(PropertyDeclaration::${sub_property.camel_case}(
-                            DeclaredValue::CSSWideKeyword(keyword)
-                        ));
+                        push(PropertyDeclaration::CSSWideKeyword(LonghandId::${sub_property.camel_case}, keyword));
                     % endfor
-                }
+                },
                 ParsedDeclaration::${shorthand.camel_case}WithVariables(value) => {
                     debug_assert_eq!(
                         value.from_shorthand,
                         Some(ShorthandId::${shorthand.camel_case})
                     );
                     % for sub_property in shorthand.sub_properties:
-                        push(PropertyDeclaration::${sub_property.camel_case}(
-                            DeclaredValue::WithVariables(value.clone())
-                        ));
+                        push(PropertyDeclaration::WithVariables(LonghandId::${sub_property.camel_case}, value.clone()));
                     % endfor
                 }
             % endfor
@@ -881,9 +903,9 @@ impl ParsedDeclaration {
         match id {
             PropertyId::Custom(name) => {
                 let value = match input.try(|i| CSSWideKeyword::parse(context, i)) {
-                    Ok(keyword) => DeclaredValue::CSSWideKeyword(keyword),
+                    Ok(keyword) => DeclaredValueOwned::CSSWideKeyword(keyword),
                     Err(()) => match ::custom_properties::SpecifiedValue::parse(context, input) {
-                        Ok(value) => DeclaredValue::Value(value),
+                        Ok(value) => DeclaredValueOwned::Value(value),
                         Err(()) => return Err(PropertyDeclarationParseError::InvalidValue),
                     }
                 };
@@ -908,9 +930,7 @@ impl ParsedDeclaration {
 
                         match longhands::${property.ident}::parse_declared(context, input) {
                             Ok(value) => {
-                                Ok(ParsedDeclaration::LonghandOrCustom(
-                                    PropertyDeclaration::${property.camel_case}(value)
-                                ))
+                                Ok(ParsedDeclaration::LonghandOrCustom(value))
                             },
                             Err(()) => Err(PropertyDeclarationParseError::InvalidValue),
                         }
@@ -958,14 +978,18 @@ pub enum PropertyDeclaration {
     % for property in data.longhands:
         /// ${property.name}
         % if property.boxed:
-            ${property.camel_case}(DeclaredValue<Box<longhands::${property.ident}::SpecifiedValue>>),
+            ${property.camel_case}(Box<longhands::${property.ident}::SpecifiedValue>),
         % else:
-            ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
+            ${property.camel_case}(longhands::${property.ident}::SpecifiedValue),
         % endif
     % endfor
+    /// A css-wide keyword.
+    CSSWideKeyword(LonghandId, CSSWideKeyword),
+    /// An unparsed value that contains `var()` functions.
+    WithVariables(LonghandId, Arc<UnparsedValue>),
     /// A custom property declaration, with the property name and the declared
     /// value.
-    Custom(::custom_properties::Name, DeclaredValue<Box<::custom_properties::SpecifiedValue>>),
+    Custom(::custom_properties::Name, DeclaredValueOwned<Box<::custom_properties::SpecifiedValue>>),
 }
 
 impl HasViewportPercentage for PropertyDeclaration {
@@ -976,8 +1000,13 @@ impl HasViewportPercentage for PropertyDeclaration {
                     val.has_viewport_percentage()
                 },
             % endfor
+            PropertyDeclaration::WithVariables(..) => {
+                panic!("DeclaredValue::has_viewport_percentage without \
+                        resolving variables!")
+            },
+            PropertyDeclaration::CSSWideKeyword(..) => false,
             PropertyDeclaration::Custom(_, ref val) => {
-                val.has_viewport_percentage()
+                val.borrow().has_viewport_percentage()
             }
         }
     }
@@ -1018,7 +1047,15 @@ impl ToCss for PropertyDeclaration {
                         value.to_css(dest),
                 % endif
             % endfor
-            PropertyDeclaration::Custom(_, ref value) => value.to_css(dest),
+            PropertyDeclaration::CSSWideKeyword(_, keyword) => keyword.to_css(dest),
+            PropertyDeclaration::WithVariables(_, ref with_variables) => {
+                // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+                if with_variables.from_shorthand.is_none() {
+                    dest.write_str(&*with_variables.css)?
+                }
+                Ok(())
+            },
+            PropertyDeclaration::Custom(_, ref value) => value.borrow().to_css(dest),
             % if any(property.derived_from for property in data.longhands):
                 _ => Err(fmt::Error),
             % endif
@@ -1062,6 +1099,8 @@ impl PropertyDeclaration {
                     PropertyDeclarationId::Longhand(LonghandId::${property.camel_case})
                 }
             % endfor
+            PropertyDeclaration::CSSWideKeyword(id, _) => PropertyDeclarationId::Longhand(id),
+            PropertyDeclaration::WithVariables(id, _) => PropertyDeclarationId::Longhand(id),
             PropertyDeclaration::Custom(ref name, _) => {
                 PropertyDeclarationId::Custom(name)
             }
@@ -1070,35 +1109,22 @@ impl PropertyDeclaration {
 
     fn with_variables_from_shorthand(&self, shorthand: ShorthandId) -> Option< &str> {
         match *self {
-            % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}(ref value) => match *value {
-                    DeclaredValue::WithVariables(ref with_variables) => {
-                        if let Some(s) = with_variables.from_shorthand {
-                            if s == shorthand {
-                                Some(&*with_variables.css)
-                            } else { None }
-                        } else { None }
-                    }
-                    _ => None
-                },
-            % endfor
-            PropertyDeclaration::Custom(..) => None,
+            PropertyDeclaration::WithVariables(_, ref with_variables) => {
+                if let Some(s) = with_variables.from_shorthand {
+                    if s == shorthand {
+                        Some(&*with_variables.css)
+                    } else { None }
+                } else { None }
+            },
+            _ => None,
         }
     }
 
     /// Returns a CSS-wide keyword if the declaration's value is one.
     pub fn get_css_wide_keyword(&self) -> Option<CSSWideKeyword> {
         match *self {
-            % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}(ref value) => match *value {
-                    DeclaredValue::CSSWideKeyword(keyword) => Some(keyword),
-                    _ => None,
-                },
-            % endfor
-            PropertyDeclaration::Custom(_, ref value) => match *value {
-                DeclaredValue::CSSWideKeyword(keyword) => Some(keyword),
-                _ => None,
-            }
+            PropertyDeclaration::CSSWideKeyword(_, keyword) => Some(keyword),
+            _ => None,
         }
     }
 
@@ -1116,14 +1142,11 @@ impl PropertyDeclaration {
     /// the longhand declarations.
     pub fn may_serialize_as_part_of_shorthand(&self) -> bool {
         match *self {
-            % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}(ref value) => match *value {
-                    DeclaredValue::Value(_) => true,
-                    _ => false,
-                },
-            % endfor
+            PropertyDeclaration::CSSWideKeyword(..) => false,
+            PropertyDeclaration::WithVariables(..) => false,
             PropertyDeclaration::Custom(..) =>
                 unreachable!("Serialize a custom property as part of shorthand?"),
+            _ => true,
         }
     }
 
@@ -1135,12 +1158,9 @@ impl PropertyDeclaration {
     /// unsubstituted variables.
     pub fn value_is_unparsed(&self) -> bool {
       match *self {
-          % for property in data.longhands:
-              PropertyDeclaration::${property.camel_case}(ref value) => {
-                  matches!(*value, DeclaredValue::WithVariables(_))
-              },
-          % endfor
-          PropertyDeclaration::Custom(..) => true
+          PropertyDeclaration::WithVariables(..) => true,
+          PropertyDeclaration::Custom(..) => true,
+          _ => false,
       }
     }
 
@@ -1173,6 +1193,12 @@ impl PropertyDeclaration {
             % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(_) => ${property.ident.upper()},
             % endfor
+            PropertyDeclaration::CSSWideKeyword(id, _) |
+            PropertyDeclaration::WithVariables(id, _) => match id {
+                % for property in data.longhands:
+                    LonghandId::${property.camel_case} => ${property.ident.upper()},
+                % endfor
+            },
             PropertyDeclaration::Custom(_, _) => &[]
         }
     }
@@ -1190,6 +1216,18 @@ impl PropertyDeclaration {
                 % endif
             }
             % endfor
+            PropertyDeclaration::CSSWideKeyword(id, _) |
+            PropertyDeclaration::WithVariables(id, _) => match id {
+                % for property in data.longhands:
+                LonghandId::${property.camel_case} => {
+                    % if property.animatable:
+                        true
+                    % else:
+                        false
+                    % endif
+                }
+                % endfor
+            },
             PropertyDeclaration::Custom(..) => false,
         }
     }
@@ -1877,7 +1915,7 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
         if let PropertyDeclaration::Custom(ref name, ref value) = *declaration {
             ::custom_properties::cascade(
                 &mut custom_properties, &inherited_custom_properties,
-                &mut seen_custom, name, value)
+                &mut seen_custom, name, value.borrow());
         }
     }
 
@@ -1952,19 +1990,19 @@ pub fn apply_declarations<'a, F, I>(device: &Device,
             //
             // Unfortunately, it’s not easy to check that this
             // classification is correct.
-            let is_early_property = matches!(*declaration,
-                PropertyDeclaration::FontSize(_) |
-                PropertyDeclaration::FontFamily(_) |
-                PropertyDeclaration::Color(_) |
-                PropertyDeclaration::Position(_) |
-                PropertyDeclaration::Float(_) |
-                PropertyDeclaration::TextDecorationLine(_) |
-                PropertyDeclaration::WritingMode(_) |
-                PropertyDeclaration::Direction(_)
+            let is_early_property = matches!(longhand_id,
+                LonghandId::FontSize |
+                LonghandId::FontFamily |
+                LonghandId::Color |
+                LonghandId::Position |
+                LonghandId::Float |
+                LonghandId::TextDecorationLine |
+                LonghandId::WritingMode |
+                LonghandId::Direction
                 % if product == 'gecko':
-                    | PropertyDeclaration::TextOrientation(_)
-                    | PropertyDeclaration::AnimationName(_)
-                    | PropertyDeclaration::TransitionProperty(_)
+                    | LonghandId::TextOrientation
+                    | LonghandId::AnimationName
+                    | LonghandId::TransitionProperty
                 % endif
             );
             if
@@ -2395,7 +2433,7 @@ macro_rules! longhand_properties_idents {
 pub fn test_size_of_property_declaration() {
     use std::mem::size_of;
 
-    let old = 48;
+    let old = 40;
     let new = size_of::<PropertyDeclaration>();
     if new < old {
         panic!("Your changes have decreased the stack size of PropertyDeclaration enum from {} to {}. \
