@@ -2388,7 +2388,6 @@ macro_rules! longhand_properties_idents {
 }
 
 /// Retuns all longhands SpecifiedValue sizes. This is used in unit tests.
-#[cfg(feature = "testing")]
 pub fn specified_value_sizes() -> Vec<(&'static str, usize, bool)> {
     use std::mem::size_of;
     let mut sizes = vec![];
@@ -2400,4 +2399,52 @@ pub fn specified_value_sizes() -> Vec<(&'static str, usize, bool)> {
     % endfor
 
     sizes
+}
+
+#[test]
+fn size_of_property_declaration() {
+    use std::mem::size_of;
+
+    let old = 48;
+    let new = size_of::<PropertyDeclaration>();
+    if new < old {
+        panic!("Your changes have decreased the stack size of PropertyDeclaration enum from {} to {}. \
+                Good work! Please update the size in tests/unit/style/size_of.rs.",
+                old, new)
+    } else if new > old {
+        panic!("Your changes have increased the stack size of PropertyDeclaration enum from {} to {}. \
+                These enum is present in large quantities in the style, and increasing the size \
+                may negatively affect style system performance. Please consider using `boxed=\"True\"` in \
+                the longhand If you feel that the increase is necessary, update to the new size in \
+                tests/unit/style/size_of.rs.",
+                old, new)
+    }
+}
+
+#[test]
+fn size_of_specified_values() {
+    let threshold = 32;
+    let longhands = specified_value_sizes();
+
+    let mut failing_messages = vec![];
+
+    for specified_value in longhands {
+        if specified_value.1 > threshold && !specified_value.2 {
+            failing_messages.push(
+                format!("Your changes have increased the size of {} SpecifiedValue to {}. The threshold is \
+                        currently {}. SpecifiedValues affect size of PropertyDeclaration enum and \
+                        increasing the size may negative affect style system performance. Please consider \
+                        using `boxed=\"True\"` in this longhand.",
+                        specified_value.0, specified_value.1, threshold));
+        } else if specified_value.1 <= threshold && specified_value.2 {
+            failing_messages.push(
+                format!("Your changes have decreased the size of {} SpecifiedValue to {}. Good work! \
+                        The threshold is currently {}. Please consider removing `boxed=\"True\"` from this longhand.",
+                        specified_value.0, specified_value.1, threshold));
+        }
+    }
+
+    if !failing_messages.is_empty() {
+        panic!("{}", failing_messages.join("\n\n"));
+    }
 }

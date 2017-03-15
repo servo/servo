@@ -30,7 +30,6 @@ mod owning_handle;
 mod parsing;
 mod properties;
 mod rule_tree;
-mod size_of;
 mod str;
 mod stylesheets;
 mod stylist;
