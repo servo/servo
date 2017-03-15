@@ -1926,6 +1926,201 @@ ${helpers.single_keyword("transform-style",
     }
 </%helpers:longhand>
 
+<%helpers:longhand name="contain" animatable="False" products="gecko"
+                   spec="https://drafts.csswg.org/css-contain/#contain-property">
+    use std::fmt;
+    use style_traits::ToCss;
+    use values::HasViewportPercentage;
+
+    no_viewport_percentage!(SpecifiedValue);
+
+    pub mod computed_value {
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub enum ComputedContainment {
+            Size,
+            Layout,
+            Style,
+            Paint,
+        }
+
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+        pub struct T(pub Option<Vec<ComputedContainment>>);
+    }
+
+    use self::computed_value::ComputedContainment;
+
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub enum SpecifiedContainment {
+        Strict,
+        Content,
+        Size,
+        Layout,
+        Style,
+        Paint,
+    }
+
+    #[derive(Clone, Debug, PartialEq)]
+    #[cfg_attr(feature = "servo", derive(HeapSizeOf))]
+    pub struct SpecifiedValue(pub Vec<SpecifiedContainment>);
+
+    impl ToCss for ComputedContainment {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                ComputedContainment::Size => dest.write_str("size"),
+                ComputedContainment::Layout => dest.write_str("layout"),
+                ComputedContainment::Style => dest.write_str("style"),
+                ComputedContainment::Paint => dest.write_str("paint"),
+            }
+        }
+    }
+
+    impl ToCss for computed_value::T {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match self.0 {
+                None => dest.write_str("none"),
+                Some(ref vec) => {
+                    if vec.is_empty() {
+                        return dest.write_str("none")
+                    }
+
+                    let mut first = true;
+                    for containment in vec {
+                        if !first {
+                            try!(dest.write_str(" "));
+                        }
+                        first = false;
+                        try!(containment.to_css(dest))
+                    }
+                    Ok(())
+                },
+            }
+        }
+    }
+
+    impl ToCss for SpecifiedContainment {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedContainment::Strict => dest.write_str("strict"),
+                SpecifiedContainment::Content => dest.write_str("content"),
+                SpecifiedContainment::Size => dest.write_str("size"),
+                SpecifiedContainment::Layout => dest.write_str("layout"),
+                SpecifiedContainment::Style => dest.write_str("style"),
+                SpecifiedContainment::Paint => dest.write_str("paint"),
+            }
+        }
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            if self.0.is_empty() {
+                return dest.write_str("none")
+            }
+
+            let mut first = true;
+            for containment in &self.0 {
+                if !first {
+                    try!(dest.write_str(" "));
+                }
+                first = false;
+                try!(containment.to_css(dest))
+            }
+            Ok(())
+        }
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        computed_value::T(None)
+    }
+
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+            if self.0.is_empty() {
+                return computed_value::T(None)
+            }
+
+            let mut result = Vec::new();
+            for containment in &self.0 {
+                match *containment {
+                    SpecifiedContainment::Strict => {
+                        result.push(ComputedContainment::Size);
+                        result.push(ComputedContainment::Layout);
+                        result.push(ComputedContainment::Style);
+                        result.push(ComputedContainment::Paint);
+                    },
+                    SpecifiedContainment::Content => {
+                        result.push(ComputedContainment::Layout);
+                        result.push(ComputedContainment::Style);
+                        result.push(ComputedContainment::Paint);
+                    },
+                    SpecifiedContainment::Size => result.push(ComputedContainment::Size),
+                    SpecifiedContainment::Layout => result.push(ComputedContainment::Layout),
+                    SpecifiedContainment::Style => result.push(ComputedContainment::Style),
+                    SpecifiedContainment::Paint => result.push(ComputedContainment::Paint),
+                }
+            }
+
+            computed_value::T(Some(result))
+        }
+        #[inline]
+        fn from_computed_value(computed: &computed_value::T) -> Self {
+            SpecifiedValue(computed.0.as_ref().map(|computed| {
+                let mut result = vec!();
+                for containment in computed {
+                    match *containment {
+                        ComputedContainment::Size => result.push(SpecifiedContainment::Size),
+                        ComputedContainment::Layout => result.push(SpecifiedContainment::Layout),
+                        ComputedContainment::Style => result.push(SpecifiedContainment::Style),
+                        ComputedContainment::Paint => result.push(SpecifiedContainment::Paint),
+                    };
+                }
+                result
+            }).unwrap_or(Vec::new()))
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        let mut result = Vec::new();
+
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(SpecifiedValue(Vec::new()))
+        } else if input.try(|input| input.expect_ident_matching("strict")).is_ok() {
+            result.push(SpecifiedContainment::Strict);
+            return Ok(SpecifiedValue(result))
+        } else if input.try(|input| input.expect_ident_matching("content")).is_ok() {
+            result.push(SpecifiedContainment::Content);
+            return Ok(SpecifiedValue(result));
+        }
+
+        loop {
+            let name = match input.expect_ident() {
+                Ok(name) => name,
+                Err(_) => break,
+            };
+            match_ignore_ascii_case! {
+                &name,
+                "size" => result.push(SpecifiedContainment::Size),
+                "layout" => result.push(SpecifiedContainment::Layout),
+                "style" => result.push(SpecifiedContainment::Style),
+                "paint" => result.push(SpecifiedContainment::Paint),
+                _ => return Err(())
+            }
+        }
+
+        if !result.is_empty() {
+            Ok(SpecifiedValue(result))
+        } else {
+            Err(())
+        }
+    }
+</%helpers:longhand>
+
 // Non-standard
 ${helpers.single_keyword("-moz-appearance",
                          """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up

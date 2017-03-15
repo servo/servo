@@ -1,0 +1,25 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use cssparser::Parser;
+use media_queries::CSSErrorReporterTest;
+use style::parser::ParserContext;
+use style::stylesheets::Origin;
+
+#[test]
+fn contain_longhand_should_parse_correctly() {
+    use style::properties::longhands::contain;
+    use style::properties::longhands::contain::SpecifiedContainment;
+    use style::properties::longhands::contain::SpecifiedValue;
+
+    let none = parse_longhand!(contain, "none");
+    assert_eq!(none, SpecifiedValue(Vec::new()));
+
+    let strict = parse_longhand!(contain, "strict");
+    assert_eq!(strict, SpecifiedValue(vec![SpecifiedContainment::Strict]));
+
+    let style_paint = parse_longhand!(contain, "style paint");
+    assert_eq!(style_paint,
+               SpecifiedValue(vec![SpecifiedContainment::Style, SpecifiedContainment::Paint]));
+}
