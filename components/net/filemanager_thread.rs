@@ -558,8 +558,8 @@ impl FileManagerStore {
 
 fn select_files_pref_enabled() -> bool {
     PREFS.get("dom.testing.htmlinputelement.select_files.enabled")
-         .as_boolean().unwrap_or(false) &&
-         !opts::get().headless
+         .as_boolean().unwrap_or(false) ||
+         opts::get().headless
 }
 
 const CHUNK_SIZE: usize = 8192;
