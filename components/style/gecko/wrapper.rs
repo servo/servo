@@ -49,7 +49,7 @@ use properties::PropertyDeclarationBlock;
 use rule_tree::CascadeLevel as ServoCascadeLevel;
 use selector_parser::{ElementExt, Snapshot};
 use selectors::Element;
-use selectors::matching::ElementSelectorFlags;
+use selectors::matching::{ElementSelectorFlags, matches};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use servo_url::ServoUrl;
 use sink::Push;
@@ -661,7 +661,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozTableBorderNonzero |
             NonTSPseudoClass::MozBrowserFrame => unsafe {
                 Gecko_MatchesElement(pseudo_class.to_gecko_pseudoclasstype().unwrap(), self.0)
-            }
+            },
+            NonTSPseudoClass::MozAny(ref selectors) => matches(&selectors.0, self, None),
         }
     }
 

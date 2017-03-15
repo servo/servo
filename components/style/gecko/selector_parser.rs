@@ -4,13 +4,13 @@
 
 //! Gecko-specific bits for selector-parsing.
 
-use cssparser::ToCss;
+use cssparser::{ToCss, Parser as CssParser};
 use element_state::ElementState;
 use gecko_bindings::structs::CSSPseudoClassType;
 use gecko_bindings::structs::nsIAtom;
 use selector_parser::{SelectorParser, PseudoElementCascadeType};
 use selector_parser::{attr_equals_selector_is_shareable, attr_exists_selector_is_shareable};
-use selectors::parser::AttrSelector;
+use selectors::parser::{AttrSelector, Combinator, Selector, SelectorList};
 use std::borrow::Cow;
 use std::fmt;
 use std::ptr;
@@ -147,6 +147,8 @@ macro_rules! pseudo_class_list {
                 #[doc = $css]
                 $name,
             )*
+            /// The non-standard `:-moz-any` pseudo-class.
+            MozAny(SelectorList<SelectorImpl>),
         }
     }
 }
@@ -157,11 +159,16 @@ impl ToCss for NonTSPseudoClass {
         macro_rules! pseudo_class_list {
             ($(($css:expr, $name:ident, $_gecko_type:tt, $_state:tt, $_flags:tt),)*) => {
                 match *self {
-                    $(NonTSPseudoClass::$name => concat!(":", $css),)*
+                    $(NonTSPseudoClass::$name => dest.write_str(concat!(":", $css)),)*
+                    NonTSPseudoClass::MozAny(ref selector_list) => {
+                        dest.write_str(":-moz-any(")?;
+                        selector_list.to_css(dest)?;
+                        dest.write_str(")")
+                    }
                 }
             }
         }
-        dest.write_str(include!("non_ts_pseudo_class_list.rs"))
+        include!("non_ts_pseudo_class_list.rs")
     }
 }
 
@@ -177,6 +184,7 @@ impl NonTSPseudoClass {
             ($(($_css:expr, $name:ident, $_gecko_type:tt, $_state:tt, $flags:tt),)*) => {
                 match *self {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
+                    NonTSPseudoClass::MozAny(_) => false,
                 }
             }
         }
@@ -193,6 +201,7 @@ impl NonTSPseudoClass {
             ($(($_css:expr, $name:ident, $_gecko_type:tt, $state:tt, $_flags:tt),)*) => {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
+                    NonTSPseudoClass::MozAny(_) => flag!(_),
                 }
             }
         }
@@ -210,6 +219,7 @@ impl NonTSPseudoClass {
             ($(($_css:expr, $name:ident, $gecko_type:tt, $_state:tt, $_flags:tt),)*) => {
                 match *self {
                     $(NonTSPseudoClass::$name => gecko_type!($gecko_type),)*
+                    NonTSPseudoClass::MozAny(_) => gecko_type!(any),
                 }
             }
         }
@@ -218,7 +228,7 @@ impl NonTSPseudoClass {
 }
 
 /// The dummy struct we use to implement our selector parsing.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SelectorImpl;
 
 impl ::selectors::SelectorImpl for SelectorImpl {
@@ -261,6 +271,24 @@ impl<'a> ::selectors::Parser for SelectorParser<'a> {
             Ok(pseudo_class)
         } else {
             Err(())
+        }
+    }
+
+    fn parse_non_ts_functional_pseudo_class(&self, name: Cow<str>, parser: &mut CssParser)
+                                            -> Result<NonTSPseudoClass, ()> {
+        match_ignore_ascii_case! { &name,
+            "-moz-any" => {
+                // https://developer.mozilla.org/en-US/docs/Web/CSS/:any
+                // The selectors may not contain pseudo-elements and the only combinator allowed is
+                // the descendant combinator.
+                let selectors = SelectorList::parse(self, parser)?;
+                if selectors.0.iter().any(|s| s.pseudo_element.is_some() ||
+                                              has_non_descendant_combinator(s)) {
+                    return Err(())
+                }
+                Ok(NonTSPseudoClass::MozAny(selectors))
+            }
+            _ => Err(())
         }
     }
 
@@ -328,4 +356,16 @@ impl SelectorImpl {
     pub fn pseudo_class_state_flag(pc: &NonTSPseudoClass) -> ElementState {
         pc.state_flag()
     }
+}
+
+/// Does the selector contains any combinator other than Descendant?
+fn has_non_descendant_combinator(selector: &Selector<SelectorImpl>) -> bool {
+    let mut i = &selector.complex_selector;
+    while let Some((ref next, combinator)) = i.next {
+        if combinator != Combinator::Descendant {
+            return true
+        }
+        i = next
+    }
+    false
 }

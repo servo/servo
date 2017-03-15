@@ -120,7 +120,7 @@ pub trait Parser {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 pub struct SelectorList<Impl: SelectorImpl>(pub Vec<Selector<Impl>>);
 
 impl<Impl: SelectorImpl> SelectorList<Impl> {
@@ -135,7 +135,7 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct Selector<Impl: SelectorImpl> {
     pub complex_selector: Arc<ComplexSelector<Impl>>,
     pub pseudo_element: Option<Impl::PseudoElement>,
