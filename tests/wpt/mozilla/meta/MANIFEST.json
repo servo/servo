@@ -9378,6 +9378,16 @@
      {}
     ]
    ],
+   "mozilla/cross-origin-objects/cross-origin-postMessage-child1.html": [
+    [
+     {}
+    ]
+   ],
+   "mozilla/cross-origin-objects/cross-origin-postMessage-child2.html": [
+    [
+     {}
+    ]
+   ],
    "mozilla/details_ui_closed_ref.html": [
     [
      {}
@@ -12530,6 +12540,12 @@
      {
       "timeout": "long"
      }
+    ]
+   ],
+   "mozilla/cross-origin-objects/cross-origin-postMessage.html": [
+    [
+     "/_mozilla/mozilla/cross-origin-objects/cross-origin-postMessage.html",
+     {}
     ]
    ],
    "mozilla/deterministic-raf.html": [
@@ -25099,6 +25115,18 @@
   ],
   "mozilla/cross-origin-objects/cross-origin-objects.html": [
    "5d5a3ba4099dfabddbed1ea98ad8fe1f5c00a3d3",
+   "testharness"
+  ],
+  "mozilla/cross-origin-objects/cross-origin-postMessage-child1.html": [
+   "6669b133609e17e368a124ddfc52ace940e74156",
+   "support"
+  ],
+  "mozilla/cross-origin-objects/cross-origin-postMessage-child2.html": [
+   "a37cd21178fd25a829be30b0367bd0812db4c211",
+   "support"
+  ],
+  "mozilla/cross-origin-objects/cross-origin-postMessage.html": [
+   "0163758c92997c6723c9d21be49ef7f51d8b3daf",
    "testharness"
   ],
   "mozilla/details_ui_closed.html": [

@@ -108,7 +108,7 @@ use servo_config::opts;
 use servo_config::prefs::PREFS;
 use servo_rand::{Rng, SeedableRng, ServoRng, random};
 use servo_remutex::ReentrantMutex;
-use servo_url::{Host, ServoUrl};
+use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::collections::{HashMap, VecDeque};
 use std::iter::once;
@@ -980,6 +980,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     warn!("constellation got set final url message for dead pipeline");
                 }
             }
+            FromScriptMsg::PostMessage(frame_id, origin, data) => {
+                debug!("constellation got postMessage message");
+                self.handle_post_message_msg(frame_id, origin, data);
+            }
             FromScriptMsg::MozBrowserEvent(parent_pipeline_id, pipeline_id, event) => {
                 debug!("constellation got mozbrowser event message");
                 self.handle_mozbrowser_event_msg(parent_pipeline_id,
@@ -1789,6 +1793,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let result = match self.pipelines.get(&pipeline_id) {
             None => return self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, None)),
             Some(pipeline) => pipeline.event_loop.send(ConstellationControlMsg::GetTitle(pipeline_id)),
+        };
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
+        }
+    }
+
+    fn handle_post_message_msg(&mut self, frame_id: FrameId, origin: Option<ImmutableOrigin>, data: Vec<u8>) {
+        let pipeline_id = match self.frames.get(&frame_id) {
+            None => return warn!("postMessage to closed frame {}.", frame_id),
+            Some(frame) => frame.pipeline_id,
+        };
+        let msg = ConstellationControlMsg::PostMessage(pipeline_id, origin, data);
+        let result = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline.event_loop.send(msg),
+            None => return warn!("postMessage to closed pipeline {}.", pipeline_id),
         };
         if let Err(e) = result {
             self.handle_send_error(pipeline_id, e);

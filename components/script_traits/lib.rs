@@ -63,6 +63,7 @@ use net_traits::storage_thread::StorageType;
 use profile_traits::mem;
 use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
@@ -239,6 +240,8 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread that a url should be loaded in this iframe.
     /// PipelineId is for the parent, FrameId is for the actual frame.
     Navigate(PipelineId, FrameId, LoadData, bool),
+    /// Post a message to a given window.
+    PostMessage(PipelineId, Option<ImmutableOrigin>, Vec<u8>),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns,
     /// or to the window if no child frame id is provided.
     MozBrowserEvent(PipelineId, Option<FrameId>, MozBrowserEvent),
@@ -297,6 +300,7 @@ impl fmt::Debug for ConstellationControlMsg {
             ChangeFrameVisibilityStatus(..) => "ChangeFrameVisibilityStatus",
             NotifyVisibilityChange(..) => "NotifyVisibilityChange",
             Navigate(..) => "Navigate",
+            PostMessage(..) => "PostMessage",
             MozBrowserEvent(..) => "MozBrowserEvent",
             UpdatePipelineId(..) => "UpdatePipelineId",
             FocusIFrame(..) => "FocusIFrame",
